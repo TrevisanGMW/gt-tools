@@ -63,31 +63,41 @@ def mainDialog():
 
         getcontext().prec = 5
 
-        shape = cmds.listRelatives(cmds.ls(sl=1)[0],s=1)[0]
-        cvs = cmds.getAttr(shape+'.cv[*]')
-        cvsList = []
-        for c in cvs:
-            cvsList.append([float(Decimal("%.3f" % c[0])),float(Decimal("%.3f" % c[1])),float(Decimal("%.3f" % c[2]))])
 
-        if cmds.checkBoxGrp (settings, q=True, value1=True):
-            out = 'import maya.cmds as cmds\n\ncmds.curve(p='
-        else:
-            out = 'cmds.curve(p='
+        shape = cmds.listRelatives(cmds.ls(sl=1)[0],s=1)[0]
+        typeChecker = str(cmds.objectType(shape))
+
+        if "nurbsCurve" in typeChecker or "bezierCurve" in typeChecker:
+
+            cvs = cmds.getAttr(shape+'.cv[*]')
+            cvsList = []
+            for c in cvs:
+                cvsList.append([float(Decimal("%.3f" % c[0])),float(Decimal("%.3f" % c[1])),float(Decimal("%.3f" % c[2]))])
+
+            if cmds.checkBoxGrp (settings, q=True, value1=True):
+                out = 'import maya.cmds as cmds\n\ncmds.curve(p='
+            else:
+                out = 'cmds.curve(p='
+                
+            out += '[%s]' % ', '.join(map(str, cvsList))
+            out += ',d='+str(cmds.getAttr(shape+'.degree'))+')'
             
-        out += '[%s]' % ', '.join(map(str, cvsList))
-        out += ',d='+str(cmds.getAttr(shape+'.degree'))+')'
-        
-        if cmds.checkBoxGrp (settings, q=True, value2=True):
-            out += '\n\ncmds.closeCurve(ch=False, ps=False, rpo=True)'
+            if cmds.checkBoxGrp (settings, q=True, value2=True):
+                out += '\n\ncmds.closeCurve(ch=False, ps=False, rpo=True)'
+            else:
+                pass
+            
+            print ("#" * 100)
+            print out
+            print ("#" * 100)
+            
+            cmds.scrollField(outputPython, edit=True, wordWrap=True, text=out ,sl=True)
+            cmds.setFocus(outputPython)
         else:
-            pass
-        
-        print ("#" * 100)
-        print out
-        print ("#" * 100)
-        
-        cmds.scrollField(outputPython, edit=True, wordWrap=True, text=out ,sl=True)
-        cmds.setFocus(outputPython)
+            notCurve = "Please make sure you selected a Nurbs Curve or a Bezier Curve object before generating it"
+            print(notCurve)
+            cmds.scrollField(outputPython, edit=True, wordWrap=True, text=notCurve ,sl=True)
+            cmds.setFocus(outputPython)
 
     cmds.showWindow(crMainDialog)
     # mainDialog Ends Here =================================================================================
