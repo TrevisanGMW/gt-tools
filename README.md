@@ -1,4 +1,4 @@
-# Maya-Scripts
+# Maya Scripts
 Some useful scripts for Maya written in MEL and Python language.
 
 ## Organization
