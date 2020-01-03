@@ -5,17 +5,21 @@ import maya.cmds as cmds
 # Last update - 2019-01-03
 
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.1"
 
 # Default Settings
 mimicHierarchy = True
 constraintJoint = True
+autoColorCtrls = True
+defaultRemoveTag = True
 defaultCurve = "cmds.circle(name=joint_name + 'Ctrl', normal=[1,0,0], radius=1.5, ch=False)"
+jointTagLengthDefault = 3
 
 # Custom Curve Dictionary
-customCurveDictionary = { 'usingCustomCurve': False, 
+settings = { 'usingCustomCurve': False, 
              'customCurve': defaultCurve,
-             'failedToBuildCurve': False
+             'failedToBuildCurve': False,
+             'jointTagLength' : jointTagLengthDefault,
             }
 
 
@@ -26,8 +30,8 @@ def autoFKMainDialog():
 
     # mainDialog Start Here =================================================================================
 
-    autoFKMainDialog = cmds.window("autoFKMainDialog", title="Auto FK - " + scriptVersion, widthHeight=(480,250),\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =True)
+    autoFKMainDialog = cmds.window("autoFKMainDialog", title="Auto FK - " + scriptVersion,\
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
 
@@ -47,15 +51,20 @@ def autoFKMainDialog():
     cmds.text("3. Generate Controls")
     cmds.text("   ")
     cmds.separator(h=10, p=contentMain)
-    interactiveContainer = cmds.rowColumnLayout( numberOfRows=1, h= 25)
+    checkBoxesOneContainer = cmds.rowColumnLayout( numberOfRows=1, h= 25)
     cmds.text("      ")
-    settings = cmds.checkBoxGrp(p=interactiveContainer, columnWidth2=[120, 1], numberOfCheckBoxes=2, \
-                                label1 = 'Mimic Hierarchy', label2 = "Constraint Joint    ", v1 = mimicHierarchy, v2 = constraintJoint)   
+    checkBoxesOne = cmds.checkBoxGrp(p=checkBoxesOneContainer, columnWidth2=[120, 1], numberOfCheckBoxes=2, \
+                                label1 = 'Mimic Hierarchy', label2 = "Constraint Joint    ", v1 = mimicHierarchy, v2 = constraintJoint) 
+    checkBoxesTwoContainer = cmds.rowColumnLayout( numberOfRows=1, h= 25,p=contentMain)
+    cmds.text("      ")
+    checkBoxesTwo = cmds.checkBoxGrp(p=checkBoxesTwoContainer, columnWidth2=[120, 1], numberOfCheckBoxes=2, \
+                                label1 = 'Colorize Controls', label2 = "Remove Jnt Tag  ", v1 = autoColorCtrls, v2 = defaultRemoveTag)
     cmds.button(p=contentMain, l ="(Advanced) Custom Curve", c=lambda x:defineCustomCurve())
+    cmds.button(p=contentMain, l ="(Advanced) Change Joint Tag Length", c=lambda x:changeJntTagLength())
     cmds.separator(h=10, p=contentMain)
     cmds.text(p=contentMain, label='Ignore Joints Containing These Strings:' )
     cmds.separator(h=5, p=contentMain)
-    undesiredStringsTextField = cmds.textField(p = contentMain, text="End, eye")
+    undesiredStringsTextField = cmds.textField(p = contentMain, text="End, eye", enterCommand=lambda x:generateFKControls())
     cmds.text(p=contentMain, label='(Use Commas to Separate Strings)' )
     cmds.separator(h=10, p=contentMain)
     cmds.button(p=contentMain, l ="Generate", bgc=(.6, .8, .6), c=lambda x:generateFKControls())
@@ -80,15 +89,20 @@ def autoFKMainDialog():
 
         
         for jnt in selectedJoints:
-            joint_name = jnt[:-3]
+            if cmds.checkBoxGrp(checkBoxesTwo, q=True, value2=True) and settings.get("jointTagLength") != 0:
+                joint_name = jnt[:-settings.get("jointTagLength")]
+                print("1")
+            else:
+                joint_name = jnt
+                print("2")
             ctrlName = joint_name + 'Ctrl'
 
 
-            if customCurveDictionary.get("usingCustomCurve"):
-                ctrl = createCustomCurve(customCurveDictionary.get("customCurve"))
+            if settings.get("usingCustomCurve"):
+                ctrl = createCustomCurve(settings.get("customCurve"))
                 print(ctrl)
                 ctrl = cmds.rename(ctrl, ctrlName)
-                if customCurveDictionary.get("failedToBuildCurve"):
+                if settings.get("failedToBuildCurve"):
                     ctrl = cmds.circle(name=ctrlName, normal=[1,0,0], radius=1.5, ch=False)
             else:
                 ctrl = cmds.circle(name=ctrlName, normal=[1,0,0], radius=1.5, ch=False)
@@ -98,10 +112,27 @@ def autoFKMainDialog():
             constraint = cmds.parentConstraint(jnt,grp)
             cmds.delete(constraint)
             
-            if cmds.checkBoxGrp(settings, q=True, value2=True):
+            
+            # Colorize Control Start ------------------
+
+            if cmds.checkBoxGrp(checkBoxesTwo, q=True, value1=True):
+                cmds.setAttr(ctrl[0] + ".overrideEnabled", 1)
+                if 'right_' in ctrl[0]:
+                    cmds.setAttr(ctrl[0] + ".overrideColor", 13) #Red
+                elif 'left_' in ctrl[0]:
+                    cmds.setAttr(ctrl[0] + ".overrideColor", 6) #Blue
+                else:
+                    cmds.setAttr(ctrl[0] + ".overrideColor", 17) #Yellow
+            else:
+                pass
+            
+            # Colorize Control End ---------------------
+            
+            
+            if cmds.checkBoxGrp(checkBoxesOne, q=True, value2=True):
                 cmds.parentConstraint(ctrlName,jnt)
             
-            if cmds.checkBoxGrp(settings, q=True, value1=True):
+            if cmds.checkBoxGrp(checkBoxesOne, q=True, value1=True):
                 #Auto parents new controls
                 # "or []" Accounts for root joint that doesn't have a parent, it forces it to be a list
                 jntParent = cmds.listRelatives(jnt, allParents=True) or []
@@ -144,11 +175,11 @@ def defineCustomCurve():
                     dismissString='Use Default')
 
     if result == 'OK':
-        customCurveDictionary["customCurve"] = cmds.promptDialog(query=True, text=True)
-        customCurveDictionary["usingCustomCurve"] = True
-        customCurveDictionary["failedToBuildCurve"] = False
+        settings["customCurve"] = cmds.promptDialog(query=True, text=True)
+        settings["usingCustomCurve"] = True
+        settings["failedToBuildCurve"] = False
     else:
-        customCurveDictionary["usingCustomCurve"] = False
+        settings["usingCustomCurve"] = False
 
 # Force Run Nested Exec
 def createCustomCurve(input):
@@ -157,7 +188,25 @@ def createCustomCurve(input):
         return cmds.ls(selection=True)
     except:
         cmds.error("Something is wrong with your python curve!")
-        customCurveDictionary["failedToBuildCurve"] = True
+        settings["failedToBuildCurve"] = True
+        
+# Define Custom Curve by updating a dictonary
+def changeJntTagLength():
+    result = cmds.promptDialog(
+                    title='Py Curve',
+                    message='New Jnt Tag Legth:',
+                    button=['Change','Use Default (3)'],
+                    defaultButton='OK',
+                    cancelButton='Use Default',
+                    dismissString='Use Default')
+
+    if result == 'Change':
+        try:
+            settings["jointTagLength"] = int(cmds.promptDialog(query=True, text=True))
+        except:
+            cmds.warning("You entered an invalid option. Using Default (3)")
+    else:
+        settings["jointTagLength"] = jointTagLengthDefault
 
 
 #Start current "Main"
