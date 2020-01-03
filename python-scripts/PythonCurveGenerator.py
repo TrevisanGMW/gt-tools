@@ -28,7 +28,7 @@ def mainDialog():
     # mainDialog Start Here =================================================================================
 
     crMainDialog = cmds.window("mainDialog", title="Py C Gen - " + scriptVersion, widthHeight=(480,250),\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =True)
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
 
