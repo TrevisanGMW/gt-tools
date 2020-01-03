@@ -1,0 +1,1103 @@
+global proc shelf_Rigging1 () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Select all the children of the current selection" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Hierarchy" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Hier" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "menuIconSelect.png" 
+        -image1 "menuIconSelect.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "SelectHierarchy" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Customize the joint scale" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Joint Size..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "JScale" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "menuIconDisplay.png" 
+        -image1 "menuIconDisplay.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "jdsWin" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Toggle local rotation axis visibility" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Local Rotation Axes" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "LRA" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "menuIconDisplay.png" 
+        -image1 "menuIconDisplay.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "ToggleLocalRotationAxes" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Check Skeleton Assignment" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Skeleton Checker" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "cJnt" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "# Assignment 1 - Rig Skeleton Check - v01.1\nimport maya.cmds as cmds\n\n\ndef main():\n    mark = 0\n    root = []\n    # name_mark = 25\n    # parenting_mark = 10\n    # orients_mark = 30\n    # transforms_mark = 5\n    # placement_mark = 25\n    # scene_mark = 5\n\n    name_mark = 0\n    parenting_mark = 0\n    orients_mark = 0\n    transforms_mark = 0\n    placement_mark = 0\n    scene_mark = 0\n    deductions = 0\n    \n    placement_mark_division = 0.353\n    orients_mark_division = 0.355\n    transforms_mark_division = 0.071\n    parenting_mark_division = 0.141\n    name_mark_division = 0.3522\n    \n    checkPos = {'headEndJnt': [0.0, 149.627, 0.668539302549], \\\n                'headJnt': [0.0, 120.015257626, -0.639659610777], \\\n                'jawEndJnt': [0.0, 116.236452934, 13.6109303846], \\\n                'jawJnt': [0.0, 126.167495596, 0.348183087647], \\\n                'left_ankleJnt': [7.0123406744, 4.86555330952, -2.79820729391], \\\n                'left_ballJnt': [6.958, 0.056, 3.4], \\\n                'left_clavicleJnt': [1.99819553729, 106.182093768, 4.33649659673], \\\n                'left_elbowJnt': [22.068, 89.436, -4.228], \\\n                'left_eyeJnt': [6.43210369349, 129.206703186, 8.14929789305], \\\n                'left_hipJnt': [7.0123406744, 67.9592303246, -1.51017675398], \\\n                'left_index1Jnt': [36.9358118715, 65.9390942712, 2.79654683133], \\\n                'left_index2Jnt': [38.2771633644, 63.2194228843, 3.71898456919], \\\n                'left_index3Jnt': [38.661564528, 61.5304646092, 4.12551802376], \\\n                'left_indexEndJnt': [38.7522360987, 60.0286719031, 4.47728607869], \\\n                'left_kneeJnt': [7.0123406744, 36.8033011581, 0.0795756394473], \\\n                'left_middle1Jnt': [37.9307463496, 65.8299701415, 1.54959082013], \\\n                'left_middle2Jnt': [38.7690353438, 62.681506381, 2.27610790846], \\\n                'left_middle3Jnt': [39.0054656954, 60.6694057821, 2.68708099936], \\\n                'left_middleEndJnt': [38.9414521895, 59.1075947384, 2.95970994586], \\\n                'left_pinky1Jnt': [37.3551393862, 65.5599821692, -1.25996026201], \\\n                'left_pinky2Jnt': [37.9827198168, 62.814317734, -1.00771080677], \\\n                'left_pinky3Jnt': [37.9362171314, 61.4300044519, -0.889283355574], \\\n                'left_pinkyEndJnt': [37.8184834472, 60.3680630906, -0.802542448691], \\\n                'left_ring1Jnt': [37.6885763314, 65.68324954, 0.0229446386359], \\\n                'left_ring2Jnt': [38.4179729513, 62.4753505534, 0.589287495165], \\\n                'left_ring3Jnt': [38.5253316541, 60.632464935, 0.873300648774], \\\n                'left_ringEndJnt': [38.4986920063, 59.1844513526, 1.07851490242], \\\n                'left_shoulderJnt': [11.0031830733, 105.341662531, 0.477419333912], \\\n                'left_thumb1Jnt': [33.9591622097, 68.9890666496, 1.61462823792], \\\n                'left_thumb2Jnt': [34.0388565884, 67.3726171241, 2.89815868748], \\\n                'left_thumb3Jnt': [34.1500088529, 65.4871552069, 4.38099207377], \\\n                'left_thumbEndJnt': [33.8280998265, 64.247060114, 6.548938852], \\\n                'left_toeEndJnt': [7.0123406744, 0.577092467654, 9.954320999], \\\n                'left_wristJnt': [34.495, 70.633, -0.164], \\\n                'neck1Jnt': [0.0, 111.421, 1.214], \\\n                'neck2Jnt': [0.0, 115.006130224, 0.297299471595], \\\n                'right_ankleJnt': [-7.01234, 4.86555, -2.79821], \\\n                'right_ballJnt': [-7.01234, 1.02851, 4.53732], \\\n                'right_clavicleJnt': [-1.9982, 106.182, 4.3365], \\\n                'right_elbowJnt': [-22.4758, 89.4607, -3.50156], \\\n                'right_eyeJnt': [-6.4321, 129.207, 8.1493], \\\n                'right_hipJnt': [-7.01234, 67.9592, -1.51018], \\\n                'right_index1Jnt': [-36.9358, 65.9391, 2.79655], \\\n                'right_index2Jnt': [-38.2772, 63.2194, 3.71898], \\\n                'right_index3Jnt': [-38.6616, 61.5305, 4.12552], \\\n                'right_indexEndJnt': [-38.7522, 60.0287, 4.47729], \\\n                'right_kneeJnt': [-7.01234, 36.8033, 0.0795756], \\\n                'right_middle1Jnt': [-37.9307, 65.83, 1.54959], \\\n                'right_middle2Jnt': [-38.769, 62.6815, 2.27611], \\\n                'right_middle3Jnt': [-39.0055, 60.6694, 2.68708], \\\n                'right_middleEndJnt': [-38.9415, 59.1076, 2.95971], \\\n                'right_pinky1Jnt': [-37.3551, 65.56, -1.25996], \\\n                'right_pinky2Jnt': [-37.9827, 62.8143, -1.00771], \\\n                'right_pinky3Jnt': [-37.9362, 61.43, -0.889283], \\\n                'right_pinkyEndJnt': [-37.8185, 60.3681, -0.802542], \\\n                'right_ring1Jnt': [-37.6886, 65.6832, 0.0229446], \\\n                'right_ring2Jnt': [-38.418, 62.4754, 0.589287], \\\n                'right_ring3Jnt': [-38.5253, 60.6325, 0.873301], \\\n                'right_ringEndJnt': [-38.4987, 59.1845, 1.07851], \\\n                'right_shoulderJnt': [-11.0032, 105.342, 0.477419], \\\n                'right_thumb1Jnt': [-33.9592, 68.9891, 1.61463], \\\n                'right_thumb2Jnt': [-34.0389, 67.3726, 2.89816], \\\n                'right_thumb3Jnt': [-34.15, 65.4872, 4.38099], \\\n                'right_thumbEndJnt': [-33.8281, 64.2471, 6.54894], \\\n                'right_toeEndJnt': [-7.01234, 0.577092, 9.95432], \\\n                'right_wristJnt': [-34.626, 70.0684, 0.0809637], \\\n                'rootJnt': [0.0, 69.5529866698, -0.765198021547], \\\n                'spine1Jnt': [0.0, 77.2626710745, 2.34698601378], \\\n                'spine2Jnt': [0.0, 85.6171219688, 4.20944831972], \\\n                'spine3Jnt': [0.0, 89.744, 6.318], \\\n                'spine4Jnt': [0.0, 95.128, 5.423]}\n\n    joint_names = ['rootJnt', 'spine1Jnt', 'spine2Jnt', 'spine3Jnt', 'spine4Jnt', \\\n                   'neck1Jnt', 'neck2Jnt', 'headJnt', 'headEndJnt', 'jawJnt', 'jawEndJnt', \\\n                   'left_eyeJnt', 'right_eyeJnt', 'left_clavicleJnt', 'left_shoulderJnt', \\\n                   'left_elbowJnt', 'left_wristJnt', 'left_thumb1Jnt', \\\n                   'left_thumb2Jnt', 'left_thumb3Jnt', 'left_thumbEndJnt', 'left_index1Jnt', \\\n                   'left_index2Jnt', 'left_index3Jnt', 'left_indexEndJnt', 'left_middle1Jnt', \\\n                   'left_middle2Jnt', 'left_middle3Jnt', 'left_middleEndJnt', 'left_ring1Jnt', \\\n                   'left_ring2Jnt', 'left_ring3Jnt', 'left_ringEndJnt', 'left_pinky1Jnt', \\\n                   'left_pinky2Jnt', 'left_pinky3Jnt', 'left_pinkyEndJnt', 'right_clavicleJnt', \\\n                   'right_shoulderJnt', 'right_elbowJnt', 'right_wristJnt', \\\n                   'right_thumb1Jnt', 'right_thumb2Jnt', 'right_thumb3Jnt', 'right_thumbEndJnt', \\\n                   'right_index1Jnt', 'right_index2Jnt', 'right_index3Jnt', 'right_indexEndJnt', \\\n                   'right_middle1Jnt', 'right_middle2Jnt', 'right_middle3Jnt', 'right_middleEndJnt', \\\n                   'right_ring1Jnt', 'right_ring2Jnt', 'right_ring3Jnt', 'right_ringEndJnt', \\\n                   'right_pinky1Jnt', 'right_pinky2Jnt', 'right_pinky3Jnt', 'right_pinkyEndJnt', \\\n                   'left_hipJnt', 'left_kneeJnt', 'left_ankleJnt', 'left_ballJnt', 'left_toeEndJnt', \\\n                   'right_hipJnt', 'right_kneeJnt', 'right_ankleJnt', 'right_ballJnt', 'right_toeEndJnt']\n\n    joints = cmds.ls(type='joint')\n    print 'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv'\n    print 'vvvvvvvvvvvvvvvvvvvvvvvvvvvv Skeleton Issues vvvvvvvvvvvvvvvvvvvvvvvvvvvvv'\n    print 'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\\n'\n\n    # check file type\n    fileType = cmds.file(query=True, type=1)\n    if fileType[0] != 'mayaAscii':\n        cmds.warning('Your file must be saved as a \".ma\"')\n    else:\n        scene_mark += 1\n\n    # check number of joints\n    if len(joints) != 71:\n        cmds.warning('Your skeleton has ' + str(len(joints)) + '. It should have 71 joints.')\n        if len(joints) > 71:\n            deductions = (abs(len(joints) - 71) * 5)\n\n    # check to see what joints are missing\n    for jnt in joint_names:\n        if not cmds.objExists(jnt):\n            cmds.warning('Your skeleton does not have a joint named \"' + jnt + '\".')\n            # mark -= (5)\n\n    for jnt in joints:\n        # check names\n        # name_mark = 25\n        if jnt not in joint_names:\n            # check name\n            cmds.warning('\"' + jnt + '\" is not a proper name.')\n            # name_mark -= 1\n        else:\n            name_mark += name_mark_division\n\n            # check orientations\n            # orients_mark = 30\n            parents = []\n            orient_deduction = []\n            if cmds.listRelatives(jnt, c=True, type='joint') or 'wrist' in jnt:\n                # print jnt\n                # check to make sure joints are oriented with a value that is consistent witht their parent\n                orientCheckJnts = ['spine', 'neck', 'headJnt', 'jawJnt', 'shoulder', 'elbow', \\\n                                   'wrist', 'thumb', 'index', 'middle', 'ring', 'pinky', 'knee', 'ankle',\n                                   'ball']\n                if any(j in jnt for j in orientCheckJnts) and 'thumb1' not in jnt:\n                    if cmds.listRelatives(jnt, children=True) or 'wrist' in jnt:\n                        jointOrients = cmds.getAttr((jnt + '.jointOrient'))\n                        # print jnt, jointOrients\n                        totalOrient = (abs(jointOrients[0][0]) + abs(jointOrients[0][1]) + abs(jointOrients[0][2]))\n                        if (totalOrient) > 150:\n                            cmds.warning('\"' + jnt + '\" or its parent has incorrect joint orients')\n                            parent_node = cmds.listRelatives(jnt, parent=True)\n                            if parent_node:\n                                parents.append(parent_node[0])\n                            orient_deduction.append(jnt)\n                        elif (totalOrient) > 110 and 'jawJnt' not in jnt:\n                            cmds.warning('\"' + jnt + '\" or its parent has incorrect joint orients')\n                            orient_deduction.append(jnt)\n                            if cmds.listRelatives(jnt, parent=True):\n                                parents.append(cmds.listRelatives(jnt, parent=True))\n\n                        elif (totalOrient) > 90 and 'jawJnt' not in jnt and 'shoulderJnt' not in jnt and 'index' not in jnt and 'middle' not in jnt and 'ring' not in jnt and 'pinky' not in jnt:\n                            cmds.warning('\"' + jnt + '\" or its parent has incorrect joint orients')\n                            orient_deduction.append(jnt)\n                            if cmds.listRelatives(jnt, parent=True):\n                                parents.append(cmds.listRelatives(jnt, parent=True))\n                        elif (\n                        totalOrient) > 60 and 'ankle' not in jnt and 'jawJnt' not in jnt and 'shoulderJnt' not in jnt and 'index' not in jnt and 'middle' not in jnt and 'ring' not in jnt and 'pinky' not in jnt:\n                            cmds.warning('\"' + jnt + '\" or its parent has incorrect joint orients')\n                            orient_deduction.append(jnt)\n                            if cmds.listRelatives(jnt, parent=True):\n                                parents.append(cmds.listRelatives(jnt, parent=True))\n                        elif (totalOrient) > 20 and 'wrist' in jnt:\n                            cmds.warning('\"' + jnt + '\" or its parent has incorrect joint orients')\n                            orient_deduction.append(jnt)\n                            if cmds.listRelatives(jnt, parent=True):\n                                parents.append(cmds.listRelatives(jnt, parent=True))\n                        else:\n                            orients_mark += orients_mark_division\n                # check to make sure joints have not been moved since their parent has oriented to them\n                orientCheck2Jnts = ['index2', 'index3', 'indexEndJnt', 'middle2', 'middle3', \\\n                                    'middleEnd', 'ring2', 'ring3', 'ringEnd', 'pinky2', 'pinky3', 'pinkyEnd', \\\n                                    'thumb2', 'thumb3', 'thumbEnd', 'elbow', 'shoulder', \\\n                                    'jawEnd', 'headJnt', 'headEnd', 'neck', 'ball', 'toe', 'ankle', 'knee', 'spine']\n                if any(j in jnt for j in orientCheck2Jnts):\n                    parentJoint = cmds.listRelatives(jnt, parent=True)\n                    if parentJoint and parentJoint[0] not in parents:\n                        # print 'check2', jnt\n                        if abs(cmds.getAttr(jnt + '.translateY')) > 0.05 or abs(\n                                cmds.getAttr(jnt + '.translateZ')) > 0.05:\n                            cmds.warning('\"' + jnt + '\" position is wrong or its parent has incorrect joint orients')\n                            # orients_mark -= 5\n                        elif jnt not in orient_deduction:\n                            orients_mark += orients_mark_division\n\n                orients_mark = orients_mark - (len(orient_deduction) * 2.5)\n                if orients_mark < 0:\n                    orients_mark = 0\n\n            # check frozen transforms\n            # transforms_mark = 5\n            rot = cmds.getAttr((jnt + '.rotate'))\n            scl = cmds.getAttr((jnt + '.scale'))\n            if (0.001 < rot[0][0] > 0.001) or (0.001 < rot[0][1] > 0.001) or (0.001 < rot[0][2] > 0.001):\n                cmds.warning('\"' + jnt + '\" has non-frozen rotations.')\n                # transforms_mark -= 2\n            elif (scl[0][0] != 1) or (scl[0][1] != 1) or (scl[0][2] != 1):\n                cmds.warning('\"' + jnt + '\" has non-frozen scales.')\n                # transforms_mark -= 2\n            else:\n                transforms_mark += transforms_mark_division\n\n            # check positions\n            # placement_mark = 25\n            targetPos = (checkPos.get(jnt))\n            pos = cmds.xform(jnt, q=True, rp=True, ws=True)\n            val = [a - b for a, b in zip(targetPos, pos)]\n            valTotal = abs(val[0]) + abs(val[1]) + abs(val[2])\n\n            smallPosCheck = ['thumb', 'index', 'middle', 'ring', 'pinky', 'eye']\n            midPosCheck = ['neck', 'headJnt', 'shoulder', 'elbow', 'wrist', 'knee', 'ankle', 'ball', 'toe']\n            # lrgPosCheck = ['root', 'spine', 'clavicle']\n            if any(j in jnt for j in smallPosCheck) and not any(j in \"1\" for j in smallPosCheck):\n                if valTotal > 4: ## Tolerance for above joints\n                    cmds.warning('\"' + jnt + '\" is not in the accurate position. Look at reference and adjust.')\n                    # placement_mark -= 2\n                else:\n                    placement_mark += placement_mark_division\n            elif any(j in jnt for j in smallPosCheck) or any(j in jnt for j in midPosCheck):\n                if valTotal > 4: ## Tolerance for above joints\n                    cmds.warning('\"' + jnt + '\" is not in the accurate position. Look at reference and adjust.')\n                    # placement_mark -= 2\n                else:\n                    placement_mark += placement_mark_division\n            elif valTotal > 4: ## Tolerance for above joints\n                cmds.warning('\"' + jnt + '\" is not in the accurate position. Look at reference and adjust.')\n                # placement_mark -= 2\n            else:\n                placement_mark += placement_mark_division\n\n        # check to make sure there is only one hierarchy\n        if not cmds.listRelatives(jnt, parent=True, type='joint'):\n            root.append(jnt)\n        # check parenting\n        # parenting_mark = 10\n        if jnt == 'rootJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 3:\n                cmds.warning('rootJnt should have three child joints: spine1Jnt, left_HipJnt, right_HipJnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'spine4Jnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 3:\n                cmds.warning('spine4Jnt should have three child joints: neck1Jnt, left_clavicleJnt, right_clavicleJnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'headJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 4:\n                cmds.warning('headJnt should have four child joints: jawJnt, headEndJnt, left_eyeJnt, right_eyeJnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'left_elbowJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 1:\n                cmds.warning('left_elbowJnt should have a child joint: left_wristJnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'right_elbowJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 1:\n                cmds.warning('right_elbowJnt should have a child joint: right_wristJnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'left_wristJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 5:\n                cmds.warning(\n                    'left_wristJnt should have five child joints: left_thumb1Jnt, left_index1Jnt, left_middle1Jnt, left_ring1Jnt, left_pinky1Jnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif jnt == 'right_wristJnt':\n            if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 5:\n                cmds.warning(\n                    'right_wristJnt should have five child joints: right_thumb1Jnt, right_index1Jnt, right_middle1Jnt, right_ring1Jnt, right_pinky1Jnt')\n            else:\n                parenting_mark += parenting_mark_division\n        elif \"EndJnt\" in jnt or \"eyeJnt\" in jnt:\n            if cmds.listRelatives(jnt, children=True):\n                cmds.warning(jnt + ' should not have any children')\n            else:\n                parenting_mark += parenting_mark_division\n        elif cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 1:\n            cmds.warning(jnt + ' should have only one children')\n        else:\n            parenting_mark += parenting_mark_division\n\n    # make sure joints are all under one hierarchy\n    # scene_mark = 5\n    if len(root) > 1:\n        cmds.warning('Your joints are not under one hierarchy.')\n        # scene_mark -= (len(root) * 5)\n    else:\n        scene_mark += 2\n\n    # make sure root joint isn't parented to anything\n    for j in root:\n        if cmds.listRelatives(j, p=True):\n            cmds.warning('Joints should not be parented to anything other than joints.')\n            # scene_mark -= (len(root) * 5)\n        else:\n            scene_mark += 2\n    '''\n    print 'name_mark:', name_mark,'/25'\n    print 'parenting_mark:', parenting_mark,'/10'\n    print 'orients_mark:', orients_mark,'/30'\n    print 'transforms_mark:', transforms_mark,'/5'\n    print 'placement_mark:', placement_mark,'/25'\n    print 'scene_mark:', scene_mark,'/5'\n    print 'deductions:', deductions\n    '''\n\n    # make sure mark is above max\n    if name_mark >= 25:\n        name_mark = 25\n    if parenting_mark >= 10:\n        parenting_mark = 10\n    if orients_mark >= 30:\n        orients_mark = 30\n    if transforms_mark >= 5:\n        transforms_mark = 5\n    if placement_mark >= 25:\n        placement_mark = 25\n    if scene_mark >= 5:\n        scene_mark = 5\n\n    print 'name_mark:', name_mark, '/25'\n    print 'parenting_mark:', parenting_mark, '/10'\n    print 'orients_mark:', orients_mark, '/30'\n    print 'transforms_mark:', transforms_mark, '/5'\n    print 'placement_mark:', placement_mark, '/25'\n    print 'scene_mark:', scene_mark, '/5'\n    print 'deductions:', deductions\n\n    final_mark = name_mark + parenting_mark + orients_mark + transforms_mark + placement_mark + scene_mark - deductions\n    if final_mark >= 100:\n        print '                          >     No Issues     <'\n        cmds.confirmDialog(title='Great! 100%', icon='information',\n                           message='Congratulations! Your rig is looking good so far!\\n\\nNote: This is not necessarily a final grade.')\n    else:\n        print '\\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n        print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Skeleton Issues ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n        print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n        cmds.warning('Your score so far is ' + str(final_mark) + '%. See script editor for a list of issues.')\n        cmds.confirmDialog(title=('Score: ' + str(final_mark)), icon='warning', message=('Your score so far is ' + str(\n            final_mark) + '%. See script editor for a list of issues.\\n\\nNote: This is not necessarily a final grade.'))\n\n\nmain()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Check FK Assignment" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "FK Checker" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "cFK" 
+        -overlayLabelColor 1 0 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "#FK Assignment Checker v1.1\nimport maya.cmds as cmds\nmark = 100\ndeductions = 0\nscene_mark = 0.0\nctrls_mark = 0.0\nctrl_transforms_mark = 0.0\nctrl_grps_mark = 0.0\nctrl_grps_placement_mark = 0.0\nconstraints_mark = 0.0\nroot = []\nmarks = {'name_mark' : 25,'parenting_mark' : 10,'orients_mark' : 30, \\\n'transforms_mark' : 5,'placement_mark' : 25,'scene_mark' : 5}\n\ncheckPos = {'headEndJnt' : [0.0,149.233143069,0.668539302549], \\\n'headJnt' : [0.0,120.015257626,-0.639659610777], \\\n'jawEndJnt' : [0.0,116.236452934,13.6109303846], \\\n'jawJnt' : [0.0,126.167495596,0.348183087647], \\\n'left_ankleJnt' : [7.0123406744,4.86555330952,-2.79820729391], \\\n'left_ballJnt' : [7.0123406744,1.02850939838,4.53731783033], \\\n'left_clavicleJnt' : [1.99819553729,106.182093768,4.33649659673], \\\n'left_elbowJnt' : [22.4758134645,89.4607372056,-3.50156067348], \\\n'left_eyeJnt' : [6.43210369349,129.206703186,8.14929789305], \\\n'left_forearmJnt' : [29.0251,79.0077,-1.57048], \\\n'left_hipJnt' : [7.0123406744,67.9592303246,-1.51017675398], \\\n'left_index1Jnt' : [36.9358118715,65.9390942712,2.79654683133], \\\n'left_index2Jnt' : [38.2771633644,63.2194228843,3.71898456919], \\\n'left_index3Jnt' : [38.661564528,61.5304646092,4.12551802376], \\\n'left_indexEndJnt' : [38.7522360987,60.0286719031,4.47728607869], \\\n'left_kneeJnt' : [7.0123406744,36.8033011581,0.0795756394473], \\\n'left_middle1Jnt' : [37.9307463496,65.8299701415,1.54959082013], \\\n'left_middle2Jnt' : [38.7690353438,62.681506381,2.27610790846], \\\n'left_middle3Jnt' : [39.0054656954,60.6694057821,2.68708099936], \\\n'left_middleEndJnt' : [38.9414521895,59.1075947384,2.95970994586], \\\n'left_pinky1Jnt' : [37.3551393862,65.5599821692,-1.25996026201], \\\n'left_pinky2Jnt' : [37.9827198168,62.814317734,-1.00771080677], \\\n'left_pinky3Jnt' : [37.9362171314,61.4300044519,-0.889283355574], \\\n'left_pinkyEndJnt' : [37.8184834472,60.3680630906,-0.802542448691], \\\n'left_ring1Jnt' : [37.6885763314,65.68324954,0.0229446386359], \\\n'left_ring2Jnt' : [38.4179729513,62.4753505534,0.589287495165], \\\n'left_ring3Jnt' : [38.5253316541,60.632464935,0.873300648774], \\\n'left_ringEndJnt' : [38.4986920063,59.1844513526,1.07851490242], \\\n'left_shoulderJnt' : [11.0031830733,105.341662531,0.477419333912], \\\n'left_thumb1Jnt' : [33.9591622097,68.9890666496,1.61462823792], \\\n'left_thumb2Jnt' : [34.0388565884,67.3726171241,2.89815868748], \\\n'left_thumb3Jnt' : [34.1500088529,65.4871552069,4.38099207377], \\\n'left_thumbEndJnt' : [33.8280998265,64.247060114,6.548938852], \\\n'left_toeEndJnt' : [7.0123406744,0.577092467654,9.954320999], \\\n'left_wristJnt' : [34.6260131345,70.0683962704,0.0809636915612], \\\n'neck1Jnt' : [0.0,110.16000818,0.492043674797], \\\n'neck2Jnt' : [0.0,115.006130224,0.297299471595], \\\n'right_ankleJnt' : [-7.01234,4.86555,-2.79821], \\\n'right_ballJnt' : [-7.01234,1.02851,4.53732], \\\n'right_clavicleJnt' : [-1.9982,106.182,4.3365], \\\n'right_elbowJnt' : [-22.4758,89.4607,-3.50156], \\\n'right_eyeJnt' : [-6.4321,129.207,8.1493], \\\n'right_forearmJnt' : [-29.0251,79.0077,-1.57048], \\\n'right_hipJnt' : [-7.01234,67.9592,-1.51018], \\\n'right_index1Jnt' : [-36.9358,65.9391,2.79655], \\\n'right_index2Jnt' : [-38.2772,63.2194,3.71898], \\\n'right_index3Jnt' : [-38.6616,61.5305,4.12552], \\\n'right_indexEndJnt' : [-38.7522,60.0287,4.47729], \\\n'right_kneeJnt' : [-7.01234,36.8033,0.0795756], \\\n'right_middle1Jnt' : [-37.9307,65.83,1.54959], \\\n'right_middle2Jnt' : [-38.769,62.6815,2.27611], \\\n'right_middle3Jnt' : [-39.0055,60.6694,2.68708], \\\n'right_middleEndJnt' : [-38.9415,59.1076,2.95971], \\\n'right_pinky1Jnt' : [-37.3551,65.56,-1.25996], \\\n'right_pinky2Jnt' : [-37.9827,62.8143,-1.00771], \\\n'right_pinky3Jnt' : [-37.9362,61.43,-0.889283], \\\n'right_pinkyEndJnt' : [-37.8185,60.3681,-0.802542], \\\n'right_ring1Jnt' : [-37.6886,65.6832,0.0229446], \\\n'right_ring2Jnt' : [-38.418,62.4754,0.589287], \\\n'right_ring3Jnt' : [-38.5253,60.6325,0.873301], \\\n'right_ringEndJnt' : [-38.4987,59.1845,1.07851], \\\n'right_shoulderJnt' : [-11.0032,105.342,0.477419], \\\n'right_thumb1Jnt' : [-33.9592,68.9891,1.61463], \\\n'right_thumb2Jnt' : [-34.0389,67.3726,2.89816], \\\n'right_thumb3Jnt' : [-34.15,65.4872,4.38099], \\\n'right_thumbEndJnt' : [-33.8281,64.2471,6.54894], \\\n'right_toeEndJnt' : [-7.01234,0.577092,9.95432], \\\n'right_wristJnt' : [-34.626,70.0684,0.0809637], \\\n'rootJnt' : [0.0,69.5529866698,-0.765198021547], \\\n'spine1Jnt' : [0.0,77.2626710745,2.34698601378], \\\n'spine2Jnt' : [0.0,85.6171219688,4.20944831972], \\\n'spine3Jnt' : [0.0,94.7258648069,4.39788862078], \\\n'spine4Jnt' : [0.0,101.530770628,2.80260454951]}\n\njoint_names = ['rootJnt', 'spine1Jnt', 'spine2Jnt', 'spine3Jnt', 'spine4Jnt', \\\n'neck1Jnt', 'neck2Jnt', 'headJnt', 'headEndJnt', 'jawJnt', 'jawEndJnt', \\\n'left_eyeJnt', 'right_eyeJnt', 'left_clavicleJnt', 'left_shoulderJnt', \\\n'left_elbowJnt', 'left_wristJnt', 'left_thumb1Jnt', \\\n'left_thumb2Jnt', 'left_thumb3Jnt', 'left_thumbEndJnt', 'left_index1Jnt', \\\n'left_index2Jnt', 'left_index3Jnt', 'left_indexEndJnt', 'left_middle1Jnt', \\\n'left_middle2Jnt', 'left_middle3Jnt', 'left_middleEndJnt', 'left_ring1Jnt', \\\n'left_ring2Jnt', 'left_ring3Jnt', 'left_ringEndJnt', 'left_pinky1Jnt', \\\n'left_pinky2Jnt', 'left_pinky3Jnt', 'left_pinkyEndJnt', 'right_clavicleJnt', \\\n'right_shoulderJnt', 'right_elbowJnt', 'right_wristJnt', \\\n'right_thumb1Jnt', 'right_thumb2Jnt', 'right_thumb3Jnt', 'right_thumbEndJnt', \\\n'right_index1Jnt', 'right_index2Jnt', 'right_index3Jnt', 'right_indexEndJnt', \\\n'right_middle1Jnt', 'right_middle2Jnt', 'right_middle3Jnt', 'right_middleEndJnt', \\\n'right_ring1Jnt', 'right_ring2Jnt', 'right_ring3Jnt', 'right_ringEndJnt', \\\n'right_pinky1Jnt', 'right_pinky2Jnt', 'right_pinky3Jnt', 'right_pinkyEndJnt']\n\nleg_joint_names = ['left_hipJnt', 'left_kneeJnt', 'left_ankleJnt', 'left_ballJnt', 'left_toeEndJnt', \\\n'right_hipJnt', 'right_kneeJnt', 'right_ankleJnt', 'right_ballJnt', 'right_toeEndJnt']\n\n#check control names\n#neck1Jnt ===> neck1Ctrl\ngeo_names = ['body_geo', 'hair_geo', 'left_outerEyeTissue_geo', 'left_innerEyeTissue_geo', \\\n'left_eye_geo', 'left_pupil_geo', 'left_brow_geo', 'left_upperLash_geo', \\\n'left_lowerLash_geo', 'right_outerEyeTissue_geo', 'right_innerEyeTissue_geo', \\\n'right_eye_geo', 'right_pupil_geo', 'right_brow_geo', 'right_upperLash_geo', \\\n'right_lowerLash_geo', 'upperTeeth_geo', 'lowerTeeth_geo', 'tongue_geo']\n\nextra_geo_names = ['rootProxy_geo', 'spine1Proxy_geo', 'spine2Proxy_geo', 'spine3Proxy_geo', 'spine4Proxy_geo', 'neck1Proxy_geo', \\\n'neck2Proxy_geo', 'headProxy_geo', 'jawProxy_geo', 'left_clavicleProxy_geo', 'left_shoulderProxy_geo', 'left_elbowProxy_geo', 'left_wristProxy_geo', \\\n'left_thumb1Proxy_geo', 'left_thumb2Proxy_geo', 'left_thumb3Proxy_geo', 'left_index1Proxy_geo', 'left_index2Proxy_geo', 'left_index3Proxy_geo', \\\n'left_middle1Proxy_geo', 'left_middle2Proxy_geo', 'left_middle3Proxy_geo', 'left_ring1Proxy_geo', 'left_ring2Proxy_geo', 'left_ring3Proxy_geo', \\\n'left_pinky1Proxy_geo', 'left_pinky2Proxy_geo', 'left_pinky3Proxy_geo', 'left_hipProxy_geo', 'left_kneeProxy_geo', 'left_ankleProxy_geo', \\\n'left_ballProxy_geo', 'right_ballProxy_geo', 'right_ankleProxy_geo', 'right_kneeProxy_geo', 'right_hipProxy_geo', 'right_pinky3Proxy_geo', \\\n'right_pinky2Proxy_geo', 'right_pinky1Proxy_geo', 'right_ring3Proxy_geo', 'right_ring2Proxy_geo', 'right_ring1Proxy_geo', 'right_middle3Proxy_geo', \\\n'right_middle2Proxy_geo', 'right_middle1Proxy_geo', 'right_index3Proxy_geo', 'right_index2Proxy_geo', 'right_index1Proxy_geo', 'right_thumb3Proxy_geo', \\\n'right_thumb2Proxy_geo', 'right_thumb1Proxy_geo', 'right_wristProxy_geo', 'right_elbowProxy_geo', 'right_shoulderProxy_geo', 'right_clavicleProxy_geo', \\\n'left_eyeProxy_geo', 'right_eyeProxy_geo', 'proxy_geo_grp', 'Betty', 'geo_grp', 'skeleton', 'skeleton_grp', 'controls_grp', 'controls']\n\ncontrol_node_names = []\nprint 'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv'\nprint 'vvvvvvvvvvvvvvvvvvvvvvvvvvvvv FK Rig Issues vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv'\nprint 'vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\\n'\n\n#check file type\nfileType = cmds.file(query = True, type=1)\nif fileType[0] == 'mayaAscii':\n    scene_mark += 5\nelse:\n    cmds.warning('Your file must be saved as a \".ma\"')\n\n\nfor j in joint_names:\n    if not cmds.objExists(j):\n        cmds.error('Your skeleton is missing \"' + j + '\". You must fix your skeleton before continuing.')\n        deductions -= 3\n    else:\n        base = j[:-3]\n        ctrl = (base + 'Ctrl')\n        control_node_names.append(ctrl)\n        if cmds.objExists(ctrl):\n            ctrls_mark += 1\n            trn = cmds.getAttr(ctrl + '.translate')\n            rot = cmds.getAttr(ctrl + '.rotate')\n            scl = cmds.getAttr(ctrl + '.scale')\n            if cmds.getAttr(ctrl + '.translate') != [(0,0,0)] and cmds.getAttr(ctrl + '.rotate') != [(0,0,0)] and  cmds.getAttr(ctrl + '.scale') != [(1,1,1)]:\n                cmds.warning('\"' + ctrl + ' does not have zeroed default transform values.')\n            else:\n                ctrl_transforms_mark += 1\n            \n            #check for group\n            if cmds.listRelatives(ctrl, parent = True, type = 'transform'):\n                parent = cmds.listRelatives(ctrl, parent = True, type = 'transform')\n                if parent[0] == (ctrl + \"Grp\"):\n                    control_node_names.append(ctrl + \"Grp\")\n                    ctrl_grps_mark += 1\n                    \n                    # check that group is parented to the right control\n                    # get name of parent joint\n                    if cmds.listRelatives(j, parent = True, type = 'joint'):\n                        parentJnt = cmds.listRelatives(j, parent = True, type = 'joint')\n                        parentCtrlName = parentJnt[0][:-3] + 'Ctrl'\n                        \n                        #check group is parented to the higher control\n                        if cmds.listRelatives((ctrl + \"Grp\"), parent = True, type = 'transform'):\n                            ctrl_grps_mark += 0.5\n                            parentNode = cmds.listRelatives((ctrl + \"Grp\"), parent = True, type = 'transform')\n                            if parentNode[0] == parentCtrlName:\n                                ctrl_grps_mark += 0.5\n                            else:\n                                cmds.warning('The parent of \"' + ctrl + 'Grp\" should be ' + parentCtrlName + '\", not \"' + parentNode[0] + '\".')\n                        else:\n                            cmds.warning('\"' + ctrl + 'Grp\" should be parented to \"' + parentCtrlName + '\".')\n                    elif j != 'rootJnt':\n                        cmds.warning('\"' + j + '\" should be a part of your main skeleton hierarchy')\n\n                    #check to make sure group matches posotion and orientation of joint\n                    jointTrn = cmds.xform(j, q = True, ws = True, t = True)\n                    jointRot = cmds.xform(j, q = True, ws = True, ro = True)\n                    ctrlGrpTrn = cmds.xform((ctrl + \"Grp\"), q = True, ws = True, t = True)\n                    ctrlGrpRot = cmds.xform((ctrl + \"Grp\"), q = True, ws = True, ro = True)\n                    if round(jointTrn[0],3) == round(ctrlGrpTrn[0],3) and round(jointTrn[1],3) == round(ctrlGrpTrn[1],3) and round(jointTrn[2],3) == round(ctrlGrpTrn[2],3):\n                        ctrl_grps_placement_mark += 1\n                    else:\n                        #print ctrlGrpTrn, jointTrn\n                        cmds.warning('\"' + ctrl + 'Grp\" does not match the position of \"' + j + '\".')\n                        \n                            \n                    if round(jointRot[0],3) == round(ctrlGrpRot[0],3) and round(jointRot[1],3) == round(ctrlGrpRot[1],3) and round(jointRot[2],3) == round(ctrlGrpRot[2],3):\n                        ctrl_grps_placement_mark += 1\n                    else:\n                        locator = cmds.spaceLocator(name = (ctrl + \"GrpLctr\"))\n                        cmds.delete(cmds.parentConstraint(j, locator[0]))\n                        if cmds.listRelatives((ctrl + \"Grp\"), parent = True, type = 'transform'):\n                            parentNode2 = cmds.listRelatives((ctrl + \"Grp\"), parent = True, type = 'transform')\n                            cmds.parent(locator[0], parentNode2[0])\n                        \n                        newRot = cmds.xform(locator, q = True, ws = True, ro = True)\n                        cmds.delete(locator)\n                            \n                        if round(newRot[0],3) == round(ctrlGrpRot[0],3) and round(newRot[1],3) == round(ctrlGrpRot[1],3) and round(newRot[2],3) == round(ctrlGrpRot[2],3):\n                            ctrl_grps_placement_mark += 1\n                                \n                        else:\n                            cmds.warning('\"' + ctrl + 'Grp\" does not match the orientation of \"' + j + '\".')\n                else:\n                    cmds.warning('The parent of \"' + ctrl + '\" should be \"' + ctrl + 'Grp\", not \"' + parent[0] + '\".')\n            else:\n                cmds.warning('\"' + ctrl + '\" should be parented to \"' + ctrl + 'Grp\".')\n                #deductions -= 3\n        elif cmds.listRelatives(j, children = True, type = 'joint'):\n            cmds.warning('\"' + ctrl + '\" does not exist.')\n            #deductions -= 5\n            \n\n        #check constraints\n        \n        #skip end joints\n        if cmds.listRelatives(j, c= True, type = 'joint'):\n            transforms = ['.tx', '.ty', '.tz', '.rx', '.ry', '.rz', '.sx', '.sy', '.sz']\n            connections = []\n            for x in transforms:\n                connection = cmds.listConnections((j + x),s = True, d = False)\n                if connection and connection not in connections:\n                    connections = connections + connection\n            \n            #check connection type and len\n            connections = list(set(connections))\n            if len(connections) == 0:\n                cmds.warning('\"' + j +'\" is not constrained.')\n            elif len(connections) > 1:\n                cmds.warning('\"' + j +'\" should only have one constraint affecting the channels.')\n            elif 'Constraint' in connections[0]:\n                #check that there is only one weight, and that it is correct\n                targets = cmds.listConnections(connections[0] + '.target', s = 1, d = 0)\n                for tgt in targets:\n                    if tgt == connections[0]:\n                        targets.remove(tgt)\n                        targets = list(set(targets))\n                \n                if len(targets) == 1:\n                    if targets[0] == ctrl:\n                        constraints_mark += 1\n                    else:\n                        cmds.warning('\"' + j + '\" should be constrained to \"' + ctrl + '\".')\n                else:\n                    cmds.warning('\"' + j + '\" should only be constrained to \"' + ctrl + '\". You need to delete the constraint and make a new one.')\n        \n\n#check that there are no extra transforms in the scene\nall_nodes = geo_names + joint_names + leg_joint_names + control_node_names + extra_geo_names\n\n\ntransforms = cmds.ls(type = 'transform')\nfor t in transforms:\n    if t not in all_nodes:\n        if \"Constraint\" not in t:\n            if cmds.listRelatives(t, c = True):\n                children = cmds.listRelatives(t, c = True)\n                if cmds.nodeType(children[0]) != 'camera':\n                    cmds.warning('\"' + t + '\" is either improperly named or should not be in the scene.')\n                    deductions -= 2                    \n            else:\n                cmds.warning('\"' + t + '\" is either improperly named or should not be in the scene.')\n                deductions -= 2\n\n\nctrls_mark = round(((ctrls_mark/47)*20), 2)\nctrl_transforms_mark = round(((ctrl_transforms_mark/47)*15), 2)\nctrl_grps_mark = round(((ctrl_grps_mark/93)*20), 2)\nctrl_grps_placement_mark = round(((ctrl_grps_placement_mark/94)*15), 2)\nconstraints_mark = round(((constraints_mark/47)*25), 2)\ndeductions = deductions\n\nprint 'scene_mark =', scene_mark, '/5'\nprint 'ctrls_mark =', ctrls_mark , '/20'\nprint 'ctrl_transforms_mark =', ctrl_transforms_mark, '/15'\nprint 'ctrl_grps_mark =', ctrl_grps_mark, '/20'\nprint 'ctrl_grps_placement_mark =', ctrl_grps_placement_mark, '/15'\nprint 'constraints_mark =', constraints_mark, '/25'\nprint 'deductions:',deductions\n\nfinal_mark = round((scene_mark + ctrls_mark + ctrl_transforms_mark + ctrl_grps_mark + ctrl_grps_placement_mark + constraints_mark + deductions), 2)\nif final_mark < 0:\n    final_mark = 0\nif final_mark == 100:\n    print '                          >     No Issues     <'\n    cmds.confirmDialog(title = 'Great! 100%', icon = 'information', message = 'Congratulations! Your rig is looking good so far!\\n\\nNote: This is not necessarily a final grade.')\nelse:\n    print '\\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n    print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FK Rig Issues ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n    print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'\n    cmds.warning('Your score so far is ' + str(final_mark) + '%. See script editor for a list of issues.')\n    cmds.confirmDialog(title = ('Score: ' + str(final_mark)), icon = 'warning', message = ('Your score so far is ' + str(final_mark) + '%. See script editor for a list of issues.\\n\\nNote: This is not necessarily a final grade.'))\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Skin Weight Grading Script - Use it at your own risk!" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Skin Weight Grading Script" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "cSkin" 
+        -overlayLabelColor 0 1 0 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import maya.cmds as cmds\n\n# Skin Weight Grading Script\n# Script created for Rigging 1 (Term 2, Vancouver Film School)\n# @Guilherme Trevisan - 2019-12-09\n# Last update - 2019-12-18\n# Version:\nscriptVersion = \"v1.0\"\ncurrentModel = \"Betty\"\n\n#Define Initial Setup\ndefaultJointSize = 1\nunparentList = ['rootJnt','geo_grp']\ndeleteList = ['controls','Controls', 'control_grp','Control_grp','controls_grp','Controls_grp','DO_NOT_TOUCH', \\\n               'proxy_geo_grp','proxy_geo','skeleton','Skeleton','skeleton_grp','Skeleton_grp''Betty']\nwireSystemElements = ['left_upper_eyelashBaseWire','left_lower_eyelashBaseWire','left_eyebrow_BaseWire', \\\n                      'right_upper_eyelashBaseWire','right_eyebrow_BaseWire','right_lower_eyelashBaseWire',]\neyeGeoElements = ['left_brow_geo','left_upperLash_geo','left_lowerLash_geo', \\\n                      'right_lowerLash_geo','right_upperLash_geo','right_brow_geo',]\nthumbFingers = ['left_thumb1Jnt', 'left_thumb2Jnt', 'left_thumb3Jnt', 'left_thumbEndJnt', \\\n                'right_thumb1Jnt', 'right_thumb2Jnt', 'right_thumb3Jnt', 'right_thumbEndJnt']\n                    \nindexFingers = ['left_index1Jnt', 'left_index2Jnt', 'left_index3Jnt', 'left_indexEndJnt', \\\n                'right_index1Jnt', 'right_index2Jnt', 'right_index3Jnt', 'right_indexEndJnt']\n                    \nmiddleFingers = ['left_middle1Jnt', 'left_middle2Jnt', 'left_middle3Jnt', 'left_middleEndJnt', \\\n                'right_middle1Jnt', 'right_middle2Jnt', 'right_middle3Jnt', 'right_middleEndJnt']\n                    \nringFingers = ['left_ring1Jnt', 'left_ring2Jnt', 'left_ring3Jnt', 'left_ringEndJnt', \\\n                'right_ring1Jnt', 'right_ring2Jnt', 'right_ring3Jnt', 'right_ringEndJnt']\n                    \npinkyFingers = ['left_pinky1Jnt', 'left_pinky2Jnt', 'left_pinky3Jnt', 'left_pinkyEndJnt', \\\n                'right_pinky1Jnt', 'right_pinky2Jnt', 'right_pinky3Jnt', 'right_pinkyEndJnt']\nspineList = ['spine1Jnt', 'spine2Jnt', 'spine3Jnt',]\n\n# Settings Dictionary\nsettingsDefault = { 'intervalBetweenKeyframes': 10, \n             'showSkeleton': False,\n             'resetViewport': True,\n             'showOpenDialog': False,\n             'deleteUnnecessary': True\n            }\nsettings = { 'intervalBetweenKeyframes': 10, \n             'showSkeleton': False,\n             'resetViewport': True,\n             'showOpenDialog': False,\n             'deleteUnnecessary': True\n            }\n\n# Clean Up - If obj exists, it gets deleted\ndef bruteforceCleanUpScene(deleteList):\n    \n    for trash in deleteList:\n        #print(trash) # debugging\n        if cmds.objExists(trash):\n            cmds.select(trash)\n            deletionContainer = cmds.ls(selection=True)[0]\n            cmds.delete(deletionContainer)\n        else:\n            print('\"' + trash + ' was not found in the scene')\n            \n# If persp shape exists, reset its attributes\ndef resetPerspShapeAttributes():\n    if cmds.objExists('perspShape'):\n        cmds.setAttr('perspShape' + \".focalLength\", 35)\n        cmds.setAttr('perspShape' + \".verticalFilmAperture\", 0.945)\n        cmds.setAttr('perspShape' + \".horizontalFilmAperture\", 1.417)\n        cmds.setAttr('perspShape' + \".lensSqueezeRatio\", 1)\n        cmds.setAttr('perspShape' + \".fStop\", 5.6)\n        cmds.setAttr('perspShape' + \".focusDistance\", 5)\n        cmds.setAttr('perspShape' + \".shutterAngle\", 144)\n        cmds.setAttr('perspShape' + \".centerOfInterest\", 44.822)\n        cmds.setAttr('perspShape' + \".locatorScale\", 1)\n        cmds.setAttr('perspShape' + \".nearClipPlane\", 0.100)\n        cmds.setAttr('perspShape' + \".farClipPlane\", 10000.000)\n        cmds.setAttr('perspShape' + \".cameraScale\", 1)\n        cmds.setAttr('perspShape' + \".preScale\", 1)\n        cmds.setAttr('perspShape' + \".postScale\", 1)\n        cmds.setAttr('perspShape' + \".depthOfField\", 0)\n\n# Parents a list of objects to the world (unparents them from other objects)\ndef parentToWorld(parentedList):\n    if  len(parentedList) > 0: #Check if list is empty\n        for currentObj in parentedList:\n            if cmds.objExists(currentObj):\n                targetObj = cmds.select(currentObj)\n                try:\n                    cmds.parent(world = True)\n\n                except Exception:\n                    cmds.warning(\"Unexpected result!\")\n\n# Updates joints radius if it's not locked\ndef updateRadiusIfNotLocked(objList, value):\n    for objId in objList:\n        if cmds.objExists(objId):\n            if cmds.getAttr(objId + \".radius\" ,lock=True) is False:\n                cmds.select(objId)\n                myObj = cmds.ls(selection=True)[0]\n                cmds.setAttr(objId + '.radius', value)\n\n# Reset all modelPanels (Viewport)\ndef resetViewport(showSkeleton):\n    try:\n        panelList = cmds.getPanel(type=\"modelPanel\")\n    \n        for eachPanel in panelList:\n            print(eachPanel)\n            cmds.modelEditor(eachPanel, e=1, allObjects=0)\n            cmds.modelEditor(eachPanel, e=1, polymeshes=1)\n            cmds.modelEditor(eachPanel, e=1, joints=1)\n            cmds.modelEditor(eachPanel, e=1, jx=1)\n            if showSkeleton is False:\n                cmds.modelEditor(eachPanel, e=1, joints=0)\n            cmds.modelEditor(eachPanel, e=1, nurbsCurves=1)\n            cmds.modelEditor(eachPanel, e=1, ikHandles=1)\n            cmds.modelEditor(eachPanel, e=1, locators=1)\n            cmds.modelEditor(eachPanel, e=1, grid=0)\n            cmds.modelEditor(eachPanel, e=1, displayLights='default')\n            cmds.modelEditor(eachPanel, e=1, udm=False)\n            cmds.modelEditor(eachPanel, e=1, wireframeOnShaded=0)\n            cmds.modelEditor(eachPanel, e=1, displayTextures=1)\n            cmds.DisplayShadedAndTextured()\n    except:\n        cmds.warning(\"Something went wrong, script couldn't find the viewport\")\n\n# Removes key frames and resets rotation\ndef removeKeyFrames(objList):\n    for objId in objList:\n        if cmds.objExists(objId):\n            cmds.select(objId)\n            myObj = cmds.ls(selection=True)[0]\n            cmds.cutKey(myObj, time = (0, 1000), clear = True)\n            cmds.setAttr(myObj + \".rotate\", 0,0,0)\n                    \n# Sets visibility for all display layers\ndef setLayersVisibility(value):\n\tlayers = cmds.ls(long=True, type='displayLayer')\n\tfor l in layers[0:]:\t\n\t\tif l.find(\"defaultLayer\") == -1:\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\tcmds.setAttr( '%s.visibility' % l, value)\n\n# Sets display layer type\ndef setLayersDisplayType(value):\n\tlayers = cmds.ls(long=True, type='displayLayer')\n\tfor l in layers[0:]:\t\n\t\tif l.find(\"defaultLayer\") == -1:\n                    cmds.setAttr(l + '.displayType', value)\n\n# Applied a new lambert with a checker to objects in the list\ndef applyMaterial(nodeList):\n    for node in nodeList:\n        if cmds.objExists(node):\n            shd = cmds.shadingNode('lambert', name=\"%s_lambert\" % node, asShader=True)\n            shdSG = cmds.sets(name='%sSG' % shd, empty=True, renderable=True, noSurfaceShader=True)\n            cmds.connectAttr('%s.outColor' % shd, '%s.surfaceShader' % shdSG)\n            cmds.sets(node, e=True, forceElement=shdSG)\n            checkerNode = cmds.shadingNode(\"checker\", asTexture=True, n = \"Checker_%s\" % node)\n            checkerUVNode = cmds.shadingNode(\"place2dTexture\", asTexture=True, n = \"text_%s\" % node)\n            cmds.connectAttr('%s.outColor' %checkerNode,'%s.color' %shd)\n            cmds.connectAttr('%s.outUV' %checkerUVNode,'%s.uvCoord' %checkerNode)\n            cmds.connectAttr('%s.outUvFilterSize' %checkerUVNode,'%s.uvFilterSize' %checkerNode)\n            cmds.setAttr(checkerUVNode + \".repeatU\", 4)\n            cmds.setAttr(checkerUVNode + \".repeatV\", 4)\n\n# Keys rotation of entire list        \ndef keyAttributes(objList, value, attribute, atFrame):\n    for objId in objList:\n        if cmds.objExists(objId):\n            cmds.select(objId)\n            myObj = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(myObj, v=value, at=attribute, t=atFrame )\n\n# Change position of the camera and then look through it\ndef changeCameraPosition(translateX,translateY,translateZ,rotateX,rotateY,rotateZ):\n    if cmds.objExists('persp'):\n        cmds.select('persp')\n        cam = cmds.ls(selection=True)[0]\n        cmds.setAttr( cam + '.translate', translateX,translateY,translateZ)\n        cmds.setAttr( cam + '.rotate', rotateX,rotateY,rotateZ)\n        cmds.lookThru(cam)\n    else:\n        print('UNEXPECTED ERROR! \"persp\" camera not found!!!!!!!!')\n  \n# Keys Arms Joints\ndef keyArms(shoulderName,elbowName,intervalBetweenKeyframes):\n    if cmds.objExists(elbowName):\n        cmds.select(elbowName)\n        elbowSelection = cmds.ls(selection=True)[0]\n        cmds.setKeyframe(elbowSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 4))\n        cmds.setKeyframe(elbowSelection, v=-90, at='rotateZ', t=(intervalBetweenKeyframes * 5 ))\n        cmds.setKeyframe(elbowSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 6))\n        if cmds.objExists(shoulderName):\n            cmds.select(shoulderName)\n            shoulderSelection = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateY', t=(intervalBetweenKeyframes * 6))\n            cmds.setKeyframe(shoulderSelection, v=-50, at='rotateY', t=(intervalBetweenKeyframes * 7 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateY', t=(intervalBetweenKeyframes * 8 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 8 ))\n            cmds.setKeyframe(shoulderSelection, v=-50, at='rotateZ', t=(intervalBetweenKeyframes * 9 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 10 ))\n\n# Key Spine Joints\ndef keySpine(spineList,intervalBetweenKeyframes):    \n    for spine in spineList:\n        if cmds.objExists(spine):\n            cmds.select(spine)\n            spine = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(spine, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 10))\n            cmds.setKeyframe(spine, v=30, at='rotateZ', t=(intervalBetweenKeyframes * 11 ))\n            cmds.setKeyframe(spine, v=-30, at='rotateZ', t=(intervalBetweenKeyframes * 13 ))\n            cmds.setKeyframe(spine, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 14))\n\n# Main Form ============================================================================\ndef skinWeightCheckMainDialog():\n    if cmds.window(\"swMainDialog\", exists =True):\n        cmds.deleteUI(\"swMainDialog\")    \n\n    # swMainDialog Start Here =================================================================================\n\n    crMainDialog = cmds.window(\"swMainDialog\", title=\"Skin Weight Grading Script - \" + scriptVersion, widthHeight=(480,250),\\\n                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)\n\n    columnMain = cmds.columnLayout() \n\n    form = cmds.formLayout(p=columnMain,)\n    tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5, p=form,  width = 380)\n\n    tabMain = cmds.columnLayout(adj = True, p=tabs)\n\n    cmds.text(\"\")\n    cmds.text(\"Warning!\", bgc=[.3,0,0],  fn=\"boldLabelFont\")\n    cmds.text(\"  \")\n    cmds.text(\"This script will break your scene!\")\n    cmds.text(\"SAVE IT FIRST IN CASE YOU WANT TO PROCEED\")\n    cmds.text(\"   \")\n\n    cmds.separator(h=10, p=tabMain)\n    cmds.text(\" \")\n    swOrganizationContainer = cmds.columnLayout(p=tabMain)\n    swOrganization = cmds.intSliderGrp('swMainDialog', width = 350 ,p=swOrganizationContainer, l = \"Organization Grade\",min =0,max =10, field =True, value=10)\n    swDeductionContainer = cmds.columnLayout(p=tabMain)\n    swDeduction = cmds.intSliderGrp(l = \"Deduction Grade\",  width = 350 ,p=swDeductionContainer ,min =0,max =100, field =True, value=0)\n    cmds.separator(h=10)\n\n    #Settings Tab ======================================================\n    tabSettings = cmds.rowColumnLayout(numberOfColumns=2, p=tabs)\n    \n    settingsContainer = cmds.columnLayout(p=tabSettings)\n    cmds.text(\"   \", p=settingsContainer)\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    swSpeed = cmds.intSliderGrp(l = \"Interval Between Keys\",  width = 350 ,p=settingsContainer ,min =0,max =100, field =True, value=settings.get(\"intervalBetweenKeyframes\"))\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    checkboxContainer = cmds.rowColumnLayout(numberOfColumns=2, adj=True)\n    cmds.text(\"            Viewport :    \", p=checkboxContainer)\n\n    checkboxSettingsOne = cmds.checkBoxGrp(p=checkboxContainer, numberOfCheckBoxes=2, labelArray2=['Show Skeleton', 'Reset Viewport'], value1 = settings.get(\"showSkeleton\"), value2 = settings.get(\"resetViewport\"))\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    cmds.text(\"            Bonus :    \", p=checkboxContainer)\n    checkboxSettingsTwo = cmds.checkBoxGrp(p=checkboxContainer, numberOfCheckBoxes=2, labelArray2=['Open Dialog', 'Delete Unnecessary'], value1 = settings.get(\"showOpenDialog\"), value2 = settings.get(\"deleteUnnecessary\"))\n    settingsSeparator = cmds.rowColumnLayout(numberOfColumns=2, p=settingsContainer, adj=True, width = 370)\n    cmds.separator(p=settingsSeparator)\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    settingsButtons = cmds.rowColumnLayout(numberOfColumns=2, p=settingsContainer)\n    cmds.button(p=settingsButtons, l =\"Save Changes\",w=184, h=40, c=lambda x:saveModifiedSettings())\n    cmds.button(p=settingsButtons, l =\"Restore Default\",w=184, h=40, c=lambda x:restoreDefaultSettings())\n\n    def saveModifiedSettings():\n        settings[\"intervalBetweenKeyframes\"] = cmds.intSliderGrp(swSpeed, q= True,value =True)\n        settings[\"showSkeleton\"] = cmds.checkBoxGrp (checkboxSettingsOne, q=True, value1=True)\n        settings[\"resetViewport\"] = cmds.checkBoxGrp (checkboxSettingsOne, q=True, value2=True)\n        settings[\"showOpenDialog\"] = cmds.checkBoxGrp (checkboxSettingsTwo, q=True, value1=True)\n        settings[\"deleteUnnecessary\"] = cmds.checkBoxGrp (checkboxSettingsTwo, q=True, value2=True)\n        print(settings.get(\"intervalBetweenKeyframes\"))\n        print(settings.get(\"showSkeleton\"))\n        print(settings.get(\"resetViewport\"))\n        print(settings.get(\"showOpenDialog\"))\n        print(settings.get(\"deleteUnnecessary\"))\n        print(\"Current Settings Saved\")\n        \n    def restoreDefaultSettings():\n        settings[\"intervalBetweenKeyframes\"] = settingsDefault.get(\"intervalBetweenKeyframes\")\n        settings[\"showSkeleton\"] = settingsDefault.get(\"showSkeleton\")\n        settings[\"resetViewport\"] = settingsDefault.get(\"resetViewport\")\n        settings[\"showOpenDialog\"] = settingsDefault.get(\"showOpenDialog\")\n        settings[\"deleteUnnecessary\"] = settingsDefault.get(\"deleteUnnecessary\")\n        cmds.intSliderGrp(swSpeed, e=True, value = settings[\"intervalBetweenKeyframes\"])\n        cmds.checkBoxGrp(checkboxSettingsOne, e=True, value1 = settings[\"showSkeleton\"])\n        cmds.checkBoxGrp(checkboxSettingsOne, e=True, value2 = settings[\"resetViewport\"])\n        cmds.checkBoxGrp(checkboxSettingsTwo, e=True, value1 = settings[\"showOpenDialog\"])\n        cmds.checkBoxGrp(checkboxSettingsTwo, e=True, value2 = settings[\"deleteUnnecessary\"])\n        print(\"Default Settings Restored\")\n\n    #About Tab ======================================================\n    tabAbout = cmds.columnLayout(p=tabs, adj=True)\n\n    aboutContainer = cmds.rowColumnLayout(numberOfColumns=2, height = 33, width = 300)\n    cmds.text(\"Skin Weight Grading Script - VFS - \" + scriptVersion  , p=tabAbout, ww=False)\n    cmds.text(\"Current model being rigged:  \" + currentModel, p=tabAbout, ww=True)\n    cmds.text(\"This script was created for grading, use it at your own risk\", p=tabAbout, ww=False)\n    cmds.text(\"Problems? Questions? Send me an email:\", p=tabAbout, ww=True)\n    cmds.text(l='<a href=\"mailto:gtrevisan@gmail.com\">Guilherme Trevisan : gtrevisan@vfs.com</a>', hl=True, p=tabAbout, highlightColor=[1,1,1])\n\n    #Generate Tabs\n    cmds.tabLayout(tabs, edit=True, tabLabel=((tabMain, 'Grader'),(tabSettings, 'Settings'),(tabAbout,'About')))\n\n    #Outside Tabs\n    outsideTabs = cmds.rowLayout(numberOfColumns=2, p=columnMain)\n    startScript = cmds.rowLayout(numberOfColumns=2, p=outsideTabs)\n    cmds.button(p=startScript, l =\"Run Script\", w=375, h=40, bgc = (.6, .8, .6), c=lambda x:skinWeightCheckJawHead(cmds.intSliderGrp(\\\n                swOrganization, q= True,value =True), cmds.intSliderGrp(swDeduction, q= True,value =True)))\n    cmds.showWindow(crMainDialog)\n    # crMainDialog Ends Here =================================================================================\n\n\n# Jaw and Head Check ============================================================================\ndef skinWeightCheckJawHead(organizationGrade, deductionGrade):\n    if cmds.window(\"swMainDialog\", exists =True):\n        cmds.deleteUI(\"swMainDialog\")\n    \n    #Reset persp camera attributes\n    resetPerspShapeAttributes()\n    \n    #Check for Wire System\n    if settings.get(\"deleteUnnecessary\") is True:\n        \n        wireSystemStatus = False\n        for wireSyStemObj in wireSystemElements:\n            if cmds.objExists(wireSyStemObj):\n                cmds.delete(wireSyStemObj)\n                wireSystemStatus = True\n                \n        if cmds.objExists('eye_elements_mainWireGrp') and cmds.objExists('headJnt'):\n            cmds.delete('eye_elements_mainWireGrp')\n            wireSystemStatus = True\n        \n        if wireSystemStatus is True:\n            for eyeGeo in eyeGeoElements:\n                    if cmds.objExists(eyeGeo) and cmds.objExists('headJnt'):\n                        cmds.parent(eyeGeo,\"headJnt\")\n                    \n                        \n\n       \n    #Run Initial Setup ===========================================================================\n    if settings.get(\"deleteUnnecessary\") is True:\n        parentToWorld(unparentList)\n        bruteforceCleanUpScene(deleteList)\n    \n    #Setup Viewport\n    if settings.get(\"resetViewport\"):\n        resetViewport(settings.get(\"showSkeleton\"))\n        setLayersVisibility(True)\n        setLayersDisplayType(0)\n    \n    #Give eyes a checker material\n    if cmds.objExists('left_pupil_geo') and cmds.objExists('right_pupil_geo'):\n        applyMaterial([\"left_pupil_geo\", \"right_pupil_geo\"])\n        \n    #Normalize all joints\n    allJoints = cmds.ls(type='joint')\n    updateRadiusIfNotLocked(allJoints, defaultJointSize)\n    \n    #Unsubdivide Geo\n    allGeo = cmds.ls(type='mesh')\n    for everyGeo in allGeo:\n        if cmds.objExists(everyGeo):\n            cmds.displaySmoothness(everyGeo, polygonObject=1)\n\n    #Focus on Head\n    if cmds.objExists('headJnt'):\n        cmds.select('headJnt')\n        cmds.FrameSelectedWithoutChildren()\n    \n    #Change position of the camera for head inspection\n    changeCameraPosition(32.279,122.473,49.756,2.2,41.6,0)\n    cmds.currentTime(0)\n\n    #Jaw and Head Setup \n    intervalBetweenKeyframesJawHead = settings.get(\"intervalBetweenKeyframes\")\n    timelineLength = intervalBetweenKeyframesJawHead * 14\n    cmds.playbackOptions(minTime=0, max = timelineLength)\n    #currentFrameTime = intervalBetweenKeyframesJawHead\n    \n    #If jaw exists, add animation\n    if cmds.objExists('jawJnt'):\n        cmds.select('jawJnt')\n        jawJnt = cmds.ls(selection=True)[0]\n        cmds.setKeyframe( jawJnt, v=0, at='rotateZ', t=0 )\n        cmds.setKeyframe( jawJnt, v=30, at='rotateZ', t=intervalBetweenKeyframesJawHead )\n        cmds.setKeyframe( jawJnt, v=0, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 2) )\n    else:\n        print(\"Missing jawJnt!\")\n        \n    #If head exists, add animation and play it\n    if cmds.objExists('headJnt'):\n        cmds.select('headJnt')\n        headJnt = cmds.ls(selection=True)[0]\n        #Move Front and Back\n        cmds.setKeyframe( headJnt, v=0, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 2) )\n        cmds.setKeyframe( headJnt, v=30, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 3) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 4) )\n        cmds.setKeyframe( headJnt, v=-30, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 5) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateZ', t=(intervalBetweenKeyframesJawHead * 6) )\n        # Move to Left and Right\n        cmds.setKeyframe( headJnt, v=0, at='rotateY', t=(intervalBetweenKeyframesJawHead * 6) )\n        cmds.setKeyframe( headJnt, v=30, at='rotateY', t=(intervalBetweenKeyframesJawHead * 7) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateY', t=(intervalBetweenKeyframesJawHead * 8) )\n        cmds.setKeyframe( headJnt, v=-30, at='rotateY', t=(intervalBetweenKeyframesJawHead * 9) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateY', t=(intervalBetweenKeyframesJawHead * 10) )\n        # Move to Left and Right\n        cmds.setKeyframe( headJnt, v=0, at='rotateX', t=(intervalBetweenKeyframesJawHead * 10) )\n        cmds.setKeyframe( headJnt, v=30, at='rotateX', t=(intervalBetweenKeyframesJawHead * 11) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateX', t=(intervalBetweenKeyframesJawHead * 12) )\n        cmds.setKeyframe( headJnt, v=-30, at='rotateX', t=(intervalBetweenKeyframesJawHead * 13) )\n        cmds.setKeyframe( headJnt, v=0, at='rotateX', t=(intervalBetweenKeyframesJawHead * 14) )\n        # Play it\n        cmds.PlaybackForward()\n    else:\n        print(\"Missing headJnt!\")\n        \n    #No Selection\n    cmds.select(clear=True)\n\n    #Build UI ==========================================================\n    if cmds.window(\"stepJawHead\", exists =True):\n        cmds.deleteUI(\"stepJawHead\")\n    stepJawHead = cmds.window(\"stepJawHead\", t = \"Step 1 - Jaw & Head Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade and press next (Max 30)\")\n    cmds.separator(h=10)\n    stepJawHeadGradeSlider = cmds.intSliderGrp(l = \"Jaw & Head Grade\",min =0,max =30, field =True, value=30)\n    cmds.separator(h=10)\n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:skinWeightCheckUpperBody(\\\n                organizationGrade, deductionGrade, cmds.intSliderGrp(stepJawHeadGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepJawHead)\n\n\n\n# Upper Body Check ============================================================================\ndef skinWeightCheckUpperBody(organizationGrade,deductionGrade,stepJawHeadGrade):\n    if cmds.window(\"stepJawHead\", exists =True):\n        cmds.deleteUI(\"stepJawHead\")\n    \n    #Second Step Setup\n    #Change position of the camera for head inspection\n    changeCameraPosition(57.122,84.03,90.902,-1.4,28.6,0)\n    cmds.currentTime(0)\n    \n    #Remove Key frames from previous step\n    removeKeyFirstStep = ['headJnt', 'jawJnt']\n    removeKeyFrames(removeKeyFirstStep)\n        \n    #Set Offsets and Setup Scene\n    intervalBetweenKeyframesUpperBody = settings.get(\"intervalBetweenKeyframes\") + 5  \n    middleFingersOffset = 3\n    ringFingersOffset = middleFingersOffset + middleFingersOffset\n    pinkyFingersOffset = ringFingersOffset + middleFingersOffset\n    waitBeforeArmOffset = 2\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesUpperBody * 14)\n       \n    #Key Thumb Fingers\n    keyAttributes(thumbFingers, 15, 'rotateZ', (intervalBetweenKeyframesUpperBody * 2))\n    keyAttributes(thumbFingers, -25, 'rotateZ', (intervalBetweenKeyframesUpperBody * 3))\n    keyAttributes(thumbFingers, 0, 'rotateZ', (intervalBetweenKeyframesUpperBody * 4))\n        \n    #Key Index Fingers\n    keyAttributes(indexFingers, 0, 'rotateZ', 0)\n    keyAttributes(indexFingers, -70, 'rotateZ', intervalBetweenKeyframesUpperBody)\n    currentFrameTime = intervalBetweenKeyframesUpperBody + intervalBetweenKeyframesUpperBody;\n    keyAttributes(indexFingers, 0, 'rotateZ', currentFrameTime)\n    \n    #Key Middle Fingers\n    keyAttributes(middleFingers, 0, 'rotateZ', (0 + middleFingersOffset))\n    keyAttributes(middleFingers, -70, 'rotateZ', (intervalBetweenKeyframesUpperBody + middleFingersOffset))\n    currentFrameTime = intervalBetweenKeyframesUpperBody + intervalBetweenKeyframesUpperBody;\n    keyAttributes(middleFingers, 0, 'rotateZ', (currentFrameTime + middleFingersOffset))\n    \n    #Key Ring Fingers\n    keyAttributes(ringFingers, 0, 'rotateZ', (0 + ringFingersOffset))\n    keyAttributes(ringFingers, -70, 'rotateZ', (intervalBetweenKeyframesUpperBody + ringFingersOffset))\n    currentFrameTime = intervalBetweenKeyframesUpperBody + intervalBetweenKeyframesUpperBody;\n    keyAttributes(ringFingers, 0, 'rotateZ', (currentFrameTime + ringFingersOffset))\n    \n    #Key Pinky Fingers\n    keyAttributes(pinkyFingers, 0, 'rotateZ', (0 + pinkyFingersOffset))\n    keyAttributes(pinkyFingers, -70, 'rotateZ', (intervalBetweenKeyframesUpperBody + pinkyFingersOffset))\n    currentFrameTime = intervalBetweenKeyframesUpperBody + intervalBetweenKeyframesUpperBody;\n    keyAttributes(pinkyFingers, 0, 'rotateZ', (currentFrameTime + pinkyFingersOffset))\n    \n    #Key Arms\n    keyArms('left_shoulderJnt','left_elbowJnt',intervalBetweenKeyframesUpperBody)\n    keyArms('right_shoulderJnt','right_elbowJnt',intervalBetweenKeyframesUpperBody)\n\n    #Key Spine\n    keySpine(spineList,intervalBetweenKeyframesUpperBody)\n\n    #No Selection\n    cmds.select(clear=True)\n\n    #Build UI ==========================================================\n    if cmds.window(\"stepUpperBody\", exists =True):\n        cmds.deleteUI(\"stepUpperBody\")\n    stepUpperBody = cmds.window(\"stepUpperBody\", t = \"Step 2 - Upper Body Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"Jaw & Head Grade: \" + str(stepJawHeadGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(stepJawHeadGrade + organizationGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for the upper body (Max 20)\")\n    cmds.separator(h=15)\n    stepUpperBodyGradeSlider = cmds.intSliderGrp(l = \"Upper Body Grade\",min =0,max =20, field =True, value=20)\n    cmds.separator(h=20)\n    cmds.button(l =\"Default Camera\", c=\"changeCameraPosition(57.122,84.03,90.902,-1.4,28.6,0)\")\n    cmds.button(l =\"Arm Camera\", c=\"changeCameraPosition(66.252,123.98,34.871,-24.8,65.8,0)\")\n    cmds.button(l =\"Front Camera\", c=\"changeCameraPosition(7.664,112.688,126.455,-7.4,3.4,0)\")\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:skinWeightCheckLowerBody(organizationGrade, deductionGrade, stepJawHeadGrade, \\\n                cmds.intSliderGrp(stepUpperBodyGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepUpperBody)\n\n\n# Lower Body Check ============================================================================\ndef skinWeightCheckLowerBody(organizationGrade, deductionGrade, stepJawHeadGrade, stepUpperBodyGrade):\n    #Close second dialog\n    if cmds.window(\"stepUpperBody\", exists =True):\n        cmds.deleteUI(\"stepUpperBody\")\n    \n    #Change position of the camera for lower body inspection\n    changeCameraPosition(64.961,64.3,111.476,-10.4,30.6,0)\n    cmds.currentTime(0)\n    \n    intervalBetweenKeyframesLowerBody = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesLowerBody * 13)\n    \n    #Remove Key frames from previous step\n    removeKeySecondStep = ['left_shoulderJnt', 'left_elbowJnt','right_elbowJnt','right_shoulderJnt']\n    removeKeyFrames(removeKeySecondStep)\n    removeKeyFrames(thumbFingers)\n    removeKeyFrames(indexFingers)\n    removeKeyFrames(middleFingers)\n    removeKeyFrames(ringFingers)\n    removeKeyFrames(pinkyFingers)\n    removeKeyFrames(spineList)\n    \n    hipJoints = ['left_hipJnt', 'right_hipJnt']\n    kneeJoints = ['left_kneeJnt','right_kneeJnt']\n    \n    #Key Legs Z Knees\n    keyAttributes(kneeJoints, 0, 'rotateZ', 0)\n    keyAttributes(kneeJoints, 90, 'rotateZ', intervalBetweenKeyframesLowerBody + (intervalBetweenKeyframesLowerBody/2))\n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 3))\n    #Key Hips Z Negative\n    keyAttributes(hipJoints, 0, 'rotateZ', 0)\n    keyAttributes(hipJoints, -75, 'rotateZ', intervalBetweenKeyframesLowerBody + (intervalBetweenKeyframesLowerBody/2))\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 3))\n    #Key Hips Y Sides\n    keyAttributes(hipJoints, 0, 'rotateY', (intervalBetweenKeyframesLowerBody* 3))\n    keyAttributes(hipJoints, -35, 'rotateY', (intervalBetweenKeyframesLowerBody* 4))\n    keyAttributes(hipJoints, 0, 'rotateY', (intervalBetweenKeyframesLowerBody* 5))\n    #Key Hips Z Positive Left\n    keyAttributes(['left_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 5))\n    keyAttributes(['left_hipJnt'], 75, 'rotateZ', (intervalBetweenKeyframesLowerBody* 6))\n    keyAttributes(['left_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 7))\n    #Key Hips Z Positive Right\n    keyAttributes(['right_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 7))\n    keyAttributes(['right_hipJnt'], 75, 'rotateZ', (intervalBetweenKeyframesLowerBody* 8))\n    keyAttributes(['right_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 9))\n    \n    #Define Joint Names\n    feetJoints = ['left_ankleJnt','right_ankleJnt']\n    ballJoints = ['left_ballJnt','right_ballJnt']\n    \n    #Leg Setup for visibility\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 9))\n    keyAttributes(hipJoints, -75, 'rotateZ', (intervalBetweenKeyframesLowerBody* 10))\n    keyAttributes(hipJoints, -75, 'rotateZ', (intervalBetweenKeyframesLowerBody* 11))\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 13))\n    \n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 9))\n    keyAttributes(kneeJoints, 40, 'rotateZ', (intervalBetweenKeyframesLowerBody* 10))\n    keyAttributes(kneeJoints, 40, 'rotateZ', (intervalBetweenKeyframesLowerBody* 11))\n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 13))\n    #Key Foot Joints\n    keyAttributes(feetJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 9))\n    keyAttributes(feetJoints, 70, 'rotateZ', (intervalBetweenKeyframesLowerBody* 10))\n    keyAttributes(feetJoints, 70, 'rotateZ', (intervalBetweenKeyframesLowerBody* 11))\n    keyAttributes(feetJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 13))\n    #Key Ball Joints\n    keyAttributes(ballJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 9))\n    keyAttributes(ballJoints, -50, 'rotateZ', (intervalBetweenKeyframesLowerBody* 10))\n    keyAttributes(ballJoints, -50, 'rotateZ', (intervalBetweenKeyframesLowerBody* 11))\n    keyAttributes(ballJoints, 0, 'rotateZ', (intervalBetweenKeyframesLowerBody* 13))\n   \n    #No Selection\n    cmds.select(clear=True)\n   \n    #Build UI ==========================================================\n    if cmds.window(\"stepLowerBody\", exists =True):\n        cmds.deleteUI(\"stepLowerBody\")\n    stepLowerBody = cmds.window(\"stepLowerBody\", t = \"Step 3 - Lower Body Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"Jaw & Head Grade: \" + str(stepJawHeadGrade))\n    cmds.text(\"Upper Body Grade: \" + str(stepUpperBodyGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + stepJawHeadGrade + stepUpperBodyGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for the lower body (Max 20)\")\n    cmds.separator(h=15)\n    stepLowerBodyGradeSlider = cmds.intSliderGrp(l = \"Lower Body Grade\",min =0,max =20, field =True, value=20)\n    cmds.separator(h=20)\n    cmds.button(l =\"Default Camera\", c=\"changeCameraPosition(64.961,64.3,111.476,-10.4,30.6,0)\")\n    cmds.button(l =\"Back Camera\", c=\"changeCameraPosition(119.966,93.182,-127.111,-12.8,132.6,0)\")\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:skinWeightCheckSymmetry(organizationGrade, deductionGrade, stepJawHeadGrade, \\\n                stepUpperBodyGrade, cmds.intSliderGrp(stepLowerBodyGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepLowerBody)\n    \n# Symmetry Check ============================================================================\ndef skinWeightCheckSymmetry(organizationGrade, deductionGrade, stepJawHeadGrade, stepUpperBodyGrade, stepLowerBodyGrade):\n    #Close third dialog\n    if cmds.window(\"stepLowerBody\", exists =True):\n        cmds.deleteUI(\"stepLowerBody\")\n\n    #Change position of the camera for lower body inspection\n    changeCameraPosition(0,100,270,-5,0,0)\n    cmds.currentTime(0)\n    \n    intervalBetweenKeyframesSymmetry = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesSymmetry * 13)\n    \n    hipJoints = ['left_hipJnt', 'right_hipJnt']\n    kneeJoints = ['left_kneeJnt','right_kneeJnt']\n    \n    #Key Legs Z Knees\n    keyAttributes(kneeJoints, 0, 'rotateZ', 0)\n    keyAttributes(kneeJoints, 90, 'rotateZ', intervalBetweenKeyframesSymmetry + (intervalBetweenKeyframesSymmetry/2))\n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 3))\n    #Key Hips Z Negative\n    keyAttributes(hipJoints, 0, 'rotateZ', 0)\n    keyAttributes(hipJoints, -75, 'rotateZ', intervalBetweenKeyframesSymmetry + (intervalBetweenKeyframesSymmetry/2))\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 3))\n    #Key Hips Y Sides\n    keyAttributes(hipJoints, 0, 'rotateY', (intervalBetweenKeyframesSymmetry* 3))\n    keyAttributes(hipJoints, -35, 'rotateY', (intervalBetweenKeyframesSymmetry* 4))\n    keyAttributes(hipJoints, 0, 'rotateY', (intervalBetweenKeyframesSymmetry* 5))\n    #Key Hips Z Positive Left\n    keyAttributes(['left_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 5))\n    keyAttributes(['left_hipJnt'], 75, 'rotateZ', (intervalBetweenKeyframesSymmetry* 6))\n    keyAttributes(['left_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 7))\n    #Key Hips Z Positive Right\n    keyAttributes(['right_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 7))\n    keyAttributes(['right_hipJnt'], 75, 'rotateZ', (intervalBetweenKeyframesSymmetry* 8))\n    keyAttributes(['right_hipJnt'], 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 9))\n    \n    feetJoints = ['left_ankleJnt','right_ankleJnt']\n    ballJoints = ['left_ballJnt','right_ballJnt']\n    \n    #Leg Setup for visibility\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 9))\n    keyAttributes(hipJoints, -75, 'rotateZ', (intervalBetweenKeyframesSymmetry* 10))\n    keyAttributes(hipJoints, -75, 'rotateZ', (intervalBetweenKeyframesSymmetry* 11))\n    keyAttributes(hipJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 13))\n    \n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 9))\n    keyAttributes(kneeJoints, 40, 'rotateZ', (intervalBetweenKeyframesSymmetry* 10))\n    keyAttributes(kneeJoints, 40, 'rotateZ', (intervalBetweenKeyframesSymmetry* 11))\n    keyAttributes(kneeJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 13))\n    #Key Foot Joints\n    keyAttributes(feetJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 9))\n    keyAttributes(feetJoints, 70, 'rotateZ', (intervalBetweenKeyframesSymmetry* 10))\n    keyAttributes(feetJoints, 70, 'rotateZ', (intervalBetweenKeyframesSymmetry* 11))\n    keyAttributes(feetJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 13))\n    #Key Ball Joints\n    keyAttributes(ballJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 9))\n    keyAttributes(ballJoints, -50, 'rotateZ', (intervalBetweenKeyframesSymmetry* 10))\n    keyAttributes(ballJoints, -50, 'rotateZ', (intervalBetweenKeyframesSymmetry* 11))\n    keyAttributes(ballJoints, 0, 'rotateZ', (intervalBetweenKeyframesSymmetry* 13))\n    #Key Arms\n    keyArms('left_shoulderJnt','left_elbowJnt',intervalBetweenKeyframesSymmetry)\n    keyArms('right_shoulderJnt','right_elbowJnt',intervalBetweenKeyframesSymmetry)\n    #Key Spine\n    keySpine(spineList,intervalBetweenKeyframesSymmetry)\n   \n    #No Selection\n    cmds.select(clear=True)\n   \n    #Build UI ==========================================================\n    if cmds.window(\"stepSymmetry\", exists =True):\n        cmds.deleteUI(\"stepSymmetry\")\n    stepSymmetry = cmds.window(\"stepSymmetry\", t = \"Step 4 - Symmetry Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"Jaw & Head Grade: \" + str(stepJawHeadGrade))\n    cmds.text(\"Upper Body Grade: \" + str(stepUpperBodyGrade))\n    cmds.text(\"Lower Body Grade: \" + str(stepLowerBodyGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + stepJawHeadGrade + stepUpperBodyGrade + stepLowerBodyGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for symmetry (Max 20)\")\n    cmds.separator(h=15)\n    stepSymmetryGradeSlider = cmds.intSliderGrp(l = \"Symmetry Grade\",min =0,max =20, field =True, value=20)\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:skinWeightCheckResult(organizationGrade, deductionGrade, stepJawHeadGrade, \\\n                stepUpperBodyGrade, stepLowerBodyGrade, cmds.intSliderGrp(stepSymmetryGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepSymmetry)\n\n\n# Result Check ============================================================================\ndef skinWeightCheckResult(organizationGrade, deductionGrade, stepJawHeadGrade, stepUpperBodyGrade, stepLowerBodyGrade, stepSymmetryGrade):\n    #Close fourth dialog\n    if cmds.window(\"stepSymmetry\", exists =True):\n        cmds.deleteUI(\"stepSymmetry\")\n\n    #Result Step Setup\n    changeCameraPosition(0,100,270,-5,0,0)\n    cmds.currentTime(0)\n    cmds.PlaybackStop() \n    \n    #Define Joints\n    hipJoints = ['left_hipJnt', 'right_hipJnt']\n    kneeJoints = ['left_kneeJnt','right_kneeJnt']\n    feetJoints = ['left_ankleJnt','right_ankleJnt']\n    ballJoints = ['left_ballJnt','right_ballJnt']\n    armJoints = ['left_shoulderJnt','left_elbowJnt','right_shoulderJnt','right_elbowJnt']\n\n    #Remove Animation\n    removeKeyFrames(hipJoints)\n    removeKeyFrames(kneeJoints)\n    removeKeyFrames(feetJoints)\n    removeKeyFrames(ballJoints)\n    removeKeyFrames(armJoints)\n    removeKeyFrames(spineList)\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Build UI ==========================================================\n    if cmds.window(\"stepResult\", exists =True):\n        cmds.deleteUI(\"stepResult\")\n    \n    stepResult = cmds.window(\"stepResult\", t = \"Result - Skin Weight Grade\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"Jaw & Head Grade: \" + str(stepJawHeadGrade))\n    cmds.text(\"Upper Body Grade: \" + str(stepUpperBodyGrade))\n    cmds.text(\"Lower Body Grade: \" + str(stepLowerBodyGrade))\n    cmds.text(\"Lower Body Grade: \" + str(stepSymmetryGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + stepJawHeadGrade + stepUpperBodyGrade + stepLowerBodyGrade + stepSymmetryGrade - deductionGrade), hyperlink = True)\n    cmds.separator(h=15)\n    cmds.button(l =\"Restart Script (New Scene)\", w=280, h=40, bgc = (.5, 0, 0), c=lambda x:skinWeightCheckRestartScript())\n    cmds.showWindow(stepResult)\n    \n    \n#Restart Script\ndef skinWeightCheckRestartScript():\n    if cmds.window(\"stepResult\", exists =True):\n        cmds.deleteUI(\"stepResult\")\n    cmds.file( f=True, new=True )\n    \n    #Show open dialog or not\n    if settings.get(\"showOpenDialog\") is True:\n        multipleFilters = \"Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;All Files (*.*)\"\n        filePath = cmds.fileDialog2(fileFilter=multipleFilters, dialogStyle=2, fm=1)\n        if filePath is not None:\n            cmds.file(filePath, open=True)\n        \n    #Restart Script\n    skinWeightCheckMainDialog()\n\n\n#Start current \"Main\"\nskinWeightCheckMainDialog()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Control Rig Grading Script - Use it at your own risk!" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Control Rig Grading Script" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "cCtrl" 
+        -overlayLabelColor 1 0.4342 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import maya.cmds as cmds\n\n# Control Rig Grading Script\n# Script created for Rigging 1 (Term 2, Vancouver Film School)\n# @Guilherme Trevisan - 2019-12-09\n# Last update - 2019-12-17\n# Version:\nscriptVersion = \"v1.0\"\ncurrentModel = \"Betty\"\n\n# Define Main Lists\nunparentList = ['rootCtrl','geo_grp']\ndeleteList = ['controls', 'control_grp','DO_NOT_TOUCH','proxy_geo_grp','skeleton','skeleton_grp','Betty']\nwireSystemElements = ['left_upper_eyelashBaseWire','left_lower_eyelashBaseWire','left_eyebrow_BaseWire', \\\n                      'right_upper_eyelashBaseWire','right_eyebrow_BaseWire','right_lower_eyelashBaseWire',]\nthumbFingersCtrl = ['left_thumb1Ctrl', 'left_thumb2Ctrl', 'left_thumb3Ctrl', 'left_thumbEndCtrl', \\\n                'right_thumb1Ctrl', 'right_thumb2Ctrl', 'right_thumb3Ctrl', 'right_thumbEndCtrl']\n                    \nindexFingersCtrl = ['left_index1Ctrl', 'left_index2Ctrl', 'left_index3Ctrl', 'left_indexEndCtrl', \\\n                'right_index1Ctrl', 'right_index2Ctrl', 'right_index3Ctrl', 'right_indexEndCtrl']\n                    \nmiddleFingersCtrl = ['left_middle1Ctrl', 'left_middle2Ctrl', 'left_middle3Ctrl', 'left_middleEndCtrl', \\\n                'right_middle1Ctrl', 'right_middle2Ctrl', 'right_middle3Ctrl', 'right_middleEndCtrl']\n                    \nringFingersCtrl = ['left_ring1Ctrl', 'left_ring2Ctrl', 'left_ring3Ctrl', 'left_ringEndCtrl', \\\n                'right_ring1Ctrl', 'right_ring2Ctrl', 'right_ring3Ctrl', 'right_ringEndCtrl']\n                    \npinkyFingersCtrl = ['left_pinky1Ctrl', 'left_pinky2Ctrl', 'left_pinky3Ctrl', 'left_pinkyEndCtrl', \\\n                'right_pinky1Ctrl', 'right_pinky2Ctrl', 'right_pinky3Ctrl', 'right_pinkyEndCtrl']\nspineListCtrl = ['spine1Ctrl', 'spine2Ctrl', 'spine3Ctrl',]\n\n#Defines Settings Dictionary\nsettingsDefault = { 'intervalBetweenKeyframes': 10, \n             'showSkeleton': False,\n             'resetViewport': True,\n             'showOpenDialog': False,\n             'psychedelicCamera': False\n            }\nsettings = { 'intervalBetweenKeyframes': 10, \n             'showSkeleton': False,\n             'resetViewport': True,\n             'showOpenDialog': False,\n             'psychedelicCamera': False\n            }\n\n# Defines how fast the animations will happen\n#intervalBetweenKeyframes = 10\n\n# Defines size of joints\ndefaultJointSize = 1\n\n# If objects in the list exists, it gets deleted, else print to expression editor\ndef bruteforceCleanUpScene(deleteList):\n    deleted = []\n    print('_' * 80)\n    for trash in deleteList:\n        #print(trash) # debugging\n        if cmds.objExists(trash):\n            cmds.select(trash)\n            deletionContainer = cmds.ls(selection=True)[0]\n            cmds.delete(deletionContainer)\n            deleted.append(trash)\n        else:\n            print('\"' + trash + ' was not found in the scene')\n\n# If persp shape exists, reset its attributes\ndef resetPerspShapeAttributes():\n    if cmds.objExists('perspShape'):\n        cmds.setAttr('perspShape' + \".focalLength\", 35)\n        cmds.setAttr('perspShape' + \".verticalFilmAperture\", 0.945)\n        cmds.setAttr('perspShape' + \".horizontalFilmAperture\", 1.417)\n        cmds.setAttr('perspShape' + \".lensSqueezeRatio\", 1)\n        cmds.setAttr('perspShape' + \".fStop\", 5.6)\n        cmds.setAttr('perspShape' + \".focusDistance\", 5)\n        cmds.setAttr('perspShape' + \".shutterAngle\", 144)\n        cmds.setAttr('perspShape' + \".centerOfInterest\", 44.822)\n        cmds.setAttr('perspShape' + \".locatorScale\", 1)\n        cmds.setAttr('perspShape' + \".nearClipPlane\", 0.100)\n        cmds.setAttr('perspShape' + \".farClipPlane\", 10000.000)\n        cmds.setAttr('perspShape' + \".cameraScale\", 1)\n        cmds.setAttr('perspShape' + \".preScale\", 1)\n        cmds.setAttr('perspShape' + \".postScale\", 1)\n        cmds.setAttr('perspShape' + \".depthOfField\", 0)\n\n# Reset all modelPanels (Viewport)\ndef resetViewport(showSkeleton):\n    try:\n        panelList = cmds.getPanel(type=\"modelPanel\")\n    \n        for eachPanel in panelList:\n            print(eachPanel)\n            cmds.modelEditor(eachPanel, e=1, allObjects=0)\n            cmds.modelEditor(eachPanel, e=1, polymeshes=1)\n            cmds.modelEditor(eachPanel, e=1, joints=1)\n            if showSkeleton is False:\n                cmds.modelEditor(eachPanel, e=1, joints=0)\n            cmds.modelEditor(eachPanel, e=1, nurbsCurves=1)\n            cmds.modelEditor(eachPanel, e=1, ikHandles=1)\n            cmds.modelEditor(eachPanel, e=1, locators=1)\n            cmds.modelEditor(eachPanel, e=1, grid=0)\n            cmds.modelEditor(eachPanel, e=1, displayLights='default')\n            cmds.modelEditor(eachPanel, e=1, udm=False)\n            cmds.modelEditor(eachPanel, e=1, wireframeOnShaded=0)\n            cmds.modelEditor(eachPanel, e=1, displayTextures=1)\n            cmds.DisplayShadedAndTextured()\n    except:\n        cmds.warning(\"Something went wrong, script couldn't find the viewport\")\n        \n# Sets visibility for all display layers\ndef setLayersVisibility(value):\n\tlayers = cmds.ls(long=True, type='displayLayer')\n\tfor l in layers[0:]:\t\n\t\tif l.find(\"defaultLayer\") == -1:\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\tcmds.setAttr( '%s.visibility' % l, value)\n\n# Sets display layer type\ndef setLayersDisplayType(value):\n\tlayers = cmds.ls(long=True, type='displayLayer')\n\tfor l in layers[0:]:\t\n\t\tif l.find(\"defaultLayer\") == -1:\n                    cmds.setAttr(l + '.displayType', value)\n            \n# Applied a new lambert with a checker to objects in the list\ndef applyMaterial(nodeList):\n    for node in nodeList:\n        if cmds.objExists(node):\n            shd = cmds.shadingNode('lambert', name=\"%s_lambert\" % node, asShader=True)\n            shdSG = cmds.sets(name='%sSG' % shd, empty=True, renderable=True, noSurfaceShader=True)\n            cmds.connectAttr('%s.outColor' % shd, '%s.surfaceShader' % shdSG)\n            cmds.sets(node, e=True, forceElement=shdSG)\n            checkerNode = cmds.shadingNode(\"checker\", asTexture=True, n = \"Checker_%s\" % node)\n            checkerUVNode = cmds.shadingNode(\"place2dTexture\", asTexture=True, n = \"text_%s\" % node)\n            cmds.connectAttr('%s.outColor' %checkerNode,'%s.color' %shd)\n            cmds.connectAttr('%s.outUV' %checkerUVNode,'%s.uvCoord' %checkerNode)\n            cmds.connectAttr('%s.outUvFilterSize' %checkerUVNode,'%s.uvFilterSize' %checkerNode)\n            cmds.setAttr(checkerUVNode + \".repeatU\", 4)\n            cmds.setAttr(checkerUVNode + \".repeatV\", 4)\n\n# Removes non-vector key frames from attribute\ndef removeKeyFramesNonVector(objList,attributeToRemoveKey):\n    for objId in objList:\n        if cmds.objExists(objId):\n            cmds.select(objId)\n            myObj = cmds.ls(selection=True)[0]\n            cmds.cutKey(myObj, time = (0, 2000), clear = True)\n            cmds.cutKey( myObj, time=(0,1000), attribute=attributeToRemoveKey, option=\"keys\" )\n\n# Removes key frames from attributes\ndef removeKeyFrames(objList,attributeToRemoveKey):\n    for objId in objList:\n        if cmds.objExists(objId):\n            cmds.select(objId)\n            myObj = cmds.ls(selection=True)[0]\n            cmds.cutKey(myObj, time = (0, 2000), clear = True)\n            cmds.setAttr(myObj + \".\" + attributeToRemoveKey, 0,0,0)\n \n# Keys provided parameters      \ndef keyAttributes(objList, value, attribute, atFrame):\n    for objId in objList:\n        if cmds.objExists(objId):\n            cmds.select(objId)\n            myObj = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(myObj, v=value, at=attribute, t=atFrame )\n\n# Keys attributes that are not locked  \ndef keyAttributesIfNotLocked(objList, value, attribute, atFrame, lockedAttribute):\n    for objId in objList:\n        if cmds.objExists(objId):\n            if cmds.getAttr(objId + lockedAttribute ,lock=True) is False:\n                cmds.select(objId)\n                myObj = cmds.ls(selection=True)[0]\n                cmds.setKeyframe(myObj, v=value, at=attribute, t=atFrame )\n\n# Change position of the camera and then look through it\ndef changeCameraPosition(translateX,translateY,translateZ,rotateX,rotateY,rotateZ):\n    if cmds.objExists('persp'):\n        cmds.select('persp')\n        cam = cmds.ls(selection=True)[0]\n        cmds.setAttr(cam + '.translate', translateX,translateY,translateZ)\n        cmds.setAttr(cam + '.rotate', rotateX,rotateY,rotateZ)\n        cmds.lookThru(cam)\n    else:\n        print('UNEXPECTED ERROR! \"persp\" camera not found!!!!!!!!')\n        \ndef makeObjectPsychedelic(object,parent,timeStart,timeEnd,keepPrevious):\n    \n    if keepPrevious is False:\n        print(object +'_parentConstraint1')\n        if cmds.objExists(object +'_parentConstraint1'):\n            cmds.delete(object + '_parentConstraint1')\n        \n    if cmds.objExists(object):\n        cmds.select(object)\n        obj = cmds.ls(selection=True)[0]\n        constraintOne = cmds.parentConstraint(parent,obj, mo=True)\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W0\"), t=timeStart - 1)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W0\"), t=timeStart)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W0\"), t=(timeEnd - timeEnd/10))\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W0\"), t=timeEnd)\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W1\"), t=timeStart - 1)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W1\"), t=timeStart)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W1\"), t=(timeEnd - timeEnd/10))\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W1\"), t=timeEnd)\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W2\"), t=timeStart - 1)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W2\"), t=timeStart)\n        cmds.setKeyframe(constraintOne, v=1, at=(parent + \"W2\"), t=(timeEnd - timeEnd/10))\n        cmds.setKeyframe(constraintOne, v=0, at=(parent + \"W2\"), t=timeEnd)\n    else:\n        print('UNEXPECTED ERROR! Object not found!!!!!!!!')\n        \n        \n# Keys a camera\ndef keyAllAttributes(object, time, tx,ty,tz,rx,ry,rz):\n            cmds.setKeyframe(object, v=tx, at='translateX', t=time)\n            cmds.setKeyframe(object, v=ty, at='translateY', t=time)\n            cmds.setKeyframe(object, v=tz, at='translateZ', t=time)\n            cmds.setKeyframe(object, v=rx, at='rotateX', t=time)\n            cmds.setKeyframe(object, v=ry, at='rotateY', t=time)\n            cmds.setKeyframe(object, v=rz, at='rotateZ', t=time)\n            \n\n# Unlocks attribute from a list of objects\ndef unlockLocked(objList, attributeName):\n    lockedElements = []\n    for objId in objList:\n        if cmds.objExists(objId):\n            if cmds.getAttr(objId + \".\" + attributeName ,lock=True) is True:\n                lockedElements.append(objId)\n                cmds.setAttr(objId + \".\" + attributeName, lock=0)\n    #Tell user that it was locked.\n    '''            \n    if len(lockedElements) > 0:\n        print(lockedElements)\n        cmds.warning(\"Some elements that shouldn't be locked were locked. Open Expression Editor to see list\")\n        #cmds.confirmDialog(str(lockedElements) + \" was locked\")\n    '''\n    \n# Updates joints radius if it's not locked\ndef updateRadiusIfNotLocked(objList, value):\n    for objId in objList:\n        if cmds.objExists(objId):\n            if cmds.getAttr(objId + \".radius\" ,lock=True) is False:\n                cmds.select(objId)\n                myObj = cmds.ls(selection=True)[0]\n                cmds.setAttr(objId + '.radius', value)\n\n# Keys Arms\ndef keyArms(shoulderName,elbowName,intervalBetweenKeyframes):\n    if cmds.objExists(elbowName):\n        cmds.select(elbowName)\n        elbowSelection = cmds.ls(selection=True)[0]\n        cmds.setKeyframe(elbowSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 4))\n        cmds.setKeyframe(elbowSelection, v=-90, at='rotateZ', t=(intervalBetweenKeyframes * 5 ))\n        cmds.setKeyframe(elbowSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 6))\n        if cmds.objExists(shoulderName):\n            cmds.select(shoulderName)\n            shoulderSelection = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateY', t=(intervalBetweenKeyframes * 6))\n            cmds.setKeyframe(shoulderSelection, v=-50, at='rotateY', t=(intervalBetweenKeyframes * 7 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateY', t=(intervalBetweenKeyframes * 8 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 8 ))\n            cmds.setKeyframe(shoulderSelection, v=-50, at='rotateZ', t=(intervalBetweenKeyframes * 9 ))\n            cmds.setKeyframe(shoulderSelection, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 10 ))\n\n# Keys Spine\ndef keySpine(spineListCtrl,intervalBetweenKeyframes):    \n    for spine in spineListCtrl:\n        if cmds.objExists(spine):\n            cmds.select(spine)\n            spine = cmds.ls(selection=True)[0]\n            cmds.setKeyframe(spine, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 10))\n            cmds.setKeyframe(spine, v=30, at='rotateZ', t=(intervalBetweenKeyframes * 11 ))\n            cmds.setKeyframe(spine, v=-30, at='rotateZ', t=(intervalBetweenKeyframes * 13 ))\n            cmds.setKeyframe(spine, v=0, at='rotateZ', t=(intervalBetweenKeyframes * 14))\n\n# Main Control Rig Grading Dialog\ndef controlRigCheckMainDialog():\n    if cmds.window(\"crMainDialog\", exists =True):\n        cmds.deleteUI(\"crMainDialog\")    \n\n    # crMainDialog Start Here =================================================================================\n\n    crMainDialog = cmds.window(\"crMainDialog\", title=\"Controls Rig Grading Script - \" + scriptVersion, widthHeight=(480,250),\\\n                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)\n\n    columnMain = cmds.columnLayout() \n\n    form = cmds.formLayout(p=columnMain,)\n    tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5, p=form,  width = 380)\n\n    tabMain = cmds.columnLayout(adj = True, p=tabs)\n\n    cmds.text(\"\")\n    cmds.text(\"Warning!\", bgc=[.3,0,0],  fn=\"boldLabelFont\")\n    cmds.text(\"  \")\n    cmds.text(\"This script will break your scene!\")\n    cmds.text(\"SAVE IT FIRST IN CASE YOU WANT TO PROCEED\")\n    cmds.text(\"   \")\n\n    cmds.separator(h=10, p=tabMain)\n    cmds.text(\" \")\n    cgOrganizationContainer = cmds.columnLayout(p=tabMain)\n    crOrganization = cmds.intSliderGrp('crMainDialog', width = 350 ,p=cgOrganizationContainer, l = \"Organization Grade\",min =0,max =10, field =True, value=10)\n    crDeductionContainer = cmds.columnLayout(p=tabMain)\n    crDeduction = cmds.intSliderGrp(l = \"Deduction Grade\",  width = 350 ,p=crDeductionContainer ,min =0,max =100, field =True, value=0)\n    cmds.separator(h=10)\n\n    #Settings Tab ======================================================\n    tabSettings = cmds.rowColumnLayout(numberOfColumns=2, p=tabs)\n    \n    settingsContainer = cmds.columnLayout(p=tabSettings)\n    cmds.text(\"   \", p=settingsContainer)\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    crSpeed = cmds.intSliderGrp(l = \"Interval Between Keys\",  width = 350 ,p=settingsContainer ,min =0,max =100, field =True, value=settings.get(\"intervalBetweenKeyframes\"))\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    checkboxContainer = cmds.rowColumnLayout(numberOfColumns=2, adj=True)\n    cmds.text(\"            Viewport :    \", p=checkboxContainer)\n\n    checkboxSettingsOne = cmds.checkBoxGrp(p=checkboxContainer, numberOfCheckBoxes=2, labelArray2=['Show Skeleton', 'Reset Viewport'], value1 = settings.get(\"showSkeleton\"), value2 = settings.get(\"resetViewport\"))\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    cmds.text(\"            Bonus :    \", p=checkboxContainer)\n    checkboxSettingsTwo = cmds.checkBoxGrp(p=checkboxContainer, numberOfCheckBoxes=2, labelArray2=['Open Dialog', 'Psychedelic Camera'], value1 = settings.get(\"showOpenDialog\"), value2 = settings.get(\"psychedelicCamera\"))\n    settingsSeparator = cmds.rowColumnLayout(numberOfColumns=2, p=settingsContainer, adj=True, width = 370)\n    cmds.separator(p=settingsSeparator)\n    cmds.text(\"   \", p=settingsContainer, height = 10)\n    settingsButtons = cmds.rowColumnLayout(numberOfColumns=2, p=settingsContainer)\n    cmds.button(p=settingsButtons, l =\"Save Changes\",w=184, h=40, c=lambda x:saveModifiedSettings())\n    cmds.button(p=settingsButtons, l =\"Restore Default\",w=184, h=40, c=lambda x:restoreDefaultSettings())\n\n\n    def saveModifiedSettings():\n        settings[\"intervalBetweenKeyframes\"] = cmds.intSliderGrp(crSpeed, q= True,value =True)\n        settings[\"showSkeleton\"] = cmds.checkBoxGrp (checkboxSettingsOne, q=True, value1=True)\n        settings[\"resetViewport\"] = cmds.checkBoxGrp (checkboxSettingsOne, q=True, value2=True)\n        settings[\"showOpenDialog\"] = cmds.checkBoxGrp (checkboxSettingsTwo, q=True, value1=True)\n        settings[\"psychedelicCamera\"] = cmds.checkBoxGrp (checkboxSettingsTwo, q=True, value2=True)\n        print(settings.get(\"intervalBetweenKeyframes\"))\n        print(settings.get(\"showSkeleton\"))\n        print(settings.get(\"resetViewport\"))\n        print(settings.get(\"showOpenDialog\"))\n        print(settings.get(\"psychedelicCamera\"))\n        print(\"Current Settings Saved\")\n        \n    def restoreDefaultSettings():\n        settings[\"intervalBetweenKeyframes\"] = settingsDefault.get(\"intervalBetweenKeyframes\")\n        settings[\"showSkeleton\"] = settingsDefault.get(\"showSkeleton\")\n        settings[\"resetViewport\"] = settingsDefault.get(\"resetViewport\")\n        settings[\"showOpenDialog\"] = settingsDefault.get(\"showOpenDialog\")\n        settings[\"psychedelicCamera\"] = settingsDefault.get(\"psychedelicCamera\")\n        cmds.intSliderGrp(crSpeed, e=True, value = settings[\"intervalBetweenKeyframes\"])\n        cmds.checkBoxGrp(checkboxSettingsOne, e=True, value1 = settings[\"showSkeleton\"])\n        cmds.checkBoxGrp(checkboxSettingsOne, e=True, value2 = settings[\"resetViewport\"])\n        cmds.checkBoxGrp(checkboxSettingsTwo, e=True, value1 = settings[\"showOpenDialog\"])\n        cmds.checkBoxGrp(checkboxSettingsTwo, e=True, value2 = settings[\"psychedelicCamera\"])\n        print(\"Default Settings Restored\")\n\n    #About Tab ======================================================\n    tabAbout = cmds.columnLayout(p=tabs, adj=True)\n\n    aboutContainer = cmds.rowColumnLayout(numberOfColumns=2, height = 33, width = 300)\n    cmds.text(\"Control Rig Grading Script - VFS - \" + scriptVersion  , p=tabAbout, ww=False)\n    cmds.text(\"Current model being rigged:  \" + currentModel, p=tabAbout, ww=True)\n    cmds.text(\"This script was created for grading, use it at your own risk\", p=tabAbout, ww=False)\n    cmds.text(\"Problems? Questions? Send me an email:\", p=tabAbout, ww=True)\n    cmds.text(l='<a href=\"mailto:gtrevisan@gmail.com\">Guilherme Trevisan : gtrevisan@vfs.com</a>', hl=True, p=tabAbout, highlightColor=[1,1,1])\n\n    #Generate Tabs\n    cmds.tabLayout(tabs, edit=True, tabLabel=((tabMain, 'Grader'),(tabSettings, 'Settings'),(tabAbout,'About')))\n\n    #Outside Tabs\n    outsideTabs = cmds.rowLayout(numberOfColumns=2, p=columnMain)\n    startScript = cmds.rowLayout(numberOfColumns=2, p=outsideTabs)\n    cmds.button(p=startScript, l =\"Run Script\", w=375, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckFK(cmds.intSliderGrp(\\\n                crOrganization, q= True,value =True), cmds.intSliderGrp(crDeduction, q= True,value =True)))\n    cmds.showWindow(crMainDialog)\n    # crMainDialog Ends Here =================================================================================\n\n\n# Forward Kinematics Check + Initial Setup\ndef controlRigCheckFK(organizationGrade,deductionGrade):\n    \n    #Delete previous dialog\n    if cmds.window(\"crMainDialog\", exists =True):\n        cmds.deleteUI(\"crMainDialog\")\n\n    #Reset Persp Camera\n    resetPerspShapeAttributes()\n\n    #Setup Viewport\n    if settings.get(\"resetViewport\"):\n        #resetViewport()\n        resetViewport(settings.get(\"showSkeleton\"))\n        setLayersVisibility(True)\n        setLayersDisplayType(0)\n    \n    #Normalize all joints\n    allJoints = cmds.ls(type='joint')\n    updateRadiusIfNotLocked(allJoints, defaultJointSize)\n    \n    #Unsubdivide Geo\n    allGeo = cmds.ls(type='mesh')\n    for everyGeo in allGeo:\n        if cmds.objExists(everyGeo):\n            cmds.displaySmoothness(everyGeo, polygonObject=1)\n\n    #Change position of the camera\n    changeCameraPosition(65.719,116.795,117.03,-7.4,26.6,0)\n    cmds.currentTime(0)\n        \n    #Give eyes a checker material\n    applyMaterial([\"left_pupil_geo\", \"right_pupil_geo\"])\n    \n    #Remove Key frames from previous step\n    removeKeyFirstStep = ['headCtrl', 'jawCtrl']\n    removeKeyFrames(removeKeyFirstStep, \"rotate\")\n            \n    #Set Offsets and Setup Scene\n    intervalBetweenKeyframesFK =  settings.get(\"intervalBetweenKeyframes\") + 5 \n    intervalBetweenKeyframes = settings.get(\"intervalBetweenKeyframes\") \n    middleFingersCtrlOffset = 3\n    ringFingersCtrlOffset = middleFingersCtrlOffset + middleFingersCtrlOffset\n    pinkyFingersCtrlOffset = ringFingersCtrlOffset + middleFingersCtrlOffset\n    waitBeforeArmOffset = 2\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesFK * 14)\n    cmds.PlaybackForward()\n       \n    #Key Thumb Fingers\n    keyAttributes(thumbFingersCtrl, 15, 'rotateZ', (intervalBetweenKeyframesFK * 2))\n    keyAttributes(thumbFingersCtrl, -25, 'rotateZ', (intervalBetweenKeyframesFK * 3))\n    keyAttributes(thumbFingersCtrl, 0, 'rotateZ', (intervalBetweenKeyframesFK * 4))\n        \n    #Key Index Fingers\n    keyAttributes(indexFingersCtrl, 0, 'rotateZ', 0)\n    keyAttributes(indexFingersCtrl, -70, 'rotateZ', intervalBetweenKeyframesFK)\n    currentFrameTime = intervalBetweenKeyframesFK + intervalBetweenKeyframesFK;\n    keyAttributes(indexFingersCtrl, 0, 'rotateZ', currentFrameTime)\n    \n    #Key Middle Fingers\n    keyAttributes(middleFingersCtrl, 0, 'rotateZ', (0 + middleFingersCtrlOffset))\n    keyAttributes(middleFingersCtrl, -70, 'rotateZ', (intervalBetweenKeyframesFK + middleFingersCtrlOffset))\n    currentFrameTime = intervalBetweenKeyframesFK + intervalBetweenKeyframesFK;\n    keyAttributes(middleFingersCtrl, 0, 'rotateZ', (currentFrameTime + middleFingersCtrlOffset))\n    \n    #Key Ring Fingers\n    keyAttributes(ringFingersCtrl, 0, 'rotateZ', (0 + ringFingersCtrlOffset))\n    keyAttributes(ringFingersCtrl, -70, 'rotateZ', (intervalBetweenKeyframesFK + ringFingersCtrlOffset))\n    currentFrameTime = intervalBetweenKeyframesFK + intervalBetweenKeyframesFK;\n    keyAttributes(ringFingersCtrl, 0, 'rotateZ', (currentFrameTime + ringFingersCtrlOffset))\n    \n    #Key Pinky Fingers\n    keyAttributes(pinkyFingersCtrl, 0, 'rotateZ', (0 + pinkyFingersCtrlOffset))\n    keyAttributes(pinkyFingersCtrl, -70, 'rotateZ', (intervalBetweenKeyframesFK + pinkyFingersCtrlOffset))\n    currentFrameTime = intervalBetweenKeyframesFK + intervalBetweenKeyframesFK;\n    keyAttributes(pinkyFingersCtrl, 0, 'rotateZ', (currentFrameTime + pinkyFingersCtrlOffset))\n    \n    #Key Shoulder and Elbow Joints\n    keyArms('left_shoulderCtrl','left_elbowCtrl',intervalBetweenKeyframesFK)\n    keyArms('right_shoulderCtrl','right_elbowCtrl',intervalBetweenKeyframesFK)\n\n    keySpine(spineListCtrl,intervalBetweenKeyframesFK)\n    \n    #Head Ctrls\n    # If head exists, add animation to it\n    if cmds.objExists('headCtrl'):\n        cmds.select('headCtrl')\n        headCtrl = cmds.ls(selection=True)[0]\n        # Move Front and Back\n        cmds.setKeyframe( headCtrl, v=0, at='rotateZ', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=30, at='rotateZ', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateZ', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=-30, at='rotateZ', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateZ', t=currentFrameTime )\n        # Move to Left and Right\n        cmds.setKeyframe( headCtrl, v=0, at='rotateY', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=30, at='rotateY', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateY', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=-30, at='rotateY', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateY', t=currentFrameTime )\n        # Move to Left and Right\n        cmds.setKeyframe( headCtrl, v=0, at='rotateX', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=30, at='rotateX', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateX', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=-30, at='rotateX', t=currentFrameTime )\n        currentFrameTime += intervalBetweenKeyframes\n        cmds.setKeyframe( headCtrl, v=0, at='rotateX', t=currentFrameTime )\n    else:\n        print(\"Missing headCtrl!\")\n    \n    # if Jaw exists add animation to it\n    if cmds.objExists('jawCtrl'):\n        cmds.select('jawCtrl')\n        jawCtrl = cmds.ls(selection=True)[0]\n        # Move Front and Back\n        cmds.setKeyframe( jawCtrl, v=0, at='rotateZ', t=0 )\n        cmds.setKeyframe( jawCtrl, v=30, at='rotateZ', t=(intervalBetweenKeyframes* 1.5) )\n        cmds.setKeyframe( jawCtrl, v=0, at='rotateZ', t=(intervalBetweenKeyframes* 3) )\n    else:\n        print(\"Missing jawCtrl!\")\n       \n    if cmds.objExists('main_eyeCtrl'):\n        cmds.setAttr(\"main_eyeCtrl.visibility\", lock=0)\n        cmds.setAttr(\"main_eyeCtrl.visibility\", 0)\n    \n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        group = cmds.group( em=True, name='PsychedelicRig' )\n        cmds.parent('persp',group)\n        keyAllAttributes(group, 0, 54.639,53.817,6.859,34.6,79.4,0)\n        changeCameraPosition(0,0,0,0,0,0)\n        keyAllAttributes('persp', 0, 0,0,0,0,0,0)\n        keyAllAttributes('persp', (intervalBetweenKeyframesFK * 10 + middleFingersCtrlOffset), 0,0,0,0,0,0)\n        keyAllAttributes('persp', (intervalBetweenKeyframesFK * 10 + middleFingersCtrlOffset + 1), -250,23,-51,-88,-60,80)\n            \n        if cmds.objExists('left_middle2Ctrl'):\n            makeObjectPsychedelic(group,'left_middle2Ctrl',0,(intervalBetweenKeyframesFK * 5 + middleFingersCtrlOffset), False)\n            \n        if cmds.objExists('left_elbowCtrl'):\n            makeObjectPsychedelic(group,'left_elbowCtrl',(intervalBetweenKeyframesFK * 5 + middleFingersCtrlOffset),(intervalBetweenKeyframesFK * 10), True)\n            \n        if cmds.objExists('spine2Ctrl'):\n            makeObjectPsychedelic(group,'spine2Ctrl',(intervalBetweenKeyframesFK * 10),(intervalBetweenKeyframesFK * 14), True)\n        \n\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Build UI ======================================================= Forward Kinematics Check\n    if cmds.window(\"stepFK\", exists =True):\n        cmds.deleteUI(\"stepFK\")\n    stepFK = cmds.window(\"stepFK\", t = \"Step 1 - FK Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for the FK system (Max 25)\")\n    cmds.separator(h=15)\n    stepFKGradeSlider = cmds.intSliderGrp(l = \"FK System Grade\",min =0,max =25, field =True, value=25)\n    cmds.separator(h=20)\n    cmds.button(l =\"Default Camera\", c=\"changeCameraPosition(65.719,116.795,117.03,-7.4,26.6,0)\")\n    cmds.button(l =\"Arm Camera\", c=\"changeCameraPosition(66.252,123.98,34.871,-24.8,65.8,0)\")\n    cmds.button(l =\"Front Camera\", c=\"changeCameraPosition(7.664,112.688,126.455,-7.4,3.4,0)\")\n    cmds.separator(h=20)\n\n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckIK(organizationGrade, deductionGrade, \\\n                cmds.intSliderGrp(stepFKGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepFK)\n\n\n# Inverse Kinematics Check\ndef controlRigCheckIK(organizationGrade, deductionGrade, fkGrade):\n    \n    #Deletes previous dialog\n    if cmds.window(\"stepFK\", exists =True):\n        cmds.deleteUI(\"stepFK\")\n\n    #Change position of the camera\n    changeCameraPosition(64.961,64.3,111.476,-10.4,30.6,0)\n    cmds.currentTime(0)\n    \n    #Define timeline length and keyframe interval\n    intervalBetweenKeyframesIK = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesIK * 15)\n    \n    #Remove Key frames from previous step\n    removeKeySecondStep = ['left_shoulderCtrl', 'left_elbowCtrl','right_elbowCtrl','right_shoulderCtrl']\n    removeKeyFrames(removeKeySecondStep,\"rotate\")\n    removeKeyFrames(thumbFingersCtrl,\"rotate\")\n    removeKeyFrames(indexFingersCtrl,\"rotate\")\n    removeKeyFrames(middleFingersCtrl,\"rotate\")\n    removeKeyFrames(ringFingersCtrl,\"rotate\")\n    removeKeyFrames(pinkyFingersCtrl,\"rotate\")\n    removeKeyFrames(spineListCtrl,\"rotate\")\n    removeKeyFrames(['jawCtrl'],\"rotate\")\n    \n    \n    #hipJoints = ['left_hipCtrl', 'right_hipCtrl']\n    \n    kneeCtrls = ['left_kneeCtrl','right_kneeCtrl']\n    footCtrls = ['left_footCtrl', 'right_footCtrl']\n\n    \n    #First Step IK\n    keyAttributes(footCtrls, 0, 'translateY', 0)\n    keyAttributes(footCtrls, 30, 'translateY', intervalBetweenKeyframesIK + (intervalBetweenKeyframesIK/2))\n    keyAttributes(footCtrls, 0, 'translateY', (intervalBetweenKeyframesIK* 3))\n    \n    keyAttributes(footCtrls, 0, 'translateZ', 0)\n    keyAttributes(footCtrls, 15, 'translateZ', intervalBetweenKeyframesIK + (intervalBetweenKeyframesIK/2))\n    keyAttributes(footCtrls, 0, 'translateZ', (intervalBetweenKeyframesIK* 3))\n    \n    keyAttributes(footCtrls, 0, 'rotateX', 0)\n    keyAttributes(footCtrls, 30, 'rotateX', intervalBetweenKeyframesIK + (intervalBetweenKeyframesIK/2))\n    keyAttributes(footCtrls, 0, 'rotateX', (intervalBetweenKeyframesIK* 3))\n\n    #Second Step IK\n    keyAttributes(footCtrls, 0, 'translateY', (intervalBetweenKeyframesIK* 3))\n    keyAttributes(footCtrls, 15, 'translateY', (intervalBetweenKeyframesIK* 4))\n    keyAttributes(footCtrls, 0, 'translateY', (intervalBetweenKeyframesIK* 5))\n    \n    keyAttributes(footCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 3))\n    keyAttributes(footCtrls, 40, 'translateX', (intervalBetweenKeyframesIK* 4))\n    keyAttributes(footCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 5))\n    \n    #Third Step IK\n    keyAttributes(footCtrls, 0, 'heelRoll', (intervalBetweenKeyframesIK* 5))\n    keyAttributes(footCtrls, 10, 'heelRoll', (intervalBetweenKeyframesIK* 6))\n    keyAttributes(footCtrls, 0, 'heelRoll', (intervalBetweenKeyframesIK* 7))\n    \n    keyAttributes(footCtrls, 0, 'ballRoll', (intervalBetweenKeyframesIK* 7))\n    keyAttributes(footCtrls, 10, 'ballRoll', (intervalBetweenKeyframesIK* 8))\n    keyAttributes(footCtrls, 0, 'ballRoll', (intervalBetweenKeyframesIK* 9))\n    \n    keyAttributes(footCtrls, 0, 'toeRoll', (intervalBetweenKeyframesIK* 9))\n    keyAttributes(footCtrls, 10, 'toeRoll', (intervalBetweenKeyframesIK* 10))\n    keyAttributes(footCtrls, 0, 'toeRoll', (intervalBetweenKeyframesIK* 11))\n    \n    #Change if HeelRoll, BallRoll or ToeRoll\n    keyAttributes(footCtrls, 0, 'HeelRoll', (intervalBetweenKeyframesIK* 5))\n    keyAttributes(footCtrls, 10, 'HeelRoll', (intervalBetweenKeyframesIK* 6))\n    keyAttributes(footCtrls, 0, 'HeelRoll', (intervalBetweenKeyframesIK* 7))\n    \n    keyAttributes(footCtrls, 0, 'BallRoll', (intervalBetweenKeyframesIK* 7))\n    keyAttributes(footCtrls, 10, 'BallRoll', (intervalBetweenKeyframesIK* 8))\n    keyAttributes(footCtrls, 0, 'BallRoll', (intervalBetweenKeyframesIK* 9))\n    \n    keyAttributes(footCtrls, 0, 'ToeRoll', (intervalBetweenKeyframesIK* 9))\n    keyAttributes(footCtrls, 10, 'ToeRoll', (intervalBetweenKeyframesIK* 10))\n    keyAttributes(footCtrls, 0, 'ToeRoll', (intervalBetweenKeyframesIK* 11))\n\n    #Fourth Step IK\n    keyAttributes(footCtrls, 0, 'translateY', (intervalBetweenKeyframesIK* 11))\n    keyAttributes(footCtrls, 10, 'translateY', (intervalBetweenKeyframesIK* 12))\n    keyAttributes(footCtrls, 10, 'translateY', (intervalBetweenKeyframesIK* 13))\n    keyAttributes(footCtrls, 0, 'translateY', (intervalBetweenKeyframesIK* 14))\n    \n    keyAttributes(kneeCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 11))\n    keyAttributes(kneeCtrls, 40, 'translateX', (intervalBetweenKeyframesIK* 12))\n    keyAttributes(kneeCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 13))\n    \n    keyAttributes(kneeCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 13))\n    keyAttributes(kneeCtrls, -40, 'translateX', (intervalBetweenKeyframesIK* 14))\n    keyAttributes(kneeCtrls, 0, 'translateX', (intervalBetweenKeyframesIK* 15))\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        removeKeyFrames(['PsychedelicRig'],\"translate\")\n        keyAllAttributes(\"PsychedelicRig\", 0, 24.655,58.166,21.606,-51.8,47,0)\n        changeCameraPosition(0,0,0,0,0,0)\n        removeKeyFrames(['persp'],\"translate\")\n            \n        if cmds.objExists('left_kneeJnt'):\n            makeObjectPsychedelic('PsychedelicRig','left_kneeJnt',0,(intervalBetweenKeyframesIK * 15), False)\n            \n   \n    #Build UI ======================================================= Inverse Kinematics Check\n    if cmds.window(\"stepIK\", exists =True):\n        cmds.deleteUI(\"stepIK\")\n    stepIK = cmds.window(\"stepIK\", t = \"Step 2 - IK Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"FK Grade: \" + str(fkGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + fkGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade IK system (Max 25)\")\n    cmds.separator(h=15)\n    stepIKGradeSlider = cmds.intSliderGrp(l = \"IK System Grade\",min =0,max =25, field =True, value=25)\n    cmds.separator(h=20)\n    cmds.button(l =\"Front Camera\", c=\"changeCameraPosition(64.961,64.3,111.476,-10.4,30.6,0)\")\n    cmds.button(l =\"Back Camera\", c=\"changeCameraPosition(119.966,93.182,-127.111,-12.8,132.6,0)\")\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckMainEyes(organizationGrade, deductionGrade, fkGrade, \\\n                cmds.intSliderGrp(stepIKGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepIK)\n    \n#Main and Eyes Check\ndef controlRigCheckMainEyes(organizationGrade, deductionGrade, fkGrade, ikGrade):\n    \n    #Delete previous dialog\n    if cmds.window(\"stepIK\", exists =True):\n        cmds.deleteUI(\"stepIK\")\n\n    #Bring back eyes\n    if cmds.objExists('main_eyeCtrl'):\n        cmds.setAttr(\"main_eyeCtrl.visibility\", lock=0)\n        cmds.setAttr(\"main_eyeCtrl.visibility\", 1)\n\n    #Change position of the camera for lower body inspection\n    changeCameraPosition(0,100,270,-5,0,0)\n    cmds.currentTime(0)\n    \n    #Define timeline length and keyframe interval\n    intervalBetweenKeyframesMainEyes = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesMainEyes * 16)\n    \n    #Remove Previous Keyframes\n    kneeCtrls = ['left_kneeCtrl','right_kneeCtrl']\n    footCtrls = ['left_footCtrl', 'right_footCtrl']\n    headCtrls = ['jawCtrl','headCtrl']\n    eyeCtrls = ['left_eyeCtrl','right_eyeCtrl']\n    \n    removeKeyFrames(kneeCtrls, \"translate\")\n    removeKeyFrames(footCtrls, \"rotate\")\n    removeKeyFrames(footCtrls, \"translate\")\n    removeKeyFrames(headCtrls, \"rotate\")\n    removeKeyFramesNonVector(kneeCtrls, \"translateX\")\n    removeKeyFramesNonVector(footCtrls, \"translateX\")\n    removeKeyFramesNonVector(footCtrls, \"translateY\")\n    removeKeyFramesNonVector(footCtrls, \"translateZ\")\n    removeKeyFramesNonVector(eyeCtrls, \"translateX\")\n    \n    keyAttributes([\"mainCtrl\"], 0, 'translateX', 0)\n    keyAttributes([\"mainCtrl\"], 65, 'translateX', (intervalBetweenKeyframesMainEyes * 1))\n    keyAttributes([\"mainCtrl\"], -65, 'translateX', (intervalBetweenKeyframesMainEyes * 3))\n    keyAttributes([\"mainCtrl\"], 0, 'translateX', (intervalBetweenKeyframesMainEyes * 4))\n    \n    keyAttributes([\"directionCtrl\"], 0, 'translateX', (intervalBetweenKeyframesMainEyes * 4))\n    keyAttributes([\"directionCtrl\"], 65, 'translateX', (intervalBetweenKeyframesMainEyes * 5))\n    keyAttributes([\"directionCtrl\"], -65, 'translateX', (intervalBetweenKeyframesMainEyes * 7))\n    keyAttributes([\"directionCtrl\"], 0, 'translateX', (intervalBetweenKeyframesMainEyes * 8))\n    \n    keyAttributes([\"main_eyeCtrl\"], 0, 'translateZ', (intervalBetweenKeyframesMainEyes * 8))\n    keyAttributes([\"main_eyeCtrl\"], 35, 'translateZ', (intervalBetweenKeyframesMainEyes * 9))\n    keyAttributes([\"main_eyeCtrl\"], -35, 'translateZ', (intervalBetweenKeyframesMainEyes * 11))\n    keyAttributes([\"main_eyeCtrl\"], 0, 'translateZ', (intervalBetweenKeyframesMainEyes * 12))\n    keyAttributes([\"main_eyeCtrl\"], 0, 'translateX', (intervalBetweenKeyframesMainEyes * 8))\n    keyAttributes([\"main_eyeCtrl\"], 35, 'translateX', (intervalBetweenKeyframesMainEyes * 9))\n    keyAttributes([\"main_eyeCtrl\"], -35, 'translateX', (intervalBetweenKeyframesMainEyes * 11))\n    keyAttributes([\"main_eyeCtrl\"], 0, 'translateX', (intervalBetweenKeyframesMainEyes * 12))\n    \n    keyAttributes(eyeCtrls, 0, 'translateZ', (intervalBetweenKeyframesMainEyes * 12))\n    keyAttributes(eyeCtrls, 35, 'translateZ', (intervalBetweenKeyframesMainEyes * 13))\n    keyAttributes(eyeCtrls, -35, 'translateZ', (intervalBetweenKeyframesMainEyes * 15))\n    keyAttributes(eyeCtrls, 0, 'translateZ', (intervalBetweenKeyframesMainEyes * 16))\n    keyAttributes(eyeCtrls, 0, 'translateX', (intervalBetweenKeyframesMainEyes * 12))\n    keyAttributes(eyeCtrls, 35, 'translateX', (intervalBetweenKeyframesMainEyes * 13))\n    keyAttributes(eyeCtrls, -35, 'translateX', (intervalBetweenKeyframesMainEyes * 15))\n    keyAttributes(eyeCtrls, 0, 'translateX', (intervalBetweenKeyframesMainEyes * 16))\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        removeKeyFrames(['PsychedelicRig'],\"translate\")\n        keyAllAttributes(\"PsychedelicRig\", 0, 0,0,0,0,0,0)\n        \n        removeKeyFrames(['persp'],\"rotate\")\n        changeCameraPosition(0,100,270,-5,0,0)\n        \n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesMainEyes * 8), 0,100,270,-5,0,0)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesMainEyes * 8 + 1), 0,130,100,-5,0,0)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesMainEyes * 16), 0,130,160,-5,0,0)\n    \n   \n   \n    #Build UI ======================================================= Main & Eyes Check\n    if cmds.window(\"stepMainEyes\", exists =True):\n        cmds.deleteUI(\"stepMainEyes\")\n    stepMainEyes = cmds.window(\"stepMainEyes\", t = \"Step 3 - Main & Eyes\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"FK Grade: \" + str(fkGrade))\n    cmds.text(\"IK Grade: \" + str(ikGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + fkGrade + ikGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for the Main & Eye Ctrls (Max 20)\")\n    cmds.separator(h=15)\n    stepMainEyesGradeSlider = cmds.intSliderGrp(l = \"Main & Eyes Grade\",min =0,max =20, field =True, value=20)\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckCustomAttributes(organizationGrade, deductionGrade, fkGrade, \\\n                ikGrade, cmds.intSliderGrp(stepMainEyesGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepMainEyes)\n\n#Custom Attributes Check\ndef controlRigCheckCustomAttributes(organizationGrade, deductionGrade, fkGrade, ikGrade, mainEyeGrade):\n    \n    #Delete previous dialog\n    if cmds.window(\"stepMainEyes\", exists =True):\n        cmds.deleteUI(\"stepMainEyes\")\n\n    #Change position of the camera for body inspection\n    changeCameraPosition(0,100,270,-5,0,0)\n    cmds.currentTime(0)\n\n    #Define timeline length and keyframe interval\n    intervalBetweenKeyframesCA = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesCA * 6)\n\n    wristCtrls = ['left_wristCtrl', 'right_wristCtrl']\n    eyeCtrls = ['left_eyeCtrl','right_eyeCtrl','main_eyeCtrl']\n    mainCtrls = ['mainCtrl','directionCtrl','main_eyeCtrl']\n    \n    #Unlocks attributes in case they were locked\n    unlockLocked(mainCtrls,\"translateX\")\n    unlockLocked(mainCtrls,\"translateY\")\n    unlockLocked(mainCtrls,\"translateZ\")\n    unlockLocked(wristCtrls,\"translateX\")\n    unlockLocked(wristCtrls,\"translateY\")\n    unlockLocked(wristCtrls,\"translateZ\")\n    \n    #Remove Previous Keyframes\n    removeKeyFrames(eyeCtrls, \"translate\")\n    removeKeyFrames(mainCtrls, \"translate\")\n    removeKeyFramesNonVector(mainCtrls, \"translateX\")\n    removeKeyFrames(wristCtrls, \"translate\")\n\n    #Check if bulletproof by scaling it\n    shouldBeBulletproof = ['spine1Ctrl','spine3Ctrl','left_elbowCtrl','right_elbowCtrl','directionCtrl']\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1, 'scaleX', 0,'.scaleX')\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1.5, 'scaleX', intervalBetweenKeyframesCA,'.scaleX')\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1, 'scaleX', (intervalBetweenKeyframesCA * 2),'.scaleX')\n\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1, 'scaleX', 0,'.scaleX')\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1.5, 'scaleX', intervalBetweenKeyframesCA,'.scaleX')\n    keyAttributesIfNotLocked(shouldBeBulletproof, 1, 'scaleX', (intervalBetweenKeyframesCA * 2),'.scaleX')\n    \n    keyAttributesIfNotLocked(eyeCtrls, 0, 'translateZ', 0,'.rotateX')\n    keyAttributesIfNotLocked(eyeCtrls, 120, 'translateZ', intervalBetweenKeyframesCA,'.rotateX')\n    keyAttributesIfNotLocked(eyeCtrls, 0, 'translateZ', (intervalBetweenKeyframesCA * 2),'.rotateX')\n\n    #Define possible naming variations\n    fistVariations = ['fist','Fist']\n    smileVariations = ['smile','Smile']\n    splayVariations = ['splay','Splay']\n    sadVariations = ['sad', 'Sad']\n    \n    for each in fistVariations:\n        keyAttributes(wristCtrls, 0, each, 0)\n        keyAttributes(wristCtrls, 10, each, intervalBetweenKeyframesCA)\n        keyAttributes(wristCtrls, 0, each, (intervalBetweenKeyframesCA* 2))\n    \n    for each in sadVariations:\n        keyAttributes(['headCtrl'], 0, each, 0)\n        keyAttributes(['headCtrl'], 10, each, intervalBetweenKeyframesCA)\n        keyAttributes(['headCtrl'], 0, each, (intervalBetweenKeyframesCA* 2))\n    \n    for each in fistVariations:\n        keyAttributes(wristCtrls, 0, each, (intervalBetweenKeyframesCA* 4))\n        keyAttributes(wristCtrls, 10, each, (intervalBetweenKeyframesCA* 5))\n        keyAttributes(wristCtrls, 0, each, (intervalBetweenKeyframesCA* 6))\n    \n    for each in sadVariations:\n        keyAttributes(['headCtrl'], 0, each, (intervalBetweenKeyframesCA* 4))\n        keyAttributes(['headCtrl'], 10, each, (intervalBetweenKeyframesCA* 5))\n        keyAttributes(['headCtrl'], 0, each, (intervalBetweenKeyframesCA* 6))\n    \n    for each in splayVariations:\n        keyAttributes(wristCtrls, 0, each, (intervalBetweenKeyframesCA* 2))\n        keyAttributes(wristCtrls, 10, each, (intervalBetweenKeyframesCA* 3))\n        keyAttributes(wristCtrls, 0, each, (intervalBetweenKeyframesCA* 4))\n\n    for each in smileVariations:\n        keyAttributes(['headCtrl'], 0, each, (intervalBetweenKeyframesCA* 2))\n        keyAttributes(['headCtrl'], 10, each, (intervalBetweenKeyframesCA* 3))\n        keyAttributes(['headCtrl'], 0, each, (intervalBetweenKeyframesCA* 4))\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        removeKeyFrames(['PsychedelicRig'],\"translate\")\n        keyAllAttributes(\"PsychedelicRig\", 0, 53.908,54.279,16.23,31.2,59.4,0)\n        \n        \n        removeKeyFrames(['persp'],\"rotate\")\n        keyAllAttributes(\"persp\", 0, -271.865,10.268,-54.399,3689,-121,-93.393)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesCA * 2), -271.865,10.268,-54.399,3689,-121,-93.393)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesCA * 2 + 1), -63.896,37.407,-83.759,3688.17,-106.679,-93.393)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesCA * 4), -63.896,37.407,-83.759,3688.17,-106.679,-93.393)\n        keyAllAttributes(\"persp\", (intervalBetweenKeyframesCA * 4 + 1), 0,0,0,0,0,0)\n        \n        if cmds.objExists('left_middle1Ctrl'):\n            makeObjectPsychedelic('PsychedelicRig','left_middle1Ctrl',(intervalBetweenKeyframesCA * 4),(intervalBetweenKeyframesCA * 6), False)\n   \n   \n    #Build UI ======================================================= Custom Attributes Check\n    if cmds.window(\"StepCA\", exists =True):\n        cmds.deleteUI(\"StepCA\")\n    StepCA = cmds.window(\"StepCA\", t = \"Step 4 - Custom Attribute Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"FK Grade: \" + str(fkGrade))\n    cmds.text(\"IK Grade: \" + str(ikGrade))\n    cmds.text(\"Main & Eyes Grade: \" + str(mainEyeGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + fkGrade + ikGrade + mainEyeGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for custom attributes (Max 10)\")\n    cmds.separator(h=15)\n    StepCAGradeSlider = cmds.intSliderGrp(l = \"Custom Attributes Grade\",min =0,max =10, field =True, value=10)\n    cmds.separator(h=20)\n    \n    cmds.button(l =\"Default Camera\", c=\"changeCameraPosition(0,100,270,-5,0,0)\")\n    cmds.button(l =\"Head Camera\", c=\"changeCameraPosition(23.044,125.273,48.172,4,26.8,0)\")\n    cmds.button(l =\"Hand Camera\", c=\"changeCameraPosition(48.168,69.608,25.955,-9.2,26.8,0)\")\n    cmds.separator(h=15)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckIfScalable(organizationGrade, deductionGrade, fkGrade, \\\n                ikGrade, mainEyeGrade, cmds.intSliderGrp(StepCAGradeSlider, q= True,value =True)))\n    cmds.showWindow(StepCA)\n\n#Scalable Rig check\ndef controlRigCheckIfScalable(organizationGrade, deductionGrade, fkGrade, ikGrade, mainEyeGrade, customAttrGrade):\n    #Close third dialog\n    if cmds.window(\"StepCA\", exists =True):\n        cmds.deleteUI(\"StepCA\")\n\n    #Change position of the camera for body inspection\n    changeCameraPosition(0,100,270,-5,0,0)\n    cmds.currentTime(0)\n    \n    #Define timeline length and keyframe interval\n    intervalBetweenKeyframesScale = settings.get(\"intervalBetweenKeyframes\")\n    cmds.playbackOptions(minTime=0, max = intervalBetweenKeyframesScale * 6)\n    \n    #Remove Previous Keyframes\n    eyeCtrls = ['left_eyeCtrl','right_eyeCtrl','main_eyeCtrl']\n    mainCtrls = ['mainCtrl','directionCtrl','main_eyeCtrl']\n    shouldBeBulletproof = ['spine1Ctrl','spine3Ctrl','left_elbowCtrl','right_elbowCtrl','directionCtrl']\n\n    #Unlocks attributes in case necessary\n    unlockLocked(shouldBeBulletproof,\"translateX\")\n    unlockLocked(shouldBeBulletproof,\"translateY\")\n    unlockLocked(shouldBeBulletproof,\"translateZ\")\n    unlockLocked(['headCtrl'],\"translateX\")\n    unlockLocked(['headCtrl'],\"translateY\")\n    unlockLocked(['headCtrl'],\"translateZ\")\n\n    #Remove previous keyframes\n    wristCtrls = ['left_wristCtrl', 'right_wristCtrl' ]\n    removeKeyFrames(shouldBeBulletproof, \"translate\")\n    removeKeyFrames(wristCtrls, \"translate\")\n    removeKeyFrames(eyeCtrls, \"translate\")\n    removeKeyFrames(mainCtrls, \"translate\")\n    removeKeyFrames(['headCtrl'], \"translate\")\n    removeKeyFrames(['main_eyeCtrl'], \"translate\")\n    removeKeyFramesNonVector(shouldBeBulletproof, \"scaleX\")\n    \n    #Make eye controls invisible\n    if cmds.objExists('main_eyeCtrl'):\n        cmds.setAttr(\"main_eyeCtrl.visibility\", lock=0)\n        cmds.setAttr(\"main_eyeCtrl.visibility\", 0)\n    \n    #Scale mainCtrl\n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleX', 0,'.scaleX')\n    keyAttributesIfNotLocked(['mainCtrl'], 0.2, 'scaleX', (intervalBetweenKeyframesScale * 2),'.scaleX')\n    keyAttributesIfNotLocked(['mainCtrl'], 2, 'scaleX', (intervalBetweenKeyframesScale * 4),'.scaleX')\n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleX', (intervalBetweenKeyframesScale * 6),'.scaleX')\n    \n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleY', 0,'.scaleY')\n    keyAttributesIfNotLocked(['mainCtrl'], 0.2, 'scaleY', (intervalBetweenKeyframesScale * 2),'.scaleY')\n    keyAttributesIfNotLocked(['mainCtrl'], 2, 'scaleY', (intervalBetweenKeyframesScale * 4),'.scaleY')\n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleY', (intervalBetweenKeyframesScale * 6),'.scaleY')\n    \n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleZ', 0,'.scaleZ')\n    keyAttributesIfNotLocked(['mainCtrl'], 0.2, 'scaleZ', (intervalBetweenKeyframesScale * 2),'.scaleZ')\n    keyAttributesIfNotLocked(['mainCtrl'], 2, 'scaleZ', (intervalBetweenKeyframesScale * 4),'.scaleZ')\n    keyAttributesIfNotLocked(['mainCtrl'], 1, 'scaleZ', (intervalBetweenKeyframesScale * 6),'.scaleZ')\n\n    #No Selection\n    cmds.select(clear=True)\n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        removeKeyFrames(['PsychedelicRig'],\"translate\")\n        keyAllAttributes(\"PsychedelicRig\", 0, 0,0,0,0,0,0)\n        \n        removeKeyFrames(['persp'],\"rotate\")\n        changeCameraPosition(0,100,270,-5,0,0)\n        \n        try:\n            panelList = cmds.getPanel(type=\"modelPanel\")\n    \n            for eachPanel in panelList:\n                cmds.modelEditor(eachPanel, e=1, grid=1)\n        except:\n            cmds.warning(\"Something went wrong, script couldn't find the viewport\")\n        \n        if cmds.objExists('PsychedelicRig_parentConstraint1'):\n            cmds.delete('PsychedelicRig_parentConstraint1')\n        \n        if cmds.objExists('mainCtrl'):\n            cmds.scaleConstraint( 'mainCtrl', \"PsychedelicRig\" )\n        \n   \n    #Build UI ======================================================= Scale Check\n    if cmds.window(\"stepScale\", exists =True):\n        cmds.deleteUI(\"stepScale\")\n    stepScale = cmds.window(\"stepScale\", t = \"Step 5 - Is Scalable Check\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"FK Grade: \" + str(fkGrade))\n    cmds.text(\"IK Grade: \" + str(ikGrade))\n    cmds.text(\"Main & Eye Grade: \" + str(mainEyeGrade))\n    cmds.text(\"Custom Attributes Grade: \" + str(customAttrGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + fkGrade + ikGrade + mainEyeGrade + customAttrGrade - deductionGrade))\n    cmds.separator(h=10)\n    cmds.text(\"Please enter the grade for being scalable (Max 10)\")\n    cmds.separator(h=15)\n    stepScaleGradeSlider = cmds.intSliderGrp(l = \"Is Scalable Grade\",min =0,max =10, field =True, value=10)\n    cmds.separator(h=20)\n    \n    #Pass results to the next stage\n    cmds.button(l =\"Next Step\", w=280, h=40, bgc = (.6, .8, .6), c=lambda x:controlRigCheckResult(organizationGrade, deductionGrade, fkGrade, \\\n                ikGrade, mainEyeGrade, customAttrGrade,  cmds.intSliderGrp(stepScaleGradeSlider, q= True,value =True)))\n    cmds.showWindow(stepScale)\n\n\n#Control Rig Result Dialog\ndef controlRigCheckResult(organizationGrade, deductionGrade, fkGrade, ikGrade, mainEyeGrade, customAttrGrade, isScalableGrade):\n    \n    #Delete previous dialog\n    if cmds.window(\"stepScale\", exists =True):\n        cmds.deleteUI(\"stepScale\")\n\n    #Change position of the camera\n    changeCameraPosition(0,100,270,-5,0,0)\n    \n    #No Selection\n    cmds.select(clear=True)\n    \n    #Bonus Psychedelic Camera ---------------------------------------\n    if settings.get(\"psychedelicCamera\") is True:\n        removeKeyFrames(['PsychedelicRig'],\"translate\")\n        keyAllAttributes(\"PsychedelicRig\", 0, 0,0,0,0,0,0)\n        \n        removeKeyFrames(['persp'],\"rotate\")\n        changeCameraPosition(0,100,270,-5,0,0)\n        \n        if cmds.objExists('PsychedelicRig_scaleConstraint1'):\n            cmds.delete('PsychedelicRig_scaleConstraint1')\n        \n        if cmds.objExists('persp'):\n            cmds.parent('persp', w=True, r=True)\n            \n        if cmds.objExists('PsychedelicRig'):\n            cmds.delete('PsychedelicRig')\n            \n        try:\n            panelList = cmds.getPanel(type=\"modelPanel\")\n    \n            for eachPanel in panelList:\n                cmds.modelEditor(eachPanel, e=1, grid=0)\n        except:\n            cmds.warning(\"Something went wrong, script couldn't find the viewport\")\n        \n\n    \n    #Build UI ======================================================= Result\n    if cmds.window(\"stepResult\", exists =True):\n        cmds.deleteUI(\"stepResult\")\n    \n    #Result Setup\n    cmds.currentTime(0)\n    cmds.PlaybackStop()    \n    \n    stepResult = cmds.window(\"stepResult\", t = \"Result - Control Rig Grade\", w=30, h=30, sizeable =False)\n    cmds.columnLayout(adj = True)\n    cmds.separator(h=10)\n    cmds.text(\"Organization Grade: \" + str(organizationGrade))\n    cmds.text(\"FK Grade: \" + str(fkGrade))\n    cmds.text(\"IK Grade: \" + str(ikGrade))\n    cmds.text(\"Main and Eye Grade: \" + str(mainEyeGrade))\n    cmds.text(\"Custom Attributes Grade: \" + str(customAttrGrade))\n    cmds.text(\"Scalable Rig Grade: \" + str(isScalableGrade))\n    cmds.text(\"\")\n    if deductionGrade > 0:\n        cmds.text(\"Deduction: -\" + str(deductionGrade))\n    cmds.text(\"Total: \" + str(organizationGrade + fkGrade + ikGrade + mainEyeGrade + customAttrGrade + isScalableGrade - deductionGrade), hyperlink = True)\n    cmds.separator(h=15)\n    cmds.button(l =\"Restart Script (New Scene)\", w=280, h=40, bgc = (.5, 0, 0), c=lambda x:controlRigCheckRestartScript())\n    cmds.showWindow(stepResult)\n\n#Delete previous dialog and Restart scene\ndef controlRigCheckRestartScript():\n    if cmds.window(\"stepResult\", exists =True):\n        cmds.deleteUI(\"stepResult\")\n    cmds.file( f=True, new=True )\n    \n    #Show open dialog or not\n    if settings.get(\"showOpenDialog\") is True:\n        multipleFilters = \"Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;All Files (*.*)\"\n        filePath = cmds.fileDialog2(fileFilter=multipleFilters, dialogStyle=2, fm=1)\n        if filePath is not None:\n            cmds.file(filePath, open=True)\n    controlRigCheckMainDialog()\n\n#Start current \"Main\"\ncontrolRigCheckMainDialog()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Click to place joint. Click on existing joint to add to skeleton. Click-Drag to position joint." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Create Joints" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "kinJoint.png" 
+        -image1 "kinJoint.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "JointToolOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Orient joint options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "orientJointOptionItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "orientJoint.png" 
+        -image1 "orientJoint.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "OrientJointOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Mirror joint options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "mirrorJointOptionItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "kinMirrorJoint_S.png" 
+        -image1 "kinMirrorJoint_S.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "MirrorJointOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Create a locator object on the grid" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Locator" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "locator.png" 
+        -image1 "locator.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "CreateLocator" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Smooth bind skin options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "skinClusterDialog" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Skin" 
+        -overlayLabelColor 0 1 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "smoothSkin.png" 
+        -image1 "smoothSkin.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "SmoothBindSkinOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Paint skin weights tool options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "skinWeightPaintDialogItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Paint" 
+        -overlayLabelColor 0 1 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "paintSkinWeights.png" 
+        -image1 "paintSkinWeights.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "ArtPaintSkinWeightsToolOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Mirror skin weights options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "mirrorSkinWeightsDialog" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Mirror" 
+        -overlayLabelColor 0 1 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "mirrorSkinWeight.png" 
+        -image1 "mirrorSkinWeight.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "MirrorSkinWeightsOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Parent constraint options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "parentConstraintOptionItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "parentConstraint.png" 
+        -image1 "parentConstraint.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "ParentConstraintOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Aim constraint options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "aimConstraintOptionItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "aimConstraint.png" 
+        -image1 "aimConstraint.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "AimConstraintOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "IK handle tool options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "handleDialogItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "kinHandle.png" 
+        -image1 "kinHandle.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "IKHandleToolOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Pole vector constraint options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "poleVectorConstraintOptionItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "poleVectorConstraint.png" 
+        -image1 "poleVectorConstraint.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "PoleVectorConstraintOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Set driven key options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "setDrivenKey Options" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "setDrivenKeyframe.png" 
+        -image1 "setDrivenKeyframe.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "SetDrivenKeyOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Makes a circleX Curve" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Create Circle X Curve" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "circX" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "circle.png" 
+        -image1 "circle.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "string $tc[] = `circle -c 0 0 0 -nr 1 0 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1`;\n\t\t$c=$tc[0];" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Create a NURBS circle Y" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Circle" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "circY" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "circle.png" 
+        -image1 "circle.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "string $tc[] = `circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 `;\t\n$c=$tc[0];" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Creates Cross Curve" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Cross Curve" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Cross" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pencil.png" 
+        -image1 "pencil.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "$c = `curve -d 1 -p 1 0 -1 -p 2 0 -1 -p 2 0 1 -p 1 0 1 -p 1 0 2 -p -1 0 2 -p -1 0 1 -p -2 0 1 -p -2 0 -1 -p -1 0 -1 -p -1 0 -2 -p 1 0 -2 -p 1 0 -1 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -n \"cross#\"`;" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Creates Cube Curve" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Cube Curve" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Cube" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pencil.png" 
+        -image1 "pencil.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "$c = `curve -d 1 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p -0.5 -0.5 0.5 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 0.5 -0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -n \"cube#\"`;" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Attach Proxy" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Attach Proxy" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "AttatchProxy" 
+        -overlayLabelColor 0 1 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import maya.cmds as cmds\n\n# Functions to get all the stuff we need\n\ndef get_proxy_meshes():\n    all_meshes = cmds.ls(type='mesh')\n    filtered_meshes = [mesh for mesh in all_meshes if 'Proxy_geo' in mesh and 'Orig' not in mesh]\n    all_mesh_transforms = []\n    for mesh in filtered_meshes:\n        filtered_relatives = cmds.listRelatives(mesh, p=True, path=True)\n        all_mesh_transforms.append(filtered_relatives[0])\n    return all_mesh_transforms\n\ndef get_bind_joints():\n    all_joints = cmds.ls(type='joint')\n    character_joints = [joint_ for joint_ in all_joints if 'Jnt' in joint_ and 'End' not in joint_]\n    return character_joints\n\ndef get_proxy_skin_clusters():\n    proxy_skin_clusters = []\n    for proxy_mesh in get_proxy_meshes():\n        relatives = cmds.listRelatives(proxy_mesh)\n        connections = cmds.listConnections(relatives[0])\n        skin_cluster = [connection for connection in connections if\n                        'skinCluster' in connection and 'Set' not in connection and 'GroupId' not in connection]\n        if skin_cluster:\n            proxy_skin_clusters.append(skin_cluster)\n\n    return proxy_skin_clusters\n\n# Bind proxy geo steps\n\ndef connect_proxy_geo():\n    go_to_bind_pose_all_geo()\n    unbind_all_proxy_geo()\n    for bind_joint in get_bind_joints():\n        bind_proxy_geo(bind_joint)\n    cmds.select(clear=True)\n\n\ndef bind_proxy_geo(bind_joint):\n    bind_success = []\n    for proxy_mesh in get_proxy_meshes():\n        if bind_joint[:-3] in proxy_mesh:\n            cmds.skinCluster(bind_joint, proxy_mesh, toSelectedBones=True)\n            bind_success.append(bind_joint)\n            return None\n    if not bind_success:\n        cmds.warning(bind_joint + ' is not properly named.')\n\n\n# Unbind proxy geo steps\n\ndef disconnect_proxy_geo():\n    go_to_bind_pose_all_geo()\n    unbind_all_proxy_geo()\n    delete_all_bind_poses()\n\ndef go_to_bind_pose_all_geo():\n    for mesh_transform in get_proxy_meshes():\n        relatives = cmds.listRelatives(mesh_transform)\n        connections = cmds.listConnections(relatives[0])\n        for connection in connections:\n            if 'skinCluster' in connection:\n                cmds.select(mesh_transform)\n                cmds.GoToBindPose()\n            cmds.select(clear=True)\n\ndef delete_all_bind_poses():\n    all_dag_nodes = cmds.ls()\n    for dag_node in all_dag_nodes:\n        if 'bindPose' in dag_node:\n            cmds.delete(dag_node)\n\ndef unbind_all_proxy_geo():\n    for skin_cluster in get_proxy_skin_clusters():\n        cmds.skinCluster(skin_cluster, edit=True, unbind=True)\n\n\nconnect_proxy_geo()\n#disconnect_proxy_geo()\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Detatch Proxy" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Detach Proxy" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Detatch Proxy" 
+        -overlayLabelColor 1 0 0 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "import maya.cmds as cmds\n\n# Functions to get all the stuff we need\n\ndef get_proxy_meshes():\n    all_meshes = cmds.ls(type='mesh')\n    filtered_meshes = [mesh for mesh in all_meshes if 'Proxy_geo' in mesh and 'Orig' not in mesh]\n    all_mesh_transforms = []\n    for mesh in filtered_meshes:\n        filtered_relatives = cmds.listRelatives(mesh, p=True, path=True)\n        all_mesh_transforms.append(filtered_relatives[0])\n    return all_mesh_transforms\n\ndef get_bind_joints():\n    all_joints = cmds.ls(type='joint')\n    character_joints = [joint_ for joint_ in all_joints if 'Jnt' in joint_ and 'End' not in joint_]\n    return character_joints\n\ndef get_proxy_skin_clusters():\n    proxy_skin_clusters = []\n    for proxy_mesh in get_proxy_meshes():\n        relatives = cmds.listRelatives(proxy_mesh)\n        connections = cmds.listConnections(relatives[0])\n        skin_cluster = [connection for connection in connections if\n                        'skinCluster' in connection and 'Set' not in connection and 'GroupId' not in connection]\n        if skin_cluster:\n            proxy_skin_clusters.append(skin_cluster)\n\n    return proxy_skin_clusters\n\n# Bind proxy geo steps\n\ndef connect_proxy_geo():\n    go_to_bind_pose_all_geo()\n    unbind_all_proxy_geo()\n    for bind_joint in get_bind_joints():\n        bind_proxy_geo(bind_joint)\n    cmds.select(clear=True)\n\n\ndef bind_proxy_geo(bind_joint):\n    bind_success = []\n    for proxy_mesh in get_proxy_meshes():\n        if bind_joint[:-3] in proxy_mesh:\n            cmds.skinCluster(bind_joint, proxy_mesh, toSelectedBones=True)\n            bind_success.append(bind_joint)\n            return None\n    if not bind_success:\n        cmds.warning(bind_joint + ' is not properly named.')\n\n\n# Unbind proxy geo steps\n\ndef disconnect_proxy_geo():\n    go_to_bind_pose_all_geo()\n    unbind_all_proxy_geo()\n    delete_all_bind_poses()\n\ndef go_to_bind_pose_all_geo():\n    for mesh_transform in get_proxy_meshes():\n        relatives = cmds.listRelatives(mesh_transform)\n        connections = cmds.listConnections(relatives[0])\n        for connection in connections:\n            if 'skinCluster' in connection:\n                cmds.select(mesh_transform)\n                cmds.GoToBindPose()\n            cmds.select(clear=True)\n\ndef delete_all_bind_poses():\n    all_dag_nodes = cmds.ls()\n    for dag_node in all_dag_nodes:\n        if 'bindPose' in dag_node:\n            cmds.delete(dag_node)\n\ndef unbind_all_proxy_geo():\n    for skin_cluster in get_proxy_skin_clusters():\n        cmds.skinCluster(skin_cluster, edit=True, unbind=True)\n\n\n#connect_proxy_geo()\ndisconnect_proxy_geo()\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Creates FK Controller (Select Joint First)" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "FK" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "FK" 
+        -overlayLabelColor 0 1 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "'''\nSuper simple script used to introduce students to the use of python in Maya\nIt creates an FK control with a parent control for a joint (after storing its transforms in an empty group)\n'''\n\n# 1. Import Maya Commands\nimport maya.cmds as cmds\n\n# 2. Get my joint\nmy_joint = cmds.ls(selection=True)\n\n# 3. Get my joint name and remove \"Jnt\" from it\njoint_name = my_joint[0][:-3]\n\n# 4. Create Control.\n# Normal determined the orientation of the control. \n# Radius determines its size\n# Ch deletes history\nctrl = cmds.circle(name=joint_name + 'Ctrl', normal=[1,0,0], radius =1, ch=False)\n\n# 5. Create Group.\ngrp = cmds.group(name=(ctrl[0]+'Grp'))\n\n# 6. Move group. Use parent constraint to match joint's transforms.\nconstraint = cmds.parentConstraint(my_joint[0],grp)\n\n# 7. Delete constraint. (No longer necessary after we matched transforms)\ncmds.delete(constraint)\n\n# 8. Constraint joint. \ncmds.parentConstraint(ctrl[0], my_joint[0])\n\n# 9. Select control.\ncmds.select(ctrl[0])" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Wire tool options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "wireCtxDialogItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Wire" 
+        -overlayLabelColor 1 0 1 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "wire.png" 
+        -image1 "wire.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "WireToolOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Blend shape options" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "blendShapeDialogItem" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "blendShape.png" 
+        -image1 "blendShape.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "CreateBlendShapeOptions" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Adjust blend shape weights" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Shape Editor" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "blendShapeEditor.png" 
+        -image1 "blendShapeEditor.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "ShapeEditor" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 
