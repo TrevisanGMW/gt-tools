@@ -3,10 +3,10 @@ from decimal import *
 
 # Python Curve Generator
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2019-01-02
-# Last update - 2019-01-02
+# Last update - 2019-01-03
 
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.1"
 
 # Default Settings
 closeCurve = True
@@ -21,13 +21,13 @@ def runOutput(out):
 
 
 # Main Form ============================================================================
-def mainDialog():
-    if cmds.window("mainDialog", exists =True):
-        cmds.deleteUI("mainDialog")    
+def pyCurveMainDialog():
+    if cmds.window("pyCurveMainDialog", exists =True):
+        cmds.deleteUI("pyCurveMainDialog")    
 
     # mainDialog Start Here =================================================================================
 
-    crMainDialog = cmds.window("mainDialog", title="Py C Gen - " + scriptVersion, widthHeight=(480,250),\
+    pyCurveMainDialog = cmds.window("pyCurveMainDialog", title="Py C Gen - " + scriptVersion, widthHeight=(480,250),\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
@@ -56,7 +56,6 @@ def mainDialog():
     cmds.separator(h=10, p=contentMain)
     cmds.text(p=contentMain, label='Output Python Curve' )
     outputPython = cmds.scrollField(p =contentMain, editable=True, wordWrap=True)
-    swOrganizationContainer = cmds.columnLayout(p=contentMain)
     cmds.button(p=contentMain, l ="Run Code", c=lambda x:runOutput(cmds.scrollField(outputPython, query=True, text=True)))
     
     def generatePythonCurve():
@@ -99,8 +98,8 @@ def mainDialog():
             cmds.scrollField(outputPython, edit=True, wordWrap=True, text=notCurve ,sl=True)
             cmds.setFocus(outputPython)
 
-    cmds.showWindow(crMainDialog)
+    cmds.showWindow(pyCurveMainDialog)
     # mainDialog Ends Here =================================================================================
 
 #Start current "Main"
-mainDialog()
+pyCurveMainDialog()
