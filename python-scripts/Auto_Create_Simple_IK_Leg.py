@@ -2,7 +2,6 @@ import maya.cmds as cmds
 
 '''
 This script is a work in progress.
-
 To do:
 1. Add Stretchy legs
 2. Make UI (load custom objects to be checked)
@@ -10,6 +9,7 @@ To do:
 4. Use toe or not (checkbox)
 5. Better way to manage tags (use length)
 6. Better way to grab weight name (look for attribute)
+7. Make first joint parent to FK control after creating system
 '''
 
 # Auto Create Simple IK Legs Generator
@@ -25,11 +25,11 @@ ctrlTag = 'Ctrl'
 jntTag = 'Jnt' #not yet used, grab legth! later
 
 usingCustomCtrl = True
-customCtrlName = 'hip_IK_Ctrl'
+customCtrlName = 'left_back_paw_IK_fawnCtrl'
 usingCustomPoleVectorCtrl = True
-customPoleVectorCtrl = 'hip_IK_poleVectorCtrl'
+customPoleVectorCtrl = 'left_back_leg1_PoleVector_fawnCtrl'
 usingCustomIKFKSwitch = True
-customIKFKSwitchName = 'testIk'
+customIKFKSwitchName = 'L_B_Leg_FK_IK_Switch_fawn'
 
 
 selectedJoints = cmds.ls(selection=True, type='joint')
@@ -60,9 +60,6 @@ endJoint_RP_IK_pConstraint = cmds.parentConstraint( endJoint_RP_IK, endJoint_RP_
 #endJoint_SC_IK_pConstraint = cmds.parentConstraint( endJoint_SC_IK, endJoint_SC_FK )
 
 
-# Create a handle called leg from the start joint
-# named hip to the end-effector named Ankle.
-
 # main IK
 ikHandleName = startJoint_RP_IK[0][:-3] + 'RP_ikHandle'
 ikHandle_RP = cmds.ikHandle( n=ikHandleName, sj=startJoint_RP_IK[0], ee=endJoint_RP_IK[0], sol='ikRPsolver')
@@ -70,6 +67,7 @@ ikHandle_RP = cmds.ikHandle( n=ikHandleName, sj=startJoint_RP_IK[0], ee=endJoint
 # foot IK
 ikHandleName = endJoint_RP_IK[0][:-3] + 'SC_ikHandle'
 ikHandle_SC = cmds.ikHandle( n=ikHandleName, sj=endJoint_RP_IK[0], ee=endJoint_SC_IK[0], sol='ikSCsolver')
+#Make so it doesn't go inside of a group - right now it goes inside the L_F_Leg_FK_IK_Switch_doeGrp
 
 #check if right or left and color it
 #ikControlName = 
@@ -98,7 +96,7 @@ else:
     placementConstraint = cmds.pointConstraint(middleJoint_RP_IK,poleVectorCtrlGrp)
     cmds.delete(placementConstraint)
     
-cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] )
+cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] ) # Investigate here
 
 
 def lockHideAttr(obj,attrArray,lock,hide):
@@ -166,6 +164,3 @@ cmds.connectAttr('%s.outputX' % reverseConditionNode, endJoint_RP_IK_pConstraint
 
 #type='parentConstraint' 
 #cmds.ls(nt=True)
-
-
-
