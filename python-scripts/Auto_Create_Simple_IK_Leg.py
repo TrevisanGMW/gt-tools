@@ -1,6 +1,11 @@
 import maya.cmds as cmds
 
 '''
+Current How to:
+Select Start of IK joint
+End of IK Joint
+End of Foot Joint
+
 This script is a work in progress.
 To do:
 1. Add Stretchy legs
