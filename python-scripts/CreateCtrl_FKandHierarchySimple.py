@@ -33,4 +33,3 @@ for jnt in selectedJoints:
         
             if cmds.objExists(parentCtrl):
                 cmds.parent(grp, parentCtrl)
-            

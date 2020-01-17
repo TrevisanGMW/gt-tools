@@ -2,8 +2,8 @@ import maya.cmds as cmds
 from decimal import *
 
 # Python Curve Generator
-# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2019-01-02
-# Last update - 2019-01-03
+# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-02
+# Last update - 2020-01-03
 
 # Version:
 scriptVersion = "v1.1"
@@ -27,7 +27,7 @@ def pyCurveMainDialog():
 
     # mainDialog Start Here =================================================================================
 
-    pyCurveMainDialog = cmds.window("pyCurveMainDialog", title="Py C Gen - " + scriptVersion, widthHeight=(480,250),\
+    pyCurveMainDialog = cmds.window("pyCurveMainDialog", title="Py C Gen - " + scriptVersion,\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 

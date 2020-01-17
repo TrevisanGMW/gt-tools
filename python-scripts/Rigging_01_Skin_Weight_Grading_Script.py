@@ -3,9 +3,9 @@ import maya.cmds as cmds
 # Skin Weight Grading Script
 # Script created for Rigging 1 (Term 2, Vancouver Film School)
 # @Guilherme Trevisan - 2019-12-09
-# Last update - 2019-12-18
+# Last update - 2020-01-14 - Fixed main window width problem
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.1"
 currentModel = "Betty"
 
 #Define Initial Setup
@@ -218,7 +218,7 @@ def skinWeightCheckMainDialog():
 
     # swMainDialog Start Here =================================================================================
 
-    crMainDialog = cmds.window("swMainDialog", title="Skin Weight Grading Script - " + scriptVersion, widthHeight=(480,250),\
+    crMainDialog = cmds.window("swMainDialog", title="Skin Weight Grading Script - " + scriptVersion, widthHeight=(382,236),\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
@@ -799,3 +799,4 @@ def skinWeightCheckRestartScript():
 
 #Start current "Main"
 skinWeightCheckMainDialog()
+

@@ -3,9 +3,9 @@ import maya.cmds as cmds
 # Control Rig Grading Script
 # Script created for Rigging 1 (Term 2, Vancouver Film School)
 # @Guilherme Trevisan - 2019-12-09
-# Last update - 2019-12-17
+# Last update - 2020-01-14 - Fixed the width and ratio of the window
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.1"
 currentModel = "Betty"
 
 # Define Main Lists
@@ -280,7 +280,7 @@ def controlRigCheckMainDialog():
 
     # crMainDialog Start Here =================================================================================
 
-    crMainDialog = cmds.window("crMainDialog", title="Controls Rig Grading Script - " + scriptVersion, widthHeight=(480,250),\
+    crMainDialog = cmds.window("crMainDialog", title="Controls Rig Grading Script - " + scriptVersion, widthHeight=(382,236),\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 

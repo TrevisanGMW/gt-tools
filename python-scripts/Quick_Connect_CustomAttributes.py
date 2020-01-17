@@ -1,11 +1,11 @@
-#TempScript - Will develop into something better with UI later
 import maya.cmds as cmds
 
+#To do:
+# Build a UI
+# Load OBJ option
+# Add Reverse Node Option
 
 selection = cmds.ls(selection=True)
-
-
-
 
 cmds.connectAttr('%s.curveSystemRotation' % selection[0], '%s.input2X' % selection[1]) 
 cmds.connectAttr('%s.curveSystemRotation' % selection[0], '%s.input2Y' % selection[1]) 

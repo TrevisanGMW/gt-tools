@@ -1,11 +1,11 @@
 import maya.cmds as cmds
 
 # Auto FK Control with Hierarchy
-# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2019-01-03
-# Last update - 2019-01-03
+# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-03
+# Last update - 2020-01-03
 
 # Version:
-scriptVersion = "v1.1"
+scriptVersion = "v1.0"
 
 # Default Settings
 mimicHierarchy = True
