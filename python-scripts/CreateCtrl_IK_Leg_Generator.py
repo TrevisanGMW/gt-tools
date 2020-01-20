@@ -1,40 +1,26 @@
 import maya.cmds as cmds
 from decimal import *
 
-# !!!!!!!!!!!!  WIP This script is a work in progress !!!!!!!!!!!!!!!
 # IK Leg Generator 
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-06
-# Last update - 2020-01-16
+# Last update - 2020-01-14
 
 
 # Version:
 scriptVersion = "v1.0"
 
-# Add text boxes for these
-ctrlGrpTag = 'CtrlGrp'
-ctrlTag = 'Ctrl'
-jntTag = 'Jnt' #not yet used, grab legth! later
 
-#usingCustomIKCtrl = False
-#customIKCtrlName = 'left_back_paw_IK_fawnCtrl'
-#usingCustomPoleVectorCtrl = False
-#customPoleVectorCtrl = 'left_back_leg1_PoleVector_fawnCtrl'
-#usingCustomIKFKSwitch = False
-#customIKFKSwitchName = 'L_B_Leg_FK_IK_Switch_fawn'
+#TestingJoints:
+# storedJoints = { 'hipJnt': 'left_hipJnt', 
+#              'ankleJnt': 'left_ankleJnt',
+#              'ballJnt': 'left_ballJnt'
+#             } 
 
-#temp starts here
-storedJoints = { 'hipJnt': 'left_hipJnt', 
-             'ankleJnt': 'left_ankleJnt',
-             'ballJnt': 'left_ballJnt'
-            } # delete this and uncomment the other one once done
-
-
-''' Original
 storedJoints = { 'hipJnt': '', 
              'ankleJnt': '',
              'ballJnt': ''
             }
-'''         
+        
 
 settings = { 'usingCustomIKCtrl': False, 
              'customIKCtrlName': '',
@@ -48,9 +34,11 @@ settings = { 'usingCustomIKCtrl': False,
              'useIKCtrlDef' : False,
              'useIKSwitchDef' : False,
              'usePVectorDef' : False,
-             'makeStretchy' : False
+             'makeStretchy' : False,
+             'ctrlGrpTag' : 'CtrlGrp',
+             'ctrlTag' : 'Ctrl', # Not yet used # Add text boxes for these
+             'jntTag' : 'Jnt' #not yet used, grab legth or replace?
             }
-
 
 
 # Main Form ============================================================================
@@ -143,7 +131,6 @@ def ikLegMainDialog():
     ballStatus = cmds.button(p=ballContainer, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your ball joint and click on \"Load Ball Joint\"', verticalOffset=150 , time=5.0)")
       
-
     cmds.separator(h=10, p=contentMain)
     cmds.text(p=contentMain, label='Click Here After Loading Joints' )
     cmds.button(p=contentMain, l ="Generate",bgc=(.2, .2, .25), c=lambda x:checkBeforeRunning(cmds.checkBoxGrp(checkBoxGrpThree, q=True, value2=True)))
@@ -276,7 +263,7 @@ def ikLegMainDialog():
 #Checks if loaded elements are still valid before running script (in case the user changed it after loading)
 def checkBeforeRunning(isUsingBall):
     isValid = True
-    errorMessage = '    Please check your joints.    Missing Joints: '
+    errorMessage = '    Please reload missing elements.    Missing: '
 
     if cmds.objExists(storedJoints.get("hipJnt")) == False: # Hip
         isValid = False
@@ -288,7 +275,6 @@ def checkBeforeRunning(isUsingBall):
         
     if cmds.objExists(storedJoints.get("hipJnt")) and len(cmds.listRelatives(storedJoints.get("hipJnt"), type='joint') or []) > 0: # Check knee exists
         if cmds.objExists(storedJoints.get("ankleJnt")):
-            print("ankle exists")
             if cmds.listRelatives(storedJoints.get("hipJnt"), type='joint')[0] == storedJoints.get("ankleJnt"):
                 isValid = False
                 errorMessage = errorMessage + 'knee joint, '
@@ -297,9 +283,32 @@ def checkBeforeRunning(isUsingBall):
         if cmds.objExists(storedJoints.get("ballJnt")) == False: # Ball
             isValid = False
             errorMessage = errorMessage + 'ball joint, '
-        if len(cmds.listRelatives(ballJnt_endSC1_FK, type='joint') or []) == 0: # Check if ball has children
+        if len(cmds.listRelatives(storedJoints.get("ballJnt"), type='joint') or []) == 0: # Check if ball has children
             isValid = False
             errorMessage = errorMessage + 'toe joint, '
+        
+    
+    #Check curves here
+    if settings.get("usingCustomPoleVectorCtrl"):
+        if cmds.objExists(settings.get("customPoleVectorCtrl")) == False:
+            isValid = False
+            errorMessage = errorMessage + 'pole vector ctrl, '
+            
+    if settings.get("usingCustomIKCtrl"):
+        if cmds.objExists(settings.get("customIKCtrlName")) == False:
+            isValid = False
+            errorMessage = errorMessage + 'custom IK ctrl, '
+            
+    if settings.get("usingCustomIKFKSwitch"):
+        if cmds.objExists(settings.get("customIKFKSwitchName")) == False:
+            isValid = False
+            errorMessage = errorMessage + 'custom IK switch ctrl, '
+            
+    if settings.get("usingCustomIKFKSwitch"):
+        if cmds.objExists(settings.get("customIKFKSwitchName")) == False:
+            isValid = False
+            errorMessage = errorMessage + 'custom IK switch ctrl, '
+            
         
     if isValid:
         generateIkLeg(isUsingBall)
@@ -381,14 +390,20 @@ def generateIkLeg(isUsingBall):
     if settings.get("usingCustomPoleVectorCtrl"):
         poleVector = settings.get("customPoleVectorCtrl")
     else:
-        #CHECK ORIENTATION  - if orientation, then move forward or backwards
         poleVector = cmds.curve(name= ikControl[:-4] + 'poleVectorCtrl', p=[[0.268, 0.268, 0.0], [0.535, 0.268, 0.0], [0.535, -0.268, -0.0], [0.268, -0.268, -0.0], [0.268, -0.535, -0.0], [-0.268, -0.535, -0.0], [-0.268, -0.268, -0.0], [-0.535, -0.268, -0.0], [-0.535, 0.268, 0.0], [-0.268, 0.268, 0.0], [-0.268, 0.535, 0.0], [0.268, 0.535, 0.0], [0.268, 0.268, 0.0]],d=1)
         poleVectorCtrlGrp = cmds.group(name=(poleVector +'Grp'))
-        #move group here (forward or backwards?)
+        
         placementConstraint = cmds.pointConstraint(middleJoint_RP_IK,poleVectorCtrlGrp)
         cmds.delete(placementConstraint)
         
-    cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] ) # Investigate here
+        hipOrientation = cmds.getAttr((hipJnt_startRP_FK + '.jointOrient')) # Check orientation to determine direction group should be positioned
+        totalOrient = (abs(hipOrientation[0][0]) + abs(hipOrientation[0][1]) + abs(hipOrientation[0][2]))
+        if totalOrient > 150: # Back
+            print("First")#poleVectorCtrlGrp
+        elif totalOrient < 150: # Front
+            print("Second")
+        
+    cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] ) # Investigate here why weird grouping is happening
 
     #Check if exists (use checker before running)
     if settings.get("usingCustomIKFKSwitch"):
@@ -421,27 +436,29 @@ def generateIkLeg(isUsingBall):
     reverseNode = cmds.createNode('reverse')
     cmds.connectAttr('%s.ikSwitch' % ikSwitchCtrl, '%s.inputX' % reverseNode)
 
-    ctrlName = hipJnt_startRP_FK[:-3] + ctrlGrpTag
+    ctrlName = hipJnt_startRP_FK[:-3] + settings.get("ctrlGrpTag")
     if cmds.objExists(ctrlName):
         cmds.connectAttr('%s.outputX' % reverseNode, '%s.v' % ctrlName)
         
-    ctrlName = kneeJnt_middleRP_FK[:-3] + ctrlGrpTag
+    ctrlName = kneeJnt_middleRP_FK[:-3] + settings.get("ctrlGrpTag")
     if cmds.objExists(ctrlName):
         cmds.connectAttr('%s.outputX' % reverseNode, '%s.v' % ctrlName)
       
-    ctrlName = ankleJnt_endRP_FK[:-3] + ctrlGrpTag
+    ctrlName = ankleJnt_endRP_FK[:-3] + settings.get("ctrlGrpTag")
     if cmds.objExists(ctrlName):
         cmds.connectAttr('%s.outputX' % reverseNode, '%s.v' % ctrlName)  
     
     if isUsingBall: ############# Find a better solution for this
-        ctrlName = ballJnt_endSC1_FK[:-3] + ctrlGrpTag
+        ctrlName = ballJnt_endSC1_FK[:-3] + settings.get("ctrlGrpTag")
         if cmds.objExists(ctrlName):
             cmds.connectAttr('%s.outputX' % reverseNode, '%s.v' % ctrlName)
         
     cmds.connectAttr('%s.ikSwitch' % ikSwitchCtrl, '%s.v' % ikControl)
     cmds.connectAttr('%s.ikSwitch' % ikSwitchCtrl, '%s.v' % poleVector)
 
-    #Main Ctrl IK Influence > Condition (IK switch is one) > Reverse goes to FK weight, true data is passed to IK weight
+    # Main Ctrl IK Influence
+    # Creates Condition (IK Switch is one) > 
+    # Reverse goes to FK weight, true data is passed to IK Weight
 
     conditionNode = cmds.createNode('condition')
     cmds.setAttr(conditionNode + '.secondTerm', 1)
