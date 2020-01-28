@@ -4,8 +4,7 @@ import maya.mel as mel
 '''
 This script is still a work in progress
 To do:
-1. Create UI
-2. Load Objects with checks
+1. Merge it with IK Leg Generator after tested
 '''
 
 

@@ -1,5 +1,6 @@
 import maya.cmds as cmds
 
+# This script is a work in progress, it was left here as a reminder of what I have to do.
 #To do:
 # Build a UI
 # Load OBJ option
@@ -13,7 +14,6 @@ cmds.connectAttr('%s.curveSystemRotation' % selection[0], '%s.input2Z' % selecti
 
 
 '''
-
 
 #Translate Only
 cmds.connectAttr('%s.rotate' % selection[0], '%s.input1' % selection[1]) 
