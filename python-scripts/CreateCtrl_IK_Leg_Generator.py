@@ -4,17 +4,15 @@ from decimal import *
 # IK Leg Generator 
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-06
 # Last update - 2020-01-14
+# To do:
+# Update auto generated curves
+# Add "Make Stretchy Legs" function
+# Test it further
 
 
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v0.8a"
 
-
-#TestingJoints:
-# storedJoints = { 'hipJnt': 'left_hipJnt', 
-#              'ankleJnt': 'left_ankleJnt',
-#              'ballJnt': 'left_ballJnt'
-#             } 
 
 storedJoints = { 'hipJnt': '', 
              'ankleJnt': '',
@@ -108,7 +106,7 @@ def ikLegMainDialog():
     # CheckboxGrp Three
     interactiveContainerJnt = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, h= 25)
     cmds.text("    ") # Increase this to move checkboxes to the right
-    checkBoxGrpThree = cmds.checkBoxGrp(p=interactiveContainerJnt, columnWidth2=[130, 1], numberOfCheckBoxes=2, \
+    checkBoxGrpThree = cmds.checkBoxGrp(en1=False,p=interactiveContainerJnt, columnWidth2=[130, 1], numberOfCheckBoxes=2, \
                                 label1 = 'Make Stretchy Legs ', label2 = "Use Ball Joint", v1 = settings.get("makeStretchy"), v2 = settings.get("useBallJntDef"), \
                                 on2=lambda x:isBallEnabled(True),  of2=lambda x:isBallEnabled(False) )   
                             

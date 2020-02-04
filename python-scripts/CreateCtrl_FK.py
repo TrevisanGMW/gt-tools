@@ -1,6 +1,7 @@
 '''
 Super simple script used to introduce students to the use of python in Maya
 It automatically creates an FK control and stores its transforms in a separated group before parent constraining the joint to it.
+If you're looking for a more complete solution, refer to the script called "createCtrl_autoFK.py"
 '''
 
 # 1. Import Maya Commands.
