@@ -1,8 +1,12 @@
 import maya.cmds as cmds
 
-# rigLayer Generator -> Simple script used to create rigLayers.
+# rigLayer Generator -> Simple script used to create rigLayers
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-04
 # Last update - 2020-02-04
+#
+# To do: 
+# Add option to use a different method of position matching (instead of constraint?)
+# Add option to use joint's orientation instead of rotation
 
 scriptVersion = "1.0";
 
@@ -94,7 +98,21 @@ def createRigLayer(layerTag,parentType,layerType):
             constraint = cmds.parentConstraint(obj,rigLayer)
             cmds.delete(constraint)
             cmds.parent( obj, rigLayer)
-            
+
+# Function to Parse textField data 
+def parseTextField(textFieldData):
+    textFieldDataNoSpaces = textFieldData.replace(" ", "")
+    if len(textFieldDataNoSpaces) <= 0:
+        return []
+    else:
+        returnList = textFieldDataNoSpaces.split(",")
+        emptyObjects = []
+        for obj in returnList:
+            if '' == obj:
+                emptyObjects.append(obj)
+        for obj in emptyObjects:
+            returnList.remove(obj)
+        return returnList
 
 #Run Script
 createRigLayerDialog()
