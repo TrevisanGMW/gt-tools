@@ -2,7 +2,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 
 # Simple Script used to export the Blue Heron Rig
-scriptVersion = "1.0"
+scriptVersion = "2.0"
 
 def blueHeronDialog():
     if cmds.window("blueHeronDialog", exists =True):
@@ -16,6 +16,8 @@ def blueHeronDialog():
     form = cmds.formLayout(p=columnMain)
     contentMain = cmds.columnLayout(adj = True)
     
+    cmds.text("Blue Heron Exporter - v" + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.separator(h=10, p=contentMain)
     cmds.text("Step: 1")
     cmds.button(p=contentMain, l ="Import References", c=lambda x:importReferences())
     cmds.separator(h=10, p=contentMain)
@@ -51,7 +53,7 @@ def prepareScene():
     allJnts = cmds.ls(type="joint")
     
     for jnt in allJnts:
-        if "rootJnt" in jnt:
+        if "rootJnt" == jnt:
             if len(cmds.listRelatives(jnt, parent=True) or []) != 0:
                 cmds.parent( jnt, world=True )
     

@@ -5,10 +5,10 @@ import maya.cmds as cmds
 # Last update - 2020-02-04
 #
 # To do: 
-# Add option to use a different method of position matching (instead of constraint?)
+# Add option to use a different method of position matching (use channelbox values)
 # Add option to use joint's orientation instead of rotation
 
-scriptVersion = "1.0";
+scriptVersion = "v1.0";
 
 
 # Main Form ============================================================================
@@ -18,7 +18,7 @@ def createRigLayerDialog():
 
     # mainDialog Start Here =================================================================================
 
-    createRigLayerDialog = cmds.window("createRigLayerDialog", title="rigLayer v" + scriptVersion,\
+    createRigLayerDialog = cmds.window("createRigLayerDialog", title="gt_rigLayer " + scriptVersion,\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
@@ -28,7 +28,7 @@ def createRigLayerDialog():
     contentMain = cmds.columnLayout(adj = True)
 
     cmds.text("")
-    cmds.text("rigLayer Generator - v" + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("GT - Rig Layer Generator - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
     cmds.text("  ")
     cmds.text("      This script creates a rigLayer (transform)       ")
     cmds.text('      for selected elements  ')

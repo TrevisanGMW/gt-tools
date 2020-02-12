@@ -1,7 +1,7 @@
 '''
 Simple version of Auto FK Control with Hierarchy Script used to help students understand the basics of Python.
 It creates FK controls for every selected joint storing their transform in groups, then it mimics the hierarchy of the joints to properly parent controls.
-If you're looking for a more complete solution, refer to the script called "createCtrl_autoFK.py"
+If you're looking for a more complete solution, refer to the script called "gt_createCtrl_autoFK.py"
 '''
 
 # Import Maya cmds

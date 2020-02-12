@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 import maya.mel as mel
 
-# Simple Script used to export the Marmot Rig
+# Simple Script used to export rig into game engines
 scriptVersion = "1.0"
 
 def exportBakedRigDialog():

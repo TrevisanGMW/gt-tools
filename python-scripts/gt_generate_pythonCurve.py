@@ -27,7 +27,7 @@ def pyCurveMainDialog():
 
     # mainDialog Start Here =================================================================================
 
-    pyCurveMainDialog = cmds.window("pyCurveMainDialog", title="Py C Gen - " + scriptVersion,\
+    pyCurveMainDialog = cmds.window("pyCurveMainDialog", title="GT Py C - " + scriptVersion,\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
@@ -37,7 +37,7 @@ def pyCurveMainDialog():
     contentMain = cmds.columnLayout(adj = True)
 
     cmds.text("")
-    cmds.text("Python Curve Generator - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("GT - Python Curve Generator - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
     cmds.text("  ")
     cmds.text("      This script generates the Python code       ")
     cmds.text("      necessary to create the selected curve.     ")

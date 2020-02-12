@@ -46,8 +46,8 @@ def ikLegMainDialog():
 
     # mainDialog Start Here =================================================================================
 
-    ikLegMainDialog = cmds.window("ikLegMainDialog", title="IK Leg - " + scriptVersion,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =True)
+    ikLegMainDialog = cmds.window("ikLegMainDialog", title="gt_ik_leg - " + scriptVersion,\
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False)
 
     columnMain = cmds.columnLayout() 
 
@@ -56,7 +56,7 @@ def ikLegMainDialog():
     contentMain = cmds.columnLayout(adj = True)
 
     cmds.text("")
-    cmds.text("IK Leg Generator - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("GT - IK Leg Generator - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
     cmds.text("  ")
     cmds.text("      This script assumes that you already have       ")
     cmds.text("      joints for the leg. (hip, knee, ankle, ball, toe)     ")

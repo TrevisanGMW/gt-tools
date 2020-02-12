@@ -2,10 +2,10 @@ import maya.cmds as cmds
 
 # Auto FK Control with Hierarchy
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-03
-# Last update - 2020-01-03
+# Last update - 2020-02-12
 
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.1"
 
 # Default Settings
 mimicHierarchy = True
@@ -30,7 +30,7 @@ def autoFKMainDialog():
 
     # mainDialog Start Here =================================================================================
 
-    autoFKMainDialog = cmds.window("autoFKMainDialog", title="Auto FK - " + scriptVersion,\
+    autoFKMainDialog = cmds.window("autoFKMainDialog", title="gt_AutoFK - " + scriptVersion,\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False)
 
     columnMain = cmds.columnLayout() 
@@ -40,7 +40,7 @@ def autoFKMainDialog():
     contentMain = cmds.columnLayout(adj = True)
 
     cmds.text("")
-    cmds.text("Auto FK with Hierarchy - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("GT - Auto FK with Hierarchy - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
     cmds.text("  ")
     cmds.text("      This script generates FK controls while       ")
     cmds.text("      storing their transforms in groups.     ")
