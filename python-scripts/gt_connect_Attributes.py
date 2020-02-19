@@ -2,10 +2,10 @@ import maya.cmds as cmds
 
 # GT Connect Attributes Script
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-04
-# Last update - 2020-02-12
+# Last update - 2020-02-18 - Added Force Connection and Checks
 
 # Version:
-scriptVersion = "v1.0"
+scriptVersion = "v1.2"
  
 
 settings = { 'targetList': [], 
@@ -14,11 +14,13 @@ settings = { 'targetList': [],
              'defDisconnect' : False,
              'defSingleST' : False,
              'defUseCustomNode' : False,
+             'defForceConnection' : False,
              'statusSingleST' : False,
              'statusUseCustomNode' : False,
              'statusUseReverseNode' : False,
              'statusDisconnect' : False,
              'statusAddInput' : False,
+             'statusForceConnection' : False,
              'inputNodeType' : 'condition',
              'customNode' : 'plusMinusAverage'
             }
@@ -65,6 +67,12 @@ def connectAttributesMainDialog():
     revDiscCheckBoxGrp = cmds.checkBoxGrp(p=interactiveContainerJnt, columnWidth2=[135, 1], numberOfCheckBoxes=2, \
                                 label1 = '  Add Reverse Node', label2 = "Disconnect", v1 = settings.get("defReverseNode"), v2 = settings.get("defDisconnect"), \
                                 cc1=lambda x:updateStoredValues(), cc2= lambda x:isDisconnecting(cmds.checkBoxGrp(revDiscCheckBoxGrp,q=True,v2=True)))   
+
+    # Checkbox - Override Existing
+    overrideExistingContainer = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, h= 25)
+    cmds.text("    ")
+    forcingConnectionCheckbox = cmds.checkBox(p=overrideExistingContainer, label='  Force Connection  (Overrides Existing)', value=settings.get("defForceConnection"),\
+                         cc=lambda x:updateStoredValues())
 
     cmds.separator(h=15, p=contentMain)
 
@@ -194,7 +202,8 @@ def connectAttributesMainDialog():
         settings["statusDisconnect"] = cmds.checkBoxGrp(revDiscCheckBoxGrp, q=True, value2=True)
         settings["inputNodeType"] = cmds.optionMenu(ctrlNodeOutput, q=True, value=True)
         settings["statusAddInput"] = cmds.checkBox(addCtrlNode, q=True, value=True)
-        #print(settings.get("customNode")) # Debugging
+        settings["statusForceConnection"] = cmds.checkBox(forcingConnectionCheckbox, q=True, value=True)
+        #print(settings.get("statusForceConnections")) # Debugging
         
     # Updates elements to reflect the use disconnect function
     def isDisconnecting(state): 
@@ -203,12 +212,13 @@ def connectAttributesMainDialog():
             cmds.checkBox(addCustomNode, e=True, en=False)
             isUsingCustomNode(False)
             cmds.checkBoxGrp(revDiscCheckBoxGrp, e=True, en1=False)
+            updateStoredValues()
             
         else:
             cmds.checkBox(addCustomNode, e=True, en=True)
             isUsingCustomNode(cmds.checkBox(addCustomNode, q=True, value=True))
             cmds.checkBoxGrp(revDiscCheckBoxGrp, e=True, en1=True)
-    
+            updateStoredValues()
     
     # Objects Loader
     def updateLoadButtonJnt(buttonName):
@@ -290,6 +300,7 @@ def connectAttributes(sourceTextFieldAttribute,tagetTextFieldAttributes):
     inputNodeType = settings.get('inputNodeType')
     usingReverseNode = settings.get('statusUseReverseNode')
     targetAttributesList = parseTextField(tagetTextFieldAttributes)
+    errorList = []
     
     # Start Connecting
     if isReadyToConnect and doDisconnect == False:
@@ -298,117 +309,190 @@ def connectAttributes(sourceTextFieldAttribute,tagetTextFieldAttributes):
         if settings.get('statusAddInput'):
                 inputNode = cmds.createNode(inputNodeType)
  
+        isSourceAttrChecked = False
+        
         for targetObj in targetList: 
          for attr in targetAttributesList:
-
-            if settings.get('statusUseCustomNode'): # Is using custom node?
+            errorOccured = False
+            targetAttrList = []
             
-                if usingReverseNode:
-                    reverseNode = cmds.createNode("reverse")
-            
-                #Source to inBetween node
-                nodeInBetween = cmds.createNode(customNode)
-                if customNode == "plusMinusAverage":
-                    if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input3D[0]") 
-                    else:
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input3D[0].input3Dx") 
+            # Checks if source object exists
+            if cmds.objExists(sourceObj):
+                sourceAttrList = cmds.listAttr(sourceObj) or []
+            else:
+                errorOccured = True
+                errorList.append("The source object " + sourceObj + " doesn't seem exist")
                 
-                elif customNode == "multiplyDivide":
-                    if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input1") 
-                    else:
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input1X") 
-                        
-                elif customNode == "condition":
-                    if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "colorIfTrue") 
-                    else:
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "colorIfTrueR")
-                     
-                # inBetween node to Target node
-                if usingReverseNode:
-                    # Connect Custom node to Reverse Node
-                    if customNode == "plusMinusAverage":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "output3D", reverseNode + "." + 'input') 
-                        else:
-                            cmds.connectAttr(nodeInBetween + "." + "output3Dx", reverseNode + "." + 'inputX')  
-                    elif customNode == "multiplyDivide":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "output", reverseNode + "." + 'input') 
-                        else:
-                            cmds.connectAttr(nodeInBetween + "." + "outputX", reverseNode + "." + 'inputX') 
-                            
-                    elif customNode == "condition":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "outColor", reverseNode + "." + 'input') 
-                        else:
-                            cmds.connectAttr(nodeInBetween + "." + "outColorR", reverseNode + "." + 'inputX')
-                    # Reverse Output to Target Node
-                    if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                        cmds.connectAttr(reverseNode + "." + "output", targetObj + "." + attr) 
-                    else:
-                        cmds.connectAttr(reverseNode + "." + "outputX", targetObj + "." + attr)  
+            # Checks if target object exists
+            if errorOccured == False and cmds.objExists(targetObj):
+                targetAttrList = cmds.listAttr(targetObj) or []
+            else:
+                errorOccured = True
+                errorList.append("The target object " + targetObj + " doesn't seem exist")
+            
+            # Checks if source attribute exists on source
+            if errorOccured == False and str(sourceTextFieldAttribute) in sourceAttrList:
+                pass
+            else:
+                errorOccured = True
+                if isSourceAttrChecked == False:
+                    errorList.append(sourceObj + " (Source Object) doesn't seem to have an attribute called " + sourceTextFieldAttribute)
+                isSourceAttrChecked = True
+            
+            # Checks if target attribute exists on target
+            if len(targetAttrList) > 0 and attr in targetAttrList:
+                pass
+            else:
+                errorOccured = True
+                errorList.append(targetObj + " doesn't seem to have an attribute called " + attr)
+            
+            # Checks if incoming connection already exists
+            if errorOccured == False and cmds.connectionInfo( targetObj + "." + attr, isDestination=True) == False:
+                pass
+            else:
+                if settings.get("statusForceConnection") == False:
+                    errorOccured = True
+                    errorList.append(targetObj + " already has an incoming connection on the attribute: " + attr)
                 else:
-                    # Custom Node to Target Node
+                    disconnectAttribute(targetObj, attr)
+
+            
+            # Allow it to continue if no errors happened
+            if errorOccured == False:
+                if settings.get('statusUseCustomNode'): # Is using custom node?
+                    
+                    if usingReverseNode:
+                        reverseNode = cmds.createNode("reverse")
+                
+                    #Source to inBetween node
+                    nodeInBetween = cmds.createNode(customNode)
                     if customNode == "plusMinusAverage":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "output3D", targetObj + "." + attr) 
+                        if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input3D[0]") 
                         else:
-                            cmds.connectAttr(nodeInBetween + "." + "output3Dx", targetObj + "." + attr)  
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input3D[0].input3Dx") 
                     
                     elif customNode == "multiplyDivide":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "output", targetObj + "." + attr) 
+                        if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input1") 
                         else:
-                            cmds.connectAttr(nodeInBetween + "." + "outputX", targetObj + "." + attr) 
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "input1X") 
                             
                     elif customNode == "condition":
-                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                            cmds.connectAttr(nodeInBetween + "." + "outColor", targetObj + "." + attr) 
+                        if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "colorIfTrue") 
                         else:
-                            cmds.connectAttr(nodeInBetween + "." + "outColorR", targetObj + "." + attr) 
-                
-                
-                # input node to custom nodes
-                if settings.get('statusAddInput'):
-                    if inputNodeType == "plusMinusAverage":
-                        outOfInput = "output3D"
-                    elif inputNodeType == "multiplyDivide":
-                        outOfInput = "output"
-                    elif inputNodeType == "condition":
-                        outOfInput = "outColor"
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, nodeInBetween + "." + "colorIfTrueR")
+                         
+                    # inBetween node to Target node
+                    if usingReverseNode:
+                        # Connect Custom node to Reverse Node
+                        if customNode == "plusMinusAverage":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "output3D", reverseNode + "." + 'input') 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "output3Dx", reverseNode + "." + 'inputX')  
+                        elif customNode == "multiplyDivide":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "output", reverseNode + "." + 'input') 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "outputX", reverseNode + "." + 'inputX') 
+                                
+                        elif customNode == "condition":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "outColor", reverseNode + "." + 'input') 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "outColorR", reverseNode + "." + 'inputX')
+                        # Reverse Output to Target Node
+                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                            cmds.connectAttr(reverseNode + "." + "output", targetObj + "." + attr) 
+                        else:
+                            cmds.connectAttr(reverseNode + "." + "outputX", targetObj + "." + attr)  
+                    else:
+                        # Custom Node to Target Node
+                        if customNode == "plusMinusAverage":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "output3D", targetObj + "." + attr) 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "output3Dx", targetObj + "." + attr)  
                         
-                    if customNode == "plusMinusAverage":
-                        cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "input3D[1]") 
-                    elif customNode == "multiplyDivide":
-                        cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "input2") 
-                    elif customNode == "condition":
-                        cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "colorIfFalse") 
-                
-            else: # Not using custom node (Do simple connection)
-                if usingReverseNode:
-                    reverseNode = cmds.createNode("reverse")
-                    #Reverse Input
-                    if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, reverseNode + "." + "input") 
+                        elif customNode == "multiplyDivide":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "output", targetObj + "." + attr) 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "outputX", targetObj + "." + attr) 
+                                
+                        elif customNode == "condition":
+                            if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                                cmds.connectAttr(nodeInBetween + "." + "outColor", targetObj + "." + attr) 
+                            else:
+                                cmds.connectAttr(nodeInBetween + "." + "outColorR", targetObj + "." + attr) 
+                    
+                    
+                    # Input node to custom nodes
+                    if settings.get('statusAddInput'):
+                        if inputNodeType == "plusMinusAverage":
+                            outOfInput = "output3D"
+                        elif inputNodeType == "multiplyDivide":
+                            outOfInput = "output"
+                        elif inputNodeType == "condition":
+                            outOfInput = "outColor"
+                            
+                        if customNode == "plusMinusAverage":
+                            cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "input3D[1]") 
+                        elif customNode == "multiplyDivide":
+                            cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "input2") 
+                        elif customNode == "condition":
+                            cmds.connectAttr(inputNode + "." + outOfInput, nodeInBetween + "." + "colorIfFalse") 
+                    
+                else: # Not using custom node (Do simple connection)
+                    if usingReverseNode:
+                        reverseNode = cmds.createNode("reverse")
+                        #Reverse Input
+                        if "3" in cmds.getAttr(sourceObj + "." + sourceTextFieldAttribute,type=True):
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, reverseNode + "." + "input") 
+                        else:
+                            cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, reverseNode + "." + "inputX")
+                        #Reverse Output
+                        if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
+                            cmds.connectAttr(reverseNode + "." + "output", targetObj + "." + attr) 
+                        else:
+                            cmds.connectAttr(reverseNode + "." + "outputX", targetObj + "." + attr)  
                     else:
-                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, reverseNode + "." + "inputX")
-                    #Reverse Output
-                    if "3" in cmds.getAttr(targetObj + "." + attr,type=True):
-                        cmds.connectAttr(reverseNode + "." + "output", targetObj + "." + attr) 
-                    else:
-                        cmds.connectAttr(reverseNode + "." + "outputX", targetObj + "." + attr)  
-                else:
-                    cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, targetObj + "." + attr) #Simple Connection
+                        cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, targetObj + "." + attr) #Simple Connection
             
-            
-    elif isReadyToConnect and doDisconnect == True: # Disconnect Instead
+    # Disconnect Instead          
+    elif isReadyToConnect and doDisconnect == True:
         for targetObj in targetList: 
             for attr in targetAttributesList:
-                #cmds.connectAttr(sourceObj + "." + sourceTextFieldAttribute, targetObj + "." + attr) #Simple Connection
-                cmds.disconnectAttr(sourceObj + "." + sourceTextFieldAttribute, targetObj + "." + attr)
+                
+                disconnectErrorOccured = False
+                
+                # Checks if target object exists
+                if cmds.objExists(targetObj):
+                    targetAttrList = cmds.listAttr(targetObj) or []
+                else:
+                    disconnectErrorOccured = True
+                    errorList.append("The target object " + targetObj + " doesn't seem exist")
+                    
+                # Checks if target attribute exists on target
+                if len(targetAttrList) > 0 and attr in targetAttrList:
+                    pass
+                else:
+                    disconnectErrorOccured = True
+                    errorList.append(targetObj + " doesn't seem to have an attribute called " + attr)
+                
+                if disconnectErrorOccured == False:
+                        disconnectAttribute(targetObj, attr)
+    
+    #Print errors if necessary
+    if len(errorList) > 0:
+        print("#" * 80)
+        print(" " * 35 + "Errors:")
+        for error in errorList:
+            print(error)
+        print("#" * 80)
+        cmds.warning( 'An error happened when creating your connections, open the script editor for more details')
 
         
 
@@ -440,7 +524,26 @@ def targetListManager(list):
     if settings.get("targetList") != [] and missingElements == False:
         cmds.select(settings.get("targetList"))
 
-# Function to Parse textField data 
+
+# Disconnect attributes
+def disconnectAttribute(node, attrName, source=True, destination=False):
+    connectionPairs = []
+    if source:
+        connectionsList = cmds.listConnections(node, plugs=True, connections=True, destination=False)
+        if connectionsList:
+            connectionPairs.extend(zip(connectionsList[1::2], connectionsList[::2]))
+    
+    if destination:
+        connectionsList = cmds.listConnections(node, plugs=True, connections=True, source=False)
+        if connectionsList:
+            connectionPairs.extend(zip(connectionsList[::2], connectionsList[1::2]))
+    
+    for srcAttr, destAttr in connectionPairs:
+        if attrName in destAttr:
+            cmds.disconnectAttr(srcAttr, destAttr)
+            
+
+# Parses textField data 
 def parseTextField(textFieldData):
     textFieldDataNoSpaces = textFieldData.replace(" ", "")
     if len(textFieldDataNoSpaces) <= 0:
