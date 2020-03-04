@@ -1,9 +1,10 @@
 import maya.cmds as cmds
 from decimal import *
 
-# IK Leg Generator 
+# IK Leg Generator (This script is still a work in progress)
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-06
 # Last update - 2020-01-14
+#
 # To do:
 # Update auto generated curves
 # Add "Make Stretchy Legs" function

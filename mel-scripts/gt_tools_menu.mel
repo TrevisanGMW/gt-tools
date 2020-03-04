@@ -1,0 +1,127 @@
+//----------------------------------------------------------------------------
+//
+//   GT Menu Script - Creates a menu to call scripts from the GT Tools Package
+//   @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
+//   Last update - 2020-03-03 - Initial Release
+//
+//----------------------------------------------------------------------------
+
+// Globals 
+global string $scriptVersion = "v1.0";
+global string $gMainWindow;     // already defined by Maya
+
+// Removes existing menu in case it exists
+if (`menu -q -exists gtToolsMenu`)
+    {
+    menu -e -dai gtToolsMenu;
+    }
+else
+    {
+	setParent $gMainWindow ;
+    menu -l "GT Tools" -p MayaWindow -to true gtToolsMenu ;
+    }
+
+setParent -menu gtToolsMenu ;
+
+// -----------------------------------------TOOLS------------------------------------
+menuItem -l "Tools" -sm true -to true ;
+    menuItem 
+    -l ("Selection Manager") 
+    -c ("python(\"import gt_tool_selectionManager\\ngt_tool_selectionManager.selectionManagerMainDialog()\");") 
+    -ann ("Manages or creates custom selections.") 
+    -image "tbd.bmp" ;
+    
+    menuItem 
+    -l ("Generate Python Curve") 
+    -c ("python(\"import gt_generate_pythonCurve\\ngt_generate_pythonCurve.pyCurveMainDialog()\");") 
+    -ann ("Generates the python code necessary to create a selected curve.") 
+    -image "tbd.bmp" ;
+    
+    menuItem 
+    -l ("Replace Reference Paths") 
+    -c ("python(\"import gt_tool_replaceReferencePaths\\ngt_tool_replaceReferencePaths.replaceReferencePathsDialog()\");") 
+    -ann ("Search and Replace for reference paths.") 
+    -image "tbd.bmp" ;
+    
+    setParent -menu ".." ;
+
+// -----------------------------------------RIGGING------------------------------------
+menuItem -l "Rigging" -sm true -to true ;
+    menuItem 
+    -l ("Connect Attributes") 
+    -c ("python(\"import gt_connect_Attributes\\ngt_connect_Attributes.connectAttributesMainDialog()\");") 
+    -ann ("Automated solution for connecting multiple attributes.") 
+    -image "tbd.bmp";
+    menuItem 
+    -l ("Generate RigLayer") 
+    -c ("python(\"import gt_generate_rigLayer\\ngt_generate_rigLayer.createRigLayerDialog()\");") 
+    -ann ("Generates inbetween transforms that can be used as layers of animation.") 
+    -image "tbd.bmp" ;
+    menuItem 
+    -l ("Create Auto FK") 
+    -c ("python(\"import gt_createCtrl_AutoFK\\ngt_createCtrl_AutoFK.autoFKMainDialog()\");") 
+    -ann ("Automated solution for created an FK rig.") 
+    -image "tbd.bmp" ;
+    menuItem 
+    -l ("Create IK Leg") 
+    -c ("python(\"import gt_createCtrl_IK_Biped_Leg\\ngt_createCtrl_IK_Biped_Leg.ikLegMainDialog()\");") 
+    -ann ("Automated solution for create a simple IK leg.") 
+    -image "tbd.bmp" ;
+    
+    setParent -menu ".." ;
+    
+// -----------------------------------------ABOUT------------------------------------
+
+
+
+
+menuItem -divider true ;
+menuItem -l "About" -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Visit website.") ;
+
+// Creates About Dialog
+global proc aboutMenuDialog(string $scriptVersion)
+    {
+    if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;
+    window -title "GT Tools About" -sizeable 0 aboutMenuDialog;
+
+    columnLayout -adj 1;
+
+    text -label "";
+    text -label "About - GT Tools" -bgc 0 .5 0  -fn "boldLabelFont";
+    text -label "";
+    text -label (" Version Installed: " + $scriptVersion);
+    text -label "";
+    text -label "      GT Tools is a script package created with the intention        ";
+    text -label "      of simplifying or assisting repetitive actions in Maya.  ";
+    text -label "";
+    text -label "      Most scripts were created according to what was    ";
+    text -label "      needed to do at the time or for specific projects.    ";
+    text -label "";
+    text -label "      This package is provided free of charge    ";
+    text -label "      so there are no guarantees.      ";
+    text -label "      I suggest you save your project before using it.     ";
+    text -label "";
+    text -label "      Hopefully these scripts are helpful to you    ";
+    text -label "      as they were to me :)    ";
+    text -label "";
+    text -label "      In case something doesn't work or you    ";
+    text -label "      have a suggestion, send me an email.    ";
+    text -label "";
+
+    rowColumnLayout -numberOfRows 1 -h 25;
+    text -label "             Guilherme Trevisan : ";
+    text -label "<a href=\"mailto:trevisangmw@gmail.com\">TrevisanGMW@gmail.com</a>" -hl 1;
+    setParent ..;
+
+    rowColumnLayout -numberOfRows 1 -h 25;
+    text -label "                      Visit my ";
+    text -label "<a href=\"https://github.com/TrevisanGMW\">Github</a>" -hl 1;
+    text -label " for updated versions";
+    setParent ..;
+    separator -h 15;
+
+    button -l "OK" 
+    -c ("if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;");
+
+    showWindow aboutMenuDialog;
+    }

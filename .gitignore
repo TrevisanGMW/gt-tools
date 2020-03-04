@@ -1,0 +1,5 @@
+# gitignore file to ignore gt tools package assembly. 
+
+/gt_tools/*.py
+/gt_tools/*.mel
+/gt_tools/*.html
