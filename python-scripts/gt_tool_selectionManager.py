@@ -3,7 +3,7 @@ import maya.mel as mel
 
 # GT Selection Manager Script
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-19
-# Last update - 2020-02-25
+# Last update - 2020-03-05 - Included Help Button
 
 # Version:
 scriptVersion = "v1.0"
@@ -53,7 +53,11 @@ def selectionManagerMainDialog():
     
     # Description
     cmds.text("")
-    cmds.text("GT Selection Manager - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    row1 = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, ) #Empty Space
+    cmds.text( "         GT Selection Manager - " + scriptVersion + "          ",p=row1, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:selectionManagerHelpMenuDialog())
+    cmds.text("        ", bgc=[0,.5,0])
+    cmds.rowColumnLayout(p=contentMain, adj = True)
     cmds.text("  ")
     cmds.text("      This script allows you to update selections       ")
     cmds.text("      to contain (or not) only filtered elements     ")
@@ -644,6 +648,98 @@ def parseTextField(textFieldData):
         for obj in emptyObjects:
             returnList.remove(obj)
         return returnList
+
+
+def selectionManagerHelpMenuDialog():
+    if cmds.window("helpMenuDialog", exists =True):
+        cmds.deleteUI("helpMenuDialog")    
+
+    # About Dialog Start Here =================================================================================
+    
+    # Build About UI
+    helpMenuDialog = cmds.window("helpMenuDialog", title="GT Selection Manager - Help",\
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =True)
+    columnMain = cmds.columnLayout() 
+
+    form = cmds.formLayout(p=columnMain)
+
+    contentMain = cmds.columnLayout(adj = True)
+
+    cmds.text("")
+    cmds.text("Help for GT Selection Manager ", bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("  ")
+    cmds.text(" Version Installed: " + scriptVersion)
+    cmds.text("  ")
+    cmds.text("      This script allows you to create or update your       ")
+    cmds.text('      selections based on some filters (parameters)  ')
+    cmds.text('      You can also save and load previous selections.  ')
+    cmds.text(' ')
+    cmds.text('      Element Name:   ')
+    cmds.text('      This option allows you to check  if the string used   ')
+    cmds.text('      for the object name contains or doesn\'t contain the     ')
+    cmds.text('      the provided parameter.    ')
+    cmds.text(' ')
+    cmds.text('      Element Type:    ')
+    cmds.text('      This filter will check the type of the element to       ')
+    cmds.text('      determine if it should be part of the selection or not.    ')
+    cmds.text(' ')
+    cmds.text('      Element Type > Behavior (Dropdown Menu):   ')
+    cmds.text('      Since most elements are transforms, you can use the   ')
+    cmds.text('      dropdown menu "Behavior" to determine how to filter    ')
+    cmds.text('      the shape element (usually hidden inside the transform)   ')
+    cmds.text('      (You can consider transform, shape, both or ignore it)    ')
+    cmds.text(' ')
+    cmds.text("      Visibility State:   ")
+    cmds.text('      Selection based on the current state of the node\'s    ')
+    cmds.text('      visibility attribute.    ')
+    cmds.text(' ')
+    cmds.text("      Outliner Color:   ")
+    cmds.text('      Filters the option under Node > Display > Outliner Color    ')
+    cmds.text('      In case you\'re unsure about the exact color, you can use    ')
+    cmds.text('      the "Get" button to automatically copy a color.    ')
+    cmds.text(' ')
+    cmds.text("      Outliner Color:   ")
+    cmds.text('      Filters the option under Node > Display > Outliner Color    ')
+    cmds.text('      In case you\'re unsure about the exact color, you can use    ')
+    cmds.text('      the "Get" button to automatically copy a color.    ')
+    cmds.text(' ')
+    cmds.text('      Store Selection Options:    ')
+    cmds.text('      Select objects and click on "Store Selection"    ')
+    cmds.text('      to store them for later.    ')
+    cmds.text('      Use the "-" and "+" buttons to add or remove elements.   ')
+    cmds.text('      Use the "Reset" button to clean your selection   ')
+    cmds.text(' ')
+    cmds.text('      You can save your selection in two ways:   ')
+    cmds.text('      As a set (creates a set containing selection   ')
+    cmds.text('      As text (creates a txt file containing  the code   ')
+    cmds.text('      necessary to recreate selection (as well as a list)   ')
+    cmds.text(' ')
+    cmds.text('      Create New Selection : Uses all objects as initial selection  ')
+    cmds.text('      Update Current Selection : Considers only selected objects  ')
+    cmds.text(' ')
+
+    emailContainer = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, h= 25)
+    
+    cmds.text('             Guilherme Trevisan : ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1], p=emailContainer)
+    websiteContainer = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, h= 25)
+    cmds.text('                      Visit my ')
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1], p=websiteContainer)
+    cmds.text(' for updated versions')
+    cmds.text(' ', p= contentMain)
+    cmds.separator(h=15, p=contentMain)
+    
+    cmds.button(l ="Ok", p= contentMain, c=lambda x:closeAboutWindow())
+                                                                                                                              
+    def closeAboutWindow():
+        if cmds.window("helpMenuDialog", exists =True):
+            cmds.deleteUI("helpMenuDialog")  
+        
+    cmds.showWindow(helpMenuDialog)
+    
+    # About Dialog Ends Here =================================================================================
+
+
 
 # Start current "Main"
 selectionManagerMainDialog()
