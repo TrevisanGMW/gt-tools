@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+import maya.mel as mel
 from decimal import *
 
 # IK Leg Generator (This script is still a work in progress)
