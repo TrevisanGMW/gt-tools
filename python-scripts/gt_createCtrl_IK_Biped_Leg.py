@@ -807,11 +807,13 @@ def makeStretchyLegs(ikHandle):
     cmds.pointConstraint (ikHandleManipulatedJoints[0], topLocatorOne)
     cmds.pointConstraint (ikHandleManipulatedJoints[0], topLocatorTwo)
 
-    #Check if already has control before doing this
-    ikHandleParentConstraint = cmds.listRelatives(ikHandle, children=True,type='parentConstraint' )[0]
-    ikHandleCtrl = cmds.parentConstraint(ikHandleParentConstraint, q=True, targetList=True)
-
-    cmds.parentConstraint (ikHandleCtrl, bottomLocatorOne)
+    try:
+        ikHandleParentConstraint = cmds.listRelatives(ikHandle, children=True,type='parentConstraint' )[0]
+        ikHandleCtrl = cmds.parentConstraint(ikHandleParentConstraint, q=True, targetList=True)
+        cmds.parentConstraint (ikHandleCtrl, bottomLocatorOne)
+    except:
+        pass
+    
     return stretchyGrp
 
 def parseTextField(textFieldData):

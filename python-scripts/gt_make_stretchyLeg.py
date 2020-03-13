@@ -1,21 +1,51 @@
 import maya.cmds as cmds
 import maya.mel as mel
 
-'''
-This script is still a work in progress
-To do:
-1. Merge it with IK Leg Generator after tested
-2. Make a UI for only adding stretchy legs
-'''
 
-
-# Create Scalable Stretchy Legs
-# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2019-01-07
-# Last update - 2019-03-10
+# Create Stretchy Legs (With condition for scaling)
+# @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-13
 #
 
-# Version:
-scriptVersion = "v0.5a"
+scriptVersion = "v1.0";
+
+settings = { 'outlinerColor': [0,1,0] }
+
+# Main Form ============================================================================
+def makeStretchyLegsDialog():
+    if cmds.window("makeStretchyLegsDialog", exists =True):
+        cmds.deleteUI("makeStretchyLegsDialog")    
+
+    # mainDialog Start Here =================================================================================
+    
+    # Build UI
+    makeStretchyLegsDialog = cmds.window("makeStretchyLegsDialog", title="gt_stretchyLeg " + scriptVersion,\
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =True)
+    columnMain = cmds.columnLayout() 
+
+    form = cmds.formLayout(p=columnMain)
+
+    contentMain = cmds.columnLayout(adj = True)
+
+    cmds.text("")
+    cmds.text("GT - Make Stretchy Legs - " + scriptVersion, bgc=[0,.5,0],  fn="boldLabelFont")
+    cmds.text("  ")
+    cmds.text("      This script creates a simple stretchy leg setup.     ")
+    cmds.text('        ')
+    cmds.text('      Select your ikHandle and click on "Make Stretchy"  ')
+    cmds.text('        ')
+    cmds.text('      It assumes that you have a curve driving your  ')
+    cmds.text('      ikHandle as a control.  ')
+
+    cmds.separator(h=15)
+    
+    cmds.button(l ="Make Stretchy", bgc=(.6, .8, .6), c=lambda x:makeStretchyLegs())                                                                                                 
+
+    cmds.showWindow(makeStretchyLegsDialog)
+
+    # mainDialog Ends Here =================================================================================
+
+
+
 
 def changeOutlinerColor(objList, colorRGB):
     for obj in objList:
@@ -24,7 +54,10 @@ def changeOutlinerColor(objList, colorRGB):
             cmds.setAttr ( obj + ".outlinerColor" , colorRGB[0],colorRGB[1],colorRGB[2])
 
 
-def makeStretchyLegs(ikHandle):
+def makeStretchyLegs():
+    
+    ikHandle = cmds.ls(selection=True, type="ikHandle")
+    
     ikHandleManipulatedJoints = cmds.ikHandle(ikHandle, q=True, jointList=True)
 
     topJointPosition = cmds.getAttr(ikHandleManipulatedJoints[0] + '.translate')
@@ -89,11 +122,14 @@ def makeStretchyLegs(ikHandle):
     cmds.pointConstraint (ikHandleManipulatedJoints[0], topLocatorTwo)
 
     #Check if already has control before doing this
-    ikHandleParentConstraint = cmds.listRelatives(ikHandle, children=True,type='parentConstraint' )[0]
-    ikHandleCtrl = cmds.parentConstraint(ikHandleParentConstraint, q=True, targetList=True)
+    try: 
+        ikHandleParentConstraint = cmds.listRelatives(ikHandle, children=True,type='parentConstraint' )[0]
+        ikHandleCtrl = cmds.parentConstraint(ikHandleParentConstraint, q=True, targetList=True)
+        cmds.parentConstraint (ikHandleCtrl, bottomLocatorOne)
+    except:
+        pass
 
-    cmds.parentConstraint (ikHandleCtrl, bottomLocatorOne)
 
 
-ikHandle = cmds.ls(selection=True, type="ikHandle")
-makeStretchyLegs(ikHandle)
+#Run Script
+makeStretchyLegsDialog()
