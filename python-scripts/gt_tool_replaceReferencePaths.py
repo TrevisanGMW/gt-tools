@@ -1,10 +1,9 @@
-import pymel.core.system as pm
 import maya.cmds as cmds
 import maya.mel as mel
 
 # GT Replace Reference Paths Script
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
-# Last update - 2020-03-03
+# Last update - 2020-03-13 - Added "loading pymel dialog"
 # https://github.com/TrevisanGMW
 #
 # To do: 
@@ -15,8 +14,35 @@ scriptVersion = "v1.0";
 
 defaultSearchPath = "H:\\"
 defaultReplacePath = "\\\\vfsstorage10\\3D\\Students"
-refs = pm.listReferences()
 
+
+
+#Loads PyMel
+if cmds.window("pyMelLoadMessage", exists =True):
+    cmds.deleteUI("pyMelLoadMessage")    
+
+pyMelLoadMessage = cmds.window("pyMelLoadMessage", title="PyMel",\
+                      titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =False)
+columnMain = cmds.columnLayout() 
+
+form = cmds.formLayout(p=columnMain)
+
+contentMain = cmds.columnLayout(adj = True)
+
+cmds.text("", h=5)
+cmds.text("    Loading PyMel     ", bgc=[.1,.1,.1],  fn="boldLabelFont")
+cmds.text("    Please Wait     ", bgc=[.1,.1,.1],  fn="boldLabelFont")
+cmds.text(" ", h=5)
+cmds.showWindow(pyMelLoadMessage)
+
+import pymel.core as pm
+                                                               
+if cmds.window("pyMelLoadMessage", exists =True):
+    cmds.deleteUI("pyMelLoadMessage")  
+
+
+# Store References
+refs = pm.listReferences()
 
 # Main Form ============================================================================
 def replaceReferencePathsDialog():

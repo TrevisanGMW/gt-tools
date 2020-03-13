@@ -2,10 +2,10 @@ import maya.cmds as cmds
 
 # Auto FK Control with Hierarchy
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-03
-# Last update - 2020-02-12
+# Last update - 2020-03-10 Fixed an issue where not using a tag wouldn't build the hierarchy
 
 # Version:
-scriptVersion = "v1.1"
+scriptVersion = "v1.2"
 
 # Default Settings
 mimicHierarchy = True
@@ -91,10 +91,8 @@ def autoFKMainDialog():
         for jnt in selectedJoints:
             if cmds.checkBoxGrp(checkBoxesTwo, q=True, value2=True) and settings.get("jointTagLength") != 0:
                 joint_name = jnt[:-settings.get("jointTagLength")]
-                print("1")
             else:
                 joint_name = jnt
-                print("2")
             ctrlName = joint_name + 'Ctrl'
 
 
@@ -139,7 +137,11 @@ def autoFKMainDialog():
                 if len(jntParent) == 0:
                     pass
                 else:
-                    parentCtrl = (jntParent[0][:-3] + 'Ctrl')
+                    
+                    if cmds.checkBoxGrp(checkBoxesTwo, q=True, value2=True) and settings.get("jointTagLength") != 0:
+                        parentCtrl = (jntParent[0][:-settings.get("jointTagLength")] + 'Ctrl')
+                    else:
+                        parentCtrl = (jntParent[0] + 'Ctrl')
                     
                     if cmds.objExists(parentCtrl):
                         cmds.parent(grp, parentCtrl)

@@ -53,7 +53,7 @@ def selectionManagerMainDialog():
     
     # Description
     cmds.text("")
-    row1 = cmds.rowColumnLayout(p=contentMain, numberOfRows=1, ) #Empty Space
+    row1 = cmds.rowColumnLayout(p=contentMain, numberOfRows=1) #Empty Space
     cmds.text( "         GT Selection Manager - " + scriptVersion + "          ",p=row1, bgc=[0,.5,0],  fn="boldLabelFont")
     cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:selectionManagerHelpMenuDialog())
     cmds.text("        ", bgc=[0,.5,0])
@@ -654,7 +654,7 @@ def selectionManagerHelpMenuDialog():
     if cmds.window("helpMenuDialog", exists =True):
         cmds.deleteUI("helpMenuDialog")    
 
-    # About Dialog Start Here =================================================================================
+    # Help Dialog Start Here =================================================================================
     
     # Build About UI
     helpMenuDialog = cmds.window("helpMenuDialog", title="GT Selection Manager - Help",\
@@ -737,7 +737,7 @@ def selectionManagerHelpMenuDialog():
         
     cmds.showWindow(helpMenuDialog)
     
-    # About Dialog Ends Here =================================================================================
+    # Help Dialog Ends Here =================================================================================
 
 
 
