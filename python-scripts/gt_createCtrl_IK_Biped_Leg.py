@@ -666,7 +666,7 @@ def ikLegGeneratorHelpMenuDialog():
 # Locks an hides attributes
 def lockHideAttr(obj,attrArray,lock,hide):
         for a in attrArray:
-            maya.cmds.setAttr(obj + '.' + a, k=hide,l=lock)
+            cmds.setAttr(obj + '.' + a, k=hide,l=lock)
 
 # Returns a list of weights with the exception of the last weight
 def getAllWeightsButNotLast(parentConstraint):
