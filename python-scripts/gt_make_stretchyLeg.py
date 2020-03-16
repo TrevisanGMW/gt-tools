@@ -87,7 +87,7 @@ def makeStretchyLegs():
     topLocatorTwo = cmds.rename(distanceTwoLocators[0], nameTopLocator + "_SC_01")
     bottomLocatorTwo = cmds.rename(distanceTwoLocators[1], nameBottomLocator + "_SC_02")
 
-    stretchyGrp = cmds.group(name=nameDistanceNode + "_StretchySystem", empty=True, world=True)
+    stretchyGrp = cmds.group(name=nameTopLocator + "_stretchySystem_grp", empty=True, world=True)
     cmds.parent( distanceNodeOne, stretchyGrp )
     cmds.parent( topLocatorOne, stretchyGrp )
     cmds.parent( bottomLocatorOne, stretchyGrp )

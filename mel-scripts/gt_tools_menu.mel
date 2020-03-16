@@ -2,12 +2,12 @@
 //
 //   GT Menu Script - Creates a menu to call scripts from the GT Tools Package
 //   @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
-//   Last update - 2020-03-03 - Initial Release
+//   Last update - 2020-03-13 - Added strechy leg and updated IK leg script
 //
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "v1.0";
+global string $scriptVersion = "v1.2";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -64,8 +64,13 @@ menuItem -l "Rigging" -sm true -to true ;
     -image "tbd.bmp" ;
     menuItem 
     -l ("Create IK Leg") 
-    -c ("python(\"import gt_createCtrl_IK_Biped_Leg\\ngt_createCtrl_IK_Biped_Leg.ikLegMainDialog()\");") 
+    -c ("python(\"import gt_createCtrl_IK_Leg\\ngt_createCtrl_IK_Leg.ikLegMainDialog()\");") 
     -ann ("Automated solution for create a simple IK leg.") 
+    -image "tbd.bmp" ;
+	menuItem 
+    -l ("Make Stretchy Leg") 
+    -c ("python(\"import gt_make_stretchyLeg\\ngt_make_stretchyLeg.makeStretchyLegsDialog()\");") 
+    -ann ("Automated solution for creating a simple stretchy system for an IK leg.") 
     -image "tbd.bmp" ;
     
     setParent -menu ".." ;

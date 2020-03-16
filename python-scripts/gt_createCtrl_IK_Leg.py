@@ -434,14 +434,14 @@ def generateIkLeg(isUsingBall):
         # elif totalOrient < 150: # Front
         #     print("Second")
         
-    cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] ) # Investigate here why weird grouping is happening
+    cmds.poleVectorConstraint( poleVector, ikHandle_RP[0] ) 
 
     #Check if exists (use checker before running)
     if settings.get("usingCustomIKFKSwitch"):
         ikSwitchCtrl = settings.get("customIKFKSwitchName")
     else:
         ikSwitchCtrlBeforeNaming = create_fkikSwitch()
-        ikSwitchCtrl = cmds.rename(ikSwitchCtrlBeforeNaming,"switch_ikfkCtrl")
+        ikSwitchCtrl = cmds.rename(ikSwitchCtrlBeforeNaming, ikControl.replace("_IK_Ctrl", "_") + "switch_ikfkCtrl")
         cmds.setAttr(ikSwitchCtrl + ".overrideEnabled", 1)
         cmds.setAttr(ikSwitchCtrl + ".overrideColor", 17) #Yellow 
                          
@@ -528,7 +528,7 @@ def generateIkLeg(isUsingBall):
     mainIKGrpName = hipJnt_startRP_FK.replace("Jnt","")
     mainIKGrp = cmds.group(name=mainIKGrpName + "_IK_Setup_grp",em=True)
     cmds.parent(startJoint_RP_IK, mainIKGrp) # Parent to Setup Grp (IK Skeleton)
-    solversIKGrp = cmds.group(name="solvers_grp",em=True)
+    solversIKGrp = cmds.group(name=mainIKGrpName + "_solvers_grp",em=True)
     # Parent to Setup Grp (Solvers)
     if isUsingBall: 
         cmds.parent(ikHandle_SC_ball[0], solversIKGrp)
@@ -537,7 +537,11 @@ def generateIkLeg(isUsingBall):
     cmds.parent(ikHandle_RP[0], solversIKGrp) # Parent to Setup Grp (Solvers)
     cmds.parent(solversIKGrp, mainIKGrp) # Parent to Setup Grp (Solvers)
     
-    ctrlsIKGrp = cmds.group(name="controls_grp",em=True)
+    cmds.setAttr(solversIKGrp + ".v", 0) #Make solvers grp invisible
+    cmds.setAttr(startJoint_RP_IK[0] + ".v", 0) #Make ik skeleton invisible
+    
+    
+    ctrlsIKGrp = cmds.group(name=mainIKGrpName + "_controls_grp",em=True)
     generatedCtrls = [ikSwitchCtrlGrp,poleVectorCtrlGrp,ikCtrlGrp]
     for ctrl in generatedCtrls:
         if cmds.objExists(ctrl):
@@ -755,7 +759,7 @@ def makeStretchyLegs(ikHandle):
     distanceOneLocators = cmds.listConnections(distanceOne)
 
     #Rename Distance One Nodes
-    nameTopLocator = (ikHandleManipulatedJoints[0].replace("_IK_", "")).replace("Jnt","") # Change this, use a textbox to query user
+    nameTopLocator = (ikHandleManipulatedJoints[0].replace("_IK_", "")).replace("Jnt","") 
     nameBottomLocator = ((ikHandle[0].replace("_IK_","")).replace("_ikHandle","")).replace("RP","")
     nameDistanceNode = nameBottomLocator
     distanceNodeOne = cmds.rename(distanceOneTransform, nameDistanceNode + "_strechyTerm_01")
@@ -774,7 +778,7 @@ def makeStretchyLegs(ikHandle):
     topLocatorTwo = cmds.rename(distanceTwoLocators[0], nameTopLocator + "_SC_01")
     bottomLocatorTwo = cmds.rename(distanceTwoLocators[1], nameBottomLocator + "_SC_02")
 
-    stretchyGrp = cmds.group(name="stretchySystem_grp", empty=True, world=True)
+    stretchyGrp = cmds.group(name=nameTopLocator + "_stretchySystem_grp", empty=True, world=True)
     cmds.parent( distanceNodeOne, stretchyGrp )
     cmds.parent( topLocatorOne, stretchyGrp )
     cmds.parent( bottomLocatorOne, stretchyGrp )
