@@ -7,7 +7,7 @@
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "v1.2";
+global string $scriptVersion = "v1.3";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -27,49 +27,56 @@ setParent -menu gtToolsMenu ;
 menuItem -l "Tools" -sm true -to true ;
     menuItem 
     -l ("Selection Manager") 
-    -c ("python(\"import gt_tool_selectionManager\\ngt_tool_selectionManager.selectionManagerMainDialog()\");") 
+    -c ("python(\"import gt_tool_selection_manager\\ngt_tool_selection_manager.build_gui_selection_manager()\");") 
     -ann ("Manages or creates custom selections.") 
     -image "tbd.bmp" ;
     
     menuItem 
     -l ("Generate Python Curve") 
-    -c ("python(\"import gt_generate_pythonCurve\\ngt_generate_pythonCurve.pyCurveMainDialog()\");") 
+    -c ("python(\"import gt_generate_python_curve\\ngt_generate_python_curve.build_gui_py_curve()\");") 
     -ann ("Generates the python code necessary to create a selected curve.") 
     -image "tbd.bmp" ;
     
     menuItem 
     -l ("Replace Reference Paths") 
-    -c ("python(\"import gt_tool_replaceReferencePaths\\ngt_tool_replaceReferencePaths.replaceReferencePathsDialog()\");") 
+    -c ("python(\"import gt_tool_replace_reference_paths\\ngt_tool_replace_reference_paths.build_gui_replace_reference_paths()\");") 
     -ann ("Search and Replace for reference paths.") 
     -image "tbd.bmp" ;
-    
+	
+	menuItem 
+    -l ("Transfer Transforms") 
+    -c ("python(\"import gt_tool_transfer_transforms\\ngt_tool_transfer_transforms.build_gui_transfer_transforms()\");") 
+    -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
+    -image "tbd.bmp" ;
+	
+
     setParent -menu ".." ;
 
 // -----------------------------------------RIGGING------------------------------------
 menuItem -l "Rigging" -sm true -to true ;
     menuItem 
     -l ("Connect Attributes") 
-    -c ("python(\"import gt_connect_Attributes\\ngt_connect_Attributes.connectAttributesMainDialog()\");") 
+    -c ("python(\"import gt_connect_attributes\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
     -ann ("Automated solution for connecting multiple attributes.") 
     -image "tbd.bmp";
     menuItem 
-    -l ("Generate RigLayer") 
-    -c ("python(\"import gt_generate_rigLayer\\ngt_generate_rigLayer.createRigLayerDialog()\");") 
-    -ann ("Generates inbetween transforms that can be used as layers of animation.") 
+    -l ("Generate In-Between") 
+    -c ("python(\"import gt_generate_inbetween\\ngt_generate_inbetween.build_gui_generate_inbetween()\");") 
+    -ann ("Generates inbetween transforms that can be used as layers for rigging/animation.") 
     -image "tbd.bmp" ;
     menuItem 
     -l ("Create Auto FK") 
-    -c ("python(\"import gt_createCtrl_AutoFK\\ngt_createCtrl_AutoFK.autoFKMainDialog()\");") 
-    -ann ("Automated solution for created an FK rig.") 
+    -c ("python(\"import gt_create_ctrl_auto_FK\\ngt_create_ctrl_auto_FK.build_gui_auto_FK()\");") 
+    -ann ("Automated solution for created an FK control curve.") 
     -image "tbd.bmp" ;
     menuItem 
     -l ("Create IK Leg") 
-    -c ("python(\"import gt_createCtrl_IK_Leg\\ngt_createCtrl_IK_Leg.ikLegMainDialog()\");") 
+    -c ("python(\"import gt_create_ctrl_simple_IK_leg\\ngt_create_ctrl_simple_IK_leg.build_gui_simple_ik_leg()\");") 
     -ann ("Automated solution for create a simple IK leg.") 
     -image "tbd.bmp" ;
 	menuItem 
     -l ("Make Stretchy Leg") 
-    -c ("python(\"import gt_make_stretchyLeg\\ngt_make_stretchyLeg.makeStretchyLegsDialog()\");") 
+    -c ("python(\"import gt_make_stretchy_leg\\ngt_make_stretchy_leg.build_gui_make_stretchy_legs()\");") 
     -ann ("Automated solution for creating a simple stretchy system for an IK leg.") 
     -image "tbd.bmp" ;
     
