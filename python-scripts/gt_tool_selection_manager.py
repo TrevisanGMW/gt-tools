@@ -51,7 +51,7 @@ def build_gui_selection_manager():
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_selection_manager = cmds.window("build_gui_selection_manager", title="gt_selection_manager - " + script_version,\
+    build_gui_selection_manager = cmds.window("build_gui_selection_manager", title="gt_ls - " + script_version,\
                           titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False, widthHeight = [267, 531])
 
     column_main = cmds.columnLayout() 

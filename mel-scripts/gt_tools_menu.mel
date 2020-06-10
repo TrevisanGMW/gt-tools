@@ -2,7 +2,12 @@
 //
 //   GT Menu Script - Creates a menu to call scripts from the GT Tools Package
 //   @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
-//   Last update - 2020-03-13 - Added strechy leg and updated IK leg script
+//   1.2 - 2020-03-13
+//   Added some new scripts
+//
+//   1.3 - 2020-06-07
+//   Updated the names of many scripts
+//   Added a new category called "Shapes", and added new scripts to it.
 //
 //----------------------------------------------------------------------------
 
@@ -32,12 +37,6 @@ menuItem -l "Tools" -sm true -to true ;
     -image "tbd.bmp" ;
     
     menuItem 
-    -l ("Generate Python Curve") 
-    -c ("python(\"import gt_generate_python_curve\\ngt_generate_python_curve.build_gui_py_curve()\");") 
-    -ann ("Generates the python code necessary to create a selected curve.") 
-    -image "tbd.bmp" ;
-    
-    menuItem 
     -l ("Replace Reference Paths") 
     -c ("python(\"import gt_tool_replace_reference_paths\\ngt_tool_replace_reference_paths.build_gui_replace_reference_paths()\");") 
     -ann ("Search and Replace for reference paths.") 
@@ -49,6 +48,24 @@ menuItem -l "Tools" -sm true -to true ;
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
     -image "tbd.bmp" ;
 	
+
+    setParent -menu ".." ;
+	
+	
+// -----------------------------------------CURVES------------------------------------
+menuItem -l "Curves" -sm true -to true ;
+    menuItem 
+    -l ("Generate Python Curve") 
+    -c ("python(\"import gt_generate_python_curve\\ngt_generate_python_curve.build_gui_py_curve()\");") 
+    -ann ("Generates the python code necessary to create a selected curve.") 
+    -image "tbd.bmp" ;
+	
+	menuItem 
+    -l ("Generate Text Curve") 
+    -c ("python(\"import gt_generate_text_curve\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
+    -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
+    -image "tbd.bmp" ;
+
 
     setParent -menu ".." ;
 

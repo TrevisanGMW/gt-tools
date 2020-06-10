@@ -25,7 +25,7 @@ def build_gui_transfer_transforms():
     # Main GUI Start Here =================================================================================
 
     build_gui_transfer_transforms = cmds.window("build_gui_transfer_transforms", title=script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = True)#, widthHeight=[269, 392])
+                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False, widthHeight=[200, 734])
     
     column_main = cmds.columnLayout() 
 
