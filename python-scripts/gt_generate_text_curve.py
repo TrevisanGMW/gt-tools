@@ -52,7 +52,7 @@ def build_gui_generate_text_curve():
 
     # Main Function Starts ----------------------
     def generate_text_curve():
-        strings = parse_text_field(cmds.textField(desired_text, q=True, text=True))
+        strings = parse_text_field_commas(cmds.textField(desired_text, q=True, text=True))
         
         for string in strings:
             create_text(string)
@@ -60,12 +60,11 @@ def build_gui_generate_text_curve():
     # Main Function Ends  ----------------------
 
 # Function to Parse textField data 
-def parse_text_field(text_field_data):
-    text_field_data_no_spaces = text_field_data.replace(" ", "")
-    if len(text_field_data_no_spaces) <= 0:
+def parse_text_field_commas(text_field_data):
+    if len(text_field_data) <= 0:
         return []
     else:
-        return_list = text_field_data_no_spaces.split(",")
+        return_list = text_field_data.split(",")
         empty_objects = []
         for obj in return_list:
             if '' == obj:
