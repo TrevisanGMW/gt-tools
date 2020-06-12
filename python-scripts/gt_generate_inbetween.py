@@ -74,7 +74,7 @@ def build_gui_generate_inbetween():
                                                                                                                               
     # Updates Stored Values
     def update_stored_values():
-        settings["outliner_color"] = cmds.color_sliderGrp(color_slider, q=True, rgb=True)
+        settings["outliner_color"] = cmds.colorSliderGrp(color_slider, q=True, rgb=True)
         #print(settings.get("outliner_color")) Debugging
         
     cmds.showWindow(build_gui_generate_inbetween)
