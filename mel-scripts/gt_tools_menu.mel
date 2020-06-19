@@ -3,16 +3,21 @@
 //   GT Menu Script - Creates a menu to call scripts from the GT Tools Package
 //   @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
 //   1.2 - 2020-03-13
-//   Added some new scripts
+//   Added new scripts
 //
 //   1.3 - 2020-06-07
 //   Updated the names of many scripts
 //   Added a new category called "Shapes", and added new scripts to it.
 //
+//   1.4 - 2020-06-17
+//	 Added Mirror Cluster Tool
+//   Updated help dialog
+//   Added icons
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "v1.3";
+global string $scriptVersion = "1.4";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -34,19 +39,19 @@ menuItem -l "Tools" -sm true -to true ;
     -l ("Selection Manager") 
     -c ("python(\"import gt_tool_selection_manager\\ngt_tool_selection_manager.build_gui_selection_manager()\");") 
     -ann ("Manages or creates custom selections.") 
-    -image "tbd.bmp" ;
+    -image "selectByHierarchy.png" ;
     
     menuItem 
     -l ("Replace Reference Paths") 
     -c ("python(\"import gt_tool_replace_reference_paths\\ngt_tool_replace_reference_paths.build_gui_replace_reference_paths()\");") 
     -ann ("Search and Replace for reference paths.") 
-    -image "tbd.bmp" ;
+    -image "reference.png" ;
 	
 	menuItem 
     -l ("Transfer Transforms") 
     -c ("python(\"import gt_tool_transfer_transforms\\ngt_tool_transfer_transforms.build_gui_transfer_transforms()\");") 
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
-    -image "tbd.bmp" ;
+    -image "transform.svg" ;
 	
 
     setParent -menu ".." ;
@@ -58,13 +63,13 @@ menuItem -l "Curves" -sm true -to true ;
     -l ("Generate Python Curve") 
     -c ("python(\"import gt_generate_python_curve\\ngt_generate_python_curve.build_gui_py_curve()\");") 
     -ann ("Generates the python code necessary to create a selected curve.") 
-    -image "tbd.bmp" ;
+    -image "pythonFamily.png" ;
 	
 	menuItem 
     -l ("Generate Text Curve") 
     -c ("python(\"import gt_generate_text_curve\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
-    -image "tbd.bmp" ;
+    -image "text.png" ;
 
 
     setParent -menu ".." ;
@@ -75,82 +80,96 @@ menuItem -l "Rigging" -sm true -to true ;
     -l ("Connect Attributes") 
     -c ("python(\"import gt_connect_attributes\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
     -ann ("Automated solution for connecting multiple attributes.") 
-    -image "tbd.bmp";
+    -image "hsRearrange.png";
+	
+    menuItem 
+    -l ("Mirror Cluster Tool") 
+    -c ("python(\"import gt_mirror_cluster_tool\\ngt_mirror_cluster_tool.build_gui_mirror_cluster_tool()\");") 
+    -ann ("Automated solution for mirroring clusters.") 
+    -image "cluster.png";
+    
+    
     menuItem 
     -l ("Generate In-Between") 
     -c ("python(\"import gt_generate_inbetween\\ngt_generate_inbetween.build_gui_generate_inbetween()\");") 
     -ann ("Generates inbetween transforms that can be used as layers for rigging/animation.") 
-    -image "tbd.bmp" ;
+    -image "hsGraphMaterial.png" ;
+	
     menuItem 
     -l ("Create Auto FK") 
     -c ("python(\"import gt_create_ctrl_auto_FK\\ngt_create_ctrl_auto_FK.build_gui_auto_FK()\");") 
     -ann ("Automated solution for created an FK control curve.") 
-    -image "tbd.bmp" ;
+    -image "kinInsert.png" ;
+	
     menuItem 
     -l ("Create IK Leg") 
     -c ("python(\"import gt_create_ctrl_simple_IK_leg\\ngt_create_ctrl_simple_IK_leg.build_gui_simple_ik_leg()\");") 
     -ann ("Automated solution for create a simple IK leg.") 
-    -image "tbd.bmp" ;
+    -image "kinHandle.png" ;
+	
 	menuItem 
     -l ("Make Stretchy Leg") 
     -c ("python(\"import gt_make_stretchy_leg\\ngt_make_stretchy_leg.build_gui_make_stretchy_legs()\");") 
     -ann ("Automated solution for creating a simple stretchy system for an IK leg.") 
-    -image "tbd.bmp" ;
+    -image "ikSCsolver.svg" ;
     
     setParent -menu ".." ;
     
 // -----------------------------------------ABOUT------------------------------------
 
 
-
-
-menuItem -divider true ;
-menuItem -l "About" -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Visit website.") ;
+    menuItem -divider true ;
+    menuItem -l "Help" -sm true -to true ;
+    
+    menuItem -l "About"  -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Opens about menu.") -image "help.png" ;;
+    menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
+    menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/maya-scripts/tree/master/gt_tools/\"; ") -ann ("Check for Update.") -image "RS_import_layer.png" ;
+    menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
 
 // Creates About Dialog
 global proc aboutMenuDialog(string $scriptVersion)
     {
     if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;
-    window -title "GT Tools About" -sizeable 0 aboutMenuDialog;
-
+    window -title "About - GT Tools" -sizeable 0 -w 330 -h 100 aboutMenuDialog;
+    
     columnLayout -adj 1;
 
-    text -label "";
+    separator -height 10 -style "none";
     text -label "About - GT Tools" -bgc 0 .5 0  -fn "boldLabelFont";
-    text -label "";
-    text -label (" Version Installed: " + $scriptVersion);
-    text -label "";
-    text -label "      GT Tools is a script package created with the intention        ";
-    text -label "      of simplifying or assisting repetitive actions in Maya.  ";
-    text -label "";
-    text -label "      Most scripts were created according to what was    ";
-    text -label "      needed to do at the time or for specific projects.    ";
-    text -label "";
-    text -label "      This package is provided free of charge    ";
-    text -label "      so there are no guarantees.      ";
-    text -label "      I suggest you save your project before using it.     ";
-    text -label "";
-    text -label "      Hopefully these scripts are helpful to you    ";
-    text -label "      as they were to me :)    ";
-    text -label "";
-    text -label "      In case something doesn't work or you    ";
-    text -label "      have a suggestion, send me an email.    ";
-    text -label "";
+    separator -height 10 -style "none";
+    text -label (" Version Installed: " + $scriptVersion) -fn "boldLabelFont";
+    separator -height 10 -style "none";
+    text -label "GT Tools is a free collection of useful Maya scripts.";
+    separator -height 10 -style "none";
+    text -label "The pull-down menu provides easy access to a variety";
+    text -label "of tools, and each sub-menus has been organized";
+    text -label "to contain related tools.";
+    separator -height 10 -style "none";
+    text -label "All of these items are supplied as is.";
+    text -label "You alone are soley responsible for any issues.";
+    text -label "Use at your own risk.";
+    separator -height 10 -style "none";
+    text -label "Hopefully these scripts are helpful to you";
+    text -label "as they are to me.";
+    separator -height 10 -style "none";
 
-    rowColumnLayout -numberOfRows 1 -h 25;
-    text -label "             Guilherme Trevisan : ";
+    
+    rowColumnLayout -numberOfRows 2 -h 27 -adj true;
+    text -label "Guilherme Trevisan : " -align "center";
     text -label "<a href=\"mailto:trevisangmw@gmail.com\">TrevisanGMW@gmail.com</a>" -hl 1;
     setParent ..;
-
-    rowColumnLayout -numberOfRows 1 -h 25;
-    text -label "                      Visit my ";
+    separator -height 15 -style "none";
+    
+    rowColumnLayout -numberOfRows 1 -columnOffset 1 "left" 70;//-adj true;
+    text -label "Visit my ";
     text -label "<a href=\"https://github.com/TrevisanGMW\">Github</a>" -hl 1;
     text -label " for updated versions";
     setParent ..;
     separator -h 15;
-
+    
     button -l "OK" 
     -c ("if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;");
 
     showWindow aboutMenuDialog;
     }
+ 

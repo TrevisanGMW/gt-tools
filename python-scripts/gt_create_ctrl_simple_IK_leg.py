@@ -8,15 +8,39 @@
  1.2 - 2020-06-07
  Updated naming convention to make it clearer. (PEP8)
  Fixed random window widthHeight issue.
+ 
+ 1.3 - 2020-06-17
+ Changed UI
+ Updated help menu
+ Added icon
+ 
+ TO DO:
+ Add rolls
+ Use replace instead of substring to rename elements.
 
 """
 import maya.cmds as cmds
 import maya.mel as mel
 from decimal import *
+from maya import OpenMayaUI as omui
 
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+
+# Script Name
+script_name = "GT - IK Leg Generator"
 
 # Version:
-script_version = "v1.2"
+script_version = "1.3"
 
 
 stored_joints = { 'hip_jnt': '', 
@@ -44,13 +68,16 @@ settings = { 'using_custom_ik_ctrl': False,
 
 # Main Form ============================================================================
 def build_gui_simple_ik_leg():
-    if cmds.window("build_gui_simple_ik_leg", exists =True):
-        cmds.deleteUI("build_gui_simple_ik_leg")    
+    window_name = "build_gui_simple_ik_leg"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_simple_ik_leg = cmds.window("build_gui_simple_ik_leg", title="gt_ik_leg - " + script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False, widthHeight = [267,518])
+    build_gui_simple_ik_leg = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+                          
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
 
     column_main = cmds.columnLayout() 
 
@@ -59,102 +86,95 @@ def build_gui_simple_ik_leg():
     content_main = cmds.columnLayout(adj = True)
 
 
-    cmds.text("", h=7)
-    row1 = cmds.rowColumnLayout(p=content_main, numberOfRows=1 ) #Empty Space
-    cmds.text( "         GT - IK Leg Generator - " + script_version + "           ",p=row1, bgc=[0,.5,0],  fn="boldLabelFont")
+    # Title Text
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
     cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_help_gui_ik_leg_generator())
-    cmds.text("        ", bgc=[0,.5,0])
-    cmds.rowColumnLayout(p=content_main, adj = True)
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
-    cmds.text("  ")
-    cmds.text("      This script assumes that you already have       ")
-    cmds.text("      joints for the leg. (hip, knee, ankle, ball, toe)     ")
-    cmds.text("   ")
-    cmds.text('1. Load your joints  ')
-    cmds.text('(Select Jnt and Click Load)  ')
-    cmds.text('2. Click on \"Generate\"  ')
-    cmds.text("   ")
-    cmds.separator(h=15, p=content_main)
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     
-    text_container = cmds.rowColumnLayout( p=content_main , numberOfRows=1)
-    cmds.text("        Joint Tag (Suffix)", p = text_container)
-    cmds.text("          Ctrl Group Tag (Suffix)", p = text_container)
-    cmds.rowColumnLayout( p=content_main, h=3) # Empty Space
-    tag_string_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
-    
-    jnt_tag_text_field = cmds.textField(p = tag_string_container, width=130, text=settings.get("jnt_tag"), \
+    cmds.rowColumnLayout(nc=2, cw=[(1, 130),(2, 130)], cs=[(1,0),(2, 0)], p=body_column)
+    cmds.text("Joint Tag (Suffix)")
+    cmds.text("Ctrl Group Tag (Suffix)")
+    jnt_tag_text_field = cmds.textField(text=settings.get("jnt_tag"), \
                                            enterCommand=lambda x:update_settings(), textChangedCommand=lambda x:update_settings())
-    ctrl_grp_text_field = cmds.textField(p = tag_string_container,width=130, text=settings.get("ctrl_grp_tag"), \
+    ctrl_grp_text_field = cmds.textField(text=settings.get("ctrl_grp_tag"), \
                                            enterCommand=lambda x:update_settings(), textChangedCommand=lambda x:update_settings())
     
     
-    cmds.separator(h=15, p=content_main)
+    cmds.separator(h=15, p=body_column)
     
     # CheckboxGrp One
-    interactive_container_misc = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ")
-    check_box_grp_one = cmds.checkBoxGrp(p=interactive_container_misc, columnWidth2=[130, 1], numberOfCheckBoxes=2, \
+    interactive_container_misc = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
+
+    check_box_grp_one = cmds.checkBoxGrp(p=interactive_container_misc, columnWidth2=[140, 1], numberOfCheckBoxes=2, \
                                 label1 = 'Custom PVector Ctrl', label2 = "Custom IK Ctrl", v1 = settings.get("def_use_pvector"), v2 = settings.get("def_use_ik_ctrl"), \
                                 on2=lambda x:is_custom_ik_ctrl_enabled(True),  of2=lambda x:is_custom_ik_ctrl_enabled(False), \
                                 on1 =lambda x:is_custom_pvector_enabled(True), of1=lambda x:is_custom_pvector_enabled(False) ) 
     # CheckboxGrp Two
-    interactive_container_misc = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ")
-    check_box_grp_two = cmds.checkBoxGrp(p=interactive_container_misc, columnWidth2=[130, 1], numberOfCheckBoxes=2, \
+    interactive_container_misc = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
+
+    check_box_grp_two = cmds.checkBoxGrp(p=interactive_container_misc, columnWidth2=[140, 1], numberOfCheckBoxes=2, \
                                 label1 = 'Colorize Controls ', label2 = "Custom IK Switch", v1 = settings.get("def_colorize_ctrl"), v2 = settings.get("def_use_ik_switch"), \
                                 on2=lambda x:is_custom_ik_switch_enabled(True),  of2=lambda x:is_custom_ik_switch_enabled(False) ) 
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, p=body_column)
     
     #pVector Ctrl Loader
-    pvector_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    pvector_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     pvector_btn = cmds.button(p=pvector_container, l ="Load PVector Ctrl", c=lambda x:update_load_btn_ctrls("pVector"), w=130)
     pvector_status = cmds.button(p=pvector_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your pole vector control and click on \"Load PVector Ctrl Joint\"', verticalOffset=150 , time=5.0)")
     
     #Custom IK Ctrl Loader
-    ik_ctrl_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    ik_ctrl_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ik_ctrl_btn = cmds.button(p=ik_ctrl_container, l ="Load IK Ctrl", c=lambda x:update_load_btn_ctrls("ikCtrl"), w=130)
     ik_ctrl_status = cmds.button(p=ik_ctrl_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your IK Switch control and click on \"Load IK Switch Ctrl Joint\"', verticalOffset=150 , time=5.0)")
     
     #IK Switch Ctrl Loader
-    ik_switch_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    ik_switch_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ik_switch_btn = cmds.button(p=ik_switch_container, l ="Load IK Switch Ctrl", c=lambda x:update_load_btn_ctrls("ikSwitch"), w=130)
     ik_switch_status = cmds.button(p=ik_switch_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130,  \
                             c="cmds.headsUpMessage( 'Select your Custom IK Control and click on \"Load IK Ctrl Joint\"', verticalOffset=150 , time=5.0)")
                             
     
-    cmds.separator(h=15, p=content_main)
+    cmds.separator(h=15, p=body_column)
     # CheckboxGrp Three
-    interactive_container_jnt = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    interactive_container_jnt = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
     cmds.text("    ") # Increase this to move checkboxes to the right
     check_box_grp_three = cmds.checkBoxGrp(p=interactive_container_jnt, columnWidth2=[130, 1], numberOfCheckBoxes=2, \
                                 label1 = 'Make Stretchy Legs ', label2 = "Use Ball Joint", v1 = settings.get("make_stretchy"), v2 = settings.get("def_use_ball_jnt"), \
                                 on2=lambda x:is_ball_enabled(True),  of2=lambda x:is_ball_enabled(False)\
                                ,on1=lambda x:update_settings(),  of1=lambda x:update_settings())
                             
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, p=body_column)
     #Hip Joint Loader
-    hip_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    hip_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.button(p=hip_container, l ="Load Hip Joint", c=lambda x:update_load_btn_jnt("hip"), w=130)
     hip_status = cmds.button(p=hip_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your hip joint and click on \"Load Hip Joint\"', verticalOffset=150 , time=5.0)")
                             
     #Ankle Joint Loader
-    ankle_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    ankle_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.button(p=ankle_container, l ="Load Ankle Joint", c=lambda x:update_load_btn_jnt("ankle"), w=130)
     ankle_status = cmds.button(p=ankle_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your ankle joint and click on \"Load Ankle Joint\"', verticalOffset=150 , time=5.0)")
                             
     #Ball Joint Loader
-    ball_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    ball_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ball_load_btn = cmds.button(p=ball_container, l ="Load Ball Joint", c=lambda x:update_load_btn_jnt("ball"), w=130)
     ball_status = cmds.button(p=ball_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your ball joint and click on \"Load Ball Joint\"', verticalOffset=150 , time=5.0)")
       
-    cmds.separator(h=10, p=content_main)
-    cmds.text(p=content_main, label='Click Here After Loading Joints' )
-    cmds.button(p=content_main, l ="Generate",bgc=(.2, .2, .25), c=lambda x:check_before_running(cmds.checkBoxGrp(check_box_grp_three, q=True, value2=True)))
+    cmds.separator(h=10, p=body_column)
+    cmds.separator(h=10, style="none", p=body_column)
+    cmds.button(p=body_column, l ="Generate",bgc=(.6, .8, .6), c=lambda x:check_before_running(cmds.checkBoxGrp(check_box_grp_three, q=True, value2=True)))
+    cmds.separator(h=10, style="none", p=body_column)
     
     def update_settings():
         settings["make_stretchy"] = cmds.checkBoxGrp(check_box_grp_three, q=True, value1=True)
@@ -284,7 +304,17 @@ def build_gui_simple_ik_leg():
             cmds.button(ball_status, l ="Failed to Load",e=True, bgc=(1, .4, .4), w=130,c="cmds.headsUpMessage( 'Make sure you select only one joint and try again', verticalOffset=150 , time=5.0)")
 
 
+    # Show and Lock Window
     cmds.showWindow(build_gui_simple_ik_leg)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/kinHandle.png')
+    widget.setWindowIcon(icon)
+    
+    
     # Update Everything
     is_ball_enabled(settings.get("def_use_ball_jnt"))
     is_custom_ik_ctrl_enabled(settings.get("def_use_ik_ctrl"))
@@ -579,93 +609,94 @@ def generate_simple_ik_leg(is_using_ball):
     # ============================= End of Main Function =============================
 
 
+# Creates Help GUI
 def build_help_gui_ik_leg_generator():
-    if cmds.window("help_menu_dialog_ik_leg_generator", exists =True):
-        cmds.deleteUI("help_menu_dialog_ik_leg_generator")    
+    window_name = "build_help_gui_ik_leg_generator"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
 
-    # Help Dialog Start Here =================================================================================
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+
+
+    # Body ====================   
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script assumes that you are using a simple leg', align="left")
+    cmds.text(l='composed of a hip joint, a knee joint an ankle joint', align="left")
+    cmds.text(l='and maybe ball and toe joints.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='In case your setup is different, I suggest you try', align="left")
+    cmds.text(l='a different solution.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Joint Tag (Suffix) and Ctrl Group Tag (Suffix):', align="left", fn="boldLabelFont")
+    cmds.text(l='These two textfields allow you to define what suffix you', align="left")
+    cmds.text(l='used for you base skeleton joints and your control groups.', align="left") 
+    cmds.text(l='(used when creating new names or looking for controls)', align="left")
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.text(l='The Ctrl Group Tag is used to define the visibility of the', align="left")
+    cmds.text(l='FK system.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Custom PVector Ctrl, IK Ctrl and IK Switch:', align="left", fn="boldLabelFont")
+    cmds.text(l='These options allow you to load an already existing', align="left")
+    cmds.text(l='control.', align="left")
+    cmds.text(l='In case you already created curve you could simply load', align="left")
+    cmds.text(l='them and the script will use yours instead of creating a', align="left")
+    cmds.text(l='new one', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Colorize Controls: ', align="left", fn="boldLabelFont")
+    cmds.text(l='This option looks for "right_" and "left_" tags', align="left")
+    cmds.text(l='and assign colors based on the found tag', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Make Stretchy Legs: ', align="left", fn="boldLabelFont")
+    cmds.text(l='This option creates measure tools to define how to', align="left")
+    cmds.text(l='strechy the leg when it goes beyong its current size.', align="left")
+    cmds.text(l='- Term = What is being compared', align="left")
+    cmds.text(l='- Condition = Default Size (used for scalling the rig)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Use Ball Joint:', align="left", fn="boldLabelFont")
+    cmds.text(l='This option allows you to define whether or not to use', align="left")
+    cmds.text(l='a ball joint.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Load \"Content\" Buttons:', align="left", fn="boldLabelFont")
+    cmds.text(l='These buttons allow you to load the necessary', align="left")
+    cmds.text(l='objects before running the script.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
     
-    # Build About UI
-    help_menu_dialog_ik_leg_generator = cmds.window("help_menu_dialog_ik_leg_generator", title="GT - IK Leg Generator - Help",\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False, widthHeight = [404, 772])
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
-    content_main = cmds.columnLayout(adj = True)
-
-    cmds.text("")
-    cmds.text("Help for GT IK Leg Generator", bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text(" Version Installed: " + script_version)
-    cmds.text("  ")
-    cmds.text("     This script allows you to generate a simple       ")
-    cmds.text('     IK leg by automating by automating the many steps  ')
-    cmds.text('     involved in creating it  ')
-    cmds.text(' ')
-    cmds.text('     This script assumes that you are using a simple leg  ')
-    cmds.text('     composed of a hip joint, a knee joint an ankle joint  ')
-    cmds.text('     and maybe ball and toe joints.     ')
-    cmds.text('     In case your setup is different, I suggest you try    ')
-    cmds.text('     a different solution.    ')
-    cmds.text(' ')
-    cmds.text('     Joint Tag (Suffix) and Ctrl Group Tag (Suffix):    ')
-    cmds.text('     These two textfields allow you to define what tag you ')
-    cmds.text('     used for you base skeleton joints and your control groups.')
-    cmds.text(' ', h=2)
-    cmds.text('     It will use the length of your joint tag to define how many')
-    cmds.text('     letters to remove from the end (suffix) of the joint name.')
-    cmds.text('     (used when creating new names or looking for controls)')
-    cmds.text(' ', h=2)
-    cmds.text('     The Ctrl Group Tag is used to define the visibility of the')
-    cmds.text('     FK system.')
-    cmds.text(' ')
-    cmds.text('     Custom PVector Ctrl, IK Ctrl and IK Switch:')
-    cmds.text('     These options allow you to load an already existing control.')
-    cmds.text('     In case you already created fancy curve')
-    cmds.text('     you could simple load it')
-    cmds.text('     and the script will use yours instead of creating a new one')
-    cmds.text(' ')
-    cmds.text('     Colorize Controls:   ')
-    cmds.text('     This option looks for "right_" and "left_" tags')
-    cmds.text('     and assign colors based on the found tag')
-    cmds.text(' ')
-    cmds.text("     Make Stretchy Legs:   ")
-    cmds.text('     This option creates measure tools to define how to')
-    cmds.text('     strechy the leg when it goes beyong its current size.')
-    cmds.text('     Term = What is being compared    ')
-    cmds.text('     Condition = Default Size (used for scalling the rig)')
-    cmds.text(' ')
-    cmds.text("     Use Ball Joint:   ")
-    cmds.text('     This option allows you to define whether or not to use')
-    cmds.text('     a ball joint')
-    cmds.text(' ')
-    cmds.text("     Load \"Content\" Buttons:  ")
-    cmds.text('     These buttons allow you to load the necessary')
-    cmds.text('      objects before running the script.')
-    cmds.text(' ')
-    cmds.text('     Generate Button:    ')
-    cmds.text('     Runs the script. Generate an IK leg using loaded objects')
-    cmds.text(' ', w=400)
-
-    email_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
     
-    cmds.text('                            Guilherme Trevisan : ')
-    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1], p=email_container)
-    website_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text('                                    Visit my ')
-    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1], p=website_container)
-    cmds.text(' for updated versions')
-    cmds.text(' ', p= content_main)
-    cmds.separator(h=15, p=content_main)
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
     
-    cmds.button(l ="Ok", p= content_main, c=lambda x:close_help_window())
-                                                                                                                              
-    def close_help_window():
-        if cmds.window("help_menu_dialog_ik_leg_generator", exists =True):
-            cmds.deleteUI("help_menu_dialog_ik_leg_generator")  
-        
-    cmds.showWindow(help_menu_dialog_ik_leg_generator)
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
     # Help Dialog Ends Here =================================================================================
 
 

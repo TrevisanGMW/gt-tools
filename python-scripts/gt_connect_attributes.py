@@ -8,12 +8,33 @@
  Updated naming convention to make it clearer. (PEP8)
  Fixed random window widthHeight issue.
  
+ 1.4 - 2020-06-17
+ Added window icon
+ Added help menu
+ Changed GUI
+ Attribute Listing now exported to txt file instead of script editor
 """
 
 import maya.cmds as cmds
+from maya import OpenMayaUI as omui
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+
+# Script Name
+script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "v1.3"
+script_version = "1.4"
  
 
 settings = { 'target_list': [], 
@@ -36,71 +57,71 @@ settings = { 'target_list': [],
 
 # Main Form ============================================================================
 def build_gui_connect_attributes():
-    if cmds.window("build_gui_connect_attributes", exists =True):
-        cmds.deleteUI("build_gui_connect_attributes")    
+    window_name = "build_gui_connect_attributes"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_connect_attributes = cmds.window("build_gui_connect_attributes", title="connectAttr - " + script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False, widthHeight=[266, 519])
+    build_gui_connect_attributes = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
 
     column_main = cmds.columnLayout() 
 
     form = cmds.formLayout(p=column_main)
 
-    content_main = cmds.columnLayout(adj = True)
+    content_main = cmds.columnLayout()
     
-    # Description
-    cmds.text("")
-    cmds.text("GT Connect Attributes - " + script_version, bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text("      This script creates a node connection       ")
-    cmds.text("      between source and target elements     ")
-    cmds.text("   ")
-    cmds.text('The Selection Source/Target  ')
-    cmds.text('option expects the user to select  ')
-    cmds.text('Source (1st) then Targets (2nd ,3rd...)  ')
-    cmds.text("   ")
-    cmds.separator(h=15, p=content_main)
+    # Title Text
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_connect_attributes())
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
+    
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
+    #cmds.separator(h=5)
     
     # Checkbox - Selection as Source and Target
-    interactive_container_misc = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ")
-    single_source_target = cmds.checkBox(p=interactive_container_misc, label='  Use Selection as Source and Target (s)', value=settings.get("def_single_source_target"),\
+    interactive_container_misc = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1,12)], h= 25)
+    single_source_target = cmds.checkBox(p=interactive_container_misc, label='  Use Selection for Source and Target (s)', value=settings.get("def_single_source_target"),\
                          cc=lambda x:is_using_single_target(cmds.checkBox(single_source_target, query=True, value=True)) )
 
     # CheckboxGrp Reverse and Disconnect
-    interactive_container_jnt = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ") # Increase this to move checkboxes to the right
-    rev_disc_check_box_grp = cmds.checkBoxGrp(p=interactive_container_jnt, columnWidth2=[135, 1], numberOfCheckBoxes=2, \
-                                label1 = '  Add Reverse Node', label2 = "Disconnect", v1 = settings.get("def_reverse_node"), v2 = settings.get("def_disconnect"), \
+    interactive_container_jnt = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1,11)], h= 25)
+    rev_disc_check_box_grp = cmds.checkBoxGrp(p=interactive_container_jnt, columnWidth2=[137, 0], numberOfCheckBoxes=2, \
+                                label1 = '  Add Reverse Node', label2 = " Disconnect", v1 = settings.get("def_reverse_node"), v2 = settings.get("def_disconnect"), \
                                 cc1=lambda x:update_stored_values(), cc2= lambda x:is_disconnecting(cmds.checkBoxGrp(rev_disc_check_box_grp,q=True,v2=True)))   
 
-    # Checkbox - Override Existing
-    override_existing_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ")
+    # Checkbox - Override Existing (Force Connection)
+    override_existing_container = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1,12)], h= 25)
     forcing_connection_checkbox = cmds.checkBox(p=override_existing_container, label='  Force Connection  (Overrides Existing)', value=settings.get("def_force_connection"),\
                          cc=lambda x:update_stored_values())
 
-    cmds.separator(h=15, p=content_main)
+    cmds.separator(h=15, p=body_column)
 
     # Checkbox Use Custom Node Between Connection
-    interactive_container_misc = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ")
+    interactive_container_misc = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1,12)], h= 25)
     add_custom_node = cmds.checkBox(p=interactive_container_misc, label='  Add Custom Node Between Connection', value=settings.get("def_use_custom_node"),\
                           cc=lambda x:is_using_custom_node(cmds.checkBox(add_custom_node, query=True, value=True)) ) # UPDATE THIS
     
     # Dropdown Menu (Custom Node)
-    custom_node_menu_container = cmds.rowColumnLayout(p=content_main,numberOfRows=1, adj = True)
-    custom_node_menu = cmds.optionMenu(en=False, p=custom_node_menu_container, label='   Custom Node', cc=lambda x:update_stored_values()) #######
+    custom_node_menu_container = cmds.rowColumnLayout(p=body_column, nc=1, cw=[(1,247)], cs=[(1,3)], h= 25)
+    custom_node_menu = cmds.optionMenu(en=False, p=custom_node_menu_container, label='   Custom Node : ', cc=lambda x:update_stored_values()) #######
     cmds.menuItem( label='plusMinusAverage' )
     cmds.menuItem( label='multiplyDivide' )
     cmds.menuItem( label='condition' )
 
-    custom_node_empty_space = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 7)
+    #custom_node_empty_space = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 7) #??????????
+    cmds.separator(h=5, style='none', p=body_column) # Empty Space
     
     # Checkbox and Dropdown Menu for Input node and its type
-    node_behaviour_container_one = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    node_behaviour_container_one = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
     cmds.text("    ")
     add_ctrl_node = cmds.checkBox(p=node_behaviour_container_one, en=False, label='  Add Input Node  ', value=settings.get("def_use_custom_node"),\
                           cc=lambda x:update_stored_values())
@@ -111,23 +132,25 @@ def build_gui_connect_attributes():
     cmds.menuItem( label='multiplyDivide' )     
     cmds.text("   ",p=custom_node_menu_container)
                                                    
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, p=body_column)
+    cmds.separator(h=3, style='none', p=body_column) # Empty Space
     
     # Source List Loader (Buttons)
-    source_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    source_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     source_btn = cmds.button(p=source_container, l ="Load Source Object", c=lambda x:update_load_btn_jnt("source"), w=130)
     source_status = cmds.button(p=source_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your source element and click on \"Load Source Object\"', verticalOffset=150 , time=5.0)")
                             
     # Target List Loader (Buttons)
-    target_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    target_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     target_btn = cmds.button(p=target_container, l ="Load Target Objects", c=lambda x:update_load_btn_jnt("target"), w=130)
     target_status = cmds.button(p=target_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
                             c="cmds.headsUpMessage( 'Select your target elements and click on \"Load Target Objects\"', verticalOffset=150 , time=5.0)")
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=3, style='none', p=body_column) # Empty Space
+    cmds.separator(h=10, p=body_column)
     
     # Source/Target Attributes
-    bottom_container = cmds.rowColumnLayout(p=content_main,adj=True)
+    bottom_container = cmds.rowColumnLayout(p=body_column, adj=True)
     cmds.text('Source Attribute (Only One):',p=bottom_container)
     source_attributes_input = cmds.textField(p = bottom_container, text="translate", \
                                     enterCommand=lambda x:connect_attributes(cmds.textField(source_attributes_input, q=True, text=True),\
@@ -137,37 +160,39 @@ def build_gui_connect_attributes():
                                     enterCommand=lambda x:connect_attributes(cmds.textField(source_attributes_input, q=True, text=True),\
                                                                             cmds.textField(target_attributes_input, q=True, text=True)))
     
+    cmds.separator(h=3, style='none', p=body_column) # Empty Space
+    cmds.separator(h=10, p=body_column)
+    
     # Print Attributes Buttons
-    cmds.rowColumnLayout(p=content_main,adj=True,h=5)
-    show_attributes_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    cmds.rowColumnLayout(p=body_column, adj=True, h=5)
+    show_attributes_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
     cmds.button(p=show_attributes_container, l ="List All Attributes", w=130,\
                                     c=lambda x:print_selection_attributes("all"))                                                                    
     cmds.button(p=show_attributes_container, l ="List Keyable Attributes", w=130,\
                                     c=lambda x:print_selection_attributes("keyable")) 
     
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, style='none', p=body_column) # Empty Space
     
     # Connect Button (Main Function)
-    cmds.button(p=content_main, l ="Connect Attributes", bgc=(.6, .8, .6), \
+    cmds.button(p=body_column, l ="Connect Attributes", bgc=(.6, .8, .6), \
                                     c=lambda x:connect_attributes(cmds.textField(source_attributes_input, q=True, text=True),\
                                                                             cmds.textField(target_attributes_input, q=True, text=True)))
+    cmds.separator(h=10, style='none', p=body_column) # Empty Space
 
     # Prints selection attributes
     def print_selection_attributes(type):
         selection = cmds.ls(selection=True)
+        header = ""
         if type == "keyable" and len(selection) > 0:
             attrList = cmds.listAttr (selection[0], k=True) or []
+            header = '"' + selection[0] + '" keyable attributes: '
         elif len(selection) > 0:
             attrList = cmds.listAttr (selection[0]) or []
+            header = '"' + selection[0] + '" attributes: '
         
         
         if len(selection) > 0 and attrList != []:
-            print("#" * 80)
-            print(" " * 30 + selection[0] + " attributes:")
-            for attr in attrList:
-                print(attr)
-            print("#" * 80)
-            cmds.headsUpMessage( 'Open Script Editor to see the list of attributes', verticalOffset=150 , time=5.0)
+            export_to_txt(header, attrList)
         else:
             cmds.warning("Nothing selected (or no attributes to be displayed)")
                 
@@ -275,9 +300,107 @@ def build_gui_connect_attributes():
             cmds.button(target_status, l ="Failed to Load",e=True, bgc=(1, .4, .4), w=130,\
                         c="cmds.headsUpMessage( 'Make sure you select at least one target element', verticalOffset=150 , time=5.0)")
 
-
+    
+    # Show and Lock Window
     cmds.showWindow(build_gui_connect_attributes)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/hsRearrange.png')
+    widget.setWindowIcon(icon)
+    
+    
     # Main GUI Ends Here =================================================================================
+
+
+# Creates Help GUI
+def build_gui_help_connect_attributes():
+    window_name = "build_gui_help_connect_attributes"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+
+    
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script automates the creation of connections', align="left")
+    cmds.text(l='between attributes from source (output) and target', align="left")
+    cmds.text(l='(input).', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Use Selection for Source and Target (s):', align="left", fn="boldLabelFont")
+    cmds.text(l='When this option is activated, you no longer need to', align="left")
+    cmds.text(l='load sources/target (s).', align="left")
+    cmds.text(l='You can simply select: 1st: source, 2nd, 3rd... : target(s)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Add Reverse Node:', align="left", fn="boldLabelFont")
+    cmds.text(l='Adds a reverse node between connections.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Disconnect:', align="left", fn="boldLabelFont")
+    cmds.text(l='Break connections between selected nodes.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Force Connection (Overrides Existing)', align="left", fn="boldLabelFont")
+    cmds.text(l='Connects nodes even if they already have a connection.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Add Custom Node Between Connection: ', align="left", fn="boldLabelFont")
+    cmds.text(l='Allows user to create a node between connections.', align="left")
+    cmds.text(l='Excellent for controlling dataflow.', align="left")
+    cmds.text(l='-Custom Node: Which node to create', align="left")
+    cmds.text(l='-Add Input Node: Creates one master control to update', align="left")
+    cmds.text(l='all in betweens.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Load Source/Target Objects:', align="left", fn="boldLabelFont")
+    cmds.text(l='Use these buttons to load the objects you want to use', align="left")
+    cmds.text(l='as source and target (s).', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Source Attribute and Target Attributes:', align="left", fn="boldLabelFont")
+    cmds.text(l='Name of the attribute you want to connect.', align="left")
+    cmds.text(l='Requirement: Use long or short name (no nice names)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='List All Attributes & List Keyable Attributes:', align="left", fn="boldLabelFont")
+    cmds.text(l='Returns a list of attributes that can be used to populate', align="left")
+    cmds.text(l='the Source and Target Attributes fields.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
+
 
 
 # Main Function 
@@ -565,6 +688,24 @@ def parse_text_field(textFieldData):
         for obj in empty_objects:
             return_list.remove(obj)
         return return_list
+
+# Opens Notepad with header and list of objects
+def export_to_txt(header_string, list):
+    tempDir = cmds.internalVar(userTmpDir=True)
+    txtFile = tempDir+'tmp_state.txt';
+    
+    file_handle = open(txtFile,'w')
+    
+    text_to_export = header_string + "\n\n"
+    for obj in list:
+        text_to_export = text_to_export + str(obj) + "\n"
+
+    file_handle.write(text_to_export)
+    file_handle.close()
+
+    notepadCommand = 'exec("notepad ' + txtFile + '");'
+    mel.eval(notepadCommand)
+  
 
 # Start current "Main"
 build_gui_connect_attributes()

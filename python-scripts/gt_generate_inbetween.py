@@ -9,43 +9,77 @@
  Changed Script Name. (Previously rigLayer Generator)
  Fixed random window widthHeight issue.
  
+ 1.3 - 2020-06-16
+ Updated UI
+ Added icon
+ Added help menu
+ 
  To do: 
  Add option to use a different methods of position matching (use getAttr values)
  Add option to use joint's orientation instead of rotation
  
 """
 import maya.cmds as cmds
+from maya import OpenMayaUI as omui
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+
+# Script Name
+script_name = "GT - In-between Generator"
 
 # Version
-script_version = "v1.2";
+script_version = "1.3";
 
 settings = { 'outliner_color': [0,1,0] }
 
 # Main Form ============================================================================
 def build_gui_generate_inbetween():
-    if cmds.window("build_gui_generate_inbetween", exists =True):
-        cmds.deleteUI("build_gui_generate_inbetween")    
+    window_name = "build_gui_generate_inbetween"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
     
     # Build UI
-    build_gui_generate_inbetween = cmds.window("build_gui_generate_inbetween", title="gt_inbetween " + script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False,widthHeight=[323, 217])
+    build_gui_generate_inbetween = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+                          
+                          # #cmds.window("build_gui_generate_inbetween", title="gt_inbetween " + script_version,\
+                          # titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False,widthHeight=[323, 217])
+                          
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+    
     column_main = cmds.columnLayout() 
     
     form = cmds.formLayout(p=column_main)
 
     content_main = cmds.columnLayout(adj = True)
 
-    cmds.text("")
-    cmds.text("GT - In-between Generator - " + script_version, bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text("      This script creates a inbetween_transform (transform)       ")
-    cmds.text('      for selected elements  ')
-
-    cmds.separator(h=15, p=content_main)
+    # Title Text
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 330)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 260), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_generate_inbetween())
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
     
-    mid_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 320)], cs=[(1,10)], p=content_main)
+
+    cmds.separator(h=15, p=body_column)
+    
+    mid_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
     transform_type = cmds.optionMenu(p=mid_container, label='  Layer Type')
     cmds.menuItem( label='Group' )
     cmds.menuItem( label='Joint' )
@@ -56,31 +90,109 @@ def build_gui_generate_inbetween():
     cmds.menuItem( label='Parent' )
     cmds.text("  ",p=mid_container)
     
-    empty_container_spacer = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 10)
-    color_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
+    cmds.separator(h=10, style='none', p=body_column) # Empty Space
+    color_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h= 25)
     color_slider = cmds.colorSliderGrp(label='Outliner Color  ', rgb=(settings.get("outliner_color")[0], \
                                                                 settings.get("outliner_color")[1], settings.get("outliner_color")[2]),\
                                                                 columnWidth=((1,85),(3,130)), cc=lambda x:update_stored_values())
     
-    cmds.separator(h=15, p=content_main)
-    bottom_container = cmds.rowColumnLayout(p=content_main,adj=True)
-    cmds.text('New Transform Tag:',p=bottom_container)
+    cmds.separator(h=15, p=body_column)
+    bottom_container = cmds.rowColumnLayout(p=body_column,adj=True)
+    cmds.text('New Transform Suffix:',p=bottom_container)
     desired_tag = cmds.textField(p = bottom_container, text="_rigLayer", enterCommand=lambda x:create_inbetween(parse_text_field(cmds.textField(desired_tag, q=True, text=True))[0],\
                                                                         cmds.optionMenu(transform_parent_type, q=True, value=True),\
                                                                         cmds.optionMenu(transform_type, q=True, value=True)))
-    cmds.button(p=bottom_container, l ="Generate", bgc=(.6, .8, .6), c=lambda x:create_inbetween(parse_text_field(cmds.textField(desired_tag, q=True, text=True))[0],\
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.button(l ="Generate", bgc=(.6, .8, .6), c=lambda x:create_inbetween(parse_text_field(cmds.textField(desired_tag, q=True, text=True))[0],\
                                                                         cmds.optionMenu(transform_parent_type, q=True, value=True),\
                                                                         cmds.optionMenu(transform_type, q=True, value=True)))
+    cmds.separator(h=10, style='none') # Empty Space
                                                                                                                               
     # Updates Stored Values
     def update_stored_values():
         settings["outliner_color"] = cmds.colorSliderGrp(color_slider, q=True, rgb=True)
         #print(settings.get("outliner_color")) Debugging
         
+    
+    # Show and Lock Window
     cmds.showWindow(build_gui_generate_inbetween)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/hsGraphMaterial.png')
+    widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================
 
+
+# Creates Help GUI
+def build_gui_help_generate_inbetween():
+    window_name = "build_gui_help_generate_inbetween"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+
+    
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script creates a inbetween transform for the selected', align="left")
+    cmds.text(l='elements', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Layer Type:', align="left", fn="boldLabelFont")
+    cmds.text(l='This pull-down menu determines what type object will', align="left")
+    cmds.text(l='be created.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Parent Type:', align="left", fn="boldLabelFont")
+    cmds.text(l='This pull-down menu determines where the pivot point', align="left")
+    cmds.text(l='of the generated element will be extracted from.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Outliner Color:', align="left", fn="boldLabelFont")
+    cmds.text(l='Determines the outliner color of the generated element.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='New Transform Suffix:', align="left", fn="boldLabelFont")
+    cmds.text(l='Determines the suffix to be added to generated', align="left")
+    cmds.text(l='transforms.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
 
 # Main Function
 # layer_tag = string to use as tag

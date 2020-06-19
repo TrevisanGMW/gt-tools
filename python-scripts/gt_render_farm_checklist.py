@@ -133,7 +133,9 @@ def refresh_checklist():
     #load_state()
     check_frame_rate()
     check_scene_units()
-    test = check_output_resolution()
+    check_output_resolution()
+    check_total_texture_count()
+    test = check_network_file_paths()
     print(test)
 
 
@@ -270,8 +272,109 @@ def check_output_resolution():
         string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was "'  + expected_value[0] + 'x' + expected_value[1] + '" and yours is "' + received_value[0] + 'x' + received_value[1] + '"'
     return '\n*** ' + item_name + " ***\n" + string_status
 
+# Item 3 - Total Texture Count
+def check_total_texture_count():
+    item_name = checklist_items[3]
+    item_id = item_name.lower().replace(" ","_").replace("-","_")
+    expected_value = 50
+    received_value = 0 
+    issues_found = 0
+    
+    # Count File Nodes
+    all_file_nodes = cmds.ls(type="file")
+    for file in all_file_nodes:
+        received_value +=1
 
-# Checklist Functions End Here =====+++===========================================================
+    if received_value <= expected_value:
+        cmds.button("status_" + item_id, e=True, bgc=pass_color, l= '', c=lambda args: print_message(item_name + ': "'  + str(received_value) + ' file nodes')) 
+        issues_found = 0
+    else: 
+        cmds.button("status_" + item_id, e=True, bgc=error_color, l= '?', c=lambda args: warning_total_texture_count())
+        issues_found = 1
+        
+    cmds.text("output_" + item_id, e=True, l=received_value )
+    
+    # Patch Function ----------------------
+    def warning_total_texture_count():
+        user_input = cmds.confirmDialog(
+                    title=item_name,
+                    message='Your ' + item_name.lower() + ' should be reduced from "' + str(received_value) + '" to less than "' + str(expected_value) + '".',
+                    button=['OK', 'Ignore Issue'],
+                    defaultButton='OK',
+                    cancelButton='Ignore Issue',
+                    dismissString='Ignore Issue', 
+                    icon="warning")
+
+        if user_input == '':
+            pass
+        else:
+            cmds.button("status_" + item_id, e=True, l= '')
+    
+    # Return string for report ------------
+    if issues_found > 0:
+        string_status = str(issues_found) + " issue found. The expected " + item_name.lower() + ' was less than "'  + str(expected_value) + '" and yours is "' + str(received_value) + '"'
+    else: 
+        string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was less than "'  + str(expected_value) + '" and yours is "' + str(received_value) + '"'
+    return '\n*** ' + item_name + " ***\n" + string_status
+    
+# Item 4 - Network File Paths
+def check_network_file_paths():
+    item_name = checklist_items[4]
+    item_id = item_name.lower().replace(" ","_").replace("-","_")
+    expected_value = ["H:","vfsstorage10"]
+    incorrect_file_nodes = []
+    
+    # Count Incorrect File Nodes
+    all_file_nodes = cmds.ls(type="file")
+    for file in all_file_nodes:
+        file_path = cmds.getAttr(file + ".fileTextureName")
+        if file_path != '':
+            current_path_as_list = file_path.split("/")
+            if current_path_as_list[0] != expected_value[0] or current_path_as_list[0] != expected_value[1]:
+                incorrect_file_nodes.append(file)
+                print(current_path_as_list[0])
+
+
+    if len(incorrect_file_nodes) == 0:
+        cmds.button("status_" + item_id, e=True, bgc=pass_color, l= '', c=lambda args: print_message('All file nodes currently sourced from the network.')) 
+        issues_found = 0
+    else: 
+        cmds.button("status_" + item_id, e=True, bgc=error_color, l= '?', c=lambda args: warning_network_file_paths())
+        issues_found = len(incorrect_file_nodes)
+        
+    cmds.text("output_" + item_id, e=True, l=len(incorrect_file_nodes) )
+    
+    # Patch Function ----------------------
+    def warning_network_file_paths():
+        user_input = cmds.confirmDialog(
+                    title=item_name,
+                    message=str(len(incorrect_file_nodes)) + ' of your file node paths aren\'t pointing to the network drive. Please change their path to a network location. (Too see a list of nodes, generate a report)',
+                    button=['OK', 'Ignore Issue'],
+                    defaultButton='OK',
+                    cancelButton='Ignore Issue',
+                    dismissString='Ignore Issue', 
+                    icon="warning")
+
+        if user_input == '':
+            pass
+        else:
+            cmds.button("status_" + item_id, e=True, l= '')
+    
+    # Return string for report ------------
+    if issues_found > 0:
+        string_status = str(issues_found) + " issue found.\n"
+        for file_node in incorrect_file_nodes: 
+            string_status = string_status + 'The file node "' + file_node +  '" isn\'t pointing to the the network drive. Your texture files should be sourced from the network.\n'
+    else: 
+        string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was less than "'  + str(expected_value) + '" and yours is "' + str(received_value) + '"'
+    return '\n*** ' + item_name + " ***\n" + string_status
+
+
+
+
+
+
+# Checklist Functions End Here ===================================================================
 
 
 def print_message(message):

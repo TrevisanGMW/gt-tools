@@ -2,51 +2,87 @@
  Text Curve Generator -> Simple script used to quickly create text curves
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-09
  
+ 1.1 - 2020-06-17
+ Changed UI
+ Added help menu
+ Added icon
+ 
  To Do:
  Add font/size options
  
+ 
 """
 import maya.cmds as cmds
+from maya import OpenMayaUI as omui
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+# Script Name
+script_name = "GT - Text Curve Generator"
 
 # Version
-script_version = "v1.0";
+script_version = "1.1";
 
 
 # Main Form ============================================================================
 def build_gui_generate_text_curve():
-    if cmds.window("build_gui_generate_text_curve", exists =True):
-        cmds.deleteUI("build_gui_generate_text_curve")    
+    window_name = "build_gui_generate_text_curve"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
     
     # Build UI
-    build_gui_generate_text_curve = cmds.window("build_gui_generate_text_curve", title=script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False, widthHeight=[213, 160])
+    build_gui_generate_text_curve = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+    
     column_main = cmds.columnLayout() 
     
     form = cmds.formLayout(p=column_main)
 
     content_main = cmds.columnLayout(adj = True)
-
-    cmds.text("")
-    cmds.text("GT - Text Curve Generator - " + script_version, bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text("        This script creates a single curve       ")
-    cmds.text("   containing the text typed below  ")
-    cmds.text("   (All shapes go under one transform)  ")
-    cmds.rowColumnLayout(p=content_main,numberOfRows=1, h= 5) #Empty Space
     
-    cmds.separator(h=15, p=content_main)
-    bottom_container = cmds.rowColumnLayout(p=content_main,adj=True)
-    cmds.text('Text:',p=bottom_container)
-    desired_text = cmds.textField(p = bottom_container, text="hello, world", enterCommand=lambda x:generate_text_curve())
-    cmds.button(p=bottom_container, l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_text_curve())
+    # Title Text
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " - v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_generate_text_curve())
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
+    
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
+    
+    cmds.separator(h=15, p=body_column)
+    cmds.text('Text:',p=body_column)
+    desired_text = cmds.textField(p = body_column, text="hello, world", enterCommand=lambda x:generate_text_curve())
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.button(p=body_column, l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_text_curve())
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
                                                                                                                               
-        
+    # Show and Lock Window
     cmds.showWindow(build_gui_generate_text_curve)
+    cmds.window(window_name, e=True, s=False)
     
-    test = cmds.window(build_gui_generate_text_curve, q=True, widthHeight=True)
-    print(test)
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/text.png')
+    widget.setWindowIcon(icon)
+    
+    print(' ')
 
     # Main GUI Ends Here =================================================================================
 
@@ -58,6 +94,67 @@ def build_gui_generate_text_curve():
             create_text(string)
             
     # Main Function Ends  ----------------------
+
+
+# Creates Help GUI
+def build_gui_help_generate_text_curve():
+    window_name = "build_gui_help_generate_text_curve"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script creates merged curves containing the input', align="left")
+    cmds.text(l='text from the text field.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='(All shapes go under one transform)', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='You can create multiple curves by separanting them with', align="left")
+    cmds.text(l='commas ",".', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
+
+
+
+
 
 # Function to Parse textField data 
 def parse_text_field_commas(text_field_data):

@@ -6,26 +6,51 @@
  1.1 - 2020-06-09
  Added Copy/Paste TRS options.
  
+ 1.2 - 2020-06-18
+ Changed GUI
+ Added icons
+ Added help menu
+ 
  To Do:
  Use a dictionary instead of list for attributes.
  Add checks before getting, setting.
+ Make get and set use previous settings
 
 """
 import maya.cmds as cmds
+from maya import OpenMayaUI as omui
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+# Script Name
+script_name = "GT - Transfer Transforms"
 
 # Version:
-script_version = "v1.1"
+script_version = "1.2"
 
 
 # Main Form ============================================================================
 def build_gui_transfer_transforms():
-    if cmds.window("build_gui_transfer_transforms", exists =True):
-        cmds.deleteUI("build_gui_transfer_transforms")    
+    window_name = "build_gui_transfer_transforms"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_transfer_transforms = cmds.window("build_gui_transfer_transforms", title=script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable = False, widthHeight=[200, 734])
+    build_gui_transfer_transforms = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+                          
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+    
     
     column_main = cmds.columnLayout() 
 
@@ -33,133 +58,121 @@ def build_gui_transfer_transforms():
 
     content_main = cmds.columnLayout(adj = True)
 
-    cmds.text("")
-    cmds.text("GT - Transfer Transforms - " + script_version, bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text("      Script for quickly transfering       ")
-    cmds.text("      Translate, Rotate, and Scale      ")
-    cmds.text("      between objects.     ")
-    cmds.text("   ")
-    cmds.text("Steps (Source/Targets):")
-    cmds.text('1. Select Source 1st   ')
-    cmds.text('2. Select Targets 2nd,3rd...')
-    cmds.text('3. Run Script')
-    cmds.text("   ")
-    cmds.text("Steps (One side to the other):")
-    cmds.text('1. Select All Elements   ')
-    cmds.text('2. Run Script')
-    cmds.text("   ")
-    cmds.separator(h=10, p=content_main)
+    # Title Text
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 170), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " - v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_transfer_transforms())
+    cmds.separator(h=10, style='none') # Empty Space
     
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,10)], p=content_main)
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,20)])
+    transform_column_width = [100, 1]
     
     # Translate
-    translate_x_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    translate_x_checkbox = cmds.checkBoxGrp(p=translate_x_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    translate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Translate X', label2 = "Invert Value", v1 = True, v2 = False) 
                                 
-    translate_y_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    translate_y_checkbox = cmds.checkBoxGrp(p=translate_y_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    translate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Translate Y', label2 = "Invert Value", v1 = True, v2 = False) 
-                                
-    translate_z_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    translate_z_checkbox = cmds.checkBoxGrp(p=translate_z_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
-                                label1 = '  Translate Z', label2 = "Invert Value", v1 = True, v2 = False) 
-         
-    cmds.separator(h=10, p=content_main)
-    
-    # Rotate                    
-    rotate_x_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    rotate_x_checkbox = cmds.checkBoxGrp(p=rotate_x_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
-                                label1 = '  Rotate X', label2 = "Invert Value", v1 = True, v2 = False) 
 
-    rotate_y_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    rotate_y_checkbox = cmds.checkBoxGrp(p=rotate_y_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    translate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+                                label1 = '  Translate Z', label2 = "Invert Value", v1 = True, v2 = False) 
+        
+    cmds.separator(h=10, p=body_column)
+    
+    # Rotate
+    cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,20)], p=body_column)              
+    rotate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+                                label1 = '  Rotate X', label2 = "Invert Value", v1 = True, v2 = False) 
+                                
+    rotate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Rotate Y', label2 = "Invert Value", v1 = True, v2 = False) 
                                 
-    rotate_z_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    rotate_z_checkbox = cmds.checkBoxGrp(p=rotate_z_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    rotate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Rotate Z', label2 = "Invert Value", v1 = True, v2 = False) 
          
-    cmds.separator(h=10, p=content_main) 
+    cmds.separator(h=10, p=body_column)
     
-    # Scale                        
-    scale_x_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    scale_x_checkbox = cmds.checkBoxGrp(p=scale_x_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    # Scale  
+    cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,20)], p=body_column)                        
+    scale_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Scale X', label2 = "Invert Value", v1 = True, v2 = False) 
     
-    scale_y_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    scale_y_checkbox = cmds.checkBoxGrp(p=scale_y_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    scale_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Scale Y', label2 = "Invert Value", v1 = True, v2 = False) 
     
-    scale_z_container = cmds.rowColumnLayout( numberOfRows=1, h= 25, p=content_main)
-    cmds.text("   ")
-    scale_z_checkbox = cmds.checkBoxGrp(p=scale_z_container, columnWidth2=[90, 1], numberOfCheckBoxes=2, \
+    scale_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
                                 label1 = '  Scale Z', label2 = "Invert Value", v1 = True, v2 = False) 
 
-    #cmds.rowColumnLayout(p=content_main,numberOfRows=1, h= 5) #Empty Space
+    cmds.separator(h=10, p=body_column)
+    
+    # Left Side Tag text fields
+    
+    #side_text_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1, adj=True)
+    cmds.rowColumnLayout(nc=2, cw=[(1, 100),(2, 100)], cs=[(1,15),(2,0)], p=body_column)  
+    cmds.text("Left Side Tag:")
+    cmds.text("Right Side Tag:")  
+    
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space 
+    
+    cmds.rowColumnLayout(nc=2, cw=[(1, 100),(2, 100)], cs=[(1,15),(2,0)], p=body_column)  
+    left_tag_text_field = cmds.textField(text="left_", enterCommand=lambda x:update_stored_values_and_run())
+    right_tag_text_field = cmds.textField(text="right_", enterCommand=lambda x:update_stored_values_and_run())
+    
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space 
+
+    cmds.rowColumnLayout(nc=1, cw=[(1, 210)], cs=[(1,10)], p=body_column)     
+    cmds.button(l ="From Right to Left", c=lambda x:transfer_transforms_side_to_side("right"))
+    cmds.button(l ="From Left to Right", c=lambda x:transfer_transforms_side_to_side("left"))
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space 
+    cmds.separator(h=10, p=body_column)
+    
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space 
+    cmds.button(p=body_column, l ="Transfer (Source/Targets)", bgc=(.6, .8, .6), c=lambda x:transfer_transforms())
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space 
+    
     cmds.separator(h=10, p=content_main)
-    
-    # Left Side Tag textFields
-    
-    side_text_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1, adj=True)
-    cmds.text("Left Side Tag:   ", p=side_text_container)
-    cmds.text("Right Side Tag:   ", p=side_text_container)
-    
-    side_textfield_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
-    
-    left_tag_text_field = cmds.textField(p = side_textfield_container, width=96, text="left_", \
-                                           enterCommand=lambda x:update_stored_values_and_run())
-    right_tag_text_field = cmds.textField(p = side_textfield_container,width=96, text="right_", \
-                                           enterCommand=lambda x:update_stored_values_and_run())
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
-    
-    
-    cmds.button(p=content_main, l ="From Right to Left", c=lambda x:transfer_transforms_side_to_side("right"))
-    cmds.button(p=content_main, l ="From Left to Right", c=lambda x:transfer_transforms_side_to_side("left"))
-    cmds.separator(h=10, p=content_main) 
-    cmds.button(p=content_main, l ="Transfer (Source/Targets)", bgc=(.6, .8, .6), c=lambda x:transfer_transforms())
     
     # Copy and Paste Transforms
-    cmds.separator(h=10, p=content_main)
+    copy_text_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, adj=True)
+    cmds.text("Copy and Paste Transforms", p=copy_text_container)
+    cmds.separator(h=7, style='none', p=content_main) # Empty Space
     
-    copy_text_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1, adj=True)
-    cmds.text("       Copy and Paste Transforms", p=copy_text_container)
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
-    translate_copy_textfield_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    cmds.rowColumnLayout(nc=4, cw=[(1, 20),(2, 65),(3, 65),(4, 65)], cs=[(1,15),(2,0)], p=content_main)
+
+    cmds.text(" ")
+    cmds.text("X", bgc=[.5,0,0])
+    cmds.text("Y", bgc=[0,.5,0])
+    cmds.text("Z", bgc=[0,0,.5])
+
+    cmds.text("T")
+    tx_copy_text_field = cmds.textField(text="0.0", ann="tx")
+    ty_copy_text_field = cmds.textField(text="0.0", ann="ty")
+    tz_copy_text_field = cmds.textField(text="0.0", ann="tz")
     
-    cmds.text("   T    ", p=translate_copy_textfield_container)
-    tx_copy_text_field = cmds.textField(p = translate_copy_textfield_container, width=55, text="0.0", ann="tx")
-    ty_copy_text_field = cmds.textField(p = translate_copy_textfield_container, width=55, text="0.0", ann="ty")
-    tz_copy_text_field = cmds.textField(p = translate_copy_textfield_container, width=55, text="0.0", ann="tz")
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
-     
-    rotate_copy_textfield_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    cmds.text("R")
+    rx_copy_text_field = cmds.textField(text="0.0", ann="rx")
+    ry_copy_text_field = cmds.textField(text="0.0", ann="ry")
+    rz_copy_text_field = cmds.textField(text="0.0", ann="rz")
     
-    cmds.text("   R    ", p=rotate_copy_textfield_container)
-    rx_copy_text_field = cmds.textField(p = rotate_copy_textfield_container, width=55, text="0.0", ann="rx")
-    ry_copy_text_field = cmds.textField(p = rotate_copy_textfield_container, width=55, text="0.0", ann="ry")
-    rz_copy_text_field = cmds.textField(p = rotate_copy_textfield_container, width=55, text="0.0", ann="rz")
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
+    cmds.text("S")
+    sx_copy_text_field = cmds.textField(text="1.0", ann="sx")
+    sy_copy_text_field = cmds.textField(text="1.0", ann="sy")
+    sz_copy_text_field = cmds.textField(text="1.0", ann="sz")
     
-    scale_copy_textfield_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    cmds.separator(h=7, style='none', p=content_main) # Empty Space
     
-    cmds.text("   S    ", p=scale_copy_textfield_container)
-    sx_copy_text_field = cmds.textField(p = scale_copy_textfield_container, width=55, text="1.0", ann="sx")
-    sy_copy_text_field = cmds.textField(p = scale_copy_textfield_container, width=55, text="1.0", ann="sy")
-    sz_copy_text_field = cmds.textField(p = scale_copy_textfield_container, width=55, text="1.0", ann="sz")
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 115),(2, 115)], cs=[(1,10),(2,0)], p=content_main)
     
-    container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
-    cmds.button(p=container, l ="Get TRS", c=lambda x:transfer_transforms_copy_paste("get"), w=97)
-    cmds.button(p=container, l ="Set TRS", c=lambda x:transfer_transforms_copy_paste("set"), w=97)
+    cmds.button(l ="Get TRS", c=lambda x:transfer_transforms_copy_paste("get"))
+    cmds.button(l ="Set TRS", c=lambda x:transfer_transforms_copy_paste("set"))
+    
+    cmds.separator(h=7, style='none', p=content_main) # Empty Space
     
     def extract_checkbox_transform_value(checkbox_grp, attribute_name):
         is_used = cmds.checkBoxGrp(checkbox_grp, q=True, value1=True)
@@ -322,9 +335,91 @@ def build_gui_transfer_transforms():
                 cmds.warning("Select objects to set their transforms")
     # Copy Paste Function Ends --------------------------------------------
     
+    # Show and Lock Window
     cmds.showWindow(build_gui_transfer_transforms)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/transform.svg')
+    widget.setWindowIcon(icon)
+    
     # Main GUI Ends Here =================================================================================
 
+# Creates Help GUI
+def build_gui_help_transfer_transforms():
+    window_name = "build_gui_help_transfer_transforms"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+        
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script quickly transfer', align="center")
+    cmds.text(l='Translate, Rotate, and Scale', align="center")
+    cmds.text(l='between objects.', align="center")
+    
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Transfer (Source/Targets):', align="left", fn="boldLabelFont")
+    cmds.text(l='1. Select Source 1st', align="left")
+    cmds.text(l='2. Select Targets 2nd,3rd...', align="left")
+    cmds.text(l='3. Select which transforms to transfer (or maybe invert)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Transfer from one side to the other:', align="left", fn="boldLabelFont")
+    cmds.text(l='"From Right to Left" and From Left To Right" functions.', align="left")
+    cmds.text(l='1. Select all elements', align="left")
+    cmds.text(l='2. Select which transforms to transfer (or maybe invert)', align="left")
+    cmds.text(l='3. Select one of the "From > To" options:', align="left")
+    cmds.text(l='e.g. "From Right to Left" : Copy transforms from objects', align="left")
+    cmds.text(l='with the provided prefix "Right Side Tag" to objects ', align="left")
+    cmds.text(l='with the provided prefix "Left Side Tag".', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Copy and Paste Transforms:', align="left", fn="boldLabelFont")
+    cmds.text(l='This function doesn\'t take in consideration the', align="left")
+    cmds.text(l='previous settings. It works on its own.', align="left")
+    cmds.text(l='As the name suggests, it copy transforms, which', align="left")
+    cmds.text(l='populates the text fields, or it pastes transforms', align="left")
+    cmds.text(l='from selected fields back to selected objects.', align="left")
+    cmds.text(l='', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
 
 # Function to Parse textField data 
 def parse_text_field(textFieldData):

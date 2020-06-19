@@ -9,6 +9,10 @@
  Updated naming convention to make it clearer. (PEP8)
  Fixed random window widthHeight issue.
  
+ 1.2 - 2020-06-18
+ Updated GUI
+ Added window icon
+ 
  To Do:
  Add Selection base on Shader name, Texture, TRS
  Add Apply function to outliner color
@@ -17,9 +21,24 @@
 """
 import maya.cmds as cmds
 import maya.mel as mel
+from maya import OpenMayaUI as omui
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+# Script Name
+script_name = "GT Selection Manager"
 
 # Version:
-script_version = "v1.1"
+script_version = "1.2"
  
 
 settings = { 'use_contains_string' : False,             # Active Functions
@@ -46,75 +65,85 @@ settings = { 'use_contains_string' : False,             # Active Functions
 
 # Main Form ============================================================================
 def build_gui_selection_manager():
-    if cmds.window("build_gui_selection_manager", exists =True):
-        cmds.deleteUI("build_gui_selection_manager")    
+    window_name = "build_gui_selection_manager"
+    if cmds.window(window_name, exists =True):
+        cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_selection_manager = cmds.window("build_gui_selection_manager", title="gt_ls - " + script_version,\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False, widthHeight = [267, 531])
-
+    build_gui_selection_manager = cmds.window(window_name, title=script_name + "  v" + script_version,\
+                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+                          
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+    
     column_main = cmds.columnLayout() 
 
     form = cmds.formLayout(p=column_main)
 
     content_main = cmds.columnLayout(adj = True)
-    
-    # Description
-    cmds.text("")
-    row_one = cmds.rowColumnLayout(p=content_main, numberOfRows=1) #Empty Space
-    cmds.text( "         GT Selection Manager - " + script_version + "          ",p=row_one, bgc=[0,.5,0],  fn="boldLabelFont")
+        
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
+    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
     cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_selection_manager())
-    cmds.text("        ", bgc=[0,.5,0])
-    cmds.rowColumnLayout(p=content_main, adj = True)
-    cmds.text("  ")
-    cmds.text("      This script allows you to update selections       ")
-    cmds.text("      to contain (or not) only filtered elements     ")
-    cmds.text("   ")
-    cmds.separator(h=15, p=content_main)
+    cmds.separator(h=10, style='none', p=content_main) # Empty Space
     
+    # Body ====================
+    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
+    
+    cmds.separator(h=10)
+    cmds.separator(h=5, style='none')  # Empty Space
     
     # Element Name
-    cmds.text("Element Name", p=content_main)
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
-    name_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ") # Increase this to move checkboxes to the right
-    contains_string_or_not_checkbox = cmds.checkBoxGrp(p=name_container, columnWidth2=[120, 1], numberOfCheckBoxes=2, \
+    cmds.text("Element Name")
+    cmds.separator(h=10, style='none')  # Empty Space
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)])
+    contains_string_or_not_checkbox = cmds.checkBoxGrp(columnWidth2=[120, 1], numberOfCheckBoxes=2, \
                                 label1 = ' Does Contain ', label2 = "  Doesn't Contain", v1 = settings.get("use_contains_string"), v2 = settings.get("use_contains_no_string"), \
                                 cc1=lambda x:update_active_items(), cc2= lambda x:update_active_items())  
     
     # Element Name Textbox
-    name_textbox_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    cmds.rowColumnLayout(nc=3, cw=[(1, 110),(2, 10),(3, 110)], cs=[(1,0),(2, 0),(2, 0)])
+    contains_name_text_field = cmds.textField(text="Jnt", en=False, \
+                                           enterCommand=lambda x:update_stored_values_and_run())
+                                           
+    cmds.separator(h=10, style='none')  # Empty Space
     
-    contains_name_text_field = cmds.textField(p = name_textbox_container, width=130, text="Jnt", en=False, \
+    contains_no_name_text_field = cmds.textField(text="End, eye", en=False, \
                                            enterCommand=lambda x:update_stored_values_and_run())
-    contains_no_name_text_field = cmds.textField(p = name_textbox_container,width=130, text="End, eye", en=False, \
-                                           enterCommand=lambda x:update_stored_values_and_run())
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 3) #Empty Space
-    cmds.separator(h=10, p=content_main)
+                                           
+    cmds.separator(h=10, style='none')  # Empty Space
+    
+    cmds.separator(h=10, p=body_column)
     
     # Element Type
-    cmds.text("Element Type",p=content_main)
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
-    type_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text("    ") # Increase this to move checkboxes to the right
-    contains_type_or_not_checkbox = cmds.checkBoxGrp(p=type_container, columnWidth2=[120, 1], numberOfCheckBoxes=2, \
+    cmds.separator(h=5, style='none' , p=body_column)  # Empty Space
+    cmds.text("Element Type", p=body_column)
+    cmds.separator(h=5, style='none' , p=body_column)  # Empty Space
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=body_column)
+    contains_type_or_not_checkbox = cmds.checkBoxGrp(columnWidth2=[120, 1], numberOfCheckBoxes=2, \
                                 label1 = ' Does Contain ', label2 = "  Doesn't Contain", v1 = settings.get("use_contains_type"), v2 = settings.get("use_contains_no_type"), \
                                 cc1=lambda x:update_active_items(), cc2= lambda x:update_active_items())  
     
     # Element Type Textbox
-    name_textbox_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    cmds.rowColumnLayout(nc=3, cw=[(1, 110),(2, 10),(3, 110)], cs=[(1,0),(2, 0),(2, 0)])
+
     
-    contains_type_text_field = cmds.textField(p = name_textbox_container, width=130, text="joint", en=False, \
+    contains_type_text_field = cmds.textField(text="joint", en=False, \
                                            enterCommand=lambda x:update_stored_values_and_run()) 
-    contains_no_type_text_field = cmds.textField(p = name_textbox_container,width=130, text="mesh", en=False, \
+    cmds.separator(h=10, style='none')  # Empty Space
+    contains_no_type_text_field = cmds.textField(text="mesh", en=False, \
                                            enterCommand=lambda x:update_stored_values_and_run())
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 3) #Empty Space
+
     
-        
     # Element Type Shape Node Behaviour
-    shape_node_behavior_container = cmds.rowColumnLayout(p=content_main,numberOfRows=1, adj = True)
-    shape_node_behavior_menu = cmds.optionMenu(en=False, p=shape_node_behavior_container, label=' Behavior', cc=lambda x:update_active_items()) #######
+    cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,0)], p=body_column)
+    cmds.separator(h=5, style='none')  # Empty Space
+    shape_node_behavior_menu = cmds.optionMenu(en=False,label=' Behavior', cc=lambda x:update_active_items()) #######
     cmds.menuItem( label='Select Both Parent and Shape')
     cmds.menuItem( label='Select Shapes as Objects')
     cmds.menuItem( label='Select Parent Instead')
@@ -122,27 +151,27 @@ def build_gui_selection_manager():
     
 
     # Print Types Buttons
-    cmds.rowColumnLayout(p=content_main,adj=True,h=5)
-    show_attributes_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.button(p=show_attributes_container, l ="Print Selection Types", w=130,\
-                                    c=lambda x:print_selection_types("selection"))                                                                    
-    cmds.button(p=show_attributes_container, l ="Print All Scene Types", w=130,\
-                                    c=lambda x:print_selection_types("all")) 
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 130),(2, 130)], cs=[(1,0),(2, 0)], p=body_column)
     
-    cmds.separator(h=10, p=content_main)
+    cmds.button(l ="Print Selection Types", c=lambda x:print_selection_types("selection"))                                                                    
+    cmds.button(l ="Print All Scene Types", c=lambda x:print_selection_types("all")) 
+    
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=10, p=body_column)
     
     # Visibility
-    visibility_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    visibility_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.text("    ")
     use_visibility_state = cmds.checkBox(p=visibility_container, label=' Visibility State  --->  ', value=settings.get("use_visibility_state"),\
                          cc=lambda x:update_active_items())
     cmds.radioCollection()
     visibility_rb1 = cmds.radioButton( p=visibility_container, label=' On  ' , en=False)
     visibility_rb2 = cmds.radioButton( p=visibility_container,  label=' Off ', en=False, sl=True)
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, p=body_column)
     
     # Outline Color
-    outline_color_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    outline_color_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.text("    ")
     use_outline_color = cmds.checkBox(p=outline_color_container, label='', value=settings.get("use_outliner_color"),\
                          cc=lambda x:update_active_items())
@@ -153,7 +182,7 @@ def build_gui_selection_manager():
     cmds.button(l ="Get", bgc=(.1, .1, .1), w=30, c=lambda x:get_color_from_selection(has_outliner_color_slider_one), height=10, width=40)
     
     
-    outline_no_color_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1) 
+    outline_no_color_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1) 
     cmds.text("    ")                                              
     use_no_outline_color = cmds.checkBox(p=outline_no_color_container, label='', value=settings.get("use_no_outliner_color"),\
                          cc=lambda x:update_active_items())
@@ -163,11 +192,11 @@ def build_gui_selection_manager():
                                                                 columnWidth=((1,145),(2,30),(3,0)), cc=lambda x:update_active_items())
     cmds.button(l ="Get", bgc=(.1, .1, .1), w=30, c=lambda x:get_color_from_selection(has_no_outliner_color_slider_one), height=10, width=40)
                                                    
-    cmds.separator(h=10, p=content_main)
- 
+    cmds.separator(h=10, p=body_column)
+    cmds.separator(h=5, style='none', p=body_column)  # Empty Space
                         
     # Store Selection One
-    target_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    target_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     remove_from_sel_btn_one = cmds.button(p=target_container, l ="-", bgc=(.5, .1, .1), w=30, \
                             c=lambda x:selection_storage_manager('remove',1 ))
     store_sel_btn_one = cmds.button(p=target_container, l ="Store Selection", bgc=(0, 0, 0), w=91, \
@@ -180,7 +209,7 @@ def build_gui_selection_manager():
                             c=lambda x:selection_storage_manager('save',1))
     
     # Store Selection Two
-    target_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)
+    target_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     remove_from_sel_btn_two = cmds.button(p=target_container, l ="-", bgc=(.5, .1, .1), w=30, \
                             c=lambda x:selection_storage_manager('remove',2))
     store_sel_btn_two = cmds.button(p=target_container, l ="Store Selection", bgc=(0, 0, 0), w=91, \
@@ -191,23 +220,24 @@ def build_gui_selection_manager():
                             c=lambda x:selection_storage_manager('reset',2))
     save_sel_btn_two = cmds.button(p=target_container, l ="Save", w=55, \
                             c=lambda x:selection_storage_manager('save',2))
+    cmds.separator(h=5, style='none', p=body_column)  # Empty Space
 
-
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 3) #Empty Space
-    save_as_container = cmds.rowColumnLayout( p=content_main, numberOfRows=1)                  
+    save_as_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)                  
     cmds.radioCollection()
+    
     save_as_quick_selection_rb1 = cmds.radioButton( p=save_as_container, sl=True, label=' Save as Quick Selection  ', cc=lambda x:update_active_items())
     cmds.radioButton( p=save_as_container,label=' Save as Text File ', cc=lambda x:update_active_items())
 
-    cmds.separator(h=10, p=content_main)
+    cmds.separator(h=10, p=body_column)
     
+    cmds.separator(h=10, style='none', p=body_column)  # Empty Space
     # Create New Selection (Main Function)
-    cmds.button(p=content_main, l ="Create New Selection", c=lambda x:update_stored_values_and_run(True))
+    cmds.button(p=body_column, l ="Create New Selection", c=lambda x:update_stored_values_and_run(True))
     
-    cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 5) #Empty Space
     
     # Update Selection (Main Function)
-    cmds.button(p=content_main, l ="Update Current Selection", bgc=(.6, .8, .6), c=lambda x:update_stored_values_and_run(False))
+    cmds.button(p=body_column, l ="Update Current Selection", bgc=(.6, .8, .6), c=lambda x:update_stored_values_and_run(False))
+    cmds.separator(h=10, style='none', p=body_column)  # Empty Space
     
     # End of Dialog Constructor =========================================================================================================
     
@@ -415,8 +445,16 @@ def build_gui_selection_manager():
         settings["stored_new_selection"] = is_new_selection # New selection or existing one?
         manage_selection() # Runs main function
 
-
+    # Show and Lock Window
     cmds.showWindow(build_gui_selection_manager)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/selectByHierarchy.png')
+    widget.setWindowIcon(icon)
+    
     # Main GUI Ends Here =================================================================================
 
 
@@ -658,96 +696,97 @@ def parse_text_field(textFieldData):
             return_list.remove(obj)
         return return_list
 
-
+# Creates Help GUI
 def build_gui_help_selection_manager():
-    if cmds.window("build_gui_help_selection_manager", exists =True):
-        cmds.deleteUI("build_gui_help_selection_manager")    
+    window_name = "build_gui_help_selection_manager"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
 
-    # Help Dialog Start Here =================================================================================
-    
-    # Build About UI
-    build_gui_help_selection_manager = cmds.window("build_gui_help_selection_manager", title="GT Selection Manager - Help",\
-                          titleBar=True,minimizeButton=True,maximizeButton=False, sizeable =False, widthHeight = [330, 781])
-    column_main = cmds.columnLayout() 
+    cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
 
-    form = cmds.formLayout(p=column_main)
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
-    content_main = cmds.columnLayout(adj = True)
-
-    cmds.text("")
-    cmds.text("Help for GT Selection Manager ", bgc=[0,.5,0],  fn="boldLabelFont")
-    cmds.text("  ")
-    cmds.text(" Version Installed: " + script_version)
-    cmds.text("  ")
-    cmds.text("      This script allows you to create or update your       ")
-    cmds.text('      selections based on some filters (parameters)  ')
-    cmds.text('      You can also save and load previous selections.  ')
-    cmds.text(' ')
-    cmds.text('      Element Name:   ')
-    cmds.text('      This option allows you to check  if the string used   ')
-    cmds.text('      for the object name contains or doesn\'t contain the     ')
-    cmds.text('      the provided parameter.    ')
-    cmds.text(' ')
-    cmds.text('      Element Type:    ')
-    cmds.text('      This filter will check the type of the element to       ')
-    cmds.text('      determine if it should be part of the selection or not.    ')
-    cmds.text(' ')
-    cmds.text('      Element Type > Behavior (Dropdown Menu):   ')
-    cmds.text('      Since most elements are transforms, you can use the   ')
-    cmds.text('      dropdown menu "Behavior" to determine how to filter    ')
-    cmds.text('      the shape element (usually hidden inside the transform)   ')
-    cmds.text('      (You can consider transform, shape, both or ignore it)    ')
-    cmds.text(' ')
-    cmds.text("      Visibility State:   ")
-    cmds.text('      Selection based on the current state of the node\'s    ')
-    cmds.text('      visibility attribute.    ')
-    cmds.text(' ')
-    cmds.text("      Outliner Color (Transform):   ")
-    cmds.text('      Filters the option under Node > Display > Outliner Color    ')
-    cmds.text('      In case you\'re unsure about the exact color, you can use    ')
-    cmds.text('      the "Get" button to automatically copy a color.    ')
-    cmds.text(' ')
-    cmds.text("      Outliner Color:   ")
-    cmds.text('      Filters the option under Node > Display > Outliner Color    ')
-    cmds.text('      In case you\'re unsure about the exact color, you can use    ')
-    cmds.text('      the "Get" button to automatically copy a color.    ')
-    cmds.text(' ')
-    cmds.text('      Store Selection Options:    ')
-    cmds.text('      Select objects and click on "Store Selection"    ')
-    cmds.text('      to store them for later.    ')
-    cmds.text('      Use the "-" and "+" buttons to add or remove elements.   ')
-    cmds.text('      Use the "Reset" button to clean your selection   ')
-    cmds.text(' ')
-    cmds.text('      You can save your selection in two ways:   ')
-    cmds.text('      As a set (creates a set containing selection   ')
-    cmds.text('      As text (creates a txt file containing  the code   ')
-    cmds.text('      necessary to recreate selection (as well as a list)   ')
-    cmds.text(' ')
-    cmds.text('      Create New Selection : Uses all objects as initial selection  ')
-    cmds.text('      Update Current Selection : Considers only selected objects  ')
-    cmds.text(' ')
-
-    email_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    
-    cmds.text('             Guilherme Trevisan : ')
-    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1], p=email_container)
-    website_container = cmds.rowColumnLayout(p=content_main, numberOfRows=1, h= 25)
-    cmds.text('                      Visit my ')
-    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1], p=website_container)
-    cmds.text(' for updated versions')
-    cmds.text(' ', p= content_main)
-    cmds.separator(h=15, p=content_main)
-    
-    cmds.button(l ="Ok", p= content_main, c=lambda x:close_about_window())
-                                                                                                                              
-    def close_about_window():
-        if cmds.window("build_gui_help_selection_manager", exists =True):
-            cmds.deleteUI("build_gui_help_selection_manager")  
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='This script allows you to update selections', align="left")
+    cmds.text(l='to contain (or not) filtered elements.', align="left")
+    cmds.text(l='You can also save and load previous selections.', align="left")
+    cmds.separator(h=10, style='none') # Empty Space
+    cmds.text(l='Element Name:', align="left", fn="boldLabelFont")
+    cmds.text(l='This option allows you to check if the string used', align="left")
+    cmds.text(l='for the object name contains or doesn\'t contain the', align="left")
+    cmds.text(l='the provided strings (parameters).', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Element Type:', align="left", fn="boldLabelFont")
+    cmds.text(l='This filter will check the type of the element to', align="left")
+    cmds.text(l='determine if it should be part of the selection or not.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Element Type > Behavior (Dropdown Menu):', align="left", fn="boldLabelFont")
+    cmds.text(l='Since most elements are transforms, you can use the', align="left")
+    cmds.text(l='dropdown menu "Behavior" to determine how to filter', align="left")
+    cmds.text(l='the shape element (usually hidden inside the transform)', align="left")
+    cmds.text(l='(You can consider transform, shape, both or ignore it) ', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Visibility State:', align="left", fn="boldLabelFont")
+    cmds.text(l='Selection based on the current state of the node\'s ', align="left")
+    cmds.text(l='visibility attribute.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Outliner Color (Transform):', align="left", fn="boldLabelFont")
+    cmds.text(l='Filters the option under Node > Display > Outliner Color ', align="left")
+    cmds.text(l='In case you\'re unsure about the exact color, you can use ', align="left")
+    cmds.text(l='the "Get" button to automatically copy a color.', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Store Selection Options: ', align="left", fn="boldLabelFont")
+    cmds.text(l='Select objects and click on "Store Selection" to store', align="left")
+    cmds.text(l='them for later.', align="left")
+    cmds.text(l='Use the "-" and "+" buttons to add or remove elements.', align="left") 
+    cmds.text(l='Use the "Reset" button to clear your selection', align="left")
+    cmds.separator(h=7, style='none') # Empty Space
+    cmds.text(l='You can save your selection in two ways:', align="left")
+    cmds.text(l='As a set (creates a set containing selection', align="left")
+    cmds.text(l='As text (creates a txt file containing  the code', align="left") 
+    cmds.text(l='necessary to recreate selection (as well as a list)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Create New Selection : Uses all objects as initial selection', align="left")
+    cmds.text(l='Update Current Selection : Considers only selected objects', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
         
-    cmds.showWindow(build_gui_help_selection_manager)
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
     
     # Help Dialog Ends Here =================================================================================
-
 
 
 # Start current "Main"
