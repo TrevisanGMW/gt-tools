@@ -1,5 +1,6 @@
 import maya.cmds as cmds
 
+# DEPRECATED
 # GT API - A list of functions that could be useful for other scripts
 # @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-03
 # Last update - 2020-03-03

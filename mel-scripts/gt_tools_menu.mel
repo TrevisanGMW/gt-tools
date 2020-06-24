@@ -14,10 +14,13 @@
 //   Updated help dialog
 //   Added icons
 //
+//   1.4.1 - 2020-06-24
+//	 Added Render Farm Checklist
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4";
+global string $scriptVersion = "1.4.1";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -52,6 +55,12 @@ menuItem -l "Tools" -sm true -to true ;
     -c ("python(\"import gt_tool_transfer_transforms\\ngt_tool_transfer_transforms.build_gui_transfer_transforms()\");") 
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
     -image "transform.svg" ;
+	
+	menuItem 
+    -l ("Render Checklist") 
+    -c ("python(\"import gt_render_checklist\\ngt_render_checklist.build_gui_gt_render_checklist()\");") 
+    -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
+    -image "checkboxOn.png" ;
 	
 
     setParent -menu ".." ;
