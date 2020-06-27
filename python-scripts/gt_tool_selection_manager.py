@@ -13,6 +13,9 @@
  Updated GUI
  Added window icon
  
+ 1.2.1 - 2020-06-25
+ Fixed minor issue with nonunique names when listing shapes
+ 
  To Do:
  Add Selection base on Shader name, Texture, TRS
  Add Apply function to outliner color
@@ -38,7 +41,7 @@ except ImportError:
 script_name = "GT Selection Manager"
 
 # Version:
-script_version = "1.2"
+script_version = "1.2.1"
  
 
 settings = { 'use_contains_string' : False,             # Active Functions
@@ -319,7 +322,7 @@ def build_gui_selection_manager():
                 if cmds.objectType(obj) not in type_list:
                     type_list.append(cmds.objectType(obj))
                 try: # Too handle elements without shapes
-                    shape_node = cmds.listRelatives(obj, shapes=True) or []
+                    shape_node = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 except:
                     pass
                 if shape_node != [] and cmds.objectType(shape_node[0]) not in type_list:
@@ -332,7 +335,7 @@ def build_gui_selection_manager():
                 if cmds.objectType(obj) not in type_list:
                     type_list.append(cmds.objectType(obj))
                 try: # Too handle elements without shapes
-                    shape_node = cmds.listRelatives(obj, shapes=True) or []
+                    shape_node = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 except:
                     pass
                 if shape_node != [] and cmds.objectType(shape_node[0]) not in type_list:
@@ -491,7 +494,7 @@ def manage_selection():
             obj_type = cmds.objectType(obj)
             obj_shape_type = []
             if settings.get('stored_shape_node_type') != 'Ignore Shape Nodes':
-                obj_shape_type_extract = cmds.listRelatives(obj, shapes=True) or []
+                obj_shape_type_extract = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 if len(obj_shape_type_extract) > 0:
                     obj_shape_type = cmds.objectType(obj_shape_type_extract[0])
         

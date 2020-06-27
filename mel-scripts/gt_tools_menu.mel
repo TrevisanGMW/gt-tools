@@ -17,10 +17,13 @@
 //   1.4.1 - 2020-06-24
 //	 Added Render Farm Checklist
 //
+//   1.4.2 - 2020-06-26
+//	 Added Renamer
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.1";
+global string $scriptVersion = "1.4.2";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -38,6 +41,12 @@ setParent -menu gtToolsMenu ;
 
 // -----------------------------------------TOOLS------------------------------------
 menuItem -l "Tools" -sm true -to true ;
+	menuItem 
+    -l ("Renamer") 
+    -c ("python(\"import gt_renamer\\ngt_renamer.build_gui_renamer()\");") 
+    -ann ("Script for renaming multiple objects.") 
+    -image "renamePreset.png" ;
+
     menuItem 
     -l ("Selection Manager") 
     -c ("python(\"import gt_tool_selection_manager\\ngt_tool_selection_manager.build_gui_selection_manager()\");") 
