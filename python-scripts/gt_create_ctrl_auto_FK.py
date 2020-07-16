@@ -18,7 +18,7 @@
  Added radius option
  Added icon
  Fixed offset bug on custom python curve
-
+ 
 """
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
@@ -45,10 +45,10 @@ mimic_hierarchy = True
 constraint_joint = True
 auto_color_ctrls = True
 default_select_hierarchy = True
-default_curve = "cmds.circle(name=joint_name + 'Ctrl', normal=[1,0,0], radius=1.5, ch=False)"
-default_ctrl_tag = "_Ctrl"
-default_ctrl_grp_tag = "_CtrlGrp"
-default_joint_tag = "_Jnt"
+default_curve = "cmds.circle(name=joint_name + 'ctrl', normal=[1,0,0], radius=1.5, ch=False)"
+default_ctrl_tag = "_ctrl"
+default_ctrl_grp_tag = "_ctrlGrp"
+default_joint_tag = "_jnt"
 
 # Custom Curve Dictionary
 settings = { 'using_custom_curve': False, 
@@ -70,10 +70,6 @@ def build_gui_auto_FK():
     
     cmds.window(window_name, e=True, s=True, wh=[1,1])
     
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
     content_main = cmds.columnLayout()
 
     # Title Text
@@ -128,7 +124,7 @@ def build_gui_auto_FK():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text(label='Ignore Joints Containing These Strings:' )
     cmds.rowColumnLayout( nc=1, cw=[(1, 245)], cs=[(1, 5)], p=body_column)
-    undesired_strings_text_field = cmds.textField(text="End, eye", enterCommand=lambda x:generate_FK_controls())
+    undesired_strings_text_field = cmds.textField(text="end, eye", enterCommand=lambda x:generate_FK_controls())
     cmds.rowColumnLayout( nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.text(label='(Use Commas to Separate Strings)' )
     cmds.separator(h=5, style='none') # Empty Space
