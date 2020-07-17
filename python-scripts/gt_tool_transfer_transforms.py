@@ -15,6 +15,7 @@
  Use a dictionary instead of list for attributes.
  Add checks before getting, setting.
  Make get and set use previous settings
+ Extract short name when comparing left/right for nonunique setups
 
 """
 import maya.cmds as cmds

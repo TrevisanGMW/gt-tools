@@ -14,6 +14,9 @@
  Added help menu
  Added icon
  
+ 1.4 - 2020-06-27
+ No longer failing to generate curves with non-unique names
+ 
 """
 
 import maya.cmds as cmds
@@ -106,7 +109,7 @@ def build_gui_py_curve():
         if len(cmds.ls(selection=True)) != 0:
             getcontext().prec = 5
             
-            shape = cmds.listRelatives(cmds.ls(sl=1)[0],s=1)[0]
+            shape = cmds.listRelatives(cmds.ls(sl=1)[0], s=1 , fullPath=True)[0]
             type_checker = str(cmds.objectType(shape))
             
 

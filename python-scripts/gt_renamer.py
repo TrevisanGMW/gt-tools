@@ -2,6 +2,9 @@
  GT Renamer - Script for Quickly Renaming Multiple Objects
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-25
  
+ 1.1 - 2020-07-10
+ Fixed little issue when auto adding suffix to objects with multiple shapes
+ 
 """
 import maya.cmds as cmds
 import traceback
@@ -680,8 +683,9 @@ def rename_add_suffix(obj_list, new_suffix_list):
             if auto_suffix and 'shape' not in cmds.nodeType(obj, inherited=True):
                 object_type = ''
                 object_shape = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+
                 if len(object_shape) > 0:
-                    object_type = cmds.objectType(object_shape)
+                    object_type = cmds.objectType(object_shape[0])
                 else:
                     object_type = cmds.objectType(obj)
                     

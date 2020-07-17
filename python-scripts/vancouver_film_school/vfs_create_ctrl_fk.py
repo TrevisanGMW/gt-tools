@@ -1,7 +1,7 @@
 '''
 Super simple script used to introduce students to the use of python in Maya
 It automatically creates an FK control and stores its transforms in a separated group before parent constraining the joint to it.
-If you're looking for a more complete solution, refer to the script called "createCtrl_autoFK.py"
+If you're looking for a more complete solution, refer to the script called "gt_create_ctrl_auto_FK"
 '''
 
 # 1. Import Maya Commands.
@@ -10,17 +10,17 @@ import maya.cmds as cmds
 # 2. Get my joint.
 my_joint = cmds.ls(selection=True)
 
-# 3. Get my joint name and remove "Jnt" from it.
+# 3. Get my joint name and remove "jnt" from it.
 joint_name = my_joint[0][:-3]
 
 # 4. Create Control.
 # Normal determines the orientation of the control.
 # Radius determines its size.
 # Ch determines if construction history is kept.
-ctrl = cmds.circle(name=joint_name + 'Ctrl', normal=[1,0,0], radius =1, ch=False)
+ctrl = cmds.circle(name=joint_name + 'ctrl', normal=[1,0,0], radius =1, ch=False)
 
 # 5. Create Group
-grp = cmds.group(name=(ctrl[0]+'Grp'))
+grp = cmds.group(name=(ctrl[0]+'grp'))
 
 # 6. Move group. Use parent constraint to match joint's transforms.
 constraint = cmds.parentConstraint(my_joint[0],grp)

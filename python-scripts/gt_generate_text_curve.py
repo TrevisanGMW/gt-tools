@@ -1,4 +1,5 @@
 """
+
  Text Curve Generator -> Simple script used to quickly create text curves
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-09
  
@@ -7,11 +8,11 @@
  Added help menu
  Added icon
  
- To Do:
- Add font/size options
- 
+ 1.2 - 2020-06-27
+ Added font option
  
 """
+
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
 
@@ -30,7 +31,11 @@ except ImportError:
 script_name = "GT - Text Curve Generator"
 
 # Version
-script_version = "1.1";
+script_version = "1.2"
+
+# Font Variables
+default_font = 'MS Shell Dlg 2'
+current_font = { 'current_font' : default_font}
 
 
 # Main Form ============================================================================
@@ -65,6 +70,15 @@ def build_gui_generate_text_curve():
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     
+    
+    cmds.separator(h=7, style='none', p=body_column) # Empty Space
+    
+    cmds.rowColumnLayout(nc=2, cw=[(1, 80),(2, 170)], cs=[(1,0),(2, 0)], p=body_column)
+    cmds.text('Current Font:')
+    font_button = cmds.button(h=17, l=default_font, c=lambda x:change_text_font())
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,0)], p=body_column)
+    
     cmds.separator(h=15, p=body_column)
     cmds.text('Text:',p=body_column)
     desired_text = cmds.textField(p = body_column, text="hello, world", enterCommand=lambda x:generate_text_curve())
@@ -82,16 +96,24 @@ def build_gui_generate_text_curve():
     icon = QIcon(':/text.png')
     widget.setWindowIcon(icon)
     
-    print(' ')
 
     # Main GUI Ends Here =================================================================================
 
     # Main Function Starts ----------------------
     def generate_text_curve():
         strings = parse_text_field_commas(cmds.textField(desired_text, q=True, text=True))
-        
         for string in strings:
-            create_text(string)
+            create_text(string, current_font.get('current_font'))
+            
+    # Change Font
+    def change_text_font():
+        strings = parse_text_field_commas(cmds.textField(desired_text, q=True, text=True))
+        new_font = cmds.fontDialog()
+        print(new_font)
+        if new_font != '':
+            new_font_short_name = new_font.split('|')[0]
+            current_font['current_font'] = new_font
+            cmds.button(font_button, e=True, label=new_font_short_name)
             
     # Main Function Ends  ----------------------
 
@@ -104,7 +126,7 @@ def build_gui_help_generate_text_curve():
 
     cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1,1])
-
+    
     cmds.columnLayout("main_column", p= window_name)
    
     # Title Text
@@ -123,6 +145,9 @@ def build_gui_help_generate_text_curve():
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='You can create multiple curves by separanting them with', align="left")
     cmds.text(l='commas ",".', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Current Font:', align="left", fn="boldLabelFont")
+    cmds.text(l='Click on the button on its right to change the font.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
@@ -155,7 +180,6 @@ def build_gui_help_generate_text_curve():
 
 
 
-
 # Function to Parse textField data 
 def parse_text_field_commas(text_field_data):
     if len(text_field_data) <= 0:
@@ -171,8 +195,12 @@ def parse_text_field_commas(text_field_data):
         return return_list
 
 # Generate texts
-def create_text(text):
-    cmds.textCurves(ch=0, t=text)
+def create_text(text, font):
+    print(font)
+    if font == '':
+        cmds.textCurves(ch=0, t=text, font=default_font)
+    else:
+        cmds.textCurves(ch=0, t=text, font=font)
     cmds.ungroup()
     cmds.ungroup()
     curves = cmds.ls(sl=True)
@@ -187,6 +215,7 @@ def create_text(text):
     cmds.xform(cp=True)
     cmds.rename(text.lower() + "_crv")
     return cmds.ls(sl=True)[0]
+    print(' ') # Clear Warnings
     
 #Run Script
 build_gui_generate_text_curve()

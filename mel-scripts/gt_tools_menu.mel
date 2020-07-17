@@ -20,10 +20,13 @@
 //   1.4.2 - 2020-06-26
 //	 Added Renamer
 //
+//   1.4.3 - 2020-07-17
+//	 Added Maya to Discord
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.2";
+global string $scriptVersion = "1.4.3";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -71,6 +74,18 @@ menuItem -l "Tools" -sm true -to true ;
     -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
     -image "checkboxOn.png" ;
 	
+    // If icon exists, use it
+    string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
+    if (!`filetest -r $mayaToDiscordIcon`) 
+    { 
+        $mayaToDiscordIcon = "camera.open.svg" ;
+    } 
+
+    menuItem 
+    -l ("Maya to Discord") 
+    -c ("python(\"import gt_maya_to_discord\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
+    -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
+    -image $mayaToDiscordIcon ;
 
     setParent -menu ".." ;
 	
@@ -135,7 +150,6 @@ menuItem -l "Rigging" -sm true -to true ;
     
 // -----------------------------------------ABOUT------------------------------------
 
-
     menuItem -divider true ;
     menuItem -l "Help" -sm true -to true ;
     
@@ -143,6 +157,7 @@ menuItem -l "Rigging" -sm true -to true ;
     menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
     menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/maya-scripts/tree/master/gt_tools/\"; ") -ann ("Check for Update.") -image "RS_import_layer.png" ;
     menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
+
 
 // Creates About Dialog
 global proc aboutMenuDialog(string $scriptVersion)
@@ -190,4 +205,3 @@ global proc aboutMenuDialog(string $scriptVersion)
 
     showWindow aboutMenuDialog;
     }
- 

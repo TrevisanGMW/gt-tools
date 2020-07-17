@@ -12,6 +12,7 @@
     Add checks for simulation cache paths. Maya Fluids, nucleus, bifrost, bullet, MASH
     Add checks for Arnold and Redshift Volume Containers
     Add checks for Standins and Proxies
+    Make settings persistent
     
 """
 import maya.cmds as cmds
@@ -2206,10 +2207,10 @@ def settings_apply_changes(reset_default=False):
                     
 # Used to Export Full Report:
 def export_report_to_txt(list):
-    tempDir = cmds.internalVar(userTmpDir=True)
-    txtFile = tempDir+'tmp.txt';
+    temp_dir = cmds.internalVar(userTmpDir=True)
+    txt_file = temp_dir+'tmp.txt';
     
-    f = open(txtFile,'w')
+    f = open(txt_file,'w')
     
     output_string = script_name + " Full Report:\n"
     
@@ -2219,7 +2220,7 @@ def export_report_to_txt(list):
     f.write(output_string)
     f.close()
 
-    notepadCommand = 'exec("notepad ' + txtFile + '");'
+    notepadCommand = 'exec("notepad ' + txt_file + '");'
     mel.eval(notepadCommand)
 
 # Import Settings

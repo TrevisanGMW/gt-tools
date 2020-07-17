@@ -11,6 +11,10 @@
  Added help menu
  Changed GUI
  
+ TO DO:
+ Add textfields for suffixes
+ Ignore systems without controls?
+ 
 """
 import maya.cmds as cmds
 import maya.mel as mel
@@ -66,7 +70,16 @@ def build_gui_make_stretchy_legs():
     
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
-
+    
+    cmds.text(l='This script creates a simple stretchy leg setup.', align="center")
+    cmds.text(l='Select your ikHandle and click on "Make Stretchy', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Important:', align="center", fn="boldLabelFont")
+    cmds.text(l='It assumes that you have a curve driving your', align="center")
+    cmds.text(l='ikHandle as a control.', align="center")
+    
+    cmds.separator(h=7, style='none') # Empty Space
+    
     cmds.separator(h=5)
     cmds.separator(h=7, style='none') # Empty Space
     
@@ -90,6 +103,7 @@ def build_gui_help_make_stretchy_legs():
     window_name = "build_gui_help_make_stretchy_legs"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
+
 
     cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1,1])
@@ -162,7 +176,7 @@ def make_stretchy_legs():
     distance_one_transform = cmds.listRelatives(distance_one, parent=True)[0]
     distance_one_locators = cmds.listConnections(distance_one)
 
-    #Rename Distance One Nodes
+    # Rename Distance One Nodes
     name_top_locator = (ikHandle_manipulated_joints[0].replace("_IK_", "")).replace("Jnt","") # Change this, use a textbox to query user
     name_bottom_locator = ((ikHandle[0].replace("_IK_","")).replace("_ikHandle","")).replace("RP","")
     name_distance_node = name_bottom_locator
