@@ -14,6 +14,7 @@
     Improve embeds for discord image uploader - Add colors, emojis and more. 
     Add exporting option for objects.
     Add option to deactive threading. (This should affect all send functions)
+    Add option to keep screenshots and playblasts in a selected folder.
   
 """ 
 
@@ -43,6 +44,7 @@ import datetime
 import mimetypes 
 import random 
 import string 
+import copy
 import time
 import os
 from json import dumps
@@ -67,12 +69,14 @@ settings = { 'discord_webhook':'',
              'custom_username' : '',
              'image_format' : 'jpg',
              'video_format' : 'mov', 
-             'video_scale_pct' : 60, 
+             'video_scale_pct' : 40, 
              'video_compression' : 'Animation', 
              'video_output_type' : 'qt',
              'is_new_instance' : True,
              'is_webhook_valid' : False }
-             
+
+# Default Settings (Deep Copy)
+settings_default = copy.deepcopy(settings)   
 
 
 def get_persistent_settings_maya_to_discord():
@@ -463,8 +467,11 @@ def build_gui_maya_to_discord():
                 current_scene_name = cmds.file(q=True, sn=True).split('/')[-1]
                 if current_scene_name == '': # If not saved
                     current_scene_name ='never_saved_untitled_scene'
+                else:
+                    if current_scene_name.endswith('.ma') or current_scene_name.endswith('.mb'):
+                        current_scene_name=current_scene_name[:-3]
 
-                temp_path = generate_temp_file('.' + settings.get('video_format'), file_name=current_scene_name)
+                temp_path = generate_temp_file( settings.get('video_format'), file_name=current_scene_name)
                 temp_playblast_file = capture_playblast_animation(temp_path, settings.get('video_scale_pct'), settings.get('video_compression'), settings.get('video_output_type') )
                 upload_message = get_date_time_message()
                 
@@ -726,27 +733,31 @@ def build_gui_settings_maya_to_discord():
             cmds.menuItem( label='none', p=compression_input )
     
     def reset_settings():
-        ''' Resets fields in the settings (do not affect stored variables or persistent setttings) '''
-        cmds.textField(new_username_input, e=True, text='')
-        cmds.textField(new_image_format_input, e=True, text='jpg')
-        cmds.textField(new_video_format_input, e=True, text='mov')
+        ''' 
+        Resets fields in the settings (do not affect stored variables or persistent setttings)
+        It uses a deep copy of the settings dictionary to reset it.
+        '''
+        
+        cmds.textField(new_username_input, e=True, text=settings_default.get('custom_username'))
+        cmds.textField(new_image_format_input, e=True, text=settings_default.get('image_format'))
+        cmds.textField(new_video_format_input, e=True, text=settings_default.get('video_format') )
         
         for idx,obj in enumerate(cmds.optionMenu(output_type_input,q=True, itemListLong=True)):
-            if cmds.menuItem( obj , q=True, label=True ) == 'qt':
+            if cmds.menuItem( obj , q=True, label=True ) == settings_default.get('video_output_type'):
                 cmds.optionMenu(output_type_input, e=True, select=idx+1)
         
         update_available_compressions()
     
         found_default = False
         for idx,obj in enumerate(cmds.optionMenu(compression_input, q=True, itemListLong=True)):
-            if cmds.menuItem( obj , q=True, label=True ) == 'Animation':
+            if cmds.menuItem( obj , q=True, label=True ) == settings_default.get('video_compression'):
                 cmds.optionMenu(compression_input, e=True, select=idx+1)
                 found_default = True
         
         if not found_default:
             cmds.menuItem( label='none', p=compression_input )
             
-        cmds.intSliderGrp(video_scale_input, e=True, value=60)
+        cmds.intSliderGrp(video_scale_input, e=True, value=settings_default.get('video_scale_pct'))
                 
         
     def apply_settings():
@@ -986,7 +997,8 @@ def discord_post_attachment(username, message, file_path, webhook_url):
     
 def capture_playblast_animation(video_file, scale_pct, compression, video_format): 
     ''' 
-    Records a playblast and returns its path
+    Records a playblast and returns its path.
+    It also prints the size of the file to the active viewport as a heads up message (cmds.headsUpMessage).
             
             Parameters:
                 video_file (str): A path for the file that will be generated (playblast file)
@@ -999,8 +1011,21 @@ def capture_playblast_animation(video_file, scale_pct, compression, video_format
     '''
          
     playblast = cmds.playblast( p=scale_pct, f=video_file, compression=compression, format=video_format ,forceOverwrite=True, v=False)
+    file_size = os.path.getsize(playblast)
+    active_viewport_height = omui.M3dView.active3dView().portHeight()
+    cmds.headsUpMessage( 'Playblast File Size: ' + str(round(file_size / (1024 * 1024), 3)) + ' Megabytes. (More information in the script editor)', verticalOffset=active_viewport_height*-0.45 , time=5.0)
+    print('#' * 80)
+    print('Recorded Playblast:')
+    print('Video Scale: ' + str(scale_pct) + '%')
+    print('Compression: ' + compression)
+    print('OutputType: ' + video_format)
+    print('File path: ' + playblast)
+    print('File size in bytes: ' + str(file_size))
+    print('File size in megabytes: ' + str(round(file_size / (1024 * 1024), 3)))
+    print('#' * 80)
     return playblast
-    
+
+
 def get_available_playblast_compressions(format):
         return mel.eval('playblast -format "{0}" -q -compression;'.format(format))
 
