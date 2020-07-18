@@ -46,6 +46,7 @@ import string
 import time
 import os
 from json import dumps
+from json import loads
 from httplib2 import Http
 
 
@@ -1018,7 +1019,8 @@ def update_discord_webhook_validity(webhook_url):
 
         success_codes = [200, 201, 202, 203, 204, 205, 206]
         if response.status in success_codes: 
-            response_content_dict = eval(content)
+            #response_content_dict = eval(content)
+            response_content_dict = loads(content)
             response_content_dict.get('name')
             settings['is_new_instance'] = False
             settings['is_webhook_valid'] = True 
@@ -1041,13 +1043,11 @@ def discord_get_webhook_name(webhook_url):
                 name (str): The name of the webhook (or error string, if operation failed)
     '''
     try: 
-
         http_obj = Http()
         response, content = http_obj.request(webhook_url)
-
         success_codes = [200, 201, 202, 203, 204, 205, 206]
         if response.status in success_codes: 
-            response_content_dict = eval(content)
+            response_content_dict = loads(content) 
             return response_content_dict.get('name')
         else:
             return 'Error reading webhook response'
