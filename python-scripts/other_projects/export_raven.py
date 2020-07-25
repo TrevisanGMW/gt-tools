@@ -2,8 +2,8 @@ import maya.cmds as cmds
 import maya.mel as mel
 
 # Simple Script used to export the Blue Heron Rig
-scriptVersion = "2.0"
-rigVersion = "Made for \"Raven_Rig.007\""
+scriptVersion = "3.0"
+rigVersion = "Made for \"Raven_Rig.008\""
 
 def ravenDialog():
     if cmds.window("ravenDialog", exists =True):
@@ -62,6 +62,8 @@ def prepareScene():
     
     if usingProxy:
         cmds.parent( 'raven_lo', world=True )
+        cmds.delete('tail_feathers_primary_mid_grp')
+        cmds.delete('wing_feathers_primary_mid_grp')
     else:
         cmds.parent( 'raven_mid', world=True )
     
