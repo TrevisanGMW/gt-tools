@@ -23,10 +23,14 @@
 //   1.4.3 - 2020-07-17
 //	 Added Maya to Discord
 //
+//   1.4.4 - 2020-07-25
+//	 Updated Render Farm Checklist
+//   Added new category
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.3";
+global string $scriptVersion = "1.4.4";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -74,19 +78,7 @@ menuItem -l "Tools" -sm true -to true ;
     -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
     -image "checkboxOn.png" ;
 	
-    // If icon exists, use it
-    string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
-    if (!`filetest -r $mayaToDiscordIcon`) 
-    { 
-        $mayaToDiscordIcon = "camera.open.svg" ;
-    } 
-
-    menuItem 
-    -l ("Maya to Discord") 
-    -c ("python(\"import gt_maya_to_discord\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
-    -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
-    -image $mayaToDiscordIcon ;
-
+    
     setParent -menu ".." ;
 	
 	
@@ -147,7 +139,27 @@ menuItem -l "Rigging" -sm true -to true ;
     -image "ikSCsolver.svg" ;
     
     setParent -menu ".." ;
+
+
+// -----------------------------------------MISCELLANEOUS------------------------------------
+
+menuItem -l "Miscellaneous" -sm true -to true ;
     
+    // If icon exists, use it
+    string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
+    if (!`filetest -r $mayaToDiscordIcon`) 
+    { 
+        $mayaToDiscordIcon = "camera.open.svg" ;
+    } 
+
+    menuItem 
+    -l ("Maya to Discord") 
+    -c ("python(\"import gt_maya_to_discord\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
+    -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
+    -image $mayaToDiscordIcon ;
+
+    setParent -menu ".." ;
+
 // -----------------------------------------ABOUT------------------------------------
 
     menuItem -divider true ;
