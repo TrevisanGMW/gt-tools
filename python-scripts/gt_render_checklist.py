@@ -1,18 +1,22 @@
 """
 
- GT Render Checklist
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-11
+ GT Render Checklist - Check your Maya scene before submitting to a render farm or simply batch rendering.
+ @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-11 - github.com/TrevisanGMW
+ Tested on Maya 2019, 2020 - Windows 10
  
  When creating a new checklist, change these items:
     script_name - variable content
     build_gui_gt_render_checklist() - name of the function
     build_gui_help_gt_render_checklist() - name of the function
+    
+ 1.1 - 2020-07-25
+    User no longer needs to remove slashes from custom path. Script manages it.
+    Settings are now persistent. (You can reset them in the help menu)
+    New function added: "Other Network Paths" checks for paths for the following nodes
+        Audio Nodes, Mash Audio Nodes, nCache Nodes, Maya Fluid Cache Nodes,Arnold Volumes/Standins/Lights,Redshift Proxy/Volume/Normal/Lights,Alembic/BIF/GPU Cache,Golaem Common and Cache Nodes
 
- To Do:
-    Add checks for simulation cache paths. Maya Fluids, nucleus, bifrost, bullet, MASH
-    Add checks for Arnold and Redshift Volume Containers
-    Add checks for Standins and Proxies
-    Make settings persistent
+ Todo:
+    Add checks for xgen
     
 """
 import maya.cmds as cmds
@@ -36,7 +40,7 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.0";
+script_version = "1.1";
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
@@ -66,7 +70,8 @@ checklist_items = { 0 : ["Frame Rate", "film"],
                    17 : ["Frozen Transforms", 0],
                    18 : ["Animated Visibility", 0],
                    19 : ["Non Deformer History", 0 ],
-                   20 : ["Textures Color Space", 0 ]
+                   20 : ["Textures Color Space", 0 ],
+                   21 : ["Other Network Paths", ["vfsstorage10"] ] 
                   }
 
 # Store Default Values for Reseting
@@ -78,6 +83,48 @@ checklist_settings = { "is_settings_visible" : False,
                        "checklist_buttons_height" : 0,
                        "settings_text_fields" : []
                      }
+
+
+def get_persistent_settings_render_checklist():
+    ''' 
+    Checks if persistant settings for GT Render Checklist exists and transfer them to the settings dictionary.
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    '''
+    # Check if there is anything stored
+    stored_setup_exists = cmds.optionVar(exists=("gt_render_checklist_setup"))
+    
+    if stored_setup_exists:
+        stored_checklist_items = {}
+        try:
+            stored_checklist_items = eval(str(cmds.optionVar(q=("gt_render_checklist_setup"))))
+            for stored_item in stored_checklist_items:
+                for item in checklist_items:
+                    if stored_item == item:
+                        checklist_items[item][1] = stored_checklist_items.get(stored_item)[1]
+        except:
+            print('Couldn\'t load persistent settings, try resetting it in the help menu.')
+            
+
+
+def set_persistent_settings_render_checklist():
+    ''' 
+    Stores persistant settings for GT Render Checklist.
+    It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    '''
+    cmds.optionVar( sv=('gt_render_checklist_setup', str(checklist_items)))
+    
+
+
+def reset_persistent_settings_render_checklist():
+    ''' Resets persistant settings for GT Render Checklist '''
+    cmds.optionVar( remove='gt_render_checklist_setup' )
+    get_persistent_settings_render_checklist()
+    build_gui_gt_render_checklist()
+    build_gui_help_gt_render_checklist()
+    cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
+    
+
 
 # Build GUI - Main Function ==================================================================================
 def build_gui_gt_render_checklist():
@@ -121,7 +168,7 @@ def build_gui_gt_render_checklist():
 
     # Settings : 
     font_size ='smallPlainLabelFont'
-    items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11] # Allow user to update expected values
+    items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 21] # Allow user to update expected values
     items_with_warnings = [3, 7, 8, 9, 10, 11] # Allow users to update warning values too
     def create_settings_items(items, items_for_settings, items_with_warnings):
         for item in items:
@@ -232,7 +279,7 @@ def build_gui_gt_render_checklist():
             cmds.rowColumnLayout(settings_buttons, e=True, h=1)
             cmds.button(settings_btn, e=True, l='Settings', bgc=(0, .5, 0))
             settings_apply_changes()
-            
+            set_persistent_settings_render_checklist()          
 
 
     # Lock Window
@@ -275,6 +322,7 @@ def checklist_refresh():
     check_animated_visibility()
     check_non_deformer_history()
     check_textures_color_space()
+    check_other_network_paths()
     
     # Clear Selection
     cmds.selectMode( object=True )
@@ -310,6 +358,7 @@ def checklist_generate_report():
     report_strings.append(check_animated_visibility())
     report_strings.append(check_non_deformer_history())
     report_strings.append(check_textures_color_space())
+    report_strings.append(check_other_network_paths())
     
     # Clear Selection
     cmds.selectMode( object=True )
@@ -377,6 +426,7 @@ def build_gui_help_gt_render_checklist():
     # Checklist Items =============
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
     cmds.text(l='Checklist Items:', align="left", fn="boldLabelFont") 
+    cmds.text(l='This list uses the current settings to show what it expects to find:', align="left", fn="smallPlainLabelFont") 
     cmds.separator(h=checklist_spacing, style='none') # Empty Space
    
     # Create Help List: 
@@ -384,80 +434,54 @@ def build_gui_help_gt_render_checklist():
     items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11] # Allow user to update expected values
     items_with_warnings = [3, 7, 8, 9, 10, 11] # Allow users to update warning values too
     
-      
-    cmds.text(l='- ' + checklist_items.get(0)[0] +': error if not: ' + str(checklist_items.get(0)[1]), align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
+    checklist_items_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
+ 
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(0)[0] +': returns error if not matching: "' + str(checklist_items.get(0)[1]) + '".\n     Examples of custom values:\n     "film" (24fps),\n     "23.976fps",\n     "ntsc" (30fps),\n     "ntscf" (60fps),\n     "29.97fps"' + '\n\n')
+  
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(1)[0] +': returns error if not matching: "' + str(checklist_items.get(1)[1]) + '".\n     Examples of custom values:\n     "mm" (milimeter),\n     "cm" (centimeter),\n     "m" (meter)' + '\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(2)[0] +': returns error if not: ' + str(checklist_items.get(2)[1])+ '.\n     Please use a comma "," for entering a custom value.\n     Examples of custom values:\n     "1280, 720" (720p),\n     "1920, 1080" (1080p),\n     "2560, 1440" (1440p),\n     "3840, 2160" (4K),\n     "7680, 4320" (8K)\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(3)[0] +': error if more than ' + str(checklist_items.get(3)[1][1]) +  '\n     warning if more than ' + str(checklist_items.get(3)[1][0])+ '.\n    (UDIM tiles are counted as individual textures)\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(4)[0] +': must start with ' + str(checklist_items.get(4)[1])+ '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n\n')
+ 
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(5)[0] +': must start with ' + str(checklist_items.get(5)[1])+ '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n\n')    
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(6)[0] +': returns error if common objects are\n     found outside hierarchies' + '\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(7)[0] +': : error if more than ' + str(checklist_items.get(7)[1][1]) + '\n     warning if more than: ' + str(checklist_items.get(7)[1][0]) + '.' + '\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(8)[0] +': error if more than ' + str(checklist_items.get(8)[1][1])  + '\n     warning if more than ' + str(checklist_items.get(8)[1][0]) + '\n\n')   
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(9)[0] +': error if more than ' + str(checklist_items.get(9)[1][1]) + '\n     warning if more than ' + str(checklist_items.get(9)[1][0]) + '.' + '\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(10)[0] +': error if more than ' + str(checklist_items.get(10)[1][1]) + '\n     warning if more than ' + str(checklist_items.get(10)[1][0]) + '.' + '\n\n')
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(11)[0] +': error if more than ' + str(checklist_items.get(11)[1][1]) + '\n     warning if more than ' + str(checklist_items.get(11)[1][0]) + '.' + '\n\n')   
+ 
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(12)[0] +': error if using default names.' + '\n  warning if containing default names.\n    Examples of default names:\n      "pCube1" = Error\n      "pointLight1" = Error\n      "nurbsPlane1" = Error\n      "my_pCube" = Warning\n\n')  
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(13)[0] +': error if anything is assigned.\n\n') 
+        
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(14)[0] +': error if any ngons found.\n     A polygon that is made up of five or more vertices. \n     Anything over a quad (4 sides) is considered an ngon\n\n') 
+         
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(15)[0] +': error if is found.\n    A non-manifold geometry is a 3D shape that cannot be\n    unfolded into a 2D surface with all its normals pointing\n    the same direction.\n    For example, objects with faces inside of it.\n\n')
+     
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(16)[0] +': error if multiples UV Sets and Empty UV Sets.\n     It ignores objects without UVs if they have only one UV Set.\n\n')
     
-    cmds.text(l='- ' + checklist_items.get(1)[0] +': error if not: ' + str(checklist_items.get(1)[1]), align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(17)[0] +': error if rotation(XYZ) not frozen.' + '\n     It doesn\'t check objects with incoming connections,\n     for example, animations or rigs.' + '\n\n')
+     
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(18)[0] +': error if animated visibility is found' + '\n     warning if hidden object is found.' + '\n\n') 
     
-    cmds.text(l='- ' + checklist_items.get(2)[0] +': error if not: ' + str(checklist_items.get(2)[1]), align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(19)[0] +': error if any non-deformer history found.' + '\n\n') 
+   
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(20)[0] +': error if incorrect color space found.' + '\n     It only checks commonly used nodes for Redshift and Arnold\n     Generally "sRGB" -> float3(color), and "Raw" -> float(value).\n\n')
     
-    cmds.text(l='- ' + checklist_items.get(3)[0] +': error if more than ' + str(checklist_items.get(3)[1][1]) +  ' warning if more than ' + str(checklist_items.get(3)[1][0]), align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(4)[0] +': must start with ' + str(checklist_items.get(4)[1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  (This function ignore slashes. You may use lists as custom value)', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(5)[0] +': must start with ' + str(checklist_items.get(5)[1]) + '', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  (This function ignore slashes. You may use lists as custom value)', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(6)[0] +': No common objects outside hierarchies', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(7)[0] +': : error if more than ' + str(checklist_items.get(7)[1][1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if more than: ' + str(checklist_items.get(7)[1][0]) + '.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(8)[0] +': error if more than ' + str(checklist_items.get(8)[1][1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if more than ' + str(checklist_items.get(8)[1][0]) + '.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(9)[0] +': error if more than ' + str(checklist_items.get(9)[1][1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if more than ' + str(checklist_items.get(9)[1][0]) + '.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(10)[0] +': error if more than ' + str(checklist_items.get(10)[1][1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if more than ' + str(checklist_items.get(10)[1][0]) + '.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(11)[0] +': error if more than ' + str(checklist_items.get(11)[1][1]), align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if more than ' + str(checklist_items.get(11)[1][0]) + '.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(12)[0] +': error if using default names.', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if containing default names. (e.g. "my_pCube")', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(13)[0] +': error if anything is assigned.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(14)[0] +': error if any ngons found.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(15)[0] +': error if any non-manifold issue found.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(16)[0] +': error if multiples UV Sets and Empty UV Sets.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(17)[0] +': error if rotation(XYZ) not frozen.', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  (doesn\'t check objects with incoming connections, animations)', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(18)[0] +': error if animated visibility is found', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  warning if hidden object is found.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(19)[0] +': error if any non-deformer history found.', align="left", fn="smallPlainLabelFont")
-    cmds.separator(h=checklist_spacing, style='none') # Empty Space
-    
-    cmds.text(l='- ' + checklist_items.get(20)[0] +': error if incorrect color space found.', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  (It only checks commonly used nodes for Redshift and Arnold)', align="left", fn="smallPlainLabelFont")
-    cmds.text(l='  generally "sRGB" -> float3(color), and "Raw" -> float(value)', align="left", fn="smallPlainLabelFont")
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(21)[0] +': must start with ' + str(checklist_items.get(21)[1]) + '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n   This function checks:\n     Audio Nodes, \n     Mash Audio Nodes,\n     nCache Nodes,\n     Maya Fluid Cache Nodes,\n     Arnold Volumes/Standins/Lights,\n     Redshift Proxy/Volume/Normal/Lights,\n     Alembic/BIF/GPU Cache,\n     Golaem Common and Cache Nodes' + '\n') 
+
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+
     cmds.separator(h=checklist_spacing, style='none') # Empty Space
    
     cmds.separator(h=7, style='none') # Empty Space
@@ -478,6 +502,8 @@ def build_gui_help_gt_render_checklist():
     # Close Button 
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
     cmds.separator(h=10, style='none')
+    cmds.button(l='Reset Persistent Settings', h=30, c=lambda args: reset_persistent_settings_render_checklist())
+    cmds.separator(h=5, style='none')
     cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
     cmds.separator(h=8, style='none')
     
@@ -737,9 +763,7 @@ def check_network_file_paths():
         if file_path != '':
             file_path_no_slashes = file_path.replace('/','').replace('\\','')
             for valid_path in expected_value:
-                if file_path_no_slashes.startswith(valid_path):
-                    pass
-                else:
+                if not file_path_no_slashes.startswith(valid_path.replace('/','').replace('\\','')):
                     incorrect_file_nodes.append(file)
         else:
             incorrect_file_nodes.append(file)
@@ -791,17 +815,18 @@ def check_network_reference_paths():
     
     # Count Incorrect Reference Nodes
     reference_list = cmds.ls(rf = True)
-    for ref in reference_list:
-        ref_path = cmds.referenceQuery(ref, filename = True)
-        if ref_path != '':
-            ref_path_no_slashes = ref_path.replace('/','').replace('\\','')
-            for valid_path in expected_value:
-                if ref_path_no_slashes.startswith(valid_path):
-                    pass
-                else:
-                    incorrect_reference_nodes.append(ref)
-        else:
-            incorrect_reference_nodes.append(ref)
+    try:
+        for ref in reference_list:
+            ref_path = cmds.referenceQuery(ref, filename = True)
+            if ref_path != '':
+                ref_path_no_slashes = ref_path.replace('/','').replace('\\','')
+                for valid_path in expected_value:
+                    if not ref_path_no_slashes.startswith(valid_path.replace('/','').replace('\\','')):
+                        incorrect_reference_nodes.append(ref)
+            else:
+                incorrect_reference_nodes.append(ref)
+    except:
+        print('One of your references is not associated with a reference file!')
 
     
     if len(incorrect_reference_nodes) == 0:
@@ -1205,7 +1230,6 @@ def check_ai_shadow_casting_light_count():
     if isinstance(expected_value, int) == False or isinstance(inbetween_value, int) == False:
         custom_settings_failed = True
     
-    
     ai_physical_type = "aiAreaLight" # Used to check if Arnold is loaded
     
     node_types = cmds.ls(nodeTypes=True)
@@ -1564,7 +1588,7 @@ def check_empty_uv_sets():
     all_geo = cmds.ls(type='mesh')
     
     for obj in all_geo:
-        all_uv_sets = cmds.polyUVSet(obj, q=True, allUVSets=True)
+        all_uv_sets = cmds.polyUVSet(obj, q=True, allUVSets=True) or []
         if len(all_uv_sets) > 1:
             for uv_set in all_uv_sets:
                 uv_count = cmds.polyEvaluate(obj, uv=True, uvs=uv_set)
@@ -2115,12 +2139,144 @@ def check_textures_color_space():
     return '\n*** ' + item_name + " ***\n" + string_status
 
     
+    
+# Item 21 - Network Paths (Miscellaneous) - Other Network Paths =========================================================================
+def check_other_network_paths():
+    item_name = checklist_items.get(21)[0]
+    item_id = item_name.lower().replace(" ","_").replace("-","_")
+    expected_value = checklist_items.get(21)[1]
+    incorrect_path_nodes = []
+    
+    def check_paths(node_type, path_attribute_name, accepts_empty=False, checks_multiple_paths=False, multiple_paths_spliter=';'):
+        try:
+            all_provided_type_nodes = cmds.ls(type=node_type) or []
+            for node in all_provided_type_nodes:
+                file_path = cmds.getAttr(node + "." + path_attribute_name) or ''
+                
+                if checks_multiple_paths:
+                    file_path = file_path.split[multiple_paths_spliter]
+                    for one_path in file_path:
+                        if one_path != '':
+                            file_path_no_slashes = one_path.replace('/','').replace('\\','')
+                            for valid_path in expected_value:
+                                if not file_path_no_slashes.startswith(valid_path.replace('/','').replace('\\','')):
+                                    incorrect_path_nodes.append([node, node_type])
+                        else:
+                            if not accepts_empty:
+                                incorrect_path_nodes.append([node, node_type])
+                else:
+                    if file_path != '':
+                        file_path_no_slashes = file_path.replace('/','').replace('\\','')
+                        for valid_path in expected_value:
+                            if not file_path_no_slashes.startswith(valid_path.replace('/','').replace('\\','')):
+                                incorrect_path_nodes.append([node, node_type])
+                    else:
+                        if not accepts_empty:
+                            incorrect_path_nodes.append([node, node_type])
+        except:
+            print('Something went wrong when checking the attribute "' + path_attribute_name + '" in the nodes of type "' + str(node_type) + '".')
+
+            
+    node_types = cmds.ls(nodeTypes=True)
+    
+    
+    # Count Nodes Incorrect  with Incorrect Paths
+
+    # General Checks
+    check_paths('audio', 'filename')
+    check_paths('cacheFile', 'cachePath')
+    check_paths('AlembicNode', 'abc_File')
+    check_paths('BifMeshImportNode', 'bifMeshDirectory')
+    check_paths('gpuCache', 'cacheFileName')
+    
+    # MASH Checks
+    if 'MASH_Audio' in node_types:
+        check_paths('MASH_Audio', 'filename')
+    
+    # Arnold Checks
+    if 'aiAreaLight' in node_types:
+        check_paths('aiStandIn', 'dso')
+        check_paths('aiVolume', 'filename')
+        check_paths('aiPhotometricLight', 'aiFilename')
+    
+    # Redshift Checks
+    if 'RedshiftPhysicalLight' in node_types:
+        check_paths('RedshiftProxyMesh', 'fileName')
+        check_paths('RedshiftVolumeShape', 'fileName')
+        check_paths('RedshiftNormalMap', 'tex0')
+        check_paths('RedshiftDomeLight', 'tex0')
+        check_paths('RedshiftIESLight', 'profile')
+    
+    # Golaem Checks
+    if 'CrowdEntityTypeNode' in node_types:
+        check_paths('SimulationCacheProxyManager', 'destinationTerrainFile', accepts_empty=True)
+        check_paths('SimulationCacheProxyManager', 'skinningShaderFile', accepts_empty=True)
+        check_paths('CrowdEntityTypeNode', 'characterFile', accepts_empty=True)
+        check_paths('CharacterMakerLocator', 'currentFile', accepts_empty=True)
+        check_paths('TerrainLocator', 'navMeshFile', accepts_empty=True)
+        check_paths('SimulationCacheProxy', 'inputCacheDir', accepts_empty=True)
+        # Multiple Files
+        check_paths('SimulationCacheProxy', 'characterFiles', accepts_empty=True, checks_multiple_paths=True)
+        check_paths('CrowdManagerNode', 'characterFiles', accepts_empty=True, checks_multiple_paths=True)
+    
+
+
+    if len(incorrect_path_nodes) == 0:
+        cmds.button("status_" + item_id, e=True, bgc=pass_color, l= '', c=lambda args: print_message('All file nodes currently sourced from the network.')) 
+        issues_found = 0
+    else: 
+        cmds.button("status_" + item_id, e=True, bgc=error_color, l= '?', c=lambda args: warning_other_network_paths())
+        issues_found = len(incorrect_path_nodes)
+        
+    cmds.text("output_" + item_id, e=True, l=len(incorrect_path_nodes) )
+    
+    # Manage Message
+    string_message = ' paths aren\'t'
+    if len(incorrect_path_nodes) == 1:
+        string_message = ' path isn\'t'
+    
+    # Patch Function ----------------------
+    def warning_other_network_paths():
+        user_input = cmds.confirmDialog(
+                    title=item_name,
+                    message=str(len(incorrect_path_nodes)) + string_message + ' pointing to the network drive. \nPlease change it to a network location. \n\n(Too see a list of nodes, generate a full report)',
+                    button=['OK','Select Nodes', 'Ignore Issue'],
+                    defaultButton='OK',
+                    cancelButton='Ignore Issue',
+                    dismissString='Ignore Issue', 
+                    icon="warning")
+
+        if user_input == 'Select Nodes':
+            try:
+                only_nodes = []
+                for bad_node in incorrect_path_nodes:
+                    only_nodes.append(bad_node[0])
+                cmds.select(only_nodes)
+            except:
+                cmds.warning('Sorry, something went wrong when selecting the nodes.')
+        else:
+            cmds.button("status_" + item_id, e=True, l= '')
+    
+    
+    # Return string for report ------------
+    issue_string = "issues"
+    if issues_found == 1:
+        issue_string = "issue"
+    if issues_found > 0:
+        string_status = str(issues_found) + ' ' + issue_string + ' found.\n'
+        for bad_node in incorrect_path_nodes: 
+            string_status = string_status + '"' + bad_node[0] +  '" of the type "'+ bad_node[1] + '" isn\'t pointing to the the network drive. Your paths should be sourced from the network.\n'
+    else: 
+        string_status = str(issues_found) + ' issues found. All paths were sourced from the network'
+    return '\n*** ' + item_name + " ***\n" + string_status
+    
+    
+    
+    
 # Checklist Functions End Here ===================================================================
 
 
 def print_message(message, as_warning=False, as_heads_up_message=False):
-    
-
     if as_warning:
         cmds.warning(message)
     elif as_heads_up_message:
@@ -2182,7 +2338,7 @@ def settings_apply_changes(reset_default=False):
         if 'settings_list_error_' in item:
             item_id = item.replace('settings_list_error_', '')
             return_list = []
-            value_as_list = stored_value.replace(' ','').split(',')
+            value_as_list = stored_value.split(',')
             # Convert to number if possible
             for obj in value_as_list:
                 if obj.isdigit():
@@ -2291,4 +2447,5 @@ def settings_export_state():
 
 
 #Build GUI
+get_persistent_settings_render_checklist()
 build_gui_gt_render_checklist()
