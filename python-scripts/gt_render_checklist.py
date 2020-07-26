@@ -13,7 +13,9 @@
     User no longer needs to remove slashes from custom path. Script manages it.
     Settings are now persistent. (You can reset them in the help menu)
     New function added: "Other Network Paths" checks for paths for the following nodes
-        Audio Nodes, Mash Audio Nodes, nCache Nodes, Maya Fluid Cache Nodes,Arnold Volumes/Standins/Lights,Redshift Proxy/Volume/Normal/Lights,Alembic/BIF/GPU Cache,Golaem Common and Cache Nodes
+        Audio Nodes, Mash Audio Nodes, nCache Nodes,Maya Fluid Cache Nodes,
+        Arnold Volumes/Standins/Lights, Redshift Proxy/Volume/Normal/Lights,
+        Alembic/BIF/GPU Cache,Golaem Common and Cache Nodes
 
  Todo:
     Add checks for xgen
