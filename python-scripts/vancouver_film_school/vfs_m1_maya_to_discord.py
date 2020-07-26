@@ -40,7 +40,7 @@ from httplib2 import Http
 
 
 # Forced Webhook
-hard_coded_webhook = 'https://discordapp.com/api/webhooks/734789179044790322/fvOuKv1FE2kFTU1ia7otyJUhhZKSvHgMkAuoULZ3RsPXwqImCWkIK9JYL0CLsP_B_Vm8'
+hard_coded_webhook = 'https://discordapp.com/XXXX'
 hard_coded_webhook_name = '3D147 - Q&A'
 
 # Script Name
