@@ -334,4 +334,5 @@ def loader_existance_check(obj):
 
 
 #Build GUI
-build_gui_mirror_cluster_tool()
+if __name__ == '__main__':
+    build_gui_mirror_cluster_tool()

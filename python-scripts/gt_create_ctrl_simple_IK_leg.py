@@ -868,5 +868,6 @@ def parse_text_field(text_field_data):
         return return_list
 
 
-# Start current "Main"
-build_gui_simple_ik_leg()
+# Build UI
+if __name__ == '__main__':
+    build_gui_simple_ik_leg()

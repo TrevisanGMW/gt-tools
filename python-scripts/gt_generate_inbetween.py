@@ -248,4 +248,5 @@ def parse_text_field(text_field_data):
         return return_list
 
 #Run Script
-build_gui_generate_inbetween()
+if __name__ == '__main__':
+    build_gui_generate_inbetween()

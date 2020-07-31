@@ -269,4 +269,5 @@ def search_replace_reference_path(search,replace):
 
 
 #Run Script
-build_gui_replace_reference_paths()
+if __name__ == '__main__':
+    build_gui_replace_reference_paths()

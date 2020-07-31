@@ -708,5 +708,6 @@ def export_to_txt(header_string, list):
     mel.eval(notepadCommand)
   
 
-# Start current "Main"
-build_gui_connect_attributes()
+# Build UI
+if __name__ == '__main__':
+    build_gui_connect_attributes()

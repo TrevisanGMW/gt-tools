@@ -217,5 +217,6 @@ def create_text(text, font):
     return cmds.ls(sl=True)[0]
     print(' ') # Clear Warnings
     
-#Run Script
-build_gui_generate_text_curve()
+#Build UI
+if __name__ == '__main__':
+    build_gui_generate_text_curve()

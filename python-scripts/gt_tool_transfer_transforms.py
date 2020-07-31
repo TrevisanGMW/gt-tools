@@ -438,5 +438,6 @@ def parse_text_field(textFieldData):
         return return_list
     
 
-#Start current "Main"
-build_gui_transfer_transforms()
+# Build UI
+if __name__ == '__main__':
+    build_gui_transfer_transforms()

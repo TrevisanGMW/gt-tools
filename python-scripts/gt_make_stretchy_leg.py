@@ -238,5 +238,6 @@ def make_stretchy_legs():
         pass
 
 
-#Run Script
-build_gui_make_stretchy_legs()
+#Build UI
+if __name__ == '__main__':
+    build_gui_make_stretchy_legs()

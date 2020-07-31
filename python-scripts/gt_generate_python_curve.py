@@ -231,5 +231,6 @@ def build_gui_help_py_curve():
             cmds.deleteUI(window_name, window=True)
 
 
-#Start current "Main"
-build_gui_py_curve()
+#Build UI
+if __name__ == '__main__':
+    build_gui_py_curve()

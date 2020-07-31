@@ -792,5 +792,6 @@ def build_gui_help_selection_manager():
     # Help Dialog Ends Here =================================================================================
 
 
-# Start current "Main"
-build_gui_selection_manager()
+# Build UI
+if __name__ == '__main__':
+    build_gui_selection_manager()

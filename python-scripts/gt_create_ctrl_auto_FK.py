@@ -359,5 +359,6 @@ def create_custom_curve(input):
         settings["failed_to_build_curve"] = True
         
 
-#Start current "Main"
-build_gui_auto_FK()
+#Build UI
+if __name__ == '__main__':
+    build_gui_auto_FK()

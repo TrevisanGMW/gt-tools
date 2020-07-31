@@ -1083,4 +1083,5 @@ def discord_get_webhook_name(webhook_url):
 
 #Get Settings & Build GUI
 get_persistent_settings_maya_to_discord()
-build_gui_maya_to_discord()
+if __name__ == '__main__':
+    build_gui_maya_to_discord()
