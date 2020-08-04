@@ -2,12 +2,19 @@
  GT Renamer - Script for Quickly Renaming Multiple Objects
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-25
  
- 1.1 - 2020-07-30
- Fixed little issue when auto adding suffix to objects with multiple shapes
- Added persistent settings
+ 1.1 - 2020-08-03
+ Fixed little issue when auto adding suffix to objects with multiple shapes.
+ Added persistent settings.
+ Fixed "all" option, so functions handles errors when trying to rename readOnly nodes.
+ Added list of nodes to ignore.
+ Fixed issue where auto prefix would sometimes raise an error when getting position using xform.
  
  Todo:
-    Fix "all" option, so it doesn't easily return errors.
+    Consider adding more types to auto suffix.
+    Add more planes to the auto prefix option.
+    Add alphabetize option (already started; function at the bottom) .
+    Test with more complex scenes using the "all" option.
+    Update help menu.
  
 """
 import maya.cmds as cmds
@@ -44,9 +51,18 @@ gt_renamer_settings = { 'transform_suffix' : '_grp',
                         'right_prefix' : 'right_',
                         'center_prefix' : 'center_',
                         'def_starting_number' : '1',
-                        'def_padding_number' : '2'
+                        'def_padding_number' : '2',
+                        'error_message' : 'Some objects were not renamed. Open the script editor to see why.',
+                        'nodes_to_ignore' : ['defaultRenderLayer', 'renderLayerManager', 'defaultLayer', 'layerManager', 'poseInterpolatorManager', \
+                                            'shapeEditorManager', 'side', 'front', 'top', 'persp', 'lightLinker1', 'strokeGlobals', 'globalCacheControl',\
+                                            'hyperGraphLayout', 'hyperGraphInfo', 'ikSystem', 'defaultHardwareRenderGlobals', 'characterPartition', 'hardwareRenderGlobals',\
+                                            'defaultColorMgtGlobals', 'defaultViewColorManager', 'defaultObjectSet', 'defaultLightSet', 'defaultResolution',\
+                                            'defaultRenderQuality', 'defaultRenderGlobals', 'dof1', 'shaderGlow1', 'initialMaterialInfo', 'initialParticleSE', \
+                                            'initialShadingGroup', 'particleCloud1', 'standardSurface1', 'lambert1', 'defaultTextureList1', 'lightList1', 'defaultRenderingList1', \
+                                            'defaultRenderUtilityList1', 'postProcessList1', 'defaultShaderList1', 'defaultLightList1', 'renderGlobalsList1',\
+                                            'renderPartition', 'hardwareRenderingGlobals', 'sequenceManager1', 'time1'],
+                        'node_types_to_ignore' : ['objectRenderFilter', 'objectTypeFilter', 'dynController', 'objectMultiFilter', 'selectionListOperator']
                       }
-
 
 # Store Default Values for Reseting
 gt_renamer_settings_default_values = copy.deepcopy(gt_renamer_settings)
@@ -119,7 +135,6 @@ def set_persistent_settings_renamer(option_var_name, option_var_string):
     if option_var_string != '' and option_var_name != '':
         cmds.optionVar( sv=(str(option_var_name), str(option_var_string)))
     
-
 
 def reset_persistent_settings_renamer():
     ''' Resets persistant settings for GT Renamer '''
@@ -365,8 +380,17 @@ def build_gui_renamer():
             cmds.select(current_selection)
         else:
             selection = cmds.ls()
-            
-        
+            for node in gt_renamer_settings.get('nodes_to_ignore'):
+                if cmds.objExists(node):
+                    selection.remove(node)  
+            for node_type in gt_renamer_settings.get('node_types_to_ignore'):
+                undesired_types = cmds.ls(type=node_type)
+                for undesired_node in undesired_types:
+                    if cmds.objExists(undesired_node):
+                        if undesired_node in selection:
+                            selection.remove(undesired_node)
+
+                               
         # Check if something is selected
         if len(selection) == 0:
             cmds.warning('Nothing is selected!')
@@ -592,6 +616,7 @@ Rename Uppercase
 '''
 def rename_uppercase(obj_list):
     to_rename = []
+    errors = ''
     
     for obj in obj_list:
         object_short_name = get_short_name(obj)
@@ -601,8 +626,16 @@ def rename_uppercase(obj_list):
             
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
-            cmds.rename(pair[0], pair[1])
-
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
+            
 '''
 Rename Lowercase
 
@@ -610,6 +643,7 @@ Rename Lowercase
 '''
 def rename_lowercase(obj_list):
     to_rename = []
+    errors = ''
     
     for obj in obj_list:
         object_short_name = get_short_name(obj)
@@ -619,7 +653,15 @@ def rename_lowercase(obj_list):
             
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
-            cmds.rename(pair[0], pair[1])
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
 
 '''
 Rename Capitalize
@@ -628,6 +670,7 @@ Rename Capitalize
 '''
 def rename_capitalize(obj_list):
     to_rename = []
+    errors = ''
     
     for obj in obj_list:
         object_short_name = get_short_name(obj)
@@ -646,8 +689,15 @@ def rename_capitalize(obj_list):
             
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
-            cmds.rename(pair[0], pair[1])
-
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
 
 '''
 Remove First Letter
@@ -656,6 +706,7 @@ Remove First Letter
 '''
 def remove_first_letter(obj_list):
     to_rename = []
+    errors = ''
     
     for obj in obj_list:
         object_short_name = get_short_name(obj)
@@ -673,7 +724,15 @@ def remove_first_letter(obj_list):
             
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
-            cmds.rename(pair[0], pair[1])
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
 
 '''
 Remove Last Letter
@@ -682,6 +741,7 @@ Remove Last Letter
 '''
 def remove_last_letter(obj_list):
     to_rename = []
+    errors = ''
     
     for obj in obj_list:
         object_short_name = get_short_name(obj)
@@ -699,7 +759,15 @@ def remove_last_letter(obj_list):
             
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
-            cmds.rename(pair[0], pair[1])
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
 
 '''
 Rename Using Search and Replace
@@ -738,6 +806,7 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
     else: 
         to_rename = []
         count = start_number
+        errors = ''
         
         for obj in obj_list:
             object_short_name = get_short_name(obj)
@@ -748,8 +817,16 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
             
         for pair in reversed(to_rename):
             if cmds.objExists(pair[0]):
-                cmds.rename(pair[0], pair[1])
-
+                try:
+                    cmds.rename(pair[0], pair[1])
+                except Exception as exception:
+                    errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+        
+        if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
 
 '''
 Add Prefix
@@ -768,15 +845,23 @@ def rename_add_prefix(obj_list, new_prefix_list):
         cmds.warning('Prefix Input must not be empty.')
     else: 
         to_rename = []
+        errors = ''
         for obj in obj_list:
             if auto_prefix and 'shape' not in cmds.nodeType(obj, inherited=True):
-                obj_x_pos = cmds.xform(obj, piv=True , q=True , ws=True)[0]
-                if obj_x_pos > 0.0001:
+                try:
+                    obj_x_pos = cmds.xform(obj, piv=True , q=True , ws=True)[0]
+                except:
+                    obj_x_pos = 'Unkown'
+                if obj_x_pos == 'Unkown':
+                    new_prefix = ''
+                elif obj_x_pos > 0.0001:
                     new_prefix= new_prefix_list[0]
                 elif obj_x_pos < -0.0001:
                     new_prefix = new_prefix_list[2]
                 else:
                     new_prefix = new_prefix_list[1]
+            else:
+                new_prefix = ''
                     
             object_short_name = get_short_name(obj)
             
@@ -790,8 +875,17 @@ def rename_add_prefix(obj_list, new_prefix_list):
             
         for pair in reversed(to_rename):
             if cmds.objExists(pair[0]):
-                cmds.rename(pair[0], pair[1])
-                
+                try:
+                    cmds.rename(pair[0], pair[1])
+                except Exception as exception:
+                    errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+                    
+        if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
+            
 '''
 Add Suffix
 
@@ -809,6 +903,7 @@ def rename_add_suffix(obj_list, new_suffix_list):
         cmds.warning('Suffix Input must not be empty.')
     else: 
         to_rename = []
+        errors = ''
         for obj in obj_list:
             if auto_suffix and 'shape' not in cmds.nodeType(obj, inherited=True):
                 object_type = ''
@@ -833,6 +928,8 @@ def rename_add_suffix(obj_list, new_suffix_list):
                     new_suffix = new_suffix_list[5]
                 else:
                     new_suffix =''
+            else:
+                new_suffix = ''
                         
             object_short_name = get_short_name(obj)
             
@@ -846,8 +943,15 @@ def rename_add_suffix(obj_list, new_suffix_list):
             
         for pair in reversed(to_rename):
             if cmds.objExists(pair[0]):
-                cmds.rename(pair[0], pair[1])
-
+                try:
+                    cmds.rename(pair[0], pair[1])
+                except Exception as exception:
+                    errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+        if errors != '':
+            print('#' * 80 + '\n')
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_renamer_settings.get('error_message'))
         
 
 '''
