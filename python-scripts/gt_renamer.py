@@ -163,6 +163,7 @@ def reset_persistent_settings_renamer():
 
 # Renamer UI ============================================================================
 def build_gui_renamer():
+    ''' Builds the UI for GT Renamer '''
     window_name = "build_gui_renamer"
     if cmds.window(window_name, exists =True):
         cmds.deleteUI(window_name)    
@@ -337,6 +338,7 @@ def build_gui_renamer():
        
        
     def update_prefix_suffix_options():
+        ''' Updates variables and UI when there is an user input (For the prefix and suffix options) '''
         if cmds.radioButton(add_prefix_auto, q=True, select=True):
             prefix_auto_textfields = True
             prefix_input_textfields = False
@@ -367,7 +369,12 @@ def build_gui_renamer():
        
        
     def start_renaming(operation):
+        ''' 
+        Main function to rename elements, it uses a string to determine what operation to run.
         
+                Parameters:
+                    operation (string): name of the operation to execute. (e.g. search_and_replace)
+        '''
         current_selection = cmds.ls(selection=True)
         is_operation_valid = True
         
@@ -480,11 +487,9 @@ def build_gui_renamer():
     widget.setWindowIcon(icon)
     
 
-'''
-Create Help GUI
 
-'''
 def build_gui_help_renamer():
+    ''' Creates the Help GUI for GT Renamer '''
     window_name = "build_gui_help_renamer"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -581,26 +586,30 @@ def build_gui_help_renamer():
             cmds.deleteUI(window_name, window=True)
    
 
-'''
-Search and Replace Function for String
 
-@param obj - object to extract short name
-@param search - what to search for
-@param replace - what to replace it with
-'''
 def string_replace(string, search, replace):
+    '''
+    Search and Replace Function for a String
+            
+            Parameters:
+                    string (string): string to be processed
+                    search (string): what to search for
+                    replace (string): what to replace it with
+    '''
     if string == '':
         return ''
     replace_string = string.replace(search, replace)    
     return replace_string
 
 
-'''
-Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-@param obj - object to extract short name
-'''
 def get_short_name(obj):
+    '''
+    Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+            Parameters:
+                    obj (string) - object to extract short name
+    '''
     if obj == '':
         return ''
     split_path = obj.split('|')
@@ -609,12 +618,13 @@ def get_short_name(obj):
     return short_name
 
 
-'''
-Rename Uppercase
-
-@param obj_list - a list of objects to be renamed
-'''
 def rename_uppercase(obj_list):
+    '''
+    Rename objects to be uppercase
+    
+            Parameters:
+                    obj_list (list) - a list of objects (strings) to be renamed
+    '''
     to_rename = []
     errors = ''
     
@@ -636,12 +646,14 @@ def rename_uppercase(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
             
-'''
-Rename Lowercase
 
-@param obj_list - a list of objects to be renamed
-'''
 def rename_lowercase(obj_list):
+    '''
+    Rename objects to be lowercase
+    
+            Parameters:
+                    obj_list (list) - a list of objects (strings) to be renamed
+    '''
     to_rename = []
     errors = ''
     
@@ -663,12 +675,14 @@ def rename_lowercase(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
 
-'''
-Rename Capitalize
 
-@param obj_list - a list of objects to be renamed
-'''
 def rename_capitalize(obj_list):
+    '''
+    Rename objects to be capitalized
+
+            Parameters:
+                    obj_list (list) - a list of objects (strings) to be renamed
+    '''
     to_rename = []
     errors = ''
     
@@ -699,12 +713,14 @@ def rename_capitalize(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
 
-'''
-Remove First Letter
 
-@param obj_list - a list of objects to be renamed
-'''
 def remove_first_letter(obj_list):
+    '''
+    Rename objects removing the first letter
+
+            Parameters:
+                    obj_list (list) - a list of objects (strings) to be renamed
+    '''
     to_rename = []
     errors = ''
     
@@ -734,12 +750,14 @@ def remove_first_letter(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
 
-'''
-Remove Last Letter
 
-@param obj_list - a list of objects to be renamed
-'''
 def remove_last_letter(obj_list):
+    '''
+    Rename objects removing the last letter
+
+            Parameters:
+                    obj_list (list) - a list of objects (strings) to be renamed
+    '''
     to_rename = []
     errors = ''
     
@@ -769,14 +787,16 @@ def remove_last_letter(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
 
-'''
-Rename Using Search and Replace
 
-@param obj_list - a list of objects to be renamed
-@param search - what to search for
-@param replace - what to replace it with
-'''
 def rename_search_replace(obj_list, search, replace):
+    '''
+    Rename Using Search and Replace
+
+            Parameters:
+                    obj_list (list): a list of objects (strings) to be renamed
+                    search (string): what to search for
+                    replace (string): what to replace it with
+    '''
     if search == '':
         cmds.warning('The search string must not be empty.')
     else: 
@@ -792,15 +812,17 @@ def rename_search_replace(obj_list, search, replace):
             if cmds.objExists(pair[0]):
                 cmds.rename(pair[0], pair[1])
         
-'''
-Rename Objects and Add Number (With Padding)
 
-@param obj_list - a list of objects to be renamed
-@param new_name - a new name to rename the objects
-@param start_number - what number to start counting from
-@param padding_number - how many zeroes it will add before numbers
-'''
 def rename_and_number(obj_list, new_name, start_number, padding_number):
+    '''
+    Rename Objects and Add Number (With Padding)
+
+            Parameters:
+                    obj_list (list): a list of objects (strings) to be renamed
+                    new_name (string): a new name to rename the objects
+                    start_number (int): what number to start counting from
+                    padding_number (int): how many zeroes it will add before numbers
+    '''
     if new_name == '':
         cmds.warning('The provided string must not be empty.')
     else: 
@@ -828,13 +850,15 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
 
-'''
-Add Prefix
 
-@param obj_list - a list of objects to be renamed with a new prefix
-@param new_prefix_list - a list of Prefix strings, if just one it assumes that it's a manual input, if more it automates.
-'''
 def rename_add_prefix(obj_list, new_prefix_list):
+    '''
+    Add Prefix
+
+            Parameters:
+                    obj_list (list): a list of objects (strings) to be renamed
+                    new_prefix_list (list) - a list of prefix strings, if just one it assumes that it's a manual input, if more (3) it automates (usually left, center, right)
+    '''
     
     auto_prefix = True
     if len(new_prefix_list) == 1:
@@ -886,13 +910,15 @@ def rename_add_prefix(obj_list, new_prefix_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
             
-'''
-Add Suffix
 
-@param obj_list - a list of objects to be renamed with a new suffix
-@param new_suffix_list - a list of suffix strings, if just one it assumes that it's a manual input, if more it automates.
-'''
 def rename_add_suffix(obj_list, new_suffix_list):
+    '''
+    Add Suffix
+
+            Parameters:
+                    obj_list (list): a list of objects (strings) to be renamed
+                    new_suffix_list (list): - a list of suffix strings, if just one it assumes that it's a manual input, if more (6) it automates (usually _geo,_jnt, etc...)
+    '''
     auto_suffix = True
     
     if len(new_suffix_list) == 1:
@@ -954,13 +980,15 @@ def rename_add_suffix(obj_list, new_suffix_list):
             cmds.warning(gt_renamer_settings.get('error_message'))
         
 
-'''
-Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
 
-@param obj_list - a list of objects to be renamed with a new suffix
-@param new_name - .
-'''
 def rename_and_alphabetize(obj_list, new_name):
+    '''
+    WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
+
+            Parameters:
+                    obj_list (list): a list of objects (strings) to be renamed
+                    new_name - WIP
+    '''
     alphabet_array = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
     print([len(alphabet_array)])
     current_letter_index = 0
