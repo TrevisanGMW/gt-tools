@@ -1,6 +1,6 @@
 """
 
- Auto FK Control with Hierarchy
+ GT Auto FK - Creates FK controls and move them to expected hierarchy.
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-03
  
  1.2 - 2020-05-10 
@@ -19,8 +19,15 @@
  Added icon
  Fixed offset bug on custom python curve
  
+ 1.5 - 2020-08-06
+ Added persistent settings
+ Fixed minor bugs
+ Added a better error handling system
+ Changed settings management to a dictionary
+ 
 """
 import maya.cmds as cmds
+import copy
 from maya import OpenMayaUI as omui
 
 try:
@@ -38,34 +45,146 @@ except ImportError:
 script_name = "GT - Auto FK"
 
 # Version:
-script_version = "1.4"
+script_version = "1.5"
 
-# Default Settings
-mimic_hierarchy = True
-constraint_joint = True
-auto_color_ctrls = True
-default_select_hierarchy = True
-default_curve = "cmds.circle(name=joint_name + 'ctrl', normal=[1,0,0], radius=1.5, ch=False)"
-default_ctrl_tag = "_ctrl"
-default_ctrl_grp_tag = "_ctrlGrp"
-default_joint_tag = "_jnt"
 
 # Custom Curve Dictionary
-settings = { 'using_custom_curve': False, 
-             'custom_curve': default_curve,
-             'failed_to_build_curve': False,
-            }
+gt_auto_fk_settings = { 'using_custom_curve': False, 
+                        'custom_curve': "cmds.circle(name=joint_name + 'ctrl', normal=[1,0,0], radius=1.5, ch=False)",
+                        'failed_to_build_curve': False,
+                        'mimic_hierarchy': True,
+                        'constraint_joint' : True,
+                        'auto_color_ctrls' : True,
+                        'select_hierarchy' : True,
+                        'string_ctrl_suffix' : '_ctrl',
+                        'string_ctrl_grp_suffix' : '_ctrlGrp',
+                        'string_joint_suffix' : '_jnt',
+                        'curve_radius' : '1.0',
+                        'undesired_strings' : 'end, eye',
+                        'error_message' : 'Errors detected during creation. Open the script editor to see details.'
+                      }
+
+
+# Store Default Values for Reseting
+gt_auto_fk_settings_default_values = copy.deepcopy(gt_auto_fk_settings)
+
+
+def get_persistent_settings_auto_fk():
+    ''' 
+    Checks if persistant settings for GT GT Auto FK exists and transfer them to the settings variables.
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    '''
+    stored_using_custom_curve_exists = cmds.optionVar(exists=("gt_auto_fk_using_custom_curve"))
+    stored_custom_curve_exists = cmds.optionVar(exists=("gt_auto_fk_custom_curve"))
+    stored_failed_to_build_curve_exists = cmds.optionVar(exists=("gt_auto_fk_failed_to_build_curve"))
+    
+    stored_mimic_hierarchy_exists = cmds.optionVar(exists=("gt_auto_fk_mimic_hierarchy"))
+    stored_constraint_joint_exists = cmds.optionVar(exists=("gt_auto_fk_constraint_joint"))
+    stored_auto_color_ctrls_exists = cmds.optionVar(exists=("gt_auto_fk_auto_color_ctrls"))
+    stored_select_hierarchy_exists = cmds.optionVar(exists=("gt_auto_fk_select_hierarchy"))
+    stored_curve_radius_exists = cmds.optionVar(exists=("gt_auto_fk_curve_radius"))
+    
+    stored_string_ctrl_suffix_exists = cmds.optionVar(exists=("gt_auto_fk_string_ctrl_suffix"))
+    stored_string_ctrl_grp_suffix_exists = cmds.optionVar(exists=("gt_auto_fk_string_ctrl_grp_suffix"))
+    stored_string_joint_suffix_exists = cmds.optionVar(exists=("gt_auto_fk_string_joint_suffix"))
+    stored_undesired_strings_exists = cmds.optionVar(exists=("gt_auto_fk_undesired_strings"))
+
+    # Custom Curve
+    if stored_using_custom_curve_exists:
+        gt_auto_fk_settings['using_custom_curve'] = cmds.optionVar(q=("gt_auto_fk_using_custom_curve"))
+        
+    if stored_custom_curve_exists:
+        gt_auto_fk_settings['custom_curve'] = str(cmds.optionVar(q=("gt_auto_fk_custom_curve")))
+        
+    if stored_failed_to_build_curve_exists:
+        gt_auto_fk_settings['failed_to_build_curve'] = cmds.optionVar(q=("gt_auto_fk_failed_to_build_curve"))
+        
+    # General Settings
+    if stored_mimic_hierarchy_exists:
+        gt_auto_fk_settings['mimic_hierarchy'] = cmds.optionVar(q=("gt_auto_fk_mimic_hierarchy"))
+    
+    if stored_constraint_joint_exists:
+        gt_auto_fk_settings['constraint_joint'] = cmds.optionVar(q=("gt_auto_fk_constraint_joint"))
+    
+    if stored_auto_color_ctrls_exists:
+        gt_auto_fk_settings['auto_color_ctrls'] = cmds.optionVar(q=("gt_auto_fk_auto_color_ctrls"))
+        
+    if stored_select_hierarchy_exists:
+        gt_auto_fk_settings['select_hierarchy'] = cmds.optionVar(q=("gt_auto_fk_select_hierarchy"))
+    
+    if stored_curve_radius_exists:
+        gt_auto_fk_settings['curve_radius'] = str(cmds.optionVar(q=("gt_auto_fk_curve_radius")))
+    
+    # Strings
+    if stored_string_joint_suffix_exists:
+        gt_auto_fk_settings['string_joint_suffix'] = str(cmds.optionVar(q=("gt_auto_fk_string_joint_suffix")))
+    
+    if stored_string_ctrl_suffix_exists:
+        gt_auto_fk_settings['string_ctrl_suffix'] = str(cmds.optionVar(q=("gt_auto_fk_string_ctrl_suffix")))
+        
+    if stored_string_ctrl_grp_suffix_exists:
+        gt_auto_fk_settings['string_ctrl_grp_suffix'] = str(cmds.optionVar(q=("gt_auto_fk_string_ctrl_grp_suffix")))
+        
+    if stored_undesired_strings_exists:
+        gt_auto_fk_settings['undesired_strings'] = str(cmds.optionVar(q=("gt_auto_fk_undesired_strings")))
+
+
+def set_persistent_settings_auto_fk(option_var_name, option_var):
+    ''' 
+    Stores persistant settings for GT Auto FK.
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    
+        Parameters:
+                option_var_name (string): name of the optionVar string. Must start with script name + name of the variable
+                option_var (?): string to be stored under the option_var_name
+                    
+    '''
+    print(option_var)
+    if isinstance(option_var, int) and option_var_name != '':
+        cmds.optionVar( iv=(str(option_var_name), int(option_var)))
+    elif option_var != '' and option_var_name != '':
+        cmds.optionVar( sv=(str(option_var_name), str(option_var)))
+            
+
+
+def reset_persistent_settings_auto_fk():
+    ''' Resets persistant settings for GT Auto FK '''
+    cmds.optionVar( remove='gt_auto_fk_using_custom_curve' )
+    cmds.optionVar( remove='gt_auto_fk_custom_curve' )
+    cmds.optionVar( remove='gt_auto_fk_failed_to_build_curve' )
+    cmds.optionVar( remove='gt_auto_fk_mimic_hierarchy' )
+    cmds.optionVar( remove='gt_auto_fk_constraint_joint' )
+    cmds.optionVar( remove='gt_auto_fk_auto_color_ctrls' )
+    cmds.optionVar( remove='gt_auto_fk_select_hierarchy' )
+    cmds.optionVar( remove='gt_auto_fk_curve_radius' )
+    cmds.optionVar( remove='gt_auto_fk_string_ctrl_suffix' )
+    cmds.optionVar( remove='gt_auto_fk_string_ctrl_grp_suffix' )
+    cmds.optionVar( remove='gt_auto_fk_string_joint_suffix' )
+    cmds.optionVar( remove='gt_auto_fk_undesired_strings' )
+    
+    for def_value in gt_auto_fk_settings_default_values:
+        for value in gt_auto_fk_settings:
+            if def_value == value:
+                gt_auto_fk_settings[value] = gt_auto_fk_settings_default_values[def_value]
+
+    get_persistent_settings_auto_fk()
+    build_gui_auto_fk()
+    cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
+
 
 
 # Main Form ============================================================================
-def build_gui_auto_FK():
-    window_name = "build_gui_auto_FK"
+def build_gui_auto_fk():
+    '''
+    Builds the UI for the script GT Auto FK
+    '''
+    window_name = "build_gui_auto_fk"
     if cmds.window(window_name, exists =True):
         cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
     
-    build_gui_auto_FK = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    build_gui_auto_fk = cmds.window(window_name, title=script_name + "  v" + script_version,\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
     
     cmds.window(window_name, e=True, s=True, wh=[1,1])
@@ -86,12 +205,20 @@ def build_gui_auto_FK():
     
     cmds.rowColumnLayout( nc=1, cw=[(1, 270)], cs=[(1, 13)], p=body_column)
     check_boxes_one = cmds.checkBoxGrp(columnWidth2=[120, 1], numberOfCheckBoxes=2, \
-                                label1 = 'Mimic Hierarchy', label2 = "Constraint Joint    ", v1 = mimic_hierarchy, v2 = constraint_joint) 
+                                label1 = 'Mimic Hierarchy', label2 = 'Constraint Joint    ', \
+                                v1 = gt_auto_fk_settings.get('mimic_hierarchy'), \
+                                v2 = gt_auto_fk_settings.get('constraint_joint'),\
+                                cc1=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_mimic_hierarchy', cmds.checkBoxGrp(check_boxes_one, q=True, value1=True)),\
+                                cc2=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_constraint_joint', cmds.checkBoxGrp(check_boxes_one, q=True, value2=True)))
     
     cmds.rowColumnLayout( nc=1, cw=[(1, 270)], cs=[(1, 13)], p=body_column)
     
     check_boxes_two = cmds.checkBoxGrp(columnWidth2=[120, 1], numberOfCheckBoxes=2, \
-                                label1 = 'Colorize Controls', label2 = "Select Hierarchy  ", v1 = auto_color_ctrls, v2 = default_select_hierarchy)
+                                label1 = 'Colorize Controls', label2 = "Select Hierarchy  ", \
+                                v1 = gt_auto_fk_settings.get("auto_color_ctrls"), \
+                                v2 = gt_auto_fk_settings.get("select_hierarchy"),\
+                                cc1=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_auto_color_ctrls', cmds.checkBoxGrp(check_boxes_two, q=True, value1=True)),\
+                                cc2=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_select_hierarchy', cmds.checkBoxGrp(check_boxes_two, q=True, value2=True)))
             
     cmds.rowColumnLayout( nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=10)
@@ -99,10 +226,12 @@ def build_gui_auto_FK():
     
     # Customize Control
     cmds.rowColumnLayout( nc=1, cw=[(1, 230)], cs=[(1, 0)], p=body_column)
-    ctrl_curve_radius_slider_grp = cmds.floatSliderGrp( cw=[(1, 100),(2, 50),(3, 10)], label='Curve Radius: ', field=True, value=1.0 )  
+    ctrl_curve_radius_slider_grp = cmds.floatSliderGrp( cw=[(1, 100),(2, 50),(3, 10)], label='Curve Radius: ', field=True, value=float(gt_auto_fk_settings.get('curve_radius')), \
+                                                        cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_curve_radius', str(cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, q=True, value=True))),\
+                                                        en=not gt_auto_fk_settings.get('using_custom_curve'))   
     cmds.separator(h=7, style='none') # Empty Space                   
     cmds.rowColumnLayout( nc=1, cw=[(1, 230)], cs=[(1, 13)], p=body_column)
-    cmds.button(l ="(Advanced) Custom Curve", c=lambda x:define_custom_curve())
+    cmds.button('gt_auto_fk_custom_curve_btn', l ="(Advanced) Custom Curve", c=lambda x:define_custom_curve())
     
     cmds.rowColumnLayout( nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=5, style='none') # Empty Space
@@ -113,9 +242,13 @@ def build_gui_auto_FK():
     cmds.text("Joint Tag:")
     cmds.text("Control Tag:")
     cmds.text("Control Grp Tag:")
-    joint_tag_text_field = cmds.textField(text = default_joint_tag, enterCommand=lambda x:generate_FK_controls())
-    ctrl_tag_text_field = cmds.textField(text = default_ctrl_tag, enterCommand=lambda x:generate_FK_controls())
-    ctrl_grp_tag_text_field = cmds.textField(text = default_ctrl_grp_tag, enterCommand=lambda x:generate_FK_controls())
+    joint_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_joint_suffix'), \
+                                          enterCommand=lambda x:generate_FK_controls(),\
+                                          cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_joint_suffix', cmds.textField(joint_tag_text_field, q=True, text=True)))
+    ctrl_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_suffix'), enterCommand=lambda x:generate_FK_controls(),\
+                                          cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_ctrl_suffix', cmds.textField(ctrl_tag_text_field, q=True, text=True)))
+    ctrl_grp_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_grp_suffix'), enterCommand=lambda x:generate_FK_controls(),\
+                                          cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_ctrl_grp_suffix', cmds.textField(ctrl_grp_tag_text_field, q=True, text=True)))
        
 
     cmds.rowColumnLayout( nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
@@ -124,7 +257,8 @@ def build_gui_auto_FK():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text(label='Ignore Joints Containing These Strings:' )
     cmds.rowColumnLayout( nc=1, cw=[(1, 245)], cs=[(1, 5)], p=body_column)
-    undesired_strings_text_field = cmds.textField(text="end, eye", enterCommand=lambda x:generate_FK_controls())
+    undesired_strings_text_field = cmds.textField(text=gt_auto_fk_settings.get('undesired_strings'), enterCommand=lambda x:generate_FK_controls(),\
+                                   cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_undesired_strings', cmds.textField(undesired_strings_text_field, q=True, text=True)))
     cmds.rowColumnLayout( nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.text(label='(Use Commas to Separate Strings)' )
     cmds.separator(h=5, style='none') # Empty Space
@@ -135,112 +269,163 @@ def build_gui_auto_FK():
     
     # Generate FK Main Function Starts --------------------------------------------
     def generate_FK_controls():
+        '''
+        Generate FK Controls. 
+        This is the main function of this script. It will create a curve, and according to the settings use it as a control for the selected joint.
+        '''
+        errors = ''
         ctrl_curve_radius = cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, q=True, value=True)
-        selected_joints = cmds.ls(selection=True, type='joint')
+        selected_joints = cmds.ls(selection=True, type='joint', long=True)
         if cmds.checkBoxGrp(check_boxes_two, q=True, value2=True):
             cmds.select(hierarchy=True)
-            selected_joints = cmds.ls(selection=True, type='joint')
-        ctrl_tag =parse_text_field(cmds.textField(ctrl_tag_text_field, q=True, text=True))[0]
+            selected_joints = cmds.ls(selection=True, type='joint', long=True)
+        ctrl_tag = parse_text_field(cmds.textField(ctrl_tag_text_field, q=True, text=True))[0]
         ctrl_grp_tag = parse_text_field(cmds.textField(ctrl_grp_tag_text_field, q=True, text=True))[0]
         joint_tag = parse_text_field(cmds.textField(joint_tag_text_field, q=True, text=True))[0]
         undesired_jnt_strings = parse_text_field(cmds.textField(undesired_strings_text_field, q=True, text=True))
         undesired_joints = []
         
         # Find undesired joints and make a list of them
-        for jnt in selected_joints:
+        for jnt in selected_joints: 
             for string in undesired_jnt_strings:
-                if string in jnt:
+                if string in get_short_name(jnt):
                     undesired_joints.append(jnt)
-                else:
-                    pass
-        
+
         # Remove undesired joints from selection list
         for jnt in undesired_joints:
-            selected_joints.remove(jnt)
+            if jnt in undesired_joints:
+                selected_joints.remove(jnt)
 
-        
+
         for jnt in selected_joints:
             if len(joint_tag) != 0:
-                joint_name = jnt.replace(joint_tag,"")
+                joint_name = get_short_name(jnt).replace(joint_tag,'')
             else:
-                joint_name = jnt
-            ctrlName = joint_name + ctrl_tag
-            ctrlGrpName = joint_name + ctrl_grp_tag
+                joint_name = get_short_name(jnt)
+            ctrl_name = joint_name + ctrl_tag
+            ctrlgrp_name = joint_name + ctrl_grp_tag
 
 
-            if settings.get("using_custom_curve"):
-                ctrl = create_custom_curve(settings.get("custom_curve"))
+            if gt_auto_fk_settings.get("using_custom_curve"):
+                ctrl = create_custom_curve(gt_auto_fk_settings.get("custom_curve"))
                 
-                ctrl = [cmds.rename(ctrl, ctrlName)]
+                try:
+                    ctrl = [cmds.rename(ctrl, ctrl_name)]
+                except:
+                    ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
                 
-                if settings.get("failed_to_build_curve"):
-                    ctrl = cmds.circle(name=ctrlName, normal=[1,0,0], radius=ctrl_curve_radius, ch=False)
+                if gt_auto_fk_settings.get("failed_to_build_curve"):
+                    ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
+                    
             else:
-                ctrl = cmds.circle(name=ctrlName, normal=[1,0,0], radius=ctrl_curve_radius, ch=False)
+                ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
                 
-            grp = cmds.group(name=ctrlGrpName, empty=True)
-            cmds.parent(ctrl, grp)
-            constraint = cmds.parentConstraint(jnt, grp)
-            cmds.delete(constraint)
+            
+            grp = cmds.group(name=ctrlgrp_name, empty=True)
+            try:
+                cmds.parent(ctrl, grp)
+                constraint = cmds.parentConstraint(jnt, grp)
+                cmds.delete(constraint)
+            except Exception as e:
+                    errors = errors + str(e)
             
 
             # Colorize Control Start ------------------
 
             if cmds.checkBoxGrp(check_boxes_two, q=True, value1=True):
-                cmds.setAttr(ctrl[0] + ".overrideEnabled", 1)
-                if 'right_' in ctrl[0]:
-                    cmds.setAttr(ctrl[0] + ".overrideColor", 13) #Red
-                elif 'left_' in ctrl[0]:
-                    cmds.setAttr(ctrl[0] + ".overrideColor", 6) #Blue
-                else:
-                    cmds.setAttr(ctrl[0] + ".overrideColor", 17) #Yellow
-            else:
-                pass
-            
+                try:
+                    cmds.setAttr(ctrl[0] + ".overrideEnabled", 1)
+                    if ctrl[0].lower().startswith('right_') or ctrl[0].lower().startswith('r_'):
+                        cmds.setAttr(ctrl[0] + ".overrideColor", 13) #Red
+                    elif ctrl[0].lower().startswith('left_') or ctrl[0].lower().startswith('l_'):
+                        cmds.setAttr(ctrl[0] + ".overrideColor", 6) #Blue
+                    else:
+                        cmds.setAttr(ctrl[0] + ".overrideColor", 17) #Yellow
+                except Exception as e:
+                    errors = errors + str(e)
+
+
             # Colorize Control End ---------------------
             
-            
+            # Constraint Joint
             if cmds.checkBoxGrp(check_boxes_one, q=True, value2=True):
-                cmds.parentConstraint(ctrlName,jnt)
+                try:
+                    cmds.parentConstraint(ctrl_name,jnt)
+                except Exception as e:
+                    errors = errors + str(e) + '\n'
             
+            # Mimic Hierarchy
             if cmds.checkBoxGrp(check_boxes_one, q=True, value1=True):
-                #Auto parents new controls
-                # "or []" Accounts for root joint that doesn't have a parent, it forces it to be a list
-                jnt_parent = cmds.listRelatives(jnt, allParents=True) or []
-                if len(jnt_parent) == 0:
-                    pass
-                else:
-                    
-                    if len(joint_tag) != 0:
-                        parent_ctrl = (jnt_parent[0].replace(joint_tag,"") + ctrl_tag)
+                try:
+                    #Auto parents new controls
+                    # "or []" Accounts for root joint that doesn't have a parent, it forces it to be a list
+                    jnt_parent = cmds.listRelatives(jnt, allParents=True) or []
+                    if len(jnt_parent) == 0:
+                        pass
                     else:
-                        parent_ctrl = (jnt_parent[0] + ctrl_tag)
-                    
-                    if cmds.objExists(parent_ctrl):
-                        cmds.parent(grp, parent_ctrl)
+                        
+                        if len(joint_tag) != 0:
+                            parent_ctrl = (jnt_parent[0].replace(joint_tag,"") + ctrl_tag)
+                        else:
+                            parent_ctrl = (jnt_parent[0] + ctrl_tag)
+                        
+                        if cmds.objExists(parent_ctrl):
+                            cmds.parent(grp, parent_ctrl)
+                except Exception as e:
+                    errors = errors + str(e) + '\n'
+            
+        # Print Errors if necessary            
+        if errors != '':
+            print('#' * 80)
+            print(errors)
+            print('#' * 80)
+            cmds.warning(gt_auto_fk_settings.get('error_message'))
+                
     # Generate FK Main Function Ends --------------------------------------------
     
     # Define Custom Curve
     def define_custom_curve():
+        '''Asks the user for input. Uses this input as a custom curve (by storing it in the settings dictionary)'''
+        
+        if gt_auto_fk_settings.get('custom_curve') == gt_auto_fk_settings_default_values.get('custom_curve'):
+            textfield_data = ''
+        else:
+            textfield_data = str(gt_auto_fk_settings.get('custom_curve'))
+        
         result = cmds.promptDialog(
+                        scrollableField=True,
                         title='Py Curve',
                         message='Paste Python Curve Below: \n(Use \"GT Generate Python Curve \" to extract it from an existing curve)',
                         button=['OK', 'Use Default'],
                         defaultButton='OK',
                         cancelButton='Use Default',
-                        dismissString='Use Default')
+                        dismissString='Use Default',
+                        text=textfield_data
+                        )
 
         if result == 'OK':
-            settings["custom_curve"] = cmds.promptDialog(query=True, text=True)
-            settings["using_custom_curve"] = True
-            cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, e=True, en=False)
-            settings["failed_to_build_curve"] = False
+            if cmds.promptDialog(query=True, text=True) != '':
+                gt_auto_fk_settings["custom_curve"] = cmds.promptDialog(query=True, text=True)
+                gt_auto_fk_settings["using_custom_curve"] = True
+                gt_auto_fk_settings["failed_to_build_curve"] = False
+                cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, e=True, en=False)
+                # Update Persistent Settings
+                set_persistent_settings_auto_fk('gt_auto_fk_custom_curve', str(cmds.promptDialog(query=True, text=True)))
+                set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', True)
+                set_persistent_settings_auto_fk('gt_auto_fk_failed_to_build_curve', False)
+                cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[0,.1,0])
+            
         else:
-            settings["using_custom_curve"] = False
+            gt_auto_fk_settings["using_custom_curve"] = False
             cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, e=True, en=True)
-  
+            gt_auto_fk_settings['custom_curve'] = gt_auto_fk_settings_default_values.get('custom_curve')
+            cmds.button('gt_auto_fk_custom_curve_btn', e=True, l="(Advanced) Custom Curve", nbg=False)
+            # Update Persistent Settings
+            set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', False)
+            
+
     # Show and Lock Window
-    cmds.showWindow(build_gui_auto_FK)
+    cmds.showWindow(build_gui_auto_fk)
     cmds.window(window_name, e=True, s=False)
     
     # Set Window Icon
@@ -253,6 +438,7 @@ def build_gui_auto_FK():
 
 # Creates Help GUI
 def build_gui_help_auto_FK():
+    '''Builds the help window. You can reset persistent settings in here.'''
     window_name = "build_gui_help_auto_FK"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -277,10 +463,10 @@ def build_gui_help_auto_FK():
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='Colorize Controls:', align="left", fn="boldLabelFont")
     cmds.text(l='Automatically colorize controls according to their', align="left")
-    cmds.text(l='names. ', align="left")
+    cmds.text(l='names (prefix). It ignores uppercase/lowercase. ', align="left")
     cmds.text(l='No Prefix = Yellow', align="left")
-    cmds.text(l='"left_" = Blue', align="left")
-    cmds.text(l='"right_" = Red', align="left")
+    cmds.text(l='"l_" or "left_" = Blue', align="left")
+    cmds.text(l='"r_" or "right_" = Red', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='Select Hierarchy: ', align="left", fn="boldLabelFont")
     cmds.text(l='Automatically selects the rest of the hierarchy of the', align="left")
@@ -314,6 +500,8 @@ def build_gui_help_auto_FK():
     # Close Button 
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
     cmds.separator(h=10, style='none')
+    cmds.button(l='Reset Persistent Settings', h=30, c=lambda args: reset_persistent_settings_auto_fk())
+    cmds.separator(h=5, style='none')
     cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
     cmds.separator(h=8, style='none')
     
@@ -328,14 +516,23 @@ def build_gui_help_auto_FK():
     widget.setWindowIcon(icon)
     
     def close_help_gui():
+        '''Function to close the help UI, created for the "OK" Button'''
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
 
 
-# Function to Parse textField data 
-def parse_text_field(textFieldData):
-    text_field_data_no_spaces = textFieldData.replace(" ", "")
+def parse_text_field(textfield_data):
+    '''
+    Function to Parse textField data. It removes spaces and split elements using a comma. 
+    
+            Parameters:
+                    textfield_data (string) : String provided on the text field
+                    
+            Returns:
+                    return_list (list) : A list containing strings from the textfield
+    '''
+    text_field_data_no_spaces = textfield_data.replace(" ", "")
     if len(text_field_data_no_spaces) <= 0:
         return []
     else:
@@ -349,16 +546,46 @@ def parse_text_field(textFieldData):
         return return_list
 
 
-# Force Run Nested Exec
-def create_custom_curve(input):
+def create_custom_curve(curve_py_code):
+    '''
+    Attempts to create the custom curve provided by the user. It forces to run even if nested - exec.
+    
+            Parameters:
+                    curve_py_code (string) : Code necessary to create a curve
+                    
+            Returns:
+                    generated_object (string) : Name of the generated object
+    '''
     try:
-        exec(input)
+        exec(curve_py_code)
         return cmds.ls(selection=True)
     except:
-        cmds.error("Something is wrong with your python curve!")
-        settings["failed_to_build_curve"] = True
+        gt_auto_fk_settings["failed_to_build_curve"] = True
+        set_persistent_settings_auto_fk('gt_auto_fk_failed_to_build_curve', True)
+        set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', False)
+        cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[.3,0,0])
+        cmds.error("Something is wrong with your custom curve! Please update it and try again.")
+        
+        
+def get_short_name(obj):
+    '''
+    Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+            Parameters:
+                    obj (string) - object to extract short name.
+                    
+            Returns:
+                    short_name (string) - A string containing the short name of the object.
+    '''
+    if obj == '':
+        return ''
+    split_path = obj.split('|')
+    if len(split_path) >= 1:
+        short_name = split_path[len(split_path)-1]
+    return short_name
         
 
-#Build UI
+# Get Persistent Settings and Build UI
+get_persistent_settings_auto_fk()
 if __name__ == '__main__':
-    build_gui_auto_FK()
+    build_gui_auto_fk()
