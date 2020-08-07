@@ -30,7 +30,7 @@
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.4";
+global string $scriptVersion = "1.4.5";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
