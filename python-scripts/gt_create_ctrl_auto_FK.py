@@ -24,6 +24,7 @@
  Fixed minor bugs
  Added a better error handling system
  Changed settings management to a dictionary
+ Made the color for the custom curve button update when used
  
 """
 import maya.cmds as cmds
@@ -232,6 +233,8 @@ def build_gui_auto_fk():
     cmds.separator(h=7, style='none') # Empty Space                   
     cmds.rowColumnLayout( nc=1, cw=[(1, 230)], cs=[(1, 13)], p=body_column)
     cmds.button('gt_auto_fk_custom_curve_btn', l ="(Advanced) Custom Curve", c=lambda x:define_custom_curve())
+    if gt_auto_fk_settings.get('using_custom_curve') == True and gt_auto_fk_settings.get('failed_to_build_curve') == False:
+        cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[0,.1,0])
     
     cmds.rowColumnLayout( nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=5, style='none') # Empty Space
@@ -563,7 +566,7 @@ def create_custom_curve(curve_py_code):
         gt_auto_fk_settings["failed_to_build_curve"] = True
         set_persistent_settings_auto_fk('gt_auto_fk_failed_to_build_curve', True)
         set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', False)
-        cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[.3,0,0])
+        cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ERROR - Custom Curve', bgc=[.3,0,0])
         cmds.error("Something is wrong with your custom curve! Please update it and try again.")
         
         
