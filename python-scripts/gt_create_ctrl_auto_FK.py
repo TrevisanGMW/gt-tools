@@ -140,7 +140,6 @@ def set_persistent_settings_auto_fk(option_var_name, option_var):
                 option_var (?): string to be stored under the option_var_name
                     
     '''
-    print(option_var)
     if isinstance(option_var, int) and option_var_name != '':
         cmds.optionVar( iv=(str(option_var_name), int(option_var)))
     elif option_var != '' and option_var_name != '':
