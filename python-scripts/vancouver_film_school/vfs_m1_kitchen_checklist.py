@@ -5,6 +5,9 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-07-25 - github.com/TrevisanGMW
 
  For updated versions, check Moodle or my Github.
+ 
+ 1.1 - 2020/08/09
+ Changed the Output Resolution function to accept the expected values in both height and width (to account for portrait and landscape kitchens)
     
 """
 import maya.cmds as cmds
@@ -28,7 +31,7 @@ except ImportError:
 script_name = "Modeling 1 - Kitchen Checklist" 
 
 # Version
-script_version = "1.0";
+script_version = "1.1";
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
@@ -444,7 +447,7 @@ def check_output_resolution():
     
     is_resolution_valid = False
     
-    if str(received_value[0]) == str(expected_value[0]) or str(received_value[1]) == str(expected_value[1]):
+    if str(received_value[0]) == str(expected_value[0]) or str(received_value[1]) == str(expected_value[1]) or str(received_value[0]) == str(expected_value[1]) or str(received_value[1]) == str(expected_value[0]):
         is_resolution_valid=True
     
 
@@ -461,7 +464,7 @@ def check_output_resolution():
     def patch_output_resolution():
         user_input = cmds.confirmDialog(
                     title=item_name,
-                    message='Either your height or width should match the resolution from the guidelines. \nIt doesn\'t need to be both!\nSo make sure you turn on the option "Maintain the width/height ratio" and make at least one of them match to ensure that your render is not too small, or too big.\nPlease make your width "' + str(expected_value[0]) + '" or your height "' + str(expected_value[1]) + '" and try again.',
+                    message='Either your height or width should match the resolution from the guidelines. \nIt doesn\'t need to be both!\nSo make sure you turn on the option "Maintain the width/height ratio" and make at least one of them match to ensure that your render is not too small, or too big.\nPlease make sure your width or height is "' + str(expected_value[0]) + '" or "' + str(expected_value[1]) + '" and try again.',
                     button=['OK', 'Ignore Issue'],
                     defaultButton='OK',
                     cancelButton='Ignore Issue',
@@ -475,9 +478,9 @@ def check_output_resolution():
             
     # Return string for report ------------
     if issues_found > 0:
-        string_status = str(issues_found) + " issue found. The expected " + item_name.lower() + ' was "'  + str(expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(received_value[1]) + '"'
+        string_status = str(issues_found) + " issue found. The expected values for " + item_name.lower() + ' were "'  + str(expected_value[0]) + '" or "' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(received_value[1]) + '"'
     else: 
-        string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was "'  + str(expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(received_value[1]) + '"'
+        string_status = str(issues_found) + " issues found. The expected values for " + item_name.lower() + ' were "'  + str(expected_value[0]) + '" or "' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(received_value[1]) + '"'
     if custom_settings_failed:
         string_status = '1 issue found. The custom resolution settings provided couldn\'t be used to check your resolution'
         cmds.button("status_" + item_id, e=True, bgc=exception_color, l= '', c=lambda args: print_message('The custom value provided couldn\'t be used to check the resolution.', as_warning=True))
