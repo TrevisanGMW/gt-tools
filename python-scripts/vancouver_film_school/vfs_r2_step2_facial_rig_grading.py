@@ -142,7 +142,7 @@ def build_gui_gt_grader_script():
     # Body ====================
     checklist_spacing = 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1,10)], p=main_column)
-    cmds.text(l='This script was created for grading.\nIf used incorrectly it may irreversibly change in your scene.', align="center")
+    cmds.text(l='This script was created for grading.\nIf used incorrectly it may irreversibly change your scene.', align="center")
     cmds.separator(h=5, style='none') # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 65),(2, 270),(3, 65)], cs=[(1,10)], p=main_column)
     cmds.separator(h=10, style='none') # Empty Space
