@@ -122,7 +122,7 @@ menuItem -l "Rigging" -sm true -to true ;
 	
     menuItem 
     -l ("Create Auto FK") 
-    -c ("python(\"import gt_create_ctrl_auto_FK\\ngt_create_ctrl_auto_FK.build_gui_auto_FK()\");") 
+    -c ("python(\"import gt_create_ctrl_auto_fk\\ngt_create_ctrl_auto_fk.build_gui_auto_fk()\");") 
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
 	
