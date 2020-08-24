@@ -124,9 +124,9 @@ def build_gui_gt_r1_skeleton_check():
         parenting_mark_division = 0.141
         name_mark_division = 0.3522
         
-        check_position = {'head_end_jnt': [0.0, 149.627, 0.668539302549], \
+        check_position = {'head_endJnt': [0.0, 149.627, 0.668539302549], \
                     'head_jnt': [0.0, 120.015257626, -0.639659610777], \
-                    'jaw_end_jnt': [0.0, 116.236452934, 13.6109303846], \
+                    'jaw_endJnt': [0.0, 116.236452934, 13.6109303846], \
                     'jaw_jnt': [0.0, 126.167495596, 0.348183087647], \
                     'left_ankle_jnt': [7.0123406744, 4.86555330952, -2.79820729391], \
                     'left_ball_jnt': [6.958, 0.056, 3.4], \
@@ -137,26 +137,26 @@ def build_gui_gt_r1_skeleton_check():
                     'left_index1_jnt': [36.9358118715, 65.9390942712, 2.79654683133], \
                     'left_index2_jnt': [38.2771633644, 63.2194228843, 3.71898456919], \
                     'left_index3_jnt': [38.661564528, 61.5304646092, 4.12551802376], \
-                    'left_index_end_jnt': [38.7522360987, 60.0286719031, 4.47728607869], \
+                    'left_index_endJnt': [38.7522360987, 60.0286719031, 4.47728607869], \
                     'left_knee_jnt': [7.0123406744, 36.8033011581, 0.0795756394473], \
                     'left_middle1_jnt': [37.9307463496, 65.8299701415, 1.54959082013], \
                     'left_middle2_jnt': [38.7690353438, 62.681506381, 2.27610790846], \
                     'left_middle3_jnt': [39.0054656954, 60.6694057821, 2.68708099936], \
-                    'left_middle_end_jnt': [38.9414521895, 59.1075947384, 2.95970994586], \
+                    'left_middle_endJnt': [38.9414521895, 59.1075947384, 2.95970994586], \
                     'left_pinky1_jnt': [37.3551393862, 65.5599821692, -1.25996026201], \
                     'left_pinky2_jnt': [37.9827198168, 62.814317734, -1.00771080677], \
                     'left_pinky3_jnt': [37.9362171314, 61.4300044519, -0.889283355574], \
-                    'left_pinky_end_jnt': [37.8184834472, 60.3680630906, -0.802542448691], \
+                    'left_pinky_endJnt': [37.8184834472, 60.3680630906, -0.802542448691], \
                     'left_ring1_jnt': [37.6885763314, 65.68324954, 0.0229446386359], \
                     'left_ring2_jnt': [38.4179729513, 62.4753505534, 0.589287495165], \
                     'left_ring3_jnt': [38.5253316541, 60.632464935, 0.873300648774], \
-                    'left_ring_end_jnt': [38.4986920063, 59.1844513526, 1.07851490242], \
+                    'left_ring_endJnt': [38.4986920063, 59.1844513526, 1.07851490242], \
                     'left_shoulder_jnt': [11.0031830733, 105.341662531, 0.477419333912], \
                     'left_thumb1_jnt': [33.9591622097, 68.9890666496, 1.61462823792], \
                     'left_thumb2_jnt': [34.0388565884, 67.3726171241, 2.89815868748], \
                     'left_thumb3_jnt': [34.1500088529, 65.4871552069, 4.38099207377], \
-                    'left_thumb_end_jnt': [33.8280998265, 64.247060114, 6.548938852], \
-                    'left_toe_end_jnt': [7.0123406744, 0.577092467654, 9.954320999], \
+                    'left_thumb_endJnt': [33.8280998265, 64.247060114, 6.548938852], \
+                    'left_toe_endJnt': [7.0123406744, 0.577092467654, 9.954320999], \
                     'left_wrist_jnt': [34.495, 70.633, -0.164], \
                     'neck1_jnt': [0.0, 111.421, 1.214], \
                     'neck2_jnt': [0.0, 115.006130224, 0.297299471595], \
@@ -169,26 +169,26 @@ def build_gui_gt_r1_skeleton_check():
                     'right_index1_jnt': [-36.9358, 65.9391, 2.79655], \
                     'right_index2_jnt': [-38.2772, 63.2194, 3.71898], \
                     'right_index3_jnt': [-38.6616, 61.5305, 4.12552], \
-                    'right_index_end_jnt': [-38.7522, 60.0287, 4.47729], \
+                    'right_index_endJnt': [-38.7522, 60.0287, 4.47729], \
                     'right_knee_jnt': [-7.01234, 36.8033, 0.0795756], \
                     'right_middle1_jnt': [-37.9307, 65.83, 1.54959], \
                     'right_middle2_jnt': [-38.769, 62.6815, 2.27611], \
                     'right_middle3_jnt': [-39.0055, 60.6694, 2.68708], \
-                    'right_middle_end_jnt': [-38.9415, 59.1076, 2.95971], \
+                    'right_middle_endJnt': [-38.9415, 59.1076, 2.95971], \
                     'right_pinky1_jnt': [-37.3551, 65.56, -1.25996], \
                     'right_pinky2_jnt': [-37.9827, 62.8143, -1.00771], \
                     'right_pinky3_jnt': [-37.9362, 61.43, -0.889283], \
-                    'right_pinky_end_jnt': [-37.8185, 60.3681, -0.802542], \
+                    'right_pinky_endJnt': [-37.8185, 60.3681, -0.802542], \
                     'right_ring1_jnt': [-37.6886, 65.6832, 0.0229446], \
                     'right_ring2_jnt': [-38.418, 62.4754, 0.589287], \
                     'right_ring3_jnt': [-38.5253, 60.6325, 0.873301], \
-                    'right_ring_end_jnt': [-38.4987, 59.1845, 1.07851], \
+                    'right_ring_endJnt': [-38.4987, 59.1845, 1.07851], \
                     'right_shoulder_jnt': [-11.0032, 105.342, 0.477419], \
                     'right_thumb1_jnt': [-33.9592, 68.9891, 1.61463], \
                     'right_thumb2_jnt': [-34.0389, 67.3726, 2.89816], \
                     'right_thumb3_jnt': [-34.15, 65.4872, 4.38099], \
-                    'right_thumb_end_jnt': [-33.8281, 64.2471, 6.54894], \
-                    'right_toe_end_jnt': [-7.01234, 0.577092, 9.95432], \
+                    'right_thumb_endJnt': [-33.8281, 64.2471, 6.54894], \
+                    'right_toe_endJnt': [-7.01234, 0.577092, 9.95432], \
                     'right_wrist_jnt': [-34.626, 70.0684, 0.0809637], \
                     'root_jnt': [0.0, 69.5529866698, -0.765198021547], \
                     'spine1_jnt': [0.0, 77.2626710745, 2.34698601378], \
@@ -197,22 +197,22 @@ def build_gui_gt_r1_skeleton_check():
                     'spine4_jnt': [0.0, 95.128, 5.423]}
 
         joint_names = ['root_jnt', 'spine1_jnt', 'spine2_jnt', 'spine3_jnt', 'spine4_jnt', \
-                       'neck1_jnt', 'neck2_jnt', 'head_jnt', 'head_end_jnt', 'jaw_jnt', 'jaw_end_jnt', \
+                       'neck1_jnt', 'neck2_jnt', 'head_jnt', 'head_endJnt', 'jaw_jnt', 'jaw_endJnt', \
                        'left_eye_jnt', 'right_eye_jnt', 'left_clavicle_jnt', 'left_shoulder_jnt', \
                        'left_elbow_jnt', 'left_wrist_jnt', 'left_thumb1_jnt', \
-                       'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_end_jnt', 'left_index1_jnt', \
-                       'left_index2_jnt', 'left_index3_jnt', 'left_index_end_jnt', 'left_middle1_jnt', \
-                       'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_end_jnt', 'left_ring1_jnt', \
-                       'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_end_jnt', 'left_pinky1_jnt', \
-                       'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_end_jnt', 'right_clavicle_jnt', \
+                       'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_endJnt', 'left_index1_jnt', \
+                       'left_index2_jnt', 'left_index3_jnt', 'left_index_endJnt', 'left_middle1_jnt', \
+                       'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_endJnt', 'left_ring1_jnt', \
+                       'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_endJnt', 'left_pinky1_jnt', \
+                       'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_endJnt', 'right_clavicle_jnt', \
                        'right_shoulder_jnt', 'right_elbow_jnt', 'right_wrist_jnt', \
-                       'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_end_jnt', \
-                       'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_end_jnt', \
-                       'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_end_jnt', \
-                       'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_end_jnt', \
-                       'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_end_jnt', \
-                       'left_hip_jnt', 'left_knee_jnt', 'left_ankle_jnt', 'left_ball_jnt', 'left_toe_end_jnt', \
-                       'right_hip_jnt', 'right_knee_jnt', 'right_ankle_jnt', 'right_ball_jnt', 'right_toe_end_jnt']
+                       'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_endJnt', \
+                       'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_endJnt', \
+                       'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_endJnt', \
+                       'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_endJnt', \
+                       'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_endJnt', \
+                       'left_hip_jnt', 'left_knee_jnt', 'left_ankle_jnt', 'left_ball_jnt', 'left_toe_endJnt', \
+                       'right_hip_jnt', 'right_knee_jnt', 'right_ankle_jnt', 'right_ball_jnt', 'right_toe_endJnt']
 
         joints = cmds.ls(type='joint')
 
@@ -283,7 +283,7 @@ def build_gui_gt_r1_skeleton_check():
                             else:
                                 orients_mark += orients_mark_division
                     # check to make sure joints have not been moved since their parent has oriented to them
-                    orient_check_two_jnts = ['index2', 'index3', 'index_end_jnt', 'middle2', 'middle3', \
+                    orient_check_two_jnts = ['index2', 'index3', 'index_endJnt', 'middle2', 'middle3', \
                                         'middleEnd', 'ring2', 'ring3', 'ringEnd', 'pinky2', 'pinky3', 'pinkyEnd', \
                                         'thumb2', 'thumb3', 'thumbEnd', 'elbow', 'shoulder', \
                                         'jawEnd', 'head_jnt', 'headEnd', 'neck', 'ball', 'toe', 'ankle', 'knee', 'spine']
@@ -355,7 +355,7 @@ def build_gui_gt_r1_skeleton_check():
                     parenting_mark += parenting_mark_division
             elif jnt == 'head_jnt':
                 if cmds.listRelatives(jnt, children=True) and len(cmds.listRelatives(jnt, children=True)) != 4:
-                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='head_jnt should have four child joints: jaw_jnt, head_end_jnt, left_eye_jnt, right_eye_jnt.\n')
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='head_jnt should have four child joints: jaw_jnt, head_endJnt, left_eye_jnt, right_eye_jnt.\n')
                 else:
                     parenting_mark += parenting_mark_division
             elif jnt == 'left_elbow_jnt':
@@ -378,7 +378,7 @@ def build_gui_gt_r1_skeleton_check():
                     cmds.scrollField(output_scroll_field, e=True, ip=0, it='right_wrist_jnt should have five child joints: right_thumb1_jnt, right_index1_jnt, right_middle1_jnt, right_ring1_jnt, right_pinky1_jnt.\n')
                 else:
                     parenting_mark += parenting_mark_division
-            elif "_end_jnt" in jnt or "eye_jnt" in jnt:
+            elif "_endJnt" in jnt or "eye_jnt" in jnt:
                 if cmds.listRelatives(jnt, children=True):
                     cmds.scrollField(output_scroll_field, e=True, ip=0, it=jnt + ' should not have any children.\n')
                 else:

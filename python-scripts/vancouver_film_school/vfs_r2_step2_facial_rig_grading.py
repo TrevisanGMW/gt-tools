@@ -4,6 +4,13 @@
  Configured for: Rigging 2 - Facial Rig
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-13 - github.com/TrevisanGMW
  
+ 1.1 - 2020-08-21
+ Added "Delete Namespaces" function
+ Added a function to delete ray tracing meshes
+ Added button to apply all common patches
+ Added some small changes to organizer
+ 
+ 
  To Do:
     Update nonunique elements function
     Update name of the side ui controls
@@ -65,7 +72,9 @@ gt_grading_notes = { 0 : ['Scale Issue', 'Rig is not scalable. (Many things can 
                     14 : ['Random Influences', 'Some random vertices seem to be assigned incorrectly (Use ngSkinTools to avoid this)']
                    }
                    
-gt_grading_settings = { 'keyframes_interval' : 5
+gt_grading_settings = { 'keyframes_interval' : 5,
+                        'expected_joint_suffix' : '_jnt',
+                        'expected_control_suffix' : '_ctrl'
                       }
 
 
@@ -116,8 +125,8 @@ brute_force_ctrl_naming_dict = {'main_eye_ctrl' : [ [0.000, 97.160, 18.800], [0.
 
 
 
-# Delete this after 3D145 is done and source file is patched
-temp_ignore_non_uniques = ['effector6', 'left_Hand_IK_Gimbal_CtrlGrp', 'right_foot_Jnt']
+# Keep it here for backwards compatibility 
+ignore_non_uniques = ['effector6', 'left_Hand_IK_Gimbal_CtrlGrp', 'right_foot_Jnt']
 
 
 
@@ -325,6 +334,16 @@ def build_gui_gt_grader_script():
     
     footer_buttons_color = [.51,.51,.51]
     
+    
+
+    cmds.button(l='All Common Patches', h=30, bgc=footer_buttons_color, c=lambda args: apply_all_common())
+    cmds.button(l='X', h=30, bgc=footer_buttons_color, c=lambda args: patch_joints())
+    cmds.button(l='Delete Namespaces', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_namespaces())
+    
+    cmds.separator(h=5, style='none')
+    cmds.separator(h=5, style='none')
+    cmds.separator(h=5, style='none')
+    
     cmds.button(l='Reset Viewport', h=30, bgc=footer_buttons_color, c=lambda args: reset_viewport())
     cmds.button(l='Patch Joints', h=30, bgc=footer_buttons_color, c=lambda args: patch_joints())
     cmds.button(l='Reset Transforms', h=30, bgc=footer_buttons_color, c=lambda args: reset_transforms())
@@ -382,14 +401,72 @@ def build_gui_gt_grader_script():
                 pass
         except Exception as exception:
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
-    
+        
+        
+    def apply_all_common():
+        ''' Run All Common Patches'''
+        
+        cmds.scrollField(output_scroll_field, e=True, clear=True) # Clean output window
+        output = ''
+        errors = ''
+        
+        try:
+            delete_all_namespaces()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All namespaces were deleted.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+        try:
+            delete_all_keyframes()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All keyframes were deleted.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+        try:
+            reset_viewport()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Viewport is reset.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+        try:
+            patch_joints()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Expected joints were patched.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+
+        
+        try:
+            all_joints = cmds.ls(type='joint')
+            for obj in all_joints:
+                is_big_joint = False
+                for big_jnt in toggle_jnt_visibility:
+                    if big_jnt in obj.lower():
+                        is_big_joint = True
+                if cmds.objExists(obj) and is_big_joint == True:
+                    if cmds.getAttr(obj + ".drawStyle" ,lock=True) is False:
+                        cmds.setAttr(obj + '.drawStyle', 2)     
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Big joints were made invisible.\n')#                 
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+            
+        if errors != '':
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it='\nSome errors were raised:\n' + errors)
+            cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+            
+        # Focus On Head Area
+        frame_object('neckBase_Jnt')
+        frame_object('neckBase_jnt')
+        frame_object('neckbase_jnt')
+          
             
     def open_file():
-        ''' Invoke open file dialog for quickly loading other files '''
+        ''' Invoke open file dialog for quickly loading other files + resets grades'''
         multiple_filters = "Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;All Files (*.*)"
         file_path = cmds.fileDialog2(fileFilter=multiple_filters, dialogStyle=2, fm=1)
         if file_path is not None:
             cmds.file(file_path, open=True, force=True)
+            reset_grades()
             
     def reload_file():
         ''' Reopens the opened file (to revert back any changes done to the file '''        
@@ -488,6 +565,7 @@ def build_gui_gt_grader_script():
     def organization_functionality():
         ''' Performs many check to find obvious organization issues '''
         issues = ''
+        errors = ''
 
         # Check File Naming
         if cmds.file(query=True, exists=True): # Check to see if it was ever saved
@@ -518,16 +596,15 @@ def build_gui_gt_grader_script():
                 non_unique_transforms.append(short_name)
             already_checked.append(short_name)
         
-        # TEMP CODE =======================================================================
-        print()
+        # Remove Strings that shouldn't be checked
         try:
-            for string in temp_ignore_non_uniques:
+            for string in ignore_non_uniques:
                 if string in non_unique_transforms:
                     non_unique_transforms.remove(string)
         except:
             pass
-        # TEMP CODE =======================================================================
         
+        # Add non-unique objects to issues
         if len(non_unique_transforms) > 0:
             if len(non_unique_transforms) == 1:
                 issues += str(len(non_unique_transforms)) + ' non-unique object found in the scene:\n'
@@ -557,82 +634,97 @@ def build_gui_gt_grader_script():
         # Joints
         all_joints = cmds.ls(type='joint', long=True)
         for obj in brute_force_joint_naming_dict:
-            obj_exists = False
-            if cmds.objExists(obj):
-                obj_exists = True
-            else:
-                if type(brute_force_joint_naming_dict.get(obj)[2]) is tuple:
-                    new_scale = brute_force_joint_naming_dict.get(obj)[2]
-                    ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=1, sx=8, sy=8, ch=False, cuv=False)
-                    if cmds.objExists(ray_tracing_obj[0]):
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleX', new_scale[0])
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleY', new_scale[1])
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleZ', new_scale[2])
+            try:
+                obj_exists = False
+                if cmds.objExists(obj):
+                    obj_exists = True
+                elif cmds.objExists(obj.lower()) or cmds.objExists(obj.replace(gt_grading_settings.get('expected_joint_suffix'), '_Jnt')):
+                    found_without_name.append([obj.lower(), obj])
+                    obj_exists = True
                 else:
-                    ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_joint_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
-                    cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
-                    cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
-                cmds.xform(ray_tracing_obj, a=True, ro=brute_force_joint_naming_dict.get(obj)[1] )
-                cmds.xform(ray_tracing_obj, a=True, t=brute_force_joint_naming_dict.get(obj)[0] )
-                
-                
-                for jnt in all_joints:
-                    jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
-                    is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
+                    if type(brute_force_joint_naming_dict.get(obj)[2]) is tuple:
+                        new_scale = brute_force_joint_naming_dict.get(obj)[2]
+                        ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=1, sx=8, sy=8, ch=False, cuv=False)
+                        if cmds.objExists(ray_tracing_obj[0]):
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleX', new_scale[0])
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleY', new_scale[1])
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleZ', new_scale[2])
+                    else:
+                        ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_joint_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
+                        cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
+                        cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
+                    cmds.xform(ray_tracing_obj, a=True, ro=brute_force_joint_naming_dict.get(obj)[1] )
+                    cmds.xform(ray_tracing_obj, a=True, t=brute_force_joint_naming_dict.get(obj)[0] )
                     
-                    ignore_joint = False
-                    if len(brute_force_joint_naming_dict.get(obj)) == 4:
-                        for string in brute_force_joint_naming_dict.get(obj)[3]:
-                            if  string in jnt:
-                                ignore_joint = True
                     
-                    if is_joint_inside and get_short_name(jnt) != obj and ignore_joint is False:
-                        found_without_name.append([jnt, obj])
-                        obj_exists = True
-                cmds.delete(ray_tracing_obj)
-            if not obj_exists:
-                not_found.append(obj)
+                    for jnt in all_joints:
+                        jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
+                        is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
+                        
+                        ignore_joint = False
+                        if len(brute_force_joint_naming_dict.get(obj)) == 4:
+                            for string in brute_force_joint_naming_dict.get(obj)[3]:
+                                if  string in jnt:
+                                    ignore_joint = True
+                        
+                        if is_joint_inside and get_short_name(jnt) != obj and ignore_joint is False:
+                            found_without_name.append([jnt, obj])
+                            obj_exists = True
+                    cmds.delete(ray_tracing_obj)
+                if not obj_exists:
+                    not_found.append(obj)
+            except Exception as e:
+                errors += str(e) + '\n'
+                search_delete_temp_meshes('ray_tracing_obj_')
+                
 
         
         # Ctrls (nurbsCurve)
         all_nurbs_curves = cmds.ls(type='nurbsCurve', long=True)
         for obj in brute_force_ctrl_naming_dict:
-            obj_exists = False
-            if cmds.objExists(obj):
-                obj_exists = True
-            else:
-                if type(brute_force_ctrl_naming_dict.get(obj)[2]) is tuple:
-                    new_scale = brute_force_ctrl_naming_dict.get(obj)[2]
-                    ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=1, sx=8, sy=8, ch=False, cuv=False)
-                    if cmds.objExists(ray_tracing_obj[0]):
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleX', new_scale[0])
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleY', new_scale[1])
-                        cmds.setAttr(ray_tracing_obj[0] + '.scaleZ', new_scale[2])
+            try:
+                obj_exists = False
+                if cmds.objExists(obj):
+                    obj_exists = True
+                elif cmds.objExists(obj.lower()) or cmds.objExists(obj.replace(gt_grading_settings.get('expected_control_suffix'), '_Ctrl')):
+                    found_without_name.append([obj.lower(), obj])
+                    obj_exists = True
                 else:
-                    ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_ctrl_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
-                    cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
-                    cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
-                cmds.xform(ray_tracing_obj, a=True, ro=brute_force_ctrl_naming_dict.get(obj)[1] )
-                cmds.xform(ray_tracing_obj, a=True, t=brute_force_ctrl_naming_dict.get(obj)[0] )
-                
-                for crv in all_nurbs_curves:
-                    crv_transform = cmds.listRelatives(crv, allParents=True) or []
-                    if len(crv_transform) > 0:
-                        crv_pos = cmds.xform(crv_transform[0], piv=True , q=True , ws=True)
-                        is_crv_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(crv_pos[0],crv_pos[1],crv_pos[2]))
-                        
-                        ignore_crv = False
-                        if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
-                            for string in brute_force_ctrl_naming_dict.get(obj)[3]:
-                                if string in jnt:
-                                    ignore_crv = True
-                        
-                        if is_crv_inside and get_short_name(crv_transform[0]) != obj and ignore_crv is False:
-                            found_without_name.append([crv_transform[0], obj])
-                            obj_exists = True
-                cmds.delete(ray_tracing_obj)
-            if not obj_exists:
-                not_found.append(obj)
+                    if type(brute_force_ctrl_naming_dict.get(obj)[2]) is tuple:
+                        new_scale = brute_force_ctrl_naming_dict.get(obj)[2]
+                        ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=1, sx=8, sy=8, ch=False, cuv=False)
+                        if cmds.objExists(ray_tracing_obj[0]):
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleX', new_scale[0])
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleY', new_scale[1])
+                            cmds.setAttr(ray_tracing_obj[0] + '.scaleZ', new_scale[2])
+                    else:
+                        ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_ctrl_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
+                        cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
+                        cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
+                    cmds.xform(ray_tracing_obj, a=True, ro=brute_force_ctrl_naming_dict.get(obj)[1] )
+                    cmds.xform(ray_tracing_obj, a=True, t=brute_force_ctrl_naming_dict.get(obj)[0] )
+                    
+                    for crv in all_nurbs_curves:
+                        crv_transform = cmds.listRelatives(crv, allParents=True) or []
+                        if len(crv_transform) > 0:
+                            crv_pos = cmds.xform(crv_transform[0], piv=True , q=True , ws=True)
+                            is_crv_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(crv_pos[0],crv_pos[1],crv_pos[2]))
+                            
+                            ignore_crv = False
+                            if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
+                                for string in brute_force_ctrl_naming_dict.get(obj)[3]:
+                                    if string in jnt:
+                                        ignore_crv = True
+                            
+                            if is_crv_inside and get_short_name(crv_transform[0]) != obj and ignore_crv is False:
+                                found_without_name.append([crv_transform[0], obj])
+                                obj_exists = True
+                    cmds.delete(ray_tracing_obj)
+                if not obj_exists:
+                    not_found.append(obj)
+            except Exception as e:
+                errors += str(e) + '\n'
+                search_delete_temp_meshes('ray_tracing_obj_')
 
         # Write issues to the output string
         if len(not_found) > 0:
@@ -660,13 +752,19 @@ def build_gui_gt_grader_script():
             update_grade_output()
             cmds.scrollField(output_scroll_field, e=True, ip=0, it='No obvious organization issues were found.\n')
             
+        if errors != '':
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it='\nSome errors were raised:\n' + errors)
+            cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+           
+        
+            
                 
     def late_submission_check():
         '''Calculates late submissions'''
         
         result = cmds.promptDialog(
 		title='Due Date',
-		message='Please, provide a due date to calculate how many days it has passed.\n(The script uses the last modified date on the file as the submission date.)\n\nFormat: "MM/DD" for example "05/15"',
+		message='Please, provide a due date to calculate the difference.\n(The script uses the last modified date on the file as the submission date.)\n\nFormat: "MM/DD" for example "05/15"',
 		button=['OK', 'Cancel'],
 		defaultButton='OK',
 		cancelButton='Cancel',
@@ -774,10 +872,13 @@ def build_gui_gt_grader_script():
         '''
         Goes through the dictionary "brute_force_joint_naming_dict" and automatically renames objects that are within the provided radius of a point.
         This function uses another function called "is_point_inside_mesh", which can be found below
+        
+        Uses the function "search_delete_temp_meshes(starts_with)" to delete meshes during exceptions.
+        
         '''
-        # Pairs to be sorted and renamed
         to_rename = []
-
+        errors = '' 
+        
         # Joints
         all_joints = cmds.ls(type='joint', long=True)
         for obj in brute_force_joint_naming_dict:
@@ -797,18 +898,21 @@ def build_gui_gt_grader_script():
             cmds.xform(ray_tracing_obj, a=True, t=brute_force_joint_naming_dict.get(obj)[0] )
             
             for jnt in all_joints:
-                jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
-                is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
-                
-                ignore_joint = False
-                if len(brute_force_joint_naming_dict.get(obj)) == 4:
-                    for string in brute_force_joint_naming_dict.get(obj)[3]:
-                        if string in jnt:
-                            ignore_joint = True
-                
-                if is_joint_inside and get_short_name(jnt) != obj and ignore_joint is False:
-                    to_rename.append([jnt, obj])
-
+                try:
+                    jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
+                    is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
+                    
+                    ignore_joint = False
+                    if len(brute_force_joint_naming_dict.get(obj)) == 4:
+                        for string in brute_force_joint_naming_dict.get(obj)[3]:
+                            if string in jnt:
+                                ignore_joint = True
+                    
+                    if is_joint_inside and get_short_name(jnt) != obj and ignore_joint is False:
+                        to_rename.append([jnt, obj])
+                except Exception as e:
+                    search_delete_temp_meshes('ray_tracing_obj_')
+                    errors += str(e)
             cmds.delete(ray_tracing_obj)
         
         # Ctrls
@@ -830,19 +934,23 @@ def build_gui_gt_grader_script():
             
             
             for crv in all_nurbs_curves:
-                crv_transform = cmds.listRelatives(crv, allParents=True) or []
-                if len(crv_transform) > 0:
-                    crv_pos = cmds.xform(crv_transform[0], piv=True , q=True , ws=True)
-                    is_crv_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(crv_pos[0],crv_pos[1],crv_pos[2]))
-                    
-                    ignore_crv = False
-                    if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
-                        for string in brute_force_ctrl_naming_dict.get(obj)[3]:
-                            if string in jnt:
-                                ignore_crv = True
-                    
-                    if is_crv_inside and get_short_name(crv_transform[0]) != obj  and ignore_crv is False:
-                        to_rename.append([crv_transform[0], obj])
+                try:
+                    crv_transform = cmds.listRelatives(crv, allParents=True) or []
+                    if len(crv_transform) > 0:
+                        crv_pos = cmds.xform(crv_transform[0], piv=True , q=True , ws=True)
+                        is_crv_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(crv_pos[0],crv_pos[1],crv_pos[2]))
+                        
+                        ignore_crv = False
+                        if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
+                            for string in brute_force_ctrl_naming_dict.get(obj)[3]:
+                                if string in jnt:
+                                    ignore_crv = True
+                        
+                        if is_crv_inside and get_short_name(crv_transform[0]) != obj  and ignore_crv is False:
+                            to_rename.append([crv_transform[0], obj])
+                except Exception as e:
+                    search_delete_temp_meshes('ray_tracing_obj_')
+                    errors += str(e)
             cmds.delete(ray_tracing_obj)
                
         # Sort it based on how many parents it has
@@ -852,8 +960,7 @@ def build_gui_gt_grader_script():
             
         sorted_pairs_to_rename = sorted(pipe_pairs_to_rename, key=lambda x: x[0], reverse=True)
 
-        # Rename sorted pairs
-        errors = ''    
+        # Rename sorted pairs   
         for pair in sorted_pairs_to_rename:
             if cmds.objExists(pair[1][0]):
                 try:
@@ -862,7 +969,9 @@ def build_gui_gt_grader_script():
                     errors = errors + '"' + str(pair[1][1]) + '" : "' + exception[0].rstrip("\n") + '".\n'
         if errors != '':
                 cmds.scrollField(output_scroll_field, e=True, clear=True)
-                cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
+                cmds.scrollField(output_scroll_field, e=True, ip=0, it='Some errors were raised:\n' + errors)
+                cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+            
                 
     def toggle_big_joints_visibility(jnt_contains_list):
         '''
@@ -884,7 +993,7 @@ def build_gui_gt_grader_script():
                     elif jnt_string in jnt and cmds.getAttr(jnt + ".drawStyle") == 0:
                         visible_joints.append(jnt)
         except:
-            visible_joints.append('__place_holder__')
+            visible_joints.append('number_inflator_place_holder')
 
       
         if visible_joints < hidden_joints:
@@ -1748,6 +1857,56 @@ def change_obj_color(obj, rgb_color=(1,1,1)):
             cmds.setAttr(obj + ".overrideColorRGB", rgb_color[0], rgb_color[1], rgb_color[2]) 
     except Exception as e:
         raise e
+        
+
+def search_delete_temp_meshes(starts_with):
+    '''
+    Deletes any mesh that starts with the provided string
+            
+            Parameters:
+                    starts_with (string): String the temp mesh starts with
+                        
+    '''
+    all_meshes = cmds.ls(type='mesh')
+
+    for obj in all_meshes:
+        mesh_transform = ''
+        mesh_transform_extraction = cmds.listRelatives(obj, allParents=True) or []
+        if len(mesh_transform_extraction) > 0:
+            mesh_transform = mesh_transform_extraction[0]
+            
+        try:
+            if mesh_transform.startswith(starts_with) and cmds.objExists(mesh_transform):
+                cmds.delete(mesh_transform)
+        except:
+            pass
+
+
+
+def delete_all_namespaces():
+    '''Deletes all namespaces in the scene'''
+    cmds.undoInfo(openChunk=True, chunkName='Delete all namespaces')
+    try:
+        default_namespaces = ['UI', 'shared']
+
+        def num_children(namespace):
+            '''Used as a sort key, this will sort namespaces by how many children they have.'''
+            return namespace.count(':')
+
+        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
+        
+        # Reverse List
+        namespaces.sort(key=num_children, reverse=True) # So it does the children first
+
+        print(namespaces)
+
+        for namespace in namespaces:
+            if namespace not in default_namespaces:
+                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName='Delete all namespaces')
 
 
 

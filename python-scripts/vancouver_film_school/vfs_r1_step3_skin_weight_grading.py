@@ -1,17 +1,15 @@
 """
 
  GT Grading Script  - Script for automatically testing and grading assignments
+ Configured for: Rigging 1 - Skin Weights
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-13 - github.com/TrevisanGMW
-
 
 """
 import maya.cmds as cmds
 from datetime import datetime
-#import datetime
 from maya import OpenMayaUI as omui
 import maya.OpenMaya as om
 import os.path, time, re
-
 
 try:
     from shiboken2 import wrapInstance
@@ -33,14 +31,14 @@ script_name = 'GT - Grading Script'
 re_file_name = re.compile(r'(^\dD\d{3}\_\w+\_)(DeformationRig|Deformation|Skinning|SkinWeights)(_|.)')
 
 # Version
-script_version = '1.0';
+script_version = '1.0'
 
 # Grading Components
 gt_grading_components = { 0 : ['Organization & File Name', 10],
                           1 : ['Jaw & Head', 30],
                           2 : ['Upper Body & Fingers', 20],
                           3 : ['Lower Body, Legs & Feet', 20],
-                          4 : ['Symmetry & Smoothness', 20],
+                          4 : ['Symmetry & Smoothness', 20]
                         }
 
 # Common Notes
@@ -61,7 +59,7 @@ gt_grading_notes = { 0 : ['Volume issues', 'Some areas of the model are clearly 
                     14 : ['Random Influences', 'Some random vertices seem to be assigned incorrectly (Use ngSkinTools to avoid this)']
                    }
                    
-gt_grading_settings = { 'keyframes_interval' : 5, 
+gt_grading_settings = { 'keyframes_interval' : 5
                       }
 
 
@@ -77,20 +75,20 @@ wire_system_elements = ['left_upper_eyelashBaseWire','left_lower_eyelashBaseWire
 eye_mesh_elements = ['left_brow_geo','left_upperLash_geo','left_lowerLash_geo', \
                       'right_lowerLash_geo','right_upperLash_geo','right_brow_geo']
                       
-thumb_fingers = ['left_thumb1_jnt', 'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_end_jnt', \
-                'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_end_jnt']
+thumb_fingers = ['left_thumb1_jnt', 'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_endJnt', \
+                'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_endJnt']
                     
-index_fingers = ['left_index1_jnt', 'left_index2_jnt', 'left_index3_jnt', 'left_index_end_jnt', \
-                'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_end_jnt']
+index_fingers = ['left_index1_jnt', 'left_index2_jnt', 'left_index3_jnt', 'left_index_endJnt', \
+                'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_endJnt']
                     
-middle_fingers = ['left_middle1_jnt', 'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_end_jnt', \
-                'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_end_jnt']
+middle_fingers = ['left_middle1_jnt', 'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_endJnt', \
+                'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_endJnt']
                     
-ring_fingers = ['left_ring1_jnt', 'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_end_jnt', \
-                'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_end_jnt']
+ring_fingers = ['left_ring1_jnt', 'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_endJnt', \
+                'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_endJnt']
                     
-pinky_fingers = ['left_pinky1_jnt', 'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_end_jnt', \
-                'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_end_jnt']
+pinky_fingers = ['left_pinky1_jnt', 'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_endJnt', \
+                'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_endJnt']
                 
 spine_list = ['spine1_jnt', 'spine2_jnt', 'spine3_jnt']
 
@@ -103,22 +101,22 @@ feet_joints = ['left_ankle_jnt','right_ankle_jnt']
 feet_ball_joints = ['left_ball_jnt','right_ball_jnt']
 
 all_char_joints = ['root_jnt', 'spine1_jnt', 'spine2_jnt', 'spine3_jnt', 'spine4_jnt', \
-                   'neck1_jnt', 'neck2_jnt', 'head_jnt', 'head_end_jnt', 'jaw_jnt', 'jaw_end_jnt', \
+                   'neck1_jnt', 'neck2_jnt', 'head_jnt', 'head_endJnt', 'jaw_jnt', 'jaw_endJnt', \
                    'left_eye_jnt', 'right_eye_jnt', 'left_clavicle_jnt', 'left_shoulder_jnt', \
                    'left_elbow_jnt', 'left_wrist_jnt', 'left_thumb1_jnt', \
-                   'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_end_jnt', 'left_index1_jnt', \
-                   'left_index2_jnt', 'left_index3_jnt', 'left_index_end_jnt', 'left_middle1_jnt', \
-                   'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_end_jnt', 'left_ring1_jnt', \
-                   'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_end_jnt', 'left_pinky1_jnt', \
-                   'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_end_jnt', 'right_clavicle_jnt', \
+                   'left_thumb2_jnt', 'left_thumb3_jnt', 'left_thumb_endJnt', 'left_index1_jnt', \
+                   'left_index2_jnt', 'left_index3_jnt', 'left_index_endJnt', 'left_middle1_jnt', \
+                   'left_middle2_jnt', 'left_middle3_jnt', 'left_middle_endJnt', 'left_ring1_jnt', \
+                   'left_ring2_jnt', 'left_ring3_jnt', 'left_ring_endJnt', 'left_pinky1_jnt', \
+                   'left_pinky2_jnt', 'left_pinky3_jnt', 'left_pinky_endJnt', 'right_clavicle_jnt', \
                    'right_shoulder_jnt', 'right_elbow_jnt', 'right_wrist_jnt', \
-                   'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_end_jnt', \
-                   'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_end_jnt', \
-                   'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_end_jnt', \
-                   'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_end_jnt', \
-                   'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_end_jnt', \
-                   'left_hip_jnt', 'left_knee_jnt', 'left_ankle_jnt', 'left_ball_jnt', 'left_toe_end_jnt', \
-                   'right_hip_jnt', 'right_knee_jnt', 'right_ankle_jnt', 'right_ball_jnt', 'right_toe_end_jnt']
+                   'right_thumb1_jnt', 'right_thumb2_jnt', 'right_thumb3_jnt', 'right_thumb_endJnt', \
+                   'right_index1_jnt', 'right_index2_jnt', 'right_index3_jnt', 'right_index_endJnt', \
+                   'right_middle1_jnt', 'right_middle2_jnt', 'right_middle3_jnt', 'right_middle_endJnt', \
+                   'right_ring1_jnt', 'right_ring2_jnt', 'right_ring3_jnt', 'right_ring_endJnt', \
+                   'right_pinky1_jnt', 'right_pinky2_jnt', 'right_pinky3_jnt', 'right_pinky_endJnt', \
+                   'left_hip_jnt', 'left_knee_jnt', 'left_ankle_jnt', 'left_ball_jnt', 'left_toe_endJnt', \
+                   'right_hip_jnt', 'right_knee_jnt', 'right_ankle_jnt', 'right_ball_jnt', 'right_toe_endJnt']
                     
                     
 expected_objects = ['rootProxy_geo', 'spine1Proxy_geo', 'spine2Proxy_geo', 'spine3Proxy_geo', 'spine4Proxy_geo', \
@@ -150,9 +148,9 @@ brute_force_naming_dict = {'root_jnt' : [ [-0.000, 68.213, -0.000], [90.000, -29
                            'neck1_jnt' : [ [-0.000, 109.851, 0.917], [90.000, -10.685, 90.000], 2.7],
                            'neck2_jnt' : [ [-0.000, 114.569, 1.294], [90.000, 24.717, 90.000], 2.3],
                            'head_jnt' : [ [0.000, 119.812, -0.847], [90.000, -9.801, 90.000], 3.4],
-                           'head_end_jnt' : [ [0.000, 149.627, 4.304], [90.000, -9.801, 90.000], 10],
+                           'head_endJnt' : [ [0.000, 149.627, 4.304], [90.000, -9.801, 90.000], 10],
                            'jaw_jnt' : [ [-0.000, 127.082, -1.245], [-90.000, -55.636, -90.000], 4],
-                           'jaw_end_jnt' : [ [-0.000, 115.849, 13.552], [-90.000, -55.636, -90.000], 4.1],
+                           'jaw_endJnt' : [ [-0.000, 115.849, 13.552], [-90.000, -55.636, -90.000], 4.1],
                            'left_eye_jnt' : [ [6.432, 129.207, 8.149], [180.000, -90.000, 0.000], 4],
                            'right_eye_jnt' : [ [-6.432, 129.207, 8.149], [0.000, 90.000, 0.000], 4],
                            'right_clavicle_jnt' : [ [-3.923, 106.337, 4.045], [88.064, -26.863, 4.278], 4],
@@ -162,23 +160,23 @@ brute_force_naming_dict = {'root_jnt' : [ [-0.000, 68.213, -0.000], [90.000, -29
                            'right_thumb1_jnt' : [ [-34.790, 68.980, 0.959], [-21.795, 51.020, 121.460], small_radius],
                            'right_thumb2_jnt' : [ [-33.915, 67.550, 3.031], [-48.819, 38.623, 91.987], small_radius],
                            'right_thumb3_jnt' : [ [-33.857, 65.857, 4.385], [-54.746, 58.638, 92.780], small_radius],
-                           'right_thumb_end_jnt' : [ [-33.788, 64.447, 6.701], [-56.746, 58.638, 92.780], small_radius],
+                           'right_thumb_endJnt' : [ [-33.788, 64.447, 6.701], [-56.746, 58.638, 92.780], small_radius],
                            'right_pinky1_jnt' : [ [-37.726, 65.625, -1.365], [179.617, 6.299, 80.969], small_radius],
                            'right_pinky2_jnt' : [ [-38.166, 62.857, -1.055], [-175.501, 6.461, 89.944], small_radius],
                            'right_pinky3_jnt' : [ [-38.167, 61.505, -0.902], [-177.809, 5.631, 100.538], small_radius],
-                           'right_pinky_end_jnt' : [ [-37.930, 60.228, -0.774], [-177.809, 5.631, 100.538], small_radius],
+                           'right_pinky_endJnt' : [ [-37.930, 60.228, -0.774], [-177.809, 5.631, 100.538], small_radius],
                            'right_ring1_jnt' : [ [-38.012, 65.683, -0.033], [-179.774, 10.010, 77.555], small_radius],
                            'right_ring2_jnt' : [ [-38.687, 62.625, 0.520], [-174.803, 8.830, 90.955], small_radius],
                            'right_ring3_jnt' : [ [-38.656, 60.737, 0.813], [179.695, 9.448, 96.247], small_radius],
-                           'right_ring_end_jnt' : [ [-38.481, 59.135, 1.082], [173.695, 9.448, 96.247], small_radius],
+                           'right_ring_endJnt' : [ [-38.481, 59.135, 1.082], [173.695, 9.448, 96.247], small_radius],
                            'right_middle1_jnt' : [ [-37.562, 65.887, 1.311], [-175.674, 14.035, 66.650], small_radius],
                            'right_middle2_jnt' : [ [-38.933, 62.712, 2.176], [-174.291, 13.113, 83.605], small_radius],
                            'right_middle3_jnt' : [ [-39.163, 60.658, 2.657], [-176.819, 14.100, 93.782], small_radius],
-                           'right_middle_end_jnt' : [ [-39.059, 59.080, 3.054], [175.181, 14.100, 93.782], small_radius],
+                           'right_middle_endJnt' : [ [-39.059, 59.080, 3.054], [175.181, 14.100, 93.782], small_radius],
                            'right_index1_jnt' : [ [-37.144, 66.220, 2.815], [-172.814, 14.588, 68.191], small_radius],
                            'right_index2_jnt' : [ [-38.367, 63.161, 3.673], [-169.935, 13.883, 80.486], small_radius],
                            'right_index3_jnt' : [ [-38.626, 61.619, 4.059], [-175.316, 13.913, 88.718], small_radius],
-                           'right_index_end_jnt' : [ [-38.661, 60.044, 4.449], [169.684, 13.913, 88.718], small_radius],
+                           'right_index_endJnt' : [ [-38.661, 60.044, 4.449], [169.684, 13.913, 88.718], small_radius],
                            'left_clavicle_jnt' : [ [3.923, 106.337, 4.045], [-91.936, 26.863, -4.278], 4],
                            'left_shoulder_jnt' : [ [10.783, 106.827, 0.561], [-89.127, 13.006, -57.019], 4],
                            'left_elbow_jnt' : [ [22.068, 89.436, -4.228], [-89.071, -10.179, -61.621], 8],
@@ -186,33 +184,33 @@ brute_force_naming_dict = {'root_jnt' : [ [-0.000, 68.213, -0.000], [90.000, -29
                            'left_thumb1_jnt' : [ [34.790, 68.980, 0.959], [158.205, -51.020, -121.460], small_radius],
                            'left_thumb2_jnt' : [ [33.915, 67.550, 3.031], [131.181, -38.623, -91.987], small_radius],
                            'left_thumb3_jnt' : [ [33.857, 65.857, 4.385], [125.254, -58.638, -92.780], small_radius],
-                           'left_thumb_end_jnt' : [ [33.788, 64.447, 6.701], [123.254, -58.638, -92.780], small_radius],
+                           'left_thumb_endJnt' : [ [33.788, 64.447, 6.701], [123.254, -58.638, -92.780], small_radius],
                            'left_ring1_jnt' : [ [38.012, 65.683, -0.033], [0.226, -10.010, -77.555], small_radius],
                            'left_ring2_jnt' : [ [38.687, 62.625, 0.520], [5.197, -8.830, -90.955], small_radius],
                            'left_ring3_jnt' : [ [38.656, 60.737, 0.813], [-0.305, -9.448, -96.247], small_radius],
-                           'left_ring_end_jnt' : [ [38.481, 59.135, 1.082], [-6.305, -9.448, -96.247], small_radius],
+                           'left_ring_endJnt' : [ [38.481, 59.135, 1.082], [-6.305, -9.448, -96.247], small_radius],
                            'left_middle1_jnt' : [ [37.562, 65.887, 1.311], [4.326, -14.035, -66.650], small_radius],
                            'left_middle2_jnt' : [ [38.933, 62.712, 2.176], [5.709, -13.113, -83.605], small_radius],
                            'left_middle3_jnt' : [ [39.163, 60.658, 2.657], [3.181, -14.100, -93.782], small_radius],
-                           'left_middle_end_jnt' : [ [39.059, 59.080, 3.054], [-4.819, -14.100, -93.782], small_radius],
+                           'left_middle_endJnt' : [ [39.059, 59.080, 3.054], [-4.819, -14.100, -93.782], small_radius],
                            'left_index1_jnt' : [ [37.143, 66.220, 2.815], [7.186, -14.588, -68.191], small_radius],
                            'left_index2_jnt' : [ [38.367, 63.161, 3.673], [10.065, -13.883, -80.486], small_radius],
                            'left_index3_jnt' : [ [38.626, 61.619, 4.059], [4.684, -13.913, -88.718], small_radius],
-                           'left_index_end_jnt' : [ [38.661, 60.044, 4.449], [-10.316, -13.913, -88.718], small_radius],
+                           'left_index_endJnt' : [ [38.661, 60.044, 4.449], [-10.316, -13.913, -88.718], small_radius],
                            'left_pinky1_jnt' : [ [37.726, 65.625, -1.365], [-0.383, -6.299, -80.969], small_radius],
                            'left_pinky2_jnt' : [ [38.166, 62.857, -1.055], [4.499, -6.461, -89.944], small_radius],
                            'left_pinky3_jnt' : [ [38.167, 61.505, -0.902], [2.191, -5.631, -100.538], small_radius],
-                           'left_pinky_end_jnt' : [ [37.930, 60.228, -0.774], [2.191, -5.631, -100.538], small_radius],
+                           'left_pinky_endJnt' : [ [37.930, 60.228, -0.774], [2.191, -5.631, -100.538], small_radius],
                            'left_hip_jnt' : [ [8.826, 68.058, -1.733], [-90.000, -5.302, -90.000], 4.1],
                            'left_knee_jnt' : [ [6.958, 35.466, 1.292], [-90.000, 8.163, -90.000], 7],
                            'left_ankle_jnt' : [ [6.958, 5.028, -3.074], [-90.000, -52.476, -90.000], 3.5],
                            'left_ball_jnt' : [ [6.958, 1.110, 3.428], [-90.000, -88.477, -90.000], 2.7],
-                           'left_toe_end_jnt' : [ [6.958, -0.128, 10.301], [-90.000, -88.477, -90.000], 4.2],
+                           'left_toe_endJnt' : [ [6.958, -0.128, 10.301], [-90.000, -88.477, -90.000], 4.2],
                            'right_hip_jnt' : [ [-8.826, 68.058, -1.733], [90.000, 5.302, 90.000], 4.1],
                            'right_knee_jnt' : [ [-6.958, 35.466, 1.292], [90.000, -8.163, 90.000], 7],
                            'right_ankle_jnt' : [ [-6.958, 5.028, -3.074], [90.000, 52.476, 90.000], 3.5],
                            'right_ball_jnt' : [ [-6.958, 1.110, 3.428], [90.000, 88.477, 90.000], 2.7],
-                           'right_toe_end_jnt' : [ [-6.958, -0.128, 10.301], [90.000, 88.477, 90.000], 4.2]
+                           'right_toe_endJnt' : [ [-6.958, -0.128, 10.301], [90.000, 88.477, 90.000], 4.2]
                         }
 
 
@@ -237,7 +235,7 @@ def build_gui_gt_grader_script():
     # Body ====================
     checklist_spacing = 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1,10)], p=main_column)
-    cmds.text(l='This script was created for grading.\nIf used incorrectly it may irreversibly change in your scene.', align="center")
+    cmds.text(l='This script was created for grading.\nIf used incorrectly it may irreversibly change your scene.', align="center")
     cmds.separator(h=5, style='none') # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 65),(2, 270),(3, 65)], cs=[(1,10)], p=main_column)
     cmds.separator(h=10, style='none') # Empty Space
@@ -411,6 +409,15 @@ def build_gui_gt_grader_script():
     
     footer_buttons_color = [.51,.51,.51]
     
+    cmds.button(l='All Common Patches', h=30, bgc=footer_buttons_color, c=lambda args: apply_all_common())
+    cmds.button(l='Delete Display Layers', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_display_layers())
+    cmds.button(l='Delete Namespaces', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_namespaces())
+    
+    cmds.separator(h=5, style='none')
+    cmds.separator(h=5, style='none')
+    cmds.separator(h=5, style='none')
+    
+    
     cmds.button(l='Reset Viewport', h=30, bgc=footer_buttons_color, c=lambda args: reset_viewport())
     cmds.button(l='Reset Joint Sizes', h=30, bgc=footer_buttons_color, c=lambda args: reset_joint_sizes())
     cmds.button(l='Reset Transforms', h=30, bgc=footer_buttons_color, c=lambda args: reset_transforms())
@@ -422,7 +429,8 @@ def build_gui_gt_grader_script():
     
     cmds.button(l='Delete Control Rig', h=30, bgc=footer_buttons_color, c=lambda args: delete_control_rig())
     cmds.button(l='Delete All Keyframes', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_keyframes())
-    cmds.button(l='Reset "persp"', h=30, bgc=footer_buttons_color, c=lambda args: reset_persp_shape_attributes())
+    #cmds.button(l='Reset "persp"', h=30, bgc=footer_buttons_color, c=lambda args: reset_persp_shape_attributes())
+    cmds.button(l='Reload File', h=30, bgc=footer_buttons_color, c=lambda args: reload_file())
     
     cmds.separator(h=5, style='none')
     cmds.separator(h=5, style='none')
@@ -444,6 +452,80 @@ def build_gui_gt_grader_script():
     icon = QIcon(':/plusMinusAverage.svg')
     widget.setWindowIcon(icon)
     update_grade_output()
+    
+    
+    def apply_all_common():
+        ''' Run All Common Patches'''
+        
+        cmds.scrollField(output_scroll_field, e=True, clear=True) # Clean output window
+        output = ''
+        errors = ''
+        
+        try:
+            delete_all_namespaces()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All namespaces were deleted.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+        try:
+            delete_all_keyframes()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All keyframes were deleted.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+        try:
+            delete_all_display_layers()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Display layers were deleted..\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+        try:
+            #cmds.objectType(cmds.ls(selection=True)[0    
+            all_pconstraints = cmds.ls(type='parentConstraint') or []
+            if len(all_pconstraints) > 0:
+                cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All parent constraints were deleted.\n')  
+            for obj in all_pconstraints:
+                if cmds.objExists(obj):
+                    cmds.delete(obj)
+        except Exception as e:
+            errors = str(e) + '\n'
+                
+        try:
+            reset_viewport()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Viewport is reset.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+        try:
+            reset_transforms()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Transforms were reset.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+
+        try:
+            color_changed = False
+            all_joints = cmds.ls(type='joint')
+            for obj in all_joints:
+                    if 'root' in obj.lower() and cmds.objExists(obj):
+                        change_obj_color(obj, rgb_color=(1,1,0))
+                        color_changed = True
+            if color_changed:
+                cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Root was made yellow for visibility.\n')                 
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+            
+        if errors != '':
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it='\nSome errors were raised:\n' + errors)
+            cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+            
+        # Focus On Head Area
+        frame_object('spine2_jnt')
+        frame_object('spine2_Jnt')
+        frame_object('spine2Jnt')
+    
+    
     
     def run_check_operation(operation_name):
         ''' 
@@ -471,14 +553,26 @@ def build_gui_gt_grader_script():
         except Exception as exception:
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
     
-            
+      
     def open_file():
         ''' Invoke open file dialog for quickly loading other files '''
         multiple_filters = "Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;All Files (*.*)"
         file_path = cmds.fileDialog2(fileFilter=multiple_filters, dialogStyle=2, fm=1)
         if file_path is not None:
             cmds.file(file_path, open=True, force=True)
-            
+            reset_grades()
+    
+           
+    def reload_file():
+        ''' Reopens the opened file (to revert back any changes done to the file '''        
+        if cmds.file(query=True, exists=True): # Check to see if it was ever saved
+                    file_path = cmds.file(query=True, expandName=True)
+                    if file_path is not None:
+                        cmds.file(file_path, open=True, force=True)
+        else:
+            cmds.warning('File was never saved.')
+    
+      
     def reset_grades():
         ''' Resets all changes done to the script (for when switching between submissions) '''
         for note in gt_grading_notes:
@@ -504,10 +598,10 @@ def build_gui_gt_grader_script():
                 if cmds.objExists(obj):
                     if cmds.getAttr(obj + ".radius" ,lock=True) is False:
                         cmds.select(obj)
-                        myObj = cmds.ls(selection=True)[0]
+                        cmds.ls(selection=True)[0]
                         cmds.setAttr(obj + '.radius', desired_size)
-                        cmds.jointDisplayScale( 1 )
                         cmds.select(d=True)
+            cmds.jointDisplayScale(1)
         except Exception as exception:
             cmds.scrollField(output_scroll_field, e=True, clear=True)
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
@@ -523,7 +617,7 @@ def build_gui_gt_grader_script():
                     file_name = file_path.split('/')[-1]                    
                     extracted_name = re_file_name.findall(file_name) or []
                     if not len(extracted_name) >= 1:
-                        issues += 'File name doesn\'t seem to follow naming convention:\nFile name: "' + file_name + '".\n\n'
+                        issues += 'File name doesn\'t seem to follow the correct naming convention:\nFile name: "' + file_name + '".\n\n'
                     else:
                         issues = ''
         else:
@@ -617,7 +711,7 @@ def build_gui_gt_grader_script():
         
         result = cmds.promptDialog(
 		title='Due Date',
-		message='Please, provide a due date to calculate how many days it has been.\n(The script uses the last modified date on the file as the submission date.)\n\nFormat: "MM/DD" for example "05/15"',
+		message='Please, provide a due date to calculate the difference.\n(The script uses the last modified date on the file as the submission date.)\n\nFormat: "MM/DD" for example "05/15"',
 		button=['OK', 'Cancel'],
 		defaultButton='OK',
 		cancelButton='Cancel',
@@ -704,7 +798,7 @@ def build_gui_gt_grader_script():
                 cmds.modelEditor(each_panel, e=1, polymeshes=1)
                 cmds.modelEditor(each_panel, e=1, joints=1)
                 cmds.modelEditor(each_panel, e=1, jx=1)
-                cmds.modelEditor(each_panel, e=1, nurbsCurves=1)
+                cmds.modelEditor(each_panel, e=1, nurbsCurves=0)
                 cmds.modelEditor(each_panel, e=1, ikHandles=1)
                 cmds.modelEditor(each_panel, e=1, locators=1)
                 cmds.modelEditor(each_panel, e=1, grid=1)
@@ -715,9 +809,11 @@ def build_gui_gt_grader_script():
                 cmds.DisplayShadedAndTextured()
                 set_display_layers_visibility(True)
                 set_display_layers_type(0)
+                reset_persp_shape_attributes()
         except Exception as exception:
             cmds.scrollField(output_scroll_field, e=True, clear=True)
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
+
 
     def brute_force_naming():
         '''
@@ -725,8 +821,20 @@ def build_gui_gt_grader_script():
         This function uses another function called "is_point_inside_mesh", which can be found below
         '''
         all_joints = cmds.ls(type='joint', long=True)
+        errors = '' # There
+        
+        #if errors != '':
+        #    cmds.scrollField(output_scroll_field, e=True, ip=0, it='Some errors happened during the checking operations:\n' + errors)
+        #    cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+        
+        #except Exception as e:
+        #            search_delete_temp_meshes('ray_tracing_obj_')
+        #            errors += str(e)
+        
+        
         to_rename = []
         for obj in brute_force_naming_dict:
+            #try: ============================== search_delete_temp_meshes('ray_tracing_obj_')  INSERT TRY ERRORS HERE
             ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
             cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
             cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
@@ -746,7 +854,6 @@ def build_gui_gt_grader_script():
             
         sorted_pairs_to_rename = sorted(pipe_pairs_to_rename, key=lambda x: x[0], reverse=True)
 
-        errors = ''
                 
         for pair in sorted_pairs_to_rename:
             if cmds.objExists(pair[1][0]):
@@ -786,8 +893,6 @@ def delete_control_rig():
     '''
     Delete the control rig out of the betty rig 
     
-            Parameters:
-                obj_list (list): A list of objects (strings) to be unparented
     '''
     
     # Check for wire system
@@ -822,13 +927,23 @@ def delete_control_rig():
             cmds.select(obj)
             deletion_container = cmds.ls(selection=True)[0]
             cmds.delete(deletion_container)
+    
+    cmds.select(d=True)
             
     print(' ')
     
 
 def delete_all_keyframes():
     '''Deletes all nodes of the type "animCurveTA" (keyframes)'''
-    all_keyframes = cmds.ls(type='animCurveTA')
+    keys_ta = cmds.ls(type='animCurveTA')
+    keys_tl = cmds.ls(type='animCurveTL')
+    keys_tt = cmds.ls(type='animCurveTT')
+    keys_tu = cmds.ls(type='animCurveTU')
+    #keys_ul = cmds.ls(type='animCurveUL')
+    #keys_ua = cmds.ls(type='animCurveUA')
+    #keys_ut = cmds.ls(type='animCurveUT')
+    #keys_uu = cmds.ls(type='animCurveUU')
+    all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
     for obj in all_keyframes:
         try:
             cmds.delete(obj)
@@ -837,7 +952,7 @@ def delete_all_keyframes():
             
             
 def reset_transforms():
-    '''Deletes all nodes of the type "animCurveTA" (keyframes) and "mesh" (geometry, polygons)'''
+    '''Reset all transforms for the skinning scene'''
     all_joints = cmds.ls(type='joint')
     all_meshes = cmds.ls(type='mesh')
     
@@ -954,7 +1069,6 @@ def frame_object(obj):
     '''
     
     if cmds.objExists(obj):
-        print(obj)
         cmds.select(obj)
         cmds.FrameSelectedWithoutChildren()
         cmds.select(d=True) 
@@ -1137,7 +1251,6 @@ def upper_body_fingers():
         ring_fingers_offset = middle_fingers_offset + middle_fingers_offset
         pinky_fingers_offset = ring_fingers_offset + middle_fingers_offset
         wait_before_arm_offset = 2
-        cmds.playbackOptions(minTime=0, max = keyframes_interval * 14)
         
         # Key Thumb Fingers
         keyframe_list(thumb_fingers, 15, 'rotateZ', (keyframes_interval * 2))
@@ -1473,6 +1586,84 @@ def extract_brute_force_dict():
         extraction_string += 'radius],'
         print(extraction_string)
 
+def search_delete_temp_meshes(starts_with):
+    '''
+    Deletes any mesh that starts with the provided string
+            
+            Parameters:
+                    starts_with (string): String the temp mesh starts with
+                        
+    '''
+    all_meshes = cmds.ls(type='mesh')
+
+    for obj in all_meshes:
+        mesh_transform = ''
+        mesh_transform_extraction = cmds.listRelatives(obj, allParents=True) or []
+        if len(mesh_transform_extraction) > 0:
+            mesh_transform = mesh_transform_extraction[0]
+            
+        try:
+            if mesh_transform.startswith(starts_with) and cmds.objExists(mesh_transform):
+                cmds.delete(mesh_transform)
+        except:
+            pass
+            
+            
+def delete_all_namespaces():
+    '''Deletes all namespaces in the scene'''
+    cmds.undoInfo(openChunk=True, chunkName='Delete all namespaces')
+    try:
+        default_namespaces = ['UI', 'shared']
+
+        def num_children(namespace):
+            '''Used as a sort key, this will sort namespaces by how many children they have.'''
+            return namespace.count(':')
+
+        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
+        
+        # Reverse List
+        namespaces.sort(key=num_children, reverse=True) # So it does the children first
+
+        print(namespaces)
+
+        for namespace in namespaces:
+            if namespace not in default_namespaces:
+                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName='Delete all namespaces')
+        
+
+def change_obj_color(obj, rgb_color=(1,1,1)):
+    '''
+    Changes the color of an object by changing the drawing override settings
+            
+            Parameters:
+                    obj (string): Name of the object to change color
+                    rgb_color (tuple): RGB color 
+                        
+    '''
+    try:
+        if cmds.objExists(obj) and cmds.getAttr(obj + '.overrideEnabled', lock=True) is False:
+            cmds.setAttr(obj + ".overrideEnabled", 1)
+            cmds.setAttr(obj + ".overrideRGBColors", 1) 
+            cmds.setAttr(obj + ".overrideColorRGB", rgb_color[0], rgb_color[1], rgb_color[2]) 
+    except Exception as e:
+        raise e
+        
+        
+def delete_all_display_layers():
+    ''' Deletes all display layers '''
+    try:
+        display_layers = cmds.ls(type = 'displayLayer')
+        for layer in display_layers:
+            if layer != 'defaultLayer':
+                cmds.delete(layer)
+    except:
+        pass
+
+        
 
 #Build GUI
 if __name__ == '__main__':
