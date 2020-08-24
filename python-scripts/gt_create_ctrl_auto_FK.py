@@ -26,6 +26,9 @@
  Changed settings management to a dictionary
  Made the color for the custom curve button update when used
  
+ 1.6 - 2020-08-24
+ Added an undo chunk for the generate fk portion
+ 
 """
 import maya.cmds as cmds
 import copy
@@ -46,7 +49,7 @@ except ImportError:
 script_name = "GT - Auto FK"
 
 # Version:
-script_version = "1.5"
+script_version = "1.6"
 
 
 # Custom Curve Dictionary
@@ -61,7 +64,7 @@ gt_auto_fk_settings = { 'using_custom_curve': False,
                         'string_ctrl_grp_suffix' : '_ctrlGrp',
                         'string_joint_suffix' : '_jnt',
                         'curve_radius' : '1.0',
-                        'undesired_strings' : 'end, eye',
+                        'undesired_strings' : 'endJnt, eye',
                         'error_message' : 'Errors detected during creation. Open the script editor to see details.'
                       }
 
@@ -245,11 +248,11 @@ def build_gui_auto_fk():
     cmds.text("Control Tag:")
     cmds.text("Control Grp Tag:")
     joint_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_joint_suffix'), \
-                                          enterCommand=lambda x:generate_FK_controls(),\
+                                          enterCommand=lambda x:generate_fk_controls(),\
                                           cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_joint_suffix', cmds.textField(joint_tag_text_field, q=True, text=True)))
-    ctrl_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_suffix'), enterCommand=lambda x:generate_FK_controls(),\
+    ctrl_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_suffix'), enterCommand=lambda x:generate_fk_controls(),\
                                           cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_ctrl_suffix', cmds.textField(ctrl_tag_text_field, q=True, text=True)))
-    ctrl_grp_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_grp_suffix'), enterCommand=lambda x:generate_FK_controls(),\
+    ctrl_grp_tag_text_field = cmds.textField(text = gt_auto_fk_settings.get('string_ctrl_grp_suffix'), enterCommand=lambda x:generate_fk_controls(),\
                                           cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_string_ctrl_grp_suffix', cmds.textField(ctrl_grp_tag_text_field, q=True, text=True)))
        
 
@@ -259,129 +262,136 @@ def build_gui_auto_fk():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text(label='Ignore Joints Containing These Strings:' )
     cmds.rowColumnLayout( nc=1, cw=[(1, 245)], cs=[(1, 5)], p=body_column)
-    undesired_strings_text_field = cmds.textField(text=gt_auto_fk_settings.get('undesired_strings'), enterCommand=lambda x:generate_FK_controls(),\
+    undesired_strings_text_field = cmds.textField(text=gt_auto_fk_settings.get('undesired_strings'), enterCommand=lambda x:generate_fk_controls(),\
                                    cc=lambda x:set_persistent_settings_auto_fk('gt_auto_fk_undesired_strings', cmds.textField(undesired_strings_text_field, q=True, text=True)))
     cmds.rowColumnLayout( nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.text(label='(Use Commas to Separate Strings)' )
     cmds.separator(h=5, style='none') # Empty Space
     cmds.separator(h=10)
     cmds.separator(h=10, style='none') # Empty Space
-    cmds.button(l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_FK_controls())
+    cmds.button(l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_fk_controls())
     cmds.separator(h=10, style='none') # Empty Space
     
     # Generate FK Main Function Starts --------------------------------------------
-    def generate_FK_controls():
+    def generate_fk_controls():
         '''
         Generate FK Controls. 
         This is the main function of this script. It will create a curve, and according to the settings use it as a control for the selected joint.
         '''
-        errors = ''
-        ctrl_curve_radius = cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, q=True, value=True)
-        selected_joints = cmds.ls(selection=True, type='joint', long=True)
-        if cmds.checkBoxGrp(check_boxes_two, q=True, value2=True):
-            cmds.select(hierarchy=True)
-            selected_joints = cmds.ls(selection=True, type='joint', long=True)
-        ctrl_tag = parse_text_field(cmds.textField(ctrl_tag_text_field, q=True, text=True))[0]
-        ctrl_grp_tag = parse_text_field(cmds.textField(ctrl_grp_tag_text_field, q=True, text=True))[0]
-        joint_tag = parse_text_field(cmds.textField(joint_tag_text_field, q=True, text=True))[0]
-        undesired_jnt_strings = parse_text_field(cmds.textField(undesired_strings_text_field, q=True, text=True))
-        undesired_joints = []
         
-        # Find undesired joints and make a list of them
-        for jnt in selected_joints: 
-            for string in undesired_jnt_strings:
-                if string in get_short_name(jnt):
-                    undesired_joints.append(jnt)
+        cmds.undoInfo(openChunk=True, chunkName='Auto Generate FK Ctrls')
+        try:
+            errors = ''
+            ctrl_curve_radius = cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, q=True, value=True)
+            selected_joints = cmds.ls(selection=True, type='joint', long=True)
+            if cmds.checkBoxGrp(check_boxes_two, q=True, value2=True):
+                cmds.select(hierarchy=True)
+                selected_joints = cmds.ls(selection=True, type='joint', long=True)
+            ctrl_tag = parse_text_field(cmds.textField(ctrl_tag_text_field, q=True, text=True))[0]
+            ctrl_grp_tag = parse_text_field(cmds.textField(ctrl_grp_tag_text_field, q=True, text=True))[0]
+            joint_tag = parse_text_field(cmds.textField(joint_tag_text_field, q=True, text=True))[0]
+            undesired_jnt_strings = parse_text_field(cmds.textField(undesired_strings_text_field, q=True, text=True))
+            undesired_joints = []
+            
+            # Find undesired joints and make a list of them
+            for jnt in selected_joints: 
+                for string in undesired_jnt_strings:
+                    if string in get_short_name(jnt):
+                        undesired_joints.append(jnt)
 
-        # Remove undesired joints from selection list
-        for jnt in undesired_joints:
-            if jnt in undesired_joints:
-                selected_joints.remove(jnt)
+            # Remove undesired joints from selection list
+            for jnt in undesired_joints:
+                if jnt in undesired_joints:
+                    selected_joints.remove(jnt)
 
 
-        for jnt in selected_joints:
-            if len(joint_tag) != 0:
-                joint_name = get_short_name(jnt).replace(joint_tag,'')
-            else:
-                joint_name = get_short_name(jnt)
-            ctrl_name = joint_name + ctrl_tag
-            ctrlgrp_name = joint_name + ctrl_grp_tag
+            for jnt in selected_joints:
+                if len(joint_tag) != 0:
+                    joint_name = get_short_name(jnt).replace(joint_tag,'')
+                else:
+                    joint_name = get_short_name(jnt)
+                ctrl_name = joint_name + ctrl_tag
+                ctrlgrp_name = joint_name + ctrl_grp_tag
 
 
-            if gt_auto_fk_settings.get("using_custom_curve"):
-                ctrl = create_custom_curve(gt_auto_fk_settings.get("custom_curve"))
-                
-                try:
-                    ctrl = [cmds.rename(ctrl, ctrl_name)]
-                except:
-                    ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
-                
-                if gt_auto_fk_settings.get("failed_to_build_curve"):
+                if gt_auto_fk_settings.get("using_custom_curve"):
+                    ctrl = create_custom_curve(gt_auto_fk_settings.get("custom_curve"))
+                    
+                    try:
+                        ctrl = [cmds.rename(ctrl, ctrl_name)]
+                    except:
+                        ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
+                    
+                    if gt_auto_fk_settings.get("failed_to_build_curve"):
+                        ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
+                        
+                else:
                     ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
                     
-            else:
-                ctrl = cmds.circle(name=ctrl_name, normal=[1,0,0], radius=ctrl_curve_radius, ch=False) # Default Circle Curve
                 
-            
-            grp = cmds.group(name=ctrlgrp_name, empty=True)
-            try:
-                cmds.parent(ctrl, grp)
-                constraint = cmds.parentConstraint(jnt, grp)
-                cmds.delete(constraint)
-            except Exception as e:
-                    errors = errors + str(e)
-            
-
-            # Colorize Control Start ------------------
-
-            if cmds.checkBoxGrp(check_boxes_two, q=True, value1=True):
+                grp = cmds.group(name=ctrlgrp_name, empty=True)
                 try:
-                    cmds.setAttr(ctrl[0] + ".overrideEnabled", 1)
-                    if ctrl[0].lower().startswith('right_') or ctrl[0].lower().startswith('r_'):
-                        cmds.setAttr(ctrl[0] + ".overrideColor", 13) #Red
-                    elif ctrl[0].lower().startswith('left_') or ctrl[0].lower().startswith('l_'):
-                        cmds.setAttr(ctrl[0] + ".overrideColor", 6) #Blue
-                    else:
-                        cmds.setAttr(ctrl[0] + ".overrideColor", 17) #Yellow
+                    cmds.parent(ctrl, grp)
+                    constraint = cmds.parentConstraint(jnt, grp)
+                    cmds.delete(constraint)
                 except Exception as e:
-                    errors = errors + str(e)
+                        errors = errors + str(e)
+                
 
+                # Colorize Control Start ------------------
 
-            # Colorize Control End ---------------------
-            
-            # Constraint Joint
-            if cmds.checkBoxGrp(check_boxes_one, q=True, value2=True):
-                try:
-                    cmds.parentConstraint(ctrl_name,jnt)
-                except Exception as e:
-                    errors = errors + str(e) + '\n'
-            
-            # Mimic Hierarchy
-            if cmds.checkBoxGrp(check_boxes_one, q=True, value1=True):
-                try:
-                    #Auto parents new controls
-                    # "or []" Accounts for root joint that doesn't have a parent, it forces it to be a list
-                    jnt_parent = cmds.listRelatives(jnt, allParents=True) or []
-                    if len(jnt_parent) == 0:
-                        pass
-                    else:
-                        
-                        if len(joint_tag) != 0:
-                            parent_ctrl = (jnt_parent[0].replace(joint_tag,"") + ctrl_tag)
+                if cmds.checkBoxGrp(check_boxes_two, q=True, value1=True):
+                    try:
+                        cmds.setAttr(ctrl[0] + ".overrideEnabled", 1)
+                        if ctrl[0].lower().startswith('right_') or ctrl[0].lower().startswith('r_'):
+                            cmds.setAttr(ctrl[0] + ".overrideColor", 13) #Red
+                        elif ctrl[0].lower().startswith('left_') or ctrl[0].lower().startswith('l_'):
+                            cmds.setAttr(ctrl[0] + ".overrideColor", 6) #Blue
                         else:
-                            parent_ctrl = (jnt_parent[0] + ctrl_tag)
-                        
-                        if cmds.objExists(parent_ctrl):
-                            cmds.parent(grp, parent_ctrl)
-                except Exception as e:
-                    errors = errors + str(e) + '\n'
-            
-        # Print Errors if necessary            
-        if errors != '':
-            print('#' * 80)
-            print(errors)
-            print('#' * 80)
-            cmds.warning(gt_auto_fk_settings.get('error_message'))
+                            cmds.setAttr(ctrl[0] + ".overrideColor", 17) #Yellow
+                    except Exception as e:
+                        errors = errors + str(e)
+
+
+                # Colorize Control End ---------------------
+                
+                # Constraint Joint
+                if cmds.checkBoxGrp(check_boxes_one, q=True, value2=True):
+                    try:
+                        cmds.parentConstraint(ctrl_name,jnt)
+                    except Exception as e:
+                        errors = errors + str(e) + '\n'
+                
+                # Mimic Hierarchy
+                if cmds.checkBoxGrp(check_boxes_one, q=True, value1=True):
+                    try:
+                        #Auto parents new controls
+                        # "or []" Accounts for root joint that doesn't have a parent, it forces it to be a list
+                        jnt_parent = cmds.listRelatives(jnt, allParents=True) or []
+                        if len(jnt_parent) == 0:
+                            pass
+                        else:
+                            
+                            if len(joint_tag) != 0:
+                                parent_ctrl = (jnt_parent[0].replace(joint_tag,"") + ctrl_tag)
+                            else:
+                                parent_ctrl = (jnt_parent[0] + ctrl_tag)
+                            
+                            if cmds.objExists(parent_ctrl):
+                                cmds.parent(grp, parent_ctrl)
+                    except Exception as e:
+                        errors = errors + str(e) + '\n'
+                
+            # Print Errors if necessary            
+            if errors != '':
+                print('#' * 80)
+                print(errors)
+                print('#' * 80)
+                cmds.warning(gt_auto_fk_settings.get('error_message'))
+        except Exception as e:
+            cmds.warning(str(e))
+        finally:
+            cmds.undoInfo(closeChunk=True, chunkName='Auto Generate FK Ctrls')
                 
     # Generate FK Main Function Ends --------------------------------------------
     
