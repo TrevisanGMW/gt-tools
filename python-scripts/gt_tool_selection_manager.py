@@ -110,12 +110,12 @@ def build_gui_selection_manager():
     
     # Element Name Textbox
     cmds.rowColumnLayout(nc=3, cw=[(1, 110),(2, 10),(3, 110)], cs=[(1,0),(2, 0),(2, 0)])
-    contains_name_text_field = cmds.textField(text="Jnt", en=False, \
+    contains_name_text_field = cmds.textField(text="_jnt", en=False, \
                                            enterCommand=lambda x:update_stored_values_and_run())
                                            
     cmds.separator(h=10, style='none')  # Empty Space
     
-    contains_no_name_text_field = cmds.textField(text="End, eye", en=False, \
+    contains_no_name_text_field = cmds.textField(text="endJnt, eye", en=False, \
                                            enterCommand=lambda x:update_stored_values_and_run())
                                            
     cmds.separator(h=10, style='none')  # Empty Space
