@@ -713,7 +713,7 @@ def build_gui_gt_grader_script():
                             ignore_crv = False
                             if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
                                 for string in brute_force_ctrl_naming_dict.get(obj)[3]:
-                                    if string in jnt:
+                                    if string in crv:
                                         ignore_crv = True
                             
                             if is_crv_inside and get_short_name(crv_transform[0]) != obj and ignore_crv is False:
@@ -943,7 +943,7 @@ def build_gui_gt_grader_script():
                         ignore_crv = False
                         if len(brute_force_ctrl_naming_dict.get(obj)) == 4:
                             for string in brute_force_ctrl_naming_dict.get(obj)[3]:
-                                if string in jnt:
+                                if string in crv:
                                     ignore_crv = True
                         
                         if is_crv_inside and get_short_name(crv_transform[0]) != obj  and ignore_crv is False:
