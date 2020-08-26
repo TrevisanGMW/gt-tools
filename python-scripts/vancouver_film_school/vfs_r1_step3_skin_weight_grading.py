@@ -1,7 +1,7 @@
 """
 
  GT Grading Script  - Script for automatically testing and grading assignments
- Configured for: Rigging 1 - Skin Weights
+ Configured for: Rigging 1 - Skin Weights (Assignment 1.2)
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-13 - github.com/TrevisanGMW
 
 """
@@ -9,7 +9,9 @@ import maya.cmds as cmds
 from datetime import datetime
 from maya import OpenMayaUI as omui
 import maya.OpenMaya as om
-import os.path, time, re
+import os.path
+import time
+import re
 
 try:
     from shiboken2 import wrapInstance
@@ -141,22 +143,22 @@ expected_objects = ['rootProxy_geo', 'spine1Proxy_geo', 'spine2Proxy_geo', 'spin
 # Dict { joint_name : [position, rotation, radius]
 small_radius = 1.2
 brute_force_naming_dict = {'root_jnt' : [ [-0.000, 68.213, -0.000], [90.000, -29.914, 90.000], 5],
-                           'spine1_jnt' : [ [-0.000, 74.642, 3.699], [90.000, -13.143, 90.000], 4.5],
-                           'spine2_jnt' : [ [0.000, 82.788, 5.753], [90.000, -4.753, 90.000], 4.45],
-                           'spine3_jnt' : [ [0.000, 89.744, 6.318], [90.000, 9.432, 90.000], 3.5],
-                           'spine4_jnt' : [ [0.000, 97.788, 4.736], [90.000, 14.487, 90.000], 5.5],
+                           'spine1_jnt' : [ [-0.000, 74.642, 3.699], [90.000, -13.143, 90.000], 4.5, ['spine2', 'spine3', 'spine4'] ],
+                           'spine2_jnt' : [ [0.000, 82.788, 5.753], [90.000, -4.753, 90.000], 4.45, ['spine1', 'spine3', 'spine4'] ],
+                           'spine3_jnt' : [ [0.000, 89.744, 6.318], [90.000, 9.432, 90.000], 3.5, ['spine2', 'spine1', 'spine4'] ],
+                           'spine4_jnt' : [ [0.000, 97.788, 4.736], [90.000, 14.487, 90.000], 5.5, ['spine2', 'spine3', 'spine1'] ],
                            'neck1_jnt' : [ [-0.000, 109.851, 0.917], [90.000, -10.685, 90.000], 2.7],
                            'neck2_jnt' : [ [-0.000, 114.569, 1.294], [90.000, 24.717, 90.000], 2.3],
-                           'head_jnt' : [ [0.000, 119.812, -0.847], [90.000, -9.801, 90.000], 3.4],
+                           'head_jnt' : [ [0.000, 119.812, -0.847], [90.000, -9.801, 90.000], 3.4, ['jaw'] ],
                            'head_endJnt' : [ [0.000, 149.627, 4.304], [90.000, -9.801, 90.000], 10],
-                           'jaw_jnt' : [ [-0.000, 127.082, -1.245], [-90.000, -55.636, -90.000], 4],
+                           'jaw_jnt' : [ [-0.000, 127.082, -1.245], [-90.000, -55.636, -90.000], 4, ['head'] ],
                            'jaw_endJnt' : [ [-0.000, 115.849, 13.552], [-90.000, -55.636, -90.000], 4.1],
                            'left_eye_jnt' : [ [6.432, 129.207, 8.149], [180.000, -90.000, 0.000], 4],
                            'right_eye_jnt' : [ [-6.432, 129.207, 8.149], [0.000, 90.000, 0.000], 4],
                            'right_clavicle_jnt' : [ [-3.923, 106.337, 4.045], [88.064, -26.863, 4.278], 4],
                            'right_shoulder_jnt' : [ [-10.783, 106.827, 0.561], [90.873, -13.006, 57.019], 4],
                            'right_elbow_jnt' : [ [-22.068, 89.436, -4.228], [90.929, 10.179, 61.621], 8],
-                           'right_wrist_jnt' : [ [-33.983, 71.527, -0.253], [95.569, 4.904, 60.188], 1.7],
+                           'right_wrist_jnt' : [ [-33.983, 71.527, -0.253], [95.569, 4.904, 60.188], 1.7, ['thumb'] ],
                            'right_thumb1_jnt' : [ [-34.790, 68.980, 0.959], [-21.795, 51.020, 121.460], small_radius],
                            'right_thumb2_jnt' : [ [-33.915, 67.550, 3.031], [-48.819, 38.623, 91.987], small_radius],
                            'right_thumb3_jnt' : [ [-33.857, 65.857, 4.385], [-54.746, 58.638, 92.780], small_radius],
@@ -475,7 +477,7 @@ def build_gui_gt_grader_script():
         
         try:
             delete_all_display_layers()
-            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Display layers were deleted..\n')
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All display layers were deleted..\n')
         except Exception as e:
             errors = str(e) + '\n'
         
@@ -487,6 +489,26 @@ def build_gui_gt_grader_script():
             for obj in all_pconstraints:
                 if cmds.objExists(obj):
                     cmds.delete(obj)
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+            
+        try:
+            unsubdivide_geometries()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All meshes were unsubdivided.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+        
+        try:
+            if cmds.objExists('left_pupil_geo') and cmds.objExists('right_pupil_geo'):
+                apply_simple_checker_shader(["left_pupil_geo", "right_pupil_geo"])
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Eye shader was applied.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
+        try:
+            cmds.currentTime(0)
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - Timeline was reset back to zero.\n')
         except Exception as e:
             errors = str(e) + '\n'
                 
@@ -597,11 +619,41 @@ def build_gui_gt_grader_script():
             for obj in all_joints:
                 if cmds.objExists(obj):
                     if cmds.getAttr(obj + ".radius" ,lock=True) is False:
-                        cmds.select(obj)
-                        cmds.ls(selection=True)[0]
-                        cmds.setAttr(obj + '.radius', desired_size)
-                        cmds.select(d=True)
+                        cmds.setAttr(obj + '.radius', 1)
+                        change_obj_color(obj ,rgb_color=(.4,0,.4))
+                        if 'thumb' in obj or 'index' in obj or 'middle' in obj or 'ring' in obj or 'pinky' in obj or 'wrist' in obj or 'neck' in obj:
+                            cmds.setAttr(obj + '.radius', .3)
+                            
+                        if 'root' in obj:
+                            cmds.setAttr(obj + '.radius', 3)
+                            
+                        if 'head_jnt' in obj:
+                            cmds.setAttr(obj + '.radius', .1)
+                        
+                        if 'eye' in obj:
+                            cmds.setAttr(obj + '.radius', 5)
+                        
+                        if 'index' in obj or 'ring' in obj:
+                            change_obj_color(obj ,rgb_color=(1,0,0))
+                        elif 'middle' in obj or 'pinky' in obj or 'thumb' in obj or 'clavicle' in obj or 'jaw' in obj or 'ankle' in obj:
+                            change_obj_color(obj ,rgb_color=(0,1,0))
+                        elif 'eye' in obj:
+                            change_obj_color(obj ,rgb_color=(1,1,1))
+                        
+                        if 'endJnt' in obj:
+                            change_obj_color(obj ,rgb_color=(1,0,0))
+                        
+                    if cmds.getAttr(obj + ".v" ,lock=True) is False:
+                        cmds.setAttr(obj + '.v', 1)   
             cmds.jointDisplayScale(1)
+            # for obj in all_joints:
+            #     if cmds.objExists(obj):
+            #         if cmds.getAttr(obj + ".radius" ,lock=True) is False:
+            #             cmds.select(obj)
+            #             cmds.ls(selection=True)[0]
+            #             cmds.setAttr(obj + '.radius', desired_size)
+            #             cmds.select(d=True)
+            # cmds.jointDisplayScale(1)
         except Exception as exception:
             cmds.scrollField(output_scroll_field, e=True, clear=True)
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
@@ -814,47 +866,68 @@ def build_gui_gt_grader_script():
             cmds.scrollField(output_scroll_field, e=True, clear=True)
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
 
-
     def brute_force_naming():
         '''
-        Goes through the dictionary "brute_force_naming_dict" and automatically renames objects that are within the provided radius of a point.
+        Goes through the dictionary "brute_force_joint_naming_dict" and automatically renames objects that are within the provided radius of a point.
         This function uses another function called "is_point_inside_mesh", which can be found below
+        
+        Uses the function "search_delete_temp_meshes(starts_with)" to delete meshes during exceptions.
+        
         '''
-        all_joints = cmds.ls(type='joint', long=True)
-        errors = '' # There
-        
-        #if errors != '':
-        #    cmds.scrollField(output_scroll_field, e=True, ip=0, it='Some errors happened during the checking operations:\n' + errors)
-        #    cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
-        
-        #except Exception as e:
-        #            search_delete_temp_meshes('ray_tracing_obj_')
-        #            errors += str(e)
-        
-        
         to_rename = []
+        errors = '' 
+        
+        # Ctrls
+        all_joints = cmds.ls(type='joint', long=True)
         for obj in brute_force_naming_dict:
-            #try: ============================== search_delete_temp_meshes('ray_tracing_obj_')  INSERT TRY ERRORS HERE
-            ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
-            cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
-            cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
+            if type(brute_force_naming_dict.get(obj)[2]) is tuple:
+                new_scale = brute_force_naming_dict.get(obj)[2]
+                ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=1, sx=8, sy=8, ch=False, cuv=False)
+                if cmds.objExists(ray_tracing_obj[0]):
+                    cmds.setAttr(ray_tracing_obj[0] + '.scaleX', new_scale[0])
+                    cmds.setAttr(ray_tracing_obj[0] + '.scaleY', new_scale[1])
+                    cmds.setAttr(ray_tracing_obj[0] + '.scaleZ', new_scale[2])
+            else:
+                ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
+                cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
+                cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
             cmds.xform(ray_tracing_obj, a=True, ro=brute_force_naming_dict.get(obj)[1] )
             cmds.xform(ray_tracing_obj, a=True, t=brute_force_naming_dict.get(obj)[0] )
-            for jnt in all_joints:
-                jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
-                is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
-                if is_joint_inside and get_short_name(jnt) != obj :
-                    to_rename.append([jnt, obj])
-            cmds.delete(ray_tracing_obj)
             
-                
+            for jnt in all_joints:
+                try:
+                    #jnt_transform = cmds.listRelatives(jnt, allParents=True, f=True) or []
+                    #if len(jnt_transform) > 0:
+                    jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
+                    is_jnt_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
+                                            
+                    ignore_jnt = False
+                    if len(brute_force_naming_dict.get(obj)) == 4: # Undesired Strings
+                        for string in brute_force_naming_dict.get(obj)[3]:
+                            if string in get_short_name(jnt):
+                                ignore_jnt = True
+                    
+                    if len(brute_force_naming_dict.get(obj)) == 5: # Undesired Parent
+                        jnt_transform_parent = cmds.listRelatives(jnt, allParents=True, f=True) or []
+                        if len(jnt_transform_parent) > 0:
+                            for string in brute_force_naming_dict.get(obj)[4]:
+                                if string in get_short_name(jnt_transform_parent[0]):
+                                    ignore_jnt = True
+                                
+                    if is_jnt_inside and get_short_name(jnt) != obj and ignore_jnt is False:
+                        to_rename.append([jnt, obj])
+                except Exception as e:
+                    errors += str(e) + '\n'
+            cmds.delete(ray_tracing_obj)
+
+        # Sort it based on how many parents it has
         pipe_pairs_to_rename = []
         for obj in to_rename:
             pipe_pairs_to_rename.append([len(obj[0].split('|')), obj])
             
         sorted_pairs_to_rename = sorted(pipe_pairs_to_rename, key=lambda x: x[0], reverse=True)
 
-                
+        # Rename sorted pairs   
         for pair in sorted_pairs_to_rename:
             if cmds.objExists(pair[1][0]):
                 try:
@@ -862,8 +935,60 @@ def build_gui_gt_grader_script():
                 except Exception as exception:
                     errors = errors + '"' + str(pair[1][1]) + '" : "' + exception[0].rstrip("\n") + '".\n'
         if errors != '':
+                search_delete_temp_meshes('ray_tracing_obj_')
                 cmds.scrollField(output_scroll_field, e=True, clear=True)
-                cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
+                cmds.scrollField(output_scroll_field, e=True, ip=0, it='Some errors were raised:\n' + errors)
+                cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+                
+    # def brute_force_naming():
+    #     '''
+    #     Goes through the dictionary "brute_force_naming_dict" and automatically renames objects that are within the provided radius of a point.
+    #     This function uses another function called "is_point_inside_mesh", which can be found below
+    #     '''
+    #     all_joints = cmds.ls(type='joint', long=True)
+    #     errors = '' # There
+        
+    #     #if errors != '':
+    #     #    cmds.scrollField(output_scroll_field, e=True, ip=0, it='Some errors happened during the checking operations:\n' + errors)
+    #     #    cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+        
+    #     #except Exception as e:
+    #     #            search_delete_temp_meshes('ray_tracing_obj_')
+    #     #            errors += str(e)
+        
+        
+    #     to_rename = []
+    #     for obj in brute_force_naming_dict:
+    #         #try: ============================== search_delete_temp_meshes('ray_tracing_obj_')  INSERT TRY ERRORS HERE
+    #         ray_tracing_obj = cmds.polySphere(name=('ray_tracing_obj_' + obj), r=brute_force_naming_dict.get(obj)[2], sx=8, sy=8, ch=False, cuv=False)
+    #         cmds.xform(ray_tracing_obj, ws=True, ro=(0,0,90) )
+    #         cmds.makeIdentity(ray_tracing_obj, apply=True, rotate=True)
+    #         cmds.xform(ray_tracing_obj, a=True, ro=brute_force_naming_dict.get(obj)[1] )
+    #         cmds.xform(ray_tracing_obj, a=True, t=brute_force_naming_dict.get(obj)[0] )
+    #         for jnt in all_joints:
+    #             jnt_pos = cmds.xform(jnt, piv=True , q=True , ws=True)
+    #             is_joint_inside = is_point_inside_mesh(ray_tracing_obj[0], point=(jnt_pos[0],jnt_pos[1],jnt_pos[2]))
+    #             if is_joint_inside and get_short_name(jnt) != obj :
+    #                 to_rename.append([jnt, obj])
+    #         cmds.delete(ray_tracing_obj)
+            
+                
+    #     pipe_pairs_to_rename = []
+    #     for obj in to_rename:
+    #         pipe_pairs_to_rename.append([len(obj[0].split('|')), obj])
+            
+    #     sorted_pairs_to_rename = sorted(pipe_pairs_to_rename, key=lambda x: x[0], reverse=True)
+
+                
+    #     for pair in sorted_pairs_to_rename:
+    #         if cmds.objExists(pair[1][0]):
+    #             try:
+    #                 cmds.rename(pair[1][0], pair[1][1])
+    #             except Exception as exception:
+    #                 errors = errors + '"' + str(pair[1][1]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+    #     if errors != '':
+    #             cmds.scrollField(output_scroll_field, e=True, clear=True)
+    #             cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
     
 
 def reset_persp_shape_attributes():
@@ -909,7 +1034,7 @@ def delete_control_rig():
     if wire_system_status is True:
         for eye_geo in eye_mesh_elements:
                 if cmds.objExists(eye_geo) and cmds.objExists('head_jnt'):
-                    cmds.parent(eye_geo,"headJnt")
+                    cmds.parent(eye_geo,"head_jnt")
                     
     # Parent certain objects to the world
     if len(unparent_list) > 0: 
@@ -952,27 +1077,119 @@ def delete_all_keyframes():
             
             
 def reset_transforms():
-    '''Reset all transforms for the skinning scene'''
+    '''Modified version of the reset transforms. It checks for incomming connections, then set the attribute to 0 if there are none'''
     all_joints = cmds.ls(type='joint')
     all_meshes = cmds.ls(type='mesh')
+    all_transforms = cmds.ls(type='transform')
     
     for obj in all_meshes:
         try:
-            parent = cmds.listRelatives(obj, allParents=True) or []
-            cmds.makeIdentity(parent, translate=True, rotate=True, scale=True )
-        except:
-            pass
+            mesh_transform = ''
+            mesh_transform_extraction = cmds.listRelatives(obj, allParents=True) or []
+            if len(mesh_transform_extraction) > 0:
+                mesh_transform = mesh_transform_extraction[0]
+            
+            if len(mesh_transform_extraction) > 0 and cmds.objExists(mesh_transform) and 'shape' not in cmds.nodeType(mesh_transform, inherited=True):
+                mesh_connection_rx = cmds.listConnections( mesh_transform + '.rotateX', d=False, s=True ) or []
+                if not len(mesh_connection_rx) > 0:
+                    if cmds.getAttr(mesh_transform + '.rotateX', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.rotateX', 0)
+                mesh_connection_ry = cmds.listConnections( mesh_transform + '.rotateY', d=False, s=True ) or []
+                if not len(mesh_connection_ry) > 0:
+                    if cmds.getAttr(mesh_transform + '.rotateY', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.rotateY', 0)
+                mesh_connection_rz = cmds.listConnections( mesh_transform + '.rotateZ', d=False, s=True ) or []
+                if not len(mesh_connection_rz) > 0:
+                    if cmds.getAttr(mesh_transform + '.rotateZ', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.rotateZ', 0)
+
+                mesh_connection_sx = cmds.listConnections( mesh_transform + '.scaleX', d=False, s=True ) or []
+                if not len(mesh_connection_sx) > 0:
+                    if cmds.getAttr(mesh_transform + '.scaleX', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.scaleX', 1)
+                mesh_connection_sy = cmds.listConnections( mesh_transform + '.scaleY', d=False, s=True ) or []
+                if not len(mesh_connection_sy) > 0:
+                    if cmds.getAttr(mesh_transform + '.scaleY', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.scaleY', 1)
+                mesh_connection_sz = cmds.listConnections( mesh_transform + '.scaleZ', d=False, s=True ) or []
+                if not len(mesh_connection_sz) > 0:
+                    if cmds.getAttr(mesh_transform + '.scaleZ', lock=True) is False:
+                        cmds.setAttr(mesh_transform + '.scaleZ', 1)
+        except Exception as e:
+            raise e
             
     for jnt in all_joints:
         try:
-            cmds.makeIdentity(jnt, translate=True, rotate=True, scale=True )
-            cmds.setAttr(jnt + '.scaleX', 1)
-            cmds.setAttr(jnt + '.scaleY', 1)
-            cmds.setAttr(jnt + '.scaleZ', 1)
-        except:
-            pass
+            joint_connection_rx = cmds.listConnections( jnt + '.rotateX', d=False, s=True ) or []
+            if not len(joint_connection_rx) > 0:
+                if cmds.getAttr(jnt + '.rotateX', lock=True) is False:
+                    cmds.setAttr(jnt + '.rotateX', 0)
+            joint_connection_ry = cmds.listConnections( jnt + '.rotateY', d=False, s=True ) or []
+            if not len(joint_connection_ry) > 0:
+                if cmds.getAttr(jnt + '.rotateY', lock=True) is False:
+                    cmds.setAttr(jnt + '.rotateY', 0)
+            joint_connection_rz = cmds.listConnections( jnt + '.rotateZ', d=False, s=True ) or []
+            if not len(joint_connection_rz) > 0:
+                if cmds.getAttr(jnt + '.rotateZ', lock=True) is False:
+                    cmds.setAttr(jnt + '.rotateZ', 0)
+
+            joint_connection_sx = cmds.listConnections( jnt + '.scaleX', d=False, s=True ) or []
+            if not len(joint_connection_sx) > 0:
+                if cmds.getAttr(jnt + '.scaleX', lock=True) is False:
+                    cmds.setAttr(jnt + '.scaleX', 1)
+            joint_connection_sy = cmds.listConnections( jnt + '.scaleY', d=False, s=True ) or []
+            if not len(joint_connection_sy) > 0:
+                if cmds.getAttr(jnt + '.scaleY', lock=True) is False:
+                    cmds.setAttr(jnt + '.scaleY', 1)
+            joint_connection_sz = cmds.listConnections( jnt + '.scaleZ', d=False, s=True ) or []
+            if not len(joint_connection_sz) > 0:
+                if cmds.getAttr(jnt + '.scaleZ', lock=True) is False:
+                    cmds.setAttr(jnt + '.scaleZ', 1)
+        except Exception as e:
+            raise e
+
+    for obj in all_transforms:
+        if 'ctrl' in obj.lower() and 'ctrlgrp' not in obj.lower():
+            obj_connection_tx = cmds.listConnections( obj + '.tx', d=False, s=True ) or []
+            if not len(obj_connection_tx) > 0:
+                if cmds.getAttr(obj + '.tx', lock=True) is False:
+                    cmds.setAttr(obj + '.tx', 0)
+            obj_connection_ty = cmds.listConnections( obj + '.ty', d=False, s=True ) or []
+            if not len(obj_connection_ty) > 0:
+                if cmds.getAttr(obj + '.ty', lock=True) is False:
+                    cmds.setAttr(obj + '.ty', 0)
+            obj_connection_tz = cmds.listConnections( obj + '.tz', d=False, s=True ) or []
+            if not len(obj_connection_tz) > 0:
+                if cmds.getAttr(obj + '.tz', lock=True) is False:
+                    cmds.setAttr(obj + '.tz', 0)
             
-    
+            obj_connection_rx = cmds.listConnections( obj + '.rotateX', d=False, s=True ) or []
+            if not len(obj_connection_rx) > 0:
+                if cmds.getAttr(obj + '.rotateX', lock=True) is False:
+                    cmds.setAttr(obj + '.rotateX', 0)
+            obj_connection_ry = cmds.listConnections( obj + '.rotateY', d=False, s=True ) or []
+            if not len(obj_connection_ry) > 0:
+                if cmds.getAttr(obj + '.rotateY', lock=True) is False:
+                    cmds.setAttr(obj + '.rotateY', 0)
+            obj_connection_rz = cmds.listConnections( obj + '.rotateZ', d=False, s=True ) or []
+            if not len(obj_connection_rz) > 0:
+                if cmds.getAttr(obj + '.rotateZ', lock=True) is False:
+                    cmds.setAttr(obj + '.rotateZ', 0)
+
+            obj_connection_sx = cmds.listConnections( obj + '.scaleX', d=False, s=True ) or []
+            if not len(obj_connection_sx) > 0:
+                if cmds.getAttr(obj + '.scaleX', lock=True) is False:
+                    cmds.setAttr(obj + '.scaleX', 1)
+            obj_connection_sy = cmds.listConnections( obj + '.scaleY', d=False, s=True ) or []
+            if not len(obj_connection_sy) > 0:
+                if cmds.getAttr(obj + '.scaleY', lock=True) is False:
+                    cmds.setAttr(obj + '.scaleY', 1)
+            obj_connection_sz = cmds.listConnections( obj + '.scaleZ', d=False, s=True ) or []
+            if not len(obj_connection_sz) > 0:
+                if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
+                    cmds.setAttr(obj + '.scaleZ', 1)
+                        
+ 
 
 
 def set_display_layers_visibility(visibility_state):
