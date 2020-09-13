@@ -23,14 +23,17 @@
 //   1.4.3 - 2020-07-17
 //	 Added Maya to Discord
 //
-//   1.4.4 - 2020-07-25
+//   1.4.4 ~ 1.4.5 - 2020-07-25
 //	 Updated Render Farm Checklist
 //   Added new category
+//
+//   1.4.6 - 2020-09-13
+//	 Added GT Utilities
 //
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.5";
+global string $scriptVersion = "1.4.6";
 global string $gMainWindow;     // already defined by Maya
 
 // Removes existing menu in case it exists
@@ -141,6 +144,79 @@ menuItem -l "Rigging" -sm true -to true ;
     setParent -menu ".." ;
 
 
+    
+// -----------------------------------------UTILITIES------------------------------------
+
+menuItem -l "Utilities" -sm true -to true ;
+    
+    menuItem 
+    -l ("Reload File")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_reload_file()\");") 
+    -ann ("Reopens the opened file (to revert back any changes done to the file since it was first opened)") 
+    -image "openLoadGeneric.png";
+    //menuItem -optionBox true
+    //-c ("print 1") ;
+    
+    menuItem 
+    -l ("Resource Browser")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_open_resource_browser()\");") 
+    -ann ("Opens Maya's Resource Browser. A good way to find icons or elements you may want to use.") 
+    -image "bsd-head.png";
+    
+    menuItem 
+    -l ("Import References")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_import_references()\");") 
+    -ann ("Imports all references.") 
+    -image "reference.svg";
+
+    // Reset Section
+    menuItem -divider true ;
+
+    menuItem 
+    -l ("Reset Transforms")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_reset_transforms()\");") 
+    -ann ("Reset transforms. It checks for incomming connections, then set the attribute to 0 if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)") 
+    -image "CenterPivot.png";
+    
+    menuItem 
+    -l ("Reset Joints Display")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_reset_joint_sizes()\");") 
+    -ann ("Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one.") 
+    -image "kinJoint.png";
+    
+    menuItem 
+    -l ("Reset \"persp\" Camera")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_reset_persp_shape_attributes()\");") 
+    -ann ("If persp camera exists (default camera), reset its attributes.") 
+    -image "camera.svg";
+
+
+    // Delete Section
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Delete Namespaces")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_delete_namespaces()\");") 
+    -ann ("Deletes all namespaces in the scene.") 
+    //-image "rename.png";
+    -image "renamePreset.png";
+    //-image "namespaceEditor.png";
+    
+    menuItem 
+    -l ("Delete Display Layers")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_delete_display_layers()\");") 
+    -ann ("Deletes all display layers.") 
+    -image "displayLayer.svg";
+
+    menuItem 
+    -l ("Delete Keyframes")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_delete_keyframes()\");") 
+    -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
+    -image "keyIntoclip.png";
+
+    setParent -menu ".." ;
+
+
 // -----------------------------------------MISCELLANEOUS------------------------------------
 
 menuItem -l "Miscellaneous" -sm true -to true ;
@@ -157,8 +233,11 @@ menuItem -l "Miscellaneous" -sm true -to true ;
     -c ("python(\"import gt_maya_to_discord\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
     -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
     -image $mayaToDiscordIcon ;
-
+    
     setParent -menu ".." ;
+    
+
+
 
 // -----------------------------------------ABOUT------------------------------------
 
@@ -186,16 +265,11 @@ global proc aboutMenuDialog(string $scriptVersion)
     separator -height 10 -style "none";
     text -label "GT Tools is a free collection of useful Maya scripts.";
     separator -height 10 -style "none";
-    text -label "The pull-down menu provides easy access to a variety";
-    text -label "of tools, and each sub-menus has been organized";
-    text -label "to contain related tools.";
+    text -label "The pull-down menu provides easy access to a variety/nof tools, and each sub-menus has been organized/nto contain related tools.";
     separator -height 10 -style "none";
-    text -label "All of these items are supplied as is.";
-    text -label "You alone are soley responsible for any issues.";
-    text -label "Use at your own risk.";
+    text -label "All of these items are supplied as is./nYou alone are soley responsible for any issues./nUse at your own risk.";
     separator -height 10 -style "none";
-    text -label "Hopefully these scripts are helpful to you";
-    text -label "as they are to me.";
+    text -label "Hopefully these scripts are helpful to you/nas they are to me.";
     separator -height 10 -style "none";
 
     
