@@ -42,7 +42,7 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.1";
+script_version = "1.1"
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
