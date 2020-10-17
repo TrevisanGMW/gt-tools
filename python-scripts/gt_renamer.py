@@ -9,9 +9,12 @@
  Added list of nodes to ignore.
  Fixed issue where auto prefix would sometimes raise an error when getting position using xform.
  
+ 1.2 - 2020-10-17
+ Fixed an issue where the manual input for prefixes and sufixes wouldn't work.
+ 
  Todo:
     Consider adding more types to auto suffix.
-    Add more planes to the auto prefix option.
+    Add more direction planes to the auto prefix option.
     Add alphabetize option (already started; function at the bottom) .
     Test with more complex scenes using the "all" option.
     Update help menu.
@@ -38,7 +41,7 @@ except ImportError:
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.1"
+script_version = "1.2"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = { 'transform_suffix' : '_grp',
@@ -323,7 +326,7 @@ def build_gui_renamer():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text('Search and Replace')
     cmds.separator(h=7, style='none') # Empty Space
-    
+       
     cmds.rowColumnLayout( nc=2, cw=[(1, 70),(2, 150)], cs=[(1, 10),(2, 0)], p=body_column)
     cmds.text('Search:')
     search_textfield = cmds.textField(placeholderText = 'search_text', enterCommand=lambda x:start_renaming('search_and_replace'))
@@ -396,8 +399,7 @@ def build_gui_renamer():
                     if cmds.objExists(undesired_node):
                         if undesired_node in selection:
                             selection.remove(undesired_node)
-
-                               
+                      
         # Check if something is selected
         if len(selection) == 0:
             cmds.warning('Nothing is selected!')
@@ -875,8 +877,8 @@ def rename_add_prefix(obj_list, new_prefix_list):
                 try:
                     obj_x_pos = cmds.xform(obj, piv=True , q=True , ws=True)[0]
                 except:
-                    obj_x_pos = 'Unkown'
-                if obj_x_pos == 'Unkown':
+                    obj_x_pos = 'Unknown'
+                if obj_x_pos == 'Unknown':
                     new_prefix = ''
                 elif obj_x_pos > 0.0001:
                     new_prefix= new_prefix_list[0]
@@ -886,7 +888,9 @@ def rename_add_prefix(obj_list, new_prefix_list):
                     new_prefix = new_prefix_list[1]
             else:
                 new_prefix = ''
-                    
+                if not auto_prefix:
+                    new_prefix = new_prefix_list[0]
+    
             object_short_name = get_short_name(obj)
             
             if object_short_name.startswith(new_prefix):
@@ -903,6 +907,7 @@ def rename_add_prefix(obj_list, new_prefix_list):
                     cmds.rename(pair[0], pair[1])
                 except Exception as exception:
                     errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+                
                     
         if errors != '':
             print('#' * 80 + '\n')
@@ -956,6 +961,8 @@ def rename_add_suffix(obj_list, new_suffix_list):
                     new_suffix =''
             else:
                 new_suffix = ''
+                if not auto_suffix:
+                    new_suffix = new_suffix_list[0]
                         
             object_short_name = get_short_name(obj)
             
