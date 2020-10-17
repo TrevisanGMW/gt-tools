@@ -4,6 +4,8 @@
  Configured for: Rigging 1 - Control Rig (Assignment 1.3 - Final)
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-13 - github.com/TrevisanGMW
 
+ 1.1 - 2020/10/10
+ Eyes no longer move when testing bulleproof
 
 """
 import maya.cmds as cmds
@@ -34,7 +36,7 @@ script_name = 'GT - Grading Script'
 re_file_name = re.compile(r'(^\dD\d{3}\_\w+\_)(ControlRig|Control|Rig|Control)(_|.)')
 
 # Version
-script_version = '1.0'
+script_version = '1.1'
 
 # Grading Components
 gt_grading_components = { 0 : ['Organization & File Name', 10],
@@ -1697,9 +1699,9 @@ def bulletproofing_targets_others():
         keyframe_list(should_be_bulletproof, 1.5, 'scaleX', keyframes_interval)
         keyframe_list(should_be_bulletproof, 1, 'scaleX', (keyframes_interval * 2))
         
-        keyframe_list(eye_ctrls, 0, 'translateZ', 0)
-        keyframe_list(eye_ctrls, 120, 'translateZ', keyframes_interval)
-        keyframe_list(eye_ctrls, 0, 'translateZ', (keyframes_interval * 2))
+        #keyframe_list(eye_ctrls, 0, 'translateZ', 0)
+        #keyframe_list(eye_ctrls, 120, 'translateZ', keyframes_interval)
+        #keyframe_list(eye_ctrls, 0, 'translateZ', (keyframes_interval * 2))
 
         #Define possible naming variations
         fist_variations = ['fist','Fist','FIST']

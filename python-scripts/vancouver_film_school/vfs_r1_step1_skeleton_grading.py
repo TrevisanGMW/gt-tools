@@ -14,6 +14,9 @@
  Added output textbox (so students don't need to use script editor at this point)
  Changed the names of all joints to match a new pattern - "side_description_jnt" (all lowercase)
  
+ 1.3 - 2020/10/10
+ Updated tolerance to avoid false positives when checking the spine
+ 
 """
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
@@ -35,7 +38,7 @@ character_name = 'Betty'
 script_name = 'Rigging 1 - Skeleton Checker'
 
 # Version
-script_version = '1.2'
+script_version = '1.3'
 
 
 def build_gui_gt_r1_skeleton_check():
@@ -318,7 +321,7 @@ def build_gui_gt_r1_skeleton_check():
 
                 small_position_check = ['thumb', 'index', 'middle', 'ring', 'pinky', 'eye']
                 mid_position_check = ['neck', 'head_jnt', 'shoulder', 'elbow', 'wrist', 'knee', 'ankle', 'ball', 'toe']
-                large_position_check = ['root', 'spine', 'clavicle']
+                large_position_check = ['root', 'clavicle']
                 if any(j in jnt for j in small_position_check) and not any(j in "1" for j in small_position_check):
                     if val_total > 3: ## Tolerance for small checks
                         cmds.scrollField(output_scroll_field, e=True, ip=0, it='"' + jnt + '" is not in the accurate position. Look at reference and adjust it.\n')
@@ -330,11 +333,11 @@ def build_gui_gt_r1_skeleton_check():
                     else:
                         placement_mark += placement_mark_division
                 elif any(j in jnt for j in large_position_check):
-                    if val_total > 7: ## Tolerance for large check
+                    if val_total > 10: ## Tolerance for large check
                         cmds.scrollField(output_scroll_field, e=True, ip=0, it='"' + jnt + '" is not in the accurate position. Look at reference and adjust it.\n')
                     else:
                         placement_mark += placement_mark_division
-                elif val_total > 7: ## Tolerance for any other checks
+                elif val_total > 20: ## Tolerance for any other checks
                     cmds.scrollField(output_scroll_field, e=True, ip=0, it='"' + jnt + '" is not in the accurate position. Look at reference and adjust it.\n')
                 else:
                     placement_mark += placement_mark_division
@@ -435,6 +438,9 @@ def build_gui_gt_r1_skeleton_check():
             cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n          Total:  ' + str(round(final_mark,2)) + '%\n\nSee the list above for issues. \nNote: This is not necessarily your final grade.')
 
         cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+        
+    # First Refresh
+    reroute_errors()
 
 
 #Build GUI
