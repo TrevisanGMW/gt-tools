@@ -30,12 +30,19 @@
 //   1.4.6 - 2020-09-13
 //	 Added GT Utilities
 //
+//   1.4.7 - 2020-10-17
+//	 Minor fixes for the renamer script
+//   Added new utilities to GT Utilities
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.6";
+global string $scriptVersion = "1.4.7";
 global string $gMainWindow;     // already defined by Maya
 
+// Set optionVar to the current version
+optionVar -sv "gt_tools_version" $scriptVersion;
+        
 // Removes existing menu in case it exists
 if (`menu -q -exists gtToolsMenu`)
     {
@@ -168,6 +175,42 @@ menuItem -l "Utilities" -sm true -to true ;
     -c ("python(\"import gt_utilities\\ngt_utilities.gtu_import_references()\");") 
     -ann ("Imports all references.") 
     -image "reference.svg";
+	
+    // Material
+    menuItem -divider true ;
+	
+    menuItem 
+    -l ("Copy Material")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_copy_material()\");") 
+    -ann ("Copies material to clipboard.") 
+    -image "polyBakeSetAssign.png";
+    
+    menuItem 
+    -l ("Paste Material")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_paste_material()\");") 
+    -ann ("Pastes material from clipboard.") 
+    -image "polyBakeSetEdit.png";
+
+    // Pivot
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Move Pivot to Top")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_move_pivot_to_top()\");") 
+    -ann ("Moves pivot point to the top of the boundingbox of every selected object.") 
+    -image "moveLayerUp.png";
+    
+    menuItem 
+    -l ("Move Pivot to Base")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_move_pivot_to_base()\");") 
+    -ann ("Moves pivot point to the base of the boundingbox of every selected object.") 
+    -image "moveLayerDown.png";
+    
+    menuItem 
+    -l ("Move Object to Origin")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_move_to_origin()\");") 
+    -ann ("Moves selected objects to origin according to their pivot point.") 
+    -image "grid.svg";
 
     // Reset Section
     menuItem -divider true ;
@@ -244,50 +287,8 @@ menuItem -l "Miscellaneous" -sm true -to true ;
     menuItem -divider true ;
     menuItem -l "Help" -sm true -to true ;
     
-    menuItem -l "About"  -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Opens about menu.") -image "help.png" ;;
+    //menuItem -l "About"  -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Opens about menu.") -image "help.png" ;;
+    menuItem -l "About"  -c ("python(\"import gt_utilities\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;;
     menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
     menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/maya-scripts/tree/master/gt_tools/\"; ") -ann ("Check for Update.") -image "RS_import_layer.png" ;
     menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
-
-
-// Creates About Dialog
-global proc aboutMenuDialog(string $scriptVersion)
-    {
-    if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;
-    window -title "About - GT Tools" -sizeable 0 -w 330 -h 100 aboutMenuDialog;
-    
-    columnLayout -adj 1;
-
-    separator -height 10 -style "none";
-    text -label "About - GT Tools" -bgc 0 .5 0  -fn "boldLabelFont";
-    separator -height 10 -style "none";
-    text -label (" Version Installed: " + $scriptVersion) -fn "boldLabelFont";
-    separator -height 10 -style "none";
-    text -label "GT Tools is a free collection of useful Maya scripts.";
-    separator -height 10 -style "none";
-    text -label "The pull-down menu provides easy access to a variety/nof tools, and each sub-menus has been organized/nto contain related tools.";
-    separator -height 10 -style "none";
-    text -label "All of these items are supplied as is./nYou alone are soley responsible for any issues./nUse at your own risk.";
-    separator -height 10 -style "none";
-    text -label "Hopefully these scripts are helpful to you/nas they are to me.";
-    separator -height 10 -style "none";
-
-    
-    rowColumnLayout -numberOfRows 2 -h 27 -adj true;
-    text -label "Guilherme Trevisan : " -align "center";
-    text -label "<a href=\"mailto:trevisangmw@gmail.com\">TrevisanGMW@gmail.com</a>" -hl 1;
-    setParent ..;
-    separator -height 15 -style "none";
-    
-    rowColumnLayout -numberOfRows 1 -columnOffset 1 "left" 70;//-adj true;
-    text -label "Visit my ";
-    text -label "<a href=\"https://github.com/TrevisanGMW\">Github</a>" -hl 1;
-    text -label " for updated versions";
-    setParent ..;
-    separator -h 15;
-    
-    button -l "OK" 
-    -c ("if (`window -exists aboutMenuDialog`) deleteUI aboutMenuDialog;");
-
-    showWindow aboutMenuDialog;
-    }

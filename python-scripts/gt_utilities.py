@@ -3,8 +3,23 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-09-13
  Functions were named with a "gtu" (GT Utilities) prefix to avoid conflicts.
  
+ 1.1 - 2020/10/17
+ Added move pivot to bottom/top
+ Added copy/paste material
+ Added move to origin
+ 
  To Do:
  Add proper error handling to all functions.
+ Force focus (focus without looking at children)
+ Assign lambert1 to components missing shaders
+ Add assign checkboard function (already in bonus tools > rendering)
+ Add Remove pasted_ function.
+ Enforce unique names
+ Add Unlock all attributes
+ Add unhide attributes (provide list?)
+ Add assign lambert to everything function
+ Add delete history function (also non deformer version of it)
+ Move all meshes (or other type?) to root/world
  Add options to most functions.
  
      Create functions:
@@ -38,14 +53,28 @@
         
         Import all references
             String to ignore certain references
+            
 
     
 """
 import maya.cmds as cmds
 import maya.mel as mel
+from maya import OpenMayaUI as omui
 
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+    
+    
 # Script Version
-gtu_script_version = 1.0
+gtu_script_version = 1.1
 
 
 def gtu_delete_display_layers():
@@ -294,15 +323,29 @@ def gtu_open_resource_browser():
     except:
         pass
 
-  
-def gtu_bbox_pivot_and_center_to_grid():
-    ''' Moves pivot point to an area of the boundary box (currenty bottom) and resets transforms (center to grid) '''     
-    selection = cmds.ls(selection=True) # grab your selection and store it in a variable (list)
+def gtu_move_pivot_to_base():
+    ''' Moves pivot point to the base of the boundary box '''     
+    selection = cmds.ls(selection=True) 
 
-    for obj in selection: # loop through all your objects (doing something to them)
+    for obj in selection:
         bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
-        bottom = [(bbox[0] + bbox[3])/2, bbox[1], (bbox[2] + bbox[5])/2] # finds bottom
+        bottom = [(bbox[0] + bbox[3])/2, bbox[1], (bbox[2] + bbox[5])/2] # find bottom
         cmds.xform(obj, piv=bottom, ws=True) # sends pivot to bottom
+
+def gtu_move_pivot_to_top():
+    ''' Moves pivot point to the top of the boundary box '''     
+    selection = cmds.ls(selection=True) 
+
+    for obj in selection:
+        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
+        top = [(bbox[0] + bbox[3])/2, bbox[4], (bbox[2] + bbox[5])/2] # find top
+        cmds.xform(obj, piv=top, ws=True) 
+        
+def gtu_move_to_origin():
+    ''' Moves selected objects back to origin '''     
+    selection = cmds.ls(selection=True) 
+
+    for obj in selection:
         cmds.move(0, 0, 0, obj, a=True,rpr=True) #rpr flag moves it according to the pivot
 
 
@@ -316,8 +359,96 @@ def gtu_import_references():
     except:
         cmds.warning("Something went wrong. Maybe you don't have any references to import?") # Handle this better...
 
+def gtu_copy_material():
+    ''' Copies selected material to clipboard ''' 
+    selection = cmds.ls(selection=True)
+    try:
+        mel.eval('ConvertSelectionToFaces;')
+        cmds.polyClipboard( copy=True, shader=True )
+        cmds.inViewMessage( amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True )
+    except:
+        cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
+    cmds.select(selection)
+    
+def gtu_paste_material():
+    ''' Copies selected material to clipboard ''' 
+    try:
+        cmds.polyClipboard( paste=True, shader=True )
+    except:
+        cmds.warning('Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
+
+
+def gtu_build_gui_about_gt_tools():
+    ''' Creates "About" window for the GT Tools menu ''' 
+     
+    stored_gt_tools_version_exists = cmds.optionVar(exists=("gt_tools_version"))
+
+    # Define Version
+    if stored_gt_tools_version_exists:
+        gt_version = cmds.optionVar(q=("gt_tools_version"))
+    else:
+        gt_version = '?'
+     
+     
+    window_name = "gtu_build_gui_about_gt_tools"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title="About - GT Tools", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    cmds.columnLayout("main_column", p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
+    cmds.text("GT Tools", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+        
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.text(l='Version Installed: ' + gt_version, align="center", fn="boldLabelFont")
+    cmds.separator(h=5, style='none') # Empty Space
+    cmds.text(l='GT Tools is a free collection of Maya scripts', align="center")
+    
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='About:', align="center", fn="boldLabelFont")
+    cmds.text(l='The pull-down menu provides easy access to a variety of \ntools, and each sub-menus has been organized to\ncontain related tools.', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\nUse at your own risk.', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Hopefully these scripts are helpful to you\nas they are to me.', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.text('Guilherme Trevisan  ')
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=7, style='none') # Empty Space
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
+            
+            
 #gtu_import_references()
-#gtu_bbox_pivot_and_center_to_grid()
 #gtu_delete_display_layers()        
 #gtu_delete_namespaces()   
 #gtu_reset_transforms()    
@@ -327,3 +458,9 @@ def gtu_import_references():
 #gtu_reload_file()
 #gtu_open_resource_browser()
 #gtu_import_references()
+#gtu_move_to_origin()
+#gtu_move_pivot_to_base()
+#gtu_move_pivot_to_top()
+#gtu_copy_material()
+#gtu_paste_material()
+#gtu_build_gui_about_gt_tools()
