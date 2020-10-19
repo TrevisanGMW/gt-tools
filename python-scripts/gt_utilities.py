@@ -8,6 +8,9 @@
  Added copy/paste material
  Added move to origin
  
+ 1.1.1 - 2020/10/18
+ Updated reset transform to better handle translate
+ 
  To Do:
  Add proper error handling to all functions.
  Force focus (focus without looking at children)
@@ -74,7 +77,7 @@ except ImportError:
     
     
 # Script Version
-gtu_script_version = 1.1
+gtu_script_version = "1.1.1"
 
 
 def gtu_delete_display_layers():
@@ -115,119 +118,70 @@ def gtu_reset_transforms():
     '''
     Reset transforms. 
     It checks for incomming connections, then set the attribute to 0 if there are none
-    Currently affects Joints, meshes and transforms.
+    It resets transforms, but ignores translate for joints.
     '''
-    all_joints = cmds.ls(type='joint')
-    all_meshes = cmds.ls(type='mesh')
-    all_transforms = cmds.ls(type='transform')
+    function_name = 'gtu_reset_transforms'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
     
-    for obj in all_meshes:
-        try:
-            mesh_transform = ''
-            mesh_transform_extraction = cmds.listRelatives(obj, allParents=True) or []
-            if len(mesh_transform_extraction) > 0:
-                mesh_transform = mesh_transform_extraction[0]
-            
-            if len(mesh_transform_extraction) > 0 and cmds.objExists(mesh_transform) and 'shape' not in cmds.nodeType(mesh_transform, inherited=True):
-                mesh_connection_rx = cmds.listConnections( mesh_transform + '.rotateX', d=False, s=True ) or []
-                if not len(mesh_connection_rx) > 0:
-                    if cmds.getAttr(mesh_transform + '.rotateX', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.rotateX', 0)
-                mesh_connection_ry = cmds.listConnections( mesh_transform + '.rotateY', d=False, s=True ) or []
-                if not len(mesh_connection_ry) > 0:
-                    if cmds.getAttr(mesh_transform + '.rotateY', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.rotateY', 0)
-                mesh_connection_rz = cmds.listConnections( mesh_transform + '.rotateZ', d=False, s=True ) or []
-                if not len(mesh_connection_rz) > 0:
-                    if cmds.getAttr(mesh_transform + '.rotateZ', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.rotateZ', 0)
+    selection = cmds.ls(selection=True)
 
-                mesh_connection_sx = cmds.listConnections( mesh_transform + '.scaleX', d=False, s=True ) or []
-                if not len(mesh_connection_sx) > 0:
-                    if cmds.getAttr(mesh_transform + '.scaleX', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.scaleX', 1)
-                mesh_connection_sy = cmds.listConnections( mesh_transform + '.scaleY', d=False, s=True ) or []
-                if not len(mesh_connection_sy) > 0:
-                    if cmds.getAttr(mesh_transform + '.scaleY', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.scaleY', 1)
-                mesh_connection_sz = cmds.listConnections( mesh_transform + '.scaleZ', d=False, s=True ) or []
-                if not len(mesh_connection_sz) > 0:
-                    if cmds.getAttr(mesh_transform + '.scaleZ', lock=True) is False:
-                        cmds.setAttr(mesh_transform + '.scaleZ', 1)
-        except Exception as e:
-            raise e
-            
-    for jnt in all_joints:
-        try:
-            joint_connection_rx = cmds.listConnections( jnt + '.rotateX', d=False, s=True ) or []
-            if not len(joint_connection_rx) > 0:
-                if cmds.getAttr(jnt + '.rotateX', lock=True) is False:
-                    cmds.setAttr(jnt + '.rotateX', 0)
-            joint_connection_ry = cmds.listConnections( jnt + '.rotateY', d=False, s=True ) or []
-            if not len(joint_connection_ry) > 0:
-                if cmds.getAttr(jnt + '.rotateY', lock=True) is False:
-                    cmds.setAttr(jnt + '.rotateY', 0)
-            joint_connection_rz = cmds.listConnections( jnt + '.rotateZ', d=False, s=True ) or []
-            if not len(joint_connection_rz) > 0:
-                if cmds.getAttr(jnt + '.rotateZ', lock=True) is False:
-                    cmds.setAttr(jnt + '.rotateZ', 0)
+    def reset_transforms():
+        for obj in selection:
+            try:
+                type_check = cmds.listRelatives(obj, children=True) or []
 
-            joint_connection_sx = cmds.listConnections( jnt + '.scaleX', d=False, s=True ) or []
-            if not len(joint_connection_sx) > 0:
-                if cmds.getAttr(jnt + '.scaleX', lock=True) is False:
-                    cmds.setAttr(jnt + '.scaleX', 1)
-            joint_connection_sy = cmds.listConnections( jnt + '.scaleY', d=False, s=True ) or []
-            if not len(joint_connection_sy) > 0:
-                if cmds.getAttr(jnt + '.scaleY', lock=True) is False:
-                    cmds.setAttr(jnt + '.scaleY', 1)
-            joint_connection_sz = cmds.listConnections( jnt + '.scaleZ', d=False, s=True ) or []
-            if not len(joint_connection_sz) > 0:
-                if cmds.getAttr(jnt + '.scaleZ', lock=True) is False:
-                    cmds.setAttr(jnt + '.scaleZ', 1)
-        except Exception as e:
-            raise e
+                if len(type_check) > 0 and cmds.objectType(type_check) != 'joint':
+                    obj_connection_tx = cmds.listConnections( obj + '.tx', d=False, s=True ) or []
+                    if not len(obj_connection_tx) > 0:
+                        if cmds.getAttr(obj + '.tx', lock=True) is False:
+                            cmds.setAttr(obj + '.tx', 0)
+                    obj_connection_ty = cmds.listConnections( obj + '.ty', d=False, s=True ) or []
+                    if not len(obj_connection_ty) > 0:
+                        if cmds.getAttr(obj + '.ty', lock=True) is False:
+                            cmds.setAttr(obj + '.ty', 0)
+                    obj_connection_tz = cmds.listConnections( obj + '.tz', d=False, s=True ) or []
+                    if not len(obj_connection_tz) > 0:
+                        if cmds.getAttr(obj + '.tz', lock=True) is False:
+                            cmds.setAttr(obj + '.tz', 0)
+                
+                obj_connection_rx = cmds.listConnections( obj + '.rotateX', d=False, s=True ) or []
+                if not len(obj_connection_rx) > 0:
+                    if cmds.getAttr(obj + '.rotateX', lock=True) is False:
+                        cmds.setAttr(obj + '.rotateX', 0)
+                obj_connection_ry = cmds.listConnections( obj + '.rotateY', d=False, s=True ) or []
+                if not len(obj_connection_ry) > 0:
+                    if cmds.getAttr(obj + '.rotateY', lock=True) is False:
+                        cmds.setAttr(obj + '.rotateY', 0)
+                obj_connection_rz = cmds.listConnections( obj + '.rotateZ', d=False, s=True ) or []
+                if not len(obj_connection_rz) > 0:
+                    if cmds.getAttr(obj + '.rotateZ', lock=True) is False:
+                        cmds.setAttr(obj + '.rotateZ', 0)
 
-    for obj in all_transforms:
-        if 'ctrl' in obj.lower() and 'ctrlgrp' not in obj.lower():
-            obj_connection_tx = cmds.listConnections( obj + '.tx', d=False, s=True ) or []
-            if not len(obj_connection_tx) > 0:
-                if cmds.getAttr(obj + '.tx', lock=True) is False:
-                    cmds.setAttr(obj + '.tx', 0)
-            obj_connection_ty = cmds.listConnections( obj + '.ty', d=False, s=True ) or []
-            if not len(obj_connection_ty) > 0:
-                if cmds.getAttr(obj + '.ty', lock=True) is False:
-                    cmds.setAttr(obj + '.ty', 0)
-            obj_connection_tz = cmds.listConnections( obj + '.tz', d=False, s=True ) or []
-            if not len(obj_connection_tz) > 0:
-                if cmds.getAttr(obj + '.tz', lock=True) is False:
-                    cmds.setAttr(obj + '.tz', 0)
-            
-            obj_connection_rx = cmds.listConnections( obj + '.rotateX', d=False, s=True ) or []
-            if not len(obj_connection_rx) > 0:
-                if cmds.getAttr(obj + '.rotateX', lock=True) is False:
-                    cmds.setAttr(obj + '.rotateX', 0)
-            obj_connection_ry = cmds.listConnections( obj + '.rotateY', d=False, s=True ) or []
-            if not len(obj_connection_ry) > 0:
-                if cmds.getAttr(obj + '.rotateY', lock=True) is False:
-                    cmds.setAttr(obj + '.rotateY', 0)
-            obj_connection_rz = cmds.listConnections( obj + '.rotateZ', d=False, s=True ) or []
-            if not len(obj_connection_rz) > 0:
-                if cmds.getAttr(obj + '.rotateZ', lock=True) is False:
-                    cmds.setAttr(obj + '.rotateZ', 0)
-
-            obj_connection_sx = cmds.listConnections( obj + '.scaleX', d=False, s=True ) or []
-            if not len(obj_connection_sx) > 0:
-                if cmds.getAttr(obj + '.scaleX', lock=True) is False:
-                    cmds.setAttr(obj + '.scaleX', 1)
-            obj_connection_sy = cmds.listConnections( obj + '.scaleY', d=False, s=True ) or []
-            if not len(obj_connection_sy) > 0:
-                if cmds.getAttr(obj + '.scaleY', lock=True) is False:
-                    cmds.setAttr(obj + '.scaleY', 1)
-            obj_connection_sz = cmds.listConnections( obj + '.scaleZ', d=False, s=True ) or []
-            if not len(obj_connection_sz) > 0:
-                if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
-                    cmds.setAttr(obj + '.scaleZ', 1)
-
+                obj_connection_sx = cmds.listConnections( obj + '.scaleX', d=False, s=True ) or []
+                if not len(obj_connection_sx) > 0:
+                    if cmds.getAttr(obj + '.scaleX', lock=True) is False:
+                        cmds.setAttr(obj + '.scaleX', 1)
+                obj_connection_sy = cmds.listConnections( obj + '.scaleY', d=False, s=True ) or []
+                if not len(obj_connection_sy) > 0:
+                    if cmds.getAttr(obj + '.scaleY', lock=True) is False:
+                        cmds.setAttr(obj + '.scaleY', 1)
+                obj_connection_sz = cmds.listConnections( obj + '.scaleZ', d=False, s=True ) or []
+                if not len(obj_connection_sz) > 0:
+                    if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
+                        cmds.setAttr(obj + '.scaleZ', 1)
+            except Exception as e:
+                errors = errors + str(e)
+        
+    try:
+        reset_transforms()
+    except Exception as e:
+        pass
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        
+    if errors != '':
+        cmds.warning('Some objects couldn\'t be reset. Open the script editor for a list of errors.')
 
 def gtu_delete_keyframes():
     '''Deletes all nodes of the type "animCurveTA" (keyframes)'''
