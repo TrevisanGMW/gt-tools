@@ -8,57 +8,30 @@
  Added copy/paste material
  Added move to origin
  
- 1.1.1 - 2020/10/18
+ 1.2 - 2020/10/21
  Updated reset transform to better handle translate
+ Added Uniform LRA Toggle
+ Changed the order of the functions to match the menu
  
  To Do:
  Add proper error handling to all functions.
- Force focus (focus without looking at children)
- Assign lambert1 to components missing shaders
- Add assign checkboard function (already in bonus tools > rendering)
- Add Remove pasted_ function.
- Enforce unique names
- Add Unlock all attributes
- Add unhide attributes (provide list?)
- Add assign lambert to everything function
- Add delete history function (also non deformer version of it)
- Move all meshes (or other type?) to root/world
- Add options to most functions.
- 
-     Create functions:
-        Normalize/Reset LRA display - menuIconDisplay.png 
-        Remove Custom Colors - select object types, outliner or viewport - colorPickCursor.png - use string to determine a list of types
-        Find/Rename non-unique names
-        
-     Create option windows (use optionVars)
-        Delete Namespaces
-            only empty? ignore string?
-
-        Delete Display Layers
-            only empty? ignore string?
-
-        Reset persp camera
-            create persp if missing
-            reset all other attributes too (including transform?)
-
-        BBox Pivot and Center 
-            Add options
-            Maybe change the name of the function
-
-        Delete all keyframes
-            Include or not set driven keys
-
-        Reset Transforms
-            Reset translate? scale? rot? 
-        
-        (Normalize?)Reset Joint Radius
-            LRA, Display Type, Color, etc...
-        
-        Import all references
-            String to ignore certain references
-            
-
-    
+ New functions:
+    Reset Display Type and Color
+    Find/Rename non-unique names - Enforce unique names
+    Remove Custom Colors - select object types, outliner or viewport - colorPickCursor.png - use string to determine a list of types
+    Assign lambert to everything function (Maybe assing to objects missing shaders)
+    Add Unlock all attributes
+    Add unhide attributes (provide list?)
+    Add Remove pasted_ function
+    Add assign checkboard function (already in bonus tools > rendering)
+    Force focus (focus without looking at children)
+ New options:
+    Import all references : Add function to use a string to ignore certain references
+    Reset Transforms : Add reset only translate, rotate or scale
+    Delete all keyframes : Include option to delete or not set driven keys
+    Reset persp camera : Reset all other attributes too (including transform?)
+    Delete Display Layers : only empty? ignore string?
+    Delete Namespaces : only empty? ignore string?
 """
 import maya.cmds as cmds
 import maya.mel as mel
@@ -75,44 +48,162 @@ try:
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
-    
 # Script Version
-gtu_script_version = "1.1.1"
-
-
-def gtu_delete_display_layers():
-    ''' Deletes all display layers '''
-    display_layers = cmds.ls(type = 'displayLayer')
-    for layer in display_layers:
-        if layer != 'defaultLayer':
-            cmds.delete(layer)
-
-
-def gtu_delete_namespaces():
-    '''Deletes all namespaces in the scene'''
-    cmds.undoInfo(openChunk=True, chunkName='Delete all namespaces')
-    try:
-        default_namespaces = ['UI', 'shared']
-
-        def num_children(namespace):
-            '''Used as a sort key, this will sort namespaces by how many children they have.'''
-            return namespace.count(':')
-
-        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
+gtu_script_version = "1.2"
+    
+''' ____________________________ General Functions ____________________________'''
+def gtu_reload_file():
+    ''' Reopens the opened file (to revert back any changes done to the file) '''        
+    if cmds.file(query=True, exists=True): # Check to see if it was ever saved
+                file_path = cmds.file(query=True, expandName=True)
+                if file_path is not None:
+                    cmds.file(file_path, open=True, force=True)
+    else:
+        cmds.warning('File was never saved.')
         
-        # Reverse List
-        namespaces.sort(key=num_children, reverse=True) # So it does the children first
+def gtu_open_resource_browser():
+    ''' Opens Maya's Resource Browser '''        
+    try:
+        import maya.app.general.resourceBrowser as resourceBrowser
 
-        print(namespaces)
+        resourceBrowser.resourceBrowser().run()
+    except:
+        pass
+        
+def gtu_import_references():
+    ''' Imports all references ''' 
+    try:
+        refs = cmds.ls(rf=True)
+        for i in refs:
+            r_file = cmds.referenceQuery(i, f=True)
+            cmds.file(r_file, importReference=True)
+    except:
+        cmds.warning("Something went wrong. Maybe you don't have any references to import?") # Handle this better...
 
-        for namespace in namespaces:
-            if namespace not in default_namespaces:
-                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
-    except Exception as e:
-        cmds.warning(str(e))
+
+def gtu_uniform_lra_toggle():
+    ''' 
+    Makes the visibility of the Local Rotation Axis uniform among 
+    the selected objects according to the current state of the majority of them.  
+    '''
+
+    function_name = 'GTU Uniform LRA Toggle'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        errors = ''
+        selection = cmds.ls(selection=True)
+        
+        inactive_lra = []
+        active_lra = []
+        
+        for obj in selection:
+            try:
+                current_lra_state = cmds.getAttr(obj + '.displayLocalAxis')
+                if current_lra_state:
+                    active_lra.append(obj)
+                else:
+                    inactive_lra.append(obj)
+            except Exception as e:
+                errors += str(e) + '\n'
+           
+        if len(active_lra) == 0:
+            for obj in inactive_lra:
+                try:
+                    cmds.setAttr(obj + '.displayLocalAxis', 1)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        elif len(inactive_lra) == 0:
+            for obj in active_lra:
+                try:
+                    cmds.setAttr(obj + '.displayLocalAxis', 0)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        elif len(active_lra) > len(inactive_lra):
+            for obj in inactive_lra:
+                try:
+                    cmds.setAttr(obj + '.displayLocalAxis', 1)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        else:
+            for obj in active_lra:
+                try:
+                    cmds.setAttr(obj + '.displayLocalAxis', 0)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        
+
+        if errors != '':
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('The script couldn\'t read or write some LRA states. Open script editor for more info.')
+    except:
+        pass
     finally:
-        cmds.undoInfo(closeChunk=True, chunkName='Delete all namespaces')
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
+
+''' ____________________________ Material Functions ____________________________'''
+
+def gtu_copy_material():
+    ''' Copies selected material to clipboard ''' 
+    selection = cmds.ls(selection=True)
+    try:
+        mel.eval('ConvertSelectionToFaces;')
+        cmds.polyClipboard( copy=True, shader=True )
+        cmds.inViewMessage( amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True )
+    except:
+        cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
+    cmds.select(selection)
+    
+def gtu_paste_material():
+    ''' Copies selected material to clipboard ''' 
+    try:
+        cmds.polyClipboard( paste=True, shader=True )
+    except:
+        cmds.warning('Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
+
+''' ____________________________ Layout Functions ____________________________'''
+
+def gtu_move_pivot_to_top():
+    ''' Moves pivot point to the top of the boundary box '''     
+    selection = cmds.ls(selection=True) 
+
+    for obj in selection:
+        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
+        top = [(bbox[0] + bbox[3])/2, bbox[4], (bbox[2] + bbox[5])/2] # find top
+        cmds.xform(obj, piv=top, ws=True) 
+        
+def gtu_move_pivot_to_base():
+    ''' Moves pivot point to the base of the boundary box '''     
+    selection = cmds.ls(selection=True) 
+
+    for obj in selection:
+        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
+        bottom = [(bbox[0] + bbox[3])/2, bbox[1], (bbox[2] + bbox[5])/2] # find bottom
+        cmds.xform(obj, piv=bottom, ws=True) # sends pivot to bottom
+        
+def gtu_move_to_origin():
+    ''' Moves selected objects back to origin '''  
+    function_name = 'GTU Move to Origin'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
+    selection = cmds.ls(selection=True) 
+    try:   
+        for obj in selection:
+            try:
+                cmds.move(0, 0, 0, obj, a=True,rpr=True) #rpr flag moves it according to the pivot
+            except Exception as e:
+                errors += str(e) + '\n'
+        if errors != '':
+                print('#### Errors: ####')
+                print(errors)
+                cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
+    except:
+        pass
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        
+''' ____________________________ Reset Functions ____________________________'''
 
 def gtu_reset_transforms():
     '''
@@ -120,7 +211,7 @@ def gtu_reset_transforms():
     It checks for incomming connections, then set the attribute to 0 if there are none
     It resets transforms, but ignores translate for joints.
     '''
-    function_name = 'gtu_reset_transforms'
+    function_name = 'GTU Reset Transforms'
     errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
     
@@ -171,7 +262,7 @@ def gtu_reset_transforms():
                     if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
                         cmds.setAttr(obj + '.scaleZ', 1)
             except Exception as e:
-                errors = errors + str(e)
+                errors = errors + str(e + '\n')
         
     try:
         reset_transforms()
@@ -183,23 +274,24 @@ def gtu_reset_transforms():
     if errors != '':
         cmds.warning('Some objects couldn\'t be reset. Open the script editor for a list of errors.')
 
-def gtu_delete_keyframes():
-    '''Deletes all nodes of the type "animCurveTA" (keyframes)'''
-    keys_ta = cmds.ls(type='animCurveTA')
-    keys_tl = cmds.ls(type='animCurveTL')
-    keys_tt = cmds.ls(type='animCurveTT')
-    keys_tu = cmds.ls(type='animCurveTU')
-    #keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
-    #keys_ua = cmds.ls(type='animCurveUA')
-    #keys_ut = cmds.ls(type='animCurveUT')
-    #keys_uu = cmds.ls(type='animCurveUU')
-    all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
-    for obj in all_keyframes:
-        try:
-            cmds.delete(obj)
-        except:
-            pass
 
+def gtu_reset_joint_sizes():
+    ''' Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one '''
+    try:
+        desired_size = 1
+        all_joints = cmds.ls(type='joint')
+        for obj in all_joints:
+            if cmds.objExists(obj):
+                if cmds.getAttr(obj + ".radius" ,lock=True) is False:
+                    cmds.setAttr(obj + '.radius', 1)
+                    
+                if cmds.getAttr(obj + ".v" ,lock=True) is False:
+                    cmds.setAttr(obj + '.v', 1)   
+        cmds.jointDisplayScale(1)
+
+    except Exception as exception:
+        raise exception
+        
 def gtu_reset_persp_shape_attributes():
     '''
     If persp shape exists (default camera), reset its attributes
@@ -222,115 +314,60 @@ def gtu_reset_persp_shape_attributes():
             cmds.setAttr('perspShape' + ".depthOfField", 0)
         except:
             pass
+            
+''' ____________________________ Delete Functions ____________________________'''   
 
-
-def gtu_reset_joint_sizes():
-    ''' Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one '''
+def gtu_delete_namespaces():
+    '''Deletes all namespaces in the scene'''
+    function_name = 'GTU Delete All Namespaces'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
-        desired_size = 1
-        all_joints = cmds.ls(type='joint')
-        for obj in all_joints:
-            if cmds.objExists(obj):
-                if cmds.getAttr(obj + ".radius" ,lock=True) is False:
-                    cmds.setAttr(obj + '.radius', 1)
-                    #change_obj_color(obj ,rgb_color=(.4,0,.4))
-                    
-                    # if 'endJnt' in obj:  # Add option to differentiate certain joints (maybe based on a string)
-                    #     change_obj_color(obj ,rgb_color=(1,0,0))
-                    
-                    # Add check here for joint visibility type, it should be skeleton (so it's not invisible or bbox)
-                    
-                if cmds.getAttr(obj + ".v" ,lock=True) is False:
-                    cmds.setAttr(obj + '.v', 1)   
-        cmds.jointDisplayScale(1)
-        # for obj in all_joints:
-        #     if cmds.objExists(obj):
-        #         if cmds.getAttr(obj + ".radius" ,lock=True) is False:
-        #             cmds.select(obj)
-        #             cmds.ls(selection=True)[0]
-        #             cmds.setAttr(obj + '.radius', desired_size)
-        #             cmds.select(d=True)
-        # cmds.jointDisplayScale(1)
-    except Exception as exception:
-        raise exception
-        #pass # Add everything to a string and print accordingly (error handling)
-        # cmds.scrollField(output_scroll_field, e=True, clear=True)
-        # cmds.scrollField(output_scroll_field, e=True, ip=0, it=str(exception) + '\n')
-            
-                    
-def gtu_reload_file():
-    ''' Reopens the opened file (to revert back any changes done to the file) '''        
-    if cmds.file(query=True, exists=True): # Check to see if it was ever saved
-                file_path = cmds.file(query=True, expandName=True)
-                if file_path is not None:
-                    cmds.file(file_path, open=True, force=True)
-    else:
-        cmds.warning('File was never saved.')
-            
-            
-def gtu_open_resource_browser():
-    ''' Opens Maya's Resource Browser '''        
-    try:
-        import maya.app.general.resourceBrowser as resourceBrowser
+        default_namespaces = ['UI', 'shared']
 
-        resourceBrowser.resourceBrowser().run()
-    except:
-        pass
+        def num_children(namespace):
+            '''Used as a sort key, this will sort namespaces by how many children they have.'''
+            return namespace.count(':')
 
-def gtu_move_pivot_to_base():
-    ''' Moves pivot point to the base of the boundary box '''     
-    selection = cmds.ls(selection=True) 
-
-    for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
-        bottom = [(bbox[0] + bbox[3])/2, bbox[1], (bbox[2] + bbox[5])/2] # find bottom
-        cmds.xform(obj, piv=bottom, ws=True) # sends pivot to bottom
-
-def gtu_move_pivot_to_top():
-    ''' Moves pivot point to the top of the boundary box '''     
-    selection = cmds.ls(selection=True) 
-
-    for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
-        top = [(bbox[0] + bbox[3])/2, bbox[4], (bbox[2] + bbox[5])/2] # find top
-        cmds.xform(obj, piv=top, ws=True) 
+        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
         
-def gtu_move_to_origin():
-    ''' Moves selected objects back to origin '''     
-    selection = cmds.ls(selection=True) 
+        # Reverse List
+        namespaces.sort(key=num_children, reverse=True) # So it does the children first
 
-    for obj in selection:
-        cmds.move(0, 0, 0, obj, a=True,rpr=True) #rpr flag moves it according to the pivot
+        print(namespaces)
 
-
-def gtu_import_references():
-    ''' Imports all references ''' 
-    try:
-        refs = cmds.ls(rf=True)
-        for i in refs:
-            r_file = cmds.referenceQuery(i, f=True)
-            cmds.file(r_file, importReference=True)
-    except:
-        cmds.warning("Something went wrong. Maybe you don't have any references to import?") # Handle this better...
-
-def gtu_copy_material():
-    ''' Copies selected material to clipboard ''' 
-    selection = cmds.ls(selection=True)
-    try:
-        mel.eval('ConvertSelectionToFaces;')
-        cmds.polyClipboard( copy=True, shader=True )
-        cmds.inViewMessage( amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True )
-    except:
-        cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
-    cmds.select(selection)
-    
-def gtu_paste_material():
-    ''' Copies selected material to clipboard ''' 
-    try:
-        cmds.polyClipboard( paste=True, shader=True )
-    except:
-        cmds.warning('Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
-
+        for namespace in namespaces:
+            if namespace not in default_namespaces:
+                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        
+def gtu_delete_display_layers():
+    ''' Deletes all display layers '''
+    display_layers = cmds.ls(type = 'displayLayer')
+    for layer in display_layers:
+        if layer != 'defaultLayer':
+            cmds.delete(layer)
+            
+def gtu_delete_keyframes():
+    '''Deletes all nodes of the type "animCurveTA" (keyframes)'''
+    keys_ta = cmds.ls(type='animCurveTA')
+    keys_tl = cmds.ls(type='animCurveTL')
+    keys_tt = cmds.ls(type='animCurveTT')
+    keys_tu = cmds.ls(type='animCurveTU')
+    #keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
+    #keys_ua = cmds.ls(type='animCurveUA')
+    #keys_ut = cmds.ls(type='animCurveUT')
+    #keys_uu = cmds.ls(type='animCurveUU')
+    all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
+    for obj in all_keyframes:
+        try:
+            cmds.delete(obj)
+        except:
+            pass
+            
+''' ____________________________ External Functions ____________________________'''   
 
 def gtu_build_gui_about_gt_tools():
     ''' Creates "About" window for the GT Tools menu ''' 
@@ -342,7 +379,6 @@ def gtu_build_gui_about_gt_tools():
         gt_version = cmds.optionVar(q=("gt_tools_version"))
     else:
         gt_version = '?'
-     
      
     window_name = "gtu_build_gui_about_gt_tools"
     if cmds.window(window_name, exists=True):
@@ -402,19 +438,25 @@ def gtu_build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
             
             
-#gtu_import_references()
-#gtu_delete_display_layers()        
-#gtu_delete_namespaces()   
-#gtu_reset_transforms()    
-#gtu_delete_keyframes()     
-#gtu_reset_persp_shape_attributes()         
-#gtu_reset_joint_sizes()
+''' ____________________________ Testing ____________________________'''   
 #gtu_reload_file()
 #gtu_open_resource_browser()
 #gtu_import_references()
-#gtu_move_to_origin()
-#gtu_move_pivot_to_base()
-#gtu_move_pivot_to_top()
+#gtu_uniform_lra_toggle()
+
 #gtu_copy_material()
 #gtu_paste_material()
+
+#gtu_move_pivot_to_top()
+#gtu_move_pivot_to_base()
+#gtu_move_to_origin()
+
+#gtu_reset_joint_sizes()
+#gtu_reset_transforms()
+#gtu_reset_persp_shape_attributes()  
+
+#gtu_delete_namespaces()
+#gtu_delete_display_layers()
+#gtu_delete_keyframes()
+
 #gtu_build_gui_about_gt_tools()

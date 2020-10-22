@@ -34,10 +34,13 @@
 //	 Minor fixes for the renamer script
 //   Added new utilities to GT Utilities
 //
+//   1.4.8 - 2020-10-21
+//   Added Uniform LRA Toggle
+//   Organized GT Utilities
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.7";
+global string $scriptVersion = "1.4.8";
 global string $gMainWindow;     // already defined by Maya
 
 // Set optionVar to the current version
@@ -175,6 +178,12 @@ menuItem -l "Utilities" -sm true -to true ;
     -c ("python(\"import gt_utilities\\ngt_utilities.gtu_import_references()\");") 
     -ann ("Imports all references.") 
     -image "reference.svg";
+    
+    menuItem 
+    -l ("Uniform LRA Toggle")
+    -c ("python(\"import gt_utilities\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
+    -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
+    -image "visible.png";
 	
     // Material
     menuItem -divider true ;
