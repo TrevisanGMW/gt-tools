@@ -37,11 +37,17 @@
 //   1.4.8 - 2020-10-21
 //   Added Uniform LRA Toggle
 //   Organized GT Utilities
+//   About menu build using Python now (It was moved to be inside the GT Utilities)
+//
+//   1.4.9 - 2020-10-23
+//   Added icons to the main menu
+//   Updated GT Renamer
+//   
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.4.8";
-global string $gMainWindow;     // already defined by Maya
+global string $scriptVersion = "1.4.9";
+global string $gMainWindow;
 
 // Set optionVar to the current version
 optionVar -sv "gt_tools_version" $scriptVersion;
@@ -60,7 +66,7 @@ else
 setParent -menu gtToolsMenu ;
 
 // -----------------------------------------TOOLS------------------------------------
-menuItem -l "Tools" -sm true -to true ;
+menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
 	menuItem 
     -l ("Renamer") 
     -c ("python(\"import gt_renamer\\ngt_renamer.build_gui_renamer()\");") 
@@ -96,7 +102,7 @@ menuItem -l "Tools" -sm true -to true ;
 	
 	
 // -----------------------------------------CURVES------------------------------------
-menuItem -l "Curves" -sm true -to true ;
+menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     menuItem 
     -l ("Generate Python Curve") 
     -c ("python(\"import gt_generate_python_curve\\ngt_generate_python_curve.build_gui_py_curve()\");") 
@@ -113,7 +119,7 @@ menuItem -l "Curves" -sm true -to true ;
     setParent -menu ".." ;
 
 // -----------------------------------------RIGGING------------------------------------
-menuItem -l "Rigging" -sm true -to true ;
+menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     menuItem 
     -l ("Connect Attributes") 
     -c ("python(\"import gt_connect_attributes\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
@@ -157,7 +163,7 @@ menuItem -l "Rigging" -sm true -to true ;
     
 // -----------------------------------------UTILITIES------------------------------------
 
-menuItem -l "Utilities" -sm true -to true ;
+menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Reload File")
@@ -184,7 +190,7 @@ menuItem -l "Utilities" -sm true -to true ;
     -c ("python(\"import gt_utilities\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
-	
+    	
     // Material
     menuItem -divider true ;
 	
@@ -271,7 +277,7 @@ menuItem -l "Utilities" -sm true -to true ;
 
 // -----------------------------------------MISCELLANEOUS------------------------------------
 
-menuItem -l "Miscellaneous" -sm true -to true ;
+menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     // If icon exists, use it
     string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
@@ -294,10 +300,9 @@ menuItem -l "Miscellaneous" -sm true -to true ;
 // -----------------------------------------ABOUT------------------------------------
 
     menuItem -divider true ;
-    menuItem -l "Help" -sm true -to true ;
+    menuItem -l "Help" -sm true -to true -image "defaultOutliner.svg";
     
-    //menuItem -l "About"  -c ("source \"gt_tools_menu.mel\"; aboutMenuDialog($scriptVersion);") -ann ("Opens about menu.") -image "help.png" ;;
-    menuItem -l "About"  -c ("python(\"import gt_utilities\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;;
+    menuItem -l "About"  -c ("python(\"import gt_utilities\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;
     menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
     menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/maya-scripts/tree/master/gt_tools/\"; ") -ann ("Check for Update.") -image "RS_import_layer.png" ;
     menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";

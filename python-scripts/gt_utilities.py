@@ -1,4 +1,5 @@
 """
+
  GT Utilities
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-09-13
  Functions were named with a "gtu" (GT Utilities) prefix to avoid conflicts.
@@ -32,6 +33,7 @@
     Reset persp camera : Reset all other attributes too (including transform?)
     Delete Display Layers : only empty? ignore string?
     Delete Namespaces : only empty? ignore string?
+    
 """
 import maya.cmds as cmds
 import maya.mel as mel

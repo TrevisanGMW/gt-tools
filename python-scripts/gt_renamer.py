@@ -12,17 +12,25 @@
  1.2 - 2020-10-17
  Fixed an issue where the manual input for prefixes and sufixes wouldn't work.
  
+ 1.3 - 2020-10-23
+ Added feedback to how many objects were renamed. (in view messages)
+ Added persistent settings for selection type
+ Added a check to ignore renaming when a new name is identical to current
+ 
  Todo:
+    Add persistent settings for the selection type (Selected, Hierarchy, All)
     Consider adding more types to auto suffix.
     Add more direction planes to the auto prefix option.
     Add alphabetize option (already started; function at the bottom) .
     Test with more complex scenes using the "all" option.
     Update help menu.
+    Auto rename shaders and file nodes.
  
 """
 import maya.cmds as cmds
 import traceback
 import copy
+import random
 from maya import OpenMayaUI as omui
 
 try:
@@ -41,7 +49,7 @@ except ImportError:
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.2"
+script_version = "1.3"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = { 'transform_suffix' : '_grp',
@@ -55,6 +63,7 @@ gt_renamer_settings = { 'transform_suffix' : '_grp',
                         'center_prefix' : 'center_',
                         'def_starting_number' : '1',
                         'def_padding_number' : '2',
+                        'selection_type' : '0', 
                         'error_message' : 'Some objects were not renamed. Open the script editor to see why.',
                         'nodes_to_ignore' : ['defaultRenderLayer', 'renderLayerManager', 'defaultLayer', 'layerManager', 'poseInterpolatorManager', \
                                             'shapeEditorManager', 'side', 'front', 'top', 'persp', 'lightLinker1', 'strokeGlobals', 'globalCacheControl',\
@@ -88,6 +97,7 @@ def get_persistent_settings_renamer():
     stored_center_prefix_exists = cmds.optionVar(exists=("gt_renamer_center_prefix"))
     stored_def_starting_number_exists = cmds.optionVar(exists=("gt_renamer_def_starting_number"))
     stored_def_padding_number_exists = cmds.optionVar(exists=("gt_renamer_def_padding_number"))
+    stored_selection_type_exists = cmds.optionVar(exists=("gt_renamer_selection_type"))
     
     if stored_transform_suffix_exists:
         gt_renamer_settings['transform_suffix'] = str(cmds.optionVar(q=("gt_renamer_transform_suffix")))
@@ -121,8 +131,10 @@ def get_persistent_settings_renamer():
         
     if stored_def_padding_number_exists:
         gt_renamer_settings['def_padding_number'] = str(cmds.optionVar(q=("gt_renamer_def_padding_number")))
+      
+    if stored_selection_type_exists:
+        gt_renamer_settings['selection_type'] = str(cmds.optionVar(q=("gt_renamer_selection_type")))  
     
-
 
 def set_persistent_settings_renamer(option_var_name, option_var_string):
     ''' 
@@ -152,6 +164,7 @@ def reset_persistent_settings_renamer():
     cmds.optionVar( remove='gt_renamer_center_prefix' )
     cmds.optionVar( remove='gt_renamer_def_starting_number' )
     cmds.optionVar( remove='gt_renamer_def_padding_number' )
+    cmds.optionVar( remove='gt_renamer_selection_type' )
     
     for def_value in gt_renamer_settings_default_values:
         for value in gt_renamer_settings:
@@ -189,17 +202,29 @@ def build_gui_renamer():
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
     cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
+    cmds.text(script_name + "  v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
     cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_renamer())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     cmds.rowColumnLayout(nc=3, cw=[(1, 90),(2, 95),(3, 95)], cs=[(1,15)])
-    cmds.radioCollection()
-    selection_type_selected = cmds.radioButton( label='Selected', select=True )
-    selection_type_hierarchy = cmds.radioButton( label='Hierarchy' )
-    cmds.radioButton( label='All' )
+    selection_type_rc = cmds.radioCollection()
+    selection_type_selected = cmds.radioButton( label='Selected', select=True, cc=lambda x:store_selection_type_persistant_settings())
+    selection_type_hierarchy = cmds.radioButton( label='Hierarchy', cc=lambda x:store_selection_type_persistant_settings())
+    selection_type_all = cmds.radioButton( label='All', cc=lambda x:store_selection_type_persistant_settings())
+    
+    def store_selection_type_persistant_settings():
+        ''' Stores current state of seletion type as persistent settings '''
+        set_persistent_settings_renamer('gt_renamer_selection_type', cmds.radioButton(cmds.radioCollection(selection_type_rc, q=True, select=True), q=True, label=True))
+        
+    # Set Persistent Settings for Selection Type
+    if gt_renamer_settings.get('selection_type') == 'Hierarchy':
+        cmds.radioCollection(selection_type_rc, e=True, select=selection_type_hierarchy)
+    elif gt_renamer_settings.get('selection_type') == 'All':
+        cmds.radioCollection(selection_type_rc, e=True, select=selection_type_all)
+    else:
+        cmds.radioCollection(selection_type_rc, e=True, select=selection_type_selected)
     
     cmds.rowColumnLayout( nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=5, style='none') # Empty Space
@@ -565,8 +590,6 @@ def build_gui_help_renamer():
     # Close Button 
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)
     
-    
-    
     cmds.separator(h=10, style='none')
     cmds.button(l='Reset Persistent Settings', h=30, c=lambda args: reset_persistent_settings_renamer())
     cmds.separator(h=5, style='none')
@@ -633,7 +656,7 @@ def rename_uppercase(obj_list):
     for obj in obj_list:
         object_short_name = get_short_name(obj)
         new_name = object_short_name.upper()
-        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name:
             to_rename.append([obj,new_name])
             
     for pair in reversed(to_rename):
@@ -648,6 +671,7 @@ def rename_uppercase(obj_list):
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
             
+    renaming_inview_feedback(len(to_rename))
 
 def rename_lowercase(obj_list):
     '''
@@ -662,7 +686,7 @@ def rename_lowercase(obj_list):
     for obj in obj_list:
         object_short_name = get_short_name(obj)
         new_name = object_short_name.lower()
-        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name:
             to_rename.append([obj,new_name])
             
     for pair in reversed(to_rename):
@@ -676,6 +700,8 @@ def rename_lowercase(obj_list):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+            
+    renaming_inview_feedback(len(to_rename))
 
 
 def rename_capitalize(obj_list):
@@ -700,7 +726,7 @@ def rename_capitalize(obj_list):
         else:
             new_name = object_short_name.capitalize() 
         
-        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name:
             to_rename.append([obj,new_name])
             
     for pair in reversed(to_rename):
@@ -714,6 +740,8 @@ def rename_capitalize(obj_list):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+            
+    renaming_inview_feedback(len(to_rename))
 
 
 def remove_first_letter(obj_list):
@@ -751,6 +779,8 @@ def remove_first_letter(obj_list):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+    
+    renaming_inview_feedback(len(to_rename))
 
 
 def remove_last_letter(obj_list):
@@ -788,6 +818,8 @@ def remove_last_letter(obj_list):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+            
+    renaming_inview_feedback(len(to_rename))
 
 
 def rename_search_replace(obj_list, search, replace):
@@ -807,12 +839,14 @@ def rename_search_replace(obj_list, search, replace):
         for obj in obj_list:
             object_short_name = get_short_name(obj)
             new_name = string_replace(str(object_short_name), search, replace)
-            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name:
                 to_rename.append([obj,new_name])
                 
         for pair in reversed(to_rename):
             if cmds.objExists(pair[0]):
                 cmds.rename(pair[0], pair[1])
+    
+        renaming_inview_feedback(len(to_rename))
         
 
 def rename_and_number(obj_list, new_name, start_number, padding_number):
@@ -851,6 +885,8 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+            
+        renaming_inview_feedback(len(to_rename))
 
 
 def rename_add_prefix(obj_list, new_prefix_list):
@@ -898,7 +934,7 @@ def rename_add_prefix(obj_list, new_prefix_list):
             else:
                 new_name_and_prefix = new_prefix + object_short_name
             
-            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) :
+            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name_and_prefix:
                 to_rename.append([obj,new_name_and_prefix])
             
         for pair in reversed(to_rename):
@@ -914,6 +950,8 @@ def rename_add_prefix(obj_list, new_prefix_list):
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
+        
+        renaming_inview_feedback(len(to_rename))
             
 
 def rename_add_suffix(obj_list, new_suffix_list):
@@ -971,7 +1009,7 @@ def rename_add_suffix(obj_list, new_suffix_list):
             else:
                 new_name_and_suffix = object_short_name + new_suffix
             
-            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) :
+            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True) and obj != new_name_and_suffix:
                 to_rename.append([obj,new_name_and_suffix])
             
         for pair in reversed(to_rename):
@@ -980,14 +1018,16 @@ def rename_add_suffix(obj_list, new_suffix_list):
                     cmds.rename(pair[0], pair[1])
                 except Exception as exception:
                     errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+                    
         if errors != '':
             print('#' * 80 + '\n')
             print(errors)
             print('#' * 80)
             cmds.warning(gt_renamer_settings.get('error_message'))
         
-
-
+        renaming_inview_feedback(len(to_rename))
+    
+        
 def rename_and_alphabetize(obj_list, new_name):
     '''
     WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
@@ -1008,8 +1048,24 @@ def rename_and_alphabetize(obj_list, new_name):
         if current_letter_index == 25:
             multiple_letter_patch = current_letter_index[multiple_letter_index]
         cmds.rename(obj, new_name_and_letter)
-               
 
+
+def renaming_inview_feedback(number_of_renames):
+    '''
+    Prints an inViewMessage to give feedback to the user about how many objects were renamed.
+    Uses the module "random" to force identical messages to appear at the same time.
+
+            Parameters:
+                    number_of_renames (int): how many objects were renamed.
+    '''
+    if number_of_renames != 0:
+            message = '<' + str(random.random()) + '><span style=\"color:#FF0000;text-decoration:underline;\">' + str(number_of_renames)
+            
+            if number_of_renames == 1:
+                message += '</span><span style=\"color:#FFFFFF;\"> object was renamed.</span>'
+            else: 
+                message += '</span><span style=\"color:#FFFFFF;\"> objects were renamed.</span>'
+            cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 # Run Script
 get_persistent_settings_renamer()
