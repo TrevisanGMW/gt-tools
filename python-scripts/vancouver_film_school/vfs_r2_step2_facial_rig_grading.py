@@ -10,6 +10,12 @@
  Added button to apply all common patches
  Added some small changes to organizer
  
+ 1.2 - 2020-10-25
+ Added minor changes to non-unique exceptions
+ Minor update to the brute force naming exceptions
+ Updated naming convention to start with lowercase letters
+ Added a new patch button "delete_all_display_layers"
+ Added "delete_all_display_layers" to common patch
  
  To Do:
     Update nonunique elements function
@@ -85,14 +91,14 @@ toggle_jnt_visibility = ['head', 'jaw', 'neckmid', 'neckmid']
 # To quickly create a list use : extract_brute_force_dict(is_joint=False, include_vec_scale=False)
 brute_force_joint_naming_dict = {'neckBase_jnt' : [ [-0.000, 86.248, -3.785], [90.000, -16.310, 90.000], 1.8],
                                  'neckMid_jnt' : [ [-0.000, 89.732, -2.946], [90.000, -25.099, 90.000], 1.8],
-                                 'head_jnt' : [ [-0.000, 92.828, -1.571], [90.000, -3.162, 90.000], 1.47, ['jaw', 'tongue']],
-                                 'head_end_jnt' : [ [0.000, 103.658, -0.757], [90.000, -3.162, 90.000], 2.5],
+                                 'head_jnt' : [ [-0.000, 92.828, -1.571], [90.000, -3.162, 90.000], 1.47, ['jaw', 'tongue', 'facial_rig']],
+                                 'head_endJnt' : [ [0.000, 103.658, -0.757], [90.000, -3.162, 90.000], 2.5],
                                  'jawPivot_jnt' : [ [0.000, 94.628, 1.059], [-90.000, -42.261, -90.000], 1.6, ['head']],
-                                 'jawPivot_end_jnt' : [ [0.000, 89.713, 4.353], [-90.000, -42.261, -90.000], 0.8],
+                                 'jawPivot_endJnt' : [ [0.000, 89.713, 4.353], [-90.000, -42.261, -90.000], 0.8],
                                  'right_eye_jnt' : [ [-1.950, 97.160, 4.413], [-114.720, 85.248, 65.355], 0.8],
-                                 'right_eye_end_jnt' : [ [-1.990, 97.074, 5.551], [-114.720, 85.248, 65.355], 0.3],
+                                 'right_eye_endJnt' : [ [-1.990, 97.074, 5.551], [-114.720, 85.248, 65.355], 0.3],
                                  'left_eye_jnt' : [ [1.950, 97.160, 4.413], [65.280, -85.248, -65.355], 0.8],
-                                 'left_eye_end_jnt' : [ [1.990, 97.074, 5.551], [65.280, -85.248, -65.355], 0.3],
+                                 'left_eye_endJnt' : [ [1.990, 97.074, 5.551], [65.280, -85.248, -65.355], 0.3],
                                  'left_innerBrow_jnt' : [ [0.925, 98.158, 6.383], [-0.000, 0.000, 0.000], 0.55],
                                  'left_midBrow_jnt' : [ [2.038, 98.469, 6.298], [-0.000, 0.000, 0.000], 0.55],
                                  'left_outerBrow_jnt' : [ [3.206, 98.300, 5.873], [-0.000, 0.000, 0.000], 0.55],
@@ -126,7 +132,7 @@ brute_force_ctrl_naming_dict = {'main_eye_ctrl' : [ [0.000, 97.160, 18.800], [0.
 
 
 # Keep it here for backwards compatibility 
-ignore_non_uniques = ['effector6', 'left_Hand_IK_Gimbal_CtrlGrp', 'right_foot_Jnt']
+ignore_non_uniques = ['effector6', 'left_Hand_IK_Gimbal_CtrlGrp', 'right_foot_Jnt','left_Hand_IK_Gimbal_ctrlGrp', 'right_foot_jnt']
 
 
 
@@ -337,7 +343,7 @@ def build_gui_gt_grader_script():
     
 
     cmds.button(l='All Common Patches', h=30, bgc=footer_buttons_color, c=lambda args: apply_all_common())
-    cmds.button(l='X', h=30, bgc=footer_buttons_color, c=lambda args: patch_joints())
+    cmds.button(l='Delete Display Layers', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_display_layers())
     cmds.button(l='Delete Namespaces', h=30, bgc=footer_buttons_color, c=lambda args: delete_all_namespaces())
     
     cmds.separator(h=5, style='none')
@@ -410,6 +416,13 @@ def build_gui_gt_grader_script():
         output = ''
         errors = ''
         
+
+        try:
+            delete_all_display_layers()
+            cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All display layers were deleted.\n')
+        except Exception as e:
+            errors = str(e) + '\n'
+            
         try:
             delete_all_namespaces()
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=' - All namespaces were deleted.\n')
@@ -1908,7 +1921,15 @@ def delete_all_namespaces():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName='Delete all namespaces')
 
-
+def delete_all_display_layers():
+    ''' Deletes all display layers '''
+    try:
+        display_layers = cmds.ls(type = 'displayLayer')
+        for layer in display_layers:
+            if layer != 'defaultLayer':
+                cmds.delete(layer)
+    except:
+        pass
 
 #Build GUI
 if __name__ == '__main__':
