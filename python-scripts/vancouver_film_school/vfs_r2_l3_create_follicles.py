@@ -1,3 +1,4 @@
+# 1. Import Maya Commands
 import maya.cmds as cmds
 
 # 2. Create the necessary variables
