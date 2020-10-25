@@ -15,7 +15,7 @@
  Minor update to the brute force naming exceptions
  Updated naming convention to start with lowercase letters
  Added a new patch button "delete_all_display_layers"
- Added "delete_all_display_layers" to common patch
+ Added "delete_all_display_layers" as a common patch
  
  To Do:
     Update nonunique elements function
@@ -51,7 +51,7 @@ script_name = 'GT - Grading Script'
 re_file_name = re.compile(r'(^\dD\d{3}\_\w+\_)(FacialRig|FacialRigging|Facial_Rig|FaceRig)(_|.)')
 
 # Version
-script_version = '1.0'
+script_version = '1.2'
 
 # Grading Components
 gt_grading_components = { 0 : ['Organization & Functionality', 20],
