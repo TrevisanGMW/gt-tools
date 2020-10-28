@@ -16,6 +16,7 @@
  
  1.3 - 2020/10/10
  Updated tolerance to avoid false positives when checking the spine
+ Updated tolarance to avoid false positives when checking fingers
  
 """
 import maya.cmds as cmds
@@ -262,7 +263,7 @@ def build_gui_gt_r1_skeleton_check():
                                 if parent_node:
                                     parents.append(parent_node[0])
                                 orient_deduction.append(jnt)
-                            elif (total_orient) > 110 and 'jaw_jnt' not in jnt:
+                            elif (total_orient) > 110 and 'jaw_jnt' not in jnt and 'index' not in jnt and 'middle' not in jnt and 'ring' not in jnt and 'pinky' not in jnt:
                                 cmds.scrollField(output_scroll_field, e=True, ip=0, it='"' + jnt + '" or its parent has incorrect joint orients.\n')
                                 orient_deduction.append(jnt)
                                 if cmds.listRelatives(jnt, parent=True):
