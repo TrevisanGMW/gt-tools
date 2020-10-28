@@ -1,6 +1,6 @@
 """
 
- Rigging 1 - Betty Skeleton Check - v1.2
+ Rigging 1 - Betty Skeleton Check
  This script checks for issues in the skeleton (joints) for the character "Betty" in Rigging 1 - VFS
  Part of the code used for this script was repourposed from a previous script found in the course material folder (2019)
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-03-01 - github.com/TrevisanGMW
@@ -16,7 +16,7 @@
  
  1.3 - 2020/10/10
  Updated tolerance to avoid false positives when checking the spine
- Updated tolarance to avoid false positives when checking fingers
+ Updated tolerance to avoid false positives when checking fingers
  
 """
 import maya.cmds as cmds
