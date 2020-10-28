@@ -3,6 +3,10 @@
  GT Grading Script  - Script for automatically testing and grading assignments
  Configured for: Rigging 1 - Skin Weights (Assignment 1.2)
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-13 - github.com/TrevisanGMW
+ 
+ 1.1 - 2020-10-26
+ Changed weight for the organization grade
+ Added some new elements to be deleted when deleting controls
 
 """
 import maya.cmds as cmds
@@ -33,14 +37,14 @@ script_name = 'GT - Grading Script'
 re_file_name = re.compile(r'(^\dD\d{3}\_\w+\_)(DeformationRig|Deformation|Skinning|SkinWeights)(_|.)')
 
 # Version
-script_version = '1.0'
+script_version = '1.1'
 
 # Grading Components
-gt_grading_components = { 0 : ['Organization & File Name', 10],
+gt_grading_components = { 0 : ['Organization & File Name', 20],
                           1 : ['Jaw & Head', 30],
                           2 : ['Upper Body & Fingers', 20],
                           3 : ['Lower Body, Legs & Feet', 20],
-                          4 : ['Symmetry & Smoothness', 20]
+                          4 : ['Symmetry & Smoothness', 10]
                         }
 
 # Common Notes
@@ -69,7 +73,8 @@ gt_grading_settings = { 'keyframes_interval' : 5
 unparent_list = ['root_jnt','geo_grp']
 
 delete_list = ['controls','Controls', 'control_grp','Control_grp','controls_grp','Controls_grp','DO_NOT_TOUCH', \
-               'proxy_geo_grp','proxy_geo','skeleton','Skeleton','skeleton_grp','Skeleton_grp''Betty']
+               'proxy_geo_grp','proxy_geo','skeleton','Skeleton','skeleton_grp','Skeleton_grp''Betty','rig_setup_grp', \
+               'Rig_setup_grp', 'rig_setup', 'betty_grp']
                
 wire_system_elements = ['left_upper_eyelashBaseWire','left_lower_eyelashBaseWire','left_eyebrow_BaseWire', \
                       'right_upper_eyelashBaseWire','right_eyebrow_BaseWire','right_lower_eyelashBaseWire']
