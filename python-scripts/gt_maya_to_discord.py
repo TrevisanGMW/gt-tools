@@ -16,6 +16,16 @@
  Added a new method of showing the size of the file (it changes the suffix according to the size)
  Updated "capture_desktop_screenshot" to find what monitor is using Maya
  
+ 1.3 - 2020-11-01
+ Updated "discord_post_message" to accept usernames
+ Added option to send a messages
+ Updated the name of the settings dictionary to avoid conflicts
+ Added inview feedback to all buttons
+ Made main functions temporarily disable buttons to avoid multiple requests
+ Added option to control the visibility of inView messages
+ Added option to up timestamp or not
+ 
+ 
  Todo:
     Improve embeds for discord image uploader - Add colors, emojis and more. 
     Add exporting option for objects.
@@ -52,6 +62,7 @@ import random
 import string 
 import copy
 import time
+import sys
 import os
 from json import dumps
 from json import loads
@@ -62,27 +73,29 @@ from httplib2 import Http
 script_name = "GT Maya to Discord"
 
 # Versions:
-script_version = "1.2"
+script_version = "1.3"
 maya_version = cmds.about(version=True)
 
 # Used to define multipart/form-data boundary
 _BOUNDARY_CHARS = string.digits + string.ascii_letters
 
 # Settings
-settings = { 'discord_webhook':'',
-             'discord_webhook_name'  : '',
-             'is_first_time_running' : False,
-             'custom_username' : '',
-             'image_format' : 'jpg',
-             'video_format' : 'mov', 
-             'video_scale_pct' : 40, 
-             'video_compression' : 'Animation', 
-             'video_output_type' : 'qt',
-             'is_new_instance' : True,
-             'is_webhook_valid' : False }
+gt_mtod_settings = { 'discord_webhook':'',
+                     'discord_webhook_name'  : '',
+                     'is_first_time_running' : False,
+                     'custom_username' : '',
+                     'image_format' : 'jpg',
+                     'video_format' : 'mov', 
+                     'video_scale_pct' : 40, 
+                     'video_compression' : 'Animation', 
+                     'video_output_type' : 'qt',
+                     'is_new_instance' : True,
+                     'is_webhook_valid' : False,
+                     'feedback_visibility' : True,
+                     'timestamp_visibility' : True }
 
 # Default Settings (Deep Copy)
-settings_default = copy.deepcopy(settings)   
+gt_mtod_settings_default = copy.deepcopy(gt_mtod_settings)   
 
 
 def get_persistent_settings_maya_to_discord():
@@ -103,37 +116,47 @@ def get_persistent_settings_maya_to_discord():
     stored_video_compression_exists = cmds.optionVar(exists=("gt_maya_to_discord_video_compression"))
     stored_video_output_type_exists = cmds.optionVar(exists=("gt_maya_to_discord_video_output_type"))
     
+    stored_feedback_visibility_exists = cmds.optionVar(exists=("gt_maya_to_discord_feedback_visibility"))
+    stored_timestamp_visibility_exists = cmds.optionVar(exists=("gt_maya_to_discord_timestamp_visibility"))
+    
     # Discord Settings
     if stored_webhook_exists:  
-        settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
+        gt_mtod_settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
         
         if stored_webhook_name_exists and str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name"))) != '':
-            settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
+            gt_mtod_settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
     else:
-        settings['is_first_time_running'] = True
+        gt_mtod_settings['is_first_time_running'] = True
    
     if stored_custom_username_exists:  
-        settings['custom_username'] = str(cmds.optionVar(q=("gt_maya_to_discord_custom_username")))
+        gt_mtod_settings['custom_username'] = str(cmds.optionVar(q=("gt_maya_to_discord_custom_username")))
     else:
-        settings['custom_username'] = ''
+        gt_mtod_settings['custom_username'] = ''
         
     # Image Settings
     if stored_image_format_exists:
-        settings['image_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_image_format")))
+        gt_mtod_settings['image_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_image_format")))
     
 
     # Playblast Settings
     if stored_image_format_exists:
-        settings['video_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_format")))
+        gt_mtod_settings['video_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_format")))
 
     if stored_video_scale_exists:
-        settings['video_scale_pct'] = int(cmds.optionVar(q=("gt_maya_to_discord_video_scale")))
+        gt_mtod_settings['video_scale_pct'] = int(cmds.optionVar(q=("gt_maya_to_discord_video_scale")))
 
     if stored_video_compression_exists:
-        settings['video_compression'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_compression")))
+        gt_mtod_settings['video_compression'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_compression")))
         
     if stored_video_output_type_exists:
-        settings['video_output_type'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_output_type")))
+        gt_mtod_settings['video_output_type'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_output_type")))
+    
+    # Checkboxes
+    if stored_feedback_visibility_exists:
+        gt_mtod_settings['feedback_visibility'] = bool(cmds.optionVar(q=("gt_maya_to_discord_feedback_visibility")))
+  
+    if stored_timestamp_visibility_exists:
+        gt_mtod_settings['timestamp_visibility'] = bool(cmds.optionVar(q=("gt_maya_to_discord_timestamp_visibility")))
 
 
 
@@ -154,46 +177,46 @@ def set_persistent_settings_maya_to_discord(custom_username, webhook, image_form
     '''
 
     cmds.optionVar( sv=('gt_maya_to_discord_custom_username', custom_username) )
-    settings['custom_username'] = str(cmds.optionVar(q=("gt_maya_to_discord_custom_username")))
+    gt_mtod_settings['custom_username'] = str(cmds.optionVar(q=("gt_maya_to_discord_custom_username")))
 
     if webhook != '':  
         cmds.optionVar( sv=('gt_maya_to_discord_webhook', webhook) )
-        settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
+        gt_mtod_settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
         
         response = discord_get_webhook_name(webhook)
         cmds.optionVar( sv=('gt_maya_to_discord_webhook_name', response) )
-        settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
+        gt_mtod_settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
           
     else:
         cmds.optionVar( sv=('gt_maya_to_discord_webhook', webhook) )
-        settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
+        gt_mtod_settings['discord_webhook'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook")))
         
         cmds.optionVar( sv=('gt_maya_to_discord_webhook_name', 'Missing Webhook') )
-        settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
+        gt_mtod_settings['discord_webhook_name'] = str(cmds.optionVar(q=("gt_maya_to_discord_webhook_name")))
         
         cmds.warning('Webhook not provided. Please update your settings if you want your script to work properly.')
         
     if image_format != '':
         cmds.optionVar( sv=('gt_maya_to_discord_image_format', image_format) )
-        settings['image_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_image_format")))
+        gt_mtod_settings['image_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_image_format")))
     
     if image_format != '':
         cmds.optionVar( sv=('gt_maya_to_discord_video_format', video_format) )
-        settings['video_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_format")))
+        gt_mtod_settings['video_format'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_format")))
         
     if video_scale >= 1 and video_scale <= 100:
         cmds.optionVar( sv=('gt_maya_to_discord_video_scale', video_scale) )
-        settings['video_scale_pct'] = int(cmds.optionVar(q=("gt_maya_to_discord_video_scale")))
+        gt_mtod_settings['video_scale_pct'] = int(cmds.optionVar(q=("gt_maya_to_discord_video_scale")))
     else:
         cmds.warning('Video scale needs to be a percentage between 1 and 100.  Provided value was ignored')
         
     if video_compression != '':
         cmds.optionVar( sv=('gt_maya_to_discord_video_compression', video_compression) )
-        settings['video_compression'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_compression")))
+        gt_mtod_settings['video_compression'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_compression")))
         
     if video_output_type != '':
         cmds.optionVar( sv=('gt_maya_to_discord_video_output_type', video_output_type) )
-        settings['video_output_type'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_output_type")))
+        gt_mtod_settings['video_output_type'] = str(cmds.optionVar(q=("gt_maya_to_discord_video_output_type")))
         
         
 def reset_persistent_settings_maya_to_discord():
@@ -204,6 +227,10 @@ def reset_persistent_settings_maya_to_discord():
     cmds.optionVar( remove='is_first_time_running' )
     cmds.optionVar( remove='gt_maya_to_discord_video_format' )
     cmds.optionVar( remove='gt_maya_to_discord_image_format' )
+    cmds.optionVar( remove='gt_maya_to_discord_feedback_visibility' )
+    cmds.optionVar( remove='gt_maya_to_discord_timestamp_visibility' )   
+    gt_mtod_settings['feedback_visibility'] = gt_mtod_settings_default.get('feedback_visibility')
+    gt_mtod_settings['timestamp_visibility'] = gt_mtod_settings_default.get('timestamp_visibility')
     get_persistent_settings_maya_to_discord()
     build_gui_maya_to_discord()
     cmds.warning('Persistent settings for ' + script_name + ' are now removed.')
@@ -282,26 +309,31 @@ def build_gui_maya_to_discord():
     status_message_text = cmds.text(l='', align="center")
     
     
-    if settings['is_first_time_running'] == True:
+    if gt_mtod_settings['is_first_time_running'] == True:
         cmds.text(webhook_name_text, e=True, l='Set Webhook in the Settings', bgc= [1,1,0])
     else:
-        if 'Error' in settings.get('discord_webhook_name') or 'Missing Webhook' in settings.get('discord_webhook_name'):
-            cmds.text(webhook_name_text, e=True, l=settings.get('discord_webhook_name'), bgc=[.5,0,0])
+        if 'Error' in gt_mtod_settings.get('discord_webhook_name') or 'Missing Webhook' in gt_mtod_settings.get('discord_webhook_name'):
+            cmds.text(webhook_name_text, e=True, l=gt_mtod_settings.get('discord_webhook_name'), bgc=[.5,0,0])
         else:
-            cmds.text(webhook_name_text, e=True, l=settings.get('discord_webhook_name'), nbg=True)
+            cmds.text(webhook_name_text, e=True, l=gt_mtod_settings.get('discord_webhook_name'), nbg=True)
     
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main) 
     cmds.separator(h=7, style='none') # Empty Space
     cmds.separator(h=5)
-    cmds.separator(h=15, style='none') # Empty Space
     
-    cmds.button(l ="Send Entire Desktop", bgc=(.6, .8, .6), c=lambda x:send_dekstop_screenshot())  
+    cmds.separator(h=7, style='none') # Empty Space
+    attached_message_txtfield = cmds.textField(pht='Attached Message (Optional)', text="")
+    cmds.separator(h=10, style='none') # Empty Space
+    
+    send_desktop_btn = cmds.button(l ="Send Entire Desktop", bgc=(.6, .8, .6), c=lambda x:send_dekstop_screenshot())  
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.button(l ="Send Maya Window", bgc=(.6, .8, .6), c=lambda x:send_maya_window())   
+    send_maya_window_btn = cmds.button(l ="Send Maya Window", bgc=(.6, .8, .6), c=lambda x:send_maya_window())   
     cmds.separator(h=5, style='none') # Empty Space   
-    cmds.button(l ="Send Viewport", bgc=(.6, .8, .6), c=lambda x:send_viewport_only())                                                                                             
+    send_viewport_btn = cmds.button(l ="Send Viewport", bgc=(.6, .8, .6), c=lambda x:send_viewport_only())                                                                                             
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.button(l ="Send Playblast", bgc=(.6, .8, .6), c=lambda x:send_animated_playblast())                                                                                                                                                                                      
+    send_playblast_btn = cmds.button(l ="Send Playblast", bgc=(.6, .8, .6), c=lambda x:send_animated_playblast())                                                                                                                                                                                      
+    cmds.separator(h=5, style='none') # Empty Space
+    send_message_btn = cmds.button(l ="Send Message Only", bgc=(.6, .8, .6), c=lambda x:send_message_only())                                                                                                                                                                                      
     cmds.separator(h=10, style='none') # Empty Space
     
     
@@ -325,10 +357,10 @@ def build_gui_maya_to_discord():
                     Returns:
                         username (str): A string composed of custom username (if it exists) and the computer's username
         ''' 
-        if settings.get('custom_username') == '':
+        if gt_mtod_settings.get('custom_username') == '':
             user_name = socket.gethostname()
         else:
-            user_name = settings.get('custom_username') + ' (' + socket.gethostname() + ')'
+            user_name = gt_mtod_settings.get('custom_username') + ' (' + socket.gethostname() + ')'
 
         return user_name
     
@@ -348,7 +380,21 @@ def build_gui_maya_to_discord():
             cmds.text(status_message_text, e=True, l='...', bgc=(.5, 0, 0))
             cmds.text(status_code_text, e=True, l='Error', bgc=(.5, 0, 0))
 
-    
+    def clear_attached_message(response):
+        ''' 
+        Clears the attached message when a success code is received
+        
+                Parameters:
+                    response (dict): A dictionary response received from a HTTP object after post/get operation.
+        
+        '''
+        if len(response) >= 1:
+            status_value = response[0].status
+            success_codes = [200, 201, 202, 203, 204, 205, 206]
+
+            if status_value in success_codes: 
+                cmds.textField(attached_message_txtfield, e=True, text='')
+
     
     def parse_sending_response(response):
         '''
@@ -372,24 +418,78 @@ def build_gui_maya_to_discord():
         else :
             cmds.text(status_message_text, e=True, l='Can\'t read response', bgc=(0.5, 0,0))
             cmds.text(status_code_text, e=True, l='Can\'t read response', bgc=(0.5, 0,0))
+            
+    def attached_text_message(operation_name, response):
+        '''
+        Attaches message to the content sent according the response received and the content of the message.
+        
+                Parameters:
+                    operation_name (string): Name of the operation, used to write an output message.
+                    response (dict): A dictionary response received from a HTTP object after post/get operation. (This should be the response of the previous operation)
+        
+        '''
+        if len(response) >= 1:
+            status_value = response[0].status
+            success_codes = [200, 201, 202, 203, 204, 205, 206]
+            if status_value in success_codes: 
+                try:  
+                    upload_message = cmds.textField(attached_message_txtfield, q=True, text=True)
+                    if upload_message.strip() != '': 
+                        def threaded_upload():
+                            try:
+                                discord_post_message(get_username(), upload_message, gt_mtod_settings.get('discord_webhook'))
+                                utils.executeDeferred(response_inview_feedback, operation_name, response, display_inview=gt_mtod_settings.get('feedback_visibility'))
+                                utils.executeDeferred(clear_attached_message, response)
+                            except Exception as e:
+                                print(e)
+                            
+                        thread = threading.Thread(None, target = threaded_upload)
+                        thread.start()
+                    else:
+                        response_inview_feedback(operation_name, response, display_inview=gt_mtod_settings.get('feedback_visibility'))
+                except:
+                    pass
+        
+                    
+    def disable_buttons():
+        ''' Disable buttons so user don't accidently send multiple requests at once ''' 
+        cmds.button(send_desktop_btn, e=True, enable=False)
+        cmds.button(send_maya_window_btn, e=True, enable=False)
+        cmds.button(send_viewport_btn, e=True, enable=False)
+        cmds.button(send_playblast_btn, e=True, enable=False)
+        cmds.button(send_message_btn, e=True, enable=False)
+    
+    def enable_buttons():
+        ''' Enable buttons after finishing previously requested function ''' 
+        cmds.button(send_desktop_btn, e=True, enable=True)
+        cmds.button(send_maya_window_btn, e=True, enable=True)
+        cmds.button(send_viewport_btn, e=True, enable=True)
+        cmds.button(send_playblast_btn, e=True, enable=True)
+        cmds.button(send_message_btn, e=True, enable=True)
 
     # Button Functions ----------
     webhook_error_message = 'Sorry, something went wrong. Please review your webhook and settings.'
     def send_dekstop_screenshot():
         ''' Attempts to send a desktop screenshot using current settings '''
-        if settings.get('is_new_instance'):
-            update_discord_webhook_validity(settings.get('discord_webhook'))
+        if gt_mtod_settings.get('is_new_instance'):
+            update_discord_webhook_validity(gt_mtod_settings.get('discord_webhook'))
         
-        if settings.get('is_webhook_valid'):
+        if gt_mtod_settings.get('is_webhook_valid'):
             try:
                 update_text_status()
-                temp_path = generate_temp_file(settings.get('image_format'))
+                temp_path = generate_temp_file(gt_mtod_settings.get('image_format'))
                 temp_desktop_ss_file = capture_desktop_screenshot(temp_path)
-                upload_message = get_date_time_message()
+                if gt_mtod_settings.get('timestamp_visibility'):
+                    upload_message = get_date_time_message()
+                else:
+                    upload_message = ''
                 def threaded_upload():
                     try:
-                        response = discord_post_attachment(get_username(), upload_message, temp_desktop_ss_file, settings.get('discord_webhook'))
+                        utils.executeDeferred(disable_buttons)
+                        response = discord_post_attachment(get_username(), upload_message, temp_desktop_ss_file, gt_mtod_settings.get('discord_webhook'))
+                        utils.executeDeferred(enable_buttons)
                         utils.executeDeferred(parse_sending_response, response)
+                        utils.executeDeferred(attached_text_message, 'desktop screenshot', response)
                     except:
                         update_text_status(error=True)
                         cmds.warning(webhook_error_message)
@@ -406,19 +506,25 @@ def build_gui_maya_to_discord():
     
     def send_maya_window():
         ''' Attempts to send an image of the maya window using current settings '''
-        if settings.get('is_new_instance'):
-            update_discord_webhook_validity(settings.get('discord_webhook'))
+        if gt_mtod_settings.get('is_new_instance'):
+            update_discord_webhook_validity(gt_mtod_settings.get('discord_webhook'))
         
-        if settings.get('is_webhook_valid'):
+        if gt_mtod_settings.get('is_webhook_valid'):
             try:  
                 update_text_status()
-                temp_path = generate_temp_file(settings.get('image_format'))
+                temp_path = generate_temp_file(gt_mtod_settings.get('image_format'))
                 temp_img_file = capture_app_window(temp_path)
-                upload_message = get_date_time_message()                   
+                if gt_mtod_settings.get('timestamp_visibility'):
+                    upload_message = get_date_time_message()
+                else:
+                    upload_message = ''                  
                 def threaded_upload():
                     try:
-                        response = discord_post_attachment(get_username(), upload_message, temp_img_file, settings.get('discord_webhook'))
+                        utils.executeDeferred(disable_buttons)
+                        response = discord_post_attachment(get_username(), upload_message, temp_img_file, gt_mtod_settings.get('discord_webhook'))
+                        utils.executeDeferred(enable_buttons)
                         utils.executeDeferred(parse_sending_response, response)
+                        utils.executeDeferred(attached_text_message, 'Maya window screenshot', response)
                     except:
                         update_text_status(error=True)
                         cmds.warning(webhook_error_message)
@@ -433,23 +539,28 @@ def build_gui_maya_to_discord():
         
     def send_viewport_only():
         ''' Attempts to send an image of the active viewport using current settings '''
-        if settings.get('is_new_instance'):
-            update_discord_webhook_validity(settings.get('discord_webhook'))
+        if gt_mtod_settings.get('is_new_instance'):
+            update_discord_webhook_validity(gt_mtod_settings.get('discord_webhook'))
             
-        if settings.get('is_webhook_valid'):
+        if gt_mtod_settings.get('is_webhook_valid'):
             try:
                 update_text_status()
-                temp_path = generate_temp_file(settings.get('image_format'))
+                temp_path = generate_temp_file(gt_mtod_settings.get('image_format'))
                 if maya_version in ['2017','2018','2019']:
                     temp_img_file = capture_viewport_playblast(temp_path)
                 else:
                     temp_img_file = capture_viewport(temp_path)
-                upload_message = get_date_time_message()
-                
+                if gt_mtod_settings.get('timestamp_visibility'):
+                    upload_message = get_date_time_message()
+                else:
+                    upload_message = ''
                 def threaded_upload():
                     try:
-                        response = discord_post_attachment(get_username(), upload_message, temp_img_file, settings.get('discord_webhook'))
+                        utils.executeDeferred(disable_buttons)
+                        response = discord_post_attachment(get_username(), upload_message, temp_img_file, gt_mtod_settings.get('discord_webhook'))
+                        utils.executeDeferred(enable_buttons)
                         utils.executeDeferred(parse_sending_response, response)
+                        utils.executeDeferred(attached_text_message, 'viewport screenshot', response)
                     except:
                         update_text_status(error=True)
                         cmds.warning(webhook_error_message)
@@ -464,10 +575,10 @@ def build_gui_maya_to_discord():
             
     def send_animated_playblast():
         ''' Attempts to record a playblast and upload it using the current settings '''
-        if settings.get('is_new_instance'):
-            update_discord_webhook_validity(settings.get('discord_webhook'))
+        if gt_mtod_settings.get('is_new_instance'):
+            update_discord_webhook_validity(gt_mtod_settings.get('discord_webhook'))
         
-        if settings.get('is_webhook_valid'):
+        if gt_mtod_settings.get('is_webhook_valid'):
             try:
                 update_text_status()
                 current_scene_name = cmds.file(q=True, sn=True).split('/')[-1]
@@ -477,26 +588,70 @@ def build_gui_maya_to_discord():
                     if current_scene_name.endswith('.ma') or current_scene_name.endswith('.mb'):
                         current_scene_name=current_scene_name[:-3]
 
-                temp_path = generate_temp_file( settings.get('video_format'), file_name=current_scene_name)
-                temp_playblast_file = capture_playblast_animation(temp_path, settings.get('video_scale_pct'), settings.get('video_compression'), settings.get('video_output_type') )
-                upload_message = get_date_time_message()
+                temp_path = generate_temp_file( gt_mtod_settings.get('video_format'), file_name=current_scene_name)
+                disable_buttons() # This needs to happen before creating the playblast to avoid multiple clicks
+                temp_playblast_file = capture_playblast_animation(temp_path, gt_mtod_settings.get('video_scale_pct'), gt_mtod_settings.get('video_compression'), gt_mtod_settings.get('video_output_type') )
+                
+                if gt_mtod_settings.get('timestamp_visibility'):
+                    upload_message = get_date_time_message()
+                else:
+                    upload_message = ''
                 
                 def threaded_upload():
                     try:
-                        response = discord_post_attachment(get_username(), upload_message, temp_playblast_file, settings.get('discord_webhook'))
+                        response = discord_post_attachment(get_username(), upload_message, temp_playblast_file, gt_mtod_settings.get('discord_webhook'))
+                        utils.executeDeferred(enable_buttons)
                         utils.executeDeferred(parse_sending_response, response)
+                        utils.executeDeferred(attached_text_message, 'playblast', response)
                     except:
                         update_text_status(error=True)
                         cmds.warning(webhook_error_message)
+                        utils.executeDeferred(enable_buttons)
+                    finally:
+                        utils.executeDeferred(enable_buttons)
                     
                 thread = threading.Thread(None, target = threaded_upload)
                 thread.start()
             except:
                 update_text_status(error=True)
                 cmds.warning(webhook_error_message)
+                enable_buttons()
+
         else:
             cmds.warning(webhook_error_message)
 
+
+    def send_message_only():
+        ''' Attempts to send the message only (no images/videos) using current settings '''
+        if gt_mtod_settings.get('is_new_instance'):
+            update_discord_webhook_validity(gt_mtod_settings.get('discord_webhook'))
+        
+        if gt_mtod_settings.get('is_webhook_valid'):
+            try:  
+                upload_message = cmds.textField(attached_message_txtfield, q=True, text=True)
+                if upload_message.strip() != '':
+                    update_text_status()
+                    def threaded_upload():
+                        try:
+                            utils.executeDeferred(disable_buttons)
+                            response = discord_post_message(get_username(), upload_message, gt_mtod_settings.get('discord_webhook'))
+                            utils.executeDeferred(enable_buttons)
+                            utils.executeDeferred(parse_sending_response, response)
+                            utils.executeDeferred(response_inview_feedback, 'message', response, display_inview=gt_mtod_settings.get('feedback_visibility'))
+                            utils.executeDeferred(clear_attached_message, response)
+                        except:
+                            update_text_status(error=True)
+                            cmds.warning(webhook_error_message)
+                        
+                    thread = threading.Thread(None, target = threaded_upload)
+                    thread.start()
+                else:
+                    cmds.warning('Your message is empty, please type something in case you want to send only a message.')
+            except:
+                update_text_status(error=True)
+                cmds.warning(webhook_error_message)
+        else:
+            cmds.warning(webhook_error_message)
 
     # Show and Lock Window
     cmds.showWindow(build_gui_maya_to_discord)
@@ -567,6 +722,9 @@ def build_gui_help_maya_to_discord():
     cmds.separator(h=7, style='none') # Empty Space
     cmds.text(l='Send Playblast: Sends a playblast video', align="center", font=help_font)
     cmds.text(l='(Use the script settings to determine details about the video)', align="center", font=help_font)
+    cmds.separator(h=7, style='none') # Empty Space
+    cmds.text(l='Send Message Only: Sends only the attached message', align="center", font=help_font)
+    cmds.text(l='(Use the textfield above the buttons to type your message)', align="center", font=help_font)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.text(l='Settings:', align="center", fn="boldLabelFont")
     cmds.text(l='The settings are persistent, which means they will stay the same', align="center", font=help_font)
@@ -580,6 +738,9 @@ def build_gui_help_maya_to_discord():
     cmds.separator(h=7, style='none') # Empty Space
     cmds.text(l='Video Options:', align="center", font=help_font)
     cmds.text(l='Determines the settings used when recording a playblast.', align="center", font=help_font)
+    cmds.separator(h=7, style='none') # Empty Space
+    cmds.text(l='Feedback and Timestamp Options:', align="center", font=help_font)
+    cmds.text(l='Determines feedback visibility and timestamp use.', align="center", font=help_font)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.text(l='Limitations:', align="center", fn="boldLabelFont")
     cmds.text(l='Discord has a limit of 8MB for free users and 50MB for paid users', align="center", font=help_font)
@@ -641,19 +802,18 @@ def build_gui_settings_maya_to_discord():
     
     
     # Current Settings =================
-    
-    current_image_format = settings.get('image_format')
-    current_video_format = settings.get('video_format')
+    current_image_format = gt_mtod_settings.get('image_format')
+    current_video_format = gt_mtod_settings.get('video_format')
     current_webhook = ''
     current_custom_username = ''
-    if not settings.get('is_first_time_running'):
-        if settings.get('discord_webhook') != '':
-            current_webhook = settings.get('discord_webhook')
-        if settings.get('custom_username') != '':
-            current_custom_username = settings.get('custom_username')
-    current_video_scale = settings.get('video_scale_pct')
-    current_compression = settings.get('video_compression')
-    current_output_type = settings.get('video_output_type')
+    if not gt_mtod_settings.get('is_first_time_running'):
+        if gt_mtod_settings.get('discord_webhook') != '':
+            current_webhook = gt_mtod_settings.get('discord_webhook')
+        if gt_mtod_settings.get('custom_username') != '':
+            current_custom_username = gt_mtod_settings.get('custom_username')
+    current_video_scale = gt_mtod_settings.get('video_scale_pct')
+    current_compression = gt_mtod_settings.get('video_compression')
+    current_output_type = gt_mtod_settings.get('video_output_type')
     
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column) 
@@ -705,8 +865,15 @@ def build_gui_settings_maya_to_discord():
             cmds.optionMenu(output_type_input, e=True, select=idx+1)
      
     
-    cmds.separator(h=15, style='none') # Empty Space
+    cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p=main_column)
+    
+    cmds.rowColumnLayout(nc=4, cw=[(1, 15),(2, 140),(3, 15),(4, 100)], cs=[(1,20),(2,5),(3,5)], p=main_column)
+    feedback_visibility_chk = cmds.checkBox(label='', value=gt_mtod_settings.get('feedback_visibility'), cc=lambda args: update_checkbox_settings_data())
+    cmds.text(l='Display Viewport Feedback', align="left", font= 'smallPlainLabelFont')
+    timestamp_visibility_chk = cmds.checkBox(label='', value=gt_mtod_settings.get('timestamp_visibility'), cc=lambda args: update_checkbox_settings_data())
+    cmds.text(l='Include Timestamp', align="center", font= 'smallPlainLabelFont')
+    cmds.separator(h=10, style='none') # Empty Space
     
     # Bottom Buttons
     cmds.rowColumnLayout(nc=2, cw=[(1, 145),(2, 145)], cs=[(1,10),(2,10)], p=main_column)
@@ -744,26 +911,31 @@ def build_gui_settings_maya_to_discord():
         It uses a deep copy of the settings dictionary to reset it.
         '''
         
-        cmds.textField(new_username_input, e=True, text=settings_default.get('custom_username'))
-        cmds.textField(new_image_format_input, e=True, text=settings_default.get('image_format'))
-        cmds.textField(new_video_format_input, e=True, text=settings_default.get('video_format') )
+        cmds.textField(new_username_input, e=True, text=gt_mtod_settings_default.get('custom_username'))
+        cmds.textField(new_image_format_input, e=True, text=gt_mtod_settings_default.get('image_format'))
+        cmds.textField(new_video_format_input, e=True, text=gt_mtod_settings_default.get('video_format') )
         
         for idx,obj in enumerate(cmds.optionMenu(output_type_input,q=True, itemListLong=True)):
-            if cmds.menuItem( obj , q=True, label=True ) == settings_default.get('video_output_type'):
+            if cmds.menuItem( obj , q=True, label=True ) == gt_mtod_settings_default.get('video_output_type'):
                 cmds.optionMenu(output_type_input, e=True, select=idx+1)
         
         update_available_compressions()
     
         found_default = False
         for idx,obj in enumerate(cmds.optionMenu(compression_input, q=True, itemListLong=True)):
-            if cmds.menuItem( obj , q=True, label=True ) == settings_default.get('video_compression'):
+            if cmds.menuItem( obj , q=True, label=True ) == gt_mtod_settings_default.get('video_compression'):
                 cmds.optionMenu(compression_input, e=True, select=idx+1)
                 found_default = True
         
         if not found_default:
             cmds.menuItem( label='none', p=compression_input )
             
-        cmds.intSliderGrp(video_scale_input, e=True, value=settings_default.get('video_scale_pct'))
+        cmds.intSliderGrp(video_scale_input, e=True, value=gt_mtod_settings_default.get('video_scale_pct'))
+        
+        # Check box Management
+        cmds.checkBox(feedback_visibility_chk, e=True, value=gt_mtod_settings_default.get('feedback_visibility'))
+        cmds.checkBox(timestamp_visibility_chk, e=True, value=gt_mtod_settings_default.get('timestamp_visibility'))
+        update_checkbox_settings_data()
                 
         
     def apply_settings():
@@ -772,12 +944,22 @@ def build_gui_settings_maya_to_discord():
                                                 cmds.textField(new_image_format_input, q=True, text=True), cmds.textField(new_video_format_input, q=True, text=True),\
                                                 cmds.intSliderGrp(video_scale_input, q=True, value=True), cmds.optionMenu(compression_input, q=True, value=True),\
                                                 cmds.optionMenu(output_type_input, q=True, value=True))
-        settings['is_first_time_running'] = False
-        settings['is_new_instance'] = True
+        gt_mtod_settings['is_first_time_running'] = False
+        gt_mtod_settings['is_new_instance'] = True
         
         build_gui_maya_to_discord()
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+            
+    def update_checkbox_settings_data():
+        feedback_visibility = cmds.checkBox(feedback_visibility_chk, q=True, value=True)
+        timestamp_visibility = cmds.checkBox(timestamp_visibility_chk, q=True, value=True)
+
+        cmds.optionVar( iv=('gt_maya_to_discord_feedback_visibility', int(feedback_visibility)) )
+        gt_mtod_settings['feedback_visibility'] = bool(cmds.optionVar(q=("gt_maya_to_discord_feedback_visibility")))
+        
+        cmds.optionVar( iv=('gt_maya_to_discord_timestamp_visibility', int(timestamp_visibility)) )
+        gt_mtod_settings['timestamp_visibility'] = bool(cmds.optionVar(q=("gt_maya_to_discord_timestamp_visibility")))
 
 
 
@@ -875,21 +1057,23 @@ def capture_viewport_playblast(image_file):
     return image_file
     
 
-
-def discord_post_message(message, webhook_url):
+def discord_post_message(username, message, webhook_url):
     '''
     Sends a string message to Discord using a webhook
     
             Parameters:
+                username (str): A string to be used as the username (Replaces bot name)
                 message (str): A string to be used as a message
                 webhook_url (str): A Discord Webhook to make the request
                 
             Returns:
                 response (dict): Returns the response generated by the http object
                 
-    '''
+    '''       
     bot_message = {
-        'content' : message }
+    'username': username,
+    'content': message
+    } 
 
     message_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
@@ -903,7 +1087,7 @@ def discord_post_message(message, webhook_url):
     )
 
     return response
-    
+
 
 def encode_multipart(fields, files, boundary=None):
     '''
@@ -1006,7 +1190,7 @@ def discord_post_attachment(username, message, file_path, webhook_url):
 def capture_playblast_animation(video_file, scale_pct, compression, video_format): 
     ''' 
     Records a playblast and returns its path.
-    It also prints the size of the file to the active viewport as a heads up message (cmds.inViewMessage).
+    It also prints the size of the file to the active viewport as a heads up message (cmds.inViewMessage)
             
             Parameters:
                 video_file (str): A path for the file that will be generated (playblast file)
@@ -1023,8 +1207,9 @@ def capture_playblast_animation(video_file, scale_pct, compression, video_format
     active_viewport_height = omui.M3dView.active3dView().portHeight()
     #cmds.headsUpMessage( 'Playblast File Size: ' + str(round(file_size / (1024 * 1024), 3)) + ' Megabytes. (More information in the script editor)', verticalOffset=active_viewport_height*-0.45 , time=5.0)
     message = '<span style=\"color:#FFFFFF;\">Playblast File Size:</span> <span style=\"color:#FF0000;text-decoration:underline;\">' + get_readable_size(file_size, precision=2) + '</span>'
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-    cmds.inViewMessage(amg='<span style=\"color:#FFFFFF;\">Open the the script editor for more information', pos='botLeft', fade=True, alpha=.9)
+    if gt_mtod_settings.get('feedback_visibility'):
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        cmds.inViewMessage(amg='<span style=\"color:#FFFFFF;\">Open the the script editor for more information', pos='botLeft', fade=True, alpha=.9)
     print('#' * 80)
     print('Recorded Playblast:')
     print('Video Scale: ' + str(scale_pct) + '%')
@@ -1058,14 +1243,14 @@ def update_discord_webhook_validity(webhook_url):
             #response_content_dict = eval(content)
             response_content_dict = loads(content)
             response_content_dict.get('name')
-            settings['is_new_instance'] = False
-            settings['is_webhook_valid'] = True 
+            gt_mtod_settings['is_new_instance'] = False
+            gt_mtod_settings['is_webhook_valid'] = True 
         else:
-            settings['is_new_instance'] = False
-            settings['is_webhook_valid'] = False 
+            gt_mtod_settings['is_new_instance'] = False
+            gt_mtod_settings['is_webhook_valid'] = False 
     except:
-        settings['is_new_instance'] = False
-        settings['is_webhook_valid'] = False 
+        gt_mtod_settings['is_new_instance'] = False
+        gt_mtod_settings['is_webhook_valid'] = False 
         
 
 def discord_get_webhook_name(webhook_url):
@@ -1109,6 +1294,43 @@ def get_readable_size(size, precision=2):
         suffix_index += 1
         size = size/1024.0
     return "%.*f%s"%(precision, size, suffixes[suffix_index])
+    
+    
+def response_inview_feedback(operation_name, response, write_output=True, display_inview=True):
+    '''
+    Prints an inViewMessage to give feedback to the user about what is being executed.
+    Uses the module "random" to force identical messages to appear at the same time.
+
+            Parameters:
+                    operation_name (string): name of the operation being display (e.g. playblast)
+                    response (dict): A dictionary response received from a HTTP object after post/get operation.
+                    write_output (bool): Determines if the functions will write an extra output text (Like a "Result: pCube1" text output)
+                    display_inview (bool): Determines if generated message will be displayed as an inView message or not (visibility)
+    '''
+
+    message = '<' + str(random.random()) + '>'
+            
+    if len(response) >= 1:
+        status_value = response[0].status
+        reason_value = response[0].reason
+        success_codes = [200, 201, 202, 203, 204, 205, 206]
+
+        if status_value in success_codes: 
+            message += 'The ' + str(operation_name) + ' was <span style=\"color:#00FF00;text-decoration:underline;\">sent successfully</span>.'
+            if write_output:
+                sys.stdout.write('The ' + str(operation_name) + ' was sent successfully.  Web response: ' + str(reason_value) + ' (' + str(status_value) + ')')
+        else: # Error
+            message += 'The ' + str(operation_name) + ' was <span style=\"color:#FF0000;text-decoration:underline;\">not sent.'
+            if write_output:
+                sys.stdout.write('The ' + str(operation_name) + ' was sent.  Web response: ' + str(reason_value) + ' (' + str(status_value) + ')')
+    else :
+        message += 'The ' + str(operation_name) + ' was <span style=\"color:#FF0000;text-decoration:underline;\">not sent.'
+        if write_output:
+            sys.stdout.write('The ' + str(operation_name) + ' was not sent.  Error: Web responsed can\'t be read.')
+     
+    if display_inview:
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+
 
 #Get Settings & Build GUI
 get_persistent_settings_maya_to_discord()
