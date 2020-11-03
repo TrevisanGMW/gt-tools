@@ -7,20 +7,20 @@ import maya.cmds as cmds # Import Maya API
 
 
 def window_name(): # Define a function for the window
-    if cmds.window("window_name", exists =True): # Check if the window exists, if it does delete it (so you don't have multiple windows with the same content)
-        cmds.deleteUI("window_name")    
+    if cmds.window("window_name", exists =True): # Check if the window exists
+        cmds.deleteUI("window_name")# if it does, delete it (so you don't have multiple windows with the same content)
 
     # main dialog start here =================================================================================
 
     window_name = cmds.window("window_name", title="My Window",\
-                          titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =True)# Create a window object (you can check what the parameters do in the documentation)
+                          titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =True)# Create a window object (Unsure what the parameters do? Search for the documentation for cmds.window)
                           
     content_main = cmds.columnLayout(adj = True) # Create a column to populate with elements
     
     cmds.separator(h=5, st="none" ) # Empty Space
-    # Creates a text (these elements are all children of the columnLayout we created above, unless otherwise stipulated)
+    # Create a text (these elements are all children of the columnLayout we created above, unless otherwise declared)
     # How do you change the parent of a UI element? Use the "parent" parameter. For example cmds.text(parent='content_main_02')
-    my_text = cmds.text("This is an example of a text!") 
+    my_text = cmds.text("This is an example of a text!") # Notice that the text is stored in a variable so we can reference it later
     cmds.separator(h=10, st="none" ) # Empty Space
     
     my_textfield = cmds.textField(placeholderText='This is a textfield') # Creates a textfield, and store it in a variable so we can reference it later
@@ -30,11 +30,11 @@ def window_name(): # Define a function for the window
     # columnWidth needs a list of tuples describing every column. For example [(1, 10)(2, 15)] would make change columns of the size 10 and 15
     cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)]) 
     
-    cmds.button(l ="Create Cube", c=lambda x:create_standard_cube(), w=100, bgc=(.3,.7,.3)) # Creates a button - (The lambda part of it is to make the button capable of calling other functions)
+    cmds.button(l ="Create Cube", c=lambda x:create_standard_cube(), w=100, bgc=(.3,.7,.3)) # Create a button - (The lambda part of it is to make the button capable of calling other functions)
     cmds.button(l ="Create Sphere", c=lambda x:create_standard_sphere(), w=100, bgc=(.3,.7,.3)) # Another button
     cmds.separator(h=5, st="none" ) # Empty Space
     
-    cmds.rowColumnLayout( p=content_main, numberOfColumns=1, columnWidth=[(1, 205), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)]) #Another rowColumnLayout, this time with only one Column
+    cmds.rowColumnLayout( p=content_main, numberOfColumns=1, columnWidth=[(1, 205), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)]) # Another rowColumnLayout, this time with only one Column
     cmds.separator(h=5, st="none" ) # Empty Space
     cmds.button(l ="Replace Text with Textfield", c=lambda x:replace_textfield(), w=100, bgc=(.3,.7,.3)) # Another button to update the text
 
@@ -58,4 +58,4 @@ def window_name(): # Define a function for the window
     # main dialog ends here =================================================================================
 
 
-window_name() # Calls the main function
+window_name() # Call the main function
