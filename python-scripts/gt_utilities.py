@@ -26,6 +26,7 @@
     Add Remove pasted_ function
     Add assign checkboard function (already in bonus tools > rendering)
     Force focus (focus without looking at children)
+    Brute force clean models (export OBJ and reimport)
  New options:
     Import all references : Add function to use a string to ignore certain references
     Reset Transforms : Add reset only translate, rotate or scale
