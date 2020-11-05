@@ -22,6 +22,7 @@ except ImportError:
 
 import maya.OpenMayaUI as omui
 import base64
+import os
 
 # Script Version
 scriptVersion = "1.0"
