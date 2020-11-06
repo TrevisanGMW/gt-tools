@@ -4,9 +4,6 @@
  Tested on Maya 2020 - Windows 10
   
 """ 
-import maya.cmds as cmds
-import maya.mel as mel
-
 try:
     from shiboken2 import wrapInstance
 except ImportError:
@@ -19,7 +16,9 @@ try:
 except ImportError:
     from PySide import QtWidgets, QtGui, QtCore
     from PySide.QtGui import QIcon, QWidget
-
+    
+import maya.cmds as cmds
+import maya.mel as mel
 import maya.OpenMayaUI as omui
 import base64
 import os
@@ -69,7 +68,6 @@ def sphere_creator_dialog():
     cmds.separator(h=10, st="none" )
  
  
-    
     # Show and Lock Window
     cmds.showWindow(sphere_creator_dialog)
     cmds.window(sphere_creator_dialog, e=True, s=False)
