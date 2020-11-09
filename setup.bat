@@ -8,6 +8,9 @@ SET CopyDirSourcePy=%~dp0python-scripts
 SET ImportCommandSearch=source\ \"gt_tools_menu.mel\";
 SET ImportCommand=source "gt_tools_menu.mel";
 SET ManualInstallationURL=https://github.com/
+SET ExtractionDirPython=%~dp0python-scripts
+SET ExtractionDirMel=%~dp0mel-scripts
+
 
 :MENU
 @echo off
@@ -45,6 +48,9 @@ GOTO EOF
 
 REM Main Function
 :INSTALL
+
+IF NOT EXIST %ExtractionDirPython% ( GOTO SETUP_MISSING_SCRIPTS ) 
+IF NOT EXIST %ExtractionDirMel% ( GOTO SETUP_MISSING_SCRIPTS ) 
 IF EXIST %CopyDirDestination% (
 	GOTO valid_maya_dir
 ) ELSE (
@@ -52,7 +58,7 @@ IF EXIST %CopyDirDestination% (
 )
 
 :valid_maya_dir
-CD %CopyDirDestination%
+CD /D %CopyDirDestination%
 for /D %%s in (.\*) do CALL :get_maya_folders %%s
 CALL :valid_maya_dir_global
 GOTO INSTALLATION_COMPLETE
@@ -342,6 +348,31 @@ cls
 @echo off      
 pause                   
 GOTO EOF
+
+
+:SETUP_MISSING_SCRIPTS
+@echo off
+color 0C
+cls
+@echo on
+@echo.
+@echo.
+@echo       ллллллл лллллл  лллллл   лллллл  лллллл  
+@echo       лл      лл   лл лл   лл лл    лл лл   лл 
+@echo       ллллл   лллллл  лллллл  лл    лл лллллл  
+@echo       лл      лл   лл лл   лл лл    лл лл   лл 
+@echo       ллллллл лл   лл лл   лл  лллллл  лл   лл 
+@echo.
+@echo.
+@echo       The setup file can't find the scripts.
+@echo       Missing "mel-scripts" or "python-scripts".
+@echo       Did you properly extracted the files before running it?
+@echo.
+@echo.
+@echo off
+pause
+GOTO MENU
+
 
 :ABOUT
 @echo off
