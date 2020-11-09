@@ -1,6 +1,3 @@
-# gitignore file to ignore gt tools package assembly. 
+# gitignore file to ignore gt tools script files that are still too raw.
 
-/gt_tools/*.py
-/gt_tools/*.mel
-/gt_tools/*.html
-/workbench_wip
+/workbench
