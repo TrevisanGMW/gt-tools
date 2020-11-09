@@ -366,7 +366,7 @@ cls
 @echo.
 @echo       The setup file can't find the scripts.
 @echo       Missing "mel-scripts" or "python-scripts".
-@echo       Did you properly extracted the files before running it?
+@echo       Did you properly extract the files before running it?
 @echo.
 @echo.
 @echo off
