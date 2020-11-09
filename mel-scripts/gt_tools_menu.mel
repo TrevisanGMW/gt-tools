@@ -56,10 +56,17 @@
 //   Changed the name of a few scripts
 //   Forced scripts to reload after import
 //
+//   1.5.3 - 2020-11-08
+//   Updated script package to include setup.bat
+//   Updated  "gt_menu.mel" to generate icons when file is missing.
+//   Added Modeling submenu.
+//   Added "gt_sphere_types.py".
+//   Moved the copy/paste material functions to the modeling submenu.
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.2";
+global string $scriptVersion = "1.5.3";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -138,6 +145,33 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
 
 
     setParent -menu ".." ;
+    
+// -----------------------------------------MODELING------------------------------------
+menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
+    menuItem 
+    -l ("Sphere Types") 
+    -c ("python(\"import gt_create_sphere_types\\nreload(gt_create_sphere_types)\\ngt_create_sphere_types.build_gui_sphere_type()\");") 
+    -ann ("A reminder.") 
+    -image "blinn.svg" ;
+	
+    // Material
+    menuItem -divider true ;
+	
+    menuItem 
+    -l ("Copy Material")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_copy_material()\");") 
+    -ann ("Copies material to clipboard.") 
+    -image "polyBakeSetAssign.png";
+    
+    menuItem 
+    -l ("Paste Material")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_paste_material()\");") 
+    -ann ("Pastes material from clipboard.") 
+    -image "polyBakeSetEdit.png";
+
+
+
+    setParent -menu ".." ;
 
 // -----------------------------------------RIGGING------------------------------------
 menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
@@ -211,21 +245,6 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
-    	
-    // Material
-    menuItem -divider true ;
-	
-    menuItem 
-    -l ("Copy Material")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_copy_material()\");") 
-    -ann ("Copies material to clipboard.") 
-    -image "polyBakeSetAssign.png";
-    
-    menuItem 
-    -l ("Paste Material")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_paste_material()\");") 
-    -ann ("Pastes material from clipboard.") 
-    -image "polyBakeSetEdit.png";
 
     // Pivot
     menuItem -divider true ;
@@ -302,6 +321,12 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     // If icon exists, use it
     string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
+    if (!`filetest -r $mayaToDiscordIcon`) 
+    { 
+        catchQuiet(python("import gt_generate_icons"));
+        catchQuiet(python("gt_generate_icons.gt_generate_icons()"));
+    } 
+    
     if (!`filetest -r $mayaToDiscordIcon`) 
     { 
         $mayaToDiscordIcon = "camera.open.svg" ;
