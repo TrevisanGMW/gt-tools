@@ -63,6 +63,9 @@
 //   Added "gt_sphere_types.py".
 //   Moved the copy/paste material functions to the modeling submenu.
 //
+//	 1.5.4
+//	 Updated "Check for Updates" link.
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -350,5 +353,5 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     menuItem -l "About"  -c ("python(\"import gt_utilities\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;
     menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
-    menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/maya-scripts/tree/master/gt_tools/\"; ") -ann ("Check for Update.") -image "RS_import_layer.png" ;
+    menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/gt-tools\"; ") -ann ("Check for Updates.") -image "RS_import_layer.png" ;
     menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
