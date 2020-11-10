@@ -148,7 +148,7 @@ IF EXIST %CopyDirDestination% (
 )
 
 :VALID_MAYA_DIR_UNINSTALL
-CD %CopyDirDestination%
+CD /D %CopyDirDestination%
 for /D %%s in (.\*) do CALL :get_maya_folders_uninstall %%s
 CALL :check_usersetup_existence_global_uninstall
 GOTO UNINSTALLATION_COMPLETE
@@ -166,41 +166,43 @@ CALL :check_usersetup_existence_uninstall %CopyDirDestination%%version_no_dot%\s
 EXIT /B 0
 
 :remove_files
-del %~1\gt_connect_attributes.py
-del %~1\gt_create_ctrl_auto_fk.py
-del %~1\gt_create_ctrl_simple_ik_leg.py
-del %~1\gt_generate_icons.py
-del %~1\gt_generate_inbetween.py
-del %~1\gt_generate_python_curve.py
-del %~1\gt_generate_text_curve.py
-del %~1\gt_make_stretchy_leg.py
-del %~1\gt_maya_to_discord.py
-del %~1\gt_mirror_cluster_tool.py
-del %~1\gt_renamer.py
-del %~1\gt_render_checklist.py
-del %~1\gt_replace_reference_paths.py
-del %~1\gt_selection_manager.py
-del %~1\gt_transfer_transforms.py
-del %~1\gt_utilities.py
-del %~1\gt_api.py
 del %~1\gt_tools_menu.mel
+del %~1\gt_connect_attributes.py
 del %~1\gt_connect_attributes.pyc
+del %~1\gt_create_ctrl_auto_fk.py
 del %~1\gt_create_ctrl_auto_fk.pyc
+del %~1\gt_create_ctrl_simple_ik_leg.py
 del %~1\gt_create_ctrl_simple_ik_leg.pyc
+del %~1\gt_generate_icons.py
 del %~1\gt_generate_icons.pyc
+del %~1\gt_generate_inbetween.py
 del %~1\gt_generate_inbetween.pyc
+del %~1\gt_generate_python_curve.py
 del %~1\gt_generate_python_curve.pyc
+del %~1\gt_generate_text_curve.py
 del %~1\gt_generate_text_curve.pyc
+del %~1\gt_make_stretchy_leg.py
 del %~1\gt_make_stretchy_leg.pyc
+del %~1\gt_maya_to_discord.py
 del %~1\gt_maya_to_discord.pyc
+del %~1\gt_mirror_cluster_tool.py
 del %~1\gt_mirror_cluster_tool.pyc
+del %~1\gt_renamer.py
 del %~1\gt_renamer.pyc
+del %~1\gt_render_checklist.py
 del %~1\gt_render_checklist.pyc
+del %~1\gt_replace_reference_paths.py
 del %~1\gt_replace_reference_paths.pyc
+del %~1\gt_selection_manager.py
 del %~1\gt_selection_manager.pyc
+del %~1\gt_transfer_transforms.py
 del %~1\gt_transfer_transforms.pyc
+del %~1\gt_utilities.py
 del %~1\gt_utilities.pyc
+del %~1\gt_api.py
 del %~1\gt_api.pyc
+del %~1\gt_create_sphere_types.py
+del %~1\gt_create_sphere_types.pyc
 EXIT /B 0
 
 
