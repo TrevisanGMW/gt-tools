@@ -4,15 +4,19 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-09-13
  Functions were named with a "gtu" (GT Utilities) prefix to avoid conflicts.
  
- 1.1 - 2020/10/17
+ 1.1 - 2020-10-17
  Added move pivot to bottom/top
  Added copy/paste material
  Added move to origin
  
- 1.2 - 2020/10/21
+ 1.2 - 2020-10-21
  Updated reset transform to better handle translate
  Added Uniform LRA Toggle
  Changed the order of the functions to match the menu
+ 
+ 1.3 - 2020-11-11
+ Updates "gtu_import_references" to better handle unloaded references
+ Added "gtu_remove_references"
  
  To Do:
  Add proper error handling to all functions.
@@ -52,7 +56,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "1.2"
+gtu_script_version = "1.3"
     
 ''' ____________________________ General Functions ____________________________'''
 def gtu_reload_file():
@@ -76,12 +80,41 @@ def gtu_open_resource_browser():
 def gtu_import_references():
     ''' Imports all references ''' 
     try:
+        errors = ''
         refs = cmds.ls(rf=True)
         for i in refs:
-            r_file = cmds.referenceQuery(i, f=True)
-            cmds.file(r_file, importReference=True)
+            try:
+                r_file = cmds.referenceQuery(i, f=True)
+                cmds.file(r_file, importReference=True)
+            except Exception as e:
+                errors += str(e) + '(' + r_file + ')\n'
     except:
-        cmds.warning("Something went wrong. Maybe you don't have any references to import?") # Handle this better...
+        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
+    if errors != '':
+        cmds.warning('Not all references were imported. Open the script editor for more information.')
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+        
+
+def gtu_remove_references():
+    ''' Removes all references ''' 
+    try:
+        errors = ''
+        refs = cmds.ls(rf=True)
+        for i in refs:
+            try:
+                r_file = cmds.referenceQuery(i, f=True)
+                cmds.file(r_file, removeReference=True)
+            except Exception as e:
+                errors += str(e) + '(' + r_file + ')\n'
+    except:
+        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
+    if errors != '':
+        cmds.warning('Not all references were removed. Open the script editor for more information.')
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
 
 
 def gtu_uniform_lra_toggle():
@@ -445,6 +478,7 @@ def gtu_build_gui_about_gt_tools():
 #gtu_reload_file()
 #gtu_open_resource_browser()
 #gtu_import_references()
+#gtu_remove_references()
 #gtu_uniform_lra_toggle()
 
 #gtu_copy_material()
