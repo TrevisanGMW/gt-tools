@@ -39,6 +39,7 @@ After installing the script collection, you’ll find a pull-down menu that prov
 For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
 
 Do you want to use a script but don't want to install the whole package? That's fine too, every script in GT Tools is standalone and will run if you just copy the code and paste it in your script editor.
+
 PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
 
 Have a suggestion? Want to report a bug? Want to contribute? Check the issues tab on Github. 
@@ -47,6 +48,7 @@ All of these items are supplied as is. You alone are solely responsible for any 
 Hopefully these scripts are helpful to you as they are to me.
 
 <p><b>Tested using Autodeks Maya 2020 (Windows 10)</b></p>
+
 
 
 <h1> Organization </h1>
