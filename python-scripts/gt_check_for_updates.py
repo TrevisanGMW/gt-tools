@@ -31,9 +31,9 @@ gt_check_for_updates = { 'current_version' : "v0.0.0",
                          'latest_release' : "v0.0.0" } 
 
 
-def build_gui_gt_check_updates():
-    ''' Temp '''
-    window_name = "build_gui_gt_check_updates"
+def build_gui_gt_check_for_updates():
+    ''' Build a GUI to show current and latest versions '''
+    window_name = "build_gui_gt_check_for_updates"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
@@ -113,12 +113,12 @@ def build_gui_gt_check_updates():
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
     widget = wrapInstance(long(qw), QWidget)
-    icon = QIcon(':/RS_import_layer.png')
+    icon = QIcon(':/SP_FileDialogToParent_Disabled.png')
     widget.setWindowIcon(icon)
     
     
     def reroute_errors(operation):
-        ''' Temp '''
+        ''' Wrap functions around a try and catch to avoid big crashes during runtime '''
         try:
             if operation == 'open_releases_page':
                 open_releases_page()
@@ -130,13 +130,14 @@ def build_gui_gt_check_updates():
     
     
     def open_releases_page():
-        ''' Temp '''
-        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools', absolute=True) 
+        ''' Opens a web browser with the latest release '''
+        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/releases', absolute=True) 
         
     def check_for_updates():
-        ''' Temp '''
-        
-        error_detected = False
+        ''' 
+        Compare versions and update text accordingly 
+        It uses "get_latest_gttools_release" to check for updates
+        '''
         
         # Define Current Version
         stored_gt_tools_version_exists = cmds.optionVar(exists=("gt_tools_version"))
@@ -144,37 +145,32 @@ def build_gui_gt_check_updates():
         if stored_gt_tools_version_exists:
             gt_check_for_updates['current_version'] = "v" + str(cmds.optionVar(q=("gt_tools_version")))
         else:
-            gt_check_for_updates['current_version'] = 'v?.?.?'
+            gt_check_for_updates['current_version'] = 'v0.0.0'
         
         # Retrive Latest Version
-        try:
-            response = get_latest_gttools_release(gt_tools_latest_release_api)
-        except:
-            error_detected = True
+        response_list = get_latest_gttools_release(gt_tools_latest_release_api)
+
+        gt_check_for_updates['latest_version'] = response_list[0].get('tag_name') or "v0.0.0"
+ 
+        cmds.text(web_response_text, e=True, l=response_list[2], bgc=(0, 1, 0))
+        cmds.text(installed_version_text, e=True, l=gt_check_for_updates.get('current_version'))
+        cmds.text(latest_version_text, e=True, l=gt_check_for_updates.get('latest_version'))
         
-        if not error_detected:
-            gt_check_for_updates['latest_version'] = response.get('tag_name')
-            
-            cmds.text(web_response_text, e=True, l='OK', bgc=(0, 1, 0))
-            cmds.text(installed_version_text, e=True, l=gt_check_for_updates.get('current_version'))
-            cmds.text(latest_version_text, e=True, l=gt_check_for_updates.get('latest_version'))
-            
-            current_version_int = int(re.sub("[^0-9]", "", gt_check_for_updates.get('current_version')))
-            latest_version_int = int(re.sub("[^0-9]", "", gt_check_for_updates.get('latest_version')))
-            
-            if current_version_int < latest_version_int:
-                print('needs update')
-                cmds.button(update_btn, e=True, en=True)
-                cmds.text(update_status, e=True, l="New Update Available!", fn="tinyBoldLabelFont")#, bgc=(0, 1, 1))
-                #cmds.text(update_status
-            else:
-                cmds.text(update_status, e=True, l="You have the latest version", fn="tinyBoldLabelFont")
-            
-            cmds.scrollField(output_scroll_field, e=True, clear=True)
-            cmds.scrollField(output_scroll_field, e=True, ip=0, it=response.get('body'))
-    
+        current_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version'))))
+        latest_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version'))))
         
+        if current_version_int < latest_version_int:
+            cmds.button(update_btn, e=True, en=True, bgc=(.6, .8, .6))
+            cmds.text(update_status, e=True, l="New Update Available!", fn="tinyBoldLabelFont", bgc=(1, .5, .5))
+            #cmds.text(update_status
+        else:
+            cmds.text(update_status, e=True, l="You're up to date!", fn="tinyBoldLabelFont", bgc=(0, 1, 0))
         
+        cmds.scrollField(output_scroll_field, e=True, clear=True)
+        cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') + '\n'))
+        cmds.scrollField(output_scroll_field, e=True, ip=0, it=response_list[0].get('body'))
+
+    # Refresh When Opening
     reroute_errors('')
 
 
@@ -183,26 +179,26 @@ def get_latest_gttools_release(github_api):
     Requests the name of the webhook and returns a string representing it
 
             Parameters:
-                github_api (str): Github API
+                github_api (str): Github Rest API for latest releases. e.g. "https://api.github.com/repos/**USER**/**REPO**/releases/latest"
                 
             Returns:
-                name (str): The name of the webhook (or error string, if operation failed)
+                response_list (list): A list containing a dictionary (response) the response status and the response reason (e.g. [response, 200, "OK"])
     '''
-    http_obj = Http()
-    response, content = http_obj.request(github_api)
-    success_codes = [200, 201, 202, 203, 204, 205, 206]
-    print (response)
-    if response.status in success_codes: 
+    try:
+        http_obj = Http()
+        response, content = http_obj.request(github_api)
         response_content_dict = loads(content) 
-        return response_content_dict
-    else:
-        raise Exception('Script failed to retrieve the information about latest version.')
+        success_codes = [200, 201, 202, 203, 204, 205, 206]
+        if response.status in success_codes: 
+            return [response_content_dict, response.status, response.reason]
+        else:
+            return [response_content_dict, response.status, response.reason]
+    except:
+        error_content_dict = {'body' : 'Error requesting latest release.',
+                              'tag_name' : 'v0.0.0'}
+        return [error_content_dict, 0, 'Error']
 
 
-#cmds.optionVar( sv=('gt_tools_version', '0.1.1') )
-#cmds.optionVar( sv=('gt_tools_version', '1.5.3') )
 #Build GUI
 if __name__ == '__main__':
-    build_gui_gt_check_updates()
-
-
+    build_gui_gt_check_for_updates()
