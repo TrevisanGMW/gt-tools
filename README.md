@@ -38,8 +38,6 @@ After installing the script collection, you’ll find a pull-down menu that prov
 
 For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
 
-Have a suggestion? Want to report a bug? Want to contribute? Check the issues tab on Github.
-
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
 Hopefully these scripts are helpful to you as they are to me.
 
@@ -126,6 +124,7 @@ If you'd like to contribute, please fork the repository and make changes as you'
   <img src="https://contributors-img.web.app/image?repo=TrevisanGMW/gt-tools" />
 </a>
 
+Don't know how to code but want to contribute? You could [__buy me a coffee! :coffee:__](https://www.buymeacoffee.com/TrevisanGMW)
 
 <h1> Licensing </h1>
 The MIT License 2020 - Guilherme Trevisan
