@@ -1,6 +1,11 @@
 """
  GT Check for Updates - This script compared your current GT Tools version with the latest release.
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-10 - github.com/TrevisanGMW
+ 
+ 1.1 - 2020/11/11
+ Fixed a few issues with the color of the UI.
+ Updated link to show only latest release.
+ The "Update" button now is disabled after refreshing.
 
 """
 try:
@@ -23,7 +28,7 @@ from json import dumps
 from json import loads
 
 # Script Version (This Script)
-script_version = '1.0'
+script_version = '1.1'
 gt_tools_latest_release_api = "https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest"
 
 # Versions Dictionary
@@ -131,7 +136,7 @@ def build_gui_gt_check_for_updates():
     
     def open_releases_page():
         ''' Opens a web browser with the latest release '''
-        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/releases', absolute=True) 
+        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/releases/latest', absolute=True) 
         
     def check_for_updates():
         ''' 
@@ -150,9 +155,15 @@ def build_gui_gt_check_for_updates():
         # Retrive Latest Version
         response_list = get_latest_gttools_release(gt_tools_latest_release_api)
 
+
         gt_check_for_updates['latest_version'] = response_list[0].get('tag_name') or "v0.0.0"
- 
-        cmds.text(web_response_text, e=True, l=response_list[2], bgc=(0, 1, 0))
+        
+        success_codes = [200, 201, 202, 203, 204, 205, 206]
+        web_response_color = (0, 1, 0)
+        if response_list[1] not in success_codes:
+            web_response_color = (1, .5, .5)
+            
+        cmds.text(web_response_text, e=True, l=response_list[2], bgc=web_response_color)
         cmds.text(installed_version_text, e=True, l=gt_check_for_updates.get('current_version'))
         cmds.text(latest_version_text, e=True, l=gt_check_for_updates.get('latest_version'))
         
@@ -162,13 +173,16 @@ def build_gui_gt_check_for_updates():
         if current_version_int < latest_version_int:
             cmds.button(update_btn, e=True, en=True, bgc=(.6, .8, .6))
             cmds.text(update_status, e=True, l="New Update Available!", fn="tinyBoldLabelFont", bgc=(1, .5, .5))
-            #cmds.text(update_status
         else:
             cmds.text(update_status, e=True, l="You're up to date!", fn="tinyBoldLabelFont", bgc=(0, 1, 0))
+            cmds.button(update_btn, e=True, en=False)
         
         cmds.scrollField(output_scroll_field, e=True, clear=True)
         cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') + '\n'))
         cmds.scrollField(output_scroll_field, e=True, ip=0, it=response_list[0].get('body'))
+        
+        if response_list[1] not in success_codes:
+            cmds.text(update_status, e=True, l="Unknown", fn="tinyBoldLabelFont", bgc=(1, .5, .5))
 
     # Refresh When Opening
     reroute_errors('')
@@ -188,16 +202,11 @@ def get_latest_gttools_release(github_api):
         http_obj = Http()
         response, content = http_obj.request(github_api)
         response_content_dict = loads(content) 
-        success_codes = [200, 201, 202, 203, 204, 205, 206]
-        if response.status in success_codes: 
-            return [response_content_dict, response.status, response.reason]
-        else:
-            return [response_content_dict, response.status, response.reason]
+        return [response_content_dict, response.status, response.reason]
     except:
         error_content_dict = {'body' : 'Error requesting latest release.',
                               'tag_name' : 'v0.0.0'}
         return [error_content_dict, 0, 'Error']
-
 
 #Build GUI
 if __name__ == '__main__':
