@@ -65,6 +65,15 @@
 //
 //	 1.5.4
 //	 Updated "Check for Updates" link.
+//	 Fixed a typo in the "setup.bat"
+//	 Fixed "Check for Updates" link to match the new repo name.
+//	 Patched the uninstaller so it can be used from different drive letter.
+//	 Added "gt_sphere_types.py" to the uninstaller.
+//	 Created "gt_check_updates.py" to better handle updates.
+//	 Changed the "Check For Updates" button in the main menu to call "gt_check_updates.py" instead of a link.
+//	 Fixed issue where unloaded references wouldn't import when using "gtu_import_references" (#15)
+//	 Added"gtu_remove_references" (#16)
+//	 Added a missing reload to "gt_tools_menu.mel"
 //
 //----------------------------------------------------------------------------
 
@@ -244,6 +253,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -image "reference.svg";
     
     menuItem 
+    -l ("Remove References")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_remove_references()\");") 
+    -ann ("Removes all references.") 
+    -image "referenceProxy.png";
+    
+    menuItem 
     -l ("Uniform LRA Toggle")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
@@ -345,13 +360,12 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
 
 
-
 // -----------------------------------------ABOUT------------------------------------
 
     menuItem -divider true ;
     menuItem -l "Help" -sm true -to true -image "defaultOutliner.svg";
     
-    menuItem -l "About"  -c ("python(\"import gt_utilities\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;
+    menuItem -l "About"  -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;
     menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
-    menuItem -l "Check for Updates" -c ("showHelp -a \"https://github.com/TrevisanGMW/gt-tools\"; ") -ann ("Check for Updates.") -image "RS_import_layer.png" ;
+    menuItem -l "Check for Updates"  -c ("python(\"import gt_check_for_updates\\nreload(gt_check_for_updates)\\ngt_check_for_updates.build_gui_gt_check_for_updates()\");") -ann ("Check for updates by comparing current version with latest release.") -image "RS_import_layer.png" ;
     menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
