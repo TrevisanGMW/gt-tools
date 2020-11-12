@@ -18,6 +18,7 @@
  Updates "gtu_import_references" to better handle unloaded references
  Added "gtu_remove_references"
  Added "gtu_combine_curves"
+ Added "gtu_separate_curves"
  
  To Do:
  Add proper error handling to all functions.
@@ -187,32 +188,32 @@ def gtu_combine_curves():
     try:
         function_name = 'GTU Combine Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        sel = cmds.ls(sl = True)
+        selection = cmds.ls(sl = True, absoluteName=True)
         valid_selection = True
-        for obj in sel:
-            shape = cmds.listRelatives(obj, shapes=True) or []
-            for shape in shape:
+        for obj in selection:
+            shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+            for shape in shapes:
                 if cmds.objectType(shape) != 'nurbsCurve':
                     valid_selection = False
                     cmds.warning('Make sure you selected only curves.')
             
-        if valid_selection and len(sel) < 2:
+        if valid_selection and len(selection) < 2:
             cmds.warning('You need to select at least two curves.')
             valid_selection = False
             
         if valid_selection:
-            shapes = cmds.listRelatives(shapes=True)
-            for obj in range(len(sel)):
-                cmds.makeIdentity(sel[obj], apply=True, rotate=True, scale=True, translate=True)
+            shapes = cmds.listRelatives(shapes=True, fullPath=True)
+            for obj in range(len(selection)):
+                cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
 
-            group = cmds.group(empty=True, world=True, name=sel[0])
+            group = cmds.group(empty=True, world=True, name=selection[0])
             cmds.select(shapes[0])
             for obj in range(1, (len(shapes))):
                 cmds.select(shapes[obj], add=True)
                 
             cmds.select(group, add=True) 
             cmds.parent(relative=True, shape=True)
-            cmds.delete(sel)   
+            cmds.delete(selection)   
          
     except Exception as e:
         errors += str(e) + '\n'
@@ -223,6 +224,51 @@ def gtu_combine_curves():
         print('######## Errors: ########')
         print(errors)
 
+def gtu_separate_curves():
+    ''' 
+    Moves the shapes instead of a curve to individual transforms (separating curves) 
+    '''
+    errors = ''
+    try:
+        function_name = 'GTU Separate Curves'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        selection = cmds.ls(sl = True)
+        valid_selection = True
+        
+        curve_shapes = []
+        
+        if len(selection) < 1:
+            valid_selection = False
+            cmds.warning('You need to select at least one curve.')
+            
+        
+        if valid_selection:
+            for obj in selection:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    if cmds.objectType(shape) == 'nurbsCurve':
+                        curve_shapes.append(shape)
+            
+            if len(curve_shapes) == 0:
+                cmds.warning('You need to select at least one curve.')
+            elif len(curve_shapes) > 1:
+                for obj in curve_shapes:
+                    cmds.makeIdentity(obj, apply=True, rotate=True, scale=True, translate=True)
+                    group = cmds.group(empty=True, world=True, name=obj.replace('Shape',''))
+                    cmds.parent(obj, group, relative=True, shape=True)
+            else:
+                cmds.warning('The selected curve contains only one shape.')
+                
+            
+
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
 
 
 
@@ -529,6 +575,7 @@ def gtu_build_gui_about_gt_tools():
 #gtu_remove_references()
 #gtu_uniform_lra_toggle()
 #gtu_combine_curves()
+#gtu_separate_curves()
 
 #gtu_copy_material()
 #gtu_paste_material()

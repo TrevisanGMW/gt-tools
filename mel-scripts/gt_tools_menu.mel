@@ -75,10 +75,14 @@
 //	 Added"gtu_remove_references" (#16)
 //	 Added a missing reload to "gt_tools_menu.mel"
 //
+//	 1.5.5
+//   Started storing changelog directly on github.
+//   https://github.com/TrevisanGMW/gt-tools/releases
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.4";
+global string $scriptVersion = "1.5.5";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -154,6 +158,23 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     -c ("python(\"import gt_generate_text_curve\\nreload(gt_generate_text_curve)\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
     -image "text.png" ;
+
+
+    // Utility Section
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Combine Curves")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
+    -ann ("Combine curves by moving all the shape objects inside one single transform.") 
+    -image "nurbsCurve.svg";
+    
+    menuItem 
+    -l ("Separate Curves")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_separate_curves()\");") 
+    -ann ("Separate curves by moving every shape object to their own separated transform.") 
+    -image "curveEditor.png";
+
 
 
     setParent -menu ".." ;
