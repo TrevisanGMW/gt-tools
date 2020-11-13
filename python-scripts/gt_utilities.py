@@ -241,7 +241,6 @@ def gtu_separate_curves():
             valid_selection = False
             cmds.warning('You need to select at least one curve.')
             
-        
         if valid_selection:
             for obj in selection:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
@@ -253,7 +252,9 @@ def gtu_separate_curves():
                 cmds.warning('You need to select at least one curve.')
             elif len(curve_shapes) > 1:
                 for obj in curve_shapes:
-                    cmds.makeIdentity(obj, apply=True, rotate=True, scale=True, translate=True)
+                    parent = cmds.listRelatives(obj, parent=True) or []
+                    for par in parent:
+                        cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
                     group = cmds.group(empty=True, world=True, name=obj.replace('Shape',''))
                     cmds.parent(obj, group, relative=True, shape=True)
             else:
