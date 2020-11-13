@@ -229,6 +229,21 @@ def gtu_separate_curves():
     Moves the shapes instead of a curve to individual transforms (separating curves) 
     '''
     errors = ''
+    
+    def get_short_name(obj):
+        '''
+        Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+                Parameters:
+                        obj (string) - object to extract short name
+        '''
+        if obj == '':
+            return ''
+        split_path = obj.split('|')
+        if len(split_path) >= 1:
+            short_name = split_path[len(split_path)-1]
+        return short_name
+        
     try:
         function_name = 'GTU Separate Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -236,6 +251,7 @@ def gtu_separate_curves():
         valid_selection = True
         
         curve_shapes = []
+        parent_transforms = []
         
         if len(selection) < 1:
             valid_selection = False
@@ -254,13 +270,21 @@ def gtu_separate_curves():
                 for obj in curve_shapes:
                     parent = cmds.listRelatives(obj, parent=True) or []
                     for par in parent:
+                        if par not in parent_transforms:
+                            parent_transforms.append(par)
                         cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
-                    group = cmds.group(empty=True, world=True, name=obj.replace('Shape',''))
+                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape',''))
                     cmds.parent(obj, group, relative=True, shape=True)
             else:
                 cmds.warning('The selected curve contains only one shape.')
                 
-            
+            for obj in parent_transforms:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
+                    cmds.delete(obj)
+
+
+
 
     except Exception as e:
         errors += str(e) + '\n'
