@@ -20,6 +20,9 @@
  Added "gtu_combine_curves"
  Added "gtu_separate_curves"
  
+ 1.4 - 2020-11-13
+ Updated combine and separate functions to work with bezier curves
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -58,7 +61,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "1.3"
+gtu_script_version = "1.4"
     
 ''' ____________________________ General Functions ____________________________'''
 def gtu_reload_file():
@@ -190,17 +193,36 @@ def gtu_combine_curves():
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         selection = cmds.ls(sl = True, absoluteName=True)
         valid_selection = True
+        acceptable_types = ['nurbsCurve','bezierCurve']
+        bezier_in_selection = []
+    
         for obj in selection:
             shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
             for shape in shapes:
-                if cmds.objectType(shape) != 'nurbsCurve':
+                if cmds.objectType(shape) == 'bezierCurve':
+                    bezier_in_selection.append(obj)
+                if cmds.objectType(shape) not in acceptable_types:
                     valid_selection = False
                     cmds.warning('Make sure you selected only curves.')
+            
             
         if valid_selection and len(selection) < 2:
             cmds.warning('You need to select at least two curves.')
             valid_selection = False
             
+            
+        if len(bezier_in_selection) > 0 and valid_selection:
+            user_input = cmds.confirmDialog( title='Bezier curve detected!',\
+                                message='A bezier curve was found in your selection.\nWould you like to convert Bezier to NURBS before combining?',\
+                                button=['Yes','No'],\
+                                defaultButton='Yes',\
+                                cancelButton='No',\
+                                dismissString='No',\
+                                icon="warning" )
+            if user_input == 'Yes':
+                    for obj in bezier_in_selection:
+                            cmds.bezierCurveToNurbs()
+   
         if valid_selection:
             shapes = cmds.listRelatives(shapes=True, fullPath=True)
             for obj in range(len(selection)):
@@ -229,7 +251,7 @@ def gtu_separate_curves():
     Moves the shapes instead of a curve to individual transforms (separating curves) 
     '''
     errors = ''
-    
+    acceptable_types = ['nurbsCurve','bezierCurve']
     def get_short_name(obj):
         '''
         Get the name of the objects without its path (Maya returns full path if name is not unique)
@@ -261,7 +283,7 @@ def gtu_separate_curves():
             for obj in selection:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 for shape in shapes:
-                    if cmds.objectType(shape) == 'nurbsCurve':
+                    if cmds.objectType(shape) in acceptable_types:
                         curve_shapes.append(shape)
             
             if len(curve_shapes) == 0:
@@ -282,8 +304,6 @@ def gtu_separate_curves():
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
                     cmds.delete(obj)
-
-
 
 
     except Exception as e:
