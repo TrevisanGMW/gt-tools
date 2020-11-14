@@ -6,6 +6,9 @@
  Fixed a few issues with the color of the UI.
  Updated link to show only latest release.
  The "Update" button now is disabled after refreshing.
+ 
+ 1.2 - 2020/11/13
+ Added code to try to retrieve the three latest releases
 
 """
 try:
@@ -28,8 +31,9 @@ from json import dumps
 from json import loads
 
 # Script Version (This Script)
-script_version = '1.1'
-gt_tools_latest_release_api = "https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest"
+script_version = '1.2'
+gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
+gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 
 # Versions Dictionary
 gt_check_for_updates = { 'current_version' : "v0.0.0",
@@ -141,7 +145,7 @@ def build_gui_gt_check_for_updates():
     def check_for_updates():
         ''' 
         Compare versions and update text accordingly 
-        It uses "get_latest_gttools_release" to check for updates
+        It uses "get_github_release" to check for updates
         '''
         
         # Define Current Version
@@ -153,7 +157,7 @@ def build_gui_gt_check_for_updates():
             gt_check_for_updates['current_version'] = 'v0.0.0'
         
         # Retrive Latest Version
-        response_list = get_latest_gttools_release(gt_tools_latest_release_api)
+        response_list = get_github_release(gt_tools_latest_release_api)
 
 
         gt_check_for_updates['latest_version'] = response_list[0].get('tag_name') or "v0.0.0"
@@ -181,14 +185,45 @@ def build_gui_gt_check_for_updates():
         cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') + '\n'))
         cmds.scrollField(output_scroll_field, e=True, ip=0, it=response_list[0].get('body'))
         
+        if latest_version_int != 0:
+            try:
+                previous_version = str(latest_version_int - 1)
+                previous_version_tag = 'v'
+                for c in previous_version:
+                    previous_version_tag += c + '.'
+                previous_version_tag = previous_version_tag[:-1]
+                
+                before_previous_version = str(latest_version_int - 2)
+                before_previous_version_tag = 'v'
+                for c in before_previous_version:
+                    before_previous_version_tag += c + '.'
+                before_previous_version_tag = before_previous_version_tag[:-1]
+                
+
+                previous_version_response = get_github_release(gt_tools_tag_release_api + previous_version_tag)
+                before_previous_version_response = get_github_release(gt_tools_tag_release_api + before_previous_version_tag)
+                
+                if previous_version_response[1] in success_codes:
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (previous_version_response[0].get('tag_name') + '\n'))
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it=previous_version_response[0].get('body'))
+                
+                if before_previous_version_response[1] in success_codes:
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (before_previous_version_response[0].get('tag_name') + '\n'))
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it=before_previous_version_response[0].get('body'))
+
+            except:
+                pass
+            
         if response_list[1] not in success_codes:
             cmds.text(update_status, e=True, l="Unknown", fn="tinyBoldLabelFont", bgc=(1, .5, .5))
-
+            
+        cmds.scrollField(output_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+        
     # Refresh When Opening
     reroute_errors('')
 
 
-def get_latest_gttools_release(github_api):
+def get_github_release(github_api):
     '''
     Requests the name of the webhook and returns a string representing it
 
