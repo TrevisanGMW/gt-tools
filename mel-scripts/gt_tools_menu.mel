@@ -76,8 +76,9 @@
 //	 Added a missing reload to "gt_tools_menu.mel"
 //
 //	 1.5.5
-//   Started storing changelog directly on github.
+//   Started storing changelog directly on github. Everything here is now about this menu specifically.
 //   https://github.com/TrevisanGMW/gt-tools/releases
+//	 Added "gtu_convert_bif_to_mesh"
 //
 //----------------------------------------------------------------------------
 
@@ -284,6 +285,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
+	
+	menuItem 
+    -l ("Convert Bif to Mesh")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
+    -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
+    -image "nurbsToPolygons.png";
 
     // Pivot
     menuItem -divider true ;
