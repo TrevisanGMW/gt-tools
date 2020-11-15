@@ -23,6 +23,9 @@
  1.4 - 2020-11-13
  Updated combine and separate functions to work with bezier curves
  
+ 1.5 - 2020-11-14
+ Added "gtu_convert_bif_to_mesh"
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -315,6 +318,56 @@ def gtu_separate_curves():
         print('######## Errors: ########')
         print(errors)
 
+
+def gtu_convert_bif_to_mesh():
+    ''' 
+    Converts Bifrost geometry to Maya geometry
+    '''
+    errors = ''
+    try:
+        function_name = 'GTU Convert Bif to Mesh'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        valid_selection = True
+        
+        selection = cmds.ls(selection=True)
+        bif_objects = []
+
+        
+        if len(selection) < 1:
+            valid_selection = False
+            cmds.warning('You need to select at least one bif object.')
+            
+        if valid_selection:
+            for obj in selection:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    if cmds.objectType(shape) == 'bifShape':
+                        bif_objects.append(shape)
+        
+            for bif in bif_objects:
+                parent = cmds.listRelatives(bif, parent=True) or []
+                for par in parent:
+                    source_mesh = cmds.listConnections(par + '.inputSurface', source=True, plugs=True) or []
+                    for sm in source_mesh:
+                        conversion_node = cmds.createNode("bifrostGeoToMaya")
+                        cmds.connectAttr(sm, conversion_node + '.bifrostGeo' )
+                        mesh_node = cmds.createNode("mesh")
+                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
+                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
+                        cmds.rename(mesh_transform[0], 'bifToGeo1')
+                        try:
+                            cmds.hyperShade( assign='lambert1')
+                        except:
+                            pass
+            
+    except Exception as e:
+        errors += str(e) + '\n'
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
+        print('######## Errors: ########')
+        print(errors)
 
 
 ''' ____________________________ Material Functions ____________________________'''
@@ -621,6 +674,7 @@ def gtu_build_gui_about_gt_tools():
 #gtu_uniform_lra_toggle()
 #gtu_combine_curves()
 #gtu_separate_curves()
+#gtu_convert_bif_to_mesh()
 
 #gtu_copy_material()
 #gtu_paste_material()
