@@ -36,7 +36,7 @@ def build_gui_sphere_type():
 
     # main dialog Start Here =================================================================================
 
-    build_gui_sphere_type = cmds.window("build_gui_sphere_type", title="Sphere Types - " + scriptVersion,\
+    build_gui_sphere_type = cmds.window("build_gui_sphere_type", title='Sphere Types - (v' + scriptVersion + ')',\
                           titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =True)
     cmds.window(build_gui_sphere_type, e=True, s=True, wh=[1,1])
     
