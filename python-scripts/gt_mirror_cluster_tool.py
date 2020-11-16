@@ -3,6 +3,9 @@
  GT Mirror Cluster Tool
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-16
  
+ 1.1 - 2020-11-15
+ Tweaked the color and text for the title and help menu
+ 
  To Do:
  Add option to mirror other deformers
  Mirror multiple clusters and meshes at the same time
@@ -27,7 +30,7 @@ except ImportError:
 script_name = "GT Mirror Cluster Tool"
 
 # Version
-script_version = "1.0";
+script_version = "1.1";
 
 global_settings = { 'loaded_mesh' : '', 
                     'loaded_cluster_handle' : '',
@@ -40,18 +43,19 @@ def build_gui_mirror_cluster_tool():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
-    cmds.window(window_name, title= script_name + "  v" + script_version, mnb=False, mxb=False, s=True)
+    cmds.window(window_name, title= script_name + '  (v' + script_version + ')', mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1,1])
 
     cmds.columnLayout("main_column", p= window_name)
    
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 240), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p="main_column") # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_mirror_cluster_tool())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_mirror_cluster_tool())
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     # Body ====================
@@ -65,11 +69,11 @@ def build_gui_mirror_cluster_tool():
     
     # Mesh Loader
     meshe_btn = cmds.button(l ="Select Mesh", c=lambda x:update_stored_objects("mesh"), w=150)
-    mesh_status = cmds.button(l ="Not selected yet", bgc=(0, 0, 0), w=150, \
+    mesh_status = cmds.button(l ="Not selected yet", bgc=(.2, .2, .2), w=150, \
                             c="cmds.headsUpMessage( 'Select the mesh you want to mirror and click on \"Select Mesh\"', verticalOffset=150 , time=5.0)")                  
     # Cluster Handle Loader
     cluster_handle_btn = cmds.button(l ="Select Cluster", c=lambda x:update_stored_objects("clusterHandle"), w=150)
-    cluster_handle_status = cmds.button(l ="Not selected yet", bgc=(0, 0, 0), w=150, \
+    cluster_handle_status = cmds.button(l ="Not selected yet", bgc=(.2, .2, .2), w=150, \
                             c="cmds.headsUpMessage( 'Select the cluster node you want to mirror and click on \"Select Cluster\"', verticalOffset=150 , time=5.0)")
     cmds.separator(h=10, style='none') # Spacing Before Next Container
 
@@ -95,7 +99,7 @@ def build_gui_mirror_cluster_tool():
     # Run Button ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
     cmds.separator(h=10, style='none')
-    cmds.button(l='Mirror', h=30, c=lambda args: mirror_cluster())
+    cmds.button(l='Mirror', h=30, c=lambda args: mirror_cluster(), bgc=[.6,.6,.6])
     cmds.separator(h=8, style='none')
 
     
@@ -158,7 +162,7 @@ def build_gui_help_mirror_cluster_tool():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p=main_column) # Empty Space
 
     # Body ====================

@@ -14,6 +14,10 @@
  Updated help menu
  Added icon
  
+ 1.4 - 2020-11-15
+ Tweaked the color and text for the title and help menu
+ Removed a few unnecessary lines
+ 
  TO DO:
  Add rolls
  Use replace instead of substring to rename elements.
@@ -40,7 +44,7 @@ except ImportError:
 script_name = "GT - IK Leg Generator"
 
 # Version:
-script_version = "1.3"
+script_version = "1.4"
 
 
 stored_joints = { 'hip_jnt': '', 
@@ -74,25 +78,21 @@ def build_gui_simple_ik_leg():
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_simple_ik_leg = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    build_gui_simple_ik_leg = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
                           
     cmds.window(window_name, e=True, s=True, wh=[1,1])
 
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
     content_main = cmds.columnLayout(adj = True)
 
-
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_help_gui_ik_leg_generator())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_help_gui_ik_leg_generator())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
     # Body ====================
@@ -127,19 +127,19 @@ def build_gui_simple_ik_leg():
     #pVector Ctrl Loader
     pvector_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     pvector_btn = cmds.button(p=pvector_container, l ="Load PVector Ctrl", c=lambda x:update_load_btn_ctrls("pVector"), w=130)
-    pvector_status = cmds.button(p=pvector_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    pvector_status = cmds.button(p=pvector_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your pole vector control and click on \"Load PVector Ctrl Joint\"', verticalOffset=150 , time=5.0)")
     
     #Custom IK Ctrl Loader
     ik_ctrl_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ik_ctrl_btn = cmds.button(p=ik_ctrl_container, l ="Load IK Ctrl", c=lambda x:update_load_btn_ctrls("ikCtrl"), w=130)
-    ik_ctrl_status = cmds.button(p=ik_ctrl_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    ik_ctrl_status = cmds.button(p=ik_ctrl_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your IK Switch control and click on \"Load IK Switch Ctrl Joint\"', verticalOffset=150 , time=5.0)")
     
     #IK Switch Ctrl Loader
     ik_switch_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ik_switch_btn = cmds.button(p=ik_switch_container, l ="Load IK Switch Ctrl", c=lambda x:update_load_btn_ctrls("ikSwitch"), w=130)
-    ik_switch_status = cmds.button(p=ik_switch_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130,  \
+    ik_switch_status = cmds.button(p=ik_switch_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130,  \
                             c="cmds.headsUpMessage( 'Select your Custom IK Control and click on \"Load IK Ctrl Joint\"', verticalOffset=150 , time=5.0)")
                             
     
@@ -156,24 +156,24 @@ def build_gui_simple_ik_leg():
     #Hip Joint Loader
     hip_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.button(p=hip_container, l ="Load Hip Joint", c=lambda x:update_load_btn_jnt("hip"), w=130)
-    hip_status = cmds.button(p=hip_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    hip_status = cmds.button(p=hip_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your hip joint and click on \"Load Hip Joint\"', verticalOffset=150 , time=5.0)")
                             
     #Ankle Joint Loader
     ankle_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     cmds.button(p=ankle_container, l ="Load Ankle Joint", c=lambda x:update_load_btn_jnt("ankle"), w=130)
-    ankle_status = cmds.button(p=ankle_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    ankle_status = cmds.button(p=ankle_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your ankle joint and click on \"Load Ankle Joint\"', verticalOffset=150 , time=5.0)")
                             
     #Ball Joint Loader
     ball_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     ball_load_btn = cmds.button(p=ball_container, l ="Load Ball Joint", c=lambda x:update_load_btn_jnt("ball"), w=130)
-    ball_status = cmds.button(p=ball_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    ball_status = cmds.button(p=ball_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your ball joint and click on \"Load Ball Joint\"', verticalOffset=150 , time=5.0)")
       
     cmds.separator(h=10, p=body_column)
     cmds.separator(h=10, style="none", p=body_column)
-    cmds.button(p=body_column, l ="Generate",bgc=(.6, .8, .6), c=lambda x:check_before_running(cmds.checkBoxGrp(check_box_grp_three, q=True, value2=True)))
+    cmds.button(p=body_column, l ="Generate",bgc=(.6, .6, .6), c=lambda x:check_before_running(cmds.checkBoxGrp(check_box_grp_three, q=True, value2=True)))
     cmds.separator(h=10, style="none", p=body_column)
     
     def update_settings():
@@ -191,7 +191,7 @@ def build_gui_simple_ik_leg():
     def is_ball_enabled(state):
         if state:
             cmds.button(ball_load_btn, e=True, en=True)
-            cmds.button(ball_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0))
+            cmds.button(ball_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2))
             stored_joints["ball_jnt"] = ''
         else:
             cmds.button(ball_load_btn, e=True, en=False)
@@ -200,7 +200,7 @@ def build_gui_simple_ik_leg():
     def is_custom_ik_ctrl_enabled(state):
         if state:
             cmds.button(ik_ctrl_btn, e=True, en=True)
-            cmds.button(ik_ctrl_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0))
+            cmds.button(ik_ctrl_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2))
             settings["custom_ik_ctrl_name"] = ''
             settings["using_custom_ik_ctrl"] = True
         else:
@@ -211,7 +211,7 @@ def build_gui_simple_ik_leg():
     def is_custom_ik_switch_enabled(state):
         if state:
             cmds.button(ik_switch_btn, e=True, en=True)
-            cmds.button(ik_switch_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0))
+            cmds.button(ik_switch_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2))
             settings["custom_ikfk_switch_name"] = ''
             settings["using_custom_ikfk_switch"] = True
         else:
@@ -222,7 +222,7 @@ def build_gui_simple_ik_leg():
     def is_custom_pvector_enabled(state):
         if state:
             cmds.button(pvector_btn, e=True, en=True)
-            cmds.button(pvector_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0))
+            cmds.button(pvector_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2))
             settings["custom_pvector_ctrl"] = ''
             settings["using_custom_pvector_ctrl"] = True
         else:
@@ -624,7 +624,7 @@ def build_help_gui_ik_leg_generator():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=(.4, .4, .4),  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
 

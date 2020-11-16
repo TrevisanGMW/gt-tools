@@ -17,6 +17,9 @@
  1.4 - 2020-06-27
  No longer failing to generate curves with non-unique names
  
+ 1.5 - 2020-11-15
+ Tweaked the color and text for the title and help menu
+ 
 """
 
 import maya.cmds as cmds
@@ -38,7 +41,7 @@ except ImportError:
 script_name = "GT - Generate Python Curve"
 
 # Version:
-script_version = "1.3"
+script_version = "1.4"
 
 # Default Settings
 close_curve = True
@@ -60,7 +63,7 @@ def build_gui_py_curve():
 
     # Main GUI Start Here =================================================================================
 
-    build_gui_py_curve = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    build_gui_py_curve = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
                           
     cmds.window(window_name, e=True, s=True, wh=[1,1])
@@ -71,13 +74,14 @@ def build_gui_py_curve():
 
     content_main = cmds.columnLayout(adj = True)
 
-
+    # Title
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_py_curve())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_py_curve())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
     
     # Body ====================
@@ -90,7 +94,7 @@ def build_gui_py_curve():
                                 
     cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,0)])
     cmds.separator(h=10, style='none') # Empty Space
-    cmds.button(l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_python_curve())
+    cmds.button(l ="Generate", bgc=(.6, .6, .6), c=lambda x:generate_python_curve())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
     cmds.separator(h=10, p=content_main)
     
@@ -176,7 +180,7 @@ def build_gui_help_py_curve():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     # Body ====================

@@ -17,6 +17,10 @@
         Arnold Volumes/Standins/Lights, Redshift Proxy/Volume/Normal/Lights,
         Alembic/BIF/GPU Cache,Golaem Common and Cache Nodes
 
+ 1.2 - 2020-11-15
+    Changed a few UI elements and colors
+    
+
  Todo:
     Add checks for xgen
     
@@ -42,7 +46,7 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.1"
+script_version = "1.2"
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
@@ -134,7 +138,7 @@ def build_gui_gt_render_checklist():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
-    cmds.window(window_name, title=script_name + "  v" + script_version, mnb=False, mxb=False, s=True)
+    cmds.window(window_name, title=script_name + '  (v' + script_version + ')', mnb=False, mxb=False, s=True)
 
     main_column = cmds.columnLayout()
 
@@ -142,14 +146,15 @@ def build_gui_gt_render_checklist():
     cmds.window(window_name, e=True, h=1, w=1)
     
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment
     cmds.separator(h=14, style='none') # Empty Space
     cmds.rowColumnLayout(nc=4, cw=[(1, 10), (2, 190), (3, 60), (4, 40)], cs=[(1, 10), (2, 0), (3, 0)], p=main_column)
 
-    cmds.text(" ", bgc=[0,.5,0])
-    cmds.text(script_name, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    settings_btn = cmds.button( l ="Settings", bgc=(0, .5, 0), c=lambda x:update_gui_settings())
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_gt_render_checklist())
+    cmds.text(" ", bgc=title_bgc_color)
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    settings_btn = cmds.button( l ="Settings", bgc=title_bgc_color, c=lambda x:update_gui_settings())
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_gt_render_checklist())
     cmds.separator(h=10, style='none', p=main_column) # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column) # For the separator
     cmds.separator(h=8)
@@ -256,7 +261,7 @@ def build_gui_gt_render_checklist():
         if checklist_settings.get('is_settings_visible') != True:
             checklist_settings["is_settings_visible"] = True
 
-            cmds.button(settings_btn, e=True, l='Apply', bgc=(0, .3, 0)) 
+            cmds.button(settings_btn, e=True, l='Apply', bgc=(.6, .6, .6)) 
 
             # Hide Checklist Items
             checklist_settings["checklist_column_height"] = cmds.rowColumnLayout(checklist_column, q=True, h=True)
@@ -279,7 +284,7 @@ def build_gui_gt_render_checklist():
             cmds.rowColumnLayout(checklist_buttons, e=True, h=checklist_settings.get('checklist_buttons_height'))
             cmds.rowColumnLayout(settings_column, e=True, h=1)
             cmds.rowColumnLayout(settings_buttons, e=True, h=1)
-            cmds.button(settings_btn, e=True, l='Settings', bgc=(0, .5, 0))
+            cmds.button(settings_btn, e=True, l='Settings', bgc=title_bgc_color)
             settings_apply_changes()
             set_persistent_settings_render_checklist()          
 
@@ -389,7 +394,7 @@ def build_gui_help_gt_render_checklist():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     # Body ====================
@@ -2449,6 +2454,6 @@ def settings_export_state():
 
 
 #Build GUI
-get_persistent_settings_render_checklist()
 if __name__ == '__main__':
+    get_persistent_settings_render_checklist()
     build_gui_gt_render_checklist()

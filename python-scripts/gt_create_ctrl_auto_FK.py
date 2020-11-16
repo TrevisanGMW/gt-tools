@@ -29,6 +29,9 @@
  1.6 - 2020-08-24
  Added an undo chunk for the generate fk portion
  
+ 1.7 - 2020-11-15
+ Tweaked the color and text for the title and help menu
+ 
 """
 import maya.cmds as cmds
 import copy
@@ -49,7 +52,7 @@ except ImportError:
 script_name = "GT - Auto FK"
 
 # Version:
-script_version = "1.6"
+script_version = "1.7"
 
 
 # Custom Curve Dictionary
@@ -187,7 +190,7 @@ def build_gui_auto_fk():
 
     # Main GUI Start Here =================================================================================
     
-    build_gui_auto_fk = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    build_gui_auto_fk = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
     
     cmds.window(window_name, e=True, s=True, wh=[1,1])
@@ -195,12 +198,13 @@ def build_gui_auto_fk():
     content_main = cmds.columnLayout()
 
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_auto_FK())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_auto_FK())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
     # Body ====================
@@ -269,7 +273,7 @@ def build_gui_auto_fk():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.separator(h=10)
     cmds.separator(h=10, style='none') # Empty Space
-    cmds.button(l ="Generate", bgc=(.6, .8, .6), c=lambda x:generate_fk_controls())
+    cmds.button(l ="Generate", bgc=(.6, .6, .6), c=lambda x:generate_fk_controls())
     cmds.separator(h=10, style='none') # Empty Space
     
     # Generate FK Main Function Starts --------------------------------------------
@@ -464,7 +468,7 @@ def build_gui_help_auto_FK():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     # Body ====================

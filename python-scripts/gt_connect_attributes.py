@@ -13,6 +13,11 @@
  Added help menu
  Changed GUI
  Attribute Listing now exported to txt file instead of script editor
+ 
+ 1.5 - 2020-11-15
+ Tweaked the title color and text
+ Tweaked a few other colors
+ 
 """
 
 import maya.cmds as cmds
@@ -35,14 +40,14 @@ except ImportError:
 script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "1.4"
+script_version = "1.5"
  
 
 settings = { 'target_list': [], 
              'source_obj': [],
              'def_reverse_node': False,
              'def_disconnect' : False,
-             'def_single_source_target' : False,
+             'def_single_source_target' : True,
              'def_use_custom_node' : False,
              'def_force_connection' : False,
              'status_single_source_target' : False,
@@ -63,25 +68,22 @@ def build_gui_connect_attributes():
         cmds.deleteUI(window_name)    
 
     # Main GUI Start Here =================================================================================
-
-    build_gui_connect_attributes = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    title_bgc_color = (.4, .4, .4)
+    build_gui_connect_attributes = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
 
     cmds.window(window_name, e=True, s=True, wh=[1,1])
 
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
     content_main = cmds.columnLayout()
     
     # Title Text
+    
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name + " v" + script_version, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_connect_attributes())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_connect_attributes())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
     
     # Body ====================
@@ -139,13 +141,13 @@ def build_gui_connect_attributes():
     # Source List Loader (Buttons)
     source_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     source_btn = cmds.button(p=source_container, l ="Load Source Object", c=lambda x:update_load_btn_jnt("source"), w=130)
-    source_status = cmds.button(p=source_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    source_status = cmds.button(p=source_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your source element and click on \"Load Source Object\"', verticalOffset=150 , time=5.0)")
                             
     # Target List Loader (Buttons)
     target_container = cmds.rowColumnLayout( p=body_column, numberOfRows=1)
     target_btn = cmds.button(p=target_container, l ="Load Target Objects", c=lambda x:update_load_btn_jnt("target"), w=130)
-    target_status = cmds.button(p=target_container, l ="Not loaded yet", bgc=(0, 0, 0), w=130, \
+    target_status = cmds.button(p=target_container, l ="Not loaded yet", bgc=(.2, .2, .2), w=130, \
                             c="cmds.headsUpMessage( 'Select your target elements and click on \"Load Target Objects\"', verticalOffset=150 , time=5.0)")
     cmds.separator(h=3, style='none', p=body_column) # Empty Space
     cmds.separator(h=10, p=body_column)
@@ -175,7 +177,7 @@ def build_gui_connect_attributes():
     cmds.separator(h=10, style='none', p=body_column) # Empty Space
     
     # Connect Button (Main Function)
-    cmds.button(p=body_column, l ="Connect Attributes", bgc=(.6, .8, .6), \
+    cmds.button(p=body_column, l ="Connect Attributes", bgc=(.6, .6, .6), \
                                     c=lambda x:connect_attributes(cmds.textField(source_attributes_input, q=True, text=True),\
                                                                             cmds.textField(target_attributes_input, q=True, text=True)))
     cmds.separator(h=10, style='none', p=body_column) # Empty Space
@@ -210,10 +212,10 @@ def build_gui_connect_attributes():
         else:
             settings["status_single_source_target"] = cmds.checkBox(single_source_target, q=True, value=True)
             cmds.button(source_btn, e=True, en=True)
-            cmds.button(source_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0),\
+            cmds.button(source_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2),\
                         c="cmds.headsUpMessage( 'Select your source element and click on \"Load Source Object\"', verticalOffset=150 , time=5.0)")
             cmds.button(target_btn, e=True, en=True)
-            cmds.button(target_status, l ="Not loaded yet", e=True, en=True, bgc=(0, 0, 0), \
+            cmds.button(target_status, l ="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2), \
                         c="cmds.headsUpMessage( 'Select your target elements and click on \"Load Target Objects\"', verticalOffset=150 , time=5.0)")
             
     # Updates elements to reflect the use of in between custom node
@@ -327,11 +329,11 @@ def build_gui_help_connect_attributes():
 
     cmds.columnLayout("main_column", p= window_name)
    
-    # Title Text
+    # Title Text 
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=(.4, .4, .4),  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     

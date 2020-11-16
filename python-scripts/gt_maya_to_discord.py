@@ -31,7 +31,10 @@
  Buttons were replaced with iconTextButton
  Button icons (base64) are quickly generated before building window
  Removed header image
-  
+ 
+ 1.5 - 2020-11-15
+ Changed the color of a few UI elements
+ Removed a few unnecessary lines
  
  Todo:
     Improve embeds for discord image uploader - Add colors, emojis and more
@@ -257,20 +260,17 @@ def build_gui_maya_to_discord():
 
     cmds.window(window_name, e=True, s=True, wh=[1,1])
     
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
     content_main = cmds.columnLayout(adj = True)
 
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=4, cw=[(1, 10), (2, 150), (3, 60),(4, 40)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=[0,.5,0]) # Tiny Empty Green Space
-    cmds.text(script_name, bgc=[0,.5,0],  fn="boldLabelFont", align="left")
-    cmds.button( l ="Settings", bgc=(0, .5, 0), c=lambda x:build_gui_settings_maya_to_discord())
-    cmds.button( l ="Help", bgc=(0, .5, 0), c=lambda x:build_gui_help_maya_to_discord())
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.button( l ="Settings", bgc=title_bgc_color, c=lambda x:build_gui_settings_maya_to_discord())
+    cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_maya_to_discord())
     cmds.separator(h=5, style='none') # Empty Space
     
     # Body ====================
@@ -924,7 +924,7 @@ def build_gui_help_maya_to_discord():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column
-    cmds.text(script_name + " Help", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p=main_column) # Empty Space
     
     # Body ====================
@@ -1042,7 +1042,7 @@ def build_gui_settings_maya_to_discord():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column
-    cmds.text(script_name + " Settings", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text(script_name + " Settings", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p=main_column) # Empty Space
     
     
@@ -1127,7 +1127,7 @@ def build_gui_settings_maya_to_discord():
     cmds.separator(h=5, style='none')
     
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)
-    cmds.button(l='Apply', h=30, bgc=(.6, .8, .6), c=lambda args: apply_settings())
+    cmds.button(l='Apply', h=30, bgc=(.6, .6, .6), c=lambda args: apply_settings())
     cmds.separator(h=8, style='none')
     
     # Show and Lock Window
