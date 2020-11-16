@@ -9,6 +9,10 @@
  
  1.2 - 2020/11/13
  Added code to try to retrieve the three latest releases
+ 
+ 1.3 - 2020/11/15
+ Changed title background color to grey
+ Added dates to changelog
 
 """
 try:
@@ -31,7 +35,7 @@ from json import dumps
 from json import loads
 
 # Script Version (This Script)
-script_version = '1.2'
+script_version = '1.3'
 gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
 gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 
@@ -52,10 +56,11 @@ def build_gui_gt_check_for_updates():
     cmds.columnLayout("main_column", p= window_name)
    
     # Title Text
+    title_bgc_color = (.4, .4, .4)
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 410)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text("GT Check for Updates", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text("GT Check for Updates", bgc=title_bgc_color,  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
     # Body ====================
@@ -181,8 +186,14 @@ def build_gui_gt_check_for_updates():
             cmds.text(update_status, e=True, l="You're up to date!", fn="tinyBoldLabelFont", bgc=(0, 1, 0))
             cmds.button(update_btn, e=True, en=False)
         
+        published_at = ''
+        try:
+            published_at = response_list[0].get('published_at').split('T')[0]
+        except:
+            pass
+        
         cmds.scrollField(output_scroll_field, e=True, clear=True)
-        cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') + '\n'))
+        cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') + (' ' * 80) + '(' + published_at + ')\n'))
         cmds.scrollField(output_scroll_field, e=True, ip=0, it=response_list[0].get('body'))
         
         if latest_version_int != 0:
@@ -204,11 +215,23 @@ def build_gui_gt_check_for_updates():
                 before_previous_version_response = get_github_release(gt_tools_tag_release_api + before_previous_version_tag)
                 
                 if previous_version_response[1] in success_codes:
-                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (previous_version_response[0].get('tag_name') + '\n'))
+                    published_at = ''
+                    try:
+                        published_at = previous_version_response[0].get('published_at').split('T')[0]
+                    except:
+                        pass
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (previous_version_response[0].get('tag_name') + (' ' * 80) + '(' + published_at + ')\n'))
                     cmds.scrollField(output_scroll_field, e=True, ip=0, it=previous_version_response[0].get('body'))
                 
+
+                
                 if before_previous_version_response[1] in success_codes:
-                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (before_previous_version_response[0].get('tag_name') + '\n'))
+                    published_at = ''
+                    try:
+                        published_at = before_previous_version_response[0].get('published_at').split('T')[0]
+                    except:
+                        pass
+                    cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (before_previous_version_response[0].get('tag_name') + (' ' * 80) + '(' + published_at + ')\n'))
                     cmds.scrollField(output_scroll_field, e=True, ip=0, it=before_previous_version_response[0].get('body'))
 
             except:
