@@ -3,6 +3,9 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-13
  https://github.com/TrevisanGMW
  
+ 1.1 - 2020/11/16
+ Fixed an issue where the color containing rendering space data would be applied to the outliner.
+ 
 """
 import maya.cmds as cmds
 import random
@@ -26,7 +29,7 @@ except ImportError:
 script_name = "GT Color Manager"
 
 # Version
-script_version = "1.0";
+script_version = "1.1";
 
 gt_color_manager_settings = { 'current_color': [.3,.3,.3],
                               'default_mode' : 'Drawing Override',
@@ -223,7 +226,8 @@ def build_gui_color_manager():
                                                                                                                               
     def update_stored_values():
         ''' Updates Current Color '''
-        gt_color_manager_settings["current_color"] = cmds.colorSliderGrp(color_slider, q=True, rgb=True)
+        
+        gt_color_manager_settings["current_color"] = cmds.colorSliderGrp(color_slider, q=True, rgb=True) # for outliner?
         set_persistent_settings_color_manager('gt_color_manager_current_color', cmds.colorSliderGrp(color_slider, q=True, rgb=True))
 
 
@@ -310,10 +314,14 @@ def build_gui_color_manager():
                             obj_to_set (str): Name (path) of the object to affect.
                 
                 '''
+                extrated_r = math.pow(color[0], 0.454)
+                extrated_g = math.pow(color[1], 0.454)
+                extrated_b = math.pow(color[2], 0.454)
+                
                 cmds.setAttr(obj_to_set + '.useOutlinerColor', 1)
-                cmds.setAttr(obj_to_set + '.outlinerColorR', color[0])
-                cmds.setAttr(obj_to_set + '.outlinerColorG', color[1])
-                cmds.setAttr(obj_to_set + '.outlinerColorB', color[2])
+                cmds.setAttr(obj_to_set + '.outlinerColorR', extrated_r)
+                cmds.setAttr(obj_to_set + '.outlinerColorG', extrated_g)
+                cmds.setAttr(obj_to_set + '.outlinerColorB', extrated_b)
                 return 1
    
             def set_color_reset(obj_to_set, reset_overrides=False, reset_wireframe=False, reset_outliner=False):
