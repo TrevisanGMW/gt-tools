@@ -80,10 +80,14 @@
 //   https://github.com/TrevisanGMW/gt-tools/releases
 //	 Added "gtu_convert_bif_to_mesh"
 //
+//   1.5.6
+//   Moved "gtu_convert_bif_to_mesh" to the modeling submenu
+//   Added "gt_color_manager"
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.5";
+global string $scriptVersion = "1.5.6";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -117,12 +121,18 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -c ("python(\"import gt_renamer\\nreload(gt_renamer)\\ngt_renamer.build_gui_renamer()\");") 
     -ann ("Script for renaming multiple objects.") 
     -image "renamePreset.png" ;
-
+    
     menuItem 
     -l ("Selection Manager") 
     -c ("python(\"import gt_selection_manager\\nreload(gt_selection_manager)\\ngt_selection_manager.build_gui_selection_manager()\");") 
     -ann ("Manages or creates custom selections.") 
     -image "selectByHierarchy.png" ;
+    
+    menuItem 
+    -l ("Color Manager") 
+    -c ("python(\"import gt_color_manager\\nreload(gt_color_manager)\\ngt_color_manager.build_gui_color_manager()\");") 
+    -ann ("A way to quickly change colors of objects and objects names (outliner).") 
+    -image "render_swColorPerVertex.png" ;
     
     menuItem 
     -l ("Replace Reference Paths") 
@@ -148,6 +158,7 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
 	
 // -----------------------------------------CURVES------------------------------------
 menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
+
     menuItem 
     -l ("Generate Python Curve") 
     -c ("python(\"import gt_generate_python_curve\\nreload(gt_generate_python_curve)\\ngt_generate_python_curve.build_gui_py_curve()\");") 
@@ -187,6 +198,13 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     -c ("python(\"import gt_create_sphere_types\\nreload(gt_create_sphere_types)\\ngt_create_sphere_types.build_gui_sphere_type()\");") 
     -ann ("A reminder.") 
     -image "blinn.svg" ;
+    
+    	menuItem 
+    -l ("Convert Bif to Mesh")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
+    -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
+    -image "nurbsToPolygons.png";
+
 	
     // Material
     menuItem -divider true ;
@@ -286,12 +304,6 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
 	
-	menuItem 
-    -l ("Convert Bif to Mesh")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
-    -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
-    -image "nurbsToPolygons.png";
-
     // Pivot
     menuItem -divider true ;
     
