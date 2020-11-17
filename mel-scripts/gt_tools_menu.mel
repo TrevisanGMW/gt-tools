@@ -87,6 +87,7 @@
 //   1.5.7
 //	 Renamed "gt_create_ctrl_auto_fk" to "gt_create_auto_fk"
 //	 Renamed "gt_create_ctrl_simple_IK_leg"	to "gt_create_ik_leg"
+//   Added "gtu_delete_nucleus_nodes"
 //
 //----------------------------------------------------------------------------
 
@@ -370,13 +371,19 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -image "displayLayer.svg";
 
     menuItem 
+    -l ("Delete Nucleus Nodes")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_nucleus_nodes()\");") 
+    -ann ("Deletes all nodes related to particles. (Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)") 
+    -image "nParticle.svg";
+
+    menuItem 
     -l ("Delete Keyframes")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_keyframes()\");") 
     -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
     -image "keyIntoclip.png";
 
     setParent -menu ".." ;
-
+    
 
 // -----------------------------------------MISCELLANEOUS------------------------------------
 

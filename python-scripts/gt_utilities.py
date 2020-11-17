@@ -26,6 +26,11 @@
  1.5 - 2020-11-14
  Added "gtu_convert_bif_to_mesh"
  
+ 1.6 - 2020-11-16
+ Added "gtu_delete_nucleus_nodes"
+ Updated "gtu_delete_display_layers" to have inView feedback
+ Updated "gtu_delete_keyframes" to have inView feedback
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -64,7 +69,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "1.4"
+gtu_script_version = "1.6"
     
 ''' ____________________________ General Functions ____________________________'''
 def gtu_reload_file():
@@ -557,7 +562,7 @@ def gtu_delete_namespaces():
             return namespace.count(':')
 
         namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
-        
+
         # Reverse List
         namespaces.sort(key=num_children, reverse=True) # So it does the children first
 
@@ -573,27 +578,130 @@ def gtu_delete_namespaces():
         
 def gtu_delete_display_layers():
     ''' Deletes all display layers '''
-    display_layers = cmds.ls(type = 'displayLayer')
-    for layer in display_layers:
-        if layer != 'defaultLayer':
-            cmds.delete(layer)
+    function_name = 'GTU Delete All Display Layers'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        display_layers = cmds.ls(type = 'displayLayer')
+        deleted_counter = 0
+        for layer in display_layers:
+            if layer != 'defaultLayer':
+                cmds.delete(layer)
+                deleted_counter += 1
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'layers were'
+        if deleted_counter == 1:
+            is_plural = 'layer was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
             
 def gtu_delete_keyframes():
-    '''Deletes all nodes of the type "animCurveTA" (keyframes)'''
-    keys_ta = cmds.ls(type='animCurveTA')
-    keys_tl = cmds.ls(type='animCurveTL')
-    keys_tt = cmds.ls(type='animCurveTT')
-    keys_tu = cmds.ls(type='animCurveTU')
-    #keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
-    #keys_ua = cmds.ls(type='animCurveUA')
-    #keys_ut = cmds.ls(type='animCurveUT')
-    #keys_uu = cmds.ls(type='animCurveUU')
-    all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
-    for obj in all_keyframes:
-        try:
-            cmds.delete(obj)
-        except:
-            pass
+    '''Deletes all nodes of the type "animCurveTA" (keyframes)'''       
+    function_name = 'GTU Delete All Keyframes'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        keys_ta = cmds.ls(type='animCurveTA')
+        keys_tl = cmds.ls(type='animCurveTL')
+        keys_tt = cmds.ls(type='animCurveTT')
+        keys_tu = cmds.ls(type='animCurveTU')
+        #keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
+        #keys_ua = cmds.ls(type='animCurveUA')
+        #keys_ut = cmds.ls(type='animCurveUT')
+        #keys_uu = cmds.ls(type='animCurveUU')
+        deleted_counter = 0
+        all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
+        for obj in all_keyframes:
+            try:
+                cmds.delete(obj)
+                deleted_counter += 1
+            except:
+                pass   
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'keyframe nodes were'
+        if deleted_counter == 1:
+            is_plural = 'keyframe node was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        
+                    
+def gtu_delete_nucleus_nodes():
+    ''' Deletes all elements related to particles '''   
+    errors= '' 
+    try:
+        function_name = 'GTU Delete Nucleus Nodes'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        
+        # Without Transform
+        emitters = cmds.ls(typ='pointEmitter')
+        instancers = cmds.ls(typ='instancer')
+        solvers = cmds.ls(typ='nucleus')
+        instancers = cmds.ls(typ='instancer')
+        
+        no_transforms = emitters + instancers + solvers + instancers
+        
+        # With Transform
+        nparticle_nodes = cmds.ls(typ='nParticle')
+        spring_nodes = cmds.ls(typ='spring')
+        particle_nodes = cmds.ls(typ='particle')
+        nrigid_nodes = cmds.ls(typ='nRigid')
+        ncloth_nodes = cmds.ls(typ='nCloth')
+        pfxhair_nodes = cmds.ls(typ='pfxHair')
+        hair_nodes = cmds.ls(typ='hairSystem')
+        nconstraint_nodes = cmds.ls(typ='dynamicConstraint')
+        
+        transforms = nparticle_nodes + spring_nodes + particle_nodes + nrigid_nodes + ncloth_nodes + pfxhair_nodes + hair_nodes + nconstraint_nodes
+        
+        # Fields/Solvers Types
+        # airField
+        # dragField
+        # newtonField
+        # radialField
+        # turbulenceField
+        # uniformField
+        # vortexField
+        # volumeAxisField
+
+        deleted_counter = 0
+        for obj in transforms:
+            try:
+                parent = cmds.listRelatives(obj, parent=True) or []
+                cmds.delete(parent[0])
+                deleted_counter += 1
+            except:
+                pass
+        for obj in no_transforms:
+            try:
+                cmds.delete(obj)
+                deleted_counter += 1
+            except:
+                pass
+                
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'objects were'
+        if deleted_counter == 1:
+            is_plural = 'object was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+         
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+
             
 ''' ____________________________ External Functions ____________________________'''   
 
@@ -690,5 +798,6 @@ def gtu_build_gui_about_gt_tools():
 #gtu_delete_namespaces()
 #gtu_delete_display_layers()
 #gtu_delete_keyframes()
+#gtu_delete_nucleus_nodes()
 
 #gtu_build_gui_about_gt_tools()
