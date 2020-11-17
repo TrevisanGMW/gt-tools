@@ -171,6 +171,8 @@ del %~1\gt_connect_attributes.py
 del %~1\gt_connect_attributes.pyc
 del %~1\gt_create_ctrl_auto_fk.py
 del %~1\gt_create_ctrl_auto_fk.pyc
+del %~1\gt_create_ctrl_auto_FK.py
+del %~1\gt_create_ctrl_auto_FK.pyc
 del %~1\gt_create_ctrl_simple_ik_leg.py
 del %~1\gt_create_ctrl_simple_ik_leg.pyc
 del %~1\gt_generate_icons.py
@@ -203,6 +205,10 @@ del %~1\gt_api.py
 del %~1\gt_api.pyc
 del %~1\gt_create_sphere_types.py
 del %~1\gt_create_sphere_types.pyc
+del %~1\gt_create_auto_fk.py
+del %~1\gt_create_auto_fk.pyc
+del %~1\gt_create_ik_leg.py
+del %~1\gt_create_ik_leg.pyc
 EXIT /B 0
 
 
