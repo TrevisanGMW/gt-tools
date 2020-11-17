@@ -84,10 +84,14 @@
 //   Moved "gtu_convert_bif_to_mesh" to the modeling submenu
 //   Added "gt_color_manager"
 //
+//   1.5.7
+//	 Renamed "gt_create_ctrl_auto_fk" to "gt_create_auto_fk"
+//	 Renamed "gt_create_ctrl_simple_IK_leg"	to "gt_create_ik_leg"
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.6";
+global string $scriptVersion = "1.5.7";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -248,15 +252,16 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
 	
     menuItem 
     -l ("Create Auto FK") 
-    -c ("python(\"import gt_create_ctrl_auto_fk\\nreload(gt_create_ctrl_auto_fk)\\ngt_create_ctrl_auto_fk.build_gui_auto_fk()\");") 
+    -c ("python(\"import gt_create_auto_fk\\nreload(gt_create_auto_fk)\\ngt_create_auto_fk.build_gui_auto_fk()\");") 
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
 	
     menuItem 
     -l ("Create IK Leg") 
-    -c ("python(\"import gt_create_ctrl_simple_IK_leg\\nreload(gt_create_ctrl_simple_IK_leg)\\ngt_create_ctrl_simple_IK_leg.build_gui_simple_ik_leg()\");") 
+    -c ("python(\"import gt_create_ik_leg\\nreload(gt_create_ik_leg)\\ngt_create_ik_leg.build_gui_simple_ik_leg()\");") 
     -ann ("Automated solution for create a simple IK leg.") 
     -image "kinHandle.png" ;
+	
 	
 	menuItem 
     -l ("Make Stretchy Leg") 
