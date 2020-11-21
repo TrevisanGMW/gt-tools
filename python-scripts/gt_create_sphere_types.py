@@ -28,15 +28,16 @@ import base64
 import os
 
 # Script Version
-scriptVersion = "1.0"
+script_version = "1.0"
 
 def build_gui_sphere_type():
+    ''' Builds the UI for GT Sphere Types '''
     if cmds.window("build_gui_sphere_type", exists =True):
         cmds.deleteUI("build_gui_sphere_type")    
 
     # main dialog Start Here =================================================================================
 
-    build_gui_sphere_type = cmds.window("build_gui_sphere_type", title='Sphere Types - (v' + scriptVersion + ')',\
+    build_gui_sphere_type = cmds.window("build_gui_sphere_type", title='Sphere Types - (v' + script_version + ')',\
                           titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =True)
     cmds.window(build_gui_sphere_type, e=True, s=True, wh=[1,1])
     
