@@ -31,6 +31,9 @@
  Updated "gtu_delete_display_layers" to have inView feedback
  Updated "gtu_delete_keyframes" to have inView feedback
  
+ 1.7 - 2020-11-22
+ Updated text for the about window.
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -739,7 +742,11 @@ def gtu_build_gui_about_gt_tools():
     
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='About:', align="center", fn="boldLabelFont")
-    cmds.text(l='The pull-down menu provides easy access to a variety of \ntools, and each sub-menus has been organized to\ncontain related tools.', align="center")
+    cmds.text(l='This is my collection of scripts for Autodesk Maya.\nThese scripts were created with the aim of automating,\n enhancing or simply filling the missing details of what\n I find lacking in Maya.', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='When installed you can find a pull-down menu that\n provides easy access to a variety of related tools.', align="center")
+    cmds.separator(h=5, style='none') # Empty Space
+    cmds.text(l='This menu contains sub-menus that have been\n organized to contain related tools.\n For example: modeling, rigging, utilities, etc...', align="center")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\nUse at your own risk.', align="center")
     cmds.separator(h=15, style='none') # Empty Space
