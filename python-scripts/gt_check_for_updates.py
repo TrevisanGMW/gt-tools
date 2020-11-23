@@ -50,7 +50,7 @@ def build_gui_gt_check_for_updates():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
-    cmds.window(window_name, title= 'GT Check for Updates - v' + script_version, mnb=False, mxb=False, s=True)
+    cmds.window(window_name, title= 'GT Check for Updates - (v' + script_version + ')', mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1,1])
 
     cmds.columnLayout("main_column", p= window_name)

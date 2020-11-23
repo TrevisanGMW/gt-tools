@@ -190,7 +190,7 @@ def build_gui_renamer():
 
     # ===================================================================================
     
-    build_gui_renamer = cmds.window(window_name, title=script_name + "  v" + script_version,\
+    build_gui_renamer = cmds.window(window_name, title=script_name + '  (v' + script_version+ ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
     
     cmds.window(window_name, e=True, s=True, wh=[1,1])

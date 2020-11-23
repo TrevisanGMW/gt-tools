@@ -3,9 +3,13 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-04 - github.com/TrevisanGMW
  Tested on Maya 2020 - Windows 10
  
+ 1.1 - 2020/11/22
+ Minor changes to the UI
+ 
  To do:
  Improve the generate window to give better feedback
  Add more sphere options
+ Add sliders to control subdivision level
  
 """ 
 try:
@@ -28,7 +32,7 @@ import base64
 import os
 
 # Script Version
-script_version = "1.0"
+script_version = "1.1"
 
 def build_gui_sphere_type():
     ''' Builds the UI for GT Sphere Types '''
@@ -41,7 +45,7 @@ def build_gui_sphere_type():
                           titleBar=True,minimizeButton=False,maximizeButton=False, sizeable =True)
     cmds.window(build_gui_sphere_type, e=True, s=True, wh=[1,1])
     
-    contentMain = cmds.columnLayout(adj = True)
+    content_main = cmds.columnLayout(adj = True)
     
       
     # Generate Header Image
@@ -61,13 +65,13 @@ def build_gui_sphere_type():
     
   
     cmds.text("Sphere Options:")
-    cmds.separator(h=5, p=contentMain, st="none" )
-    cmds.rowColumnLayout( p=contentMain, numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
-    cmds.separator(h=10, p=contentMain, st="none" )
+    cmds.separator(h=5, p=content_main, st="none" )
+    cmds.rowColumnLayout( p=content_main, numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
+    cmds.separator(h=10, p=content_main, st="none" )
     cmds.button( l ="Standard Sphere", c=lambda x:create_standard_sphere(), w=100)
     cmds.button( l ="Platonic Sphere A", c=lambda x:create_platonic_sphere_a())
     cmds.separator(h=10, st="none" )
-    cmds.rowColumnLayout(p=contentMain, numberOfColumns=2, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
+    cmds.rowColumnLayout(p=content_main, numberOfColumns=2, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
     cmds.button( l ="Cube Sphere", c=lambda x:create_cube_sphere(), w=100)
     cmds.button( l ="Platonic Sphere B", c=lambda x:create_platonic_sphere_b())
     cmds.separator(h=10, st="none" )
