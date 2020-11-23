@@ -89,10 +89,13 @@
 //	 Renamed "gt_create_ctrl_simple_IK_leg"	to "gt_create_ik_leg"
 //   Added "gtu_delete_nucleus_nodes"
 //
+//   1.5.8
+//   Added "gt_startup_booster"
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.7";
+global string $scriptVersion = "1.5.8";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -388,6 +391,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
 // -----------------------------------------MISCELLANEOUS------------------------------------
 
 menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
+    
+    menuItem 
+    -l ("Startup Booster") 
+    -c ("python(\"import gt_startup_booster\\nreload(gt_startup_booster)\\ngt_startup_booster.build_gui_startup_booster()\");") 
+    -ann ("Improve startup times by managing which plugins get loaded when starting Maya.") 
+    -image "out_time.png" ;
+    
     
     // If icon exists, use it
     string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
