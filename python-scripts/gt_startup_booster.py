@@ -259,7 +259,7 @@ def build_gui_startup_booster():
         if plugins_to_load:
             plugins = plugins_to_load
 
-        gMainProgressBar = maya.mel.eval('$tmp = $gMainProgressBar');
+        gMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
 
         cmds.progressBar( gMainProgressBar,
                           edit=True,
