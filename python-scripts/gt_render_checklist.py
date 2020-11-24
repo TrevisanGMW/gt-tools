@@ -2454,6 +2454,6 @@ def settings_export_state():
 
 
 #Build GUI
+get_persistent_settings_render_checklist()
 if __name__ == '__main__':
-    get_persistent_settings_render_checklist()
     build_gui_gt_render_checklist()

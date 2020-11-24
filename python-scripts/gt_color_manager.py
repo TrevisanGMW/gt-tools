@@ -6,6 +6,9 @@
  1.1 - 2020/11/16
  Fixed an issue where the color containing rendering space data would be applied to the outliner.
  
+ 1.2 - 2020/11/23
+ Fixed an issue with the persistent settings not being updated when importing the script.
+ 
 """
 import maya.cmds as cmds
 import random
@@ -29,7 +32,7 @@ except ImportError:
 script_name = "GT Color Manager"
 
 # Version
-script_version = "1.1";
+script_version = "1.2";
 
 gt_color_manager_settings = { 'current_color': [.3,.3,.3],
                               'default_mode' : 'Drawing Override',
@@ -534,6 +537,6 @@ def build_gui_help_color_manager():
 
 
 # Build Main Dialog
+get_persistent_settings_color_manager()
 if __name__ == '__main__':
-    get_persistent_settings_color_manager()
     build_gui_color_manager()  
