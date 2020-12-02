@@ -14,6 +14,9 @@
  
  1.3 - 2020-11-15
  Tweaked the color and text for the title and help menu
+ 
+ 1.3 - 2020-12-02
+ Retired this script as "GT Path Manager" now handles references and has a search and replace option.
 
  To do: 
  Show list of current paths directly in the UI
