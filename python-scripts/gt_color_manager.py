@@ -3,11 +3,14 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-13
  https://github.com/TrevisanGMW
  
- 1.1 - 2020/11/16
+ 1.1 - 2020-11-16
  Fixed an issue where the color containing rendering space data would be applied to the outliner.
  
- 1.2 - 2020/11/23
+ 1.2 - 2020-11-23
  Fixed an issue with the persistent settings not being updated when importing the script.
+ 
+ 1.3 - 2020-12-03
+ Fixed an issue where shape nodes wouldn't reset properly
  
 """
 import maya.cmds as cmds
@@ -32,7 +35,7 @@ except ImportError:
 script_name = "GT Color Manager"
 
 # Version
-script_version = "1.2";
+script_version = "1.3";
 
 gt_color_manager_settings = { 'current_color': [.3,.3,.3],
                               'default_mode' : 'Drawing Override',
@@ -400,7 +403,7 @@ def build_gui_color_manager():
                             errors += str(e) + '\n'
                             
             if valid_selection and reset == True:
-                for obj in selection:
+                for obj in objects_to_color:
                     if set_viewport:
                         try:
                            colored_total += set_color_reset(obj, reset_overrides=True, reset_wireframe=True)
