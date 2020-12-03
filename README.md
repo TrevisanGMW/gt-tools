@@ -51,7 +51,7 @@ Hopefully these scripts are helpful to you as they are to me.
 <h1> Installation </h1>
 
 <b>TL;DR :</b> Download files, then open "setup.bat". 
-You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
+<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
 
 Do you want to use a script but don't want to install the whole package? That's fine too, every script in GT Tools is standalone and will run if you just copy the code and paste it in your script editor.
 
