@@ -18,9 +18,15 @@
  Tweaked the color and text for the title and help menu
  Removed a few unnecessary lines
  
+ 1.5 - 2020-??-??
+ Fixed error thatt appears when updating outliner colors
+ 
+ 
  TO DO:
  Add rolls
- Use replace instead of substring to rename elements.
+ Use replace instead of substring to rename elements
+ Add create leg to auto generate joints
+ Recreate most of it to generate full rig
 
 """
 import maya.cmds as cmds
@@ -44,7 +50,7 @@ except ImportError:
 script_name = "GT - IK Leg Generator"
 
 # Version:
-script_version = "1.4"
+script_version = "1.5"
 
 
 stored_joints = { 'hip_jnt': '', 
@@ -65,8 +71,8 @@ settings = { 'using_custom_ik_ctrl': False,
              'def_use_ik_switch' : False,
              'def_use_pvector' : False,
              'make_stretchy' : True,
-             'ctrl_grp_tag' : 'CtrlGrp',
-             'jnt_tag' : 'Jnt'
+             'ctrl_grp_tag' : 'ctrlGrp',
+             'jnt_tag' : 'jnt'
             }
 
 
@@ -821,7 +827,7 @@ def make_stretchy_legs(ikHandle):
     change_list_outliner_color([distance_node_one,top_locator_one,bottom_locator_one],[0,1,0]) 
     change_list_outliner_color([distance_node_two,top_locator_two,bottom_locator_two],[1,0,0])
 
-    mel.eval('AEdagNodeCommonRefreshOutliners();') #Make sure outliner colors update
+    #mel.eval('AEdagNodeCommonRefreshOutliners();') #Make sure outliner colors update
 
     # Start connecting everything ----------------------------------------
 
