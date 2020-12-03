@@ -92,10 +92,14 @@
 //   1.5.8
 //   Added "gt_startup_booster"
 //
+//   1.5.9
+//   Added "gt_path_manager"
+//   Retired "gt_replace_reference_paths"
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.8";
+global string $scriptVersion = "1.5.9";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -137,17 +141,17 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -image "selectByHierarchy.png" ;
     
     menuItem 
+    -l ("Path Manager") 
+    -c ("python(\"import gt_path_manager\\nreload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ntry_to_close_gt_path_manager()\\ngt_path_manager_dialog = GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
+    -ann ("A script for managing and repairing the path of many nodes.") 
+    -image "annotation.png" ;
+    
+    menuItem 
     -l ("Color Manager") 
     -c ("python(\"import gt_color_manager\\nreload(gt_color_manager)\\ngt_color_manager.build_gui_color_manager()\");") 
     -ann ("A way to quickly change colors of objects and objects names (outliner).") 
     -image "render_swColorPerVertex.png" ;
     
-    menuItem 
-    -l ("Replace Reference Paths") 
-    -c ("python(\"import gt_replace_reference_paths\\nreload(gt_replace_reference_paths)\\ngt_replace_reference_paths.build_gui_replace_reference_paths()\");") 
-    -ann ("Search and Replace for reference paths.") 
-    -image "reference.png" ;
-	
 	menuItem 
     -l ("Transfer Transforms") 
     -c ("python(\"import gt_transfer_transforms\\nreload(gt_transfer_transforms)\\ngt_transfer_transforms.build_gui_transfer_transforms()\");") 
@@ -246,7 +250,6 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"import gt_mirror_cluster_tool\\nreload(gt_mirror_cluster_tool)\\ngt_mirror_cluster_tool.build_gui_mirror_cluster_tool()\");") 
     -ann ("Automated solution for mirroring clusters.") 
     -image "cluster.png";
-    
     
     menuItem 
     -l ("Generate In-Between") 
