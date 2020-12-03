@@ -16,6 +16,9 @@
     RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight
  Added support for Reference Files through OpenMaya API (Instead of PyMEL)
  
+ 1.1 - 2020-12-03
+ Added support for Image Planes
+ 
  Todo:
     Add support for Goalem Nodes
         'SimulationCacheProxyManager', 'destinationTerrainFile', accepts_empty=True
@@ -30,7 +33,7 @@
          
     Add:
     Only Files Checkbox
-   
+ 
 """
 from PySide2 import QtCore
 from PySide2 import QtGui
@@ -49,7 +52,7 @@ import re
 script_name = "GT Path Manager" 
 
 # Version
-script_version = '1.0'
+script_version = '1.1'
 
 def maya_main_window():
     '''
@@ -361,6 +364,13 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     obj_attr = '.filename'
                     file_path = cmds.getAttr(obj + obj_attr)
                     
+                # Image Plane
+                elif obj_type == 'imagePlane':
+                    obj_icon = ':imagePlane.svg'
+                    obj_type = 'Image Plane'
+                    obj_attr = '.imageName'
+                    file_path = cmds.getAttr(obj + obj_attr)
+                    
                 # References
                 elif obj_type == 'reference':
                     obj_icon = ':reference.png'
@@ -427,7 +437,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         # Available Types
         available_node_types = ['audio', 'cacheFile', 'AlembicNode', 'gpuCache','BifMeshImportNode',\
                            'RedshiftProxyMesh','RedshiftVolumeShape','RedshiftNormalMap','RedshiftDomeLight','RedshiftIESLight', \
-                           'MASH_Audio','aiPhotometricLight','aiStandIn','aiVolume']
+                           'MASH_Audio','aiPhotometricLight','aiStandIn','aiVolume', 'imagePlane']
         
         # Add Types for Loaded Plugins
         path_node_types = []
@@ -947,4 +957,3 @@ if __name__ == "__main__":
     try_to_close_gt_path_manager()
     gt_path_manager_dialog = GTPathManagerDialog()
     gt_path_manager_dialog.show()
-    #gt_path_manager_dialog.build_gui_help_path_manager()
