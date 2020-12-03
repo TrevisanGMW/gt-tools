@@ -7,10 +7,9 @@ SET CopyDirSourceMel=%~dp0mel-scripts
 SET CopyDirSourcePy=%~dp0python-scripts
 SET ImportCommandSearch=source\ \"gt_tools_menu.mel\";
 SET ImportCommand=source "gt_tools_menu.mel";
-SET ManualInstallationURL=https://github.com/
+SET ManualInstallationURL=https://github.com/TrevisanGMW/gt-tools
 SET ExtractionDirPython=%~dp0python-scripts
 SET ExtractionDirMel=%~dp0mel-scripts
-
 
 :MENU
 @echo off
@@ -61,6 +60,7 @@ IF EXIST %CopyDirDestination% (
 CD /D %CopyDirDestination%
 for /D %%s in (.\*) do CALL :get_maya_folders %%s
 CALL :valid_maya_dir_global
+IF %RobocopyError%==1 GOTO robocopy_error
 GOTO INSTALLATION_COMPLETE
 EXIT /B %ERRORLEVEL% 
 
@@ -77,13 +77,18 @@ CALL :check_usersetup_existence %CopyDirDestination%%version_no_dot%\scripts
 EXIT /B 0
 
 :copy_files
+SET RobocopyError=0
 ROBOCOPY %CopyDirSource% %~1 /Z /IF "*.py" /njh /njs /ndl /nc /ns
+IF %ERRORLEVEL%==16 SET RobocopyError=1
 ROBOCOPY %CopyDirSource% %~1  /Z /IF "*.mel" /njh /njs /ndl /nc /ns
+IF %ERRORLEVEL%==16 SET RobocopyError=1
 IF EXIST %CopyDirSourceMel% (
 	ROBOCOPY %CopyDirSourceMel% %~1  /Z /IF "*.mel" /XF "userSetup*" /njh /njs /ndl /nc /ns
+	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
 IF EXIST %CopyDirSourcePy% (
 	ROBOCOPY %CopyDirSourcePy% %~1  /Z /IF "*.py" /njh /njs /ndl /nc /ns
+	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
 EXIT /B 0
 
@@ -209,6 +214,14 @@ del %~1\gt_create_auto_fk.py
 del %~1\gt_create_auto_fk.pyc
 del %~1\gt_create_ik_leg.py
 del %~1\gt_create_ik_leg.pyc
+del %~1\gt_path_manager.py
+del %~1\gt_path_manager.pyc
+del %~1\gt_check_for_updates.py
+del %~1\gt_check_for_updates.pyc
+del %~1\gt_color_manager.py
+del %~1\gt_color_manager.pyc
+del %~1\gt_startup_booster.py
+del %~1\gt_startup_booster.pyc
 EXIT /B 0
 
 
@@ -234,6 +247,7 @@ EXIT /B 0
 SET "TEMP_USERSETUP=%TEMP%\%RANDOM%__hosts"
 findstr /V "%ImportCommandSearch%" "%~1" > "%TEMP_USERSETUP%"
 COPY /b/v/y "%TEMP_USERSETUP%" "%~1"
+(for /f usebackq^ eol^= %%a in (%~1) do break) && echo userSetup has data || del %~1
 EXIT /B 0
 
 
@@ -256,6 +270,32 @@ cls
 @echo       Maya directory was not found. 
 @echo       You might have to install the scripts manually.
 @echo       Learn how to fix this issue in the "About Installer" option.
+@echo.
+@echo.
+@echo off
+SET /P AREYOUSURE=Would you like to open the instructions for the manual installation (Y/[N])?
+IF /I "%AREYOUSURE%" NEQ "Y" GOTO EOF
+start "" %ManualInstallationURL%
+GOTO EOF
+
+:robocopy_error
+@echo off
+color 0C
+cls
+@echo on
+@echo.
+@echo.
+@echo       ллллллл лллллл  лллллл   лллллл  лллллл  
+@echo       лл      лл   лл лл   лл лл    лл лл   лл 
+@echo       ллллл   лллллл  лллллл  лл    лл лллллл  
+@echo       лл      лл   лл лл   лл лл    лл лл   лл 
+@echo       ллллллл лл   лл лл   лл  лллллл  лл   лл 
+@echo.
+@echo.
+@echo       An error was raised when copying the files. 
+@echo       The installation might have succeeded, but the script can't confirm that. 
+@echo       You might have to install the scripts manually.
+@echo       Learn how to possibly fix this issue in the "About Installer" option.
 @echo.
 @echo.
 @echo off
