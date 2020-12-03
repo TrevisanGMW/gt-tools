@@ -142,7 +142,7 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     
     menuItem 
     -l ("Path Manager") 
-    -c ("python(\"import gt_path_manager\\nreload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ntry_to_close_gt_path_manager()\\ngt_path_manager_dialog = GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
+    -c ("python(\"import gt_path_manager\\nreload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ngt_path_manager.try_to_close_gt_path_manager()\\ngt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
     -ann ("A script for managing and repairing the path of many nodes.") 
     -image "annotation.png" ;
     
