@@ -1,5 +1,5 @@
 """
- GT Check for Updates - This script compared your current GT Tools version with the latest release.
+ GT Check for Updates - This script compares your current GT Tools version with the latest release.
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-10 - github.com/TrevisanGMW
  
  1.1 - 2020/11/11
