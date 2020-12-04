@@ -6,6 +6,9 @@
  1.1 - 2020/11/22
  Minor changes to the UI
  
+ 1.2 - 2020/12/03
+ Platonic Sphere A is now created with soft normals
+ 
  To do:
  Improve the generate window to give better feedback
  Add more sphere options
@@ -32,7 +35,7 @@ import base64
 import os
 
 # Script Version
-script_version = "1.1"
+script_version = "1.2"
 
 def build_gui_sphere_type():
     ''' Builds the UI for GT Sphere Types '''
@@ -100,6 +103,9 @@ def create_standard_sphere():
     
 def create_platonic_sphere_a():
     mel.eval('polyPlatonic -primitive 4 -subdivisionMode 0 -subdivisions 1 -radius 1 -sphericalInflation 1;')
+    sphere = cmds.ls(selection=True)
+    cmds.polySoftEdge(sphere, a=180 )
+    cmds.select(sphere)
     message = 'Create > Polygon Primitives > <span style=\"color:#FF0000;text-decoration:underline;\">Platonic Solid</span>'
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
     cmds.inViewMessage(amg='(Settings: Icosahedron, Quads, 1, 1, 1)', pos='botLeft', fade=True, alpha=.9)
