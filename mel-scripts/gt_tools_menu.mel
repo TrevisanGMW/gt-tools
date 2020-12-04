@@ -96,10 +96,15 @@
 //   Added "gt_path_manager"
 //   Retired "gt_replace_reference_paths"
 //
+//   1.6.0
+//   Moved uniform LRA toggle up to have all reference functions close to one another
+//   Added Unlock Default Channels
+//   Added Unhide Default Channels
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.5.9";
+global string $scriptVersion = "1.6.0";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -289,14 +294,30 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_reload_file()\");") 
     -ann ("Reopens the opened file (to revert back any changes done to the file since it was first opened)") 
     -image "openLoadGeneric.png";
-    //menuItem -optionBox true
-    //-c ("print 1") ;
     
     menuItem 
     -l ("Resource Browser")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_open_resource_browser()\");") 
     -ann ("Opens Maya's Resource Browser. A good way to find icons or elements you may want to use.") 
     -image "bsd-head.png";
+    
+    menuItem 
+    -l ("Unlock Default Channels")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_unlock_default_channels()\");") 
+    -ann ("Unlocks the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
+    -image "Lock_OFF_grey.png";
+    
+    menuItem 
+    -l ("Unhide Default Channels")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_unhide_default_channels()\");") 
+    -ann ("Unhides the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
+    -image "RS_filter_list.png";
+    
+    menuItem 
+    -l ("Uniform LRA Toggle")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
+    -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
+    -image "visible.png";
     
     menuItem 
     -l ("Import References")
@@ -310,11 +331,6 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -ann ("Removes all references.") 
     -image "referenceProxy.png";
     
-    menuItem 
-    -l ("Uniform LRA Toggle")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
-    -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
-    -image "visible.png";
 	
     // Pivot
     menuItem -divider true ;

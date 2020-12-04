@@ -32,7 +32,12 @@
  Updated "gtu_delete_keyframes" to have inView feedback
  
  1.7 - 2020-11-22
- Updated text for the about window.
+ Updated text for the about window
+ 
+ 1.8 - 2020-12-03
+ Changed the background color for the title in the "About" window
+ Changed the order of a few functions
+ Added function to unlock/unhide default channels
  
  To Do:
  Add proper error handling to all functions.
@@ -75,6 +80,7 @@ except ImportError:
 gtu_script_version = "1.6"
     
 ''' ____________________________ General Functions ____________________________'''
+
 def gtu_reload_file():
     ''' Reopens the opened file (to revert back any changes done to the file) '''        
     if cmds.file(query=True, exists=True): # Check to see if it was ever saved
@@ -93,44 +99,85 @@ def gtu_open_resource_browser():
     except:
         pass
         
-def gtu_import_references():
-    ''' Imports all references ''' 
-    try:
-        errors = ''
-        refs = cmds.ls(rf=True)
-        for i in refs:
+def gtu_unlock_default_channels():
+    ''' Unlocks Translate, Rotate, Scale for the selected objects '''  
+    function_name = 'GTU Unlock Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
+    selection = cmds.ls(selection=True, long=True) 
+    unlocked_counter = 0
+    try:   
+        for obj in selection:
             try:
-                r_file = cmds.referenceQuery(i, f=True)
-                cmds.file(r_file, importReference=True)
+                cmds.setAttr(obj + '.translateX', lock=False)
+                cmds.setAttr(obj + '.translateY', lock=False)
+                cmds.setAttr(obj + '.translateZ', lock=False)
+                cmds.setAttr(obj + '.rotateX', lock=False)
+                cmds.setAttr(obj + '.rotateY', lock=False)
+                cmds.setAttr(obj + '.rotateZ', lock=False)
+                cmds.setAttr(obj + '.scaleX', lock=False)
+                cmds.setAttr(obj + '.scaleY', lock=False)
+                cmds.setAttr(obj + '.scaleZ', lock=False)
+                cmds.setAttr(obj + '.v', lock=False)
+                unlocked_counter += 1
             except Exception as e:
-                errors += str(e) + '(' + r_file + ')\n'
+                errors += str(e) + '\n'
+        if errors != '':
+                print('#### Errors: ####')
+                print(errors)
+                cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
     except:
-        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
-    if errors != '':
-        cmds.warning('Not all references were imported. Open the script editor for more information.')
-        print(('#' * 50) + '\n')
-        print(errors)
-        print('#' * 50)
-        
-
-def gtu_remove_references():
-    ''' Removes all references ''' 
-    try:
-        errors = ''
-        refs = cmds.ls(rf=True)
-        for i in refs:
+        pass
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    
+    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(unlocked_counter) + ' </span>'
+    is_plural = 'objects had their'
+    if unlocked_counter == 1:
+        is_plural = 'object had its'
+    message += is_plural + ' default channels unlocked.'
+    
+    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    
+def gtu_unhide_default_channels():
+    ''' Unhides Translate, Rotate, Scale for the selected objects '''  
+    function_name = 'GTU Unhide Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
+    selection = cmds.ls(selection=True, long=True) 
+    unlocked_counter = 0
+    try:   
+        for obj in selection:
             try:
-                r_file = cmds.referenceQuery(i, f=True)
-                cmds.file(r_file, removeReference=True)
+                cmds.setAttr(obj + '.translateX', keyable=True)
+                cmds.setAttr(obj + '.translateY', keyable=True)
+                cmds.setAttr(obj + '.translateZ', keyable=True)
+                cmds.setAttr(obj + '.rotateX', keyable=True)
+                cmds.setAttr(obj + '.rotateY', keyable=True)
+                cmds.setAttr(obj + '.rotateZ', keyable=True)
+                cmds.setAttr(obj + '.scaleX', keyable=True)
+                cmds.setAttr(obj + '.scaleY', keyable=True)
+                cmds.setAttr(obj + '.scaleZ', keyable=True)
+                cmds.setAttr(obj + '.v', keyable=True)
+                unlocked_counter += 1
             except Exception as e:
-                errors += str(e) + '(' + r_file + ')\n'
+                errors += str(e) + '\n'
+        if errors != '':
+                print('#### Errors: ####')
+                print(errors)
+                cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
     except:
-        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
-    if errors != '':
-        cmds.warning('Not all references were removed. Open the script editor for more information.')
-        print(('#' * 50) + '\n')
-        print(errors)
-        print('#' * 50)
+        pass
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    
+    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(unlocked_counter) + ' </span>'
+    is_plural = 'objects had their'
+    if unlocked_counter == 1:
+        is_plural = 'object had its'
+    message += is_plural + ' default channels made visible.'
+    
+    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
 def gtu_uniform_lra_toggle():
@@ -192,190 +239,47 @@ def gtu_uniform_lra_toggle():
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-
-def gtu_combine_curves():
-    ''' 
-    Moves the shape objects of all selected curves under a single group (combining them) 
-    '''
-    errors = ''
+        
+        
+def gtu_import_references():
+    ''' Imports all references ''' 
     try:
-        function_name = 'GTU Combine Curves'
-        cmds.undoInfo(openChunk=True, chunkName=function_name)
-        selection = cmds.ls(sl = True, absoluteName=True)
-        valid_selection = True
-        acceptable_types = ['nurbsCurve','bezierCurve']
-        bezier_in_selection = []
-    
-        for obj in selection:
-            shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
-            for shape in shapes:
-                if cmds.objectType(shape) == 'bezierCurve':
-                    bezier_in_selection.append(obj)
-                if cmds.objectType(shape) not in acceptable_types:
-                    valid_selection = False
-                    cmds.warning('Make sure you selected only curves.')
-            
-            
-        if valid_selection and len(selection) < 2:
-            cmds.warning('You need to select at least two curves.')
-            valid_selection = False
-            
-            
-        if len(bezier_in_selection) > 0 and valid_selection:
-            user_input = cmds.confirmDialog( title='Bezier curve detected!',\
-                                message='A bezier curve was found in your selection.\nWould you like to convert Bezier to NURBS before combining?',\
-                                button=['Yes','No'],\
-                                defaultButton='Yes',\
-                                cancelButton='No',\
-                                dismissString='No',\
-                                icon="warning" )
-            if user_input == 'Yes':
-                    for obj in bezier_in_selection:
-                            cmds.bezierCurveToNurbs()
-   
-        if valid_selection:
-            shapes = cmds.listRelatives(shapes=True, fullPath=True)
-            for obj in range(len(selection)):
-                cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
-
-            group = cmds.group(empty=True, world=True, name=selection[0])
-            cmds.select(shapes[0])
-            for obj in range(1, (len(shapes))):
-                cmds.select(shapes[obj], add=True)
-                
-            cmds.select(group, add=True) 
-            cmds.parent(relative=True, shape=True)
-            cmds.delete(selection)   
-         
-    except Exception as e:
-        errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        errors = ''
+        refs = cmds.ls(rf=True)
+        for i in refs:
+            try:
+                r_file = cmds.referenceQuery(i, f=True)
+                cmds.file(r_file, importReference=True)
+            except Exception as e:
+                errors += str(e) + '(' + r_file + ')\n'
+    except:
+        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
-        print('######## Errors: ########')
+        cmds.warning('Not all references were imported. Open the script editor for more information.')
+        print(('#' * 50) + '\n')
         print(errors)
-
-def gtu_separate_curves():
-    ''' 
-    Moves the shapes instead of a curve to individual transforms (separating curves) 
-    '''
-    errors = ''
-    acceptable_types = ['nurbsCurve','bezierCurve']
-    def get_short_name(obj):
-        '''
-        Get the name of the objects without its path (Maya returns full path if name is not unique)
-
-                Parameters:
-                        obj (string) - object to extract short name
-        '''
-        if obj == '':
-            return ''
-        split_path = obj.split('|')
-        if len(split_path) >= 1:
-            short_name = split_path[len(split_path)-1]
-        return short_name
+        print('#' * 50)
         
+
+def gtu_remove_references():
+    ''' Removes all references ''' 
     try:
-        function_name = 'GTU Separate Curves'
-        cmds.undoInfo(openChunk=True, chunkName=function_name)
-        selection = cmds.ls(sl = True)
-        valid_selection = True
-        
-        curve_shapes = []
-        parent_transforms = []
-        
-        if len(selection) < 1:
-            valid_selection = False
-            cmds.warning('You need to select at least one curve.')
-            
-        if valid_selection:
-            for obj in selection:
-                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
-                for shape in shapes:
-                    if cmds.objectType(shape) in acceptable_types:
-                        curve_shapes.append(shape)
-            
-            if len(curve_shapes) == 0:
-                cmds.warning('You need to select at least one curve.')
-            elif len(curve_shapes) > 1:
-                for obj in curve_shapes:
-                    parent = cmds.listRelatives(obj, parent=True) or []
-                    for par in parent:
-                        if par not in parent_transforms:
-                            parent_transforms.append(par)
-                        cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
-                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape',''))
-                    cmds.parent(obj, group, relative=True, shape=True)
-            else:
-                cmds.warning('The selected curve contains only one shape.')
-                
-            for obj in parent_transforms:
-                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
-                if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
-                    cmds.delete(obj)
-
-
-    except Exception as e:
-        errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        errors = ''
+        refs = cmds.ls(rf=True)
+        for i in refs:
+            try:
+                r_file = cmds.referenceQuery(i, f=True)
+                cmds.file(r_file, removeReference=True)
+            except Exception as e:
+                errors += str(e) + '(' + r_file + ')\n'
+    except:
+        cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
-        print('######## Errors: ########')
+        cmds.warning('Not all references were removed. Open the script editor for more information.')
+        print(('#' * 50) + '\n')
         print(errors)
+        print('#' * 50)
 
-
-def gtu_convert_bif_to_mesh():
-    ''' 
-    Converts Bifrost geometry to Maya geometry
-    '''
-    errors = ''
-    try:
-        function_name = 'GTU Convert Bif to Mesh'
-        cmds.undoInfo(openChunk=True, chunkName=function_name)
-        valid_selection = True
-        
-        selection = cmds.ls(selection=True)
-        bif_objects = []
-
-        
-        if len(selection) < 1:
-            valid_selection = False
-            cmds.warning('You need to select at least one bif object.')
-            
-        if valid_selection:
-            for obj in selection:
-                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
-                for shape in shapes:
-                    if cmds.objectType(shape) == 'bifShape':
-                        bif_objects.append(shape)
-        
-            for bif in bif_objects:
-                parent = cmds.listRelatives(bif, parent=True) or []
-                for par in parent:
-                    source_mesh = cmds.listConnections(par + '.inputSurface', source=True, plugs=True) or []
-                    for sm in source_mesh:
-                        conversion_node = cmds.createNode("bifrostGeoToMaya")
-                        cmds.connectAttr(sm, conversion_node + '.bifrostGeo' )
-                        mesh_node = cmds.createNode("mesh")
-                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
-                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
-                        cmds.rename(mesh_transform[0], 'bifToGeo1')
-                        try:
-                            cmds.hyperShade( assign='lambert1')
-                        except:
-                            pass
-            
-    except Exception as e:
-        errors += str(e) + '\n'
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != '':
-        cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
-        print('######## Errors: ########')
-        print(errors)
 
 
 ''' ____________________________ Material Functions ____________________________'''
@@ -397,6 +301,8 @@ def gtu_paste_material():
         cmds.polyClipboard( paste=True, shader=True )
     except:
         cmds.warning('Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
+
+
 
 ''' ____________________________ Layout Functions ____________________________'''
 
@@ -708,6 +614,193 @@ def gtu_delete_nucleus_nodes():
             
 ''' ____________________________ External Functions ____________________________'''   
 
+
+def gtu_combine_curves():
+    ''' 
+    Moves the shape objects of all selected curves under a single group (combining them) 
+    '''
+    errors = ''
+    try:
+        function_name = 'GTU Combine Curves'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        selection = cmds.ls(sl = True, absoluteName=True)
+        valid_selection = True
+        acceptable_types = ['nurbsCurve','bezierCurve']
+        bezier_in_selection = []
+    
+        for obj in selection:
+            shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+            for shape in shapes:
+                if cmds.objectType(shape) == 'bezierCurve':
+                    bezier_in_selection.append(obj)
+                if cmds.objectType(shape) not in acceptable_types:
+                    valid_selection = False
+                    cmds.warning('Make sure you selected only curves.')
+            
+            
+        if valid_selection and len(selection) < 2:
+            cmds.warning('You need to select at least two curves.')
+            valid_selection = False
+            
+            
+        if len(bezier_in_selection) > 0 and valid_selection:
+            user_input = cmds.confirmDialog( title='Bezier curve detected!',\
+                                message='A bezier curve was found in your selection.\nWould you like to convert Bezier to NURBS before combining?',\
+                                button=['Yes','No'],\
+                                defaultButton='Yes',\
+                                cancelButton='No',\
+                                dismissString='No',\
+                                icon="warning" )
+            if user_input == 'Yes':
+                    for obj in bezier_in_selection:
+                            cmds.bezierCurveToNurbs()
+   
+        if valid_selection:
+            shapes = cmds.listRelatives(shapes=True, fullPath=True)
+            for obj in range(len(selection)):
+                cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
+
+            group = cmds.group(empty=True, world=True, name=selection[0])
+            cmds.select(shapes[0])
+            for obj in range(1, (len(shapes))):
+                cmds.select(shapes[obj], add=True)
+                
+            cmds.select(group, add=True) 
+            cmds.parent(relative=True, shape=True)
+            cmds.delete(selection)   
+         
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+
+def gtu_separate_curves():
+    ''' 
+    Moves the shapes instead of a curve to individual transforms (separating curves) 
+    '''
+    errors = ''
+    acceptable_types = ['nurbsCurve','bezierCurve']
+    def get_short_name(obj):
+        '''
+        Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+                Parameters:
+                        obj (string) - object to extract short name
+        '''
+        if obj == '':
+            return ''
+        split_path = obj.split('|')
+        if len(split_path) >= 1:
+            short_name = split_path[len(split_path)-1]
+        return short_name
+        
+    try:
+        function_name = 'GTU Separate Curves'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        selection = cmds.ls(sl = True)
+        valid_selection = True
+        
+        curve_shapes = []
+        parent_transforms = []
+        
+        if len(selection) < 1:
+            valid_selection = False
+            cmds.warning('You need to select at least one curve.')
+            
+        if valid_selection:
+            for obj in selection:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    if cmds.objectType(shape) in acceptable_types:
+                        curve_shapes.append(shape)
+            
+            if len(curve_shapes) == 0:
+                cmds.warning('You need to select at least one curve.')
+            elif len(curve_shapes) > 1:
+                for obj in curve_shapes:
+                    parent = cmds.listRelatives(obj, parent=True) or []
+                    for par in parent:
+                        if par not in parent_transforms:
+                            parent_transforms.append(par)
+                        cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
+                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape',''))
+                    cmds.parent(obj, group, relative=True, shape=True)
+            else:
+                cmds.warning('The selected curve contains only one shape.')
+                
+            for obj in parent_transforms:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
+                    cmds.delete(obj)
+
+
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+
+
+def gtu_convert_bif_to_mesh():
+    ''' 
+    Converts Bifrost geometry to Maya geometry
+    '''
+    errors = ''
+    try:
+        function_name = 'GTU Convert Bif to Mesh'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        valid_selection = True
+        
+        selection = cmds.ls(selection=True)
+        bif_objects = []
+
+        
+        if len(selection) < 1:
+            valid_selection = False
+            cmds.warning('You need to select at least one bif object.')
+            
+        if valid_selection:
+            for obj in selection:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    if cmds.objectType(shape) == 'bifShape':
+                        bif_objects.append(shape)
+        
+            for bif in bif_objects:
+                parent = cmds.listRelatives(bif, parent=True) or []
+                for par in parent:
+                    source_mesh = cmds.listConnections(par + '.inputSurface', source=True, plugs=True) or []
+                    for sm in source_mesh:
+                        conversion_node = cmds.createNode("bifrostGeoToMaya")
+                        cmds.connectAttr(sm, conversion_node + '.bifrostGeo' )
+                        mesh_node = cmds.createNode("mesh")
+                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
+                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
+                        cmds.rename(mesh_transform[0], 'bifToGeo1')
+                        try:
+                            cmds.hyperShade( assign='lambert1')
+                        except:
+                            pass
+            
+    except Exception as e:
+        errors += str(e) + '\n'
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
+        print('######## Errors: ########')
+        print(errors)
+
+
+''' ____________________________ About Window ____________________________''' 
+
 def gtu_build_gui_about_gt_tools():
     ''' Creates "About" window for the GT Tools menu ''' 
      
@@ -732,7 +825,7 @@ def gtu_build_gui_about_gt_tools():
     cmds.separator(h=12, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text("GT Tools", bgc=[0,.5,0],  fn="boldLabelFont", align="center")
+    cmds.text("GT Tools", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
         
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
@@ -781,15 +874,14 @@ def gtu_build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
             
             
-''' ____________________________ Testing ____________________________'''   
+''' ____________________________ Functions ____________________________'''   
 #gtu_reload_file()
 #gtu_open_resource_browser()
+#gtu_unlock_default_channels()
+#gtu_unhide_default_channels()
 #gtu_import_references()
 #gtu_remove_references()
 #gtu_uniform_lra_toggle()
-#gtu_combine_curves()
-#gtu_separate_curves()
-#gtu_convert_bif_to_mesh()
 
 #gtu_copy_material()
 #gtu_paste_material()
@@ -806,5 +898,10 @@ def gtu_build_gui_about_gt_tools():
 #gtu_delete_display_layers()
 #gtu_delete_keyframes()
 #gtu_delete_nucleus_nodes()
+
+# --- Outside Utilities ---
+#gtu_combine_curves()
+#gtu_separate_curves()
+#gtu_convert_bif_to_mesh()
 
 #gtu_build_gui_about_gt_tools()
