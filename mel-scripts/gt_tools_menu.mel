@@ -101,10 +101,14 @@
 //   Added Unlock Default Channels
 //   Added Unhide Default Channels
 //
+//   1.6.1
+//   Added a separator between utilities related to references
+//   Added a silent auto update checker
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.6.0";
+global string $scriptVersion = "1.6.1";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -114,10 +118,24 @@ if (`optionVar -exists "gt_tools_version"` && $scriptVersion != $installedVersio
     catchQuiet(python("import gt_generate_icons"));
     catchQuiet(python("gt_generate_icons.gt_generate_icons()"));
     }
-
+    
 // Set optionVar to the current version
 optionVar -sv "gt_tools_version" $scriptVersion;
-        
+
+// Check if auto update is active and silently check it
+int  $silentlyAutoCheckUpdate =  `optionVar -q "gt_check_for_updates_auto_active"`;
+if (`optionVar -exists "gt_check_for_updates_auto_active"` && $silentlyAutoCheckUpdate != 0)
+    {
+    catchQuiet(python("import gt_check_for_updates"));
+    catchQuiet(python("gt_check_for_updates.silent_update_check()"));
+    }
+    
+if (`optionVar -exists "gt_check_for_updates_auto_active"` == 0)
+    {
+    optionVar -sv "gt_check_for_updates_auto_active" 1; // First time running
+    }
+    
+    
 // Removes existing menu in case it exists
 if (`menu -q -exists gtToolsMenu`)
     {
@@ -125,7 +143,7 @@ if (`menu -q -exists gtToolsMenu`)
     }
 else
     {
-	setParent $gMainWindow ;
+    setParent $gMainWindow ;
     menu -l "GT Tools" -p MayaWindow -to true gtToolsMenu ;
     }
 
@@ -133,7 +151,7 @@ setParent -menu gtToolsMenu ;
 
 // -----------------------------------------TOOLS------------------------------------
 menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
-	menuItem 
+    menuItem 
     -l ("Renamer") 
     -c ("python(\"import gt_renamer\\nreload(gt_renamer)\\ngt_renamer.build_gui_renamer()\");") 
     -ann ("Script for renaming multiple objects.") 
@@ -157,22 +175,22 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -ann ("A way to quickly change colors of objects and objects names (outliner).") 
     -image "render_swColorPerVertex.png" ;
     
-	menuItem 
+    menuItem 
     -l ("Transfer Transforms") 
     -c ("python(\"import gt_transfer_transforms\\nreload(gt_transfer_transforms)\\ngt_transfer_transforms.build_gui_transfer_transforms()\");") 
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
     -image "transform.svg" ;
-	
-	menuItem 
+    
+    menuItem 
     -l ("Render Checklist") 
     -c ("python(\"import gt_render_checklist\\nreload(gt_render_checklist)\\ngt_render_checklist.build_gui_gt_render_checklist()\");") 
     -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
     -image "checkboxOn.png" ;
-	
+    
     
     setParent -menu ".." ;
-	
-	
+    
+    
 // -----------------------------------------CURVES------------------------------------
 menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
 
@@ -181,8 +199,8 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     -c ("python(\"import gt_generate_python_curve\\nreload(gt_generate_python_curve)\\ngt_generate_python_curve.build_gui_py_curve()\");") 
     -ann ("Generates the python code necessary to create a selected curve.") 
     -image "pythonFamily.png" ;
-	
-	menuItem 
+    
+    menuItem 
     -l ("Generate Text Curve") 
     -c ("python(\"import gt_generate_text_curve\\nreload(gt_generate_text_curve)\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
@@ -216,16 +234,16 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     -ann ("A reminder.") 
     -image "blinn.svg" ;
     
-    	menuItem 
+        menuItem 
     -l ("Convert Bif to Mesh")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
     -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
     -image "nurbsToPolygons.png";
 
-	
+    
     // Material
     menuItem -divider true ;
-	
+    
     menuItem 
     -l ("Copy Material")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_copy_material()\");") 
@@ -249,7 +267,7 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"import gt_connect_attributes\\nreload(gt_connect_attributes)\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
     -ann ("Automated solution for connecting multiple attributes.") 
     -image "hsRearrange.png";
-	
+    
     menuItem 
     -l ("Mirror Cluster Tool") 
     -c ("python(\"import gt_mirror_cluster_tool\\nreload(gt_mirror_cluster_tool)\\ngt_mirror_cluster_tool.build_gui_mirror_cluster_tool()\");") 
@@ -261,21 +279,21 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"import gt_generate_inbetween\\nreload(gt_generate_inbetween)\\ngt_generate_inbetween.build_gui_generate_inbetween()\");") 
     -ann ("Generates inbetween transforms that can be used as layers for rigging/animation.") 
     -image "hsGraphMaterial.png" ;
-	
+    
     menuItem 
     -l ("Create Auto FK") 
     -c ("python(\"import gt_create_auto_fk\\nreload(gt_create_auto_fk)\\ngt_create_auto_fk.build_gui_auto_fk()\");") 
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
-	
+    
     menuItem 
     -l ("Create IK Leg") 
     -c ("python(\"import gt_create_ik_leg\\nreload(gt_create_ik_leg)\\ngt_create_ik_leg.build_gui_simple_ik_leg()\");") 
     -ann ("Automated solution for create a simple IK leg.") 
     -image "kinHandle.png" ;
-	
-	
-	menuItem 
+    
+    
+    menuItem 
     -l ("Make Stretchy Leg") 
     -c ("python(\"import gt_make_stretchy_leg\\nreload(gt_make_stretchy_leg)\\ngt_make_stretchy_leg.build_gui_make_stretchy_legs()\");") 
     -ann ("Automated solution for creating a simple stretchy system for an IK leg.") 
@@ -319,6 +337,9 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
     
+    // References
+    menuItem -divider true ;
+    
     menuItem 
     -l ("Import References")
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_import_references()\");") 
@@ -331,7 +352,7 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -ann ("Removes all references.") 
     -image "referenceProxy.png";
     
-	
+    
     // Pivot
     menuItem -divider true ;
     
