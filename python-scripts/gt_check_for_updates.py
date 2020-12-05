@@ -185,7 +185,7 @@ def build_gui_gt_check_for_updates():
                     refresh_only (bool): Is it only refreshing or toggling?
 
         '''
-        check_interval = gt_check_for_updates.get('def_auto_updater_status')
+        check_interval = gt_check_for_updates.get('def_auto_updater_interval')
         persistent_check_interval_exists = cmds.optionVar(exists=('gt_check_for_updates_interval_days'))
         if persistent_check_interval_exists:
             check_interval = int(cmds.optionVar(q=("gt_check_for_updates_interval_days")))
@@ -395,7 +395,7 @@ def silent_update_check():
     if is_active:
         def compare_current_latest():
             # Get Interval
-            check_interval = 0
+            check_interval = gt_check_for_updates.get('def_auto_updater_interval')
             persistent_check_interval_exists = cmds.optionVar(exists=('gt_check_for_updates_interval_days'))
             if persistent_check_interval_exists:
                 check_interval = int(cmds.optionVar(q=("gt_check_for_updates_interval_days")))
