@@ -19,6 +19,30 @@
  Added an auto check for updates so user's don't forget to update
  Added threading support (so the http request doesn't slow things down)
 
+
+    Debugging Lines:
+        # GT Tools Version Query/Overwrite
+        cmds.optionVar(q=("gt_tools_version"))
+        cmds.optionVar( sv=('gt_tools_version', str("1.2.3")))
+
+        # Remove optionVars
+        cmds.optionVar( remove='gt_check_for_updates_last_date' )
+        cmds.optionVar( remove='gt_check_for_updates_auto_active' )
+        cmds.optionVar( remove='gt_check_for_updates_interval_days' )
+
+        # Set optionVars
+        date_time_str = '2020-01-01 17:08:00'
+        cmds.optionVar( sv=('gt_check_for_updates_last_date', str(date_time_str)))
+        is_active = True
+        cmds.optionVar( iv=('gt_check_for_updates_auto_active', int(is_active)))
+        how_often_days = 15
+        cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(how_often_days)))
+        
+        # Query optionVars
+        cmds.optionVar(q=("gt_check_for_updates_last_date"))
+        cmds.optionVar(q=("gt_check_for_updates_auto_active"))
+        cmds.optionVar(q=("gt_check_for_updates_interval_days"))
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -51,7 +75,7 @@ gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/re
 gt_check_for_updates = { 'current_version' : "v0.0.0",
                          'latest_release' : "v0.0.0",
                          'def_auto_updater_status' : True,
-                         'def_auto_updater_interval' : 30 } 
+                         'def_auto_updater_interval' : 15 } 
 
 
 def build_gui_gt_check_for_updates():
@@ -190,14 +214,18 @@ def build_gui_gt_check_for_updates():
         if persistent_check_interval_exists:
             check_interval = int(cmds.optionVar(q=("gt_check_for_updates_interval_days")))
                   
-        interval_list = {'half_month' : 15,
+        interval_list = {'five_days' : 5,
+                         'half_month' : 15,
                          'one_month' : 30,
                          'three_months' : 91,
                          'six_months': 182,
                          'one_year': 365}
                 
         if not refresh_only:
-            if check_interval == interval_list.get('half_month'):
+            if check_interval == interval_list.get('five_days'):
+                check_interval = interval_list.get('half_month')
+                cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(check_interval)))
+            elif check_interval == interval_list.get('half_month'):
                 check_interval = interval_list.get('one_month')
                 cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(check_interval)))
             elif check_interval == interval_list.get('one_month'):
@@ -210,11 +238,11 @@ def build_gui_gt_check_for_updates():
                 check_interval = interval_list.get('one_year')
                 cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(check_interval)))
             elif check_interval == interval_list.get('one_year'):
-                check_interval = interval_list.get('half_month') # Restart
+                check_interval = interval_list.get('five_days') # Restart
                 cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(check_interval)))
                 
         new_interval = ''
-        if check_interval == interval_list.get('half_month') or check_interval == interval_list.get('one_month'):
+        if check_interval == interval_list.get('half_month') or check_interval == interval_list.get('one_month') or check_interval == interval_list.get('five_days'):
             new_interval = str(check_interval) + ' days'
         elif check_interval == interval_list.get('three_months'):
             new_interval = '3 months'
