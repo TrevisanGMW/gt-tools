@@ -45,6 +45,7 @@ Hopefully these scripts are helpful to you as they are to me.
 
 
 <h1> Organization </h1>
+<p><code>docs</code>: contains documentation about the scripts</p>
 <p><code>mel-scripts</code>: contains scripts written in MEL</p>
 <p><code>python-scripts</code>: contains scripts written in Python</p>
 
