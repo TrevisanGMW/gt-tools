@@ -200,7 +200,7 @@ def build_gui_help_py_curve():
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='"Generate" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to create the curve', align="left")
-    cmds.text(l='inside the "Output PYthon Curve" box.', align="left")
+    cmds.text(l='inside the "Output Python Curve" box.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='Run Code:', align="left", fn="boldLabelFont")
     cmds.text(l='Attempts to run the code (or anything written) inside ', align="left")
