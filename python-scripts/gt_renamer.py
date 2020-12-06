@@ -541,7 +541,7 @@ def build_gui_help_renamer():
     
     cmds.text(l='Modes:', align="center", fn="tinyBoldLabelFont")
     cmds.text(l='- Selected: uses selected objects when renaming.', align="left", font='smallPlainLabelFont')
-    cmds.text(l='- Hierarchy: uses hierarchy when renaming.,', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- Hierarchy: uses hierarchy when renaming.', align="left", font='smallPlainLabelFont')
     cmds.text(l='- All: uses everything in the scene (even hidden nodes)', align="left", font='smallPlainLabelFont')
     
     cmds.separator(h=10, style='none') # Empty Space
@@ -549,10 +549,10 @@ def build_gui_help_renamer():
     cmds.text(l='Other Tools:', align="center", fn="tinyBoldLabelFont")
     cmds.text(l='- Remove First Letter: removes the first letter of a name.', align="left", font='smallPlainLabelFont')
     cmds.text(l='If the next character is a number, it will be deleted.', align="left", font='smallPlainLabelFont')
-    cmds.text(l='- Remove Last Letter: removes the last letter of a name,', align="left", font='smallPlainLabelFont')
-    cmds.text(l='- U-Case: makes all letters uppercase', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- Remove Last Letter: removes the last letter of a name.', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- U-Case: makes all letters uppercase.', align="left", font='smallPlainLabelFont')
     cmds.text(l='- Capitalize: makes the 1st letter of every word uppercase.', align="left", font='smallPlainLabelFont')
-    cmds.text(l='- L-Case: makes all letters lowercase', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- L-Case: makes all letters lowercase.', align="left", font='smallPlainLabelFont')
     
     cmds.separator(h=10, style='none') # Empty Space
     
