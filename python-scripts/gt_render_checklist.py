@@ -19,7 +19,11 @@
 
  1.2 - 2020-11-15
     Changed a few UI elements and colors
-    
+
+ 1.3 - 2020-12-05
+    Fixed issue where checklist wouldn't update without bifrost loaded.
+    Added support for non-unique objects to non-manifold checks
+    Fixed typos in the help text
 
  Todo:
     Add checks for xgen
@@ -46,7 +50,7 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.2"
+script_version = "1.3"
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
@@ -417,7 +421,7 @@ def build_gui_help_gt_render_checklist():
     cmds.text(l='- Pass color, no issues were found.', align="left", fn="smallPlainLabelFont") 
     
     cmds.button(l='', h=14, bgc=warning_color, c=lambda args: print_message('Warning color, some possible issues were found', as_heads_up_message=True))
-    cmds.text(l='- Warning color, some possible issues were found', align="left", fn="smallPlainLabelFont") 
+    cmds.text(l='- Warning color, some possible issues were found.', align="left", fn="smallPlainLabelFont") 
     
     cmds.button(l='', h=14, bgc=error_color, c=lambda args: print_message('Error color, means that some possible issues were found', as_heads_up_message=True))
     cmds.text(l='- Error color, issues were found.', align="left", fn="smallPlainLabelFont") 
@@ -426,7 +430,7 @@ def build_gui_help_gt_render_checklist():
     cmds.text(l='- Exception color, an issue caused the check to fail.', align="left", fn="smallPlainLabelFont") 
     
     cmds.button(l='?', h=14, bgc=def_color, c=lambda args: print_message('Question mask, click on button for more help. It often gives you extra options regarding the found issues.', as_heads_up_message=True))
-    cmds.text(l='- Question mask, click on button for more help.', align="left", fn="smallPlainLabelFont") 
+    cmds.text(l='- Question mark, click on button for more help.', align="left", fn="smallPlainLabelFont") 
     
     cmds.separator(h=15, style='none') # Empty Space
 
@@ -2186,16 +2190,24 @@ def check_other_network_paths():
             
     node_types = cmds.ls(nodeTypes=True)
     
-    
     # Count Nodes Incorrect  with Incorrect Paths
 
     # General Checks
     check_paths('audio', 'filename')
     check_paths('cacheFile', 'cachePath')
-    check_paths('AlembicNode', 'abc_File')
-    check_paths('BifMeshImportNode', 'bifMeshDirectory')
-    check_paths('gpuCache', 'cacheFileName')
     
+    # Alembic Cache:
+    if 'AlembicNode' in node_types:
+        check_paths('AlembicNode', 'abc_File')
+    
+    # GPU Cache:
+    if 'gpuCache' in node_types:
+        check_paths('gpuCache', 'cacheFileName')
+    
+    # BIF Cache:
+    if 'BifMeshImportNode' in node_types:
+        check_paths('BifMeshImportNode', 'bifMeshDirectory')
+   
     # MASH Checks
     if 'MASH_Audio' in node_types:
         check_paths('MASH_Audio', 'filename')
@@ -2225,8 +2237,6 @@ def check_other_network_paths():
         # Multiple Files
         check_paths('SimulationCacheProxy', 'characterFiles', accepts_empty=True, checks_multiple_paths=True)
         check_paths('CrowdManagerNode', 'characterFiles', accepts_empty=True, checks_multiple_paths=True)
-    
-
 
     if len(incorrect_path_nodes) == 0:
         cmds.button("status_" + item_id, e=True, bgc=pass_color, l= '', c=lambda args: print_message('All file nodes currently sourced from the network.')) 
