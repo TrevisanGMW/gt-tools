@@ -23,6 +23,37 @@
   <li><a href="#-gt-transfer-transforms-">GT Transfer Transforms</a></li>
   <li><a href="#-gt-render-checklist-">GT Render Checklist</a></li>
 </ul>
+<h3><b>Curves:</b></h3>
+<ul>
+  <li><a href="#-gt-generate-python-curve-">GT Generate Python Curve</a></li>
+  <li><a href="#-gt-generate-text-curve-">GT Generate Text Curve</a></li>
+</ul>
+<h3><b>Modeling:</b></h3>
+<ul>
+  <li><a href="#-gt-sphere-types-">GT Sphere Types</a></li>
+</ul>
+
+<div>
+<h3><b>Rigging:</b></h3>
+<ul>
+  <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
+  <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
+  <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
+  <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
+  <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
+  <li><a href="#-gt-make-stretchy-legs-">GT Make Stretchy Leg</a></li>
+</ul>
+<h3><b>Utilities:</b></h3>
+<ul>
+  <li><a href="#-gt-utilities-">GT Utilities</a></li>
+</ul>
+<h3><b>Miscellaneous:</b></h3>
+<ul>
+  <li><a href="#-gt-startup-booster-">GT Startup Booster</a></li>
+  <li><a href="#-gt-maya-to-discord-">GT Maya to Discord</a></li>
+</ul>
+</div>
+
 <br>
 </div>
 
@@ -42,11 +73,12 @@
 
 <p><b>Help > About: </b><br>This option opens a window showing basic information about GT Tools.</p>
 
-<p><b>Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts. (Good for when updating, so you don't need to restart Maya)</p>
+<p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.
+<br>(Good for when updating, so you don't need to restart Maya)</p>
 
-<p><b>Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
+<p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
 
-<p><b>Installed Version: </b>What version is currently installed.</p>
+<p><b>Help > Installed Version: </b>What version is currently installed.</p>
 <br>
 </div>
 
@@ -157,14 +189,14 @@ The icon on the left describes the validity of the path. If the file or director
 
 
 <img src="./media/gt_color_manager.jpg" align="right"
-     alt="GT Color Manager GUI"><br>
+     alt="GT Color Manager GUI">
 
 <p>Script for quickly coloring elements in Maya.<br>Feedback is given through inView messages at the left bottom corner.</p>
-
+<br>
 <p><b>Modes: </b><br>- Drawing Override: Utilize "Object > Object Display > Drawing Overrides" to set color.<br>- Wireframe Color:  Utilize "Display > Wireframe Color..." to set color.</p>
-
+<br>
 <p><b>Target: </b><br>- Transform:  Colorize actual selection. Usually a "transform"<br>- Wireframe Color:  Colorize the shape node inside the transform</p>
-<br><br>
+<br>
 
 <img src="./media/gt_color_manager_sample_b.gif" align="right"
 	 alt="GT Path Manager Sample B">
@@ -188,7 +220,7 @@ The icon on the left describes the validity of the path. If the file or director
 <h1> GT Transfer Transforms </h1>
 
 <img src="./media/gt_transfer_transforms.jpg" align="right"
-     alt="GT Transfer Transforms GUI"><br>
+     alt="GT Transfer Transforms GUI">
 
 <p>Script for transfering translate, rotate or scale data from one object to antoher.</p>
 
@@ -215,7 +247,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <h1> GT Render Checklist </h1>
 
 <img src="./media/gt_render_checklist.gif" align="right"
-     alt="GT Render Checklist GUI"><br>
+     alt="GT Render Checklist GUI">
 
 <p>This script performs a series of checks to detect common issues that are often accidently ignored/unnoticed.</p>
 
@@ -310,9 +342,9 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <h1> GT Generate Python Curve </h1>
 
 <img src="./media/gt_generate_python_curve.jpg" align="right"
-     alt="GT Generate Python Curve GUI"><br>
+     alt="GT Generate Python Curve GUI">
 
-<p>This script generates the Python code necessary to create a selected curve. Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
+<p>This script generates the Python code necessary to create a selected curve.<br>Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
 
 <p><b>How to use it:</b>
 <br>1. Make sure you delete the curve's history before generating the code.
@@ -336,7 +368,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <h1> GT Generate Text Curve </h1>
 
 <img src="./media/gt_generate_text_curve.jpg" align="right"
-     alt="GT Generate Text Curve GUI"><br>
+     alt="GT Generate Text Curve GUI">
 
 <p>This script creates merged curves containing the input text from the text field. <br>(All shapes go under one transform)</p>
 
@@ -352,5 +384,407 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>
 
 </div>
+
+<!-- GT Sphere Types -->
+<div>
+<h1> GT Sphere Types </h1>
+
+<img src="./media/gt_create_sphere_types.jpg" align="right"
+     alt="GT Sphere Types GUI"><br>
+
+<p>Quite simple script used as a reminder that the standard sphere is not the only sphere option.</p>
+
+<p><b>Standard Sphere: </b><br>Creates the standard Maya sphere. "Create > Polygon Primitives > Sphere"</p>
+<p><b>Standard Sphere: </b><br>Creates a sphere using a cube. "Create > Polygon Primitives > Cube" then "Mesh > Smooth (2x)"</p>
+<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Icosahedron, Quads, 1, 1, 1)</p>
+<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Octaheadron, Quads, 2, 1, 1)</p>
+
+<br>
+
+</div>
+
+<!-- GT Connect Attributes -->
+<div>
+<h1> GT Connect Attributes </h1>
+
+<img src="./media/gt_connect_attributes.jpg" align="right"
+     alt="GT Connect Attributes GUI">
+
+<p>This script automates the creation of connections between attributes from source (output) and target (input).</p>
+
+<p><b>Use Selection for Source and Target (s): </b>
+<br>When this option is activated, you no longer need to load sources/target (s).
+<br>You can simply select: 1st: source, 2nd, 3rd... : target(s)</p>
+<p><b>Add Reverse Node:  </b><br>Adds a reverse node between connections.</p>
+<p><b>Disconnect: </b><br>Break connections between selected nodes.</p>
+<p><b>Force Connection (Overrides Existing): </b><br>Connects nodes even if they already have a connection.</p>
+
+<p><b>Add Custom Node Between Connection: </b>
+<br>Allows user to create a node between connections. (Excellent for controlling dataflow.)
+<br>-Custom Node: Which node to create
+<br>-Add Input Node: Creates one master control to update all in betweens.</p>
+
+<p><b>Load Source/Target Objects: </b>
+<br>Use these buttons to load the objects you want to use as source and target (s).</p>
+
+<p><b>Source Attribute and Target Attributes: </b>
+<br>Name of the attribute you want to connect. <br>Requirement: Use long or short name (no nice names)</p>
+
+<p><b>List All Attributes and List Keyable Attributes: </b>
+<br>Returns a list of attributes that can be used to populate the Source and Target Attributes fields.</p>
+
+<br>
+
+</div>
+
+<!-- GT Mirror Cluster Tool -->
+<div>
+<h1> GT Mirror Cluster Tool </h1>
+
+<img src="./media/gt_mirror_cluster_tool.jpg" align="right"
+     alt="GT Mirror Cluster Tool GUI">
+
+<p>Script for mirroring clusters on mesh objects.</p>
+
+<p><b>Step 1: </b>
+<br>Load your mesh by selecting it in the viewport or in the outliner,<br> then click on "Select Mesh".
+<br>Requirements: Must be one single mesh transform.</p>
+
+<p><b>Step 2: </b>
+<br>Load your clusterHandle by selecting it in the viewport or in the outliner,<br> then click on "Select Cluster".
+<br>Requirements: Must be one single clusterHandle.</p>
+
+<p><b>Step 3: </b>
+<br>Select your mirror axis X, Y or Z. It will always mirror on the negative direction</p>
+
+<p><b>Step 4: </b>
+<br>To save time you can automatically rename the mirrored clusters using the search and replace text fields.
+<br>For example search for "left_" and replace with "right_"</p>
+
+<br>
+
+</div>
+
+<!-- GT Generate In-Between -->
+<div>
+<h1> GT Generate In-Between </h1>
+
+<img src="./media/gt_generate_inbetween.jpg" align="right"
+     alt="GT Generate In-Between GUI">
+
+<p>This script creates a inbetween transform for the selected elements.</p>
+
+<p><b>Layer Type: </b>
+<br>This pull-down menu determines what type object will be created.</p>
+
+<p><b>Parent Type: </b>
+<br>This pull-down menu determines where the pivot point of the generated element will be extracted from.</p>
+
+<p><b>Outliner Color: </b>
+<br>Determines the outliner color of the generated element.</p>
+
+<p><b>New Transform Suffix: </b>
+<br>Determines the suffix to be added to generated transforms.</p>
+
+<br>
+
+</div>
+
+<!-- GT Create Auto FK -->
+<div>
+<h1> GT Create Auto FK </h1>
+
+<img src="./media/gt_create_auto_fk.jpg" align="right"
+     alt="GT GT Create Auto FK GUI">
+
+<p>This script generates FK controls for joints while storing their transforms in groups.
+<br>Just select the desired joints and run the script.</p>
+
+<p><b>Colorize Controls: </b>
+<br>Automatically colorize controls according to their names (prefix). It ignores uppercase/lowercase.
+<br>No Prefix = Yellow
+<br>"l_" or "left_" = Blue
+<br>"r_" or "right_" = Red</p>
+
+<p><b>Select Hierarchy:  </b>
+<br>Automatically selects the rest of the hierarchy of the selected object, thus allowing you to only select the root joint before creating controls.</p>
+
+<p><b>(Advanced) Custom Curve: </b>
+<br>You can change the curve used for the creation of the controls. Use the script "GT Generate Python Curve" to generate the code you need to enter here.</p>
+
+<p><b>Joint, Control, and Control Group Tag: </b>
+<br>Used to determine the suffix of the elements.
+<br>Joint Tag is removed from the joint name for the control.
+<br>Control Tag is added to the generated control.
+<br>Control Group Tag is added to the control group.
+<br>(The control group is the transform carrying the transforms of the joint).</p>
+
+<p><b>Ignore Joints Containing These Strings:  </b>
+<br>The script will ignore joints containing these strings. To add multiple strings use commas - ",".</p>
+
+<br>
+
+</div>
+
+
+<!-- GT Create IK Leg -->
+<div>
+<h1> GT Create IK Leg </h1>
+
+<img src="./media/gt_create_ik_leg.jpg" align="right"
+     alt="GT Create IK Leg GUI">
+
+<p>(This script is still a work in progress)<br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
+
+<p><b>Joint Tag (Suffix) and Ctrl Group Tag (Suffix): </b>
+<br>These two textfields allow you to define what suffix you used for you base skeleton joints and your control groups. 
+<br>(used when creating new names or looking for controls)
+<br>The Ctrl Group Tag is used to define the visibility of the FK system.</p>
+
+<p><b>Custom PVector Ctrl, IK Ctrl and IK Switch:  </b>
+<br>These options allow you to load an already existing control.
+<br>In case you already created curve you could simply load them and the script will use yours instead of creating a new one.</p>
+
+<p><b>Colorize Controls:  </b>
+<br>This option looks for "right_" and "left_" tags and assign colors based on the found tag.</p>
+
+<p><b>Make Stretchy Legs: </b>
+<br>This option creates measure tools to define how to strechy the leg when it goes beyong its current size.
+<br>- Term = What is being compared
+<br>- Condition = Default Size (used for scalling the rig)</p>
+
+<p><b>Use Ball Joint:  </b>
+<br>This option allows you to define whether or not to use a ball joint.</p>
+
+<p><b>Load "Content" Buttons:  </b>
+<br>These buttons allow you to load the necessary objects before running the script.</p>
+
+<br>
+
+</div>
+
+
+
+<!-- GT Make Stretchy Legs -->
+<div>
+<h1> GT Make Stretchy Legs </h1>
+
+<img src="./media/gt_make_stretchy_leg.jpg" align="right"
+     alt="GT Make Stretchy Legs GUI">
+
+<p>(This script is still a work in progress)
+<br>This script creates a simple stretchy leg setup.<br> Select your ikHandle and click on "Make Stretchy"</p>
+
+<p><b>Important: </b>
+<br>It assumes that you have a curve driving your ikHandle as a control. <br>This curve is used to determine positions and constraints.</p>
+
+<br><br>
+
+</div>
+
+
+<!-- GT Utilities -->
+<div>
+<h1> GT Utilities </h1>
+
+<img src="./media/gt_utilities.jpg" align="right"
+     alt="GT Utilities Menu">
+	 
+
+<p>GT Utilities (GTU) is a collection of smaller functions that don't necessary need or use a window/dialog.
+<br>Most of these functions can be found under "GT Tools > Utilities" but a few of them are scattered throughout other menus.</p>
+
+<p><b>Standalone use: </b>
+<br>In case you're using the standalone version of GT Utilities, you'll have to uncomment one of the functions at the bottom of the script.</p>
+
+<h3>Reload File</h3>
+<p>This utility attempts to reload the current scene.
+<br>Realoading means reopening it without attempting to save it first.
+<br>It only works if the file was saved at least once.</p>
+
+<h3>Resource Browser</h3>
+<p>Opens the resource browser, a menu that allows the used to see what images are available inside Maya and download them.</p>
+
+<h3>Unlock Default Channels</h3>
+<p>This function unlocks the translate, rotate, scale and visibility channels for the selected objects.</p>
+
+<h3>Unhide Default Channels</h3>
+<p>This function unhides/shows the translate, rotate, scale and visibility channels for the selected objects.</p>
+
+<h3>Unhide Default Channels</h3>
+<p>This function unhides/shows the translate, rotate, scale and visibility channels for the selected objects.</p>
+
+<h3>Uniform LRA Toggle</h3>
+<p>This utility makes the visibility of the local rotation axis of the selected objects uniform.<br> For example, if two out of three objects have their LRA visible, it makes all of them visible.</p>
+
+<h3>Import References</h3>
+<p>Attempts to import all loaded references.</p>
+
+<h3>Remove References</h3>
+<p>Attempts to remove all references.</p>
+
+<h3>Move Pivot to Top</h3>
+<p>Moves the pivot point of the selected objects to the top of their bounding box.</p>
+
+<h3>Move Pivot to Base</h3>
+<p>Moves the pivot point of the selected objects to the base of their bounding box.</p>
+
+<h3>Move Object to Origin</h3>
+<p>Moves the selected objects to the center of the grid (0,0,0) origin point.</p>
+
+<h3>Reset Transforms</h3>
+<p>Resets translate, rotate and scale back to zero. For example, you can select all controls of a character and reset its pose.</p>
+
+<h3>Reset Joints Display</h3>
+<p>Resets the visibility of all joints. It sets the radius of all joints to one. (Unless the channel is locked) and sets the visibility to "On". It also changes the global joint display scale (multiplier) back to one.</p>
+
+<h3>Reset "persp" Camera</h3>
+<p>Resets most of the attributes for the default "persp" camera.</p>
+
+<h3>Delete Namespaces</h3>
+<p>Merges all namespaces back to the root, essentially deleting them.</p>
+
+<h3>Delete Display Layers</h3>
+<p>Deletes all display layers.</p>
+
+<h3>Delete Nucleus Nodes</h3>
+<p>Deletes all nodes related to the nucleus system.</p>
+
+<h3>Delete Keyframes</h3>
+<p>Deletes all keyframes. (It does not affect set driven keys)</p>
+
+<img src="./media/gtu_modeling.jpg" align="right"
+     alt="GT Utilities Modeling">
+
+<h3>Convert Bif to Mesh</h3>
+<p>Converts selected Bifrost meshes into the standard Maya meshes.<br>(Bif objects are created using Bifrost Graph)</p>
+
+<h3>Copy Material</h3>
+<p>Copies a material from the selection to the clipboard to later be applied to another object.
+<br>It supports components such as faces.</p>
+
+<h3>Paste Material</h3>
+<p>Pastes a material to the selection. (Use the Copy Material function to copy it first)
+<br>It supports components such as faces.</p>
+
+<img src="./media/gtu_curves.jpg" align="right"
+     alt="GT Utilities Curves">
+	 
+<h3>Combine Curves</h3>
+<p>Moves curve shapes of the selected curves into one single transform, essentially combining them.
+<br>In case a bezier curve is found, the script gives you the option of converting them to NURBS.</p>
+
+<h3>Separate Curves</h3>
+<p>Parents every curve shape of the selection under a new transform, causing them to be separated.</p>
+	 
+	 
+<br>
+
+</div>
+
+
+<!-- GT Startup Booster -->
+<div>
+<h1> GT Startup Booster </h1>
+
+<img src="./media/gt_startup_booster.jpg" align="right"
+     alt="GT Startup Booster GUI">
+
+<p>This script helps decrease the time Maya takes to load before becoming fully functional.</p>
+
+<p><b>How It works: </b>
+<br>Not all plugins are used every time Maya is opened, but they are usually still loaded during startup. This causes the startup time to be quite slow.
+<br>This script aims to fix that, by helping you skip the heavy plugins while still having easy access to them.</p>
+
+<p>1st: Optimize.
+<br>2nd: Create Shelf Buttons.
+<br>3rd: Enjoy faster startups.</p>
+
+<p><b>Plugin List: </b>
+<br>This is a list of common plugins that are usually automatically loaded by default.
+<br>Plugin File: Name of the file used by the plugin.
+<br>Auto Load: Is this plugin automatically loading?
+<br>Installed: Is the plugin installed?
+<br>Control: General name of the plugin.</p>
+
+<p><b>"Shelf Button" and "Auto Load" Buttons: </b>
+<br>Shelf Button: Creates a Shelf Button (under the current shelf) to load the plugin and give you feedback on its current state.
+<br>Auto Load: Toggles the Auto Load function of the plugin.<br>(same as "Auto Load" in the plugin manager)</p>
+
+<p><b>Custom Shelf Button: </b>
+<br>This script couldn't account for every heavy 3rd party plug-in.This shouldn't be an issue as you can manually add any plugin.
+<br>Just manually deactivate your third party plugin by going to "Windows > Settings/Preferences > Plug-in Manager"
+<br>Then create a custom load button using the textField that says "Other Plugins"</p>
+
+<br>
+
+</div>
+
+
+<!-- GT Maya to Discord -->
+<div>
+<h1> GT Maya to Discord </h1>
+
+<img src="./media/gt_maya_to_discord.jpg" align="right"
+     alt="GT Maya to Discord GUI">
+
+<p>This script allows you to quickly send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.</p>
+
+<p><b>Webhooks: </b>
+<br>A webhook (a.k.a. web callback or HTTP push API) is a way for an app to provide other applications with real-time information.
+<br>You can use it to send messages to text channels without needing the discord application.</p>
+
+<p><b>How to get a Webhook URL: </b>
+<br>If you own a Discord server or you have the correct privileges, you can go to the settings to create a Webhook URL.</p>
+
+<p><b>To create one go to: </b>
+<br>"Discord > Server > Server Settings > Webhooks > Create Webhook"
+<br>Give your webhook a name and select what channel it will operate.
+<br>Copy the "Webhook URL" and load it in the setttings for this script.<br>
+<br>If you're just an user in the server, you'll have to ask the administrator of the server to provide you with a Webhook URL.</p>
+
+<p><b>Send Buttons: </b>
+<br>Send Message Only: Sends only the attached message.
+<br>(Use the textfield above the buttons to type your message)</p>
+
+<p><b>Send Desktop Screenshot: Sends a screenshot of your desktop. </b>
+<br>(This includes other programs and windows that are open)</p>
+
+<p><b>Send Maya Window: Sends only the main Maya window. </b>
+<br>(This ignores other windows, even within Maya)</p>
+
+<p><b>Send Viewport: Sends an image of the active viewport. </b>
+<br>(Includes Heads Up Display text, but no UI elements)</p>
+
+<p><b>Send Playblast: Sends a playblast video. </b>
+<br>(Use the script settings to determine details about the video)</p>
+
+<p><b>Send OBJ/FBX: Sends a model using the chosen format. </b>
+<br>For settings, go to "File > Export Selection... > Options"</p>
+
+<p><b>Settings: </b>
+<br>The settings are persistent, which means they will stay the same between Maya sessions.</p>
+
+<p><b>Custom Username: </b>
+<br>Nickname used when posting content through the webhook.</p>
+
+<p><b>Image and Video Format: </b>
+<br>Extension used for the image and video files.</p>
+
+<p><b>Video Options: </b>
+<br>Determines the settings used when recording a playblast.</p>
+
+<p><b>Feedback and Timestamp Options: </b>
+<br>Determines feedback visibility and timestamp use.</p>
+
+<p><b>Limitations: </b>
+<br>Discord has a limit of 8MB for free users and 50MB for paid users for when uploading a file.
+<br>If you get the error "Payload Too Large" it means your file exceeds the limits. Try changing the settings.</p>
+
+<br>
+
+</div>
+
+
 
 </body>
