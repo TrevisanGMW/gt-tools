@@ -1,8 +1,6 @@
 <!-- GT Tools Docs -->
 
-
 <body>
-
 
 <p></p>
 <!-- Table of Contents -->
@@ -56,8 +54,6 @@
 
 <br>
 </div>
-
-
 
 <!-- GT Menu -->
 <div>
@@ -114,8 +110,6 @@
 <br>
 </div>
 
-
-
 <!-- GT Renamer -->
 <div>
 <h1> GT Renamer </h1>
@@ -171,7 +165,6 @@
 
 The icon on the left describes the validity of the path. If the file or directory is found in the system it shows a green confirm icon otherwise it shows a red icon.</p>
 
-
 <p><b>Auto Path Repair: </b>This function walks through the folders under the provided directory looking for missing files. If it finds a match, the path is updated.</p>
 
 
@@ -180,6 +173,10 @@ The icon on the left describes the validity of the path. If the file or director
 <p><b>Refresh: </b>Re-populates the list while re-checking for path validity.</p>
 
 <p><b>Search Path: </b>A directory path used when looking for missing files.</p>
+
+<p><b>Supported Nodes: </b>
+<br>(UDIMS and Image Sequences), audio, cacheFile, AlembicNode, BifMeshImportNode, gpuCache, MASH_Audio, aiPhotometricLight, aiStandIn, aiVolume, RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight, imagePlane</p>
+
 <br><br>
 </div>
 
@@ -335,7 +332,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 </ul>
 <br>
 </div>
-
 
 <!-- GT Generate Python Curve -->
 <div>
@@ -526,7 +522,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 </div>
 
-
 <!-- GT Create IK Leg -->
 <div>
 <h1> GT Create IK Leg </h1>
@@ -563,8 +558,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 </div>
 
-
-
 <!-- GT Make Stretchy Legs -->
 <div>
 <h1> GT Make Stretchy Legs </h1>
@@ -581,7 +574,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br><br>
 
 </div>
-
 
 <!-- GT Utilities -->
 <div>
@@ -682,7 +674,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 </div>
 
-
 <!-- GT Startup Booster -->
 <div>
 <h1> GT Startup Booster </h1>
@@ -719,7 +710,6 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>
 
 </div>
-
 
 <!-- GT Maya to Discord -->
 <div>
@@ -784,7 +774,5 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>
 
 </div>
-
-
 
 </body>
