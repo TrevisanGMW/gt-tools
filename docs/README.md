@@ -175,7 +175,7 @@ The icon on the left describes the validity of the path. If the file or director
 <p><b>Search Path: </b>A directory path used when looking for missing files.</p>
 
 <p><b>Supported Nodes: </b>
-<br>(UDIMS and Image Sequences), audio, cacheFile, AlembicNode, BifMeshImportNode, gpuCache, MASH_Audio, aiPhotometricLight, aiStandIn, aiVolume, RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight, imagePlane</p>
+<br>file (UDIMS and Image Sequences), audio, cacheFile, AlembicNode, BifMeshImportNode, gpuCache, MASH_Audio, aiPhotometricLight, aiStandIn, aiVolume, RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight, imagePlane</p>
 
 <br><br>
 </div>
@@ -386,7 +386,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <h1> GT Sphere Types </h1>
 
 <img src="./media/gt_create_sphere_types.jpg" align="right"
-     alt="GT Sphere Types GUI"><br>
+     alt="GT Sphere Types GUI">
 
 <p>Quite simple script used as a reminder that the standard sphere is not the only sphere option.</p>
 
