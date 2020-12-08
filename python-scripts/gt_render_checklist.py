@@ -21,9 +21,10 @@
     Changed a few UI elements and colors
 
  1.3 - 2020-12-05
-    Fixed issue where checklist wouldn't update without bifrost loaded.
+    Fixed issue where checklist wouldn't update without bifrost loaded
     Added support for non-unique objects to non-manifold checks
     Fixed typos in the help text
+    Fixed issue where spaces would cause resolution check to fail
 
  Todo:
     Add checks for xgen
@@ -643,7 +644,7 @@ def check_output_resolution():
     received_value = [cmds.getAttr("defaultResolution.width"), cmds.getAttr("defaultResolution.height")]
     issues_found = 0
 
-    if str(received_value[0]) == str(expected_value[0]) and str(received_value[1]) == str(expected_value[1]):
+    if str(received_value[0]).replace(' ','') == str(expected_value[0]).replace(' ','') and str(received_value[1]).replace(' ','') == str(expected_value[1].replace(' ','')):
         cmds.button("status_" + item_id, e=True, bgc=pass_color, l= '', c=lambda args: print_message(item_name + ': "' + str(received_value[0]) + 'x' + str(received_value[1]) + '".')) 
         issues_found = 0
     else: 
@@ -1473,7 +1474,6 @@ def check_ngons():
     expected_value = checklist_items.get(14)[1]
     
 
-
     ngon_mel_command = 'string $ngons[] = `polyCleanupArgList 3 { "1","2","1","0","1","0","0","0","0","1e-005","0","1e-005","0","1e-005","0","-1","0" }`;'
     ngons_list = mel.eval(ngon_mel_command)
     cmds.select(clear=True)
@@ -1533,8 +1533,8 @@ def check_non_manifold_geometry():
     nonmanifold_geo = []
     nonmanifold_verts = []
     
-    all_geo = cmds.ls(type='mesh')
-   
+    all_geo = cmds.ls(type='mesh', long=True)
+
     for geo in all_geo:
         obj_non_manifold_verts = cmds.polyInfo(geo, nmv=True) or []
         if len(obj_non_manifold_verts) > 0:
@@ -1581,7 +1581,7 @@ def check_non_manifold_geometry():
     if issues_found > 0:
         string_status = str(issues_found) + ' ' + issue_string + ' found.\n'
         for obj in nonmanifold_geo: 
-            string_status = string_status + '"' + obj +  '"  has non-manifold geometry.\n'
+            string_status = string_status + '"' + get_short_name(obj) +  '"  has non-manifold geometry.\n'
         string_status = string_status[:-1]
     else: 
         string_status = str(issues_found) + ' issues found. No non-manifold geometry found in your scene.'
@@ -2462,6 +2462,19 @@ def settings_export_state():
         file_handle.close()
         print('File exported to "' + settings_file + '"')
 
+def get_short_name(obj):
+        '''
+        Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+                Parameters:
+                        obj (string) - object to extract short name
+        '''
+        if obj == '':
+            return ''
+        split_path = obj.split('|')
+        if len(split_path) >= 1:
+            short_name = split_path[len(split_path)-1]
+        return short_name
 
 #Build GUI
 get_persistent_settings_render_checklist()
