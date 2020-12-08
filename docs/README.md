@@ -8,7 +8,7 @@
 <!-- Table of Contents -->
 <div>
 <h1> Table of Contents </h1>
-<a href="https://github.com/TrevisanGMW/gt-tools"><img src="../gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
+<a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
   <li><a href="#-gt-menu-">GT Menu</a></li>

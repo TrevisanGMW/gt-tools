@@ -1,7 +1,7 @@
 <!-- GT Tools README.md file -->
 <p></p>
 
-<img src="./gt_logo.png">
+<img src="./docs/media/gt_logo.png">
 
 <p></p>
 <p align="center"> 
