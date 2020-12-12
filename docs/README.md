@@ -724,7 +724,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 
 <p><b>What is fSpy: </b>
-<br>fSpy is this fantastic software that allows you to quickly and easily create a 3D camera match.
+<br>fSpy is a fantastic software that allows you to quickly and easily create a 3D camera match. The files created with it can easily be imported in Blender, but not in Maya. That's what this script aims to address.
 <br>You can find more information and a tutorial on their website: <a href="https://fspy.io/">https://fspy.io/</a></p>
 
 
