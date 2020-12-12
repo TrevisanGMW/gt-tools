@@ -48,6 +48,7 @@
 <h3><b>Miscellaneous:</b></h3>
 <ul>
   <li><a href="#-gt-startup-booster-">GT Startup Booster</a></li>
+  <li><a href="#-gt-fspy-importer-">GT fSpy Importer</a></li>
   <li><a href="#-gt-maya-to-discord-">GT Maya to Discord</a></li>
 </ul>
 </div>
@@ -724,7 +725,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 
 <p><b>What is fSpy: </b>
-<br>fSpy is a fantastic software that allows you to quickly and easily create a 3D camera match. The files created with it can easily be imported in Blender, but not in Maya. That's what this script aims to address.
+<br>fSpy is a fantastic software that allows you to quickly and easily create a 3D camera match.<br>The files created with it can easily be imported in Blender, but not in Maya. That's what this script aims to address.<br>
 <br>You can find more information and a tutorial on their website: <a href="https://fspy.io/">https://fspy.io/</a></p>
 
 
@@ -733,10 +734,10 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>It also calculates the focal length assuming that the default camera in Maya is a 35mm camera.</p>
 
 <p><b>How to use it:</b>
-<b>Step 1:</b> Create a camera match in fSpy. (There is a tutorial about it on their website)
-<b>Step 2:</b> Export the JSON file by going to "File > Export > Camera parameters as JSON".
-<b>Step 3:</b> Load the files by opening the script and entering the path for your JSON and Image files.
-<b>Step 4:</b> Use the Import button to generate the camera.</p>
+<br><b>Step 1:</b> Create a camera match in fSpy. (There is a tutorial about it on their website)
+<br><b>Step 2:</b> Export the JSON file by going to "File > Export > Camera parameters as JSON".
+<br><b>Step 3:</b> Load the files by opening the script and entering the path for your JSON and Image files.
+<br><b>Step 4:</b> Use the Import button to generate the camera.</p>
 
 <p><b>JSON File Path: </b>
 <br>This is a path pointing to the JSON file you exported out of fSpy.<br>
