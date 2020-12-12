@@ -711,6 +711,58 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 </div>
 
+
+
+<!-- GT fSpy Importer -->
+<div>
+<h1> GT fSpy Importer </h1>
+
+<img src="./media/gt_fspy_importer.jpg" align="right"
+     alt="GT fSpy Importer GUI">
+
+<p>This script allows you import the data of a JSON file (exported out of fSpy) into Maya.</p>
+
+
+<p><b>What is fSpy: </b>
+<br>fSpy is this fantastic software that allows you to quickly and easily create a 3D camera match.
+<br>You can find more information and a tutorial on their website: <a href="https://fspy.io/">https://fspy.io/</a></p>
+
+
+<p><b>How It works: </b>
+<br>Using the JSON file, this script applies the exported matrix to a camera so it matches the position and rotation identified in fSpy.
+<br>It also calculates the focal length assuming that the default camera in Maya is a 35mm camera.</p>
+
+<p><b>How to use it:</b>
+<b>Step 1:</b> Create a camera match in fSpy. (There is a tutorial about it on their website)
+<b>Step 2:</b> Export the JSON file by going to "File > Export > Camera parameters as JSON".
+<b>Step 3:</b> Load the files by opening the script and entering the path for your JSON and Image files.
+<b>Step 4:</b> Use the Import button to generate the camera.</p>
+
+<p><b>JSON File Path: </b>
+<br>This is a path pointing to the JSON file you exported out of fSpy.<br>
+In case the file was altered or exported/created using another program it might not work as expected.</p>
+
+<p><b>Image File Path:</b>
+<br>A path pointing to the image file you used for your camera match with in fSpy.<br>
+Do not change the resolution of the image file or crop the image or it might not work properly.</p>
+
+<p><b>Set Scene Resolution: </b>
+<br>Uses the size of the image to determine the resolution of the scene.<br>This settings are found under "Render Settings > Image Size" (Resolution)</p>
+
+<p><b>+Z Axis is +Y: </b>
+<br>Rotates the camera so the default +Z axis becomes +Y.
+<br>This might be necessary in case the default settings were used inside fSpy. This is because different softwares use different world coordinate systems.</p>
+
+<p><b>Lock Camera </b>
+<br>Locks the generated camera, so you don't accidenty move it.</p>
+
+<br>
+
+</div>
+
+
+
+
 <!-- GT Maya to Discord -->
 <div>
 <h1> GT Maya to Discord </h1>
