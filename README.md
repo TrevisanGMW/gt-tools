@@ -88,6 +88,10 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Open Autodesk Maya. </li>
 </ol>
 
+<h3>Updating</h3>
+<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
+
 <h1> Uninstallation </h1>
 
 <h3>Auto Uninstallation</h3>
