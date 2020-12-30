@@ -418,7 +418,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy,  use the root proxy control for that. 
 <br>The initial scale is the average height of a woman. (160cm)
-<br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA  so you can snap the proxy to its center.
+<br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA  so you can snap the proxy to its center.
 <br>"Display > Transform Display > Local Rotation Axes" for showing the LRA (point to snap)
 <br>"Modify > Center Pivot" for centering the pivot
 <br>Hold "V" while moving the eye proxy to snap it to points
