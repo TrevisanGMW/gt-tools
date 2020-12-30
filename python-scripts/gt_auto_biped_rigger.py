@@ -5325,7 +5325,7 @@ def select_skinning_joints():
     if is_valid:
         skinning_joints = []
         for obj in gt_ab_joints_default:
-            if '_end' + jnt_suffix.capitalize() not in gt_ab_joints_default.get(obj) and '_toe' not in gt_ab_joints_default.get(obj):
+            if '_end' + jnt_suffix.capitalize() not in gt_ab_joints_default.get(obj) and '_toe' not in gt_ab_joints_default.get(obj) and 'root_' not in gt_ab_joints_default.get(obj):
                 skinning_joints.append(gt_ab_joints_default.get(obj))
         cmds.select(skinning_joints)
         if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
