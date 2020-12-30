@@ -40,7 +40,7 @@
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
   <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
-  <li><a href="#-gt-ik-make-stretchy-">GT Make IK Stretchy</a></li>
+  <li><a href="#-gt-make-ik-stretchy-">GT Make IK Stretchy</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -409,28 +409,45 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
      alt="GT Auto Biped Rigger GUI">
 
-<p>This script automates the creation of connections between attributes from source (output) and target (input).</p>
+<p>Script for quickly generating an advanced biped rig.
+<br>For more predictable results execute it in a new scene  containing only the geometry of the desired character. </p>
 
-<p><b>Use Selection for Source and Target (s): </b>
-<br>When this option is activated, you no longer need to load sources/target (s).
-<br>You can simply select: 1st: source, 2nd, 3rd... : target(s)</p>
-<p><b>Add Reverse Node:  </b><br>Adds a reverse node between connections.</p>
-<p><b>Disconnect: </b><br>Break connections between selected nodes.</p>
-<p><b>Force Connection (Overrides Existing): </b><br>Connects nodes even if they already have a connection.</p>
 
-<p><b>Add Custom Node Between Connection: </b>
-<br>Allows user to create a node between connections. (Excellent for controlling dataflow.)
-<br>-Custom Node: Which node to create
-<br>-Add Input Node: Creates one master control to update all in betweens.</p>
+<p><b>Step 1: </b>
+<br>Create Proxy:<br>
+This button will create many temporary curves that will later be used to generate the rig. 
+<br>In case you want to re-scale the proxy,  use the root proxy control for that. 
+<br>The initial scale is the average height of a woman. (160cm) 
+ 
+<br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA  so you can snap the proxy to its center. 
+("Display > Transform Display > Local Rotation Axes" and "Modify > Center Pivot")
+<br>These are not joints. Please don\'t delete or rename them. </p>
 
-<p><b>Load Source/Target Objects: </b>
-<br>Use these buttons to load the objects you want to use as source and target (s).</p>
+<p><b>Step 2: </b>
+<br>Pose the proxy (guide) to match your character. 
+<br>
+<br>- Reset Proxy:  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy. 
+<br> 
+<br>- Mirror Side to Side:  Copies the transform data from one  side to the other, mirroring the pose.
+<br>
+<br>- Import Pose:  Imports a JSON file containing the transforms  of the proxy elements. This file is generated  using the "Export Pose" function. 
+<br>
+<br>- Export Pose:  Exports a JSON file containing the  transforms of the proxy elements. 
+<br>
+<br>- Delete Proxy:  Simply deletes the proxy in case you no longer need it.</p>
 
-<p><b>Source Attribute and Target Attributes: </b>
-<br>Name of the attribute you want to connect. <br>Requirement: Use long or short name (no nice names)</p>
+<p><b>Step 3: </b>
+<br>This button creates the control rig.
+<br>It uses the transform data found in the proxy to  determine how to create the skeleton and controls.
+<br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
-<p><b>List All Attributes and List Keyable Attributes: </b>
-<br>Returns a list of attributes that can be used to populate the Source and Target Attributes fields.</p>
+<p><b>Step 4: </b>
+<br>Now that the rig has been created,  all that is left is to attach it to the geometry.
+<br>
+<br>- Select Skinning Joints:  Select only joints that should  be used when skinning the character.  This means that it will not include end joints or the toes. 
+<br>
+<br>- Bind Skin Options:  Opens the options for the function "Bind Skin"  so the desired geometry can attached to the  skinning joints. Make sure to use the "Bind to" as "Selected Joints"</p>
+
 
 <br>
 
@@ -567,7 +584,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <img src="./media/gt_create_ik_leg.jpg" align="right"
      alt="GT Create IK Leg GUI">
 
-<p>(This script is no longer part of the GT Tools Menu, I've temporarily removed it so I can make it more user-friendly before reintroducing it back.)<br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
+<p>This script is no longer part of the GT Tools Menu, I've temporarily removed it so I can make it more user-friendly.<br><br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
 
 <p><b>Joint Tag (Suffix) and Ctrl Group Tag (Suffix): </b>
 <br>These two textfields allow you to define what suffix you used for you base skeleton joints and your control groups. 
