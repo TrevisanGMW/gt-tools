@@ -224,6 +224,10 @@ del %~1\gt_startup_booster.py
 del %~1\gt_startup_booster.pyc
 del %~1\gt_fspy_importer.py
 del %~1\gt_fspy_importer.pyc
+del %~1\gt_auto_biped_rigger.py
+del %~1\gt_auto_biped_rigger.pyc
+del %~1\gt_make_ik_stretchy.py
+del %~1\gt_make_ik_stretchy.pyc
 EXIT /B 0
 
 

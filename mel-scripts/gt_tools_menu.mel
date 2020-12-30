@@ -109,10 +109,14 @@
 //   Added fSpy Importer
 //   Added icon management for fSpy Importer
 //
+//   1.6.3
+//   Added Auto Biped Rigger
+//   Removed Create IK Leg
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.6.2";
+global string $scriptVersion = "1.6.3";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -266,6 +270,13 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
 
 // -----------------------------------------RIGGING------------------------------------
 menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
+
+    menuItem 
+    -l ("Auto Biped Rigger") 
+    -c ("python(\"import gt_auto_biped_rigger\\nreload(gt_auto_biped_rigger)\\ngt_auto_biped_rigger.build_gui_auto_biped_rig()\");") 
+    -ann ("Automated solution for creating a biped rig.") 
+    -image "kinReroot.png" ;
+ 
     menuItem 
     -l ("Connect Attributes") 
     -c ("python(\"import gt_connect_attributes\\nreload(gt_connect_attributes)\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
@@ -290,17 +301,16 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
     
-    menuItem 
-    -l ("Create IK Leg") 
-    -c ("python(\"import gt_create_ik_leg\\nreload(gt_create_ik_leg)\\ngt_create_ik_leg.build_gui_simple_ik_leg()\");") 
-    -ann ("Automated solution for create a simple IK leg.") 
-    -image "kinHandle.png" ;
-    
-    
+    // menuItem 
+    // -l ("Create IK Leg") 
+    // -c ("python(\"import gt_create_ik_leg\\nreload(gt_create_ik_leg)\\ngt_create_ik_leg.build_gui_simple_ik_leg()\");") 
+    // -ann ("Automated solution for create a simple IK leg.") 
+    // -image "kinHandle.png" ;
+
     menuItem 
     -l ("Make Stretchy Leg") 
-    -c ("python(\"import gt_make_stretchy_leg\\nreload(gt_make_stretchy_leg)\\ngt_make_stretchy_leg.build_gui_make_stretchy_legs()\");") 
-    -ann ("Automated solution for creating a simple stretchy system for an IK leg.") 
+    -c ("python(\"import gt_make_ik_stretchy\\nreload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
+    -ann ("Automated solution for making an IK system stretchy.") 
     -image "ikSCsolver.svg" ;
     
     setParent -menu ".." ;
