@@ -112,6 +112,7 @@
 //   1.6.3
 //   Added Auto Biped Rigger
 //   Removed Create IK Leg
+//	 Updated Make IK Stretchy
 //
 //----------------------------------------------------------------------------
 
@@ -308,7 +309,7 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     // -image "kinHandle.png" ;
 
     menuItem 
-    -l ("Make Stretchy Leg") 
+    -l ("Make IK Stretchy") 
     -c ("python(\"import gt_make_ik_stretchy\\nreload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
     -ann ("Automated solution for making an IK system stretchy.") 
     -image "ikSCsolver.svg" ;

@@ -441,7 +441,7 @@ def add_node_note(obj, note_string):
         cmds.warning("%s already has a notes attribute"%obj)
 
 
-def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=False):
+def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     '''
     Creates two measure tools and use them to determine when the joints should be scaled up causing a stretchy effect.
     
