@@ -34,12 +34,13 @@
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
+  <li><a href="#-gt-auto-biped-rigger-">GT Auto Biped Rigger</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
   <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
-  <li><a href="#-gt-make-stretchy-legs-">GT Make Stretchy Leg</a></li>
+  <li><a href="#-gt-ik-make-stretchy-">GT Make IK Stretchy</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -400,6 +401,42 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 </div>
 
+
+<!-- GT Auto Biped Rigger -->
+<div>
+<h1> GT Auto Biped Rigger </h1>
+
+<img src="./media/gt_auto_biped_rigger.jpg" align="right"
+     alt="GT Auto Biped Rigger GUI">
+
+<p>This script automates the creation of connections between attributes from source (output) and target (input).</p>
+
+<p><b>Use Selection for Source and Target (s): </b>
+<br>When this option is activated, you no longer need to load sources/target (s).
+<br>You can simply select: 1st: source, 2nd, 3rd... : target(s)</p>
+<p><b>Add Reverse Node:  </b><br>Adds a reverse node between connections.</p>
+<p><b>Disconnect: </b><br>Break connections between selected nodes.</p>
+<p><b>Force Connection (Overrides Existing): </b><br>Connects nodes even if they already have a connection.</p>
+
+<p><b>Add Custom Node Between Connection: </b>
+<br>Allows user to create a node between connections. (Excellent for controlling dataflow.)
+<br>-Custom Node: Which node to create
+<br>-Add Input Node: Creates one master control to update all in betweens.</p>
+
+<p><b>Load Source/Target Objects: </b>
+<br>Use these buttons to load the objects you want to use as source and target (s).</p>
+
+<p><b>Source Attribute and Target Attributes: </b>
+<br>Name of the attribute you want to connect. <br>Requirement: Use long or short name (no nice names)</p>
+
+<p><b>List All Attributes and List Keyable Attributes: </b>
+<br>Returns a list of attributes that can be used to populate the Source and Target Attributes fields.</p>
+
+<br>
+
+</div>
+
+
 <!-- GT Connect Attributes -->
 <div>
 <h1> GT Connect Attributes </h1>
@@ -530,7 +567,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <img src="./media/gt_create_ik_leg.jpg" align="right"
      alt="GT Create IK Leg GUI">
 
-<p>(This script is still a work in progress)<br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
+<p>(This script is no longer part of the GT Tools Menu, I've temporarily removed it so I can make it more user-friendly before reintroducing it back.)<br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
 
 <p><b>Joint Tag (Suffix) and Ctrl Group Tag (Suffix): </b>
 <br>These two textfields allow you to define what suffix you used for you base skeleton joints and your control groups. 
@@ -561,16 +598,27 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 <!-- GT Make Stretchy Legs -->
 <div>
-<h1> GT Make Stretchy Legs </h1>
+<h1> GT Make IK Stretchy </h1>
 
-<img src="./media/gt_make_stretchy_leg.jpg" align="right"
-     alt="GT Make Stretchy Legs GUI">
+<img src="./media/gt_make_ik_stretchy.jpg" align="right"
+     alt="GT Make IK Stretchy GUI">
 
-<p>(This script is still a work in progress)
-<br>This script creates a simple stretchy leg setup.<br> Select your ikHandle and click on "Make Stretchy"</p>
+<p>This script makes an IK setup stretchy.
+<br>Load an ikHandle, then click on "Make Stretchy"</p>
 
-<p><b>Important: </b>
-<br>It assumes that you have a curve driving your ikHandle as a control. <br>This curve is used to determine positions and constraints.</p>
+<p><b>Stretchy System Prefix:</b>
+<br>As the name suggests, it determined the prefix used when naming nodes for the stretchy system.<br>If nothing is provided, it will be automatically named "temp".</p>
+
+<p><b>Load IK Handle:</b>
+<br>Use this button to load your ikHandle.The joints will be automatically extracted from it.</p>
+
+<p><b>Load Attribute Holder:</b>
+<br>Use this button to load your attribute holder.
+<br>This is usually a control. A few custom attributes will be added to this object, so the user can control the stretchy system.</p>
+
+<p><b>Important:</b>
+<br>The ikHandle cannot be outside of a group. So it will be automatically grouped when this is the case.
+<br>If an attribute holder is not provided, a simpler version of the stretchy system will be created instead.</p>
 
 <br><br>
 
