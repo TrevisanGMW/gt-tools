@@ -24,7 +24,7 @@
  Created functions to update GUI
  Updated help
  
- 1.5 - 2021-01-02
+ 1.5 - 2021-01-03
  Updated stretchy system to avoid cycles and errors
  Removed incorrect Help GUI call line from standalone version
  Updated the help info to match changes
@@ -94,7 +94,7 @@ def build_gui_make_ik_stretchy():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text(l='Load an ikHandle and click on "Make Stretchy"', align="center")
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.text(l='To use this script to its full potential, provide\n an object to be the attribute holder.\n(Usually the control driving the ikHandle)\n\nBy default the attribute holder determines the\n stretch, to change this behavior, constraint\n "firstTerm_end" to another object.', align="center")
+    cmds.text(l='To use this script to its full potential, provide\n an object to be the attribute holder.\n(Usually the control driving the ikHandle)\n\nBy default the attribute holder determines the\n stretch, to change this behavior, constraint\n "stretchyTerm_end" to another object.', align="center")
     cmds.separator(h=10, style='none') # Empty Space
     
     
