@@ -6,7 +6,7 @@
  1.0 - 2020-12-29
  Initial Release
  
- 1.1 - 2020-XX-XX - WIP
+ 1.1 - 2021-XX-XX - WIP
     Changed and added a few notes
  Locked default channels for the main rig group
  Added joint labelling
@@ -46,6 +46,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import random
 import copy
+import math
 import json
 import sys
 
@@ -536,11 +537,10 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     # Constraints
     cmds.pointConstraint (ik_handle_joints[0], start_loc_one)
     start_loc_condition = cmds.pointConstraint (ik_handle_joints[0], start_loc_two)
-    cmds.pointConstraint(attribute_holder, end_loc_one)
-
 
     if attribute_holder:
         if cmds.objExists(attribute_holder):
+            cmds.pointConstraint(attribute_holder, end_loc_one)
             cmds.addAttr(attribute_holder , ln='stretch', at='double', k=True, minValue=0, maxValue=1)
             cmds.setAttr(attribute_holder + ".stretch", 1)
             cmds.addAttr(attribute_holder , ln='squash', at='double', k=True, minValue=0, maxValue=1)
