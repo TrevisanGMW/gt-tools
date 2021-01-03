@@ -13,6 +13,7 @@
  Made rig setup elements visible after creation
     Added manip default 
  Updated stretchy system to avoid cycles or errors
+ Updated stretchy system to account for any curvature
  
  To do:
     Add more roll joints
@@ -466,11 +467,110 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
                                            For a more complete stretchy system you have to provide a valid object in this parameter as without it volume preservation is skipped
     
             Returns:
-                list (list): A list with the end locator one (to be attached to the IK control) and the stretchy_grp (system elements)
+                list (list): A list with the end locator one (to be attached to the IK control) the stretchy_grp (system elements) and the end_ik_jnt (joint under the ikHandle)
     '''
-      
-  
+    
+    
+    def caculate_distance(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
+        ''' 
+        Calculates the magnitude (in this case distance) between two objects
+        
+                Parameters:
+                    pos_a_x (float): Position X for object A
+                    pos_a_y (float): Position Y for object A
+                    pos_a_z (float): Position Z for object A
+                    pos_b_x (float): Position X for object B
+                    pos_b_y (float): Position Y for object B
+                    pos_b_z (float): Position Z for object B
+                   
+                Returns:
+                    magnitude (float): Distance between two objects
+        
+        '''
+        dx = pos_a_x - pos_b_x
+        dy = pos_a_y - pos_b_y
+        dz = pos_a_z - pos_b_z
+        return math.sqrt( dx*dx + dy*dy + dz*dz )
+    
+    def int_to_en(num):
+        '''
+        Given an int32 number, returns an English word for it.
+        
+                Parameters:
+                    num (int) and integer to be converted to English words.
+                    
+                Returns:
+                    number (string): The input number as words
+        
+        
+        '''
+        d = { 0 : 'zero', 1 : 'one', 2 : 'two', 3 : 'three', 4 : 'four', 5 : 'five',
+              6 : 'six', 7 : 'seven', 8 : 'eight', 9 : 'nine', 10 : 'ten',
+              11 : 'eleven', 12 : 'twelve', 13 : 'thirteen', 14 : 'fourteen',
+              15 : 'fifteen', 16 : 'sixteen', 17 : 'seventeen', 18 : 'eighteen',
+              19 : 'nineteen', 20 : 'twenty',
+              30 : 'thirty', 40 : 'forty', 50 : 'fifty', 60 : 'sixty',
+              70 : 'seventy', 80 : 'eighty', 90 : 'ninety' }
+        k = 1000
+        m = k * 1000
+        b = m * 1000
+        t = b * 1000
+
+        assert(0 <= num)
+
+        if (num < 20):
+            return d[num]
+
+        if (num < 100):
+            if num % 10 == 0: return d[num]
+            else: return d[num // 10 * 10] + '-' + d[num % 10]
+
+        if (num < k):
+            if num % 100 == 0: return d[num // 100] + ' hundred'
+            else: return d[num // 100] + ' hundred and ' + int_to_en(num % 100)
+
+        if (num < m):
+            if num % k == 0: return int_to_en(num // k) + ' thousand'
+            else: return int_to_en(num // k) + ' thousand, ' + int_to_en(num % k)
+
+        if (num < b):
+            if (num % m) == 0: return int_to_en(num // m) + ' million'
+            else: return int_to_en(num // m) + ' million, ' + int_to_en(num % m)
+
+        if (num < t):
+            if (num % b) == 0: return int_to_en(num // b) + ' billion'
+            else: return int_to_en(num // b) + ' billion, ' + int_to_en(num % b)
+
+        if (num % t == 0): return int_to_en(num // t) + ' trillion'
+        else: return int_to_en(num // t) + ' trillion, ' + int_to_en(num % t)
+
+        raise AssertionError('num is too large: %s' % str(num))
+    
+    ########## Start of Make Stretchy Function ##########
+    
     ik_handle_joints = cmds.ikHandle(ik_handle, q=True, jointList=True)
+    children_last_jnt = cmds.listRelatives(ik_handle_joints[-1], children=True, type='joint') or []
+    
+    # Find end joint
+    end_ik_jnt = ''
+    if len(children_last_jnt) == 1:
+        end_ik_jnt = children_last_jnt[0]
+    elif len(children_last_jnt) > 1: # Find Joint Closest to ikHandle
+        jnt_magnitude_pairs = []
+        for jnt in children_last_jnt:
+            ik_handle_ws_pos = cmds.xform(ik_handle, q=True, t=True, ws=True)
+            jnt_ws_pos = cmds.xform(jnt, q=True, t=True, ws=True)
+            mag = caculate_distance(ik_handle_ws_pos[0], ik_handle_ws_pos[1], ik_handle_ws_pos[2], jnt_ws_pos[0], jnt_ws_pos[1], jnt_ws_pos[2])
+            jnt_magnitude_pairs.append([jnt, mag])
+        # Find Lowest Distance
+        curent_jnt = jnt_magnitude_pairs[1:][0]
+        curent_closest = jnt_magnitude_pairs[1:][1]
+        for pair in jnt_magnitude_pairs:
+            if pair[1] < curent_closest:
+                curent_closest = pair[1]
+                curent_jnt = pair[0]
+        end_ik_jnt = curent_jnt
+    
 
     distance_one = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
     distance_one_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
@@ -479,40 +579,61 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     cmds.delete(cmds.pointConstraint(ik_handle, distance_one_locators[1]))
 
     # Rename Distance One Nodes
-    distance_node_one = cmds.rename(distance_one_transform, stretchy_name + "_firstTerm_strechyDistance")
-    start_loc_one = cmds.rename(distance_one_locators[0], stretchy_name + "_firstTerm_start")
-    end_loc_one = cmds.rename(distance_one_locators[1], stretchy_name + "_firstTerm_end")
+    distance_node_one = cmds.rename(distance_one_transform, stretchy_name + "_stretchyTerm_strechyDistance")
+    start_loc_one = cmds.rename(distance_one_locators[0], stretchy_name + "_stretchyTerm_start")
+    end_loc_one = cmds.rename(distance_one_locators[1], stretchy_name + "_stretchyTerm_end")
 
-    distance_two = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
-    distance_two_transform = cmds.listRelatives(distance_two, parent=True, f=True) or [][0]
-    distance_two_locators = cmds.listConnections(distance_two)
-    cmds.delete(cmds.pointConstraint(ik_handle_joints[0], distance_two_locators[0]))
-    cmds.delete(cmds.pointConstraint(ik_handle, distance_two_locators[1]))
+    
+    distance_nodes = {} # [distance_node_transform, start_loc, end_loc, ik_handle_joint]
+    index = 0
+    for index in range(len(ik_handle_joints)):
+        distance_node = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
+        distance_node_transform = cmds.listRelatives(distance_node, parent=True, f=True) or [][0]
+        distance_node_locators = cmds.listConnections(distance_node)
+        
+        distance_node = cmds.rename(distance_node, stretchy_name + '_defaultTerm' + int_to_en(index+1).capitalize() + '_strechyDistanceShape' )
+        distance_node_transform = cmds.rename(distance_node_transform, stretchy_name + '_defaultTerm' + int_to_en(index+1).capitalize() + '_strechyDistance' )
+        start_loc = cmds.rename(distance_node_locators[0], stretchy_name + '_defaultTerm' + int_to_en(index+1).capitalize() + '_start')
+        end_loc = cmds.rename(distance_node_locators[1], stretchy_name + '_defaultTerm' + int_to_en(index+1).capitalize() + '_end')
 
-    # Rename Distance Two Nodes
-    distance_node_two = cmds.rename(distance_two_transform, stretchy_name + "_secondTerm_strechyCondition")
-    start_loc_two = cmds.rename(distance_two_locators[0], stretchy_name + "_secondTerm_start")
-    end_loc_two = cmds.rename(distance_two_locators[1], stretchy_name + "_secondTerm_end")
+        cmds.delete(cmds.pointConstraint(ik_handle_joints[index], start_loc))
+        if index < (len(ik_handle_joints)-1):
+            cmds.delete(cmds.pointConstraint(ik_handle_joints[index+1], end_loc))
+        else:
+            cmds.delete(cmds.pointConstraint(end_ik_jnt, end_loc))
 
+        
+        distance_nodes[distance_node] = [distance_node_transform, start_loc, end_loc, ik_handle_joints[index]]
+        
+        index += 1
+ 
+    # Organize Basic Hierarchy
     stretchy_grp = cmds.group(name=stretchy_name + "_stretchy_grp", empty=True, world=True)
     cmds.parent( distance_node_one, stretchy_grp )
     cmds.parent( start_loc_one, stretchy_grp )
     cmds.parent( end_loc_one, stretchy_grp )
-    cmds.parent( distance_node_two, stretchy_grp )
-    cmds.parent( start_loc_two, stretchy_grp )
-    cmds.parent( end_loc_two, stretchy_grp )
-
+ 
+    
+    # Connect, Colorize and Organize Hierarchy
+    default_distance_sum_node = cmds.createNode('plusMinusAverage', name=stretchy_name + "_defaultTermSum_plus")
+    index = 0
+    for node in distance_nodes:
+        cmds.connectAttr('%s.distance' % node, '%s.input1D' % default_distance_sum_node + '[' + str(index) + ']')
+        for obj in distance_nodes.get(node):
+            if cmds.objectType(obj) != 'joint':
+                change_outliner_color(obj, (1,.5,.5))
+                cmds.parent(obj, stretchy_grp)
+        index += 1
+    
+    # Outliner Color
     for obj in [distance_node_one,start_loc_one,end_loc_one]:
         change_outliner_color(obj,(.5,1,.2))
         
-    for obj in [distance_node_two,start_loc_two,end_loc_two]:
-        change_outliner_color(obj,(1,.5,.5))
-
 
     # Connect Nodes
     nonzero_stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyNonZero_condition")
     nonzero_multiply_node = cmds.createNode('multiplyDivide', name=stretchy_name + "_onePctDistCondition_multiply")
-    cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % nonzero_multiply_node)
+    cmds.connectAttr('%s.output1D' % default_distance_sum_node, '%s.input1X' % nonzero_multiply_node)
     cmds.setAttr( nonzero_multiply_node + ".input2X", 0.01)
     cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.colorIfTrueR' % nonzero_stretch_condition_node)
     cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.secondTerm' % nonzero_stretch_condition_node)
@@ -524,20 +645,23 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     cmds.connectAttr('%s.distance' % distance_node_one, '%s.colorIfFalseR' % nonzero_stretch_condition_node)
     cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input1X' % stretch_normalization_node)
     
-    cmds.connectAttr('%s.distance' % distance_node_two, '%s.input2X' % stretch_normalization_node)
+    cmds.connectAttr('%s.output1D' % default_distance_sum_node, '%s.input2X' % stretch_normalization_node)
 
     cmds.setAttr( stretch_normalization_node + ".operation", 2)
 
     stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyAutomation_condition")
     cmds.setAttr( stretch_condition_node + ".operation", 3)
     cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.firstTerm' % stretch_condition_node) # Distance One
-    cmds.connectAttr('%s.distance' % distance_node_two, '%s.secondTerm' % stretch_condition_node)
+    cmds.connectAttr('%s.output1D' % default_distance_sum_node, '%s.secondTerm' % stretch_condition_node)
     cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.colorIfTrueR' % stretch_condition_node)
 
     # Constraints
     cmds.pointConstraint (ik_handle_joints[0], start_loc_one)
-    start_loc_condition = cmds.pointConstraint (ik_handle_joints[0], start_loc_two)
-
+    for node in distance_nodes:
+        if distance_nodes.get(node)[3] == ik_handle_joints[0:][0]:
+            start_loc_condition = cmds.pointConstraint (ik_handle_joints[0], distance_nodes.get(node)[1])
+    
+    # Attribute Holder Setup
     if attribute_holder:
         if cmds.objExists(attribute_holder):
             cmds.pointConstraint(attribute_holder, end_loc_one)
@@ -592,7 +716,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.setAttr(xy_divide_node + ".operation", 2) # Divide
 
             cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input2X' % volume_normalization_divide_node) # Distance One
-            cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % volume_normalization_divide_node)
+            cmds.connectAttr('%s.output1D' % default_distance_sum_node, '%s.input1X' % volume_normalization_divide_node)
             
             cmds.connectAttr('%s.outputX' % volume_normalization_divide_node, '%s.input2X' % volume_value_divide_node)
             cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.input1X' % volume_value_divide_node)
@@ -633,7 +757,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
                 cmds.connectAttr('%s.outColorR' % stretch_condition_node, '%s.scaleX' % jnt)
 
 
-    return [end_loc_one, stretchy_grp]
+    return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
 def create_joint_curve(name, scale, initial_position=(0,0,0)): 
@@ -5717,4 +5841,4 @@ def import_proxy_pose():
 
 # Build UI
 if __name__ == '__main__':
-    build_gui_auto_biped_rig()
+    build_gui_auto_biped_rig()    
