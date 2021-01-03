@@ -23,6 +23,10 @@
  Created functions to validate objects
  Created functions to update GUI
  Updated help
+ 
+ 1.5 - 2021-01-02
+ Updated stretchy system to avoid cycles and errors
+ Removed incorrect Help GUI call line from standalone version
 
  
 """
@@ -48,7 +52,7 @@ import sys
 script_name = "GT - Make IK Stretchy"
 
 # Version:
-script_version = "1.4";
+script_version = "1.5";
 
 # Settings
 gt_make_ik_stretchy_settings = { 'ik_handle' : '',
@@ -88,7 +92,7 @@ def build_gui_make_ik_stretchy():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text(l='Load an ikHandle and click on "Make Stretchy"', align="center")
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.text(l='To use this script to its full potential, provide\n an object to be the attribute holder.\n(Usually a control, like an IK/FK switch)', align="center")
+    cmds.text(l='To use this script to its full potential, provide\n an object to be the attribute holder.\n(Usually the control driving the ikHandle)\n\nBy default the attribute holder determines the\n stretch, to change this behavior, constraint\n "firstTerm_end" to another object.', align="center")
     cmds.separator(h=10, style='none') # Empty Space
     
     
@@ -350,13 +354,10 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             Returns:
                 list (list): A list with the end locator one (to be attached to the IK control) and the stretchy_grp (system elements)
     '''
-        
-    ik_handle_parents = cmds.listRelatives(ik_handle, p=True) or []
-    if len(ik_handle_parents) == 0:
-        cmds.group(ik_handle, name=stretchy_name + '_ikHandle_grp')
-        
+      
+  
     ik_handle_joints = cmds.ikHandle(ik_handle, q=True, jointList=True)
-    
+
     distance_one = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
     distance_one_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
     distance_one_locators = cmds.listConnections(distance_one)
@@ -369,7 +370,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     end_loc_one = cmds.rename(distance_one_locators[1], stretchy_name + "_firstTerm_end")
 
     distance_two = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
-    distance_two_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
+    distance_two_transform = cmds.listRelatives(distance_two, parent=True, f=True) or [][0]
     distance_two_locators = cmds.listConnections(distance_two)
     cmds.delete(cmds.pointConstraint(ik_handle_joints[0], distance_two_locators[0]))
     cmds.delete(cmds.pointConstraint(ik_handle, distance_two_locators[1]))
@@ -395,25 +396,38 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
 
 
     # Connect Nodes
+    nonzero_stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyNonZero_condition")
+    nonzero_multiply_node = cmds.createNode('multiplyDivide', name=stretchy_name + "_onePctDistCondition_multiply")
+    cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % nonzero_multiply_node)
+    cmds.setAttr( nonzero_multiply_node + ".input2X", 0.01)
+    cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.colorIfTrueR' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.secondTerm' % nonzero_stretch_condition_node)
+    cmds.setAttr( nonzero_stretch_condition_node + ".operation", 5)
+    
+    
     stretch_normalization_node = cmds.createNode('multiplyDivide', name=stretchy_name + "_distNormalization_divide")
-    cmds.connectAttr('%s.distance' % distance_node_one, '%s.input1X' % stretch_normalization_node)
+    cmds.connectAttr('%s.distance' % distance_node_one, '%s.firstTerm' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.distance' % distance_node_one, '%s.colorIfFalseR' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input1X' % stretch_normalization_node)
+    
     cmds.connectAttr('%s.distance' % distance_node_two, '%s.input2X' % stretch_normalization_node)
 
     cmds.setAttr( stretch_normalization_node + ".operation", 2)
 
     stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyAutomation_condition")
     cmds.setAttr( stretch_condition_node + ".operation", 3)
-    cmds.connectAttr('%s.distance' % distance_node_one, '%s.firstTerm' % stretch_condition_node)
+    cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.firstTerm' % stretch_condition_node) # Distance One
     cmds.connectAttr('%s.distance' % distance_node_two, '%s.secondTerm' % stretch_condition_node)
     cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.colorIfTrueR' % stretch_condition_node)
 
     # Constraints
     cmds.pointConstraint (ik_handle_joints[0], start_loc_one)
     start_loc_condition = cmds.pointConstraint (ik_handle_joints[0], start_loc_two)
-    cmds.pointConstraint(ik_handle, end_loc_one)
+    
 
     if attribute_holder:
         if cmds.objExists(attribute_holder):
+            cmds.pointConstraint(attribute_holder, end_loc_one)
             cmds.addAttr(attribute_holder , ln='stretch', at='double', k=True, minValue=0, maxValue=1)
             cmds.setAttr(attribute_holder + ".stretch", 1)
             cmds.addAttr(attribute_holder , ln='squash', at='double', k=True, minValue=0, maxValue=1)
@@ -464,7 +478,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.setAttr(volume_value_divide_node + ".operation", 2) # Divide
             cmds.setAttr(xy_divide_node + ".operation", 2) # Divide
 
-            cmds.connectAttr('%s.distance' % distance_node_one, '%s.input2X' % volume_normalization_divide_node)
+            cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input2X' % volume_normalization_divide_node) # Distance One
             cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % volume_normalization_divide_node)
             
             cmds.connectAttr('%s.outputX' % volume_normalization_divide_node, '%s.input2X' % volume_value_divide_node)
@@ -505,10 +519,9 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
         for jnt in ik_handle_joints:
                 cmds.connectAttr('%s.outColorR' % stretch_condition_node, '%s.scaleX' % jnt)
 
-    
+
     return [end_loc_one, stretchy_grp]
 
 #Build UI
 if __name__ == '__main__':
     build_gui_make_ik_stretchy()
-    build_gui_help_make_stretchy_ik()
