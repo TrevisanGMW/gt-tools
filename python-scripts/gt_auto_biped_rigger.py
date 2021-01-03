@@ -6,9 +6,21 @@
  1.0 - 2020-12-29
  Initial Release
  
+ 1.1 - 2020-XX-XX - WIP
+    Changed and added a few notes
+ Locked default channels for the main rig group
+ Added joint labelling
+ Made rig setup elements visible after creation
+    Added manip default 
+ Updated stretchy system to avoid cycles or errors
+ 
  To do:
-    Add icons to buttons
-    Add joint labelling
+    Add more roll joints
+    Add utilities
+        Toggle label visibility
+        Convert rig to proxy
+    Add icons to buttons 
+    Rename the shapes of many controls
     Add option to auto create proxy geo
     Add option to create lines between proxies
     Add option to colorize (or not) proxy and rig elements
@@ -42,7 +54,7 @@ import sys
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.0"
+script_version = "1.1"
 
 # General Vars
 grp_suffix = 'grp'
@@ -455,9 +467,10 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             Returns:
                 list (list): A list with the end locator one (to be attached to the IK control) and the stretchy_grp (system elements)
     '''
-        
+      
+  
     ik_handle_joints = cmds.ikHandle(ik_handle, q=True, jointList=True)
-    
+
     distance_one = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
     distance_one_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
     distance_one_locators = cmds.listConnections(distance_one)
@@ -470,7 +483,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     end_loc_one = cmds.rename(distance_one_locators[1], stretchy_name + "_firstTerm_end")
 
     distance_two = cmds.distanceDimension(sp=(1,random.random()*10,1), ep=(2,random.random()*10,2) )
-    distance_two_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
+    distance_two_transform = cmds.listRelatives(distance_two, parent=True, f=True) or [][0]
     distance_two_locators = cmds.listConnections(distance_two)
     cmds.delete(cmds.pointConstraint(ik_handle_joints[0], distance_two_locators[0]))
     cmds.delete(cmds.pointConstraint(ik_handle, distance_two_locators[1]))
@@ -496,22 +509,35 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
 
 
     # Connect Nodes
+    nonzero_stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyNonZero_condition")
+    nonzero_multiply_node = cmds.createNode('multiplyDivide', name=stretchy_name + "_onePctDistCondition_multiply")
+    cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % nonzero_multiply_node)
+    cmds.setAttr( nonzero_multiply_node + ".input2X", 0.01)
+    cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.colorIfTrueR' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.outputX' % nonzero_multiply_node, '%s.secondTerm' % nonzero_stretch_condition_node)
+    cmds.setAttr( nonzero_stretch_condition_node + ".operation", 5)
+    
+    
     stretch_normalization_node = cmds.createNode('multiplyDivide', name=stretchy_name + "_distNormalization_divide")
-    cmds.connectAttr('%s.distance' % distance_node_one, '%s.input1X' % stretch_normalization_node)
+    cmds.connectAttr('%s.distance' % distance_node_one, '%s.firstTerm' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.distance' % distance_node_one, '%s.colorIfFalseR' % nonzero_stretch_condition_node)
+    cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input1X' % stretch_normalization_node)
+    
     cmds.connectAttr('%s.distance' % distance_node_two, '%s.input2X' % stretch_normalization_node)
 
     cmds.setAttr( stretch_normalization_node + ".operation", 2)
 
     stretch_condition_node = cmds.createNode('condition', name=stretchy_name + "_strechyAutomation_condition")
     cmds.setAttr( stretch_condition_node + ".operation", 3)
-    cmds.connectAttr('%s.distance' % distance_node_one, '%s.firstTerm' % stretch_condition_node)
+    cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.firstTerm' % stretch_condition_node) # Distance One
     cmds.connectAttr('%s.distance' % distance_node_two, '%s.secondTerm' % stretch_condition_node)
     cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.colorIfTrueR' % stretch_condition_node)
 
     # Constraints
     cmds.pointConstraint (ik_handle_joints[0], start_loc_one)
     start_loc_condition = cmds.pointConstraint (ik_handle_joints[0], start_loc_two)
-    cmds.pointConstraint(ik_handle, end_loc_one)
+    cmds.pointConstraint(attribute_holder, end_loc_one)
+
 
     if attribute_holder:
         if cmds.objExists(attribute_holder):
@@ -565,7 +591,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.setAttr(volume_value_divide_node + ".operation", 2) # Divide
             cmds.setAttr(xy_divide_node + ".operation", 2) # Divide
 
-            cmds.connectAttr('%s.distance' % distance_node_one, '%s.input2X' % volume_normalization_divide_node)
+            cmds.connectAttr('%s.outColorR' % nonzero_stretch_condition_node, '%s.input2X' % volume_normalization_divide_node) # Distance One
             cmds.connectAttr('%s.distance' % distance_node_two, '%s.input1X' % volume_normalization_divide_node)
             
             cmds.connectAttr('%s.outputX' % volume_normalization_divide_node, '%s.input2X' % volume_value_divide_node)
@@ -595,7 +621,6 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.connectAttr('%s.output' % volume_base_blend_node, '%s.scaleY' % ik_handle_joints[0])
             cmds.connectAttr('%s.output' % volume_base_blend_node, '%s.scaleZ' % ik_handle_joints[0])
         
-            print(ik_handle_joints[1:])
             for jnt in ik_handle_joints[1:]:
                 cmds.connectAttr('%s.outColorR' % save_volume_condition_node, '%s.scaleY' % jnt)
                 cmds.connectAttr('%s.outColorR' % save_volume_condition_node, '%s.scaleZ' % jnt)
@@ -4748,9 +4773,9 @@ def create_controls():
     cmds.parent(foot_automation_grp, rig_setup_grp)
     cmds.parent(left_foot_pivot_grp, foot_automation_grp)
     cmds.parent(right_foot_pivot_grp, foot_automation_grp)
-    cmds.setAttr(foot_automation_grp + '.v', 0)
-    cmds.setAttr(stretchy_system_grp + '.v', 0)
-    cmds.setAttr(ik_solvers_grp + '.v', 0)
+    #cmds.setAttr(foot_automation_grp + '.v', 0)
+    #cmds.setAttr(stretchy_system_grp + '.v', 0)
+    #cmds.setAttr(ik_solvers_grp + '.v', 0)
     lock_hide_default_attr(foot_automation_grp, visibility=False)
     lock_hide_default_attr(stretchy_system_grp, visibility=False)
     lock_hide_default_attr(ik_solvers_grp, visibility=False)
@@ -5259,8 +5284,9 @@ def create_controls():
     lock_hide_default_attr(direction_ctrl, translate=False, rotate=False, visibility=False)
     lock_hide_default_attr(rig_setup_grp, visibility=False)
     lock_hide_default_attr(geometry_grp, visibility=False)
+    lock_hide_default_attr(rig_grp, visibility=False)
  
-    # Final Adjustments and Color
+    # Hierarchy Adjustments and Color
     cmds.setAttr(rig_setup_grp + '.v', 0)
     cmds.setAttr(left_clavicle_switch_jnt + '.v', 0)
     cmds.setAttr(right_clavicle_switch_jnt + '.v', 0)
@@ -5290,23 +5316,117 @@ def create_controls():
     cmds.delete(gt_ab_settings.get('main_proxy_grp'))
     
     # Add Notes
-    note = 'This rig was generated using ' + str(script_name) + '.\n\nAny issues, questions or suggestions, go to:\ngithub.com/TrevisanGMW/gt-tools'
+    note = 'This rig was created using ' + str(script_name) + '. (v' + str(script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
     add_node_note(main_ctrl, note)
     add_node_note(main_ctrl_grp, note)
     add_node_note(controls_grp, note)
+    add_node_note(rig_grp, note)
     
-    # Store Created Joints
+    ################# Joint Labelling #################
+    # cmds.addAttr(skeleton_grp, ln="skeletonOptions", at="enum", en="-------------:", keyable=True)
+    # cmds.setAttr(skeleton_grp + '.skeletonOptions', lock=True)
+    # cmds.addAttr(skeleton_grp, ln="labelVisibility", at="bool", keyable=True)
+    # cmds.setAttr(skeleton_grp + '.labelVisibility', 1)
+    #for jnt in gt_ab_joints:
+        #cmds.connectAttr(skeleton_grp + '.labelVisibility', gt_ab_joints.get(jnt) + '.drawLabel', f=True)
+        ##cmds.setAttr(gt_ab_joints.get(jnt) + '.drawLabel', 1)
+
+    
+    # Joint Side
+    for obj in gt_ab_joints:
+        if 'left_' in obj:
+            cmds.setAttr(gt_ab_joints.get(obj) + '.side', 1) # 1 Left
+        elif 'right_' in obj:
+            cmds.setAttr(gt_ab_joints.get(obj) + '.side', 2) # 2 Right
+        else:
+            cmds.setAttr(gt_ab_joints.get(obj) + '.side', 0) # 0 Center
+    
+    
+    # Joint Label
+    cmds.setAttr(gt_ab_joints.get('main_jnt') + '.type', 18) # Other
+    cmds.setAttr(gt_ab_joints.get('main_jnt') + '.otherType', 'Origin', type='string') # Other
+    cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.type', 1) # Root
+    cmds.setAttr(gt_ab_joints.get('spine01_jnt') + '.type', 6) # Spine
+    cmds.setAttr(gt_ab_joints.get('spine02_jnt') + '.type', 6) # Spine
+    cmds.setAttr(gt_ab_joints.get('spine03_jnt') + '.type', 6) # Spine
+    cmds.setAttr(gt_ab_joints.get('spine04_jnt') + '.type', 6) # Spine
+    cmds.setAttr(gt_ab_joints.get('neck_base_jnt') + '.type', 7) # Neck
+    cmds.setAttr(gt_ab_joints.get('neck_mid_jnt') + '.type', 7) # Neck
+    cmds.setAttr(gt_ab_joints.get('head_jnt') + '.type', 8) # Head
+    cmds.setAttr(gt_ab_joints.get('jaw_jnt') + '.type', 18) # Other
+    cmds.setAttr(gt_ab_joints.get('jaw_jnt') + '.otherType', 'Jaw', type='string') # Other
+    cmds.setAttr(gt_ab_joints.get('left_eye_jnt') + '.type', 18) # Other
+    cmds.setAttr(gt_ab_joints.get('right_eye_jnt') + '.type', 18) # Other
+    cmds.setAttr(gt_ab_joints.get('left_eye_jnt') + '.otherType', 'Eye', type='string') # Other
+    cmds.setAttr(gt_ab_joints.get('right_eye_jnt') + '.otherType', 'Eye', type='string') # Other
+    cmds.setAttr(gt_ab_joints.get('hip_jnt') + '.type', 2) # Hip
+    cmds.setAttr(gt_ab_joints.get('left_hip_jnt') + '.type', 2) # Hip
+    cmds.setAttr(gt_ab_joints.get('right_hip_jnt') + '.type', 2) # Hip
+    cmds.setAttr(gt_ab_joints.get('left_knee_jnt') + '.type', 3) # Knee
+    cmds.setAttr(gt_ab_joints.get('right_knee_jnt') + '.type', 3) # Knee
+    cmds.setAttr(gt_ab_joints.get('left_ankle_jnt') + '.type', 4) # Foot
+    cmds.setAttr(gt_ab_joints.get('right_ankle_jnt') + '.type', 4) # Foot
+    cmds.setAttr(gt_ab_joints.get('left_ball_jnt') + '.type', 5) # Toe
+    cmds.setAttr(gt_ab_joints.get('right_ball_jnt') + '.type', 5) # Toe
+    cmds.setAttr(gt_ab_joints.get('left_clavicle_jnt') + '.type', 9) # Collar
+    cmds.setAttr(gt_ab_joints.get('right_clavicle_jnt') + '.type', 9) # Collar
+    cmds.setAttr(gt_ab_joints.get('left_shoulder_jnt') + '.type', 10) # Shoulder
+    cmds.setAttr(gt_ab_joints.get('right_shoulder_jnt') + '.type', 10) # Shoulder
+    cmds.setAttr(gt_ab_joints.get('left_elbow_jnt') + '.type', 11) # Elbow
+    cmds.setAttr(gt_ab_joints.get('right_elbow_jnt') + '.type', 11) # Elbow
+    cmds.setAttr(gt_ab_joints.get('left_wrist_jnt') + '.type', 12) # Elbow
+    cmds.setAttr(gt_ab_joints.get('right_wrist_jnt') + '.type', 12) # Elbow
+    cmds.setAttr(left_forearm_jnt + '.type', 18) # Other
+    cmds.setAttr(right_forearm_jnt + '.type', 18) # Other
+    cmds.setAttr(left_forearm_jnt + '.otherType', 'Forearm', type='string') # Other
+    cmds.setAttr(right_forearm_jnt + '.otherType', 'Forearm', type='string') # Other
+    # Left Fingers
+    cmds.setAttr(gt_ab_joints.get('left_thumb01_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('left_thumb02_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('left_thumb03_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('left_index01_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('left_index02_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('left_index03_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('left_middle01_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('left_middle02_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('left_middle03_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('left_ring01_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('left_ring02_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('left_ring03_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('left_pinky01_jnt') + '.type', 22) # Pinky Finger
+    cmds.setAttr(gt_ab_joints.get('left_pinky02_jnt') + '.type', 22) # Pinky Finger
+    cmds.setAttr(gt_ab_joints.get('left_pinky03_jnt') + '.type', 22) # Pinky Finger
+    # Right Fingers
+    cmds.setAttr(gt_ab_joints.get('right_thumb01_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('right_thumb02_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('right_thumb03_jnt') + '.type', 14) # Thumb
+    cmds.setAttr(gt_ab_joints.get('right_index01_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('right_index02_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('right_index03_jnt') + '.type', 19) # Index Finger
+    cmds.setAttr(gt_ab_joints.get('right_middle01_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('right_middle02_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('right_middle03_jnt') + '.type', 20) # Middle Finger
+    cmds.setAttr(gt_ab_joints.get('right_ring01_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('right_ring02_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('right_ring03_jnt') + '.type', 21) # Ring Finger
+    cmds.setAttr(gt_ab_joints.get('right_pinky01_jnt') + '.type', 22) # Pinky Finger
+    cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
+    cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
+    # Clean Selection
+    cmds.select(d=True)
+    
+    ################# Store Created Joints #################
     gt_ab_joints_default['left_forearm_jnt'] = left_forearm_jnt
     gt_ab_joints_default['right_forearm_jnt'] = right_forearm_jnt
 
     for obj in gt_ab_joints:
         gt_ab_joints_default[obj] = gt_ab_joints.get(obj)
+    
 
-
-    # Print Feedback
+    ################# Print Feedback #################
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Control Rig</span><span style=\"color:#FFFFFF;\"> has been generated. Enjoy!</span>', pos='botLeft', fade=True, alpha=.9)
-
+    
 
 
 def select_skinning_joints():
@@ -5597,4 +5717,4 @@ def import_proxy_pose():
 
 # Build UI
 if __name__ == '__main__':
-    build_gui_auto_biped_rig() 
+    build_gui_auto_biped_rig()
