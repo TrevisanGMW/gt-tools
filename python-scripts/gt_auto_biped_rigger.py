@@ -19,6 +19,10 @@
  Updated stretchy system to account for any curvature
  Fixed possible scale cycle happening during control creation
  
+ 1.2 - 2021-01-04
+ Changed stretchy system so it doesn't use a floatConstant node
+ Updated the import proxy function so it doesn't give an error when importing a different scale
+ 
  To do:
     Add more roll joints
     Add utilities
@@ -738,8 +742,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             
             # Stretch
             activation_blend_node = cmds.createNode('blendTwoAttr', name=stretchy_name + "_strechyActivation_blend")
-            constant_one = cmds.createNode('floatConstant', name=stretchy_name + "_strechyInactive_value")
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % activation_blend_node)
+            cmds.setAttr(activation_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outColorR' % stretch_condition_node, '%s.input[1]' % activation_blend_node)
             cmds.connectAttr('%s.stretch' % attribute_holder, '%s.attributesBlender' % activation_blend_node)
             
@@ -769,7 +772,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.connectAttr('%s.outputX' % volume_value_divide_node, '%s.input2X' % xy_divide_node)
             cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.input1X' % xy_divide_node)
             
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % volume_blend_node)
+            cmds.setAttr(volume_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outputX' % xy_divide_node, '%s.input[1]' % volume_blend_node)
           
             cmds.connectAttr('%s.saveVolume' % attribute_holder, '%s.attributesBlender' % volume_blend_node)
@@ -782,7 +785,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.connectAttr('%s.maximumVolume' % attribute_holder, '%s.maxR' % volume_clamp_node)
         
             # Base Multiplier
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % volume_base_blend_node)
+            cmds.setAttr(volume_base_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outColorR' % save_volume_condition_node, '%s.input[1]' % volume_base_blend_node)
             cmds.connectAttr('%s.baseVolumeMultiplier' % attribute_holder, '%s.attributesBlender' % volume_base_blend_node)
         
@@ -6146,10 +6149,18 @@ def import_proxy_pose():
                                     set_unlocked_attr(curent_object[0], 'rx', curent_object[2][0])
                                     set_unlocked_attr(curent_object[0], 'ry', curent_object[2][1])
                                     set_unlocked_attr(curent_object[0], 'rz', curent_object[2][2])
-                                    set_unlocked_attr(curent_object[0], 'sx', curent_object[3][0])
-                                    set_unlocked_attr(curent_object[0], 'sy', curent_object[3][1])
-                                    set_unlocked_attr(curent_object[0], 'sz', curent_object[3][2])
-                    
+                                    try:
+                                        set_unlocked_attr(curent_object[0], 'sx', curent_object[3][0])
+                                    except:
+                                        pass
+                                    try:
+                                        set_unlocked_attr(curent_object[0], 'sy', curent_object[3][1])
+                                    except:
+                                        pass
+                                    try:
+                                        set_unlocked_attr(curent_object[0], 'sz', curent_object[3][2])
+                                    except:
+                                        pass
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>', pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Pose imported from the file "' + pose_file + '".')
@@ -6163,4 +6174,4 @@ def import_proxy_pose():
 
 # Build UI
 if __name__ == '__main__':
-    build_gui_auto_biped_rig()    
+    build_gui_auto_biped_rig()
