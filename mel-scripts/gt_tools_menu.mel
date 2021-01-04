@@ -114,10 +114,16 @@
 //   Removed Create IK Leg
 //	 Updated Make IK Stretchy
 //
+//   1.6.4
+//	 Only updated the version, no changes to the menu
+//
+//   1.6.5
+//	 So far, only changed the version
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.6.4";
+global string $scriptVersion = "1.6.5";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
