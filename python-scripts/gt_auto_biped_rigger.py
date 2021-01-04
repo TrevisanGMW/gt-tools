@@ -6,24 +6,25 @@
  1.0 - 2020-12-29
  Initial Release
  
- 1.1 - 2021-XX-XX - WIP
-    Changed and added a few notes
- Locked default channels for the main rig group
+ 1.1 - 2021-01-03
+ Renamed shapes
  Added joint labelling
+ Added icons to buttons
+ Added curves (lines) between proxies
+ Changed and added a few notes
+ Added manip default to all controls
+ Locked default channels for the main rig group
  Made rig setup elements visible after creation
-    Added manip default 
  Updated stretchy system to avoid cycles or errors
  Updated stretchy system to account for any curvature
+ Fixed possible scale cycle happening during control creation
  
  To do:
     Add more roll joints
     Add utilities
         Toggle label visibility
         Convert rig to proxy
-    Add icons to buttons 
-    Rename the shapes of many controls
     Add option to auto create proxy geo
-    Add option to create lines between proxies
     Add option to colorize (or not) proxy and rig elements
     Add option to not include forearm/eyes in the skinning joints
     Create button to add a shelf button that seamlessly switches between IK and FK
@@ -46,10 +47,12 @@ from decimal import *
 import maya.cmds as cmds
 import maya.mel as mel
 import random
+import base64
 import copy
 import math
 import json
 import sys
+import os
 
 
 # Script Name
@@ -65,6 +68,8 @@ proxy_suffix = 'proxy'
 ctrl_suffix = 'ctrl'
 automation_suffix = 'automation'
 multiply_suffix = 'multiply'
+first_shape_suffix = '1st'
+second_shape_suffix = '2nd'
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -172,13 +177,48 @@ def build_gui_auto_biped_rig():
     cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_help_gui_auto_biped_rig())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
+    ######## Generate Images ########
+    # Icon
+    icons_folder_dir = cmds.internalVar(userBitmapsDir=True) 
+    
+    # Create Proxy Icon
+    create_proxy_btn_ico = icons_folder_dir + 'gt_abr_create_proxy.png'
+    
+    if os.path.isdir(icons_folder_dir) and os.path.exists(create_proxy_btn_ico) == False:
+        image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNi4wLWMwMDIgNzkuMTY0NDg4LCAyMDIwLzA3LzEwLTIyOjA2OjUzICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjIuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTEyLTMwVDIyOjI4OjU0LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMS0wMS0wM1QxMToxNDowOS0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMS0wMS0wM1QxMToxNDowOS0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpjOTRkMjQ0MS03ZDAyLTZk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'
+        image_64_decode = base64.decodestring(image_enconded)
+        image_result = open(create_proxy_btn_ico, 'wb')
+        image_result.write(image_64_decode)
+        image_result.close()
+        
+    # Create Rig Icon
+    create_rig_btn_ico = icons_folder_dir + 'gt_abr_create_rig.png'
+    
+    if os.path.isdir(icons_folder_dir) and os.path.exists(create_rig_btn_ico) == False:
+        image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNi4wLWMwMDIgNzkuMTY0NDg4LCAyMDIwLzA3LzEwLTIyOjA2OjUzICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjIuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTEyLTMwVDIyOjM2OjU3LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMS0wMS0wM1QxMTo1OTowNC0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMS0wMS0wM1QxMTo1OTowNC0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDphOTMwMjJjNC0zZTljLWQ5NGYtOGZiMi0xMThkNzc2Y2I4YTYiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDowZGQ3ODU1NS05Nzk0LTk1NDctOGJmOS02NTM5YmFiOTU0ODkiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpmMDJjNmFhZC1lZmRmLWQ5NDktOTYyYy1lOThmMTZiOTljMDgiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmYwMmM2YWFkLWVmZGYtZDk0OS05NjJjLWU5OGYxNmI5OWMwOCIgc3RFdnQ6d2hlbj0iMjAyMC0xMi0zMFQyMjozNjo1Ny0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIyLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDphOTMwMjJjNC0zZTljLWQ5NGYtOGZiMi0xMThkNzc2Y2I4YTYiIHN0RXZ0OndoZW49IjIwMjEtMDEtMDNUMTE6NTk6MDQtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMi4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4QupX8AAACnElEQVRYhcWXPWsUURSG33XDfkUQVGKimw/TCRYiiCJisBDEVjAIKQQ7FX9AOv0FloKdFmlECyG9IMRKUdFCiYW4S8wmxtVEXVEfi3uGGWdnZndnZ/HAgZnznq977plz7+QA/U8a6kJnVtINSXVJnyXlJb2X9Nr4paT11BkAnfg0sIVPz4FN/qU14HoXvtq4F+V5C3YPyJnsMHAFeGxYA5gaVAICjligTaAcwqrAD8P3DioBAbus5FjQIDYM1A2b7sZfjnRfQdEaLy+pHMKGJK1J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'
+        image_64_decode = base64.decodestring(image_enconded)
+        image_result = open(create_rig_btn_ico, 'wb')
+        image_result.write(image_64_decode)
+        image_result.close()
+
+
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     
     # Step 1
     cmds.text('Step 1 - Proxy:', font='boldLabelFont')
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.button( l ="Create Proxy", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_proxy'))
+    # cmds.button( l ="Create Proxy", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_proxy'))
+    
+    # cmds.iconTextButton( style='iconAndTextHorizontal', image1=create_proxy_btn_ico, label='Create Proxy',\
+    #                      statusBarMessage='Creates a proxy/guide elements so the user can determine the character\'s shape.',\
+    #                      olc=[1,0,0] , enableBackground=True, bgc=[.6,.6,.6], h=40, marginWidth=60,\
+    #                      command=lambda: validate_operation('create_proxy'))
+    
+    cmds.iconTextButton( style='iconAndTextVertical', image1=create_proxy_btn_ico, label='Create Proxy',\
+                         statusBarMessage='Creates a proxy/guide elements so the user can determine the character\'s shape.',\
+                         olc=[1,0,0] , enableBackground=True, bgc=[.4,.4,.4], h=80,\
+                         command=lambda: validate_operation('create_proxy'))
     
     # Step 2
     cmds.separator(h=5, style='none') # Empty Space
@@ -207,7 +247,12 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text('Step 3 - Create Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none') # Empty Space
-    cmds.button( l ="Create Rig", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_controls'))
+    #cmds.button( l ="Create Rig", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_controls'))
+    
+    cmds.iconTextButton( style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Rig',\
+                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to determine how to create the skeleton, controls and mechanics.',\
+                         olc=[1,0,0] , enableBackground=True, bgc=[.4,.4,.4], h=80,\
+                         command=lambda: validate_operation('create_controls'))
     
     # Step 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1,0)], p=body_column)
@@ -760,6 +805,38 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
+def create_visualization_line(object_a, object_b):
+    ''' 
+    Creates a curve attached to two objects so you can easily visualize hierarchies 
+    
+                Parameters:
+                    object_a (string): Name of the object driving the start of the curve
+                    object_b (string): Name of the object driving end of the curve (usually a child of object_a)
+                    
+                Returns:
+                    list (list): A list with the generated curve, cluster_a, and cluster_b
+    
+    '''
+    crv = cmds.curve(p=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],d=1)
+    cluster_a = cmds.cluster( crv + '.cv[0]' )
+    cluster_b = cmds.cluster( crv + '.cv[1]' )
+
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_a, cluster_a[1])
+        
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_b, cluster_b[1])
+        
+    crv = cmds.rename(crv, object_a + '_to_' + object_b)
+    cluster_a = cmds.rename(cluster_a[1], object_a + '_cluster')
+    cluster_b = cmds.rename(cluster_b[1], object_b + '_cluster')
+    cmds.setAttr(cluster_a + '.v', 0)
+    cmds.setAttr(cluster_b + '.v', 0)
+
+    return [crv, cluster_a, cluster_b]
+
+
+
 def create_joint_curve(name, scale, initial_position=(0,0,0)): 
     ''' 
     Creates a curve that looks like a joint to be used as a proxy 
@@ -803,9 +880,12 @@ def create_loc_joint_curve(name, scale, initial_position=(0,0,0)):
     cmds.scale(scale, scale, scale, curve_crv)
     cmds.move(initial_position[0], initial_position[1],initial_position[2], curve_crv)
     cmds.makeIdentity(curve_crv, apply=True, translate=True, scale=True)
+    
     # Rename Shapes
-    for shape in cmds.listRelatives(curve_crv, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(name))
+    shapes =  cmds.listRelatives(curve_crv, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(curve_crv + 'Joint'))
+    cmds.rename(shapes[1], "{0}Shape".format(curve_crv + 'Loc'))
+    
     return curve_crv
     
 def create_aim_joint_curve(name, scale):
@@ -828,9 +908,12 @@ def create_aim_joint_curve(name, scale):
     curve_crv = gtu_combine_curves_list(curve_assembly)
     cmds.scale(scale, scale, scale, curve_crv)
     cmds.makeIdentity(curve_crv, apply=True, translate=True, scale=True)
+    
     # Rename Shapes
-    for shape in cmds.listRelatives(curve_crv, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(name))
+    shapes =  cmds.listRelatives(curve_crv, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(curve_crv + 'Joint'))
+    cmds.rename(shapes[1], "{0}Shape".format(curve_crv + 'Arrow'))
+    
     return curve_crv
 
 def create_directional_joint_curve(name, scale):
@@ -857,9 +940,14 @@ def create_directional_joint_curve(name, scale):
     curve_crv = gtu_combine_curves_list(curve_assembly)
     cmds.scale(scale, scale, scale, curve_crv)
     cmds.makeIdentity(curve_crv, apply=True, translate=True, scale=True)
+    
     # Rename Shapes
-    for shape in cmds.listRelatives(curve_crv, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(name))
+    shapes =  cmds.listRelatives(curve_crv, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(curve_crv + 'Joint'))
+    cmds.rename(shapes[1], "{0}Shape".format(curve_crv + 'ArrowTip'))
+    cmds.rename(shapes[2], "{0}Shape".format(curve_crv + 'ArrowBase'))
+    cmds.rename(shapes[3], "{0}Shape".format(curve_crv + 'ArrowLine'))
+    
     return curve_crv
 
 def create_main_control(name): 
@@ -879,9 +967,12 @@ def create_main_control(name):
     main_crv_b = cmds.curve(name=name + 'direction', p=[[-11.7, 0.0, 45.484], [-11.7, 0.0, 59.009], [-23.4, 0.0, 59.009], [0.0, 0.0, 82.409], [23.4, 0.0, 59.009], [11.7, 0.0, 59.009], [11.7, 0.0, 45.484]],d=1)
     main_crv_assembly.append(main_crv_b)
     main_crv = gtu_combine_curves_list(main_crv_assembly)
+    
     # Rename Shapes
-    for shape in cmds.listRelatives(main_crv, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(name))
+    shapes =  cmds.listRelatives(main_crv, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format('main_ctrlCircle'))
+    cmds.rename(shapes[1], "{0}Shape".format('main_ctrlArrow'))
+    
     return main_crv
 
 
@@ -2025,7 +2116,109 @@ def create_proxy(colorize_proxy=True):
                 change_viewport_color(proxy_crv, color)
             if colorize_proxy and is_end_jnt:
                 change_outliner_color(proxy_crv, (.8,.8,0))
-            
+    
+    # Create Lines
+    line_list = []
+    line_list.append(create_visualization_line(gt_ab_settings.get('cog_proxy_crv'), gt_ab_settings.get('hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('cog_proxy_crv'), gt_ab_settings.get('spine01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine01_proxy_crv'), gt_ab_settings.get('spine02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine02_proxy_crv'), gt_ab_settings.get('spine03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine03_proxy_crv'), gt_ab_settings.get('spine04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('neck_base_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('neck_base_proxy_crv'), gt_ab_settings.get('neck_mid_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('neck_mid_proxy_crv'), gt_ab_settings.get('head_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('head_end_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('jaw_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('jaw_proxy_crv'), gt_ab_settings.get('jaw_end_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('left_eye_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('right_eye_proxy_crv')))
+    # Left Side
+    line_list.append(create_visualization_line(gt_ab_settings.get('hip_proxy_crv'), gt_ab_settings.get('left_hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_hip_proxy_crv'), gt_ab_settings.get('left_knee_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_knee_proxy_crv'), gt_ab_settings.get('left_ankle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_ankle_proxy_crv'), gt_ab_settings.get('left_ball_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_ball_proxy_crv'), gt_ab_settings.get('left_toe_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('left_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_clavicle_proxy_crv'), gt_ab_settings.get('left_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_shoulder_proxy_crv'), gt_ab_settings.get('left_elbow_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_elbow_proxy_crv'), gt_ab_settings.get('left_wrist_proxy_crv')))
+    # Left Fingers
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb01_proxy_crv'), gt_ab_settings.get('left_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb02_proxy_crv'), gt_ab_settings.get('left_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb03_proxy_crv'), gt_ab_settings.get('left_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_index01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_index01_proxy_crv'), gt_ab_settings.get('left_index02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_index02_proxy_crv'), gt_ab_settings.get('left_index03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_index03_proxy_crv'), gt_ab_settings.get('left_index04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle01_proxy_crv'), gt_ab_settings.get('left_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle02_proxy_crv'), gt_ab_settings.get('left_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle03_proxy_crv'), gt_ab_settings.get('left_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring01_proxy_crv'), gt_ab_settings.get('left_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring02_proxy_crv'), gt_ab_settings.get('left_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring03_proxy_crv'), gt_ab_settings.get('left_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky01_proxy_crv'), gt_ab_settings.get('left_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky02_proxy_crv'), gt_ab_settings.get('left_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky03_proxy_crv'), gt_ab_settings.get('left_pinky04_proxy_crv')))
+    # Right Side
+    line_list.append(create_visualization_line(gt_ab_settings.get('hip_proxy_crv'), gt_ab_settings.get('right_hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_hip_proxy_crv'), gt_ab_settings.get('right_knee_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_knee_proxy_crv'), gt_ab_settings.get('right_ankle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_ankle_proxy_crv'), gt_ab_settings.get('right_ball_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_ball_proxy_crv'), gt_ab_settings.get('right_toe_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('right_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_clavicle_proxy_crv'), gt_ab_settings.get('right_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_shoulder_proxy_crv'), gt_ab_settings.get('right_elbow_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_elbow_proxy_crv'), gt_ab_settings.get('right_wrist_proxy_crv')))
+    # Right Fingers
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb01_proxy_crv'), gt_ab_settings.get('right_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb02_proxy_crv'), gt_ab_settings.get('right_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb03_proxy_crv'), gt_ab_settings.get('right_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_index01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_index01_proxy_crv'), gt_ab_settings.get('right_index02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_index02_proxy_crv'), gt_ab_settings.get('right_index03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_index03_proxy_crv'), gt_ab_settings.get('right_index04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle01_proxy_crv'), gt_ab_settings.get('right_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle02_proxy_crv'), gt_ab_settings.get('right_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle03_proxy_crv'), gt_ab_settings.get('right_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring01_proxy_crv'), gt_ab_settings.get('right_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring02_proxy_crv'), gt_ab_settings.get('right_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring03_proxy_crv'), gt_ab_settings.get('right_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky01_proxy_crv'), gt_ab_settings.get('right_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky02_proxy_crv'), gt_ab_settings.get('right_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky03_proxy_crv'), gt_ab_settings.get('right_pinky04_proxy_crv')))
+    
+    lines_grp = cmds.group(name='visualization_lines', empty=True, world=True)
+    cmds.setAttr(lines_grp + '.overrideEnabled', 1)
+    cmds.setAttr(lines_grp + '.overrideDisplayType', 1)
+    for line_objs in line_list:
+        for obj in line_objs:
+            cmds.parent(obj, lines_grp)
+   
+    cmds.parent(lines_grp, gt_ab_settings.get('main_proxy_grp'))
+    
+    cmds.addAttr(gt_ab_settings.get('main_crv'), ln="proxyOptions", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(gt_ab_settings.get('main_crv') + '.proxyOptions', lock=True)
+    cmds.addAttr(gt_ab_settings.get('main_crv'), ln="linesVisibility", at="bool", keyable=True)
+    cmds.setAttr(gt_ab_settings.get('main_crv') + '.linesVisibility', 1)
+    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.linesVisibility', lines_grp + '.v', f=True)
+    
+    # Main Proxy Control Scale
+    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.sy', gt_ab_settings.get('main_crv') + '.sx', f=True)
+    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.sy', gt_ab_settings.get('main_crv') + '.sz', f=True)
+    cmds.setAttr(gt_ab_settings.get('main_crv') + '.sx', k=False)
+    cmds.setAttr(gt_ab_settings.get('main_crv') + '.sz', k=False)
+    
+    
+    # Clean Selection and Print Feedback
+    cmds.select(d=True)
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span><span style=\"color:#FFFFFF;\"> was created!</span>', pos='botLeft', fade=True, alpha=.9)
 
@@ -2770,13 +2963,16 @@ def create_controls():
     
     # Main Ctrl
     main_ctrl = create_main_control(name='main_' + ctrl_suffix)
-    cmds.delete(cmds.scaleConstraint(gt_ab_settings.get('main_crv'), main_ctrl))
+    main_ctrl_scale = cmds.xform(gt_ab_settings.get('main_crv'), q=True, ws=True, scale=True)
+    cmds.scale( main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl )
+
     cmds.makeIdentity(main_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(main_ctrl, s=True, f=True) or []:
         try:
             cmds.setAttr(shape + '.lineWidth', 3)
         except:
             pass
+            
     change_viewport_color(main_ctrl, (1,0.171,0.448))
     main_ctrl_grp = cmds.group(name=main_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(main_ctrl, main_ctrl_grp)
@@ -3024,6 +3220,9 @@ def create_controls():
     left_hip_ctrl = cmds.curve(name=gt_ab_joints.get('left_hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     left_hip_ctrl_grp = cmds.group(name=left_hip_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_hip_ctrl, left_hip_ctrl_grp)
+    
+    for shape in cmds.listRelatives(left_hip_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_hip_ctrl))
 
     cmds.setAttr(left_hip_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_hip_ctrl + '.scaleY', left_leg_scale_offset)
@@ -3043,6 +3242,9 @@ def create_controls():
     left_knee_ctrl_grp = cmds.group(name=left_knee_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_knee_ctrl, left_knee_ctrl_grp)
     
+    for shape in cmds.listRelatives(left_knee_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_knee_ctrl))
+    
     cmds.setAttr(left_knee_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_knee_ctrl + '.scaleY', left_leg_scale_offset)
     cmds.setAttr(left_knee_ctrl + '.scaleZ', left_leg_scale_offset)
@@ -3057,6 +3259,9 @@ def create_controls():
     left_ankle_ctrl = cmds.curve(name=gt_ab_joints.get('left_ankle_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     left_ankle_ctrl_grp = cmds.group(name=left_ankle_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_ankle_ctrl, left_ankle_ctrl_grp)
+    
+    for shape in cmds.listRelatives(left_ankle_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_ankle_ctrl))
     
     cmds.setAttr(left_ankle_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_ankle_ctrl + '.scaleY', left_leg_scale_offset)
@@ -3081,6 +3286,9 @@ def create_controls():
     left_ball_ctrl_grp = cmds.group(name=left_ball_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_ball_ctrl, left_ball_ctrl_grp)
     
+    for shape in cmds.listRelatives(left_ball_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_ball_ctrl))
+    
     cmds.setAttr(left_ball_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_ball_ctrl + '.scaleY', left_leg_scale_offset)
     cmds.setAttr(left_ball_ctrl + '.scaleZ', left_leg_scale_offset)
@@ -3102,6 +3310,9 @@ def create_controls():
     left_knee_ik_ctrl_grp = cmds.group(name=left_knee_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_knee_ik_ctrl, left_knee_ik_ctrl_grp)
     
+    for shape in cmds.listRelatives(left_knee_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_knee_ik_ctrl))
+    
     # Left Knee Find Position
     temp_transform = cmds.group(name=left_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
     cmds.delete(cmds.pointConstraint(gt_ab_settings.get('left_knee_proxy_crv'), temp_transform))
@@ -3122,6 +3333,9 @@ def create_controls():
     left_foot_ik_ctrl = cmds.curve(name='left_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
     left_foot_ik_ctrl_grp = cmds.group(name=left_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_foot_ik_ctrl, left_foot_ik_ctrl_grp)
+    
+    for shape in cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_foot_ik_ctrl))
     
     # Left Foot Scale
     left_foot_scale_offset = 0
@@ -3157,6 +3371,9 @@ def create_controls():
     right_hip_ctrl = cmds.curve(name=gt_ab_joints.get('right_hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     right_hip_ctrl_grp = cmds.group(name=right_hip_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_hip_ctrl, right_hip_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_hip_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_hip_ctrl))
 
     cmds.setAttr(right_hip_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_hip_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3176,6 +3393,9 @@ def create_controls():
     right_knee_ctrl_grp = cmds.group(name=right_knee_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_knee_ctrl, right_knee_ctrl_grp)
     
+    for shape in cmds.listRelatives(right_knee_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_knee_ctrl))
+    
     cmds.setAttr(right_knee_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_knee_ctrl + '.scaleY', right_leg_scale_offset)
     cmds.setAttr(right_knee_ctrl + '.scaleZ', right_leg_scale_offset)
@@ -3190,6 +3410,9 @@ def create_controls():
     right_ankle_ctrl = cmds.curve(name=gt_ab_joints.get('right_ankle_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     right_ankle_ctrl_grp = cmds.group(name=right_ankle_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_ankle_ctrl, right_ankle_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_ankle_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_ankle_ctrl))
     
     cmds.setAttr(right_ankle_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_ankle_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3214,6 +3437,9 @@ def create_controls():
     right_ball_ctrl_grp = cmds.group(name=right_ball_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_ball_ctrl, right_ball_ctrl_grp)
     
+    for shape in cmds.listRelatives(right_ball_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_ball_ctrl))
+    
     cmds.setAttr(right_ball_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_ball_ctrl + '.scaleY', right_leg_scale_offset)
     cmds.setAttr(right_ball_ctrl + '.scaleZ', right_leg_scale_offset)
@@ -3235,6 +3461,9 @@ def create_controls():
     right_knee_ik_ctrl_grp = cmds.group(name=right_knee_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_knee_ik_ctrl, right_knee_ik_ctrl_grp)
     
+    for shape in cmds.listRelatives(right_knee_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_knee_ik_ctrl))
+    
     # Right Knee Find Position
     temp_transform = cmds.group(name=right_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
     cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_knee_proxy_crv'), temp_transform))
@@ -3255,6 +3484,9 @@ def create_controls():
     right_foot_ik_ctrl = cmds.curve(name='right_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
     right_foot_ik_ctrl_grp = cmds.group(name=right_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_foot_ik_ctrl, right_foot_ik_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_foot_ik_ctrl))
     
     # Right Foot Scale
     right_foot_scale_offset = 0
@@ -3285,6 +3517,9 @@ def create_controls():
     left_clavicle_ctrl = cmds.curve(name=gt_ab_joints.get('left_clavicle_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.0, 0.0, 0.0], [0.897, 1.554, 0.0], [0.959, 1.528, 0.0], [1.025, 1.52, 0.0], [1.091, 1.528, 0.0], [1.153, 1.554, 0.0], [1.206, 1.595, 0.0], [1.247, 1.647, 0.0], [1.025, 1.776, 0.0], [0.897, 1.554, 0.0], [0.844, 1.595, 0.0], [0.803, 1.648, 0.0], [0.778, 1.709, 0.0], [0.769, 1.776, 0.0], [0.778, 1.842, 0.0], [0.803, 1.904, 0.0], [0.844, 1.957, 0.0], [0.897, 1.997, 0.0], [0.959, 2.023, 0.0], [1.025, 2.032, 0.0], [1.091, 2.023, 0.0], [1.153, 1.998, 0.0], [1.206, 1.957, 0.0], [1.247, 1.904, 0.0], [1.273, 1.842, 0.0], [1.281, 1.776, 0.0], [1.272, 1.709, 0.0], [1.247, 1.647, 0.0], [0.803, 1.904, 0.0], [1.025, 1.776, 0.0], [1.153, 1.998, 0.0]],d=1)
     left_clavicle_ctrl_grp = cmds.group(name=left_clavicle_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     
+    for shape in cmds.listRelatives(left_clavicle_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_clavicle_ctrl))
+    
     # Left Clavicle Scale
     cmds.setAttr(left_clavicle_ctrl + '.scaleX', general_scale_offset*.25)
     cmds.setAttr(left_clavicle_ctrl + '.scaleY', general_scale_offset*.25)
@@ -3306,6 +3541,9 @@ def create_controls():
     left_shoulder_ctrl_grp = cmds.group(name=left_shoulder_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_shoulder_ctrl, left_shoulder_ctrl_grp)
     
+    for shape in cmds.listRelatives(left_shoulder_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_shoulder_ctrl))
+    
     left_shoulder_scale_offset = cmds.xform(gt_ab_joints.get('left_shoulder_jnt'), q=True, t=True)[0]*6.5
     
     cmds.setAttr(left_shoulder_ctrl + '.scaleX', left_shoulder_scale_offset)
@@ -3322,6 +3560,9 @@ def create_controls():
     left_elbow_ctrl = cmds.curve(name=gt_ab_joints.get('left_elbow_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     left_elbow_ctrl_grp = cmds.group(name=left_elbow_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_elbow_ctrl, left_elbow_ctrl_grp)
+    
+    for shape in cmds.listRelatives(left_elbow_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_elbow_ctrl))
     
     left_arm_scale_offset = cmds.xform(gt_ab_joints.get('left_elbow_jnt'), q=True, t=True)[0]
     left_arm_scale_offset += cmds.xform(gt_ab_joints.get('left_wrist_jnt'), q=True, t=True)[0]
@@ -3341,6 +3582,9 @@ def create_controls():
     left_wrist_ctrl = cmds.curve(name=gt_ab_joints.get('left_wrist_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     left_wrist_ctrl_grp = cmds.group(name=left_wrist_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_wrist_ctrl, left_wrist_ctrl_grp)
+    
+    for shape in cmds.listRelatives(left_wrist_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_wrist_ctrl))
     
     left_arm_scale_offset = left_arm_scale_offset*.9
     
@@ -3463,6 +3707,9 @@ def create_controls():
     left_elbow_ik_ctrl_grp = cmds.group(name=left_elbow_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_elbow_ik_ctrl, left_elbow_ik_ctrl_grp)
     
+    for shape in cmds.listRelatives(left_elbow_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(left_elbow_ik_ctrl))
+    
     # Left Knee Find Position
     left_arm_scale_offset = left_arm_scale_offset*.5
     temp_transform = cmds.group(name=left_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
@@ -3485,6 +3732,9 @@ def create_controls():
     right_clavicle_ctrl = cmds.curve(name=gt_ab_joints.get('right_clavicle_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.0, 0.0, 0.0], [0.897, 1.554, 0.0], [0.959, 1.528, 0.0], [1.025, 1.52, 0.0], [1.091, 1.528, 0.0], [1.153, 1.554, 0.0], [1.206, 1.595, 0.0], [1.247, 1.647, 0.0], [1.025, 1.776, 0.0], [0.897, 1.554, 0.0], [0.844, 1.595, 0.0], [0.803, 1.648, 0.0], [0.778, 1.709, 0.0], [0.769, 1.776, 0.0], [0.778, 1.842, 0.0], [0.803, 1.904, 0.0], [0.844, 1.957, 0.0], [0.897, 1.997, 0.0], [0.959, 2.023, 0.0], [1.025, 2.032, 0.0], [1.091, 2.023, 0.0], [1.153, 1.998, 0.0], [1.206, 1.957, 0.0], [1.247, 1.904, 0.0], [1.273, 1.842, 0.0], [1.281, 1.776, 0.0], [1.272, 1.709, 0.0], [1.247, 1.647, 0.0], [0.803, 1.904, 0.0], [1.025, 1.776, 0.0], [1.153, 1.998, 0.0]],d=1)
     right_clavicle_ctrl_grp = cmds.group(name=right_clavicle_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     
+    for shape in cmds.listRelatives(right_clavicle_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_clavicle_ctrl))
+    
     # Right Clavicle Scale
     cmds.setAttr(right_clavicle_ctrl + '.scaleX', (general_scale_offset*.25)*-1)
     cmds.setAttr(right_clavicle_ctrl + '.scaleY', general_scale_offset*.25)
@@ -3506,6 +3756,9 @@ def create_controls():
     right_shoulder_ctrl_grp = cmds.group(name=right_shoulder_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_shoulder_ctrl, right_shoulder_ctrl_grp)
     
+    for shape in cmds.listRelatives(right_shoulder_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_shoulder_ctrl))
+    
     right_shoulder_scale_offset = cmds.xform(gt_ab_joints.get('right_shoulder_jnt'), q=True, t=True)[0]*6.5
     
     cmds.setAttr(right_shoulder_ctrl + '.scaleX', right_shoulder_scale_offset)
@@ -3522,6 +3775,9 @@ def create_controls():
     right_elbow_ctrl = cmds.curve(name=gt_ab_joints.get('right_elbow_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     right_elbow_ctrl_grp = cmds.group(name=right_elbow_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_elbow_ctrl, right_elbow_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_elbow_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_elbow_ctrl))
     
     right_arm_scale_offset = cmds.xform(gt_ab_joints.get('right_elbow_jnt'), q=True, t=True)[0]
     right_arm_scale_offset += cmds.xform(gt_ab_joints.get('right_wrist_jnt'), q=True, t=True)[0]
@@ -3541,6 +3797,9 @@ def create_controls():
     right_wrist_ctrl = cmds.curve(name=gt_ab_joints.get('right_wrist_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0]],d=3)
     right_wrist_ctrl_grp = cmds.group(name=right_wrist_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_wrist_ctrl, right_wrist_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_wrist_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_wrist_ctrl))
     
     right_arm_scale_offset = right_arm_scale_offset*.9
     
@@ -3662,6 +3921,9 @@ def create_controls():
     right_elbow_ik_ctrl = cmds.curve(name=gt_ab_joints.get('right_elbow_jnt').replace(jnt_suffix, 'ik_') + ctrl_suffix, p=[[-0.125, 0.0, 0.0], [0.125, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.125], [0.0, 0.0, -0.125], [0.0, 0.0, 0.0], [0.0, 0.125, 0.0], [0.0, -0.125, 0.0]],d=1)
     right_elbow_ik_ctrl_grp = cmds.group(name=right_elbow_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_elbow_ik_ctrl, right_elbow_ik_ctrl_grp)
+    
+    for shape in cmds.listRelatives(right_elbow_ik_ctrl, s=True, f=True) or []:
+        shape = cmds.rename(shape, "{0}Shape".format(right_elbow_ik_ctrl))
     
     # Right Elbow Find Position
     right_arm_scale_offset = abs(right_arm_scale_offset)*.5
@@ -3816,8 +4078,9 @@ def create_controls():
     left_toe_roll_ctrl_b = cmds.curve(p=[[-0.0, -0.095, 0.38], [-0.035, -0.145, 0.354], [-0.059, -0.177, 0.335], [-0.092, -0.218, 0.312], [-0.118, -0.248, 0.286], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.096, -0.259, 0.275], [-0.068, -0.232, 0.3], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.339, 0.2], [-0.046, -0.387, -0.018], [-0.046, -0.332, -0.173], [-0.046, -0.265, -0.256], [-0.046, -0.167, -0.332], [-0.046, 0.0, -0.38], [-0.046, 0.167, -0.332], [-0.046, 0.265, -0.256], [-0.046, 0.332, -0.173], [-0.046, 0.387, -0.018], [-0.046, 0.339, 0.2], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.068, 0.232, 0.3], [-0.096, 0.259, 0.275], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.118, 0.248, 0.286], [-0.092, 0.218, 0.312], [-0.059, 0.177, 0.335], [-0.035, 0.145, 0.354], [-0.0, 0.095, 0.38]],d=3)
     left_toe_roll_ctrl = gtu_combine_curves_list([left_toe_roll_ctrl_a, left_toe_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(left_toe_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(left_toe_roll_ctrl))
+    shapes =  cmds.listRelatives(left_toe_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(left_toe_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(left_toe_roll_ctrl + second_shape_suffix))
     
     left_toe_roll_ctrl_grp = cmds.group(name=left_toe_roll_ctrl + '_' + grp_suffix, empty=True, world=True)
     cmds.parent(left_toe_roll_ctrl, left_toe_roll_ctrl_grp)
@@ -3869,8 +4132,9 @@ def create_controls():
     left_ball_roll_ctrl_b = cmds.curve(p=[[-0.0, -0.095, 0.38], [-0.035, -0.145, 0.354], [-0.059, -0.177, 0.335], [-0.092, -0.218, 0.312], [-0.118, -0.248, 0.286], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.096, -0.259, 0.275], [-0.068, -0.232, 0.3], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.339, 0.2], [-0.046, -0.387, -0.018], [-0.046, -0.332, -0.173], [-0.046, -0.265, -0.256], [-0.046, -0.167, -0.332], [-0.046, 0.0, -0.38], [-0.046, 0.167, -0.332], [-0.046, 0.265, -0.256], [-0.046, 0.332, -0.173], [-0.046, 0.387, -0.018], [-0.046, 0.339, 0.2], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.068, 0.232, 0.3], [-0.096, 0.259, 0.275], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.118, 0.248, 0.286], [-0.092, 0.218, 0.312], [-0.059, 0.177, 0.335], [-0.035, 0.145, 0.354], [-0.0, 0.095, 0.38]],d=3)
     left_ball_roll_ctrl = gtu_combine_curves_list([left_ball_roll_ctrl_a, left_ball_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(left_ball_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(left_ball_roll_ctrl))
+    shapes =  cmds.listRelatives(left_ball_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(left_ball_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(left_ball_roll_ctrl + second_shape_suffix))
     
     left_ball_roll_ctrl_grp = cmds.group(name=left_ball_roll_ctrl + '_' + grp_suffix, empty=True, world=True)
     cmds.parent(left_ball_roll_ctrl, left_ball_roll_ctrl_grp)
@@ -3896,8 +4160,9 @@ def create_controls():
     left_heel_roll_ctrl_b = cmds.curve(p=[[0.0, 0.095, -0.38], [-0.035, 0.145, -0.354], [-0.059, 0.177, -0.335], [-0.092, 0.218, -0.312], [-0.118, 0.248, -0.286], [-0.152, 0.272, -0.254], [-0.152, 0.272, -0.254], [-0.152, 0.272, -0.254], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.096, 0.259, -0.275], [-0.068, 0.232, -0.3], [-0.046, 0.201, -0.32], [-0.046, 0.201, -0.32], [-0.046, 0.201, -0.32], [-0.046, 0.339, -0.2], [-0.046, 0.387, 0.018], [-0.046, 0.332, 0.173], [-0.046, 0.265, 0.256], [-0.046, 0.167, 0.332], [-0.046, -0.0, 0.38], [-0.046, -0.167, 0.332], [-0.046, -0.265, 0.256], [-0.046, -0.332, 0.173], [-0.046, -0.387, 0.018], [-0.046, -0.339, -0.2], [-0.046, -0.201, -0.32], [-0.046, -0.201, -0.32], [-0.046, -0.201, -0.32], [-0.068, -0.232, -0.3], [-0.096, -0.259, -0.275], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.152, -0.272, -0.254], [-0.152, -0.272, -0.254], [-0.152, -0.272, -0.254], [-0.118, -0.248, -0.286], [-0.092, -0.218, -0.312], [-0.059, -0.177, -0.335], [-0.035, -0.145, -0.354], [0.0, -0.095, -0.38]],d=3)
     left_heel_roll_ctrl = gtu_combine_curves_list([left_heel_roll_ctrl_a, left_heel_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(left_heel_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(left_heel_roll_ctrl))
+    shapes =  cmds.listRelatives(left_heel_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(left_heel_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(left_heel_roll_ctrl + second_shape_suffix))
     
     left_heel_roll_ctrl_grp = cmds.group(name=left_heel_roll_ctrl + '_' + grp_suffix, empty=True, world=True)
     cmds.parent(left_heel_roll_ctrl, left_heel_roll_ctrl_grp)
@@ -3925,8 +4190,9 @@ def create_controls():
     right_toe_roll_ctrl_b = cmds.curve(p=[[-0.0, -0.095, 0.38], [-0.035, -0.145, 0.354], [-0.059, -0.177, 0.335], [-0.092, -0.218, 0.312], [-0.118, -0.248, 0.286], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.096, -0.259, 0.275], [-0.068, -0.232, 0.3], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.339, 0.2], [-0.046, -0.387, -0.018], [-0.046, -0.332, -0.173], [-0.046, -0.265, -0.256], [-0.046, -0.167, -0.332], [-0.046, 0.0, -0.38], [-0.046, 0.167, -0.332], [-0.046, 0.265, -0.256], [-0.046, 0.332, -0.173], [-0.046, 0.387, -0.018], [-0.046, 0.339, 0.2], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.068, 0.232, 0.3], [-0.096, 0.259, 0.275], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.118, 0.248, 0.286], [-0.092, 0.218, 0.312], [-0.059, 0.177, 0.335], [-0.035, 0.145, 0.354], [-0.0, 0.095, 0.38]],d=3)
     right_toe_roll_ctrl = gtu_combine_curves_list([right_toe_roll_ctrl_a, right_toe_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(right_toe_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(right_toe_roll_ctrl))
+    shapes =  cmds.listRelatives(right_toe_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(right_toe_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(right_toe_roll_ctrl + second_shape_suffix))
     
     # Match Right Side Look
     cmds.setAttr(right_toe_roll_ctrl + '.rotateY', -180)
@@ -3982,8 +4248,9 @@ def create_controls():
     right_ball_roll_ctrl_b = cmds.curve(p=[[-0.0, -0.095, 0.38], [-0.035, -0.145, 0.354], [-0.059, -0.177, 0.335], [-0.092, -0.218, 0.312], [-0.118, -0.248, 0.286], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.152, -0.272, 0.254], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.127, -0.279, 0.246], [-0.096, -0.259, 0.275], [-0.068, -0.232, 0.3], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.201, 0.32], [-0.046, -0.339, 0.2], [-0.046, -0.387, -0.018], [-0.046, -0.332, -0.173], [-0.046, -0.265, -0.256], [-0.046, -0.167, -0.332], [-0.046, 0.0, -0.38], [-0.046, 0.167, -0.332], [-0.046, 0.265, -0.256], [-0.046, 0.332, -0.173], [-0.046, 0.387, -0.018], [-0.046, 0.339, 0.2], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.046, 0.201, 0.32], [-0.068, 0.232, 0.3], [-0.096, 0.259, 0.275], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.127, 0.279, 0.246], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.152, 0.272, 0.254], [-0.118, 0.248, 0.286], [-0.092, 0.218, 0.312], [-0.059, 0.177, 0.335], [-0.035, 0.145, 0.354], [-0.0, 0.095, 0.38]],d=3)
     right_ball_roll_ctrl = gtu_combine_curves_list([right_ball_roll_ctrl_a, right_ball_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(right_ball_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(right_ball_roll_ctrl))
+    shapes =  cmds.listRelatives(right_ball_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(right_ball_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(right_ball_roll_ctrl + second_shape_suffix))
     
     # Match Right Side Look
     cmds.setAttr(right_ball_roll_ctrl + '.rotateY', -180)
@@ -4013,8 +4280,9 @@ def create_controls():
     right_heel_roll_ctrl_b = cmds.curve(p=[[0.0, 0.095, -0.38], [-0.035, 0.145, -0.354], [-0.059, 0.177, -0.335], [-0.092, 0.218, -0.312], [-0.118, 0.248, -0.286], [-0.152, 0.272, -0.254], [-0.152, 0.272, -0.254], [-0.152, 0.272, -0.254], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.127, 0.279, -0.246], [-0.096, 0.259, -0.275], [-0.068, 0.232, -0.3], [-0.046, 0.201, -0.32], [-0.046, 0.201, -0.32], [-0.046, 0.201, -0.32], [-0.046, 0.339, -0.2], [-0.046, 0.387, 0.018], [-0.046, 0.332, 0.173], [-0.046, 0.265, 0.256], [-0.046, 0.167, 0.332], [-0.046, -0.0, 0.38], [-0.046, -0.167, 0.332], [-0.046, -0.265, 0.256], [-0.046, -0.332, 0.173], [-0.046, -0.387, 0.018], [-0.046, -0.339, -0.2], [-0.046, -0.201, -0.32], [-0.046, -0.201, -0.32], [-0.046, -0.201, -0.32], [-0.068, -0.232, -0.3], [-0.096, -0.259, -0.275], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.127, -0.279, -0.246], [-0.152, -0.272, -0.254], [-0.152, -0.272, -0.254], [-0.152, -0.272, -0.254], [-0.118, -0.248, -0.286], [-0.092, -0.218, -0.312], [-0.059, -0.177, -0.335], [-0.035, -0.145, -0.354], [0.0, -0.095, -0.38]],d=3)
     right_heel_roll_ctrl = gtu_combine_curves_list([right_heel_roll_ctrl_a, right_heel_roll_ctrl_b])
     
-    for shape in cmds.listRelatives(right_heel_roll_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, "{0}Shape".format(right_heel_roll_ctrl))
+    shapes =  cmds.listRelatives(right_heel_roll_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], "{0}Shape".format(right_heel_roll_ctrl + first_shape_suffix))
+    cmds.rename(shapes[1], "{0}Shape".format(right_heel_roll_ctrl + second_shape_suffix))
     
     # Match Right Side Look
     cmds.setAttr(right_heel_roll_ctrl + '.rotateY', -180)
@@ -4053,6 +4321,7 @@ def create_controls():
     cmds.rename(shapes[1], "{0}Shape".format('big_arrow_r'))
     cmds.rename(shapes[2], "{0}Shape".format('small_arrow_u'))
     cmds.rename(shapes[3], "{0}Shape".format('small_arrow_d'))
+    
 
     left_fingers_ctrl_grp = cmds.group(name=left_fingers_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_fingers_ctrl, left_fingers_ctrl_grp)
@@ -5446,6 +5715,61 @@ def create_controls():
     add_node_note(controls_grp, note)
     add_node_note(rig_grp, note)
     
+    ################# Control Manip Default #################
+    cmds.setAttr(main_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(direction_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(cog_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(hip_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(spine01_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(spine02_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(spine03_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(spine04_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(neck_base_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(neck_mid_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(head_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(jaw_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(main_eye_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(left_eye_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(right_eye_ctrl + '.showManipDefault', 1) # Translate
+    
+    ### Left Controls
+    cmds.setAttr(left_hip_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_knee_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_ankle_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_ball_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_foot_ik_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(left_knee_ik_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(left_clavicle_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_shoulder_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_elbow_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_wrist_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_wrist_ik_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(left_elbow_ik_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(left_fingers_ctrl + '.showManipDefault', 2) # Rotate
+    for finger in left_fingers_list:
+        for ctrl_tuple in finger:
+            for ctrl in ctrl_tuple:
+                cmds.setAttr(ctrl + '.showManipDefault', 2) # Rotate
+                
+    ### Right Controls
+    cmds.setAttr(right_hip_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_knee_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_ankle_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_ball_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_foot_ik_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(right_knee_ik_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(right_clavicle_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_shoulder_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_elbow_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_wrist_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_wrist_ik_ctrl + '.showManipDefault', 6) # Smart
+    cmds.setAttr(right_elbow_ik_ctrl + '.showManipDefault', 1) # Translate
+    cmds.setAttr(right_fingers_ctrl + '.showManipDefault', 2) # Rotate
+    for ctrl in right_fingers_list:
+        for ctrl_tuple in finger:
+            for ctrl in ctrl_tuple:
+                cmds.setAttr(ctrl + '.showManipDefault', 2) # Rotate
+
     ################# Joint Labelling #################
     # cmds.addAttr(skeleton_grp, ln="skeletonOptions", at="enum", en="-------------:", keyable=True)
     # cmds.setAttr(skeleton_grp + '.skeletonOptions', lock=True)
@@ -5455,7 +5779,6 @@ def create_controls():
         #cmds.connectAttr(skeleton_grp + '.labelVisibility', gt_ab_joints.get(jnt) + '.drawLabel', f=True)
         ##cmds.setAttr(gt_ab_joints.get(jnt) + '.drawLabel', 1)
 
-    
     # Joint Side
     for obj in gt_ab_joints:
         if 'left_' in obj:
@@ -5536,8 +5859,6 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky01_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
-    # Clean Selection
-    cmds.select(d=True)
     
     ################# Store Created Joints #################
     gt_ab_joints_default['left_forearm_jnt'] = left_forearm_jnt
@@ -5547,7 +5868,8 @@ def create_controls():
         gt_ab_joints_default[obj] = gt_ab_joints.get(obj)
     
 
-    ################# Print Feedback #################
+    ################# Clean Selection & Print Feedback #################
+    cmds.select(d=True)
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Control Rig</span><span style=\"color:#FFFFFF;\"> has been generated. Enjoy!</span>', pos='botLeft', fade=True, alpha=.9)
     
