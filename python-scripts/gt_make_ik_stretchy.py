@@ -31,6 +31,9 @@
  Added option to return the joint under the ikHandle
  Updated stretchy system to account for any curvature
  
+ 1.6 - 2021-01-04
+ Changed stretchy system so it doesn't use a floatConstant node
+ 
 """
 try:
     from shiboken2 import wrapInstance
@@ -580,8 +583,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             
             # Stretch
             activation_blend_node = cmds.createNode('blendTwoAttr', name=stretchy_name + "_strechyActivation_blend")
-            constant_one = cmds.createNode('floatConstant', name=stretchy_name + "_strechyInactive_value")
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % activation_blend_node)
+            cmds.setAttr(activation_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outColorR' % stretch_condition_node, '%s.input[1]' % activation_blend_node)
             cmds.connectAttr('%s.stretch' % attribute_holder, '%s.attributesBlender' % activation_blend_node)
             
@@ -611,7 +613,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.connectAttr('%s.outputX' % volume_value_divide_node, '%s.input2X' % xy_divide_node)
             cmds.connectAttr('%s.outputX' % stretch_normalization_node, '%s.input1X' % xy_divide_node)
             
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % volume_blend_node)
+            cmds.setAttr(volume_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outputX' % xy_divide_node, '%s.input[1]' % volume_blend_node)
           
             cmds.connectAttr('%s.saveVolume' % attribute_holder, '%s.attributesBlender' % volume_blend_node)
@@ -624,7 +626,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
             cmds.connectAttr('%s.maximumVolume' % attribute_holder, '%s.maxR' % volume_clamp_node)
         
             # Base Multiplier
-            cmds.connectAttr('%s.outFloat' % constant_one, '%s.input[0]' % volume_base_blend_node)
+            cmds.setAttr(volume_base_blend_node + ".input[0]", 1)
             cmds.connectAttr('%s.outColorR' % save_volume_condition_node, '%s.input[1]' % volume_base_blend_node)
             cmds.connectAttr('%s.baseVolumeMultiplier' % attribute_holder, '%s.attributesBlender' % volume_base_blend_node)
         
