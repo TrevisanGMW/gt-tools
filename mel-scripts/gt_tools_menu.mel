@@ -118,7 +118,7 @@
 //	 Only updated the version, no changes to the menu
 //
 //   1.6.5
-//	 So far, only changed the version
+//	 Added gtu_uniform_jnt_label_toggle to GT Utilities
 //
 //----------------------------------------------------------------------------
 
@@ -357,6 +357,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "visible.png";
+	
+	menuItem 
+    -l ("Uniform Joint Label Toggle")
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_jnt_label_toggle()\");") 
+    -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
+    -image "visible.png";
     
     // References
     menuItem -divider true ;
@@ -498,7 +504,6 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     -c ("python(\"import gt_maya_to_discord\\nreload(gt_maya_to_discord)\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
     -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
     -image $mayaToDiscordIcon ;
-    
     
     
     
