@@ -39,6 +39,9 @@
  Changed the order of a few functions
  Added function to unlock/unhide default channels
  
+ 1.9 - 2021-01-05
+ Added Uniform Joint Label Toggle
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -77,7 +80,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "1.6"
+gtu_script_version = "1.9"
     
 ''' ____________________________ General Functions ____________________________'''
 
@@ -239,7 +242,65 @@ def gtu_uniform_lra_toggle():
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+def gtu_uniform_jnt_label_toggle():
+    ''' 
+    Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.  
+    '''
+
+    function_name = 'GTU Uniform Joint Label Toggle'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        errors = ''
+        joints = cmds.ls(type='joint', long=True)
         
+        inactive_label = []
+        active_label = []
+        
+        for obj in joints:
+            try:
+                current_label_state = cmds.getAttr(obj + '.drawLabel')
+                if current_label_state:
+                    active_label.append(obj)
+                else:
+                    inactive_label.append(obj)
+            except Exception as e:
+                errors += str(e) + '\n'
+           
+        if len(active_label) == 0:
+            for obj in inactive_label:
+                try:
+                    cmds.setAttr(obj + '.drawLabel', 1)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        elif len(inactive_label) == 0:
+            for obj in active_label:
+                try:
+                    cmds.setAttr(obj + '.drawLabel', 0)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        elif len(active_label) > len(inactive_label):
+            for obj in inactive_label:
+                try:
+                    cmds.setAttr(obj + '.drawLabel', 1)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        else:
+            for obj in active_label:
+                try:
+                    cmds.setAttr(obj + '.drawLabel', 0)
+                except Exception as e:
+                    errors += str(e) + '\n'
+        
+
+        if errors != '':
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
+    except:
+        pass
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
         
 def gtu_import_references():
     ''' Imports all references ''' 
@@ -882,6 +943,7 @@ def gtu_build_gui_about_gt_tools():
 #gtu_import_references()
 #gtu_remove_references()
 #gtu_uniform_lra_toggle()
+#gtu_uniform_jnt_label_toggle()
 
 #gtu_copy_material()
 #gtu_paste_material()
