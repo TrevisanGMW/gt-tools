@@ -470,10 +470,10 @@ This button will create many temporary curves that will later be used to generat
 <br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
 <br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
 
-<img src="https://raw.githubusercontent.com/TrevisanGMW/maya-scripts/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif" align="right"
+<img src="https://raw.githubusercontent.com/TrevisanGMW/maya-scripts/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
      alt="GT Auto Biped attached to HumanIK Sample">
 
 
