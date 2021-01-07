@@ -429,14 +429,15 @@ This button will create many temporary curves that will later be used to generat
 <br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
 <br>
 <br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position. 
-<br>The bigger arrows in the shape of the knees and elbows show the direction of the up vector constraint. (that's the direction they will bend)
+<br>The bigger arrows in the shape of the knees and elbows show the direction of their up vector constraint. (that's the direction they will bend)
 <br>
-<br>To position the eye joints: Center the pivot point of the eye geometry then display its Local Rotation Axes so you can snap the proxy to its center.
-<br>To center the pivot of eye geometry go to "Modify > Center Pivot"
-<br>To show the Local Rotation Axes (so you have a point to snap it to) go to "Display > Transform Display > Local Rotation Axes"
+<br>To position the eye proxies: Center the pivot point of the eye geometry then display its Local Rotation Axes then snap the proxy to its center.
+<br>To center the pivot of eye geometry go to <b>"Modify > Center Pivot"</b> (It's often already in the center, check it first)
+<br>To show the Local Rotation Axes (so you have a point to snap it to) go to <b>"Display > Transform Display > Local Rotation Axes"</b>
 <br>Hold "V" while moving the eye proxy to snap it to points. 
 <br>
-<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. The ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster.
+<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. 
+<br>The ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster while keeping a hip and ankle perfectly aligned.
 <br>The Root proxy has an attribute called "Lines Visibility" that allows you to turn off the visibility of the lines
 <br>
 <br>Proxy curves are not joints. Please don't delete or rename them. 
@@ -480,9 +481,16 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 <br>
 <br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
 
+<p>Sample of Seamless FK/IK switch:</p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
 
+
+<p><h3>How to attach motion capture data to the rig through HumanIK:</h3>
+1. Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
+<br>2. Create a custom rig by clicking on the custom rig button.<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
+<br>3. <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button">
+</p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
      alt="GT Auto Biped attached to HumanIK Sample">
 
