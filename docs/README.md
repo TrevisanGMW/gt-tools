@@ -410,7 +410,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
      alt="GT Auto Biped Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute it in a new scene containing only the geometry of the desired character.</p>
+<br>For more predictable results execute it in a new scene containing only the geometry of the desired character. This guarantees no naming conflicts will happen.</p>
 <p>Here are some highlights of what it creates: 
 <br>- FK/IK switches with automated control visibility 
 <br>- Automated finger posing with offset (for a natural motion) 
@@ -418,14 +418,14 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>- Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) 
 <br>- Stretchy and squash for the arms and legs (with automatic volume preservation) 
 <br>- Automatic forearm rotation with support for stretched limbs.
-<br>- Seamless FK/IK Switch
+<br>- Shelf button with Seamless FK/IK Switch for arms and legs.
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
 </p>
 
 <p><h3>Step 1:</h3><b>Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
-<br>In case you want to re-scale the proxy,  use the root proxy control for that. 
-<br>The initial scale is the average height of a woman. (160cm)
+<br>In case you want to re-scale the proxy, use the root proxy control for that.
+<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales clicking <a href="./assets">HERE</a>.
 <br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA  so you can snap the proxy to its center.
 <br>"Display > Transform Display > Local Rotation Axes" for showing the LRA (point to snap)
 <br>"Modify > Center Pivot" for centering the pivot
@@ -436,14 +436,10 @@ This button will create many temporary curves that will later be used to generat
 <p><h3>Step 2:</h3>
 <br>Pose the proxy (guide) to match your character. 
 <br>
-<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy. 
-<br> 
+<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy.  
 <br><b>- Mirror Side to Side:</b>  Copies the transform data from one side to the other, mirroring the pose.
-<br>
 <br><b>- Import Pose:</b>  Imports a JSON file containing the transforms  of the proxy elements. This file is generated  using the "Export Pose" function. 
-<br>
 <br><b>- Export Pose:</b>  Exports a JSON file containing the  transforms of the proxy elements. 
-<br>
 <br><b>- Delete Proxy:</b>  Simply deletes the proxy in case you no longer need it.</p>
 
 <p><h3>Step 3:</h3>
@@ -470,14 +466,14 @@ This button will create many temporary curves that will later be used to generat
 <br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
 <br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
 
-<img src="https://raw.githubusercontent.com/TrevisanGMW/maya-scripts/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
      alt="GT Auto Biped attached to HumanIK Sample">
 
 
-<br><br><br><br><br><br><br><br>
+<br>
 
 </div>
 
