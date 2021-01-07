@@ -481,15 +481,15 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 <br>
 <br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
 
-<p>Sample of Seamless FK/IK switch:</p>
+<h3>Sample of Seamless FK/IK switch:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
 
 
 <p><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 1. Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
-<br>2. Create a custom rig by clicking on the custom rig button.<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
-<br>3. <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button">
+<br>2. Create a custom rig by clicking on the custom rig button.<img src="./media//human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
+<br>3. Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update. You can load a template by clicking on the button "Load Custom Rig Mapping" <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> and you can download templates from the <a href="./assets">assets folder</a>.
 </p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
      alt="GT Auto Biped attached to HumanIK Sample">
