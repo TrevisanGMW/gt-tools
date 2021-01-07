@@ -410,7 +410,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
      alt="GT Auto Biped Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This guarantees no naming conflicts and prevent.</p>
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This prevents naming conflicts and data loss.</p>
 <p>Here are some highlights of what it creates: 
 <br>- FK/IK switches with automated control visibility 
 <br>- Automated finger posing with offset (for a natural motion) 
@@ -422,22 +422,30 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
 </p>
 
-<p><h3>Step 1:</h3><b>Create Proxy:</b><br>
+<p><h3>Step 1:</h3>
+<b>- Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy, use the root proxy control for that.
 <br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
+<br>
+<br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position. 
+<br>The bigger arrows in the shape of the knees and elbows show the direction of the up vector constraint. (that's the direction they will bend)
+<br>
 <br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA so you can snap the proxy to its center.
 <br>"Display > Transform Display > Local Rotation Axes" for showing the LRA (point to snap)
 <br>"Modify > Center Pivot" for centering the pivot
 <br>Hold "V" while moving the eye proxy to snap it to points
-<br>These are not joints. Please don\'t delete or rename them. 
-
-<br><br>For tips on how to position every proxy, open the attribute editor and read the information under "Transform Node > Notes:"
+<br>
+<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. For example the ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster.
+<br>The Root proxy has an attribute called "Lines Visibility" that allows you to turn off the visibility of the lines
+<br>
+<br>Proxy curves are not joints. Please don't delete or rename them. 
+<br>For tips on how to position every proxy curve, open the attribute editor and read the information under "Transform Node > Notes:"
 </p>
 
 
 <p><h3>Step 2:</h3>
-<br>Pose the proxy (guide) to match your character. 
+Pose the proxy (guide) to match your character. 
 <br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy elements, essentially "recreating" the proxy.  
 <br><b>- Mirror Right to Left:</b> Copies the transform data from the right side to the left side, mirroring the pose.
 <br><b>- Mirror Left to Right:</b> Copies the transform data from one left side to the right side, mirroring the pose.
@@ -446,16 +454,14 @@ This button will create many temporary curves that will later be used to generat
 <br><b>- Delete Proxy:</b> Simply deletes the proxy in case you no longer need it.</p>
 
 <p><h3>Step 3:</h3>
-This button creates the control rig.
-<br>It uses the transform data found in the proxy to  determine how to create the skeleton and controls.
+<br><b>- Create Rig:</b> This button uses the proxy elements to automatically create control rig.
+<br>It uses the transform data found in the proxy to determine how to create the skeleton and controls.
 <br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
 <p><h3>Step 4:</h3>
 <br>Now that the rig has been created,  it's time to to attach it to the geometry.
-<br>
-<br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character.  This means that it will not include end joints or the toes. 
-<br>
-<br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin"  so the desired geometry can attached to the  skinning joints. Make sure to use the "Bind to" as "Selected Joints"</p>
+<br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character. This means that it will not include end or toe joints. If you don't plan to include the eyes joints in the influences of the character's body, simply unselect them before skinning.
+<br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin" so the desired geometry can attached to the skinning joints. Make sure to set the option "Bind to" as "Selected Joints" to guarantee that only the desired joints are part of the influence. </p>
 
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
