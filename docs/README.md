@@ -431,12 +431,12 @@ This button will create many temporary curves that will later be used to generat
 <br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position. 
 <br>The bigger arrows in the shape of the knees and elbows show the direction of the up vector constraint. (that's the direction they will bend)
 <br>
-<br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA so you can snap the proxy to its center.
-<br>"Display > Transform Display > Local Rotation Axes" for showing the LRA (point to snap)
-<br>"Modify > Center Pivot" for centering the pivot
-<br>Hold "V" while moving the eye proxy to snap it to points
+<br>To position the eye joints: Center the pivot point of the eye geometry then display its Local Rotation Axes so you can snap the proxy to its center.
+<br>To center the pivot of eye geometry go to "Modify > Center Pivot"
+<br>To show the Local Rotation Axes (so you have a point to snap it to) go to "Display > Transform Display > Local Rotation Axes"
+<br>Hold "V" while moving the eye proxy to snap it to points. 
 <br>
-<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. For example the ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster.
+<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. The ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster.
 <br>The Root proxy has an attribute called "Lines Visibility" that allows you to turn off the visibility of the lines
 <br>
 <br>Proxy curves are not joints. Please don't delete or rename them. 
@@ -454,25 +454,30 @@ Pose the proxy (guide) to match your character.
 <br><b>- Delete Proxy:</b> Simply deletes the proxy in case you no longer need it.</p>
 
 <p><h3>Step 3:</h3>
-<br><b>- Create Rig:</b> This button uses the proxy elements to automatically create control rig.
-<br>It uses the transform data found in the proxy to determine how to create the skeleton and controls.
+<b>- Create Rig:</b> This button uses the proxy elements to automatically create the control rig.
+<br>It uses the transform data found in the proxy to determine how to position, orient and setup the skeleton and controls.
 <br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
 <p><h3>Step 4:</h3>
-<br>Now that the rig has been created,  it's time to to attach it to the geometry.
+Now that the rig has been created,  it's time to to attach it to the geometry.
 <br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character. This means that it will not include end or toe joints. If you don't plan to include the eyes joints in the influences of the character's body, simply unselect them before skinning.
 <br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin" so the desired geometry can attached to the skinning joints. Make sure to set the option "Bind to" as "Selected Joints" to guarantee that only the desired joints are part of the influence. </p>
+<br>
 
+<p><h3>Utilities:</h3>
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger GUI">
 
-<p><h3>Utilities:</h3>
 <br>These are utilities and extra functions that you can use after creating your rig.
 <br>
-<br><b>- Add Seamless FK/IK Switch to Shelf:</b>  Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs. (<b>Toggle:</b> Seamlessly Toggles between FK and IK. <b>FK to IK:</b> Switches to IK and copies the FK pose into it. <b>IK to FK:</b> Switches to FK and copies the IK pose into it.)
+<br><b>- Add Seamless FK/IK Switch to Shelf:</b>  Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs.
+<br><b>		- Toggle:</b> Seamlessly Toggles between FK and IK. 
+<br><b>		- FK to IK:</b> Switches to IK and copies the FK pose into it. 
+<br><b>		- IK to FK:</b> Switches to FK and copies the IK pose into it.
 <br>
 <br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
+<br>
 <br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
