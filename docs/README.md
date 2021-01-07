@@ -490,7 +490,7 @@ These are utilities and extra functions that you can use after creating your rig
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
 <br><b>2.</b> Create a custom rig by clicking on the custom rig button. <img src="./media//human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
 <br><b>3.</b> Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update. 
-<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img style="vertical-align:middle" src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
+<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
 <br><b>4.</b> Now you can source the motion from another character like you would normally do in HumanIK and it should automatically reverse engineer the control position to match the mocap data.
 <br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it. <a href="https://youtu.be/eBwYi8FeK3I">This video</a> explains in more details how this process works.
 <br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
@@ -504,13 +504,18 @@ These are utilities and extra functions that you can use after creating your rig
 <p><br><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
-     alt="GT Auto Biped Foot Rolls Example"><img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
-     alt="GT Auto Biped Lock Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif"
-     alt="GT Auto Biped Follow Eye Example"><img src="./media/gt_auto_biped_rigger_follow_attr.jpg"
+<img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
+     alt="GT Auto Biped Lock Attribute Example">
+<img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
+     alt="GT Auto Biped Foot Rolls Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif" align="right"
+     alt="GT Auto Biped Follow Eye Example">
+
 
 <h3>Stretchy System:</h3>
 <br><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
