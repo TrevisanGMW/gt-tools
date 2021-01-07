@@ -485,7 +485,7 @@ These are utilities and extra functions that you can use after creating your rig
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
-
+<br>
 
 <p><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 1. Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -493,8 +493,9 @@ These are utilities and extra functions that you can use after creating your rig
 <br>3. Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update. 
 <br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
 <br>4. Now you can source the motion from another character like you would normally do in HumanIK and it should automatically reverse engineer the control position to match the mocap data.
-<br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it.
-<br>5. Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig". Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
+<br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it. <a href="https://youtu.be/eBwYi8FeK3I">This video</a> explains in more details how this process works.
+<br>5. Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
+<br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
      alt="GT Auto Biped attached to HumanIK Sample">
