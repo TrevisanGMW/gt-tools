@@ -422,8 +422,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
 </p>
 
-<h3>Step 1:</h3>
-<p><br><b>Create Proxy:</b><br>
+<p><h3>Step 1:</h3><br><b>Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy,  use the root proxy control for that. 
 <br>The initial scale is the average height of a woman. (160cm)
@@ -433,18 +432,19 @@ This button will create many temporary curves that will later be used to generat
 <br>Hold "V" while moving the eye proxy to snap it to points
 <br>These are not joints. Please don\'t delete or rename them. </p>
 
+<h3>Step 1:</h3>
 <p><b>Step 2: </b>
 <br>Pose the proxy (guide) to match your character. 
 <br>
-<br>- Reset Proxy:  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy. 
+<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy. 
 <br> 
-<br>- Mirror Side to Side:  Copies the transform data from one  side to the other, mirroring the pose.
+<br><b>- Mirror Side to Side:</b>  Copies the transform data from one side to the other, mirroring the pose.
 <br>
-<br>- Import Pose:  Imports a JSON file containing the transforms  of the proxy elements. This file is generated  using the "Export Pose" function. 
+<br><b>- Import Pose:</b>  Imports a JSON file containing the transforms  of the proxy elements. This file is generated  using the "Export Pose" function. 
 <br>
-<br>- Export Pose:  Exports a JSON file containing the  transforms of the proxy elements. 
+<br><b>- Export Pose:</b>  Exports a JSON file containing the  transforms of the proxy elements. 
 <br>
-<br>- Delete Proxy:  Simply deletes the proxy in case you no longer need it.</p>
+<br><b>- Delete Proxy:</b>  Simply deletes the proxy in case you no longer need it.</p>
 
 <p><b>Step 3: </b>
 <br>This button creates the control rig.
