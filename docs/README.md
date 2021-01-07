@@ -410,7 +410,17 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
      alt="GT Auto Biped Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute it in a new scene  containing only the geometry of the desired character. </p>
+<br>For more predictable results execute it in a new scene containing only the geometry of the desired character.</p>
+<p><br>Here are some highlights of what it creates: 
+<br>- FK/IK switches with automated control visibility 
+<br>- Automated finger posing with offset (for a natural motion) 
+<br>- Foot rolls (with manual limiters for more flexibility) 
+<br>- Options to have pole vectors, IK controls and eyes follow or not parts of the body (so they act like effectors) 
+<br>- Stretchy and squash for the arms and legs (with automatic volume preservation) 
+<br>- Automatic forearm rotation with support for stretched limbs.
+<br>- Seamless FK/IK Switch
+<br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
+</p>
 
 
 <p><b>Step 1: </b>
