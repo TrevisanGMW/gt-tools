@@ -411,20 +411,19 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 <p>Script for quickly generating an advanced biped rig.
 <br>For more predictable results execute it in a new scene containing only the geometry of the desired character.</p>
-<p><br>Here are some highlights of what it creates: 
+<p>Here are some highlights of what it creates: 
 <br>- FK/IK switches with automated control visibility 
 <br>- Automated finger posing with offset (for a natural motion) 
 <br>- Foot rolls (with manual limiters for more flexibility) 
-<br>- Options to have pole vectors, IK controls and eyes follow or not parts of the body (so they act like effectors) 
+<br>- Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) 
 <br>- Stretchy and squash for the arms and legs (with automatic volume preservation) 
 <br>- Automatic forearm rotation with support for stretched limbs.
 <br>- Seamless FK/IK Switch
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
 </p>
 
-
-<p><b>Step 1: </b>
-<br>Create Proxy:<br>
+<h3>Step 1:</h3>
+<p><br><b>Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy,  use the root proxy control for that. 
 <br>The initial scale is the average height of a woman. (160cm)
