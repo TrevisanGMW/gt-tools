@@ -484,7 +484,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
-     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
+     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -497,7 +497,16 @@ These are utilities and extra functions that you can use after creating your rig
 <br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
-     alt="GT Auto Biped attached to HumanIK Sample">
+     alt="GT Auto Biped attached to HumanIK Example">
+
+<h3>Custom Attributes and Stretchy System:</h3>
+<p>This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.
+<b>- Lock Attribute</b> Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock Channel" (Channel could be Translate, Rotate, XY and Z) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
+<img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
+     alt="GT Auto Biped Lock Attribute Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
+     alt="GT Auto Biped Foot Rolls Example">
 
 
 <br>
