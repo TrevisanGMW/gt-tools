@@ -410,7 +410,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
      alt="GT Auto Biped Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute it in a new scene containing only the geometry of the desired character. This guarantees no naming conflicts will happen.</p>
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This guarantees no naming conflicts and prevent.</p>
 <p>Here are some highlights of what it creates: 
 <br>- FK/IK switches with automated control visibility 
 <br>- Automated finger posing with offset (for a natural motion) 
@@ -425,25 +425,28 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <p><h3>Step 1:</h3><b>Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy, use the root proxy control for that.
-<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales clicking <a href="./assets">HERE</a>.
-<br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA  so you can snap the proxy to its center.
+<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
+<br><br>To position the eye joints: Center the pivot point  of the eye geometry then display its LRA so you can snap the proxy to its center.
 <br>"Display > Transform Display > Local Rotation Axes" for showing the LRA (point to snap)
 <br>"Modify > Center Pivot" for centering the pivot
 <br>Hold "V" while moving the eye proxy to snap it to points
-<br>These are not joints. Please don\'t delete or rename them. </p>
+<br>These are not joints. Please don\'t delete or rename them. 
+
+<br><br>For tips on how to position every proxy, open the attribute editor and read the information under "Transform Node > Notes:"
+</p>
 
 
 <p><h3>Step 2:</h3>
 <br>Pose the proxy (guide) to match your character. 
-<br>
-<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy.  
-<br><b>- Mirror Side to Side:</b>  Copies the transform data from one side to the other, mirroring the pose.
-<br><b>- Import Pose:</b>  Imports a JSON file containing the transforms  of the proxy elements. This file is generated  using the "Export Pose" function. 
-<br><b>- Export Pose:</b>  Exports a JSON file containing the  transforms of the proxy elements. 
-<br><b>- Delete Proxy:</b>  Simply deletes the proxy in case you no longer need it.</p>
+<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy elements, essentially "recreating" the proxy.  
+<br><b>- Mirror Right to Left:</b> Copies the transform data from the right side to the left side, mirroring the pose.
+<br><b>- Mirror Left to Right:</b> Copies the transform data from one left side to the right side, mirroring the pose.
+<br><b>- Import Pose:</b> Imports a JSON file containing the transforms of the proxy elements. This file is generated  using the "Export Pose" function. 
+<br><b>- Export Pose:</b> Exports a JSON file containing the transforms of the proxy elements. 
+<br><b>- Delete Proxy:</b> Simply deletes the proxy in case you no longer need it.</p>
 
 <p><h3>Step 3:</h3>
-<br>This button creates the control rig.
+This button creates the control rig.
 <br>It uses the transform data found in the proxy to  determine how to create the skeleton and controls.
 <br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
