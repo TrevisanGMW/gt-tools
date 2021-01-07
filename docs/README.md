@@ -422,7 +422,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
 </p>
 
-<p><h3>Step 1:</h3><br><b>Create Proxy:</b><br>
+<p><h3>Step 1:</h3><b>Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig. 
 <br>In case you want to re-scale the proxy,  use the root proxy control for that. 
 <br>The initial scale is the average height of a woman. (160cm)
@@ -432,8 +432,8 @@ This button will create many temporary curves that will later be used to generat
 <br>Hold "V" while moving the eye proxy to snap it to points
 <br>These are not joints. Please don\'t delete or rename them. </p>
 
-<h3>Step 1:</h3>
-<p><b>Step 2: </b>
+
+<p><h3>Step 2:</h3>
 <br>Pose the proxy (guide) to match your character. 
 <br>
 <br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy  elements, essentially "recreating" the proxy. 
@@ -446,17 +446,35 @@ This button will create many temporary curves that will later be used to generat
 <br>
 <br><b>- Delete Proxy:</b>  Simply deletes the proxy in case you no longer need it.</p>
 
-<p><b>Step 3: </b>
+<p><h3>Step 3:</h3>
 <br>This button creates the control rig.
 <br>It uses the transform data found in the proxy to  determine how to create the skeleton and controls.
 <br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
-<p><b>Step 4: </b>
-<br>Now that the rig has been created,  all that is left is to attach it to the geometry.
+<p><h3>Step 4:</h3>
+<br>Now that the rig has been created,  it's time to to attach it to the geometry.
 <br>
-<br>- Select Skinning Joints:  Select only joints that should  be used when skinning the character.  This means that it will not include end joints or the toes. 
+<br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character.  This means that it will not include end joints or the toes. 
 <br>
-<br>- Bind Skin Options:  Opens the options for the function "Bind Skin"  so the desired geometry can attached to the  skinning joints. Make sure to use the "Bind to" as "Selected Joints"</p>
+<br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin"  so the desired geometry can attached to the  skinning joints. Make sure to use the "Bind to" as "Selected Joints"</p>
+
+
+<img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
+     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger GUI">
+
+<p><h3>Utilities:</h3>
+<br>These are utilities and extra functions that you can use after creating your rig.
+<br>
+<br><b>- Add Seamless FK/IK Switch to Shelf:</b>  Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs. (<b>Toggle:</b> Seamlessly Toggles between FK and IK. <b>FK to IK:</b> Switches to IK and copies the FK pose into it. <b>IK to FK:</b> Switches to FK and copies the IK pose into it.)
+<br>
+<br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
+<br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
+
+<img src="https://raw.githubusercontent.com/TrevisanGMW/maya-scripts/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif" align="right"
+     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Sample">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif" align="right"
+     alt="GT Auto Biped attached to HumanIK Sample">
 
 
 <br>
