@@ -535,6 +535,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Fist Pose Limit + Finger Name:</b> Determines the rotation considered the fist pose. It limits the rotation of the fingers so it stops at this value.</li>
 	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transfered to the finger. This offset helps create a more natural motion.</li>
 </ul></p>
+<br>
 
 <img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
      alt="GT Auto Biped Stretchy Attributes Example">
@@ -718,7 +719,8 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Make IK Stretchy GUI">
 
 <p>This script makes an IK setup stretchy.
-<br>Load an ikHandle, then click on "Make Stretchy"</p>
+<br>Load an ikHandle and an attribute holder then click on "Make Stretchy"
+<br>To use this script to its full potential, provide an object to be the attribute holder. (Usually the control driving the ikHandle)</p>
 
 <p><b>Stretchy System Prefix:</b>
 <br>As the name suggests, it determined the prefix used when naming nodes for the stretchy system.<br>If nothing is provided, it will be automatically named "temp".</p>
@@ -730,9 +732,19 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>Use this button to load your attribute holder.
 <br>This is usually a control. A few custom attributes will be added to this object, so the user can control the stretchy system.</p>
 
-<p><b>Important:</b>
-<br>The ikHandle cannot be outside of a group. So it will be automatically grouped when this is the case.
-<br>If an attribute holder is not provided, a simpler version of the stretchy system will be created instead.</p>
+<p><b>- Stretchy Attributes</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
+<ul>
+	<li><b>Stretch:</b> Controls the amount of influence the stretch system has.</li>
+	<li><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.</li>
+	<li><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.</li>
+	<li><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.</li>
+	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transfered to the base of the IK system.</li>
+	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
+	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
+</ul></p>
+
+<p>By default, the attribute holder termines the stretch, to change this behavior, constraint or parent the object "stretchyTerm_end" to another object.</p>
+
 
 <br><br>
 
