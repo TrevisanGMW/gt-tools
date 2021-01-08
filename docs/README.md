@@ -511,7 +511,8 @@ These are utilities and extra functions that you can use after creating your rig
      alt="GT Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
-     alt="GT Auto Biped Foot Rolls Example"><img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif"
+     alt="GT Auto Biped Foot Rolls Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif" align="right"
      alt="GT Auto Biped Follow Eye Example">
 
 
