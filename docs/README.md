@@ -518,7 +518,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 
 
 
-<p><h3>Stretchy System and FK/IK Switch Control:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
+<p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
 <p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
 <ul>
 	<li><b>Stretch:</b> Controls the amount of influence the stretch system has.</li>
@@ -528,6 +528,12 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transfered to the base of the IK system.</li>
 	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
 	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
+</ul></p>
+<p><b>- Finger Automation</b>: To pode the fingers more conviniently, you can use the finger controls. These will automatically rotate all the fingers according to the provided parameters.
+<ul>
+	<li><b>Activate System:</b> Simply turn the automatic rotation of the fingers on or off.</li>
+	<li><b>Fist Pose Limit + Finger Name:</b> Determines the rotation considered the fist pose. It limits the rotation of the fingers so it stops at this value.</li>
+	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transfered to the finger. This offset helps create a more natural motion.</li>
 </ul></p>
 
 <img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
@@ -539,7 +545,6 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Finger Automation Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_stretchy.gif"
      alt="GT Auto Biped Stretchy System Example">
-
 
 <br>
 
