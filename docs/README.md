@@ -732,6 +732,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>Use this button to load your attribute holder.
 <br>This is usually a control. A few custom attributes will be added to this object, so the user can control the stretchy system.</p>
 
+<br>
 <p><b>- Stretchy Attributes</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
 <ul>
 	<li><b>Stretch:</b> Controls the amount of influence the stretch system has.</li>
