@@ -511,14 +511,27 @@ These are utilities and extra functions that you can use after creating your rig
      alt="GT Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
-     alt="GT Auto Biped Foot Rolls Example">
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif" align="right"
+     alt="GT Auto Biped Foot Rolls Example"><img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif"
      alt="GT Auto Biped Follow Eye Example">
 
 
-<h3>Stretchy System:</h3>
-<br><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
+<h3>Stretchy System and FK/IK Switch Control:</h3>
+<br><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility".
+<br><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
+<br><b>Stretch:</b> Controls the amount of influence the stretch system has.
+<br><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.
+<br><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.
+<br><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.
+<br><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transfered to the base of the IK system.
+<br><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.
+<br><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.
+
+</p>
+
+
+<img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
+     alt="GT Auto Biped Stretchy Attributes Example"><img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_stretchy.gif"
+     alt="GT Auto Biped Stretchy System Example">
 
 <br>
 
