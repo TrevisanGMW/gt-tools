@@ -28,10 +28,21 @@
  "followHip" (ankle proxies) attribute is not longer activated by default
  Fixed an issue where left arm ik would be generated with an offset in extreme angles
  
+ 1.3 - 2021-01-07
+ Updated help window to better accommodate a high volume of text
+ Added new utility to extract proxy pose from generated rig
+ Updated export/import functions to be compatible with worldspace
+ Added version check to importer for backwards compatibility
+ Added auto load for HumanIK plugin in case it's not loaded when attaching rig
+ Added finger abduction/adduction control and updated the name of a few attributes
+
+ 
  To do:
+    Open fingers with reverse scale
+  
+    Add notes to the knee proxies (similar to elbows)
+    Update Help window so it's not so big
     Add more roll joints
-    Add utilities
-        Convert rig to proxy
     Add option to auto create proxy geo
     Add option to colorize (or not) proxy and rig elements
     Add option to not include forearm/eyes in the skinning joints
@@ -66,7 +77,7 @@ import os
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.2"
+script_version = "1.3"
 
 # General Vars
 grp_suffix = 'grp'
@@ -283,7 +294,11 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=2, cw=[(1, 125), (2, 125)], cs=[(1, 0), (2, 8)], p=body_column)
     cmds.button( l ="Toggle Label Visibility", bgc=(.3,.3,.3), c=lambda x:gtu_uniform_jnt_label_toggle())
     cmds.button( l ="Attach to HumanIK", bgc=(.3,.3,.3), c=lambda x:gt_ab_define_humanik('auto_biped'))
-
+    
+    cmds.separator(h=5, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1,0)], p=body_column)
+    cmds.button( l ="Extract Proxy Pose From Generated Rig", bgc=(.3,.3,.3), c=lambda x:extract_proxy_pose())
+    
     cmds.separator(h=10, style='none') # Empty Space
 
     # Show and Lock Window
@@ -328,12 +343,17 @@ def build_help_gui_auto_biped_rig():
     cmds.text(l='For more predictable results execute it in a new scene\n containing only the geometry of the desired character.', align="center")
     cmds.separator(h=15, style='none') # Empty Space
     
+    cmds.rowColumnLayout(nc=3, cw=[(1, 28)], cs=[(1,40)], p="main_column")
+    cmds.text(l='Click ', hl=True, highlightColor=[1,1,1])
+    cmds.text(l='<a href="https://github.com/TrevisanGMW/gt-tools/tree/master/docs#-gt-auto-biped-rigger-">Here</a>', hl=True, highlightColor=[1,1,1])
+    cmds.text(l=' for a more complete documentation.', hl=True, highlightColor=[1,1,1])
+    cmds.separator(h=help_spacing, style='none') # Empty Space
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
     cmds.text(l='Step 1:', align="center", fn="boldLabelFont")
     cmds.text(l='Create Proxy: This button will create many temporary\ncurves that will later be used to generate the rig.', align="center")
     cmds.separator(h=help_spacing, style='none') # Empty Space
     cmds.text(l='In case you want to re-scale the proxy,\n use the root proxy control for that.\n The initial scale is the average height of a woman.\n(160cm)', align="center")
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='To position the eye joints: Center the pivot point\n of the eye geometry then display its LRA\n so you can snap the proxy to its center.', align="center")
     cmds.separator(h=help_spacing, style='none') # Empty Space
     cmds.text(l='These are not joints.\nPlease don\'t delete or rename them.', align="center")
     cmds.separator(h=15, style='none') # Empty Space
@@ -361,13 +381,17 @@ def build_help_gui_auto_biped_rig():
     cmds.separator(h=15, style='none') # Empty Space
     
     cmds.text(l='Step 4:', align="center", fn="boldLabelFont")
-    cmds.text(l='Now that the rig has been created,\n all that is left is to attach it to the geometry.', align="center")
+    cmds.text(l='Now that the rig has been created,\n it\'s time to attach it to the geometry.', align="center")
     
     cmds.separator(h=help_spacing, style='none') # Empty Space
     cmds.text(l='- Select Skinning Joints:\n Select only joints that should\n be used when skinning the character.\n This means that it will not include end joints or the toes.', align="center")
     cmds.separator(h=help_spacing, style='none') # Empty Space
     cmds.text(l='- Bind Skin Options:\n Opens the options for the function "Bind Skin"\n so the desired geometry can attached to the\n skinning joints.\nMake sure to use the "Bind to" as "Selected Joints"', align="center")
+    cmds.separator(h=15, style='none') # Empty Space
     
+    cmds.text(l='Utilities:', align="center", fn="boldLabelFont")
+    cmds.text(l='These are utilities that you can use after creating your rig.\n Please visit the full documentation to learn more about it.', align="center")
+
     
     cmds.separator(h=15, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
@@ -825,6 +849,8 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
+
+
 def create_visualization_line(object_a, object_b):
     ''' 
     Creates a curve attached to two objects so you can easily visualize hierarchies 
@@ -994,6 +1020,103 @@ def create_main_control(name):
     cmds.rename(shapes[1], "{0}Shape".format('main_ctrlArrow'))
     
     return main_crv
+
+
+def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None, start_cv_list=None, end_cv_list=None):
+    ''' 
+    Creates a curve in the shape of an arrow and rigs it so when scaling it up the curve doesn't lose its shape
+    
+            Parameters:
+                curve_name (string): Name of the generated curve
+                initial_scale (float): Initial Scale of the curve
+                custom_shape (string): Doesn't generate an arrow. Use the provided shape instead. Name of a curve shape. (Use "start_cv_list" and "end_cv_list" to set cvs)
+                start_cv_list (list): A list of strings. In case you want to overwrite the original curve, you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+                end_cv_list (list):  A list of strings. In case you want to overwrite the original curve, you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+                
+            Returns:
+                generated_elements (list): A list with the generated elements: [curve_name, curve_scale_handle, rig_grp]
+    
+    '''
+    # Create Arrow
+    if custom_shape:
+        curve_transform = cmds.listRelatives(custom_shape, p=True, f=True)[0]
+        curve_shape = custom_shape
+    else:
+        curve_transform = cmds.curve(name=curve_name, p=[[0.0, 0.0, -1.428], [0.409, 0.0, -1.0], [0.205, 0.0, -1.0], [0.205, 0.0, 1.0], [0.409, 0.0, 1.0], [0.0, 0.0, 1.428], [-0.409, 0.0, 1.0], [-0.205, 0.0, 1.0], [-0.205, 0.0, -1.0], [-0.409, 0.0, -1.0], [0.0, 0.0, -1.428]],d=1)
+        curve_shape =  cmds.listRelatives(curve_transform, s=True, f=True)[0]
+        curve_shape = cmds.rename(curve_shape, "{0}Shape".format(curve_transform))
+    # Set Initial Scale
+    cmds.setAttr(curve_transform + '.sx', initial_scale)
+    cmds.setAttr(curve_transform + '.sy', initial_scale)
+    cmds.setAttr(curve_transform + '.sz', initial_scale)
+    cmds.makeIdentity(curve_transform, apply=True, rotate=True)
+
+    # Create Scale Curve
+    arrow_scale_crv = cmds.curve(name=curve_name + '_scaleCrv',p=[[0.0, 0.0, -1.0], [0.0, 0.0, -0.333], [0.0, 0.0, 0.333], [0.0, 0.0, 1.0]],d=3)
+    arrow_scale_shape =  cmds.listRelatives(arrow_scale_crv, s=True, f=True)[0]
+    arrow_scale_shape = cmds.rename(arrow_scale_shape, "{0}Shape".format(arrow_scale_crv))
+    # Set Initial Scale
+    cmds.setAttr(arrow_scale_crv + '.sx', initial_scale)
+    cmds.setAttr(arrow_scale_crv + '.sy', initial_scale)
+    cmds.setAttr(arrow_scale_crv + '.sz', initial_scale)
+    cmds.makeIdentity(arrow_scale_crv, apply=True, rotate=True)
+
+    # Create Clusters
+    if start_cv_list:
+        cmds.select(d=True)
+        for cv in start_cv_list:
+            cmds.select(curve_transform + '.' + cv, add=True)
+    else:
+        cmds.select([curve_transform + '.cv[0:2]', curve_transform + '.cv[8:10]'], r=True)
+    cluster_start = cmds.cluster(name=curve_name + '_start', bs=1)
+    
+    if end_cv_list:
+        cmds.select(d=True)
+        for cv in end_cv_list:
+            cmds.select(curve_transform + '.' + cv, add=True)
+    else:
+         cmds.select(curve_transform + '.cv[3:7]', r=True)
+    cluster_end = cmds.cluster(name=curve_name + '_end', bs=1)
+
+    # Create Mechanics
+    start_point_on_curve_node = cmds.createNode('pointOnCurveInfo', name= curve_name + '_start_pointOnCurve')
+    end_point_on_curve_node = cmds.createNode('pointOnCurveInfo', name= curve_name + '_end_pointOnCurve')
+    cmds.setAttr(start_point_on_curve_node + '.parameter', 0)
+    cmds.setAttr(end_point_on_curve_node + '.parameter', 1)
+
+    cmds.connectAttr(arrow_scale_shape + '.worldSpace', start_point_on_curve_node + '.inputCurve')
+    cmds.connectAttr(arrow_scale_shape + '.worldSpace', end_point_on_curve_node + '.inputCurve')
+
+    start_curve_scale_grp = cmds.group(name=curve_name + '_curveScale_start_grp', world=True, empty=True)
+    end_curve_scale_grp = cmds.group(name=curve_name + '_curveScale_end_grp', world=True, empty=True)
+
+    cmds.delete(cmds.pointConstraint(cluster_start, start_curve_scale_grp))
+    cmds.delete(cmds.pointConstraint(cluster_end, end_curve_scale_grp))
+
+    cmds.connectAttr(start_point_on_curve_node + '.result.position', start_curve_scale_grp + '.translate')
+    cmds.connectAttr(end_point_on_curve_node + '.result.position', end_curve_scale_grp + '.translate')
+
+    curve_rig_grp = cmds.group(name=curve_name + '_setup_grp', world=True, empty=True)
+    
+    start_point_on_curve_node = cmds.createNode('pointOnCurveInfo', name= curve_name + '_start_pointOnCurve')
+    
+    # Setup Hierarchy
+    cmds.parent(cluster_start[1], start_curve_scale_grp)
+    cmds.parent(cluster_end[1], end_curve_scale_grp)
+    cmds.parent(arrow_scale_crv, curve_rig_grp)
+    cmds.parent(start_curve_scale_grp, curve_rig_grp)
+    cmds.parent(end_curve_scale_grp, curve_rig_grp)
+    
+    # Set Visibility
+    cmds.setAttr(cluster_start[1] + '.v', 0)
+    cmds.setAttr(cluster_end[1] + '.v', 0)
+    cmds.setAttr(arrow_scale_crv + '.v', 0)
+    
+    # Clean Selection
+    cmds.select(d=True)
+    
+    return [curve_transform, arrow_scale_crv, curve_rig_grp]
+
 
 
 def validate_operation(operation, debugging=False):
@@ -2266,7 +2389,6 @@ def create_controls():
         '''
         return old_name.replace(proxy_suffix, jnt_suffix).replace('end' + proxy_suffix.capitalize(), 'end' + jnt_suffix.capitalize())
     
-    
     def orient_to_target(obj, target, orient_offset=(0,0,0), proxy_obj=None, aim_vec=(1,0,0), up_vec=(0,-1,0)):
         ''' 
         Orients an object based on a target object 
@@ -2290,7 +2412,7 @@ def create_controls():
         constraint = cmds.aimConstraint(target, obj, offset=(0,0,0), aimVector=aim_vec, upVector=up_vec, worldUpType="vector", worldUpVector=(0,1,0), skip='x')
         cmds.delete(constraint)
         cmds.makeIdentity(obj, apply=True, rotate=True)
-    
+        
     def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
         ''' 
         Creates a simple fk control. Used to quickly interate through the creation of the finger controls
@@ -4332,6 +4454,7 @@ def create_controls():
     left_fingers_ctrl_b = cmds.curve(name=left_wrist_ik_ctrl_a + 'b', p=[[0.0, 0.127, -0.509], [-0.047, 0.194, -0.474], [-0.079, 0.237, -0.449], [-0.123, 0.292, -0.418], [-0.158, 0.332, -0.383], [-0.204, 0.364, -0.34], [-0.204, 0.364, -0.34], [-0.204, 0.364, -0.34], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.129, 0.347, -0.368], [-0.091, 0.311, -0.402], [-0.062, 0.269, -0.429], [-0.062, 0.269, -0.429], [-0.062, 0.269, -0.429], [-0.062, 0.454, -0.268], [-0.062, 0.519, 0.024], [-0.062, 0.445, 0.232], [-0.062, 0.355, 0.343], [-0.062, 0.224, 0.445], [-0.062, 0.0, 0.509], [-0.062, -0.224, 0.445], [-0.062, -0.355, 0.343], [-0.062, -0.445, 0.232], [-0.062, -0.519, 0.024], [-0.062, -0.454, -0.268], [-0.062, -0.269, -0.429], [-0.062, -0.269, -0.429], [-0.062, -0.269, -0.429], [-0.091, -0.311, -0.402], [-0.129, -0.347, -0.368], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.204, -0.364, -0.34], [-0.204, -0.364, -0.34], [-0.204, -0.364, -0.34], [-0.158, -0.332, -0.383], [-0.123, -0.292, -0.418], [-0.079, -0.237, -0.449], [-0.047, -0.194, -0.474], [0.0, -0.127, -0.509]],d=3)
     left_fingers_ctrl_c = cmds.curve(name=left_wrist_ik_ctrl_a + 'c', p=[[0.048, -0.0, 0.126], [0.073, 0.013, 0.139], [0.089, 0.023, 0.149], [0.109, 0.035, 0.16], [0.124, 0.046, 0.173], [0.136, 0.059, 0.189], [0.136, 0.059, 0.189], [0.136, 0.059, 0.189], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.13, 0.037, 0.179], [0.116, 0.026, 0.166], [0.101, 0.018, 0.156], [0.101, 0.018, 0.156], [0.101, 0.018, 0.156], [0.17, 0.018, 0.216], [0.194, 0.018, 0.325], [0.166, 0.018, 0.403], [0.133, 0.018, 0.444], [0.084, 0.018, 0.482], [0.0, 0.018, 0.506], [-0.084, 0.018, 0.482], [-0.133, 0.018, 0.444], [-0.166, 0.018, 0.403], [-0.194, 0.018, 0.325], [-0.17, 0.018, 0.216], [-0.101, 0.018, 0.156], [-0.101, 0.018, 0.156], [-0.101, 0.018, 0.156], [-0.116, 0.026, 0.166], [-0.13, 0.037, 0.179], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.136, 0.059, 0.189], [-0.136, 0.059, 0.189], [-0.136, 0.059, 0.189], [-0.124, 0.046, 0.173], [-0.109, 0.035, 0.16], [-0.089, 0.023, 0.149], [-0.073, 0.013, 0.139], [-0.048, 0.0, 0.126]],d=3)
     left_fingers_ctrl_d = cmds.curve(name=left_wrist_ik_ctrl_a + 'd', p=[[0.048, -0.0, 0.126], [0.073, -0.013, 0.139], [0.089, -0.023, 0.149], [0.109, -0.035, 0.16], [0.124, -0.046, 0.173], [0.136, -0.059, 0.189], [0.136, -0.059, 0.189], [0.136, -0.059, 0.189], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.13, -0.037, 0.179], [0.116, -0.026, 0.166], [0.101, -0.018, 0.156], [0.101, -0.018, 0.156], [0.101, -0.018, 0.156], [0.17, -0.018, 0.216], [0.194, -0.018, 0.325], [0.166, -0.018, 0.403], [0.133, -0.018, 0.444], [0.084, -0.018, 0.482], [-0.0, -0.018, 0.506], [-0.084, -0.018, 0.482], [-0.133, -0.018, 0.444], [-0.166, -0.018, 0.403], [-0.194, -0.018, 0.325], [-0.17, -0.018, 0.216], [-0.101, -0.018, 0.156], [-0.101, -0.018, 0.156], [-0.101, -0.018, 0.156], [-0.116, -0.026, 0.166], [-0.13, -0.037, 0.179], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.136, -0.059, 0.189], [-0.136, -0.059, 0.189], [-0.136, -0.059, 0.189], [-0.124, -0.046, 0.173], [-0.109, -0.035, 0.16], [-0.089, -0.023, 0.149], [-0.073, -0.013, 0.139], [-0.048, 0.0, 0.126]],d=3)
+    
     left_fingers_ctrl = gtu_combine_curves_list([left_fingers_ctrl_a, left_fingers_ctrl_b, left_fingers_ctrl_c, left_fingers_ctrl_d])
     
     shapes =  cmds.listRelatives(left_fingers_ctrl, s=True, f=True) or []
@@ -4340,9 +4463,17 @@ def create_controls():
     cmds.rename(shapes[2], "{0}Shape".format('small_arrow_u'))
     cmds.rename(shapes[3], "{0}Shape".format('small_arrow_d'))
     
-
     left_fingers_ctrl_grp = cmds.group(name=left_fingers_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_fingers_ctrl, left_fingers_ctrl_grp)
+    
+    # Create Open Finger Setup
+    left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.6)
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sx', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sy', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sz', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
     
     cmds.setAttr(left_fingers_ctrl + '.rotateY', -90)
     cmds.setAttr(left_fingers_ctrl + '.scaleX', left_wrist_scale_offset*.3)
@@ -4365,6 +4496,7 @@ def create_controls():
     right_fingers_ctrl_b = cmds.curve(name=right_wrist_ik_ctrl_a + 'b', p=[[0.0, 0.127, -0.509], [-0.047, 0.194, -0.474], [-0.079, 0.237, -0.449], [-0.123, 0.292, -0.418], [-0.158, 0.332, -0.383], [-0.204, 0.364, -0.34], [-0.204, 0.364, -0.34], [-0.204, 0.364, -0.34], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.129, 0.347, -0.368], [-0.091, 0.311, -0.402], [-0.062, 0.269, -0.429], [-0.062, 0.269, -0.429], [-0.062, 0.269, -0.429], [-0.062, 0.454, -0.268], [-0.062, 0.519, 0.024], [-0.062, 0.445, 0.232], [-0.062, 0.355, 0.343], [-0.062, 0.224, 0.445], [-0.062, 0.0, 0.509], [-0.062, -0.224, 0.445], [-0.062, -0.355, 0.343], [-0.062, -0.445, 0.232], [-0.062, -0.519, 0.024], [-0.062, -0.454, -0.268], [-0.062, -0.269, -0.429], [-0.062, -0.269, -0.429], [-0.062, -0.269, -0.429], [-0.091, -0.311, -0.402], [-0.129, -0.347, -0.368], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.204, -0.364, -0.34], [-0.204, -0.364, -0.34], [-0.204, -0.364, -0.34], [-0.158, -0.332, -0.383], [-0.123, -0.292, -0.418], [-0.079, -0.237, -0.449], [-0.047, -0.194, -0.474], [0.0, -0.127, -0.509]],d=3)
     right_fingers_ctrl_c = cmds.curve(name=right_wrist_ik_ctrl_a + 'c', p=[[0.048, -0.0, 0.126], [0.073, 0.013, 0.139], [0.089, 0.023, 0.149], [0.109, 0.035, 0.16], [0.124, 0.046, 0.173], [0.136, 0.059, 0.189], [0.136, 0.059, 0.189], [0.136, 0.059, 0.189], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.14, 0.049, 0.193], [0.13, 0.037, 0.179], [0.116, 0.026, 0.166], [0.101, 0.018, 0.156], [0.101, 0.018, 0.156], [0.101, 0.018, 0.156], [0.17, 0.018, 0.216], [0.194, 0.018, 0.325], [0.166, 0.018, 0.403], [0.133, 0.018, 0.444], [0.084, 0.018, 0.482], [0.0, 0.018, 0.506], [-0.084, 0.018, 0.482], [-0.133, 0.018, 0.444], [-0.166, 0.018, 0.403], [-0.194, 0.018, 0.325], [-0.17, 0.018, 0.216], [-0.101, 0.018, 0.156], [-0.101, 0.018, 0.156], [-0.101, 0.018, 0.156], [-0.116, 0.026, 0.166], [-0.13, 0.037, 0.179], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.14, 0.049, 0.193], [-0.136, 0.059, 0.189], [-0.136, 0.059, 0.189], [-0.136, 0.059, 0.189], [-0.124, 0.046, 0.173], [-0.109, 0.035, 0.16], [-0.089, 0.023, 0.149], [-0.073, 0.013, 0.139], [-0.048, 0.0, 0.126]],d=3)
     right_fingers_ctrl_d = cmds.curve(name=right_wrist_ik_ctrl_a + 'd', p=[[0.048, -0.0, 0.126], [0.073, -0.013, 0.139], [0.089, -0.023, 0.149], [0.109, -0.035, 0.16], [0.124, -0.046, 0.173], [0.136, -0.059, 0.189], [0.136, -0.059, 0.189], [0.136, -0.059, 0.189], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.14, -0.049, 0.193], [0.13, -0.037, 0.179], [0.116, -0.026, 0.166], [0.101, -0.018, 0.156], [0.101, -0.018, 0.156], [0.101, -0.018, 0.156], [0.17, -0.018, 0.216], [0.194, -0.018, 0.325], [0.166, -0.018, 0.403], [0.133, -0.018, 0.444], [0.084, -0.018, 0.482], [-0.0, -0.018, 0.506], [-0.084, -0.018, 0.482], [-0.133, -0.018, 0.444], [-0.166, -0.018, 0.403], [-0.194, -0.018, 0.325], [-0.17, -0.018, 0.216], [-0.101, -0.018, 0.156], [-0.101, -0.018, 0.156], [-0.101, -0.018, 0.156], [-0.116, -0.026, 0.166], [-0.13, -0.037, 0.179], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.14, -0.049, 0.193], [-0.136, -0.059, 0.189], [-0.136, -0.059, 0.189], [-0.136, -0.059, 0.189], [-0.124, -0.046, 0.173], [-0.109, -0.035, 0.16], [-0.089, -0.023, 0.149], [-0.073, -0.013, 0.139], [-0.048, 0.0, 0.126]],d=3)
+    
     right_fingers_ctrl = gtu_combine_curves_list([right_fingers_ctrl_a, right_fingers_ctrl_b, right_fingers_ctrl_c, right_fingers_ctrl_d])
     
     shapes =  cmds.listRelatives(right_fingers_ctrl, s=True, f=True) or []
@@ -4372,14 +4504,23 @@ def create_controls():
     cmds.rename(shapes[1], "{0}Shape".format('big_arrow_r'))
     cmds.rename(shapes[2], "{0}Shape".format('small_arrow_u'))
     cmds.rename(shapes[3], "{0}Shape".format('small_arrow_d'))
-
+    
     right_fingers_ctrl_grp = cmds.group(name=right_fingers_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_fingers_ctrl, right_fingers_ctrl_grp)
     
-    cmds.setAttr(right_fingers_ctrl + '.rotateY', 90)
+    # Create Open Finger Setup
+    right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.5)
+    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sx', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sy', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sz', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
+    
+    cmds.setAttr(right_fingers_ctrl + '.rotateY', -90)
     cmds.setAttr(right_fingers_ctrl + '.scaleX', right_wrist_scale_offset*.3)
     cmds.setAttr(right_fingers_ctrl + '.scaleY', right_wrist_scale_offset*.3)
-    cmds.setAttr(right_fingers_ctrl + '.scaleZ', right_wrist_scale_offset*.3)
+    cmds.setAttr(right_fingers_ctrl + '.scaleZ', -right_wrist_scale_offset*.3)
     cmds.makeIdentity(right_fingers_ctrl, apply=True, scale=True, rotate=True)
   
     # Position
@@ -4578,11 +4719,13 @@ def create_controls():
                          (left_pinky01_ctrl_list, left_pinky02_ctrl_list, left_pinky03_ctrl_list)]
         
     # Add Custom Attributes
-    cmds.addAttr(left_fingers_ctrl , ln='automationSystem', at='enum', k=True, en="Fingers:")
-    cmds.addAttr(left_fingers_ctrl , ln='activateSystem', at='bool', k=True)
-    cmds.setAttr(left_fingers_ctrl + '.activateSystem', 1)
-    lock_hide_default_attr(left_fingers_ctrl, rotate=False)
-    cmds.setAttr(left_fingers_ctrl + '.automationSystem', lock=True)
+    cmds.addAttr(left_fingers_ctrl , ln='fingersAutomation', at='enum', k=True, en="-------------:")
+    cmds.addAttr(left_fingers_ctrl , ln='systemInfluence', at='bool', k=True)
+    cmds.setAttr(left_fingers_ctrl + '.systemInfluence', 1)
+    lock_hide_default_attr(left_fingers_ctrl, rotate=False, scale=False)
+    cmds.setAttr(left_fingers_ctrl + '.sx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(left_fingers_ctrl + '.sy', lock=True, k=False, channelBox=False)
+    cmds.setAttr(left_fingers_ctrl + '.fingersAutomation', lock=True)
     add_node_note(left_fingers_ctrl, 'Finger automation system. Rotating this control will cause fingers to rotate in the same direction. Convenient for when quickly creating a fist pose.\nAttributes:\n-Activate System: Whether or not the system is active.\n\n-Fist Pose Limit: What rotation should be considered a "fist" pose for the fingers.\n\n-Rot Multiplier: How much of the rotation will be transfered to the selected finger. (Used to create a less robotic movement between the fingers)')
     
     # Left Auto Offset
@@ -4621,7 +4764,7 @@ def create_controls():
             cmds.setAttr(left_fingers_ctrl + '.' + attribute_long_name, 1)
         
         # Connect Nodes
-        cmds.connectAttr(left_fingers_ctrl + '.activateSystem', active_condition_node + '.firstTerm', f=True)
+        cmds.connectAttr(left_fingers_ctrl + '.systemInfluence', active_condition_node + '.firstTerm', f=True)
         cmds.connectAttr(left_fingers_ctrl + '.rotate', multiply_node + '.input1', f=True)
         cmds.connectAttr(left_fingers_ctrl + '.' + attribute_long_name, multiply_node + '.input2X', f=True)
         cmds.connectAttr(left_fingers_ctrl + '.' + attribute_long_name, multiply_node + '.input2Y', f=True)
@@ -4705,11 +4848,13 @@ def create_controls():
                          (right_pinky01_ctrl_list, right_pinky02_ctrl_list, right_pinky03_ctrl_list)]
         
     # Add Custom Attributes
-    cmds.addAttr(right_fingers_ctrl , ln='automationSystem', at='enum', k=True, en="Fingers:")
-    cmds.addAttr(right_fingers_ctrl , ln='activateSystem', at='bool', k=True)
-    cmds.setAttr(right_fingers_ctrl + '.activateSystem', 1)
-    lock_hide_default_attr(right_fingers_ctrl, rotate=False)
-    cmds.setAttr(right_fingers_ctrl + '.automationSystem', lock=True)
+    cmds.addAttr(right_fingers_ctrl , ln='fingersAutomation', at='enum', k=True, en="-------------:")
+    cmds.addAttr(right_fingers_ctrl , ln='systemInfluence', at='bool', k=True)
+    cmds.setAttr(right_fingers_ctrl + '.systemInfluence', 1)
+    lock_hide_default_attr(right_fingers_ctrl, rotate=False, scale=False)
+    cmds.setAttr(right_fingers_ctrl + '.sx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(right_fingers_ctrl + '.sy', lock=True, k=False, channelBox=False)
+    cmds.setAttr(right_fingers_ctrl + '.fingersAutomation', lock=True)
     add_node_note(right_fingers_ctrl, 'Finger automation system. Rotating this control will cause fingers to rotate in the same direction. Convenient for when quickly creating a fist pose.\nAttributes:\n-Activate System: Whether or not the system is active.\n\n-Fist Pose Limit: What rotation should be considered a "fist" pose for the fingers.\n\n-Rot Multiplier: How much of the rotation will be transfered to the selected finger. (Used to create a less robotic movement between the fingers)')
     
     # Right Auto Offset
@@ -4748,7 +4893,7 @@ def create_controls():
             cmds.setAttr(right_fingers_ctrl + '.' + attribute_long_name, 1)
         
         # Connect Nodes
-        cmds.connectAttr(right_fingers_ctrl + '.activateSystem', active_condition_node + '.firstTerm', f=True)
+        cmds.connectAttr(right_fingers_ctrl + '.systemInfluence', active_condition_node + '.firstTerm', f=True)
         cmds.connectAttr(right_fingers_ctrl + '.rotate', multiply_node + '.input1', f=True)
         cmds.connectAttr(right_fingers_ctrl + '.' + attribute_long_name, multiply_node + '.input2X', f=True)
         cmds.connectAttr(right_fingers_ctrl + '.' + attribute_long_name, multiply_node + '.input2Y', f=True)
@@ -5675,19 +5820,26 @@ def create_controls():
     cmds.setAttr(right_eye_up_vec + '.lsz', general_scale_offset*.1)
     cmds.setAttr(right_eye_up_vec + '.v', 0)
     cmds.parent(right_eye_up_vec, head_ctrl)
-    change_viewport_color(right_eye_up_vec, (1, 0, 0))
+    change_viewport_color(right_eye_up_vec, (1, .65, .45))
     
     cmds.aimConstraint(right_eye_ctrl, gt_ab_joints.get('right_eye_jnt'), mo=True, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_eye_up_vec)
- 
-    # Scale Constraints
-    cmds.scaleConstraint(main_ctrl, skeleton_grp)
-    cmds.scaleConstraint(main_ctrl, rig_setup_grp)
-    
+
     # Other Groups
     geometry_grp = cmds.group(name='geometry_grp', empty=True, world=True)
     change_outliner_color(geometry_grp, (.3,1,.8))
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1,.45,.7))
+    
+    # Finger Automation System Hierarchy
+    finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
+    cmds.parent(finger_automation_grp, rig_setup_grp)
+    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
+    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
+    change_viewport_color(finger_automation_grp, (1, 0, 0))
+    
+    # Scale Constraints
+    cmds.scaleConstraint(main_ctrl, skeleton_grp)
+    cmds.scaleConstraint(main_ctrl, rig_setup_grp)
     
     # Lock Groups
     lock_hide_default_attr(controls_grp, visibility=False)
@@ -5723,9 +5875,25 @@ def create_controls():
     cmds.connectAttr(main_ctrl + '.controlsVisibility', left_leg_switch_grp + '.v', f=True)
     cmds.connectAttr(main_ctrl + '.controlsVisibility', right_leg_switch_grp + '.v', f=True)
     
+    
     # Moved the parenting of these systems after IK creation to solve pose issues
     cmds.parent(right_shoulder_ik_jnt, right_clavicle_switch_jnt)
     cmds.parent(left_shoulder_ik_jnt, left_clavicle_switch_jnt)
+    
+    # Left Finger Opening Automation @@@@@@@@@@
+    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= left_fingers_ctrl + '_decomposeMatrix')
+    cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
+    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
+    cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
+
+    # Abduction
+    
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 0.5)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+    
     
     # Delete Proxy
     cmds.delete(gt_ab_settings.get('main_proxy_grp'))
@@ -5955,8 +6123,14 @@ def select_skinning_joints():
                 except:
                     pass
                 
-def reset_proxy():
-    ''' Resets proxy elements to their original position '''
+def reset_proxy(suppress_warning=False):
+    ''' 
+    Resets proxy elements to their original position
+    
+            Parameters:
+                suppress_warning (bool): Whether or not it should give inView feedback
+    
+    '''
     
     is_reset = False
     attributes_set_zero = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'followHip']
@@ -5981,8 +6155,9 @@ def reset_proxy():
                     pass
     
     if is_reset:
-        unique_message = '<' + str(random.random()) + '>'
-        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span><span style=\"color:#FFFFFF;\"> was reset!</span>', pos='botLeft', fade=True, alpha=.9)
+        if not suppress_warning:
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span><span style=\"color:#FFFFFF;\"> was reset!</span>', pos='botLeft', fade=True, alpha=.9)
     else:
         cmds.warning('No proxy found. Nothing was reset.')
         
@@ -6078,51 +6253,52 @@ def mirror_proxy(operation):
             cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span><span style=\"color:#FFFFFF;\"> mirrored from right to left. (-X to +X)</span>', pos='botLeft', fade=True, alpha=.9)
 
 def export_proxy_pose():
-    ''' Exports a JSON file containing the translate, rotate and scale data from every proxy curve (used to export a pose) ''' 
+    ''' 
+    Exports a JSON file containing the translate, rotate and scale data from every proxy curve (used to export a pose)
+    Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
     
-    file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
-    
+    ''' 
+    # Validate Proxy and Write file
+    is_valid = True
     successfully_created_file = False
-    if len(file_name) > 0:
-        pose_file = file_name[0]
-        successfully_created_file = True
+    
+    proxy_elements = [gt_ab_settings.get('main_proxy_grp')]
+    for proxy in gt_ab_settings_default:
+        if '_crv' in proxy:
+            proxy_elements.append(gt_ab_settings.get(proxy))
+    for obj in proxy_elements:
+        if not cmds.objExists(obj) and is_valid:
+            is_valid = False
+            cmds.warning('"' + obj + '" is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.')
 
-    if successfully_created_file:
+    if is_valid:
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+
+    if successfully_created_file and is_valid:
         
-        export_dict = {'gt_auto_biped_version' : script_version}
-        
-        # Validate Proxy
-        is_valid = True
+        export_dict = {'gt_auto_biped_version' : script_version, 'gt_auto_biped_export_method' : 'object-space'}
+        for obj in gt_ab_settings_default:
+            if '_crv' in obj:
+                translate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(gt_ab_settings_default.get(obj) + '.scale')[0]
+                to_save = [gt_ab_settings_default.get(obj), translate, rotate, scale]
+                export_dict[obj] = to_save
+    
+        try: 
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
 
-        proxy_elements = [gt_ab_settings.get('main_proxy_grp')]
-        for proxy in gt_ab_settings_default:
-            if '_crv' in proxy:
-                proxy_elements.append(gt_ab_settings.get(proxy))
-        for obj in proxy_elements:
-            if not cmds.objExists(obj) and is_valid:
-                is_valid = False
-                cmds.warning('"' + obj + '" is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.')
-
-        if is_valid:
-            for obj in gt_ab_settings_default:
-                if '_crv' in obj:
-                    translate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.translate')
-                    rotate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.rotate')
-                    scale = cmds.getAttr(gt_ab_settings_default.get(obj) + '.scale')
-                    to_save = [gt_ab_settings_default.get(obj), translate[0], rotate[0], scale[0]]
-                    export_dict[obj] = to_save
-        
-            try: 
-                with open(pose_file, 'w') as outfile:
-                    json.dump(export_dict, outfile, indent=4)
-
-                unique_message = '<' + str(random.random()) + '>'
-                cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> exported.</span>', pos='botLeft', fade=True, alpha=.9)
-                sys.stdout.write('Pose exported to the file "' + pose_file + '".')
-            except Exception as e:
-                print (e)
-                successfully_created_file = False
-                cmds.warning('Couldn\'t write to file. Please make sure the saving location is accessible.')
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose exported to the file "' + pose_file + '".')
+        except Exception as e:
+            print (e)
+            successfully_created_file = False
+            cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
 def import_proxy_pose():
@@ -6130,11 +6306,15 @@ def import_proxy_pose():
     Imports a JSON file containing the translate, rotate and scale data for every proxy curve (exported using the "export_proxy_pose" function)
     Uses the imported data to set the translate, rotate and scale position of every proxy curve
     Uses the function "delete_proxy()" to recreate it if necessary
+    Uses the function "reset_proxy()" to clean proxy before importing
+    
+    It now checks import method to use the proper method when setting attributes.
+    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
     
     ''' 
-    def set_unlocked_attr(target, attr, value):
+    def set_unlocked_os_attr(target, attr, value):
         ''' 
-        Sets an attribute to the provided value in case it's not locked
+        Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
         
                 Parameters:
                     target (string): Name of the target object (object that will receive transforms)
@@ -6142,9 +6322,37 @@ def import_proxy_pose():
                     value (float): Value used to set attribute. e.g. 1.5, 2, 5...
         
         '''
-        if not cmds.getAttr(target + '.' + attr, lock=True):
-            cmds.setAttr(target + '.' + attr, value)
-                                
+        try:
+            if not cmds.getAttr(target + '.' + attr, lock=True):
+                cmds.setAttr(target + '.' + attr, value)
+        except:
+            pass
+            
+    def set_unlocked_ws_attr(target, attr, value_tuple):
+        ''' 
+        Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
+        
+                Parameters:
+                    target (string): Name of the target object (object that will receive transforms)
+                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+                    value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+        
+        '''
+        try:
+            if attr == 'translate':
+                cmds.xform(target, ws=True, t=value_tuple)
+                #cmds.move(value_tuple[0], value_tuple[1], value_tuple[2], target, worldSpace=True, pcp=True)
+            if attr == 'rotate':
+                cmds.xform(target, ws=True, ro=value_tuple)
+                #cmds.rotate(value_tuple[0], value_tuple[1], value_tuple[2], target, worldSpace=True, pcp=True)
+            if attr == 'scale':
+                cmds.xform(target, ws=True, s=value_tuple)
+        except:
+            pass
+     
+    import_version = 0.0
+    import_method = 'object-space'
+    
     file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
     
     if len(file_name) > 0:
@@ -6159,10 +6367,16 @@ def import_proxy_pose():
                 data = json.load(json_file)
                 try:
                     is_valid_file = True
+                    
                     if not data.get('gt_auto_biped_version'):
                         is_valid_file = False
                         cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
-                    
+                    else:
+                        import_version = float(data.get('gt_auto_biped_version'))
+                        
+                    if data.get('gt_auto_biped_export_method'):
+                      import_method = data.get('gt_auto_biped_export_method')
+                
                     is_valid_scene = True
                     # Check for existing rig or conflicting names
                     undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
@@ -6188,35 +6402,67 @@ def import_proxy_pose():
                                 validate_operation('create_proxy')
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
                     
-                    
                     if is_valid_file and is_valid_scene:
-                        for proxy in data:
-                            if proxy != 'gt_auto_biped_version':
-                                curent_object = data.get(proxy) # Name, T, R, S
+                        if import_method == 'world-space':
+                            reset_proxy(suppress_warning=True)
+                            sorted_pairs = []
+                            for proxy in data:
+                                if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
+                                    curent_object = data.get(proxy) # Name, T, R, S
+                                    if cmds.objExists(curent_object[0]):
+                                        long_name = cmds.ls(curent_object[0], l=True) or []
+                                        number_of_parents = len(long_name[0].split('|'))
+                                        sorted_pairs.append((curent_object, number_of_parents))
+               
+                                    sorted_pairs.sort(key=lambda x:x[1], reverse=True)
+                     
+                            # Scale (Children First)
+                            for obj in sorted_pairs:
+                                curent_object = obj[0]
                                 if cmds.objExists(curent_object[0]):
-                                    set_unlocked_attr(curent_object[0], 'tx', curent_object[1][0])
-                                    set_unlocked_attr(curent_object[0], 'ty', curent_object[1][1])
-                                    set_unlocked_attr(curent_object[0], 'tz', curent_object[1][2])
-                                    set_unlocked_attr(curent_object[0], 'rx', curent_object[2][0])
-                                    set_unlocked_attr(curent_object[0], 'ry', curent_object[2][1])
-                                    set_unlocked_attr(curent_object[0], 'rz', curent_object[2][2])
-                                    try:
-                                        set_unlocked_attr(curent_object[0], 'sx', curent_object[3][0])
-                                    except:
-                                        pass
-                                    try:
-                                        set_unlocked_attr(curent_object[0], 'sy', curent_object[3][1])
-                                    except:
-                                        pass
-                                    try:
-                                        set_unlocked_attr(curent_object[0], 'sz', curent_object[3][2])
-                                    except:
-                                        pass
+                                    #set_unlocked_ws_attr(curent_object[0], 'scale', curent_object[3])
+                                    set_unlocked_os_attr(curent_object[0], 'sx', curent_object[3][0])
+                                    set_unlocked_os_attr(curent_object[0], 'sy', curent_object[3][1])
+                                    set_unlocked_os_attr(curent_object[0], 'sz', curent_object[3][2])
+                                    
+                            # Translate and Rotate (Parents First)
+                            for obj in reversed(sorted_pairs):
+                                curent_object = obj[0]
+                                if cmds.objExists(curent_object[0]):
+                                    set_unlocked_ws_attr(curent_object[0], 'translate', curent_object[1])
+                                    set_unlocked_ws_attr(curent_object[0], 'rotate', curent_object[2])
+                                    
+                            # Set Transfer Pole Vectors Again
+                            for obj in reversed(sorted_pairs):
+                                curent_object = obj[0]
+                                if 'knee' in curent_object[0] or 'elbow' in curent_object[0]:
+                                    if cmds.objExists(curent_object[0]):
+                                        set_unlocked_ws_attr(curent_object[0], 'translate', curent_object[1])
+                                        set_unlocked_ws_attr(curent_object[0], 'rotate', curent_object[2])
+                            
+                                     
+                        else: # Object-Space
+                            for proxy in data:
+                                if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
+                                    curent_object = data.get(proxy) # Name, T, R, S
+                                    if cmds.objExists(curent_object[0]):
+                                        set_unlocked_os_attr(curent_object[0], 'tx', curent_object[1][0])
+                                        set_unlocked_os_attr(curent_object[0], 'ty', curent_object[1][1])
+                                        set_unlocked_os_attr(curent_object[0], 'tz', curent_object[1][2])
+                                        set_unlocked_os_attr(curent_object[0], 'rx', curent_object[2][0])
+                                        set_unlocked_os_attr(curent_object[0], 'ry', curent_object[2][1])
+                                        set_unlocked_os_attr(curent_object[0], 'rz', curent_object[2][2])
+                                        set_unlocked_os_attr(curent_object[0], 'sx', curent_object[3][0])
+                                        set_unlocked_os_attr(curent_object[0], 'sy', curent_object[3][1])
+                                        set_unlocked_os_attr(curent_object[0], 'sz', curent_object[3][2])
+         
+
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>', pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Pose imported from the file "' + pose_file + '".')
 
                 except Exception as e:
+                    print(e)
                     cmds.warning('An error occured when importing the pose. Make sure you imported the correct JSON file. (Click on "Help" for more info)')
         except:
             file_exists = False
@@ -6232,6 +6478,12 @@ def gt_ab_define_humanik(character_name):
     
     '''
     is_operation_valid = True
+    
+    try:
+        if not cmds.pluginInfo("mayaHIK", query=True, loaded=True):
+            cmds.loadPlugin("mayaHIK", quiet=True)
+    except:
+        pass
 
     # Check for existing rig
     desired_elements = []
@@ -6475,7 +6727,157 @@ def add_seamless_fkik_button():
                label='FKIK', tooltip='This button opens the FKIK Switcher for GT Auto Biped Rigger.', image='openScript.png')
     cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">FK/IK Switcher</span> button was added to your current shelf.', pos='botLeft', fade=True, alpha=.9)
         
+
+def extract_proxy_pose():
+    ''' 
+    Extracts the proxy pose from a generated rig into a JSON file. Useful when the user forgot to save it and generated the rig already.
+    
+    Exports using "xform" and world space for more flexibility (with the exception of scale)
+    
+    ''' 
+
+    def extract_transform_joint_to_proxy(joint_name, ignore_translate=False, ignore_rotate=False, ignore_scale=False, no_jnt_extraction=None):
+        ''' 
+        Extracts the world-space for Translate and Rotate and the object-space Scale of the provided joint
+        then returns a list with proxy name, translate list, rotate list, and scale list
+        [ proxy_name, translate_xyz, rotate_xyz, scale_xyz ]
         
+                Parameters:
+                    joint_name (string): Name of the joint used to extract the transform
+                    ignore_translate (bool): If active, it returns default translate values (0,0,0) instead of extracting it
+                    ignore_rotate (bool): If active, it returns default rotate values (0,0,0) instead of extracting it
+                    ignore_scale (bool): If active, it returns default scale values (1,1,1) instead of extracting it
+                    no_jnt_extraction (bool): In case using another object to match it, you can provide it here
+                    
+                Returns:
+                    extracted_pair (list): [proxy_name, translate_xyz, rotate_xyz, scale_xyz]
+        '''
+        
+        proxy_name = joint_name.replace(jnt_suffix, proxy_suffix).replace('end' + jnt_suffix.capitalize(), 'end' + proxy_suffix.capitalize())
+        
+        if no_jnt_extraction:
+            joint_name = no_jnt_extraction
+        
+        if ignore_translate:
+            translate = (0, 0, 0)
+        else:
+            translate = cmds.xform(joint_name, q=True, t=True, ws=True) 
+        
+        if ignore_rotate:
+            rotate = (0, 0, 0)
+        else:
+            rotate = cmds.xform(joint_name, q=True, ro=True, ws=True)
+            
+        if ignore_translate:
+            scale = (1, 1, 1)
+        else:
+            scale = cmds.getAttr(joint_name + '.scale')[0]
+            
+        return [proxy_name, translate, rotate, scale]
+    
+    
+    # Validate Proxy and Write file
+    is_valid = True
+    successfully_created_file = False
+    
+    # Check for existing rig
+    desired_elements = []
+    for jnt in gt_ab_joints_default:
+        desired_elements.append(gt_ab_joints_default.get(jnt))
+    for obj in desired_elements:
+        if not cmds.objExists(obj) and is_valid:
+            is_valid = False
+            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. (Click on "Help" for more details)')
+    
+
+    if is_valid:
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+
+    if successfully_created_file and is_valid:
+        
+        export_dict = {'gt_auto_biped_version' : script_version, 'gt_auto_biped_export_method' : 'world-space'}
+        
+        no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee']
+        left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
+        right_offset_rot_string_list = ['right_clavicle', 'right_wrist']
+        no_rot_list = []
+        left_offset_rot_list = []
+        right_offset_rot_list = []
+        
+        for jnt_key in gt_ab_joints_default:
+            for string in no_rot_string_list:
+                if string in jnt_key:
+                    no_rot_list.append(jnt_key)
+            for string in left_offset_rot_string_list:
+                if string in jnt_key:
+                    left_offset_rot_list.append(jnt_key)
+            for string in right_offset_rot_string_list:
+                if string in jnt_key:
+                    right_offset_rot_list.append(jnt_key)
+
+        print(no_rot_list)
+        for jnt_key in gt_ab_joints_default:
+            jnt = gt_ab_joints_default.get(jnt_key)
+
+
+            if jnt_key in no_rot_list:
+                values_to_store = extract_transform_joint_to_proxy(jnt, ignore_rotate=True)
+            elif jnt_key in left_offset_rot_list:
+                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
+                temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
+                temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True )
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp))
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp_dir))
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp_up))
+                cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
+                cmds.move(1, temp_grp_up, z=True, relative=True, objectSpace=True)
+                cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+                cmds.delete(cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0,0,0), aimVector=(0,1,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0), skip=('y','z')))
+                values_to_store = extract_transform_joint_to_proxy(jnt, no_jnt_extraction=temp_grp)
+                cmds.delete(temp_grp)
+                cmds.delete(temp_grp_dir)
+                cmds.delete(temp_grp_up)
+            elif jnt_key in right_offset_rot_list:
+                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
+                temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
+                temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True )
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp))
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp_dir))
+                cmds.delete(cmds.parentConstraint(jnt, temp_grp_up))
+                cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
+                cmds.move(-1, temp_grp_up, z=True, relative=True, objectSpace=True)
+                cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+                cmds.delete(cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0,0,0), aimVector=(0,1,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0), skip=('y','z')))
+                values_to_store = extract_transform_joint_to_proxy(jnt, no_jnt_extraction=temp_grp)
+                cmds.delete(temp_grp)
+                cmds.delete(temp_grp_dir)
+                cmds.delete(temp_grp_up)
+            else:
+                values_to_store = extract_transform_joint_to_proxy(jnt)
+            
+            for proxy_key in gt_ab_settings_default:
+                if jnt_key.replace('_' + jnt_suffix, '_proxy_crv') == proxy_key:
+                    export_dict[proxy_key] = values_to_store
+        
+    
+        try: 
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>', pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
+        except Exception as e:
+            print (e)
+            successfully_created_file = False
+            cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
+
+
+
+ 
 # Build UI
 if __name__ == '__main__':
     build_gui_auto_biped_rig()
