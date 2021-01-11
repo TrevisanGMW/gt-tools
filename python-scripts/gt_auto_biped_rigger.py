@@ -4467,11 +4467,11 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.scaleZ', left_wrist_scale_offset*.3)
     cmds.makeIdentity(left_fingers_ctrl, apply=True, scale=True, rotate=True)
     
-    # Create Abduction Finger Setup
-    left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.1)
-    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
+    # # Create Abduction Finger Setup @@@@@@
+    # left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.1)
+    # cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
+    # cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    # cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_fingers_ctrl_grp))
@@ -4506,11 +4506,11 @@ def create_controls():
     cmds.setAttr(right_fingers_ctrl + '.scaleZ', -right_wrist_scale_offset*.3)
     cmds.makeIdentity(right_fingers_ctrl, apply=True, scale=True, rotate=True)
     
-    # Create Abduction Finger Setup
-    right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.1)
-    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
+    # # Create Abduction Finger Setup @@@@@
+    # right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.1)
+    # cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
+    # cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    # cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_fingers_ctrl_grp))
@@ -4774,25 +4774,27 @@ def create_controls():
             cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
     
-    # Left Finger Abduction Automation
-    cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
-    cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
-    cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
-    cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
-    cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
+    # # Left Finger Abduction Automation
+    # cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
+    # cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
+    # cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
+    # cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
+    # cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
     
-    cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='bool', k=True)
-    cmds.addAttr(left_fingers_ctrl , ln='autoAdduction', at='bool', k=True)
+    # cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='bool', k=True)
+    # cmds.addAttr(left_fingers_ctrl , ln='autoAdduction', at='bool', k=True)
      
-    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_abduction_scale_decomposeMatrix')
-    cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
-    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
-    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
-    cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
-    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 1)
-    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
-    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
-    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+    # left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_abduction_scale_decomposeMatrix')
+    # cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
+    # cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
+    # cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
+    # cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
+    # cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 1)
+    # cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
+    # cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
+    # cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+    lock_hide_default_attr(left_fingers_ctrl, rotate=False) # Temp
+    lock_hide_default_attr(right_fingers_ctrl, rotate=False) # Temp
     
     #@@@@@@@@@@@@
     
@@ -5348,13 +5350,13 @@ def create_controls():
     lock_hide_default_attr(stretchy_system_grp, visibility=False)
     lock_hide_default_attr(ik_solvers_grp, visibility=False)
     
-    # Finger Automation System Hierarchy
-    finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
-    cmds.parent(finger_automation_grp, rig_setup_grp)
-    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
-    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
-    change_outliner_color(finger_automation_grp, (1, .65, .45))
-    cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
+    # # Finger Automation System Hierarchy @@@@@@@@@@@@@@
+    # finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
+    # cmds.parent(finger_automation_grp, rig_setup_grp)
+    # cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
+    # cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
+    # change_outliner_color(finger_automation_grp, (1, .65, .45))
+    # cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
     
     
     ################# Left Arm Controls #################   
