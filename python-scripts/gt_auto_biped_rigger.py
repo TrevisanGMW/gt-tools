@@ -28,20 +28,17 @@
  "followHip" (ankle proxies) attribute is not longer activated by default
  Fixed an issue where left arm ik would be generated with an offset in extreme angles
  
- 1.3 - 2021-01-07
+ 1.3 - 2021-01-XX - WIP
  Updated help window to better accommodate a high volume of text
  Added new utility to extract proxy pose from generated rig
  Updated export/import functions to be compatible with worldspace
  Added version check to importer for backwards compatibility
  Added auto load for HumanIK plugin in case it's not loaded when attaching rig
  Added finger abduction/adduction control and updated the name of a few attributes
+ Patched a few small bugs, added colors to a few controls and updated the help text
 
- 
  To do:
-    Open fingers with reverse scale
-  
     Add notes to the knee proxies (similar to elbows)
-    Update Help window so it's not so big
     Add more roll joints
     Add option to auto create proxy geo
     Add option to colorize (or not) proxy and rig elements
@@ -1049,17 +1046,17 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
     cmds.setAttr(curve_transform + '.sx', initial_scale)
     cmds.setAttr(curve_transform + '.sy', initial_scale)
     cmds.setAttr(curve_transform + '.sz', initial_scale)
-    cmds.makeIdentity(curve_transform, apply=True, rotate=True)
+    cmds.makeIdentity(curve_transform, apply=True, scale=True, rotate=True)
 
     # Create Scale Curve
-    arrow_scale_crv = cmds.curve(name=curve_name + '_scaleCrv',p=[[0.0, 0.0, -1.0], [0.0, 0.0, -0.333], [0.0, 0.0, 0.333], [0.0, 0.0, 1.0]],d=3)
-    arrow_scale_shape =  cmds.listRelatives(arrow_scale_crv, s=True, f=True)[0]
-    arrow_scale_shape = cmds.rename(arrow_scale_shape, "{0}Shape".format(arrow_scale_crv))
+    curve_scale_crv = cmds.curve(name=curve_name + '_scaleCrv',p=[[0.0, 0.0, -1.0], [0.0, 0.0, -0.333], [0.0, 0.0, 0.333], [0.0, 0.0, 1.0]],d=3)
+    curve_scale_shape =  cmds.listRelatives(curve_scale_crv, s=True, f=True)[0]
+    curve_scale_shape = cmds.rename(curve_scale_shape, "{0}Shape".format(curve_scale_crv))
     # Set Initial Scale
-    cmds.setAttr(arrow_scale_crv + '.sx', initial_scale)
-    cmds.setAttr(arrow_scale_crv + '.sy', initial_scale)
-    cmds.setAttr(arrow_scale_crv + '.sz', initial_scale)
-    cmds.makeIdentity(arrow_scale_crv, apply=True, rotate=True)
+    cmds.setAttr(curve_scale_crv + '.sx', initial_scale)
+    cmds.setAttr(curve_scale_crv + '.sy', initial_scale)
+    cmds.setAttr(curve_scale_crv + '.sz', initial_scale)
+    cmds.makeIdentity(curve_scale_crv, apply=True, scale=True, rotate=True)
 
     # Create Clusters
     if start_cv_list:
@@ -1084,8 +1081,8 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
     cmds.setAttr(start_point_on_curve_node + '.parameter', 0)
     cmds.setAttr(end_point_on_curve_node + '.parameter', 1)
 
-    cmds.connectAttr(arrow_scale_shape + '.worldSpace', start_point_on_curve_node + '.inputCurve')
-    cmds.connectAttr(arrow_scale_shape + '.worldSpace', end_point_on_curve_node + '.inputCurve')
+    cmds.connectAttr(curve_scale_shape + '.worldSpace', start_point_on_curve_node + '.inputCurve')
+    cmds.connectAttr(curve_scale_shape + '.worldSpace', end_point_on_curve_node + '.inputCurve')
 
     start_curve_scale_grp = cmds.group(name=curve_name + '_curveScale_start_grp', world=True, empty=True)
     end_curve_scale_grp = cmds.group(name=curve_name + '_curveScale_end_grp', world=True, empty=True)
@@ -1103,20 +1100,19 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
     # Setup Hierarchy
     cmds.parent(cluster_start[1], start_curve_scale_grp)
     cmds.parent(cluster_end[1], end_curve_scale_grp)
-    cmds.parent(arrow_scale_crv, curve_rig_grp)
+    cmds.parent(curve_scale_crv, curve_rig_grp)
     cmds.parent(start_curve_scale_grp, curve_rig_grp)
     cmds.parent(end_curve_scale_grp, curve_rig_grp)
     
     # Set Visibility
     cmds.setAttr(cluster_start[1] + '.v', 0)
     cmds.setAttr(cluster_end[1] + '.v', 0)
-    cmds.setAttr(arrow_scale_crv + '.v', 0)
+    cmds.setAttr(curve_scale_crv + '.v', 0)
     
     # Clean Selection
     cmds.select(d=True)
     
-    return [curve_transform, arrow_scale_crv, curve_rig_grp]
-
+    return [curve_transform, curve_scale_crv, curve_rig_grp]
 
 
 def validate_operation(operation, debugging=False):
@@ -1199,7 +1195,6 @@ def validate_operation(operation, debugging=False):
                 cmds.warning(str(e))
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
 
 def create_proxy(colorize_proxy=True):
     ''' 
@@ -4466,20 +4461,17 @@ def create_controls():
     left_fingers_ctrl_grp = cmds.group(name=left_fingers_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_fingers_ctrl, left_fingers_ctrl_grp)
     
-    # Create Open Finger Setup
-    left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.6)
-    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sx', 1)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sy', 1)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.sz', 1)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
-    
     cmds.setAttr(left_fingers_ctrl + '.rotateY', -90)
     cmds.setAttr(left_fingers_ctrl + '.scaleX', left_wrist_scale_offset*.3)
     cmds.setAttr(left_fingers_ctrl + '.scaleY', left_wrist_scale_offset*.3)
     cmds.setAttr(left_fingers_ctrl + '.scaleZ', left_wrist_scale_offset*.3)
     cmds.makeIdentity(left_fingers_ctrl, apply=True, scale=True, rotate=True)
+    
+    # Create Abduction Finger Setup
+    left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.1)
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_fingers_ctrl_grp))
@@ -4508,20 +4500,17 @@ def create_controls():
     right_fingers_ctrl_grp = cmds.group(name=right_fingers_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_fingers_ctrl, right_fingers_ctrl_grp)
     
-    # Create Open Finger Setup
-    right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.5)
-    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sx', 1)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sy', 1)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.sz', 1)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
-    
     cmds.setAttr(right_fingers_ctrl + '.rotateY', -90)
     cmds.setAttr(right_fingers_ctrl + '.scaleX', right_wrist_scale_offset*.3)
     cmds.setAttr(right_fingers_ctrl + '.scaleY', right_wrist_scale_offset*.3)
     cmds.setAttr(right_fingers_ctrl + '.scaleZ', -right_wrist_scale_offset*.3)
     cmds.makeIdentity(right_fingers_ctrl, apply=True, scale=True, rotate=True)
+    
+    # Create Abduction Finger Setup
+    right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.1)
+    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_fingers_ctrl_grp))
@@ -4728,7 +4717,8 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.fingersAutomation', lock=True)
     add_node_note(left_fingers_ctrl, 'Finger automation system. Rotating this control will cause fingers to rotate in the same direction. Convenient for when quickly creating a fist pose.\nAttributes:\n-Activate System: Whether or not the system is active.\n\n-Fist Pose Limit: What rotation should be considered a "fist" pose for the fingers.\n\n-Rot Multiplier: How much of the rotation will be transfered to the selected finger. (Used to create a less robotic movement between the fingers)')
     
-    # Left Auto Offset
+    
+    # Left Auto Offset @@@@@@@@@@@@
     for obj in left_fingers_list:
         finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
         
@@ -4783,7 +4773,29 @@ def create_controls():
             cmds.connectAttr(active_condition_node + '.outColorR', finger[2] + '.rotateX', f=True)
             cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
-            
+    
+    # Left Finger Abduction Automation
+    cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
+    cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
+    cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
+    cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
+    cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
+    
+    cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='bool', k=True)
+    cmds.addAttr(left_fingers_ctrl , ln='autoAdduction', at='bool', k=True)
+     
+    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_abduction_scale_decomposeMatrix')
+    cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
+    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
+    cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 1)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+    
+    #@@@@@@@@@@@@
+    
     ################# Right FK Controls #################
     # Right Leg
     cmds.parentConstraint(right_hip_ctrl, right_hip_fk_jnt)
@@ -4912,6 +4924,8 @@ def create_controls():
             cmds.connectAttr(active_condition_node + '.outColorR', finger[2] + '.rotateX', f=True)
             cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
+            
+
 
     ################# IK Controls #################
     rig_setup_grp = cmds.group(name='rig_setup_' + grp_suffix, empty=True, world=True)
@@ -5317,6 +5331,7 @@ def create_controls():
     cmds.connectAttr(right_toe_up_down_ctrl + '.lockXZ', right_toe_up_down_ctrl + '.minTransZLimitEnable', f=True)
     cmds.connectAttr(right_toe_up_down_ctrl + '.lockXZ', right_toe_up_down_ctrl + '.maxTransZLimitEnable', f=True)
 
+
     
     ################# Organize Stretchy System Elements #################
     stretchy_system_grp = cmds.group(name='stretchySystem_' + grp_suffix, empty=True, world=True)
@@ -5329,13 +5344,18 @@ def create_controls():
     cmds.parent(foot_automation_grp, rig_setup_grp)
     cmds.parent(left_foot_pivot_grp, foot_automation_grp)
     cmds.parent(right_foot_pivot_grp, foot_automation_grp)
-    #cmds.setAttr(foot_automation_grp + '.v', 0)
-    #cmds.setAttr(stretchy_system_grp + '.v', 0)
-    #cmds.setAttr(ik_solvers_grp + '.v', 0)
     lock_hide_default_attr(foot_automation_grp, visibility=False)
     lock_hide_default_attr(stretchy_system_grp, visibility=False)
     lock_hide_default_attr(ik_solvers_grp, visibility=False)
- 
+    
+    # Finger Automation System Hierarchy
+    finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
+    cmds.parent(finger_automation_grp, rig_setup_grp)
+    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
+    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
+    change_outliner_color(finger_automation_grp, (1, .65, .45))
+    cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
+    
     
     ################# Left Arm Controls #################   
     # Left Arm Handles
@@ -5807,7 +5827,7 @@ def create_controls():
     cmds.setAttr(left_eye_up_vec + '.lsz', general_scale_offset*.1)
     cmds.setAttr(left_eye_up_vec + '.v', 0)
     cmds.parent(left_eye_up_vec, head_ctrl)
-    change_viewport_color(left_eye_up_vec, (1, 0, 0))
+    change_viewport_color(left_eye_up_vec, (0, .3, 1))
     
     cmds.aimConstraint(left_eye_ctrl, gt_ab_joints.get('left_eye_jnt'), mo=True, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_eye_up_vec)
  
@@ -5820,7 +5840,7 @@ def create_controls():
     cmds.setAttr(right_eye_up_vec + '.lsz', general_scale_offset*.1)
     cmds.setAttr(right_eye_up_vec + '.v', 0)
     cmds.parent(right_eye_up_vec, head_ctrl)
-    change_viewport_color(right_eye_up_vec, (1, .65, .45))
+    change_viewport_color(right_eye_up_vec, (1, 0, 0))
     
     cmds.aimConstraint(right_eye_ctrl, gt_ab_joints.get('right_eye_jnt'), mo=True, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_eye_up_vec)
 
@@ -5829,14 +5849,7 @@ def create_controls():
     change_outliner_color(geometry_grp, (.3,1,.8))
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1,.45,.7))
-    
-    # Finger Automation System Hierarchy
-    finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
-    cmds.parent(finger_automation_grp, rig_setup_grp)
-    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
-    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
-    change_viewport_color(finger_automation_grp, (1, 0, 0))
-    
+
     # Scale Constraints
     cmds.scaleConstraint(main_ctrl, skeleton_grp)
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
@@ -5880,21 +5893,7 @@ def create_controls():
     cmds.parent(right_shoulder_ik_jnt, right_clavicle_switch_jnt)
     cmds.parent(left_shoulder_ik_jnt, left_clavicle_switch_jnt)
     
-    # Left Finger Opening Automation @@@@@@@@@@
-    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= left_fingers_ctrl + '_decomposeMatrix')
-    cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
-    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
-    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
-    cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
 
-    # Abduction
-    
-    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 0.5)
-    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
-    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
-    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
-    
-    
     # Delete Proxy
     cmds.delete(gt_ab_settings.get('main_proxy_grp'))
     
