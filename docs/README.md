@@ -479,7 +479,9 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
 <br>
-<br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.</p>
+<br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.
+<br>
+<br><b>- Extract Proxy Pose From Generated Rig:</b> Attempts to extract the proxy pose from a generated rig. This function can't account for the scale set to the "root_proxy" as it gets baked when the rig is generated, so it should only be used in case you forgot to export the proxy pose during the creation of the character.</p>
 
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
