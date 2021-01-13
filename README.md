@@ -58,6 +58,8 @@ Do you want to use a script but don't want to install the whole package? That's 
 
 PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
 
+The text below explains how to install it on Windows, in case you're looking for MacOS check the <a href="./assets">:"docs" folder</a> folder.
+
 <h3>Auto Installation</h3>
 
 This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
@@ -67,7 +69,7 @@ Here is how you do it in more details:
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
 	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "1" for the "install" option, then press enter.</li>
+	<li>Type "1" to "Install", then press enter.</li>
 	<li>Open Autodesk Maya.</li>
 </ol>
 
@@ -101,7 +103,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
 	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "2" for the "uninstall" option, then press enter.</li>
+	<li>Type "2" to "Uninstall", then press enter.</li>
 	<li>Open Autodesk Maya.</li>
 </ol>
 
