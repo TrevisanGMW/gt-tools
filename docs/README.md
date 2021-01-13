@@ -103,7 +103,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
-<h1> Uninstallation </h1>
+<h1>Windows Uninstallation </h1>
 
 <h3>Auto Uninstallation</h3>
 
@@ -127,6 +127,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Open Autodesk Maya. </li>
 </ol>
 
+<br>
 
 <!-- MacOS Installation -->
 
@@ -173,7 +174,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <h1> Uninstallation </h1>
 
-<h3>Auto Uninstallation</h3>
+<h3>MacOS Auto Uninstallation</h3>
 
 <ol>
 	<li>Close Maya (in case it's opened).</li>
@@ -196,7 +197,7 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Open Autodesk Maya. </li>
 </ol>
 
-
+<br>
 
 <!-- GT Menu -->
 <div>
