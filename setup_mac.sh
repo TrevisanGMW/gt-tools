@@ -20,7 +20,6 @@ LIBRARYDIR=~/Library
 MAYADIR="$LIBRARYDIR/Preferences/Autodesk/maya"
 is_uninstalling=false
 
-
 # Tell the user that the setup is complete
 print_uninstallation_complete() {
 	echo ""
@@ -30,7 +29,7 @@ print_uninstallation_complete() {
 	echo ""
 	break
 }
-print_uninstallation_complete
+
 # Tell the user that the setup is complete
 print_installation_complete() {
 	echo ""
