@@ -9,6 +9,8 @@
 <a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
+  <li><a href="#-gt-menu-">Windows Installation</a></li>
+  <li><a href="#-gt-menu-">MacOS Installation</a></li>
   <li><a href="#-gt-menu-">GT Menu</a></li>
   <li><a href="#-gt-check-for-updates-">GT Check for Updates</a></li>
 </ul>
@@ -56,6 +58,77 @@
 
 <br>
 </div>
+
+
+<!-- Windows Installation -->
+
+<h1> Installation </h1>
+
+<b>TL;DR :</b> Download files, then open "setup.bat". 
+<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
+
+<h3>Auto Installation</h3>
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_windows.gif"
+     alt="GT Tools Windows Auto Installation Demo">
+
+This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
+Here is how you do it in more details:
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
+	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
+	<li>Type "1" for the "install" option, then press enter.</li>
+	<li>Open Autodesk Maya.</li>
+</ol>
+
+If you want, you can now delete the downloaded/extracted files (as they have already been installed)
+
+<h3>Manual Installation</h3>
+
+In case you need/want to manually install the scripts. It's also a pretty straightforward process.
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded.</li>
+	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
+	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
+	(This command adds the menu when Maya opens)
+	<li>Open Autodesk Maya. </li>
+</ol>
+
+<h3>Updating</h3>
+<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
+
+<h1> Uninstallation </h1>
+
+<h3>Auto Uninstallation</h3>
+
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded.</li>
+	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
+	<li>Type "2" for the "uninstall" option, then press enter.</li>
+	<li>Open Autodesk Maya.</li>
+</ol>
+
+<h3>Manual Uninstallation</h3>
+
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Navigate to your scripts folder, usually located under the following path:
+	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
+	<li>Delete all files starting with the prefix "gt_" (use the search bar to quickly select all of them)</li>
+	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
+	<li>Open Autodesk Maya. </li>
+</ol>
+
+
+
 
 <!-- GT Menu -->
 <div>
