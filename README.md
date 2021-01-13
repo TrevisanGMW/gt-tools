@@ -58,7 +58,7 @@ Do you want to use a script but don't want to install the whole package? That's 
 
 PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
 
-The text below explains how to install it on Windows, in case you're looking for MacOS check the <a href="./assets">:"docs" folder</a> folder.
+The text below explains how to install it on a Windows PC, in case you're looking for MacOS check the <a href="./docs">"docs"</a> folder.
 
 <h3>Auto Installation</h3>
 
