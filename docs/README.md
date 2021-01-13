@@ -62,7 +62,7 @@
 
 <!-- Windows Installation -->
 
-<h1> Windows Installation </h1>
+<h1>Windows Installation</h1>
 
 <b>TL;DR :</b> Download files, then open "setup.bat". 
 <br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
@@ -103,7 +103,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
-<h1>Windows Uninstallation </h1>
+<h1>Windows Uninstallation</h1>
 
 <h3>Auto Uninstallation</h3>
 
@@ -131,7 +131,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <!-- MacOS Installation -->
 
-<h1> MacOS Installation </h1>
+<h1>MacOS Installation</h1>
 
 <b>TL;DR :</b> Download files, run the bash script "setup_mac.sh". 
 
@@ -172,9 +172,9 @@ In case you need/want to manually install the scripts. It's easy..
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
-<h1> Uninstallation </h1>
+<h1>MacOS Uninstallation</h1>
 
-<h3>MacOS Auto Uninstallation</h3>
+<h3>Auto Uninstallation</h3>
 
 <ol>
 	<li>Close Maya (in case it's opened).</li>
