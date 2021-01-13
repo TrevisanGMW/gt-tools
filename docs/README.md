@@ -9,8 +9,8 @@
 <a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
-  <li><a href="#-windows-installation-">Windows Installation</a></li>
-  <li><a href="#-macos-installation-">MacOS Installation</a></li>
+  <li><a href="#windows-installation">Windows Installation</a></li>
+  <li><a href="#macos-installation">MacOS Installation</a></li>
   <li><a href="#-gt-menu-">GT Menu</a></li>
   <li><a href="#-gt-check-for-updates-">GT Check for Updates</a></li>
 </ul>
