@@ -140,14 +140,14 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_mac.gif"
      alt="GT Tools MacOS Auto Installation Demo">
 
-This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya.
+This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya. (Tested in MacOS Big Sur 11.1)
 Here is how you do it in more details:
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
 	<li>Open Terminal</li>
-	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop on the Terminal)</li>
+	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop it on the Terminal)</li>
 	<li>It will show you the options "Install, Uninstall and About", Type "1" to "Install".</li>
 	<li>Open Autodesk Maya.</li>
 </ol>
@@ -162,7 +162,7 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
 	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
-	<b>"~/Library/Preferences/Autodesk/maya/scripts" (To access the library folder, hold "Command" and click on "Go")</b></li>
+	<b>"~/Library/Preferences/Autodesk/maya/scripts"</b> (To access the library folder, hold "Command" and click on "Go")</li>
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
@@ -181,7 +181,7 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
 	<li>Open Terminal</li>
-	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop on the Terminal)</li>
+	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop it on the Terminal)</li>
 	<li>It will show you the options "Install, Uninstall and About", Type "2" to "Uninstall".</li>
 	<li>Open Autodesk Maya.</li>
 </ol>
@@ -198,6 +198,80 @@ In case you need/want to manually install the scripts. It's easy..
 </ol>
 
 <br>
+
+
+<!-- Linux Installation -->
+
+<h1>Linux Installation</h1>
+
+<b>TL;DR :</b> Download files, sudo run the bash script "setup_linux.sh". 
+
+<h3>Auto Installation</h3>
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_linux.gif"
+     alt="GT Tools Linux Auto Installation Demo">
+
+This script collection comes with an auto installer (setup_linux.sh) you can simply download it, run the setup and reopen Maya. (Tested in Ubuntu 20.10)
+Here is how you do it in more details:
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
+	<li>Open Terminal</li>
+	<li>Type "sudo sh " + The path to the "setup_linux.sh" file. (You can just drag and drop it on the Terminal)</li>
+	<li>Type your system password (it's required to run a sudo command)</li>
+	<li>It will show you the options "Install, Uninstall and About", Type "1" to "Install".</li>
+	<li>Open Autodesk Maya.</li>
+</ol>
+
+If you want, you can now delete the downloaded/extracted files (as they have already been installed)
+
+<h3>Manual Installation</h3>
+
+In case you need/want to manually install the scripts. It's easy..
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded.</li>
+	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<b>"/home/linux/maya/scripts"</b></li>
+	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
+	(This command adds the menu when Maya opens)
+	<li>Open Autodesk Maya. </li>
+</ol>
+
+<h3>Updating</h3>
+<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
+
+<h1>Linux Uninstallation</h1>
+
+<h3>Auto Uninstallation</h3>
+
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Download the latest release (or clone this repository).</li>
+	<li>Un-zip (Decompress) the file you downloaded.</li>
+	<li>Open Terminal</li>
+	<li>Type "sudo sh " + The path to the "setup_linux.sh" file. (You can just drag and drop it on the Terminal)</li>
+	<li>It will show you the options "Install, Uninstall and About", Type "2" to "Uninstall".</li>
+	<li>Open Autodesk Maya.</li>
+</ol>
+
+<h3>Manual Uninstallation</h3>
+
+<ol>
+	<li>Close Maya (in case it's opened).</li>
+	<li>Navigate to your scripts folder, usually located under the following path:
+	<b>"/home/linux/maya/scripts"</b></li>
+	<li>Delete all files starting with the prefix "gt_"</li>
+	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
+	<li>Open Autodesk Maya. </li>
+</ol>
+
+<br>
+
+
 
 <!-- GT Menu -->
 <div>
