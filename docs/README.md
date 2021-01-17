@@ -11,6 +11,7 @@
 <ul>
   <li><a href="#windows-installation">Windows Installation</a></li>
   <li><a href="#macos-installation">MacOS Installation</a></li>
+  <li><a href="#linux-installation">Linux Installation</a></li>
   <li><a href="#-gt-menu-">GT Menu</a></li>
   <li><a href="#-gt-check-for-updates-">GT Check for Updates</a></li>
 </ul>
