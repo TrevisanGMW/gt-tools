@@ -18,9 +18,6 @@ MELDIR="$BASEDIR/mel-scripts"
 MAYADIR="/home/linux/maya"
 is_uninstalling=false
 
-echo "$BASEDIR"
-echo "$MAYADIR"
-
 # Tell the user that the setup is complete
 print_uninstallation_complete() {
 	echo ""

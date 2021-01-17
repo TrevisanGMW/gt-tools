@@ -36,7 +36,7 @@ This is my collection of scripts for Autodesk Maya – These scripts were create
 
 After installing the script collection, you’ll find a pull-down menu that provides easy access to a variety of tools. This menu contains sub-menus that have been organized to contain related tools, for example: modeling, rigging, utilities, etc…
 
-For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
+For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
 Hopefully these scripts are helpful to you as they are to me.
@@ -58,7 +58,7 @@ Do you want to use a script but don't want to install the whole package? That's 
 
 PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
 
-The text below explains how to install it on a Windows PC, in case you're looking for MacOS check the <a href="./docs">"docs"</a> folder.
+The text below explains how to install it on a Windows PC, in case you're looking for MacOS or Linux check the <a href="./docs">"docs"</a> folder.
 
 <h3>Auto Installation</h3>
 
