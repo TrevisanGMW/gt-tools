@@ -46,12 +46,13 @@
  Fixed an issue where the right thumb wouldn't orient corrently
  Added finger abduction/adduction control and updated the name of a few attributes
     
+ 1.4 - 2021-01-XX
+     Added auto breathing system
+     Add offset and transform controls to fingers
+     Add notes to the knee proxies (similar to elbows)
 
  To do:
-    Add auto breathing system
-    Add offset and transform controls to fingers
     Add more roll joints (upper part of the arm, legs, etc)
-    Add notes to the knee proxies (similar to elbows)
     Add option to auto create proxy geo
     Add option to colorize (or not) proxy and rig elements
     Add option to not include forearm/eyes in the skinning joints
@@ -85,7 +86,7 @@ import os
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.3"
+script_version = "1.4"
 
 # General Vars
 grp_suffix = 'grp'
