@@ -1,7 +1,7 @@
 """
 
  GT Auto Biped Rigger
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-12-08 - github.com/TrevisanGMW
+ @Guilherme Trevisan - github.com/TrevisanGMW - 2020-12-08
 
  1.0 - 2020-12-29
  Initial Release
@@ -28,18 +28,30 @@
  "followHip" (ankle proxies) attribute is not longer activated by default
  Fixed an issue where left arm ik would be generated with an offset in extreme angles
  
- 1.3 - 2021-01-XX - WIP
+ 1.3 - 2021-01-19
  Updated help window to better accommodate a high volume of text
  Added new utility to extract proxy pose from generated rig
  Updated export/import functions to be compatible with worldspace
  Added version check to importer for backwards compatibility
  Added auto load for HumanIK plugin in case it's not loaded when attaching rig
- Added finger abduction/adduction control and updated the name of a few attributes
  Patched a few small bugs, added colors to a few controls and updated the help text
+ Changed forearm joints hierarchy so the rig can be easily exported in to game engines
+ Moved the mechanics of the roll joints into the rig setup folder
+ Updated the order of the groups inside the rig setup folder
+ Addded joint inflation/deflation system
+ Switch the order and name of a few custom attributes (none of the keyable ones)
+ Switch the order of a few custom attributes (influenceSwitch was moved up)
+ Added activation attribute to the main control for the joint inflation/deflation system
+ Added counter rotation system to neckMid control so the shape stays in place when automated
+ Fixed an issue where the right thumb wouldn't orient corrently
+ Added finger abduction/adduction control and updated the name of a few attributes
+    
 
  To do:
+    Add auto breathing system
+    Add offset and transform controls to fingers
+    Add more roll joints (upper part of the arm, legs, etc)
     Add notes to the knee proxies (similar to elbows)
-    Add more roll joints
     Add option to auto create proxy geo
     Add option to colorize (or not) proxy and rig elements
     Add option to not include forearm/eyes in the skinning joints
@@ -69,7 +81,6 @@ import json
 import sys
 import os
 
-
 # Script Name
 script_name = "GT Auto Biped Rigger"
 
@@ -85,6 +96,15 @@ automation_suffix = 'automation'
 multiply_suffix = 'multiply'
 first_shape_suffix = '1st'
 second_shape_suffix = '2nd'
+left_ctrl_color = (0, .3, 1) # Red
+right_ctrl_color = (1, 0, 0) # Soft Blue
+automation_ctrl_color = (.6,.2,1) # Purple
+
+# Debugging Vars
+debugging = False 
+debugging_auto_delete = True # Auto deletes proxy/rig before creating
+debugging_display_lra = False # Display LRA for all joints after generating
+debugging_undo = False # Executes "Undo" command before generating rig
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -228,12 +248,11 @@ def build_gui_auto_biped_rig():
     # Step 1
     cmds.text('Step 1 - Proxy:', font='boldLabelFont')
     cmds.separator(h=5, style='none') # Empty Space
-    # cmds.button( l ="Create Proxy", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_proxy'))
     
     cmds.iconTextButton( style='iconAndTextVertical', image1=create_proxy_btn_ico, label='Create Proxy',\
                          statusBarMessage='Creates a proxy/guide elements so the user can determine the character\'s shape.',\
                          olc=[1,0,0] , enableBackground=True, bgc=[.4,.4,.4], h=80,\
-                         command=lambda: validate_operation('create_proxy'))
+                         command=lambda: validate_operation('create_proxy', debugging))
     
     # Step 2
     cmds.separator(h=5, style='none') # Empty Space
@@ -262,12 +281,11 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.text('Step 3 - Create Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none') # Empty Space
-    #cmds.button( l ="Create Rig", bgc=(.6,.6,.6), c=lambda x:validate_operation('create_controls'))
     
     cmds.iconTextButton( style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Rig',\
                          statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to determine how to create the skeleton, controls and mechanics.',\
                          olc=[1,0,0] , enableBackground=True, bgc=[.4,.4,.4], h=80,\
-                         command=lambda: validate_operation('create_controls'))
+                         command=lambda: validate_operation('create_controls', debugging))
     
     # Step 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1,0)], p=body_column)
@@ -331,7 +349,6 @@ def build_help_gui_auto_biped_rig():
     cmds.text(script_name + " Help", bgc=(.4, .4, .4),  fn="boldLabelFont", align="center")
     cmds.separator(h=10, style='none', p="main_column") # Empty Space
 
-    help_spacing = 7
 
     # Body ====================   
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
@@ -344,51 +361,35 @@ def build_help_gui_auto_biped_rig():
     cmds.text(l='Click ', hl=True, highlightColor=[1,1,1])
     cmds.text(l='<a href="https://github.com/TrevisanGMW/gt-tools/tree/master/docs#-gt-auto-biped-rigger-">Here</a>', hl=True, highlightColor=[1,1,1])
     cmds.text(l=' for a more complete documentation.', hl=True, highlightColor=[1,1,1])
-    cmds.separator(h=help_spacing, style='none') # Empty Space
+    cmds.separator(h=15, style='none') # Empty Space
+    
+    
+    
     
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
-    cmds.text(l='Step 1:', align="center", fn="boldLabelFont")
-    cmds.text(l='Create Proxy: This button will create many temporary\ncurves that will later be used to generate the rig.', align="center")
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='In case you want to re-scale the proxy,\n use the root proxy control for that.\n The initial scale is the average height of a woman.\n(160cm)', align="center")
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='These are not joints.\nPlease don\'t delete or rename them.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
     
-    cmds.text(l='Step 2:', align="center", fn="boldLabelFont")
-    cmds.text(l='Pose the proxy (guide) to match your character.', align="center")
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Reset Proxy:\n Resets the position and rotation of the proxy\n elements, essentially "recreating" the proxy.', align="center")
-
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Mirror Side to Side:\n Copies the transform data from one\n side to the other, mirroring the pose.', align="center")
+    auto_biped_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
  
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Import Pose:\n Imports a JSON file containing the transforms\n of the proxy elements. This file is generated\n using the "Export Pose" function.', align="center")
- 
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Export Pose:\n Exports a JSON file containing the\n transforms of the proxy elements.', align="center")
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='[X] Step 1: .\n -Create Proxy:\n   This button will create many temporary curves that will later\n   be used to generate the rig.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   In case you want to re-scale the proxy, use the root proxy\n   control for that. The initial scale is the average height of a\n   woman. (160cm)\n   Presets for other sizes can be found on Github.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   These are not joints. Please don\'t delete or rename them.')
+  
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 2:\n   Pose the proxy (guide) to match your character.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Reset Proxy:\n   Resets the position and rotation of the proxy elements,\n   essentially "recreating" the proxy.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Mirror Side to Side:\n   Copies the transform data from one side to the other,\n   mirroring the pose.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Import Pose:\n   Imports a JSON file containing the transforms of the proxy\n   elements. This file is generated using the "Export Pose"\n   function.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Export Pose:\n   Exports a JSON file containing the transforms of the proxy\n   elements.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Delete Proxy:\n   Simply deletes the proxy in case you no longer need it.')
+    
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 3:\n   This button creates the control rig. It uses the transform data\n   found in the proxy to determine how to create the skeleton\n   and controls. This function will delete the proxy.\n   Make sure you export it first if you plan to reuse it later.')
+    
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 4:\n   Now that the rig has been created, it\'s time to attach it to the\n   geometry.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Select Skinning Joints:\n   Select only joints that should be used when skinning the\n   character. This means that it will not include end joints or\n   the toes.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Bind Skin Options:\n   Opens the options for the function "Bind Skin" so the desired\n   geometry can attached to the skinning joints.\n   Make sure to use the "Bind to" as "Selected Joints"')
 
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Delete Proxy:\n Simply deletes the proxy in case\nyou no longer need it.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Utilities:\n   These are utilities that you can use after creating your rig.\n   Please visit the full documentation to learn more about it.')
     
-    cmds.text(l='Step 3:', align="center", fn="boldLabelFont")
-    cmds.text(l='This button creates the control rig. \nIt uses the transform data found in the proxy to\n determine how to create the skeleton and controls.\nThis function will delete the proxy.\nMake sure you export it first if you plan to reuse it later.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
-    
-    cmds.text(l='Step 4:', align="center", fn="boldLabelFont")
-    cmds.text(l='Now that the rig has been created,\n it\'s time to attach it to the geometry.', align="center")
-    
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Select Skinning Joints:\n Select only joints that should\n be used when skinning the character.\n This means that it will not include end joints or the toes.', align="center")
-    cmds.separator(h=help_spacing, style='none') # Empty Space
-    cmds.text(l='- Bind Skin Options:\n Opens the options for the function "Bind Skin"\n so the desired geometry can attached to the\n skinning joints.\nMake sure to use the "Bind to" as "Selected Joints"', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
-    
-    cmds.text(l='Utilities:', align="center", fn="boldLabelFont")
-    cmds.text(l='These are utilities that you can use after creating your rig.\n Please visit the full documentation to learn more about it.', align="center")
-
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
     
     cmds.separator(h=15, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
@@ -1127,11 +1128,12 @@ def validate_operation(operation, debugging=False):
     is_valid = True
     if operation == 'create_proxy':
         # Debugging (Auto deletes generated proxy)
-        if debugging:
+        if debugging and debugging_auto_delete:
             try:
                 cmds.delete(gt_ab_settings_default.get('main_proxy_grp'))
             except:
                 pass
+
 
         # Check if proxy exists in the scene
         proxy_elements = [gt_ab_settings_default.get('main_proxy_grp')]
@@ -1165,12 +1167,20 @@ def validate_operation(operation, debugging=False):
                 
     elif operation == 'create_controls':
         # Debugging (Auto deletes generated rig)
-        if debugging:
+        if debugging and debugging_auto_delete:
             try:
-                cmds.delete('rig_grp')
+                if cmds.objExists('rig_grp'):
+                    cmds.delete('rig_grp')
+                create_proxy(colorize_proxy=True)
             except:
                 pass
-                    
+                
+        if debugging and debugging_undo:
+            try:
+                cmds.undo()
+            except:
+                pass     
+
         # Validate Proxy
         if not cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
             is_valid = False
@@ -1192,9 +1202,18 @@ def validate_operation(operation, debugging=False):
             try:
                 create_controls()
             except Exception as e:
-                cmds.warning(str(e))
+                raise e
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=function_name)
+            
+            if debugging and debugging_display_lra:
+                try:
+                    all_jnts = cmds.ls(type='joint')
+                    for jnt in all_jnts:
+                         cmds.setAttr(jnt + ".displayLocalAxis", 1)
+                except:
+                    pass
+            
 
 def create_proxy(colorize_proxy=True):
     ''' 
@@ -2365,10 +2384,6 @@ def create_proxy(colorize_proxy=True):
 def create_controls():
     ''' Creates rig using the previously created proxy/guide '''
     
-    left_ctrl_color = (0, .3, 1)
-    right_ctrl_color = (1, 0, 0)
-    automation_ctrl_color = (.6,.2,1)
-    
     def rename_proxy(old_name):
         ''' 
         Replaces a few parts of the old names for the creation of joints
@@ -2490,7 +2505,6 @@ def create_controls():
         if visibility:
             cmds.setAttr(obj + '.v', lock=True, k=False, channelBox=False)
 
-
     # Store selection and symmetry states
     cmds.select(d=True) # Clear Selection
     cmds.symmetricModelling(e=True, symmetry=False) # Turn off symmetry
@@ -2504,7 +2518,6 @@ def create_controls():
             constraint = cmds.pointConstraint(gt_ab_settings.get(obj), joint)
             cmds.delete(constraint)
             gt_ab_joints[obj.replace('_crv','_' + jnt_suffix).replace('_proxy', '')] = joint
-   
    
     # General Orients
     orient_to_target(gt_ab_joints.get('spine01_jnt'), gt_ab_joints.get('spine02_jnt'), (90, 0, 90))
@@ -2538,9 +2551,10 @@ def create_controls():
     orient_to_target(gt_ab_joints.get('left_pinky03_jnt'), gt_ab_joints.get('left_pinky04_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky03_proxy_crv'), up_vec=(0,1,0))
     
     # Right Finger Orients
-    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    
     
     orient_to_target(gt_ab_joints.get('right_index01_jnt'), gt_ab_joints.get('right_index02_jnt'), (0, 180, 0), gt_ab_settings.get('right_index01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
     orient_to_target(gt_ab_joints.get('right_index02_jnt'), gt_ab_joints.get('right_index03_jnt'), (0, 180, 0), gt_ab_settings.get('right_index02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
@@ -3150,7 +3164,6 @@ def create_controls():
     cmds.parent(hip_ctrl, hip_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_ctrl_grp))
     cmds.parent(hip_ctrl_grp, cog_ctrl)
-    
     
     # Spine01 Control
     spine01_ctrl = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299], [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13], [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299], [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126]],d=3)
@@ -4467,11 +4480,11 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.scaleZ', left_wrist_scale_offset*.3)
     cmds.makeIdentity(left_fingers_ctrl, apply=True, scale=True, rotate=True)
     
-    # # Create Abduction Finger Setup @@@@@@
-    # left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.1)
-    # cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
-    # cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    # cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
+    # Create Abduction Finger Setup
+    left_fingers_abduction_ctrl = create_scalable_arrow('left_open_finger_'  + ctrl_suffix, left_wrist_scale_offset*.1)
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl_grp)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_fingers_ctrl_grp))
@@ -4506,11 +4519,11 @@ def create_controls():
     cmds.setAttr(right_fingers_ctrl + '.scaleZ', -right_wrist_scale_offset*.3)
     cmds.makeIdentity(right_fingers_ctrl, apply=True, scale=True, rotate=True)
     
-    # # Create Abduction Finger Setup @@@@@
-    # right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.1)
-    # cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
-    # cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
-    # cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
+    # Create Abduction Finger Setup
+    right_fingers_abduction_ctrl = create_scalable_arrow('right_open_finger_'  + ctrl_suffix, right_wrist_scale_offset*.1)
+    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl_grp)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
+    cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
   
     # Position
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_fingers_ctrl_grp))
@@ -4530,7 +4543,6 @@ def create_controls():
     ################# Center FK #################
     cmds.parentConstraint(main_ctrl, gt_ab_joints.get('main_jnt'))
     cmds.parentConstraint(cog_ctrl, gt_ab_joints.get('cog_jnt'))
-    lock_hide_default_attr(cog_ctrl, translate=False, rotate=False)
     
     # Spine 01
     cmds.parentConstraint(spine01_ctrl, gt_ab_joints.get('spine01_jnt')) # Automated
@@ -4560,11 +4572,9 @@ def create_controls():
     for shape in cmds.listRelatives(spine01_ctrl, s=True, f=True) or []:
         cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shape + '.visibility', f=True)
     
-    lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False)
     
     # Spine 02
     cmds.parentConstraint(spine02_ctrl, gt_ab_joints.get('spine02_jnt')) 
-    lock_hide_default_attr(spine02_ctrl, translate=False, rotate=False)
     
     # Spine 03
     cmds.parentConstraint(spine03_ctrl, gt_ab_joints.get('spine03_jnt')) # Automated
@@ -4593,15 +4603,11 @@ def create_controls():
     for shape in cmds.listRelatives(spine03_ctrl, s=True, f=True) or []:
         cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shape + '.visibility', f=True)
         
-    lock_hide_default_attr(spine03_ctrl, translate=False, rotate=False)
-    
     # Spine 04
     cmds.parentConstraint(spine04_ctrl, gt_ab_joints.get('spine04_jnt')) 
-    lock_hide_default_attr(spine04_ctrl, translate=False, rotate=False)
-    
+
     # Neck Base
     cmds.parentConstraint(neck_base_ctrl, gt_ab_joints.get('neck_base_jnt')) 
-    lock_hide_default_attr(neck_base_ctrl, translate=False, rotate=False)
 
     # Neck Mid
     cmds.parentConstraint(neck_mid_ctrl, gt_ab_joints.get('neck_mid_jnt')) # Automated
@@ -4627,22 +4633,52 @@ def create_controls():
     
     cmds.addAttr(neck_base_ctrl, ln="neckMidVisibility", at='bool', k=True, niceName='Visibility Neck Mid')
     
+    cmds.addAttr(neck_base_ctrl, ln="neckMidShapeBehavior", at='enum', k=True, niceName='Shape Behavior Neck Mid', en='Free:Follow:')
+    cmds.setAttr(neck_base_ctrl + '.neckMidShapeBehavior', 1)
+    
     for shape in cmds.listRelatives(neck_mid_ctrl, s=True, f=True) or []:
         cmds.connectAttr(neck_base_ctrl + '.neckMidVisibility', shape + '.visibility', f=True)
     
-    lock_hide_default_attr(neck_mid_ctrl, translate=False, rotate=False)
+    # Neck Mid Shape Driver (Keep Position when Automated)
+    spine_automation_grp = cmds.group(name='spineAutomation_' + grp_suffix, empty=True, world=True)
+    neck_mid_cvs = cmds.getAttr(neck_mid_ctrl + '.cp', s=1)
+
+    neck_mid_shape_driver_grp = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrp', empty=True, world=True)
+    neck_mid_shape_driver_grp_offset = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrpOffset', empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp))
+    cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp_offset))
+    cmds.parent(neck_mid_shape_driver_grp_offset, neck_mid_shape_driver_grp)
     
+    cmds.select(d=True)
+    for i in range(neck_mid_cvs):
+        cmds.select(neck_mid_ctrl + '.cv[' + str(i) + ']', add=True)
+ 
+    neck_mid_ctrl_cluster = cmds.cluster(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'cluster', bs=1)
+    cmds.parent(neck_mid_ctrl_cluster[1], neck_mid_shape_driver_grp_offset)
+    
+    cmds.setAttr(neck_mid_ctrl_cluster[1] + '.v', 0)
+    neck_mid_rotation_inverter_node = cmds.createNode('decomposeMatrix', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'inverseRotation')
+    cmds.connectAttr(neck_base_ctrl + '.inverseMatrix', neck_mid_rotation_inverter_node + '.inputMatrix', f=True)
+    cmds.connectAttr(neck_mid_rotation_inverter_node + '.outputRotate', neck_mid_shape_driver_grp_offset + '.rotate', f=True)
+    
+    cmds.parent(neck_mid_shape_driver_grp, spine_automation_grp)
+    
+    neck_mid_multiply_envelope_node = cmds.createNode('multiplyDivide', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'multiplyCluster')
+    cmds.connectAttr(neck_base_ctrl + '.neckMidAutoRotate', neck_mid_multiply_envelope_node + '.input1X', f=True)
+    cmds.connectAttr(neck_mid_multiply_envelope_node + '.outputX', neck_mid_ctrl_cluster[0] + '.envelope', f=True)
+    cmds.connectAttr(neck_base_ctrl + '.neckMidShapeBehavior', neck_mid_multiply_envelope_node + '.input2X', f=True)
+
+    cmds.setAttr(neck_mid_shape_driver_grp + '.inheritsTransform', 0)
+    
+
     # Head Ctrl
     cmds.parentConstraint(head_ctrl, gt_ab_joints.get('head_jnt'))
-    lock_hide_default_attr(head_ctrl, translate=False, rotate=False)
     
     # Jaw Ctrl
     cmds.parentConstraint(jaw_ctrl, gt_ab_joints.get('jaw_jnt')) 
-    lock_hide_default_attr(jaw_ctrl, translate=False, rotate=False)
     
     # Hip Ctrl
     cmds.parentConstraint(hip_ctrl, gt_ab_joints.get('hip_jnt')) 
-    lock_hide_default_attr(hip_ctrl, translate=False, rotate=False)
     
     ################# Left FK Controls #################
     # Left Leg
@@ -4650,57 +4686,34 @@ def create_controls():
     cmds.parentConstraint(left_knee_ctrl, left_knee_fk_jnt)
     cmds.parentConstraint(left_ankle_ctrl, left_ankle_fk_jnt)
     cmds.parentConstraint(left_ball_ctrl, left_ball_fk_jnt)
-    lock_hide_default_attr(left_hip_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_knee_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_ankle_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_ball_ctrl, translate=False, rotate=False)
-    
+
     # Left Arm
     cmds.parentConstraint(left_clavicle_ctrl, left_clavicle_switch_jnt)
     cmds.parentConstraint(left_shoulder_ctrl, left_shoulder_fk_jnt)
     cmds.parentConstraint(left_elbow_ctrl, left_elbow_fk_jnt)
     cmds.parentConstraint(left_wrist_ctrl, left_wrist_fk_jnt)
-    lock_hide_default_attr(left_clavicle_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_shoulder_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_elbow_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_wrist_ctrl, translate=False, rotate=False)
-    
+
     # Left Fingers
     cmds.parentConstraint(left_thumb01_ctrl_list[0], gt_ab_joints.get('left_thumb01_jnt'))
     cmds.parentConstraint(left_thumb02_ctrl_list[0], gt_ab_joints.get('left_thumb02_jnt'))
     cmds.parentConstraint(left_thumb03_ctrl_list[0], gt_ab_joints.get('left_thumb03_jnt'))
-    lock_hide_default_attr(left_thumb01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_thumb02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_thumb03_ctrl_list[0], translate=False, rotate=False)
     
     cmds.parentConstraint(left_index01_ctrl_list[0], gt_ab_joints.get('left_index01_jnt'))
     cmds.parentConstraint(left_index02_ctrl_list[0], gt_ab_joints.get('left_index02_jnt'))
     cmds.parentConstraint(left_index03_ctrl_list[0], gt_ab_joints.get('left_index03_jnt'))
-    lock_hide_default_attr(left_index01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_index02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_index03_ctrl_list[0], translate=False, rotate=False)
-    
+
     cmds.parentConstraint(left_middle01_ctrl_list[0], gt_ab_joints.get('left_middle01_jnt'))
     cmds.parentConstraint(left_middle02_ctrl_list[0], gt_ab_joints.get('left_middle02_jnt'))
     cmds.parentConstraint(left_middle03_ctrl_list[0], gt_ab_joints.get('left_middle03_jnt'))
-    lock_hide_default_attr(left_middle01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_middle02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_middle03_ctrl_list[0], translate=False, rotate=False)
-    
+
     cmds.parentConstraint(left_ring01_ctrl_list[0], gt_ab_joints.get('left_ring01_jnt'))
     cmds.parentConstraint(left_ring02_ctrl_list[0], gt_ab_joints.get('left_ring02_jnt'))
     cmds.parentConstraint(left_ring03_ctrl_list[0], gt_ab_joints.get('left_ring03_jnt'))
-    lock_hide_default_attr(left_ring01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_ring02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_ring03_ctrl_list[0], translate=False, rotate=False)
-   
+
     cmds.parentConstraint(left_pinky01_ctrl_list[0], gt_ab_joints.get('left_pinky01_jnt'))
     cmds.parentConstraint(left_pinky02_ctrl_list[0], gt_ab_joints.get('left_pinky02_jnt'))
     cmds.parentConstraint(left_pinky03_ctrl_list[0], gt_ab_joints.get('left_pinky03_jnt'))
-    lock_hide_default_attr(left_pinky01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_pinky02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(left_pinky03_ctrl_list[0], translate=False, rotate=False)
-    
+   
     left_fingers_list = [(left_thumb01_ctrl_list, left_thumb02_ctrl_list, left_thumb03_ctrl_list),\
                          (left_index01_ctrl_list, left_index02_ctrl_list, left_index03_ctrl_list),\
                          (left_middle01_ctrl_list, left_middle02_ctrl_list, left_middle03_ctrl_list),\
@@ -4711,15 +4724,14 @@ def create_controls():
     cmds.addAttr(left_fingers_ctrl , ln='fingersAutomation', at='enum', k=True, en="-------------:")
     cmds.addAttr(left_fingers_ctrl , ln='systemInfluence', at='bool', k=True)
     cmds.setAttr(left_fingers_ctrl + '.systemInfluence', 1)
-    lock_hide_default_attr(left_fingers_ctrl, rotate=False, scale=False)
     cmds.setAttr(left_fingers_ctrl + '.sx', lock=True, k=False, channelBox=False)
     cmds.setAttr(left_fingers_ctrl + '.sy', lock=True, k=False, channelBox=False)
     cmds.setAttr(left_fingers_ctrl + '.fingersAutomation', lock=True)
     add_node_note(left_fingers_ctrl, 'Finger automation system. Rotating this control will cause fingers to rotate in the same direction. Convenient for when quickly creating a fist pose.\nAttributes:\n-Activate System: Whether or not the system is active.\n\n-Fist Pose Limit: What rotation should be considered a "fist" pose for the fingers.\n\n-Rot Multiplier: How much of the rotation will be transfered to the selected finger. (Used to create a less robotic movement between the fingers)')
     
     
-    # Left Auto Offset @@@@@@@@@@@@
-    for obj in left_fingers_list:
+    # Left Auto Fist/Splay Offset
+    for obj in left_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset) 
         finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
         
         # Create Nodes
@@ -4771,32 +4783,137 @@ def create_controls():
 
         for finger in obj:
             cmds.connectAttr(active_condition_node + '.outColorR', finger[2] + '.rotateX', f=True)
-            cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
+            #cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True) 
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
+            
     
-    # # Left Finger Abduction Automation
-    # cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
-    # cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
-    # cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
-    # cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
-    # cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
+    # Left Finger Abduction Automation
+    left_fingers_minz_scale = 1
+    left_fingers_maxz_scale = 5
+    left_fingers_min_abduction_rot = 0
+    left_fingers_max_abduction_rot = 180
     
-    # cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='bool', k=True)
-    # cmds.addAttr(left_fingers_ctrl , ln='autoAdduction', at='bool', k=True)
+    cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
+    cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
+    cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
+    cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
+    cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
+    
+    cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='double', k=True, maxValue=1, minValue=0)
+    cmds.setAttr(left_fingers_ctrl + '.abductionInfluence', 1)
      
-    # left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_abduction_scale_decomposeMatrix')
-    # cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
-    # cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_ctrl_grp + '.scale')
-    # cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
-    # cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
-    # cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', 1)
-    # cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', 5)
-    # cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
-    # cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
-    lock_hide_default_attr(left_fingers_ctrl, rotate=False) # Temp
-    lock_hide_default_attr(right_fingers_ctrl, rotate=False) # Temp
+    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_fingers_inverse_decomposeMatrix')
+    cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
     
-    #@@@@@@@@@@@@
+    left_fingers_shape_offset_grp = cmds.group(name=left_fingers_ctrl.replace(ctrl_suffix, '') + 'shapeOffsetGrp', empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(left_fingers_ctrl, left_fingers_shape_offset_grp))
+    cmds.parent(left_fingers_shape_offset_grp, left_fingers_ctrl_grp)
+    cmds.parent(left_fingers_ctrl, left_fingers_shape_offset_grp)
+    
+    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_shape_offset_grp + '.scale')
+    
+    left_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'left_fingers_inverseRotation_multiply')
+    cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputRotate', left_fingers_inverse_rot_multiply_node + '.input1')
+    cmds.connectAttr(left_fingers_inverse_rot_multiply_node + '.output', left_fingers_shape_offset_grp + '.rotate')
+        
+    cmds.parent(left_fingers_abduction_ctrl[0], left_fingers_ctrl)
+    cmds.connectAttr(left_fingers_ctrl + '.scale', left_fingers_abduction_ctrl[1] + '.scale')
+
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimit', left_fingers_minz_scale)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', left_fingers_maxz_scale)
+    cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
+    cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+
+    for obj in left_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
+        finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
+        
+        ### Abduction/Adduction System ###
+        if 'thumb' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierThumb', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.rotMultiplierThumb', -.1)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', left_fingers_max_abduction_rot)
+            cmds.connectAttr(left_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(left_fingers_ctrl + '.rotMultiplierThumb', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
+            cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'index' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierIndex', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.rotMultiplierIndex', -.7)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', left_fingers_max_abduction_rot)
+            cmds.connectAttr(left_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(left_fingers_ctrl + '.rotMultiplierIndex', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
+            cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'middle' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierMiddle', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.rotMultiplierMiddle', -.3)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', left_fingers_max_abduction_rot)
+            cmds.connectAttr(left_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(left_fingers_ctrl + '.rotMultiplierMiddle', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
+            cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'ring' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierRing', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.rotMultiplierRing', .2)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', left_fingers_max_abduction_rot)
+            cmds.connectAttr(left_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(left_fingers_ctrl + '.rotMultiplierRing', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
+            cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'pinky' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierPinky', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.rotMultiplierPinky', .7)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', left_fingers_max_abduction_rot)
+            cmds.connectAttr(left_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(left_fingers_ctrl + '.rotMultiplierPinky', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
+            cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+    
     
     ################# Right FK Controls #################
     # Right Leg
@@ -4804,56 +4921,34 @@ def create_controls():
     cmds.parentConstraint(right_knee_ctrl, right_knee_fk_jnt)
     cmds.parentConstraint(right_ankle_ctrl, right_ankle_fk_jnt)
     cmds.parentConstraint(right_ball_ctrl, right_ball_fk_jnt)
-    lock_hide_default_attr(right_hip_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_knee_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_ankle_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_ball_ctrl, translate=False, rotate=False)
-    
+
     # Right Arm
     cmds.parentConstraint(right_clavicle_ctrl, right_clavicle_switch_jnt)
     cmds.parentConstraint(right_shoulder_ctrl, right_shoulder_fk_jnt)
     cmds.parentConstraint(right_elbow_ctrl, right_elbow_fk_jnt)
     cmds.parentConstraint(right_wrist_ctrl, right_wrist_fk_jnt)
-    lock_hide_default_attr(right_clavicle_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_shoulder_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_elbow_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_wrist_ctrl, translate=False, rotate=False)
-    
+
     # Right Fingers
     cmds.parentConstraint(right_thumb01_ctrl_list[0], gt_ab_joints.get('right_thumb01_jnt'))
     cmds.parentConstraint(right_thumb02_ctrl_list[0], gt_ab_joints.get('right_thumb02_jnt'))
     cmds.parentConstraint(right_thumb03_ctrl_list[0], gt_ab_joints.get('right_thumb03_jnt'))
-    lock_hide_default_attr(right_thumb01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_thumb02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_thumb03_ctrl_list[0], translate=False, rotate=False)
-    
+        
     cmds.parentConstraint(right_index01_ctrl_list[0], gt_ab_joints.get('right_index01_jnt'))
     cmds.parentConstraint(right_index02_ctrl_list[0], gt_ab_joints.get('right_index02_jnt'))
     cmds.parentConstraint(right_index03_ctrl_list[0], gt_ab_joints.get('right_index03_jnt'))
-    lock_hide_default_attr(right_index01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_index02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_index03_ctrl_list[0], translate=False, rotate=False)
     
     cmds.parentConstraint(right_middle01_ctrl_list[0], gt_ab_joints.get('right_middle01_jnt'))
     cmds.parentConstraint(right_middle02_ctrl_list[0], gt_ab_joints.get('right_middle02_jnt'))
     cmds.parentConstraint(right_middle03_ctrl_list[0], gt_ab_joints.get('right_middle03_jnt'))
-    lock_hide_default_attr(right_middle01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_middle02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_middle03_ctrl_list[0], translate=False, rotate=False)
-    
+        
     cmds.parentConstraint(right_ring01_ctrl_list[0], gt_ab_joints.get('right_ring01_jnt'))
     cmds.parentConstraint(right_ring02_ctrl_list[0], gt_ab_joints.get('right_ring02_jnt'))
     cmds.parentConstraint(right_ring03_ctrl_list[0], gt_ab_joints.get('right_ring03_jnt'))
-    lock_hide_default_attr(right_ring01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_ring02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_ring03_ctrl_list[0], translate=False, rotate=False)
-   
+       
     cmds.parentConstraint(right_pinky01_ctrl_list[0], gt_ab_joints.get('right_pinky01_jnt'))
     cmds.parentConstraint(right_pinky02_ctrl_list[0], gt_ab_joints.get('right_pinky02_jnt'))
     cmds.parentConstraint(right_pinky03_ctrl_list[0], gt_ab_joints.get('right_pinky03_jnt'))
-    lock_hide_default_attr(right_pinky01_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_pinky02_ctrl_list[0], translate=False, rotate=False)
-    lock_hide_default_attr(right_pinky03_ctrl_list[0], translate=False, rotate=False)
+
     
     right_fingers_list = [(right_thumb01_ctrl_list, right_thumb02_ctrl_list, right_thumb03_ctrl_list),\
                          (right_index01_ctrl_list, right_index02_ctrl_list, right_index03_ctrl_list),\
@@ -4865,14 +4960,14 @@ def create_controls():
     cmds.addAttr(right_fingers_ctrl , ln='fingersAutomation', at='enum', k=True, en="-------------:")
     cmds.addAttr(right_fingers_ctrl , ln='systemInfluence', at='bool', k=True)
     cmds.setAttr(right_fingers_ctrl + '.systemInfluence', 1)
-    lock_hide_default_attr(right_fingers_ctrl, rotate=False, scale=False)
+    
     cmds.setAttr(right_fingers_ctrl + '.sx', lock=True, k=False, channelBox=False)
     cmds.setAttr(right_fingers_ctrl + '.sy', lock=True, k=False, channelBox=False)
     cmds.setAttr(right_fingers_ctrl + '.fingersAutomation', lock=True)
     add_node_note(right_fingers_ctrl, 'Finger automation system. Rotating this control will cause fingers to rotate in the same direction. Convenient for when quickly creating a fist pose.\nAttributes:\n-Activate System: Whether or not the system is active.\n\n-Fist Pose Limit: What rotation should be considered a "fist" pose for the fingers.\n\n-Rot Multiplier: How much of the rotation will be transfered to the selected finger. (Used to create a less robotic movement between the fingers)')
     
-    # Right Auto Offset
-    for obj in right_fingers_list:
+   # Right Auto Fist/Splay Offset
+    for obj in right_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset) 
         finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
         
         # Create Nodes
@@ -4924,8 +5019,161 @@ def create_controls():
 
         for finger in obj:
             cmds.connectAttr(active_condition_node + '.outColorR', finger[2] + '.rotateX', f=True)
-            cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
+            #cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True) 
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
+            
+    
+    # Right Finger Abduction Automation
+    right_fingers_minz_scale = 1
+    right_fingers_maxz_scale = 5
+    right_fingers_min_abduction_rot = 0
+    right_fingers_max_abduction_rot = 180
+    
+    cmds.addAttr(right_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
+    cmds.setAttr(right_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
+    cmds.addAttr(right_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
+    cmds.connectAttr(right_fingers_ctrl + '.arrowVisibility', right_fingers_abduction_ctrl[0] + '.v')
+    cmds.setAttr(right_fingers_ctrl + '.arrowVisibility', 1)
+    
+    cmds.addAttr(right_fingers_ctrl , ln='abductionInfluence', at='double', k=True, maxValue=1, minValue=0)
+    cmds.setAttr(right_fingers_ctrl + '.abductionInfluence', 1)
+     
+    right_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'right_fingers_inverse_decomposeMatrix')
+    cmds.connectAttr(right_fingers_ctrl + '.inverseMatrix', right_fingers_decompose_matrix_node + '.inputMatrix')
+    
+    right_fingers_shape_offset_grp = cmds.group(name=right_fingers_ctrl.replace(ctrl_suffix, '') + 'shapeOffsetGrp', empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(right_fingers_ctrl, right_fingers_shape_offset_grp))
+    cmds.parent(right_fingers_shape_offset_grp, right_fingers_ctrl_grp)
+    cmds.parent(right_fingers_ctrl, right_fingers_shape_offset_grp)
+    
+    cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputScale', right_fingers_shape_offset_grp + '.scale')
+    
+    right_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'right_fingers_inverseRotation_multiply')
+    cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputRotate', right_fingers_inverse_rot_multiply_node + '.input1')
+    cmds.connectAttr(right_fingers_inverse_rot_multiply_node + '.output', right_fingers_shape_offset_grp + '.rotate')
+        
+    cmds.parent(right_fingers_abduction_ctrl[0], right_fingers_ctrl)
+    cmds.connectAttr(right_fingers_ctrl + '.scale', right_fingers_abduction_ctrl[1] + '.scale')
+
+    cmds.setAttr(right_fingers_ctrl + '.minScaleZLimit', right_fingers_minz_scale)
+    cmds.setAttr(right_fingers_ctrl + '.maxScaleZLimit', right_fingers_maxz_scale)
+    cmds.setAttr(right_fingers_ctrl + '.minScaleZLimitEnable', 1)
+    cmds.setAttr(right_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+
+    for obj in right_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
+        finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
+        
+        ### Abduction/Adduction System ###
+        if 'thumb' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='rotMultiplierThumb', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.rotMultiplierThumb', -.1)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', right_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', right_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', right_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', right_fingers_max_abduction_rot)
+            cmds.connectAttr(right_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(right_fingers_ctrl + '.rotMultiplierThumb', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            
+            # Right Reverse
+            abduction_rerse_node = cmds.createNode('reverse', name=finger_name + 'abduction_range')
+            cmds.connectAttr(abduction_blend_node + '.output', abduction_rerse_node + '.inputY')
+            cmds.connectAttr(abduction_rerse_node + '.outputY', obj[0][2] + '.ry')
+            
+            cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'index' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='rotMultiplierIndex', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.rotMultiplierIndex', -.7)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', right_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', right_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', right_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', right_fingers_max_abduction_rot)
+            cmds.connectAttr(right_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(right_fingers_ctrl + '.rotMultiplierIndex', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            
+            # Right Reverse
+            abduction_rerse_node = cmds.createNode('reverse', name=finger_name + 'abduction_range')
+            cmds.connectAttr(abduction_blend_node + '.output', abduction_rerse_node + '.inputY')
+            cmds.connectAttr(abduction_rerse_node + '.outputY', obj[0][2] + '.ry')
+            
+            cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'middle' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='rotMultiplierMiddle', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.rotMultiplierMiddle', -.3)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', right_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', right_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', right_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', right_fingers_max_abduction_rot)
+            cmds.connectAttr(right_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(right_fingers_ctrl + '.rotMultiplierMiddle', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            
+            # Right Reverse
+            abduction_rerse_node = cmds.createNode('reverse', name=finger_name + 'abduction_range')
+            cmds.connectAttr(abduction_blend_node + '.output', abduction_rerse_node + '.inputY')
+            cmds.connectAttr(abduction_rerse_node + '.outputY', obj[0][2] + '.ry')
+            
+            cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'ring' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='rotMultiplierRing', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.rotMultiplierRing', .2)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', right_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', right_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', right_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', right_fingers_max_abduction_rot)
+            cmds.connectAttr(right_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(right_fingers_ctrl + '.rotMultiplierRing', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            
+            # Right Reverse
+            abduction_rerse_node = cmds.createNode('reverse', name=finger_name + 'abduction_range')
+            cmds.connectAttr(abduction_blend_node + '.output', abduction_rerse_node + '.inputY')
+            cmds.connectAttr(abduction_rerse_node + '.outputY', obj[0][2] + '.ry')
+            
+            cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+        elif 'pinky' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='rotMultiplierPinky', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.rotMultiplierPinky', .7)
+            abduction_blend_node = cmds.createNode('blendTwoAttr', name=finger_name + 'abduction_blend')
+            abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
+            abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
+            cmds.setAttr(abduction_range_node + '.oldMinZ', right_fingers_minz_scale)
+            cmds.setAttr(abduction_range_node + '.oldMaxZ', right_fingers_maxz_scale)
+            cmds.setAttr(abduction_range_node + '.minZ', right_fingers_min_abduction_rot)
+            cmds.setAttr(abduction_range_node + '.maxZ', right_fingers_max_abduction_rot)
+            cmds.connectAttr(right_fingers_ctrl + '.sz', abduction_range_node + '.valueZ', f=True)
+            cmds.connectAttr(abduction_range_node + '.outValueZ', abduction_multiply_node + '.input1X', f=True)
+            cmds.connectAttr(right_fingers_ctrl + '.rotMultiplierPinky', abduction_multiply_node + '.input2X', f=True)
+            cmds.connectAttr(abduction_multiply_node + '.outputX', abduction_blend_node + '.input[1]', f=True)
+            
+            # Right Reverse
+            abduction_rerse_node = cmds.createNode('reverse', name=finger_name + 'abduction_range')
+            cmds.connectAttr(abduction_blend_node + '.output', abduction_rerse_node + '.inputY')
+            cmds.connectAttr(abduction_rerse_node + '.outputY', obj[0][2] + '.ry')
+            
+            cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
+            cmds.setAttr(abduction_blend_node + ".input[0]", 0)
             
 
 
@@ -4978,11 +5226,10 @@ def create_controls():
     cmds.connectAttr(left_toe_up_down_ctrl + '.translate', left_toe_pos_pivot_grp + '.translate', f=True)
     
     # Left Leg Switch
-    lock_hide_default_attr(left_leg_switch)
     cmds.addAttr(left_leg_switch, ln="switchAttributes", at="enum", en="-------------:", keyable=True)
+    cmds.addAttr(left_leg_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(left_leg_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(left_leg_switch, ln='autoVisibility', at='bool', k=True)
-    cmds.addAttr(left_leg_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(left_leg_switch, ln="footAutomation", at="enum", en="-------------:", keyable=True)
     cmds.addAttr(left_leg_switch, ln='ctrlVisibility', at='bool', k=True)
     cmds.setAttr(left_leg_switch + '.ctrlVisibility', 1)
@@ -5071,14 +5318,6 @@ def create_controls():
     cmds.setAttr(left_knee_ik_ctrl + '.kneeAutomation', lock=True)
     cmds.addAttr(left_knee_ik_ctrl , ln='followFoot', at='bool', k=True)
     cmds.connectAttr(left_knee_ik_ctrl + '.followFoot', left_knee_ctrl_constraint[0] + '.w0', f=True)
-    
-    # General Adjustment
-    lock_hide_default_attr(left_foot_ik_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_heel_roll_ctrl, rotate=False)
-    lock_hide_default_attr(left_ball_roll_ctrl, rotate=False)
-    lock_hide_default_attr(left_toe_roll_ctrl, rotate=False)
-    lock_hide_default_attr(left_toe_up_down_ctrl, translate=False)
-    lock_hide_default_attr(left_knee_ik_ctrl, translate=False)
     
     # Left Leg Stretchy System
     
@@ -5177,11 +5416,10 @@ def create_controls():
     cmds.connectAttr(right_toe_up_down_ctrl + '.translate', right_toe_pos_pivot_grp + '.translate', f=True)
     
     # Right Leg Switch
-    lock_hide_default_attr(right_leg_switch)
     cmds.addAttr(right_leg_switch, ln="switchAttributes", at="enum", en="-------------:", keyable=True)
+    cmds.addAttr(right_leg_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(right_leg_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(right_leg_switch, ln='autoVisibility', at='bool', k=True)
-    cmds.addAttr(right_leg_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(right_leg_switch, ln="footAutomation", at="enum", en="-------------:", keyable=True)
     cmds.addAttr(right_leg_switch, ln='ctrlVisibility', at='bool', k=True)
     cmds.setAttr(right_leg_switch + '.ctrlVisibility', 1)
@@ -5270,17 +5508,8 @@ def create_controls():
     cmds.setAttr(right_knee_ik_ctrl + '.kneeAutomation', lock=True)
     cmds.addAttr(right_knee_ik_ctrl , ln='followFoot', at='bool', k=True)
     cmds.connectAttr(right_knee_ik_ctrl + '.followFoot', right_knee_ctrl_constraint[0] + '.w0', f=True)
-    
-    # General Adjustment
-    lock_hide_default_attr(right_foot_ik_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_heel_roll_ctrl, rotate=False)
-    lock_hide_default_attr(right_ball_roll_ctrl, rotate=False)
-    lock_hide_default_attr(right_toe_roll_ctrl, rotate=False)
-    lock_hide_default_attr(right_toe_up_down_ctrl, translate=False)
-    lock_hide_default_attr(right_knee_ik_ctrl, translate=False)
-    
+        
     # Right Leg Stretchy System
-    
     cmds.addAttr(right_leg_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_leg_switch + '.squashStretch', lock=True)
     right_leg_stretchy_elements = make_stretchy_ik(right_leg_rp_ik_handle[0], 'right_leg', right_leg_switch)
@@ -5333,32 +5562,6 @@ def create_controls():
     cmds.connectAttr(right_toe_up_down_ctrl + '.lockXZ', right_toe_up_down_ctrl + '.minTransZLimitEnable', f=True)
     cmds.connectAttr(right_toe_up_down_ctrl + '.lockXZ', right_toe_up_down_ctrl + '.maxTransZLimitEnable', f=True)
 
-
-    
-    ################# Organize Stretchy System Elements #################
-    stretchy_system_grp = cmds.group(name='stretchySystem_' + grp_suffix, empty=True, world=True)
-    foot_automation_grp = cmds.group(name='footAutomation_' + grp_suffix, empty=True, world=True)
-    change_outliner_color(stretchy_system_grp, (.5, 1, .85))
-    change_outliner_color(foot_automation_grp, (1, .65, .45))
-    cmds.parent(left_leg_stretchy_elements[1], stretchy_system_grp)
-    cmds.parent(right_leg_stretchy_elements[1], stretchy_system_grp)
-    cmds.parent(stretchy_system_grp, rig_setup_grp)
-    cmds.parent(foot_automation_grp, rig_setup_grp)
-    cmds.parent(left_foot_pivot_grp, foot_automation_grp)
-    cmds.parent(right_foot_pivot_grp, foot_automation_grp)
-    lock_hide_default_attr(foot_automation_grp, visibility=False)
-    lock_hide_default_attr(stretchy_system_grp, visibility=False)
-    lock_hide_default_attr(ik_solvers_grp, visibility=False)
-    
-    # # Finger Automation System Hierarchy @@@@@@@@@@@@@@
-    # finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
-    # cmds.parent(finger_automation_grp, rig_setup_grp)
-    # cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
-    # cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
-    # change_outliner_color(finger_automation_grp, (1, .65, .45))
-    # cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
-    
-    
     ################# Left Arm Controls #################   
     # Left Arm Handles
     left_arm_rp_ik_handle = cmds.ikHandle( n='left_armWrist_RP_ikHandle', sj=left_shoulder_ik_jnt, ee=left_wrist_ik_jnt, sol='ikRPsolver')
@@ -5367,13 +5570,11 @@ def create_controls():
     cmds.pointConstraint(left_wrist_ik_ctrl, left_arm_rp_ik_handle[0])
     cmds.orientConstraint(left_wrist_ik_ctrl, left_wrist_ik_jnt)
     
-    
     # Left Arm Switch
-    lock_hide_default_attr(left_arm_switch)
     cmds.addAttr(left_arm_switch, ln="switchAttributes", at="enum", en="-------------:", keyable=True)
+    cmds.addAttr(left_arm_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(left_arm_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(left_arm_switch, ln='autoVisibility', at='bool', k=True)
-    cmds.addAttr(left_arm_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(left_arm_switch, ln="fingerAutomation", at="enum", en="-------------:", keyable=True)
     cmds.addAttr(left_arm_switch, ln='ctrlVisibility', at='bool', k=True)
     cmds.setAttr(left_arm_switch + '.ctrlVisibility', 1)
@@ -5456,25 +5657,17 @@ def create_controls():
     # Foot Automation Visibility
     cmds.connectAttr(left_arm_switch + '.ctrlVisibility', left_fingers_ctrl_grp + '.v', f=True)
 
-    
     # IK Knee Automation
     left_wrist_ctrl_constraint = cmds.parentConstraint(left_wrist_ik_ctrl, left_elbow_ik_ctrl_grp, mo=True)
     cmds.addAttr(left_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_elbow_ik_ctrl + '.elbowAutomation', lock=True)
     cmds.addAttr(left_elbow_ik_ctrl , ln='followWrist', at='bool', k=True)
     cmds.connectAttr(left_elbow_ik_ctrl + '.followWrist', left_wrist_ctrl_constraint[0] + '.w0', f=True)
-    
-    # General Adjustment
-    lock_hide_default_attr(left_wrist_ik_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(left_elbow_ik_ctrl, translate=False)
-    
 
     # Left Leg Stretchy System
     cmds.addAttr(left_arm_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_arm_switch + '.squashStretch', lock=True)
     left_arm_stretchy_elements = make_stretchy_ik(left_arm_rp_ik_handle[0], 'left_arm', left_arm_switch)
-    cmds.parent(left_arm_stretchy_elements[1], stretchy_system_grp)
-
 
     # Transfer Data to Base Skeleton
     left_shoulder_scale_blend = cmds.createNode('blendColors', name='left_shoulder_switchScale_blend')
@@ -5492,8 +5685,8 @@ def create_controls():
     
     
     # Left Hand Ctrl Visibility Type
-    cmds.addAttr(left_arm_switch, ln="handControl", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(left_arm_switch + '.handControl', lock=True)
+    cmds.addAttr(left_arm_switch, ln="armControls", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(left_arm_switch + '.armControls', lock=True)
     cmds.addAttr(left_arm_switch, ln="visibilityType", at="enum", en="Semi-Circle:Pin:", keyable=True)
 
     left_v_type_condition_node = cmds.createNode('condition', name='left_arm_visibilityType_condition')
@@ -5512,24 +5705,37 @@ def create_controls():
     # Left Fingers Limits
     cmds.addAttr(left_fingers_ctrl, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_fingers_ctrl + '.controlBehavior', lock=True)
-    cmds.addAttr(left_fingers_ctrl, ln='lockXY', at='bool', k=True)
-    cmds.setAttr(left_fingers_ctrl + '.lockXY', 1)
+  
+    cmds.addAttr(left_fingers_ctrl, ln='maximumRotationZ', at='double', k=True)
+    cmds.setAttr(left_fingers_ctrl + '.maximumRotationZ', 10)
+    cmds.addAttr(left_fingers_ctrl, ln='minimumRotationZ', at='double', k=True)
+    cmds.setAttr(left_fingers_ctrl + '.minimumRotationZ', -130)
     
-    cmds.setAttr(left_fingers_ctrl + '.minRotXLimit', 0)
-    cmds.setAttr(left_fingers_ctrl + '.maxRotXLimit', 0)
-    cmds.setAttr(left_fingers_ctrl + '.minRotYLimit', 0)
-    cmds.setAttr(left_fingers_ctrl + '.maxRotYLimit', 0)
+    cmds.addAttr(left_fingers_ctrl, ln='rotateShape', at='bool', k=True)
+    cmds.setAttr(left_fingers_ctrl + '.rotateShape', 1)
+ 
+    cmds.connectAttr(left_fingers_ctrl + '.maximumRotationZ', left_fingers_ctrl + '.maxRotZLimit', f=True)
+    cmds.connectAttr(left_fingers_ctrl + '.minimumRotationZ', left_fingers_ctrl + '.minRotZLimit', f=True)
         
-    cmds.connectAttr(left_fingers_ctrl + '.lockXY', left_fingers_ctrl + '.minRotXLimitEnable', f=True)
-    cmds.connectAttr(left_fingers_ctrl + '.lockXY', left_fingers_ctrl + '.maxRotXLimitEnable', f=True)
-    cmds.connectAttr(left_fingers_ctrl + '.lockXY', left_fingers_ctrl + '.minRotYLimitEnable', f=True)
-    cmds.connectAttr(left_fingers_ctrl + '.lockXY', left_fingers_ctrl + '.maxRotYLimitEnable', f=True)
+    cmds.setAttr(left_fingers_ctrl + '.maxRotZLimitEnable', 1)
+    cmds.setAttr(left_fingers_ctrl + '.minRotZLimitEnable', 1)
+       
+    left_rot_reverse_node = cmds.createNode('reverse', name='left_fingers_rotateShape_reverse')
+    cmds.connectAttr(left_fingers_ctrl + '.rotateShape', left_rot_reverse_node + '.inputX')
+    cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2X')
+    cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Y')
+    cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Z')
+ 
     
-    
-    # Left Forearm Rotation
+    # Left Forearm Rotation & Scale
     left_forearm_grp = cmds.group(name=left_forearm_jnt + grp_suffix.capitalize(), empty=True, world=True)
+    left_forearm_loc = cmds.spaceLocator( name=left_forearm_jnt.replace(jnt_suffix, 'posLoc') )[0]
+    cmds.setAttr(left_forearm_loc + '.v', 0)
+    change_viewport_color(left_forearm_loc, left_ctrl_color)
+    cmds.parent(left_forearm_loc, left_forearm_grp)
+    
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_elbow_jnt'), left_forearm_grp))
-    cmds.parent(left_forearm_jnt, left_forearm_grp)
+    
     cmds.parent(left_forearm_grp, skeleton_grp)
     cmds.pointConstraint([gt_ab_joints.get('left_elbow_jnt'), gt_ab_joints.get('left_wrist_jnt')], left_forearm_grp)
     cmds.orientConstraint(gt_ab_joints.get('left_elbow_jnt'), left_forearm_grp)
@@ -5540,11 +5746,19 @@ def create_controls():
     cmds.addAttr(left_arm_switch, ln='forearmRotation', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(left_arm_switch + '.forearmRotation', 1)
     
+    cmds.addAttr(left_arm_switch, ln='forearmScale', at='double', k=True, minValue=0.01)
+    cmds.setAttr(left_arm_switch + '.forearmScale', 1)
+    cmds.connectAttr(left_arm_switch + '.forearmScale', left_forearm_jnt + '.sx', f=True)
+    cmds.connectAttr(left_arm_switch + '.forearmScale', left_forearm_jnt + '.sy', f=True)
+    cmds.connectAttr(left_arm_switch + '.forearmScale', left_forearm_jnt + '.sz', f=True)
+    
     left_forearm_multiply_node = cmds.createNode('multiplyDivide', name="left_arm_foreArmRotation_" + multiply_suffix)
     
     cmds.connectAttr(left_arm_switch + '.forearmRotation', left_forearm_multiply_node + '.input2X', f=True)
     cmds.connectAttr(gt_ab_joints.get('left_wrist_jnt') + '.rotateX', left_forearm_multiply_node + '.input1X', f=True)
     cmds.connectAttr(left_forearm_multiply_node + '.outputX', left_forearm_jnt + '.rotateX', f=True)
+    
+    cmds.pointConstraint(left_forearm_loc, left_forearm_jnt) # Receive Position from Mechanics
     
     # Left IK Follow Clavicle
     left_clavicle_wrist_constraint = cmds.parentConstraint(left_clavicle_ctrl, left_wrist_ik_ctrl_grp, mo=True)
@@ -5561,13 +5775,11 @@ def create_controls():
     cmds.pointConstraint(right_wrist_ik_ctrl, right_arm_rp_ik_handle[0])
     cmds.orientConstraint(right_wrist_ik_ctrl, right_wrist_ik_jnt)
     
-    
     # Right Arm Switch
-    lock_hide_default_attr(right_arm_switch)
     cmds.addAttr(right_arm_switch, ln="switchAttributes", at="enum", en="-------------:", keyable=True)
+    cmds.addAttr(right_arm_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(right_arm_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(right_arm_switch, ln='autoVisibility', at='bool', k=True)
-    cmds.addAttr(right_arm_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(right_arm_switch, ln="fingerAutomation", at="enum", en="-------------:", keyable=True)
     cmds.addAttr(right_arm_switch, ln='ctrlVisibility', at='bool', k=True)
     cmds.setAttr(right_arm_switch + '.ctrlVisibility', 1)
@@ -5657,18 +5869,12 @@ def create_controls():
     cmds.setAttr(right_elbow_ik_ctrl + '.elbowAutomation', lock=True)
     cmds.addAttr(right_elbow_ik_ctrl , ln='followWrist', at='bool', k=True)
     cmds.connectAttr(right_elbow_ik_ctrl + '.followWrist', right_wrist_ctrl_constraint[0] + '.w0', f=True)
-    
-    # General Adjustment
-    lock_hide_default_attr(right_wrist_ik_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(right_elbow_ik_ctrl, translate=False)
-    
 
     # Right Leg Stretchy System
     cmds.addAttr(right_arm_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_arm_switch + '.squashStretch', lock=True)
     right_arm_stretchy_elements = make_stretchy_ik(right_arm_rp_ik_handle[0], 'right_arm', right_arm_switch)
-    cmds.parent(right_arm_stretchy_elements[1], stretchy_system_grp)
-
+    
 
     # Transfer Data to Base Skeleton
     right_shoulder_scale_blend = cmds.createNode('blendColors', name='right_shoulder_switchScale_blend')
@@ -5686,8 +5892,8 @@ def create_controls():
     
     
     # Right Hand Ctrl Visibility Type
-    cmds.addAttr(right_arm_switch, ln="handControl", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(right_arm_switch + '.handControl', lock=True)
+    cmds.addAttr(right_arm_switch, ln="armControls", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(right_arm_switch + '.armControls', lock=True)
     cmds.addAttr(right_arm_switch, ln="visibilityType", at="enum", en="Semi-Circle:Pin:", keyable=True)
 
     right_v_type_condition_node = cmds.createNode('condition', name='right_arm_visibilityType_condition')
@@ -5706,24 +5912,37 @@ def create_controls():
     # Right Fingers Limits
     cmds.addAttr(right_fingers_ctrl, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_fingers_ctrl + '.controlBehavior', lock=True)
-    cmds.addAttr(right_fingers_ctrl, ln='lockXY', at='bool', k=True)
-    cmds.setAttr(right_fingers_ctrl + '.lockXY', 1)
     
-    cmds.setAttr(right_fingers_ctrl + '.minRotXLimit', 0)
-    cmds.setAttr(right_fingers_ctrl + '.maxRotXLimit', 0)
-    cmds.setAttr(right_fingers_ctrl + '.minRotYLimit', 0)
-    cmds.setAttr(right_fingers_ctrl + '.maxRotYLimit', 0)
-        
-    cmds.connectAttr(right_fingers_ctrl + '.lockXY', right_fingers_ctrl + '.minRotXLimitEnable', f=True)
-    cmds.connectAttr(right_fingers_ctrl + '.lockXY', right_fingers_ctrl + '.maxRotXLimitEnable', f=True)
-    cmds.connectAttr(right_fingers_ctrl + '.lockXY', right_fingers_ctrl + '.minRotYLimitEnable', f=True)
-    cmds.connectAttr(right_fingers_ctrl + '.lockXY', right_fingers_ctrl + '.maxRotYLimitEnable', f=True)
+    cmds.addAttr(right_fingers_ctrl, ln='maximumRotationZ', at='double', k=True)
+    cmds.setAttr(right_fingers_ctrl + '.maximumRotationZ', 10)
+    cmds.addAttr(right_fingers_ctrl, ln='minimumRotationZ', at='double', k=True)
+    cmds.setAttr(right_fingers_ctrl + '.minimumRotationZ', -130)
+    
+    cmds.addAttr(right_fingers_ctrl, ln='rotateShape', at='bool', k=True)
+    cmds.setAttr(right_fingers_ctrl + '.rotateShape', 1)
+
+    cmds.connectAttr(right_fingers_ctrl + '.maximumRotationZ', right_fingers_ctrl + '.maxRotZLimit', f=True)
+    cmds.connectAttr(right_fingers_ctrl + '.minimumRotationZ', right_fingers_ctrl + '.minRotZLimit', f=True)
+
+    cmds.setAttr(right_fingers_ctrl + '.maxRotZLimitEnable', 1)
+    cmds.setAttr(right_fingers_ctrl + '.minRotZLimitEnable', 1)
+    
+    right_rot_reverse_node = cmds.createNode('reverse', name='right_fingers_rotateShape_reverse')
+    cmds.connectAttr(right_fingers_ctrl + '.rotateShape', right_rot_reverse_node + '.inputX')
+    cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2X')
+    cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2Y')
+    cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2Z')
     
     
-    # Right Forearm Rotation
+    # Right Forearm Rotation & Scale
     right_forearm_grp = cmds.group(name=right_forearm_jnt + grp_suffix.capitalize(), empty=True, world=True)
+    right_forearm_loc = cmds.spaceLocator( name=right_forearm_jnt.replace(jnt_suffix, 'posLoc') )[0]
+    cmds.setAttr(right_forearm_loc + '.v', 0)
+    change_viewport_color(right_forearm_loc, right_ctrl_color)
+    cmds.parent(right_forearm_loc, right_forearm_grp)
+    
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_elbow_jnt'), right_forearm_grp))
-    cmds.parent(right_forearm_jnt, right_forearm_grp)
+    
     cmds.parent(right_forearm_grp, skeleton_grp)
     cmds.pointConstraint([gt_ab_joints.get('right_elbow_jnt'), gt_ab_joints.get('right_wrist_jnt')], right_forearm_grp)
     cmds.orientConstraint(gt_ab_joints.get('right_elbow_jnt'), right_forearm_grp)
@@ -5734,11 +5953,19 @@ def create_controls():
     cmds.addAttr(right_arm_switch, ln='forearmRotation', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(right_arm_switch + '.forearmRotation', 1)
     
+    cmds.addAttr(right_arm_switch, ln='forearmScale', at='double', k=True, minValue=0.01)
+    cmds.setAttr(right_arm_switch + '.forearmScale', 1)
+    cmds.connectAttr(right_arm_switch + '.forearmScale', right_forearm_jnt + '.sx', f=True)
+    cmds.connectAttr(right_arm_switch + '.forearmScale', right_forearm_jnt + '.sy', f=True)
+    cmds.connectAttr(right_arm_switch + '.forearmScale', right_forearm_jnt + '.sz', f=True)
+    
     right_forearm_multiply_node = cmds.createNode('multiplyDivide', name="right_arm_foreArmRotation_" + multiply_suffix)
     
     cmds.connectAttr(right_arm_switch + '.forearmRotation', right_forearm_multiply_node + '.input2X', f=True)
     cmds.connectAttr(gt_ab_joints.get('right_wrist_jnt') + '.rotateX', right_forearm_multiply_node + '.input1X', f=True)
     cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_jnt + '.rotateX', f=True)
+    
+    cmds.pointConstraint(right_forearm_loc, right_forearm_jnt) # Receive Position from Mechanics
     
     # Right IK Follow Clavicle
     right_clavicle_wrist_constraint = cmds.parentConstraint(right_clavicle_ctrl, right_wrist_ik_ctrl_grp, mo=True)
@@ -5746,9 +5973,7 @@ def create_controls():
     cmds.setAttr(right_arm_switch + '.followClavicle', 1)
     cmds.connectAttr(right_arm_switch + '.followClavicle', right_clavicle_wrist_constraint[0] + '.w0', f=True)
 
-
     ################# Lock Parameters for FK Controls #################
-
     for obj in [left_knee_ctrl, left_elbow_ctrl, right_knee_ctrl, right_elbow_ctrl]:
         cmds.addAttr(obj, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
         cmds.setAttr(obj + '.controlBehavior', lock=True)
@@ -5805,9 +6030,6 @@ def create_controls():
         cmds.connectAttr(obj + '.lockTranslate', obj + '.maxTransZLimitEnable', f=True)
         
     # Eyes
-    lock_hide_default_attr(main_eye_ctrl, translate=False)
-    lock_hide_default_attr(left_eye_ctrl, translate=False)
-    lock_hide_default_attr(right_eye_ctrl, translate=False)
     cmds.parent(main_eye_ctrl_grp, direction_ctrl)
     main_eye_constraint = cmds.parentConstraint([head_ctrl, direction_ctrl], main_eye_ctrl_grp, mo=True)
     cmds.addAttr(main_eye_ctrl, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
@@ -5846,24 +6068,49 @@ def create_controls():
     
     cmds.aimConstraint(right_eye_ctrl, gt_ab_joints.get('right_eye_jnt'), mo=True, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_eye_up_vec)
 
-    # Other Groups
+    ################# Organize Stretchy System Elements #################
+    stretchy_system_grp = cmds.group(name='stretchySystem_' + grp_suffix, empty=True, world=True)
+    foot_automation_grp = cmds.group(name='footAutomation_' + grp_suffix, empty=True, world=True)
+    change_outliner_color(stretchy_system_grp, (.5, 1, .85))
+    change_outliner_color(foot_automation_grp, (1, .65, .45))
+    cmds.parent(left_leg_stretchy_elements[1], stretchy_system_grp)
+    cmds.parent(right_leg_stretchy_elements[1], stretchy_system_grp)
+    cmds.parent(left_foot_pivot_grp, foot_automation_grp)
+    cmds.parent(right_foot_pivot_grp, foot_automation_grp)
+    cmds.parent(right_arm_stretchy_elements[1], stretchy_system_grp)
+    cmds.parent(left_arm_stretchy_elements[1], stretchy_system_grp)
+    
+    # Finger Automation System Hierarchy
+    finger_automation_grp = cmds.group(name='fingersAutomation_' + grp_suffix, empty=True, world=True)
+    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
+    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
+    change_outliner_color(finger_automation_grp, (1, .65, .45))
+    cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
+    
+    # Spine Automation System Hierarchy
+    change_outliner_color(spine_automation_grp, (1, .65, .45))
+    
+    # Arms Automation System Hierarchy
+    arms_automation_grp = cmds.group(name='armsAutomation_' + grp_suffix, empty=True, world=True)
+    change_outliner_color(arms_automation_grp, (1, .65, .45))
+    cmds.parent(left_forearm_grp, arms_automation_grp)
+    cmds.parent(right_forearm_grp, arms_automation_grp)
+    
+    # Top Groups Groups
     geometry_grp = cmds.group(name='geometry_grp', empty=True, world=True)
     change_outliner_color(geometry_grp, (.3,1,.8))
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1,.45,.7))
+    cmds.parent(stretchy_system_grp, rig_setup_grp)
+    cmds.parent(arms_automation_grp, rig_setup_grp)
+    cmds.parent(finger_automation_grp, rig_setup_grp)
+    cmds.parent(spine_automation_grp, rig_setup_grp)
+    cmds.parent(foot_automation_grp, rig_setup_grp)
 
     # Scale Constraints
     cmds.scaleConstraint(main_ctrl, skeleton_grp)
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
-    
-    # Lock Groups
-    lock_hide_default_attr(controls_grp, visibility=False)
-    lock_hide_default_attr(skeleton_grp, visibility=False)
-    lock_hide_default_attr(direction_ctrl, translate=False, rotate=False, visibility=False)
-    lock_hide_default_attr(rig_setup_grp, visibility=False)
-    lock_hide_default_attr(geometry_grp, visibility=False)
-    lock_hide_default_attr(rig_grp, visibility=False)
- 
+     
     # Hierarchy Adjustments and Color
     cmds.setAttr(rig_setup_grp + '.v', 0)
     cmds.setAttr(left_clavicle_switch_jnt + '.v', 0)
@@ -5882,6 +6129,10 @@ def create_controls():
     cmds.addAttr(main_ctrl, ln="geometryDisplayMode", at="enum", en="Normal:Template:Reference:", keyable=True)
     cmds.addAttr(main_ctrl, ln="controlsVisibility", at="bool", keyable=True)
     cmds.setAttr(main_ctrl + '.controlsVisibility', 1)
+
+    cmds.addAttr(main_ctrl , ln='controlsScaleJoints', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(main_ctrl + ".controlsScaleJoints", 1)
+
     cmds.setAttr(geometry_grp + '.overrideEnabled', 1)
     cmds.connectAttr(main_ctrl + '.geometryDisplayMode', geometry_grp + '.overrideDisplayType', f=True)
     cmds.connectAttr(main_ctrl + '.controlsVisibility', direction_ctrl_grp + '.v', f=True)
@@ -5890,11 +6141,308 @@ def create_controls():
     cmds.connectAttr(main_ctrl + '.controlsVisibility', left_leg_switch_grp + '.v', f=True)
     cmds.connectAttr(main_ctrl + '.controlsVisibility', right_leg_switch_grp + '.v', f=True)
     
-    
     # Moved the parenting of these systems after IK creation to solve pose issues
     cmds.parent(right_shoulder_ik_jnt, right_clavicle_switch_jnt)
     cmds.parent(left_shoulder_ik_jnt, left_clavicle_switch_jnt)
     
+    ################# Joint Inflation System #################
+    
+    # Elements to Inflate/Deflate
+    inflation_system_groups = [
+        [cog_ctrl, cog_ctrl_grp, gt_ab_joints.get('cog_jnt')], 
+        [hip_ctrl, hip_ctrl_grp, gt_ab_joints.get('hip_jnt')], 
+        [spine01_ctrl, spine01_ctrl_grp, gt_ab_joints.get('spine01_jnt')],
+        [spine02_ctrl, spine02_ctrl_grp, gt_ab_joints.get('spine02_jnt')],
+        [spine03_ctrl, spine03_ctrl_grp, gt_ab_joints.get('spine03_jnt')],
+        [spine04_ctrl, spine04_ctrl_grp, gt_ab_joints.get('spine04_jnt')],
+   
+        [neck_base_ctrl, neck_base_ctrl_grp, gt_ab_joints.get('neck_base_jnt')],
+        [neck_mid_ctrl, neck_mid_ctrl_grp, gt_ab_joints.get('neck_mid_jnt')],
+        #[head_ctrl, head_ctrl_grp, gt_ab_joints.get('head_jnt')], Issues with eyes
+        #[jaw_ctrl, jaw_ctrl_grp, gt_ab_joints.get('jaw_jnt')], Really necessary?
+        # Left Arm
+        [left_clavicle_ctrl, left_clavicle_ctrl_grp, gt_ab_joints.get('left_clavicle_jnt')],
+        [left_shoulder_ctrl, left_shoulder_ctrl_grp, left_shoulder_fk_jnt],
+        [left_elbow_ctrl, left_elbow_ctrl_grp, left_elbow_fk_jnt],
+        [left_wrist_ctrl, left_wrist_ctrl_grp, left_wrist_fk_jnt], 
+        [left_wrist_ik_ctrl, left_wrist_ik_ctrl_grp, left_wrist_ik_jnt],
+        
+        # Left Leg
+        [left_hip_ctrl, left_hip_ctrl_grp, left_hip_fk_jnt], 
+        [left_knee_ctrl, left_knee_ctrl_grp, left_knee_fk_jnt], 
+        [left_ankle_ctrl, left_ankle_ctrl_grp, left_ankle_fk_jnt],
+        [left_foot_ik_ctrl, left_foot_ik_ctrl_grp, left_ankle_ik_jnt], 
+        [left_ball_ctrl, left_ball_ctrl_grp, gt_ab_joints.get('left_ball_jnt')], 
+        
+        # Left Fingers
+        [left_thumb01_ctrl_list[0], left_thumb01_ctrl_list[1], gt_ab_joints.get('left_thumb01_jnt')],
+        [left_thumb02_ctrl_list[0], left_thumb02_ctrl_list[1], gt_ab_joints.get('left_thumb02_jnt')],
+        [left_thumb03_ctrl_list[0], left_thumb03_ctrl_list[1], gt_ab_joints.get('left_thumb03_jnt')],
+        
+        [left_index01_ctrl_list[0], left_index01_ctrl_list[1], gt_ab_joints.get('left_index01_jnt')],
+        [left_index02_ctrl_list[0], left_index02_ctrl_list[1], gt_ab_joints.get('left_index02_jnt')],
+        [left_index03_ctrl_list[0], left_index03_ctrl_list[1], gt_ab_joints.get('left_index03_jnt')],
+        
+        [left_middle01_ctrl_list[0], left_middle01_ctrl_list[1], gt_ab_joints.get('left_middle01_jnt')],
+        [left_middle02_ctrl_list[0], left_middle02_ctrl_list[1], gt_ab_joints.get('left_middle02_jnt')],
+        [left_middle03_ctrl_list[0], left_middle03_ctrl_list[1], gt_ab_joints.get('left_middle03_jnt')],
+        
+        [left_ring01_ctrl_list[0], left_ring01_ctrl_list[1], gt_ab_joints.get('left_ring01_jnt')],
+        [left_ring02_ctrl_list[0], left_ring02_ctrl_list[1], gt_ab_joints.get('left_ring02_jnt')],
+        [left_ring03_ctrl_list[0], left_ring03_ctrl_list[1], gt_ab_joints.get('left_ring03_jnt')],
+        
+        [left_pinky01_ctrl_list[0], left_pinky01_ctrl_list[1], gt_ab_joints.get('left_pinky01_jnt')],
+        [left_pinky02_ctrl_list[0], left_pinky02_ctrl_list[1], gt_ab_joints.get('left_pinky02_jnt')],
+        [left_pinky03_ctrl_list[0], left_pinky03_ctrl_list[1], gt_ab_joints.get('left_pinky03_jnt')],
+        
+        # Right Arm
+        [right_clavicle_ctrl, right_clavicle_ctrl_grp, gt_ab_joints.get('right_clavicle_jnt')],
+        [right_shoulder_ctrl, right_shoulder_ctrl_grp, right_shoulder_fk_jnt],
+        [right_elbow_ctrl, right_elbow_ctrl_grp, right_elbow_fk_jnt],
+        [right_wrist_ctrl, right_wrist_ctrl_grp, right_wrist_fk_jnt], 
+        [right_wrist_ik_ctrl, right_wrist_ik_ctrl_grp, right_wrist_ik_jnt],
+        
+        # Right Leg
+        [right_hip_ctrl, right_hip_ctrl_grp, right_hip_fk_jnt], 
+        [right_knee_ctrl, right_knee_ctrl_grp, right_knee_fk_jnt], 
+        [right_ankle_ctrl, right_ankle_ctrl_grp, right_ankle_fk_jnt],
+        [right_foot_ik_ctrl, right_foot_ik_ctrl_grp, right_ankle_ik_jnt], 
+        [right_ball_ctrl, right_ball_ctrl_grp, gt_ab_joints.get('right_ball_jnt')], 
+        
+        # Right Fingers
+        [right_thumb01_ctrl_list[0], right_thumb01_ctrl_list[1], gt_ab_joints.get('right_thumb01_jnt')],
+        [right_thumb02_ctrl_list[0], right_thumb02_ctrl_list[1], gt_ab_joints.get('right_thumb02_jnt')],
+        [right_thumb03_ctrl_list[0], right_thumb03_ctrl_list[1], gt_ab_joints.get('right_thumb03_jnt')],
+        
+        [right_index01_ctrl_list[0], right_index01_ctrl_list[1], gt_ab_joints.get('right_index01_jnt')],
+        [right_index02_ctrl_list[0], right_index02_ctrl_list[1], gt_ab_joints.get('right_index02_jnt')],
+        [right_index03_ctrl_list[0], right_index03_ctrl_list[1], gt_ab_joints.get('right_index03_jnt')],
+        
+        [right_middle01_ctrl_list[0], right_middle01_ctrl_list[1], gt_ab_joints.get('right_middle01_jnt')],
+        [right_middle02_ctrl_list[0], right_middle02_ctrl_list[1], gt_ab_joints.get('right_middle02_jnt')],
+        [right_middle03_ctrl_list[0], right_middle03_ctrl_list[1], gt_ab_joints.get('right_middle03_jnt')],
+        
+        [right_ring01_ctrl_list[0], right_ring01_ctrl_list[1], gt_ab_joints.get('right_ring01_jnt')],
+        [right_ring02_ctrl_list[0], right_ring02_ctrl_list[1], gt_ab_joints.get('right_ring02_jnt')],
+        [right_ring03_ctrl_list[0], right_ring03_ctrl_list[1], gt_ab_joints.get('right_ring03_jnt')],
+        
+        [right_pinky01_ctrl_list[0], right_pinky01_ctrl_list[1], gt_ab_joints.get('right_pinky01_jnt')],
+        [right_pinky02_ctrl_list[0], right_pinky02_ctrl_list[1], gt_ab_joints.get('right_pinky02_jnt')],
+        [right_pinky03_ctrl_list[0], right_pinky03_ctrl_list[1], gt_ab_joints.get('right_pinky03_jnt')],
+ 
+    ]
+    
+    # Joint Inflation Basic Setup
+    for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint
+        
+        blend_node = cmds.createNode('blendColors', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inflation_blend')
+   
+        cmds.setAttr(blend_node + '.color2R', 1)
+        cmds.setAttr(blend_node + '.color2G', 1)
+        cmds.setAttr(blend_node + '.color2B', 1)
+   
+        cmds.connectAttr(main_ctrl + '.controlsScaleJoints', blend_node + '.blender') # Main Control's Slave
+        cmds.connectAttr(ctrl_grps[0] + '.scale', blend_node + '.color1')
+        cmds.connectAttr(blend_node + '.output', ctrl_grps[2] + '.scale')
+        
+        decompose_matrix_node = cmds.createNode('decomposeMatrix', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inverseScale')
+        cmds.connectAttr(ctrl_grps[0] + '.inverseMatrix', decompose_matrix_node + '.inputMatrix')
+        cmds.connectAttr(decompose_matrix_node + '.outputScale', ctrl_grps[1] + '.scale')
+        
+        cmds.setAttr(ctrl_grps[0] + '.minScaleXLimit', 0.01)
+        cmds.setAttr(ctrl_grps[0] + '.minScaleYLimit', 0.01)
+        cmds.setAttr(ctrl_grps[0] + '.minScaleZLimit', 0.01)
+        cmds.setAttr(ctrl_grps[0] + '.minScaleXLimitEnable', 1)
+        cmds.setAttr(ctrl_grps[0] + '.minScaleYLimitEnable', 1)
+        cmds.setAttr(ctrl_grps[0] + '.minScaleZLimitEnable', 1)
+    
+    # Joint Inflation/Deflation Mechanics & Special Cases
+    left_wrist_scale_blend = cmds.createNode('blendColors', name='left_wrist_switchScale_blend')
+    cmds.connectAttr(left_wrist_ik_ctrl + '.scale', left_wrist_scale_blend + '.color1')
+    cmds.connectAttr(left_wrist_ctrl + '.scale', left_wrist_scale_blend + '.color2')
+    cmds.connectAttr(left_wrist_scale_blend + '.output', gt_ab_joints.get('left_wrist_jnt') + '.scale')
+    cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_wrist_scale_blend + '.blender')
+    
+    right_wrist_scale_blend = cmds.createNode('blendColors', name='right_wrist_switchScale_blend')
+    cmds.connectAttr(right_wrist_ik_ctrl + '.scale', right_wrist_scale_blend + '.color1')
+    cmds.connectAttr(right_wrist_ctrl + '.scale', right_wrist_scale_blend + '.color2')
+    cmds.connectAttr(right_wrist_scale_blend + '.output', gt_ab_joints.get('right_wrist_jnt') + '.scale')
+    cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_wrist_scale_blend + '.blender')
+    
+    left_ankle_scale_blend = cmds.createNode('blendColors', name='left_ankle_switchScale_blend')
+    cmds.connectAttr(left_foot_ik_ctrl + '.scale', left_ankle_scale_blend + '.color1')
+    cmds.connectAttr(left_ankle_ctrl + '.scale', left_ankle_scale_blend + '.color2')
+    cmds.connectAttr(left_ankle_scale_blend + '.output', gt_ab_joints.get('left_ankle_jnt') + '.scale')
+    cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_ankle_scale_blend + '.blender')
+    
+    right_ankle_scale_blend = cmds.createNode('blendColors', name='right_ankle_switchScale_blend')
+    cmds.connectAttr(right_foot_ik_ctrl + '.scale', right_ankle_scale_blend + '.color1')
+    cmds.connectAttr(right_ankle_ctrl + '.scale', right_ankle_scale_blend + '.color2')
+    cmds.connectAttr(right_ankle_scale_blend + '.output', gt_ab_joints.get('right_ankle_jnt') + '.scale')
+    cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_ankle_scale_blend + '.blender')
+    
+    left_ball_connection_list = cmds.listConnections(gt_ab_joints.get('left_ball_jnt') + '.scale', source=True) or []
+    left_ball_inflation_node = ''
+    for obj in left_ball_connection_list:
+        if 'inflation_blend' in obj:
+            left_ball_inflation_node = obj
+            
+    left_ball_scale_blend = cmds.createNode('blendColors', name='left_ball_switchScale_blend')
+    cmds.setAttr(left_ball_scale_blend + '.color1R', 1)
+    cmds.setAttr(left_ball_scale_blend + '.color1G', 1)
+    cmds.setAttr(left_ball_scale_blend + '.color1B', 1)
+    cmds.connectAttr(left_ball_inflation_node + '.output', left_ball_scale_blend + '.color2', f=True)
+    cmds.connectAttr(left_ball_scale_blend + '.output', gt_ab_joints.get('left_ball_jnt') + '.scale', f=True)
+    cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_ball_scale_blend + '.blender')
+    
+    right_ball_connection_list = cmds.listConnections(gt_ab_joints.get('right_ball_jnt') + '.scale', source=True) or []
+    right_ball_inflation_node = ''
+    for obj in right_ball_connection_list:
+        if 'inflation_blend' in obj:
+            right_ball_inflation_node = obj
+            
+    right_ball_scale_blend = cmds.createNode('blendColors', name='right_ball_switchScale_blend')
+    cmds.setAttr(right_ball_scale_blend + '.color1R', 1)
+    cmds.setAttr(right_ball_scale_blend + '.color1G', 1)
+    cmds.setAttr(right_ball_scale_blend + '.color1B', 1)
+    cmds.connectAttr(right_ball_inflation_node + '.output', right_ball_scale_blend + '.color2', f=True)
+    cmds.connectAttr(right_ball_scale_blend + '.output', gt_ab_joints.get('right_ball_jnt') + '.scale', f=True)
+    cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_ball_scale_blend + '.blender')
+    
+
+    ################# Bulletproof Controls #################
+    lock_hide_default_attr(cog_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(spine02_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(spine03_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(spine04_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(neck_base_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(neck_mid_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(head_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(jaw_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(hip_ctrl, translate=False, rotate=False, scale=False)
+
+    # Legs and Arms FK
+    lock_hide_default_attr(left_hip_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_knee_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_ankle_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_ball_ctrl, translate=False, rotate=False, scale=False)
+
+    lock_hide_default_attr(right_hip_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_knee_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_ankle_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_ball_ctrl, translate=False, rotate=False, scale=False)
+    
+    # Arms IK
+    lock_hide_default_attr(left_clavicle_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_shoulder_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_elbow_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_wrist_ctrl, translate=False, rotate=False, scale=False)
+    
+    lock_hide_default_attr(right_clavicle_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_shoulder_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_elbow_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_wrist_ctrl, translate=False, rotate=False, scale=False)
+    
+    lock_hide_default_attr(left_wrist_ik_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_elbow_ik_ctrl, translate=False)
+    lock_hide_default_attr(right_wrist_ik_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_elbow_ik_ctrl, translate=False)
+
+    # Fingers Automation
+    lock_hide_default_attr(left_fingers_ctrl, rotate=False, scale=False)
+    lock_hide_default_attr(right_fingers_ctrl, rotate=False, scale=False)
+    cmds.setAttr(left_fingers_ctrl + '.rx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(left_fingers_ctrl + '.ry', lock=True, k=False, channelBox=False)
+    cmds.setAttr(right_fingers_ctrl + '.rx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(right_fingers_ctrl + '.ry', lock=True, k=False, channelBox=False)
+
+    # Fingers
+    lock_fingers = [ # Left
+                    left_thumb01_ctrl_list[0], left_thumb02_ctrl_list[0], left_thumb03_ctrl_list[0],
+                    left_index01_ctrl_list[0], left_index02_ctrl_list[0], left_index03_ctrl_list[0],
+                    left_middle01_ctrl_list[0], left_middle02_ctrl_list[0], left_middle03_ctrl_list[0],
+                    left_ring01_ctrl_list[0], left_ring02_ctrl_list[0], left_ring03_ctrl_list[0],
+                    left_pinky01_ctrl_list[0], left_pinky02_ctrl_list[0], left_pinky03_ctrl_list[0],
+                     # Right
+                    right_thumb01_ctrl_list[0], right_thumb02_ctrl_list[0], right_thumb03_ctrl_list[0],
+                    right_index01_ctrl_list[0], right_index02_ctrl_list[0], right_index03_ctrl_list[0],
+                    right_middle01_ctrl_list[0], right_middle02_ctrl_list[0], right_middle03_ctrl_list[0],
+                    right_ring01_ctrl_list[0], right_ring02_ctrl_list[0], right_ring03_ctrl_list[0],
+                    right_pinky01_ctrl_list[0], right_pinky02_ctrl_list[0], right_pinky03_ctrl_list[0]
+                    ]
+                   
+    for finger in lock_fingers:
+        lock_hide_default_attr(finger, translate=False, rotate=False, scale=False)
+
+    # Foot Automation
+    lock_hide_default_attr(left_foot_ik_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_heel_roll_ctrl, rotate=False)
+    lock_hide_default_attr(left_ball_roll_ctrl, rotate=False)
+    lock_hide_default_attr(left_toe_roll_ctrl, rotate=False)
+    lock_hide_default_attr(left_toe_up_down_ctrl, translate=False)
+    lock_hide_default_attr(left_knee_ik_ctrl, translate=False)
+
+    lock_hide_default_attr(right_foot_ik_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_heel_roll_ctrl, rotate=False)
+    lock_hide_default_attr(right_ball_roll_ctrl, rotate=False)
+    lock_hide_default_attr(right_toe_roll_ctrl, rotate=False)
+    lock_hide_default_attr(right_toe_up_down_ctrl, translate=False)
+    lock_hide_default_attr(right_knee_ik_ctrl, translate=False)
+
+    # Switch Controls
+    lock_hide_default_attr(left_arm_switch)
+    lock_hide_default_attr(right_arm_switch)
+    lock_hide_default_attr(left_leg_switch)
+    lock_hide_default_attr(right_leg_switch)
+
+    # Eye Controls
+    lock_hide_default_attr(main_eye_ctrl, translate=False)
+    lock_hide_default_attr(left_eye_ctrl, translate=False)
+    lock_hide_default_attr(right_eye_ctrl, translate=False)
+
+    # Lock Groups
+    lock_hide_default_attr(controls_grp, visibility=False)
+    lock_hide_default_attr(skeleton_grp, visibility=False)
+    lock_hide_default_attr(direction_ctrl, translate=False, rotate=False, visibility=False)
+    lock_hide_default_attr(rig_setup_grp, visibility=False)
+    lock_hide_default_attr(geometry_grp, visibility=False)
+    lock_hide_default_attr(rig_grp, visibility=False)
+    lock_hide_default_attr(foot_automation_grp, visibility=False)
+    lock_hide_default_attr(stretchy_system_grp, visibility=False)
+    lock_hide_default_attr(ik_solvers_grp, visibility=False)
+    
+
+    # Create Seamless FK/IK Switch References
+    left_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_ankle_ik_reference') )[0]
+    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_ankle_ref_loc))
+    cmds.parent(left_ankle_ref_loc, left_ankle_fk_jnt)
+    cmds.setAttr(left_ankle_ref_loc + '.v', 0)
+    
+    left_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_ik_reference') )[0]
+    cmds.delete(cmds.pointConstraint(left_knee_ik_ctrl, left_knee_ref_loc))
+    cmds.parent(left_knee_ref_loc, left_knee_fk_jnt)
+    cmds.setAttr(left_knee_ref_loc + '.v', 0)
+    
+    left_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_ik_reference') )[0]
+    cmds.delete(cmds.pointConstraint(left_elbow_ik_ctrl, left_elbow_ref_loc))
+    cmds.parent(left_elbow_ref_loc, left_elbow_fk_jnt)
+    cmds.setAttr(left_elbow_ref_loc + '.v', 0)
+  
+    right_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_ankle_ik_reference') )[0]
+    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_ankle_ref_loc))
+    cmds.parent(right_ankle_ref_loc, right_ankle_fk_jnt)
+    cmds.setAttr(right_ankle_ref_loc + '.v', 0)
+    
+    right_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_ik_reference') )[0]
+    cmds.delete(cmds.pointConstraint(right_knee_ik_ctrl, right_knee_ref_loc))
+    cmds.parent(right_knee_ref_loc, right_knee_fk_jnt)
+    cmds.setAttr(right_knee_ref_loc + '.v', 0)
+    
+    right_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_ik_reference') )[0]
+    cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
+    cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
+    cmds.setAttr(right_elbow_ref_loc + '.v', 0)
 
     # Delete Proxy
     cmds.delete(gt_ab_settings.get('main_proxy_grp'))
@@ -5961,47 +6509,7 @@ def create_controls():
             for ctrl in ctrl_tuple:
                 cmds.setAttr(ctrl + '.showManipDefault', 2) # Rotate
 
-
-    # Create Seamless FK/IK Switch References
-    left_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_ankle_ik_reference') )[0]
-    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_ankle_ref_loc))
-    cmds.parent(left_ankle_ref_loc, left_ankle_fk_jnt)
-    cmds.setAttr(left_ankle_ref_loc + '.v', 0)
-    
-    left_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_ik_reference') )[0]
-    cmds.delete(cmds.pointConstraint(left_knee_ik_ctrl, left_knee_ref_loc))
-    cmds.parent(left_knee_ref_loc, left_knee_fk_jnt)
-    cmds.setAttr(left_knee_ref_loc + '.v', 0)
-    
-    left_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_ik_reference') )[0]
-    cmds.delete(cmds.pointConstraint(left_elbow_ik_ctrl, left_elbow_ref_loc))
-    cmds.parent(left_elbow_ref_loc, left_elbow_fk_jnt)
-    cmds.setAttr(left_elbow_ref_loc + '.v', 0)
-  
-    right_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_ankle_ik_reference') )[0]
-    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_ankle_ref_loc))
-    cmds.parent(right_ankle_ref_loc, right_ankle_fk_jnt)
-    cmds.setAttr(right_ankle_ref_loc + '.v', 0)
-    
-    right_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_ik_reference') )[0]
-    cmds.delete(cmds.pointConstraint(right_knee_ik_ctrl, right_knee_ref_loc))
-    cmds.parent(right_knee_ref_loc, right_knee_fk_jnt)
-    cmds.setAttr(right_knee_ref_loc + '.v', 0)
-    
-    right_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_ik_reference') )[0]
-    cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
-    cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
-    cmds.setAttr(right_elbow_ref_loc + '.v', 0)
-
     ################# Joint Labelling #################
-    # cmds.addAttr(skeleton_grp, ln="skeletonOptions", at="enum", en="-------------:", keyable=True)
-    # cmds.setAttr(skeleton_grp + '.skeletonOptions', lock=True)
-    # cmds.addAttr(skeleton_grp, ln="labelVisibility", at="bool", keyable=True)
-    # cmds.setAttr(skeleton_grp + '.labelVisibility', 1)
-    #for jnt in gt_ab_joints:
-        #cmds.connectAttr(skeleton_grp + '.labelVisibility', gt_ab_joints.get(jnt) + '.drawLabel', f=True)
-        ##cmds.setAttr(gt_ab_joints.get(jnt) + '.drawLabel', 1)
-
     # Joint Side
     for obj in gt_ab_joints:
         if 'left_' in obj:
@@ -6010,7 +6518,6 @@ def create_controls():
             cmds.setAttr(gt_ab_joints.get(obj) + '.side', 2) # 2 Right
         else:
             cmds.setAttr(gt_ab_joints.get(obj) + '.side', 0) # 0 Center
-    
     
     # Joint Label
     cmds.setAttr(gt_ab_joints.get('main_jnt') + '.type', 18) # Other
@@ -6095,8 +6602,7 @@ def create_controls():
     cmds.select(d=True)
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Control Rig</span><span style=\"color:#FFFFFF;\"> has been generated. Enjoy!</span>', pos='botLeft', fade=True, alpha=.9)
-    
-
+        
 
 def select_skinning_joints():
     ''' Selects joints that should be used during the skinning process '''
@@ -6400,7 +6906,7 @@ def import_proxy_pose():
                             if not cmds.objExists(obj) and proxy_exists:
                                 proxy_exists = False
                                 delete_proxy(True)
-                                validate_operation('create_proxy')
+                                validate_operation('create_proxy', debugging)
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
                     
                     if is_valid_file and is_valid_scene:
@@ -6819,7 +7325,6 @@ def extract_proxy_pose():
                 if string in jnt_key:
                     right_offset_rot_list.append(jnt_key)
 
-        print(no_rot_list)
         for jnt_key in gt_ab_joints_default:
             jnt = gt_ab_joints_default.get(jnt_key)
 
@@ -6863,7 +7368,6 @@ def extract_proxy_pose():
                 if jnt_key.replace('_' + jnt_suffix, '_proxy_crv') == proxy_key:
                     export_dict[proxy_key] = values_to_store
         
-    
         try: 
             with open(pose_file, 'w') as outfile:
                 json.dump(export_dict, outfile, indent=4)
@@ -6877,8 +7381,6 @@ def extract_proxy_pose():
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
-
- 
 # Build UI
 if __name__ == '__main__':
     build_gui_auto_biped_rig()
