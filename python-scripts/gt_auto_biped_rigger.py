@@ -47,11 +47,15 @@
  Added finger abduction/adduction control and updated the name of a few attributes
     
  1.4 - 2021-01-XX
+ Added check for geometry group (common name)
+ Updated "orient_to_target" function to enforce proxy direction properly
      Added auto breathing system
-     Add offset and transform controls to fingers
-     Add notes to the knee proxies (similar to elbows)
+     Added offset and transform controls to fingers
+     Added notes to the knee proxies (similar to elbows)
+ 
 
  To do:
+    Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
     Add option to colorize (or not) proxy and rig elements
@@ -86,7 +90,7 @@ import os
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.4"
+script_version = "1.4-beta"
 
 # General Vars
 grp_suffix = 'grp'
@@ -103,8 +107,8 @@ automation_ctrl_color = (.6,.2,1) # Purple
 
 # Debugging Vars
 debugging = False 
-debugging_auto_delete = True # Auto deletes proxy/rig before creating
-debugging_display_lra = False # Display LRA for all joints after generating
+debugging_auto_delete = False # Auto deletes proxy/rig before creating
+debugging_display_lra = True # Display LRA for all joints after generating
 debugging_undo = False # Executes "Undo" command before generating rig
 
 # Loaded Elements Dictionary
@@ -1172,6 +1176,8 @@ def validate_operation(operation, debugging=False):
             try:
                 if cmds.objExists('rig_grp'):
                     cmds.delete('rig_grp')
+                if cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
+                    cmds.delete(gt_ab_settings.get('main_proxy_grp'))
                 create_proxy(colorize_proxy=True)
             except:
                 pass
@@ -2400,7 +2406,7 @@ def create_controls():
         '''
         return old_name.replace(proxy_suffix, jnt_suffix).replace('end' + proxy_suffix.capitalize(), 'end' + jnt_suffix.capitalize())
     
-    def orient_to_target(obj, target, orient_offset=(0,0,0), proxy_obj=None, aim_vec=(1,0,0), up_vec=(0,-1,0)):
+    def orient_to_target(obj, target, orient_offset=(0,0,0), proxy_obj=None, aim_vec=(1,0,0), up_vec=(0,-1,0), brute_force=False):
         ''' 
         Orients an object based on a target object 
         
@@ -2411,18 +2417,34 @@ def create_controls():
                     proxy_obj (string): The name of the proxy element (used as extra rotation input)
                     aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint - default value: (1,0,0)
                     up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint - default value: (0,-1,0)
+                    brute_force (bool): Auto creates up and and dir points to determine orientation (Requires proxy object to work)
         '''
         if proxy_obj:
-            constraint = cmds.orientConstraint(proxy_obj, obj, offset=(0,0,0))
-            cmds.delete(constraint)
+            cmds.delete(cmds.orientConstraint(proxy_obj, obj, offset=(0,0,0)))
             cmds.makeIdentity(obj, apply=True, rotate=True)
+            
         cmds.setAttr(obj + '.rotateX', orient_offset[0])
         cmds.setAttr(obj + '.rotateY', orient_offset[1])
         cmds.setAttr(obj + '.rotateZ', orient_offset[2])
         cmds.makeIdentity(obj, apply=True, rotate=True)
-        constraint = cmds.aimConstraint(target, obj, offset=(0,0,0), aimVector=aim_vec, upVector=up_vec, worldUpType="vector", worldUpVector=(0,1,0), skip='x')
-        cmds.delete(constraint)
+        
+        cmds.delete(cmds.aimConstraint(target, obj, offset=(0,0,0), aimVector=aim_vec, upVector=up_vec, worldUpType="vector", worldUpVector=(0,1,0), skip='x'))
+        
+        if proxy_obj and brute_force:
+            temp_grp_up = cmds.group(name='temp_up_' + str(random.random()), world=True, empty=True )
+            #cmds.setAttr(temp_grp_up + ".displayLocalAxis", 1) # Show LRA Debugging
+            cmds.delete(cmds.parentConstraint(proxy_obj, temp_grp_up))
+            cmds.move(1, temp_grp_up, y=True, relative=True, objectSpace=True)
+            temp_grp_dir = cmds.group(name='temp_dir_' + str(random.random()), world=True, empty=True )
+            cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
+            #cmds.setAttr(temp_grp_dir + ".displayLocalAxis", 1) # Show LRA Debugging
+            cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
+            cmds.delete(cmds.aimConstraint(temp_grp_dir, obj, aimVector=(1,0,0), upVector=(0,1,0), worldUpType="object", worldUpObject=temp_grp_up, worldUpVector=(0,1,0)))
+            cmds.delete(temp_grp_up)
+            cmds.delete(temp_grp_dir)
+            
         cmds.makeIdentity(obj, apply=True, rotate=True)
+        
         
     def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
         ''' 
@@ -2531,47 +2553,46 @@ def create_controls():
     orient_to_target(gt_ab_joints.get('jaw_jnt'), gt_ab_joints.get('jaw_end_jnt'), (90, 0, 90))
     
     # Left Finger Orients
-    orient_to_target(gt_ab_joints.get('left_thumb01_jnt'), gt_ab_joints.get('left_thumb02_jnt'), (-90, 0, 90), gt_ab_settings.get('left_thumb01_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_thumb02_jnt'), gt_ab_joints.get('left_thumb03_jnt'), (-90, 0, 90), gt_ab_settings.get('left_thumb02_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_thumb03_jnt'), gt_ab_joints.get('left_thumb04_jnt'), (-90, 0, 90), gt_ab_settings.get('left_thumb03_proxy_crv'), up_vec=(0,1,0))
+    orient_to_target(gt_ab_joints.get('left_thumb01_jnt'), gt_ab_joints.get('left_thumb02_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_thumb02_jnt'), gt_ab_joints.get('left_thumb03_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_thumb03_jnt'), gt_ab_joints.get('left_thumb04_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_index01_jnt'), gt_ab_joints.get('left_index02_jnt'), (0, 0, 90), gt_ab_settings.get('left_index01_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_index02_jnt'), gt_ab_joints.get('left_index03_jnt'), (0, 0, 90), gt_ab_settings.get('left_index02_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_index03_jnt'), gt_ab_joints.get('left_index04_jnt'), (0, 0, 90), gt_ab_settings.get('left_index03_proxy_crv'), up_vec=(0,1,0))
+    orient_to_target(gt_ab_joints.get('left_index01_jnt'), gt_ab_joints.get('left_index02_jnt'), (0, 0, 90), gt_ab_settings.get('left_index01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_index02_jnt'), gt_ab_joints.get('left_index03_jnt'), (0, 0, 90), gt_ab_settings.get('left_index02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_index03_jnt'), gt_ab_joints.get('left_index04_jnt'), (0, 0, 90), gt_ab_settings.get('left_index03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_middle01_jnt'), gt_ab_joints.get('left_middle02_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle01_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_middle02_jnt'), gt_ab_joints.get('left_middle03_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle02_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_middle03_jnt'), gt_ab_joints.get('left_middle04_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle03_proxy_crv'), up_vec=(0,1,0))
+    orient_to_target(gt_ab_joints.get('left_middle01_jnt'), gt_ab_joints.get('left_middle02_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_middle02_jnt'), gt_ab_joints.get('left_middle03_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_middle03_jnt'), gt_ab_joints.get('left_middle04_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_ring01_jnt'), gt_ab_joints.get('left_ring02_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring01_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_ring02_jnt'), gt_ab_joints.get('left_ring03_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring02_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_ring03_jnt'), gt_ab_joints.get('left_ring04_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring03_proxy_crv'), up_vec=(0,1,0))
+    orient_to_target(gt_ab_joints.get('left_ring01_jnt'), gt_ab_joints.get('left_ring02_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_ring02_jnt'), gt_ab_joints.get('left_ring03_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_ring03_jnt'), gt_ab_joints.get('left_ring04_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_pinky01_jnt'), gt_ab_joints.get('left_pinky02_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky01_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_pinky02_jnt'), gt_ab_joints.get('left_pinky03_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky02_proxy_crv'), up_vec=(0,1,0))
-    orient_to_target(gt_ab_joints.get('left_pinky03_jnt'), gt_ab_joints.get('left_pinky04_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky03_proxy_crv'), up_vec=(0,1,0))
+    orient_to_target(gt_ab_joints.get('left_pinky01_jnt'), gt_ab_joints.get('left_pinky02_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_pinky02_jnt'), gt_ab_joints.get('left_pinky03_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_pinky03_jnt'), gt_ab_joints.get('left_pinky04_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
     # Right Finger Orients
-    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (90, 0, -90), gt_ab_settings.get('right_thumb03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb01_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb02_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb03_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
     
+    orient_to_target(gt_ab_joints.get('right_index01_jnt'), gt_ab_joints.get('right_index02_jnt'), (0, 180, 0), gt_ab_settings.get('right_index01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_index02_jnt'), gt_ab_joints.get('right_index03_jnt'), (0, 180, 0), gt_ab_settings.get('right_index02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_index03_jnt'), gt_ab_joints.get('right_index04_jnt'), (0, 180, 0), gt_ab_settings.get('right_index03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_index01_jnt'), gt_ab_joints.get('right_index02_jnt'), (0, 180, 0), gt_ab_settings.get('right_index01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_index02_jnt'), gt_ab_joints.get('right_index03_jnt'), (0, 180, 0), gt_ab_settings.get('right_index02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_index03_jnt'), gt_ab_joints.get('right_index04_jnt'), (0, 180, 0), gt_ab_settings.get('right_index03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_middle01_jnt'), gt_ab_joints.get('right_middle02_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_middle02_jnt'), gt_ab_joints.get('right_middle03_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_middle03_jnt'), gt_ab_joints.get('right_middle04_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_middle01_jnt'), gt_ab_joints.get('right_middle02_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_middle02_jnt'), gt_ab_joints.get('right_middle03_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_middle03_jnt'), gt_ab_joints.get('right_middle04_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_ring01_jnt'), gt_ab_joints.get('right_ring02_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_ring02_jnt'), gt_ab_joints.get('right_ring03_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_ring03_jnt'), gt_ab_joints.get('right_ring04_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_ring01_jnt'), gt_ab_joints.get('right_ring02_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_ring02_jnt'), gt_ab_joints.get('right_ring03_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_ring03_jnt'), gt_ab_joints.get('right_ring04_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    
-    orient_to_target(gt_ab_joints.get('right_pinky01_jnt'), gt_ab_joints.get('right_pinky02_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_pinky02_jnt'), gt_ab_joints.get('right_pinky03_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
-    orient_to_target(gt_ab_joints.get('right_pinky03_jnt'), gt_ab_joints.get('right_pinky04_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0))
+    orient_to_target(gt_ab_joints.get('right_pinky01_jnt'), gt_ab_joints.get('right_pinky02_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_pinky02_jnt'), gt_ab_joints.get('right_pinky03_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_pinky03_jnt'), gt_ab_joints.get('right_pinky04_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
 
     
     # Center Parenting
@@ -6098,7 +6119,10 @@ def create_controls():
     cmds.parent(right_forearm_grp, arms_automation_grp)
     
     # Top Groups Groups
-    geometry_grp = cmds.group(name='geometry_grp', empty=True, world=True)
+    if cmds.objExists('geometry_grp'):
+        geometry_grp = 'geometry_grp'
+    else:
+        geometry_grp = cmds.group(name='geometry_grp', empty=True, world=True)
     change_outliner_color(geometry_grp, (.3,1,.8))
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1,.45,.7))
