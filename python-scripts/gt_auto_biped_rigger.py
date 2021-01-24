@@ -12,7 +12,7 @@
  Added icons to buttons
  Added curves (lines) between proxies
  Changed and added a few notes
- Added manip default to all controls
+ Added manip default to all main controls
  Locked default channels for the main rig group
  Made rig setup elements visible after creation
  Updated stretchy system to avoid cycles or errors
@@ -46,11 +46,14 @@
  Fixed an issue where the right thumb wouldn't orient corrently
  Added finger abduction/adduction control and updated the name of a few attributes
     
- 1.4 - 2021-01-XX
+ 1.4 - 2021-01-23
  Added check for geometry group (common name)
  Updated "orient_to_target" function to enforce proxy direction properly
+ Added manip default to the foot roll controls
+ Fixed an issue where you wouldn't be able to import a JSON file for the beta versions
+ Added negative rotation to adduction for more flexibility
+ Added auto knuckle compression system (Translation Z Offset)
      Added auto breathing system
-     Added offset and transform controls to fingers
      Added notes to the knee proxies (similar to elbows)
  
 
@@ -85,6 +88,7 @@ import math
 import json
 import sys
 import os
+import re
 
 # Script Name
 script_name = "GT Auto Biped Rigger"
@@ -106,10 +110,9 @@ right_ctrl_color = (1, 0, 0) # Soft Blue
 automation_ctrl_color = (.6,.2,1) # Purple
 
 # Debugging Vars
-debugging = False 
+debugging = False # Activate Debugging Mode
 debugging_auto_delete = False # Auto deletes proxy/rig before creating
 debugging_display_lra = True # Display LRA for all joints after generating
-debugging_undo = False # Executes "Undo" command before generating rig
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -1182,12 +1185,6 @@ def validate_operation(operation, debugging=False):
             except:
                 pass
                 
-        if debugging and debugging_undo:
-            try:
-                cmds.undo()
-            except:
-                pass     
-
         # Validate Proxy
         if not cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
             is_valid = False
@@ -4808,23 +4805,24 @@ def create_controls():
             #cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True) 
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
             
-    
+            
     # Left Finger Abduction Automation
     left_fingers_minz_scale = 1
     left_fingers_maxz_scale = 5
-    left_fingers_min_abduction_rot = 0
+    left_fingers_min_abduction_rot = -60
     left_fingers_max_abduction_rot = 180
     
+    cmds.setAttr(left_fingers_ctrl + '.sz', 2)
     cmds.addAttr(left_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
     cmds.setAttr(left_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
     cmds.addAttr(left_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
     cmds.connectAttr(left_fingers_ctrl + '.arrowVisibility', left_fingers_abduction_ctrl[0] + '.v')
     cmds.setAttr(left_fingers_ctrl + '.arrowVisibility', 1)
-    
+        
     cmds.addAttr(left_fingers_ctrl , ln='abductionInfluence', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(left_fingers_ctrl + '.abductionInfluence', 1)
      
-    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_fingers_inverse_decomposeMatrix')
+    left_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'left_fingers_inverse_matrix')
     cmds.connectAttr(left_fingers_ctrl + '.inverseMatrix', left_fingers_decompose_matrix_node + '.inputMatrix')
     
     left_fingers_shape_offset_grp = cmds.group(name=left_fingers_ctrl.replace(ctrl_suffix, '') + 'shapeOffsetGrp', empty=True, world=True)
@@ -4834,7 +4832,7 @@ def create_controls():
     
     cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_shape_offset_grp + '.scale')
     
-    left_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'left_fingers_inverseRotation_multiply')
+    left_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'left_fingers_inverse_rot_multiply')
     cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputRotate', left_fingers_inverse_rot_multiply_node + '.input1')
     cmds.connectAttr(left_fingers_inverse_rot_multiply_node + '.output', left_fingers_shape_offset_grp + '.rotate')
         
@@ -4845,6 +4843,7 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimit', left_fingers_maxz_scale)
     cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
     cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
+    
 
     for obj in left_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
         finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
@@ -4884,6 +4883,7 @@ def create_controls():
             cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
             cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
             cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+
         elif 'middle' in finger_name:
             cmds.addAttr(left_fingers_ctrl , ln='rotMultiplierMiddle', at='double', k=True)
             cmds.setAttr(left_fingers_ctrl + '.rotMultiplierMiddle', -.3)
@@ -4935,6 +4935,60 @@ def create_controls():
             cmds.connectAttr(abduction_blend_node + '.output', obj[0][2] + '.ry')
             cmds.connectAttr(left_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
             cmds.setAttr(abduction_blend_node + ".input[0]", 0)
+    
+    
+    # Left Auto Knuckle Compression System (Translation Z Offset)
+    cmds.addAttr(left_fingers_ctrl , ln='knucklesAutomation', at='enum', k=True, en="-------------:")
+    cmds.setAttr(left_fingers_ctrl + '.knucklesAutomation', lock=True)
+    cmds.addAttr(left_fingers_ctrl , ln='autoCompression', at='double', k=True, maxValue=1, minValue=0)
+    cmds.setAttr(left_fingers_ctrl + '.autoCompression', 1)
+    cmds.addAttr(left_fingers_ctrl , ln='compressionAmount', at='double', k=True, minValue=0)
+    cmds.setAttr(left_fingers_ctrl + '.compressionAmount', 1)
+    
+    left_knuckle_blend_node = cmds.createNode('blendTwoAttr', name='left_knuckle_compression_blend') 
+    left_knuckle_reverse_node = cmds.createNode('reverse', name='left_knuckle_compression_reverse') 
+    cmds.connectAttr(left_fingers_ctrl + '.autoCompression', left_knuckle_blend_node + '.attributesBlender')
+    cmds.setAttr(left_knuckle_blend_node + '.input[0]', 0)
+    left_compression_range_node = cmds.createNode('setRange', name=finger_name + 'compression_range')
+    cmds.connectAttr(left_fingers_ctrl + '.rz', left_knuckle_reverse_node + '.inputZ', f=True)
+    cmds.connectAttr(left_knuckle_reverse_node + '.outputZ', left_compression_range_node + '.valueZ', f=True)
+    cmds.connectAttr(left_compression_range_node + '.outValueZ', left_knuckle_blend_node + '.input[1]', f=True)
+    cmds.setAttr(left_compression_range_node + '.oldMaxZ', 180)
+    cmds.connectAttr(left_fingers_ctrl + '.compressionAmount', left_compression_range_node + '.maxZ', f=True)
+    
+    for obj in left_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
+        finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
+        
+        if 'index' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='transMultiplierIndex', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.transMultiplierIndex', -1.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(left_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(left_fingers_ctrl + '.transMultiplierIndex', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'middle' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='transMultiplierMiddle', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.transMultiplierMiddle', -.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(left_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(left_fingers_ctrl + '.transMultiplierMiddle', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'ring' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='transMultiplierRing', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.transMultiplierRing', .5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(left_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(left_fingers_ctrl + '.transMultiplierRing', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'pinky' in finger_name:
+            cmds.addAttr(left_fingers_ctrl , ln='transMultiplierPinky', at='double', k=True)
+            cmds.setAttr(left_fingers_ctrl + '.transMultiplierPinky', 1.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(left_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(left_fingers_ctrl + '.transMultiplierPinky', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+
+    
     
     
     ################# Right FK Controls #################
@@ -5048,9 +5102,10 @@ def create_controls():
     # Right Finger Abduction Automation
     right_fingers_minz_scale = 1
     right_fingers_maxz_scale = 5
-    right_fingers_min_abduction_rot = 0
+    right_fingers_min_abduction_rot = -60
     right_fingers_max_abduction_rot = 180
     
+    cmds.setAttr(right_fingers_ctrl + '.sz', 2)
     cmds.addAttr(right_fingers_ctrl , ln='fingersAbduction', at='enum', k=True, en="-------------:")
     cmds.setAttr(right_fingers_ctrl + '.fingersAbduction', lock=True) #Adduction
     cmds.addAttr(right_fingers_ctrl , ln='arrowVisibility', at='bool', k=True)
@@ -5060,7 +5115,7 @@ def create_controls():
     cmds.addAttr(right_fingers_ctrl , ln='abductionInfluence', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(right_fingers_ctrl + '.abductionInfluence', 1)
      
-    right_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'right_fingers_inverse_decomposeMatrix')
+    right_fingers_decompose_matrix_node = cmds.createNode('decomposeMatrix', name= 'right_fingers_inverse_matrix')
     cmds.connectAttr(right_fingers_ctrl + '.inverseMatrix', right_fingers_decompose_matrix_node + '.inputMatrix')
     
     right_fingers_shape_offset_grp = cmds.group(name=right_fingers_ctrl.replace(ctrl_suffix, '') + 'shapeOffsetGrp', empty=True, world=True)
@@ -5070,7 +5125,7 @@ def create_controls():
     
     cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputScale', right_fingers_shape_offset_grp + '.scale')
     
-    right_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'right_fingers_inverseRotation_multiply')
+    right_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'right_fingers_inverse_rot_multiply')
     cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputRotate', right_fingers_inverse_rot_multiply_node + '.input1')
     cmds.connectAttr(right_fingers_inverse_rot_multiply_node + '.output', right_fingers_shape_offset_grp + '.rotate')
         
@@ -5197,7 +5252,57 @@ def create_controls():
             cmds.connectAttr(right_fingers_ctrl + '.abductionInfluence', abduction_blend_node + '.attributesBlender')
             cmds.setAttr(abduction_blend_node + ".input[0]", 0)
             
-
+    # Right Auto Knuckle Compression System (Translation Z Offset)
+    cmds.addAttr(right_fingers_ctrl , ln='knucklesAutomation', at='enum', k=True, en="-------------:")
+    cmds.setAttr(right_fingers_ctrl + '.knucklesAutomation', lock=True)
+    cmds.addAttr(right_fingers_ctrl , ln='autoCompression', at='double', k=True, maxValue=1, minValue=0)
+    cmds.setAttr(right_fingers_ctrl + '.autoCompression', 1)
+    cmds.addAttr(right_fingers_ctrl , ln='compressionAmount', at='double', k=True, minValue=0)
+    cmds.setAttr(right_fingers_ctrl + '.compressionAmount', 1)
+    
+    right_knuckle_blend_node = cmds.createNode('blendTwoAttr', name='right_knuckle_compression_blend') 
+    right_knuckle_reverse_node = cmds.createNode('reverse', name='right_knuckle_compression_reverse') 
+    cmds.connectAttr(right_fingers_ctrl + '.autoCompression', right_knuckle_blend_node + '.attributesBlender')
+    cmds.setAttr(right_knuckle_blend_node + '.input[0]', 0)
+    right_compression_range_node = cmds.createNode('setRange', name=finger_name + 'compression_range')
+    cmds.connectAttr(right_fingers_ctrl + '.rz', right_knuckle_reverse_node + '.inputZ', f=True)
+    cmds.connectAttr(right_knuckle_reverse_node + '.outputZ', right_compression_range_node + '.valueZ', f=True)
+    cmds.connectAttr(right_compression_range_node + '.outValueZ', right_knuckle_blend_node + '.input[1]', f=True)
+    cmds.setAttr(right_compression_range_node + '.oldMaxZ', 180)
+    cmds.connectAttr(right_fingers_ctrl + '.compressionAmount', right_compression_range_node + '.maxZ', f=True)
+    
+    for obj in right_fingers_list: # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
+        finger_name = remove_numbers(obj[0][0].replace(ctrl_suffix, ''))
+        
+        if 'index' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='transMultiplierIndex', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.transMultiplierIndex', 1.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(right_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(right_fingers_ctrl + '.transMultiplierIndex', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'middle' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='transMultiplierMiddle', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.transMultiplierMiddle', .5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(right_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(right_fingers_ctrl + '.transMultiplierMiddle', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'ring' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='transMultiplierRing', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.transMultiplierRing', -.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(right_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(right_fingers_ctrl + '.transMultiplierRing', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+        elif 'pinky' in finger_name:
+            cmds.addAttr(right_fingers_ctrl , ln='transMultiplierPinky', at='double', k=True)
+            cmds.setAttr(right_fingers_ctrl + '.transMultiplierPinky', -1.5)
+            knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            cmds.connectAttr(right_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
+            cmds.connectAttr(right_fingers_ctrl + '.transMultiplierPinky', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
+ 
 
     ################# IK Controls #################
     rig_setup_grp = cmds.group(name='rig_setup_' + grp_suffix, empty=True, world=True)
@@ -5742,7 +5847,7 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.maxRotZLimitEnable', 1)
     cmds.setAttr(left_fingers_ctrl + '.minRotZLimitEnable', 1)
        
-    left_rot_reverse_node = cmds.createNode('reverse', name='left_fingers_rotateShape_reverse')
+    left_rot_reverse_node = cmds.createNode('reverse', name='left_fingers_rotate_shape_reverse')
     cmds.connectAttr(left_fingers_ctrl + '.rotateShape', left_rot_reverse_node + '.inputX')
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2X')
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Y')
@@ -5949,7 +6054,7 @@ def create_controls():
     cmds.setAttr(right_fingers_ctrl + '.maxRotZLimitEnable', 1)
     cmds.setAttr(right_fingers_ctrl + '.minRotZLimitEnable', 1)
     
-    right_rot_reverse_node = cmds.createNode('reverse', name='right_fingers_rotateShape_reverse')
+    right_rot_reverse_node = cmds.createNode('reverse', name='right_fingers_rotate_shape_reverse')
     cmds.connectAttr(right_fingers_ctrl + '.rotateShape', right_rot_reverse_node + '.inputX')
     cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2X')
     cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2Y')
@@ -6510,6 +6615,10 @@ def create_controls():
     cmds.setAttr(left_wrist_ik_ctrl + '.showManipDefault', 6) # Smart
     cmds.setAttr(left_elbow_ik_ctrl + '.showManipDefault', 1) # Translate
     cmds.setAttr(left_fingers_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_toe_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_ball_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_heel_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(left_toe_up_down_ctrl + '.showManipDefault', 1) # Translate
     for finger in left_fingers_list:
         for ctrl_tuple in finger:
             for ctrl in ctrl_tuple:
@@ -6529,6 +6638,10 @@ def create_controls():
     cmds.setAttr(right_wrist_ik_ctrl + '.showManipDefault', 6) # Smart
     cmds.setAttr(right_elbow_ik_ctrl + '.showManipDefault', 1) # Translate
     cmds.setAttr(right_fingers_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_toe_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_ball_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_heel_roll_ctrl + '.showManipDefault', 2) # Rotate
+    cmds.setAttr(right_toe_up_down_ctrl + '.showManipDefault', 1) # Translate
     for ctrl in right_fingers_list:
         for ctrl_tuple in finger:
             for ctrl in ctrl_tuple:
@@ -6903,8 +7016,8 @@ def import_proxy_pose():
                     if not data.get('gt_auto_biped_version'):
                         is_valid_file = False
                         cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
-                    else:
-                        import_version = float(data.get('gt_auto_biped_version'))
+                    else:                       
+                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_auto_biped_version'))))
                         
                     if data.get('gt_auto_biped_export_method'):
                       import_method = data.get('gt_auto_biped_export_method')
