@@ -46,7 +46,7 @@
  Fixed an issue where the right thumb wouldn't orient corrently
  Added finger abduction/adduction control and updated the name of a few attributes
     
- 1.4 - 2021-01-XX
+ 1.4 - 2021-01-23
  Added check for geometry group (common name)
  Updated "orient_to_target" function to enforce proxy direction properly
  Added manip default to the foot roll controls
@@ -54,6 +54,8 @@
  Added negative rotation to adduction for more flexibility
  Added auto knuckle compression system (Translation Z Offset)
  Changed the data transfer type of the wrists from parentConstraint to raw to prevent flipping
+ Created sin function without expressions
+ Created a trigonometry sine function that doesn't use third-party plugins or expressions
      Added auto breathing system
      Added notes to the knee proxies (similar to elbows)
  
@@ -856,6 +858,60 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
+def create_sine_attribute(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_used_inputs=True):
+    ''' 
+    Create Sine function without using third-party plugins or expressions
+    
+            Parameters:
+                obj (string): Name of the object
+                sine (string): Prefix given to the name of the attributes (default is "sine")
+                tick_source_attr (string): Name of the attribute used as the source for time. It uses the default "time1" node if nothing else is specified
+                hide_used_inputs (bool): Hides the tick and output attributes as they already have an input connection
+
+            Returns:
+                sine_output_attr (string): A string with the name of the object and the name of the sine output attribute. E.g. "pSphere1.sineOutput"
+    '''
+    required_plugin = 'quatNodes'
+    if not cmds.pluginInfo(required_plugin, q=True, loaded=True):
+        cmds.loadPlugin(required_plugin, qt=False)
+        
+    mdl_node = cmds.createNode('multDoubleLinear', name=obj + '_multDoubleLiner')
+    quat_node = cmds.createNode('eulerToQuat', name=obj + '_eulerToQuat')
+    multiply_node = cmds.createNode('multiplyDivide', name=obj + '_amplitude_multiply')
+    sum_node = cmds.createNode('plusMinusAverage', name=obj + '_offset_sum')
+    
+    amplitude_attr = sine_prefix + 'Amplitude'
+    frequency_attr = sine_prefix + 'Frequency'
+    offset_attr = sine_prefix + 'Offset'
+    output_attr = sine_prefix + 'Output'
+    tick_attr = sine_prefix + 'Tick'
+    
+    cmds.addAttr(obj, ln=amplitude_attr, at='double', k=True)
+    cmds.addAttr(obj, ln=frequency_attr, at='double', k=True)
+    cmds.addAttr(obj, ln=offset_attr, at='double', k=True)
+    cmds.addAttr(obj, ln=tick_attr, at='double', k=True)
+    cmds.addAttr(obj, ln=output_attr, at='double', k=True)
+    
+    cmds.setAttr(obj + '.' + amplitude_attr, 1)
+    cmds.setAttr(obj + '.' + frequency_attr, 10)
+    
+    if hide_used_inputs:
+        cmds.setAttr(obj + '.' + tick_attr, k=False)
+        cmds.setAttr(obj + '.' + output_attr, k=False)
+    
+    cmds.connectAttr(tick_source_attr, obj + '.' + tick_attr)
+
+    cmds.connectAttr(obj + '.' + amplitude_attr, multiply_node + '.input2X')
+    cmds.connectAttr(obj + '.' + frequency_attr, mdl_node + '.input1')
+    cmds.connectAttr(obj + '.' + tick_attr, mdl_node + '.input2')
+    cmds.connectAttr(obj + '.' + offset_attr, sum_node + '.input1D[0]')
+    cmds.connectAttr(mdl_node + '.output', quat_node + '.inputRotateX')
+    
+    cmds.connectAttr(quat_node + '.outputQuatX', multiply_node + '.input1X')
+    cmds.connectAttr(multiply_node + '.outputX', sum_node + '.input1D[1]')
+    cmds.connectAttr(sum_node + '.output1D', obj + '.' + output_attr)
+    
+    return (obj + '.' + output_attr)
 
 
 def create_visualization_line(object_a, object_b):
@@ -4833,7 +4889,7 @@ def create_controls():
     
     cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputScale', left_fingers_shape_offset_grp + '.scale')
     
-    left_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'left_fingers_inverse_rot_multiply')
+    left_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'left_fingers_inverseRot_multiply')
     cmds.connectAttr(left_fingers_decompose_matrix_node + '.outputRotate', left_fingers_inverse_rot_multiply_node + '.input1')
     cmds.connectAttr(left_fingers_inverse_rot_multiply_node + '.output', left_fingers_shape_offset_grp + '.rotate')
         
@@ -5126,7 +5182,7 @@ def create_controls():
     
     cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputScale', right_fingers_shape_offset_grp + '.scale')
     
-    right_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'right_fingers_inverse_rot_multiply')
+    right_fingers_inverse_rot_multiply_node = cmds.createNode('multiplyDivide', name= 'right_fingers_inverseRot_multiply')
     cmds.connectAttr(right_fingers_decompose_matrix_node + '.outputRotate', right_fingers_inverse_rot_multiply_node + '.input1')
     cmds.connectAttr(right_fingers_inverse_rot_multiply_node + '.output', right_fingers_shape_offset_grp + '.rotate')
         
@@ -5855,7 +5911,7 @@ def create_controls():
     cmds.setAttr(left_fingers_ctrl + '.maxRotZLimitEnable', 1)
     cmds.setAttr(left_fingers_ctrl + '.minRotZLimitEnable', 1)
        
-    left_rot_reverse_node = cmds.createNode('reverse', name='left_fingers_rotate_shape_reverse')
+    left_rot_reverse_node = cmds.createNode('reverse', name='left_fingers_rotateShape_reverse')
     cmds.connectAttr(left_fingers_ctrl + '.rotateShape', left_rot_reverse_node + '.inputX')
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2X')
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Y')
@@ -6067,7 +6123,7 @@ def create_controls():
     cmds.setAttr(right_fingers_ctrl + '.maxRotZLimitEnable', 1)
     cmds.setAttr(right_fingers_ctrl + '.minRotZLimitEnable', 1)
     
-    right_rot_reverse_node = cmds.createNode('reverse', name='right_fingers_rotate_shape_reverse')
+    right_rot_reverse_node = cmds.createNode('reverse', name='right_fingers_rotateShape_reverse')
     cmds.connectAttr(right_fingers_ctrl + '.rotateShape', right_rot_reverse_node + '.inputX')
     cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2X')
     cmds.connectAttr(right_rot_reverse_node + '.outputX', right_fingers_inverse_rot_multiply_node + '.input2Y')
