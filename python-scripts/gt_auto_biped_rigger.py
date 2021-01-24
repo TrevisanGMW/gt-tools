@@ -46,13 +46,14 @@
  Fixed an issue where the right thumb wouldn't orient corrently
  Added finger abduction/adduction control and updated the name of a few attributes
     
- 1.4 - 2021-01-23
+ 1.4 - 2021-01-XX
  Added check for geometry group (common name)
  Updated "orient_to_target" function to enforce proxy direction properly
  Added manip default to the foot roll controls
  Fixed an issue where you wouldn't be able to import a JSON file for the beta versions
  Added negative rotation to adduction for more flexibility
  Added auto knuckle compression system (Translation Z Offset)
+ Changed the data transfer type of the wrists from parentConstraint to raw to prevent flipping
      Added auto breathing system
      Added notes to the knee proxies (similar to elbows)
  
@@ -5758,7 +5759,7 @@ def create_controls():
     left_clavicle_constraint = cmds.parentConstraint(left_clavicle_ctrl, gt_ab_joints.get('left_clavicle_jnt'))
     left_shoulder_constraint = cmds.parentConstraint([left_shoulder_fk_jnt, left_shoulder_ik_jnt], gt_ab_joints.get('left_shoulder_jnt'))
     left_elbow_constraint = cmds.parentConstraint([left_elbow_fk_jnt, left_elbow_ik_jnt], gt_ab_joints.get('left_elbow_jnt'))
-    left_wrist_constraint = cmds.parentConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'))
+    left_wrist_constraint = cmds.pointConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'))
     left_switch_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl], left_arm_switch_grp, mo=True)
     left_hand_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl], left_hand_grp, mo=True)
     
@@ -5780,11 +5781,18 @@ def create_controls():
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_switch_constraint[0] + '.w0', f=True)
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_hand_constraint[0] + '.w0', f=True)
     
+    # Left Transfer Raw Rotate
+    left_wrist_rotate_blend = cmds.createNode('blendColors', name='left_wrist_rotate_blend')
+    cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_wrist_rotate_blend + '.blender', f=True)
+    cmds.connectAttr(left_wrist_fk_jnt + '.rotate', left_wrist_rotate_blend + '.color2', f=True)
+    cmds.connectAttr(left_wrist_ik_jnt + '.rotate', left_wrist_rotate_blend + '.color1', f=True)
+    cmds.connectAttr(left_wrist_rotate_blend + '.output', gt_ab_joints.get('left_wrist_jnt') + '.rotate', f=True)
     
-    # Foot Automation Visibility
+    
+    # Arm Automation Visibility
     cmds.connectAttr(left_arm_switch + '.ctrlVisibility', left_fingers_ctrl_grp + '.v', f=True)
 
-    # IK Knee Automation
+    # IK Wrist Automation
     left_wrist_ctrl_constraint = cmds.parentConstraint(left_wrist_ik_ctrl, left_elbow_ik_ctrl_grp, mo=True)
     cmds.addAttr(left_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_elbow_ik_ctrl + '.elbowAutomation', lock=True)
@@ -5963,7 +5971,7 @@ def create_controls():
     right_clavicle_constraint = cmds.parentConstraint(right_clavicle_ctrl, gt_ab_joints.get('right_clavicle_jnt'))
     right_shoulder_constraint = cmds.parentConstraint([right_shoulder_fk_jnt, right_shoulder_ik_jnt], gt_ab_joints.get('right_shoulder_jnt'))
     right_elbow_constraint = cmds.parentConstraint([right_elbow_fk_jnt, right_elbow_ik_jnt], gt_ab_joints.get('right_elbow_jnt'))
-    right_wrist_constraint = cmds.parentConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'))
+    right_wrist_constraint = cmds.pointConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'))
     right_switch_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl], right_arm_switch_grp, mo=True)
     right_hand_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl], right_hand_grp, mo=True)
     
@@ -5985,12 +5993,17 @@ def create_controls():
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_switch_constraint[0] + '.w0', f=True)
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_hand_constraint[0] + '.w0', f=True)
     
+    # Right Transfer Raw Rotate
+    right_wrist_rotate_blend = cmds.createNode('blendColors', name='right_wrist_rotate_blend')
+    cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_wrist_rotate_blend + '.blender', f=True)
+    cmds.connectAttr(right_wrist_fk_jnt + '.rotate', right_wrist_rotate_blend + '.color2', f=True)
+    cmds.connectAttr(right_wrist_ik_jnt + '.rotate', right_wrist_rotate_blend + '.color1', f=True)
+    cmds.connectAttr(right_wrist_rotate_blend + '.output', gt_ab_joints.get('right_wrist_jnt') + '.rotate', f=True)
     
-    # Foot Automation Visibility
+    # Arm Automation Visibility
     cmds.connectAttr(right_arm_switch + '.ctrlVisibility', right_fingers_ctrl_grp + '.v', f=True)
 
-    
-    # IK Knee Automation
+    # IK Wrist Automation
     right_wrist_ctrl_constraint = cmds.parentConstraint(right_wrist_ik_ctrl, right_elbow_ik_ctrl_grp, mo=True)
     cmds.addAttr(right_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_elbow_ik_ctrl + '.elbowAutomation', lock=True)
