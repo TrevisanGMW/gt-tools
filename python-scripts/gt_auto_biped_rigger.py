@@ -56,6 +56,7 @@
  Changed the data transfer type of the wrists from parentConstraint to raw to prevent flipping
  Created sin function without expressions
  Created a trigonometry sine function that doesn't use third-party plugins or expressions
+ Added debugging option to auto import proxy templates and auto bind geometry
      Added auto breathing system
      Added notes to the knee proxies (similar to elbows)
  
@@ -114,8 +115,12 @@ automation_ctrl_color = (.6,.2,1) # Purple
 
 # Debugging Vars
 debugging = False # Activate Debugging Mode
-debugging_auto_delete = False # Auto deletes proxy/rig before creating
+debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_display_lra = True # Display LRA for all joints after generating
+debugging_import_proxy = True # Auto Imports Proxy
+debugging_import_path = '' # Path to auto import
+debugging_bind_rig = True # Auto Binds Rig
+debugging_bind_geo = '' # Name of the geo to bind
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -858,7 +863,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
-def create_sine_attribute(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_used_inputs=True):
+def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_used_inputs=True, add_absolute_output=False, nice_name_prefix=True):
     ''' 
     Create Sine function without using third-party plugins or expressions
     
@@ -867,30 +872,59 @@ def create_sine_attribute(obj, sine_prefix='sine', tick_source_attr='time1.outTi
                 sine (string): Prefix given to the name of the attributes (default is "sine")
                 tick_source_attr (string): Name of the attribute used as the source for time. It uses the default "time1" node if nothing else is specified
                 hide_used_inputs (bool): Hides the tick and output attributes as they already have an input connection
+                add_absolute_output (bool): Also creates an output version that gives only positive numbers much like the abs() expression
 
             Returns:
                 sine_output_attr (string): A string with the name of the object and the name of the sine output attribute. E.g. "pSphere1.sineOutput"
     '''
+    # Load Required Plugins
     required_plugin = 'quatNodes'
     if not cmds.pluginInfo(required_plugin, q=True, loaded=True):
         cmds.loadPlugin(required_plugin, qt=False)
-        
+  
+    # Set Variables
+    influence_suffix = 'TimeInfluence'
+    amplitude_suffix = 'Amplitude'
+    frequency_suffix = 'Frequency'
+    offset_suffix = 'Offset'
+    output_suffix = 'Output'
+    tick_suffix = 'Tick'
+    abs_suffix = 'AbsOutput'
+    
+    influence_attr = sine_prefix + influence_suffix
+    amplitude_attr = sine_prefix + amplitude_suffix
+    frequency_attr = sine_prefix + frequency_suffix
+    offset_attr = sine_prefix + offset_suffix
+    output_attr = sine_prefix + output_suffix
+    tick_attr = sine_prefix + tick_suffix
+    abs_attr = sine_prefix + abs_suffix
+    
+    # Create Nodes
     mdl_node = cmds.createNode('multDoubleLinear', name=obj + '_multDoubleLiner')
     quat_node = cmds.createNode('eulerToQuat', name=obj + '_eulerToQuat')
     multiply_node = cmds.createNode('multiplyDivide', name=obj + '_amplitude_multiply')
     sum_node = cmds.createNode('plusMinusAverage', name=obj + '_offset_sum')
+    influence_multiply_node = cmds.createNode('multiplyDivide', name=obj + '_influence_multiply')
     
-    amplitude_attr = sine_prefix + 'Amplitude'
-    frequency_attr = sine_prefix + 'Frequency'
-    offset_attr = sine_prefix + 'Offset'
-    output_attr = sine_prefix + 'Output'
-    tick_attr = sine_prefix + 'Tick'
-    
-    cmds.addAttr(obj, ln=amplitude_attr, at='double', k=True)
-    cmds.addAttr(obj, ln=frequency_attr, at='double', k=True)
-    cmds.addAttr(obj, ln=offset_attr, at='double', k=True)
-    cmds.addAttr(obj, ln=tick_attr, at='double', k=True)
-    cmds.addAttr(obj, ln=output_attr, at='double', k=True)
+    # Add Attributes
+    if nice_name_prefix:
+        cmds.addAttr(obj, ln=influence_attr, at='double', k=True, maxValue=1, minValue=0)
+        cmds.addAttr(obj, ln=amplitude_attr, at='double', k=True)
+        cmds.addAttr(obj, ln=frequency_attr, at='double', k=True)
+        cmds.addAttr(obj, ln=offset_attr, at='double', k=True)
+        cmds.addAttr(obj, ln=tick_attr, at='double', k=True)
+        cmds.addAttr(obj, ln=output_attr, at='double', k=True)
+        if add_absolute_output:
+            cmds.addAttr(obj, ln=abs_attr, at='double', k=True)
+    else:
+        cmds.addAttr(obj, ln=influence_attr, at='double', k=True, maxValue=1, minValue=0, nn=re.sub(r'(\w)([A-Z])', r'\1 \2', influence_suffix))
+        cmds.addAttr(obj, ln=amplitude_attr, at='double', k=True, nn=amplitude_suffix)
+        cmds.addAttr(obj, ln=frequency_attr, at='double', k=True, nn=frequency_suffix)
+        cmds.addAttr(obj, ln=offset_attr, at='double', k=True, nn=offset_suffix)
+        cmds.addAttr(obj, ln=tick_attr, at='double', k=True, nn=tick_suffix)
+        cmds.addAttr(obj, ln=output_attr, at='double', k=True, nn=output_suffix)
+        if add_absolute_output:
+            cmds.addAttr(obj, ln=abs_attr, at='double', k=True, nn=re.sub(r'(\w)([A-Z])', r'\1 \2', abs_suffix))
     
     cmds.setAttr(obj + '.' + amplitude_attr, 1)
     cmds.setAttr(obj + '.' + frequency_attr, 10)
@@ -899,7 +933,9 @@ def create_sine_attribute(obj, sine_prefix='sine', tick_source_attr='time1.outTi
         cmds.setAttr(obj + '.' + tick_attr, k=False)
         cmds.setAttr(obj + '.' + output_attr, k=False)
     
-    cmds.connectAttr(tick_source_attr, obj + '.' + tick_attr)
+    cmds.connectAttr(tick_source_attr, influence_multiply_node + '.input1X')
+    cmds.connectAttr(influence_multiply_node + '.outputX', obj + '.' + tick_attr)
+    cmds.connectAttr(obj + '.' + influence_attr, influence_multiply_node + '.input2X')
 
     cmds.connectAttr(obj + '.' + amplitude_attr, multiply_node + '.input2X')
     cmds.connectAttr(obj + '.' + frequency_attr, mdl_node + '.input1')
@@ -910,6 +946,17 @@ def create_sine_attribute(obj, sine_prefix='sine', tick_source_attr='time1.outTi
     cmds.connectAttr(quat_node + '.outputQuatX', multiply_node + '.input1X')
     cmds.connectAttr(multiply_node + '.outputX', sum_node + '.input1D[1]')
     cmds.connectAttr(sum_node + '.output1D', obj + '.' + output_attr)
+    
+    if add_absolute_output: # abs()
+        squared_node = cmds.createNode('multiplyDivide', name=obj + '_abs_squared')
+        reverse_squared_node = cmds.createNode('multiplyDivide', name=obj + '_reverseAbs_multiply')
+        cmds.setAttr(squared_node + '.operation', 3) # Power
+        cmds.setAttr(reverse_squared_node + '.operation', 3) # Power
+        cmds.setAttr(squared_node + '.input2X', 2) 
+        cmds.setAttr(reverse_squared_node + '.input2X', .5) 
+        cmds.connectAttr(obj + '.' + output_attr, squared_node + '.input1X')
+        cmds.connectAttr(squared_node + '.outputX', reverse_squared_node + '.input1X')
+        cmds.connectAttr(reverse_squared_node + '.outputX', obj + '.' + abs_attr)
     
     return (obj + '.' + output_attr)
 
@@ -1193,7 +1240,7 @@ def validate_operation(operation, debugging=False):
     is_valid = True
     if operation == 'create_proxy':
         # Debugging (Auto deletes generated proxy)
-        if debugging and debugging_auto_delete:
+        if debugging and debugging_auto_recreate:
             try:
                 cmds.delete(gt_ab_settings_default.get('main_proxy_grp'))
             except:
@@ -1230,15 +1277,22 @@ def validate_operation(operation, debugging=False):
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=function_name)
                 
+        # Debugging (Auto imports proxy)
+        if debugging and debugging_import_proxy and os.path.exists(debugging_import_path):
+            import_proxy_pose(debugging=True, debugging_path=debugging_import_path)
+                
     elif operation == 'create_controls':
         # Debugging (Auto deletes generated rig)
-        if debugging and debugging_auto_delete:
+        if debugging and debugging_auto_recreate:
             try:
                 if cmds.objExists('rig_grp'):
                     cmds.delete('rig_grp')
                 if cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
                     cmds.delete(gt_ab_settings.get('main_proxy_grp'))
                 create_proxy(colorize_proxy=True)
+                # Debugging (Auto imports proxy)
+                if debugging_import_proxy and os.path.exists(debugging_import_path):
+                    import_proxy_pose(debugging=True, debugging_path=debugging_import_path)   
             except:
                 pass
                 
@@ -1267,6 +1321,7 @@ def validate_operation(operation, debugging=False):
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=function_name)
             
+            # Debugging (Shows LRA for All Joints)
             if debugging and debugging_display_lra:
                 try:
                     all_jnts = cmds.ls(type='joint')
@@ -1274,6 +1329,13 @@ def validate_operation(operation, debugging=False):
                          cmds.setAttr(jnt + ".displayLocalAxis", 1)
                 except:
                     pass
+            # Debugging (Auto binds joints to provided geo)
+            if debugging_bind_rig and cmds.objExists(debugging_bind_geo):
+                cmds.select(d=True)
+                select_skinning_joints()
+                selection = cmds.ls(selection=True)
+                cmds.skinCluster( selection, debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68, toSelectedBones=True, smoothWeights=0.5, maximumInfluences=5)
+                cmds.select(d=True)
             
 
 def create_proxy(colorize_proxy=True):
@@ -6509,6 +6571,14 @@ def create_controls():
     cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_ball_scale_blend + '.blender')
     
 
+    # @@@
+    # cmds.addAttr(main_ctrl, ln="autoBreathingSystem", at="enum", en="-------------:", keyable=True)
+    # cmds.setAttr(main_ctrl + '.autoBreathingSystem', e=True, lock=True)
+    # #cmds.addAttr(attribute_holder , ln='stretch', at='double', k=True, minValue=0, maxValue=1)
+    # sine_output = add_sine_attributes(main_ctrl, sine_prefix='breathing', hide_used_inputs=False, add_absolute_output=True, nice_name_prefix=False)
+    # print(sine_output)
+
+
     ################# Bulletproof Controls #################
     lock_hide_default_attr(cog_ctrl, translate=False, rotate=False, scale=False)
     lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False, scale=False)
@@ -7015,7 +7085,7 @@ def export_proxy_pose():
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
-def import_proxy_pose():
+def import_proxy_pose(debugging=False, debugging_path=''):
     ''' 
     Imports a JSON file containing the translate, rotate and scale data for every proxy curve (exported using the "export_proxy_pose" function)
     Uses the imported data to set the translate, rotate and scale position of every proxy curve
@@ -7024,6 +7094,10 @@ def import_proxy_pose():
     
     It now checks import method to use the proper method when setting attributes.
     Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
+    
+            Parameters:
+                debugging (bool): If debugging, the function will attempt to auto load the file provided in the "debugging_path" parameter
+                debugging_path (string): Debugging path for the import function
     
     ''' 
     def set_unlocked_os_attr(target, attr, value):
@@ -7055,10 +7129,8 @@ def import_proxy_pose():
         try:
             if attr == 'translate':
                 cmds.xform(target, ws=True, t=value_tuple)
-                #cmds.move(value_tuple[0], value_tuple[1], value_tuple[2], target, worldSpace=True, pcp=True)
             if attr == 'rotate':
                 cmds.xform(target, ws=True, ro=value_tuple)
-                #cmds.rotate(value_tuple[0], value_tuple[1], value_tuple[2], target, worldSpace=True, pcp=True)
             if attr == 'scale':
                 cmds.xform(target, ws=True, s=value_tuple)
         except:
@@ -7067,7 +7139,10 @@ def import_proxy_pose():
     import_version = 0.0
     import_method = 'object-space'
     
-    file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+    if not debugging:
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+    else:
+        file_name = [debugging_path]
     
     if len(file_name) > 0:
         pose_file = file_name[0]
