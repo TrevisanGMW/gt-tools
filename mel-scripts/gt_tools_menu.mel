@@ -125,7 +125,7 @@
 //	 Updated icons for "GTU Uniform LRA Toggle" and "GTU Uniform Label Toggle" to avoid MacOS and Linux compatilibity issues.
 //
 //   1.6.7
-//	 Just changed the version
+//	 Added Add Sine Attributes
 //
 //----------------------------------------------------------------------------
 
@@ -290,7 +290,7 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"import gt_auto_biped_rigger\\nreload(gt_auto_biped_rigger)\\ngt_auto_biped_rigger.build_gui_auto_biped_rig()\");") 
     -ann ("Automated solution for creating a biped rig.") 
     -image "kinReroot.png" ;
- 
+    
     menuItem 
     -l ("Connect Attributes") 
     -c ("python(\"import gt_connect_attributes\\nreload(gt_connect_attributes)\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
@@ -326,6 +326,12 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"import gt_make_ik_stretchy\\nreload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
     -ann ("Automated solution for making an IK system stretchy.") 
     -image "ikSCsolver.svg" ;
+    
+    menuItem 
+    -l ("Add Sine Attributes") 
+    -c ("python(\"import gt_add_sine_attributes\\nreload(gt_add_sine_attributes)\\ngt_add_sine_attributes.build_gui_add_sine_attr()\");") 
+    -ann ("Create Sine function without using third-party plugins or expressions.") 
+    -image "sineCurveProfile.png" ;
     
     setParent -menu ".." ;
 

@@ -100,6 +100,8 @@ copy_delete_files_to_maya_version() {
 		rm "$install_dir/gt_auto_biped_rigger.pyc"
 		rm "$install_dir/gt_make_ik_stretchy.py"
 		rm "$install_dir/gt_make_ik_stretchy.pyc"
+		rm "$install_dir/gt_add_sine_attributes.py"
+		rm "$install_dir/gt_add_sine_attributes.pyc"
   	else
   		for f in "$PYTHONDIR/"*.py; do cp "$f" "$install_dir"; done
 		for f in "$MELDIR/"*.mel; do cp "$f" "$install_dir"; done
