@@ -628,16 +628,23 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
      alt="GT Auto Biped Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This prevents naming conflicts and data loss.</p>
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to auto manage your geometry, parent it under a group called "geometry_grp".
+<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.</p>
+<br>
 <p>Here are some highlights of what it creates: 
-<br>- FK/IK switches with automated control visibility 
-<br>- Automated finger posing with offset (for a natural motion) 
-<br>- Foot rolls (with manual limiters for more flexibility) 
-<br>- Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) 
-<br>- Stretchy and squash for the arms and legs (with automatic volume preservation) 
-<br>- Automatic forearm rotation with support for stretched limbs.
-<br>- Shelf button with Seamless FK/IK Switch for arms and legs.
-<br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
+<ul>
+	<li> FK/IK switches with automated control visibility.</li>
+	<li> Automated finger posing with offset (for a natural motion) </li>
+	<li> A knuckle compression system so there are no gaps between the fingers.</li>
+	<li> Abduction and Adduction for the fingers.</li>
+	<li> Foot rolls (with manual limiters for more flexibility) </li>
+	<li> Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) </li>
+	<li> Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
+	<li> Automatic forearm rotation with support for stretched limbs.</li>
+	<li> Shelf button with Seamless FK/IK Switch for arms and legs.</li>
+	<li> Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
+	<li> Automatic breathing system without using expressions.</li>
+</ul>
 </p>
 
 <p><h3>Step 1:</h3>
@@ -807,7 +814,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Abduction/Adduction System Example">
 
 
+<p><h3>Imports/Exporting Skin Weights:</h3>
+This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
+<br></p>
 
+<p><h3>Mirror Skin Weights with ngSkinTools:</h3>
+If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" </p>
+
+<br>
 <br>
 
 </div>
