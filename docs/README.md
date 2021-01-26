@@ -810,11 +810,11 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Abduction/Adduction System Example">
 
 
-<br>
 
 <p><h3>Skin Weights with ngSkinTools:</h3>
 If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" 
 
+<br>
 <br>
 
 </div>
