@@ -630,19 +630,20 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <p>Script for quickly generating an advanced biped rig.
 <br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to auto manage your geometry, parent it under a group called "geometry_grp".
 <br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.</p>
+<br>
 <p>Here are some highlights of what it creates: 
 <ul>
-	<li>- FK/IK switches with automated control visibility.</li>
-	<li>- Automated finger posing with offset (for a natural motion) </li>
-	<li>- A knuckle compression system so there are no gaps between the fingers.</li>
-	<li>- Abduction and Adduction for the fingers.</li>
-	<li>- Foot rolls (with manual limiters for more flexibility) </li>
-	<li>- Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) </li>
-	<li>- Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
-	<li>- Automatic forearm rotation with support for stretched limbs.</li>
-	<li>- Shelf button with Seamless FK/IK Switch for arms and legs.</li>
-	<li>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
-	<li>- Automatic breathing system without using expressions.</li>
+	<li> FK/IK switches with automated control visibility.</li>
+	<li> Automated finger posing with offset (for a natural motion) </li>
+	<li> A knuckle compression system so there are no gaps between the fingers.</li>
+	<li> Abduction and Adduction for the fingers.</li>
+	<li> Foot rolls (with manual limiters for more flexibility) </li>
+	<li> Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) </li>
+	<li> Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
+	<li> Automatic forearm rotation with support for stretched limbs.</li>
+	<li> Shelf button with Seamless FK/IK Switch for arms and legs.</li>
+	<li> Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
+	<li> Automatic breathing system without using expressions.</li>
 </ul>
 </p>
 
