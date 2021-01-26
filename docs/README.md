@@ -632,12 +632,15 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 <p>Here are some highlights of what it creates: 
 <br>- FK/IK switches with automated control visibility 
 <br>- Automated finger posing with offset (for a natural motion) 
+<br>- A knuckle compression system so there are no gaps between the fingers.
+<br>- Abduction and Adduction for the fingers.
 <br>- Foot rolls (with manual limiters for more flexibility) 
 <br>- Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) 
 <br>- Stretchy and squash for the arms and legs (with automatic volume preservation) 
 <br>- Automatic forearm rotation with support for stretched limbs.
 <br>- Shelf button with Seamless FK/IK Switch for arms and legs.
 <br>- Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)
+<br>- Automatic breathing system without using expressions.
 </p>
 
 <p><h3>Step 1:</h3>
@@ -807,6 +810,10 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Abduction/Adduction System Example">
 
 
+<br>
+
+<p><h3>Skin Weights with ngSkinTools:</h3>
+If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" 
 
 <br>
 
