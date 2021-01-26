@@ -189,7 +189,7 @@ def build_gui_help_add_sine_attr():
     cmds.text(l='Sine Attributes:', align='center', font='boldLabelFont')
     cmds.text(l='Time: Multiplier for the time input (tick)', align="center")
     cmds.text(l='Amplitude: Wave amplitude (how high it gets)', align="center")
-    cmds.text(l='Amplitude: Wave frequency (how often it happens)', align="center")
+    cmds.text(l='Frequency: Wave frequency (how often it happens)', align="center")
     cmds.text(l='Offset: Value added after calculation, offset.', align="center")
     cmds.text(l='Tick: Time as seen by the sine system.', align="center")
     cmds.text(l='Output: Result of the sine operation.', align="center")
