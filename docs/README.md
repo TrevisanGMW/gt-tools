@@ -138,7 +138,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_mac.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_mac.gif?raw=true"
      alt="GT Tools MacOS Auto Installation Demo">
 
 This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya. (Tested in MacOS Big Sur 11.1)
@@ -209,7 +209,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_linux.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_linux.gif?raw=true"
      alt="GT Tools Linux Auto Installation Demo">
 
 This script collection comes with an auto installer (setup_linux.sh) you can simply download it, run the setup and reopen Maya. (Tested in Ubuntu 20.10)
@@ -702,7 +702,7 @@ These are utilities and extra functions that you can use after creating your rig
 
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
@@ -715,7 +715,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
 <br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
      alt="GT Auto Biped attached to HumanIK Example">
 
 
@@ -730,9 +730,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
      alt="GT Auto Biped Foot Rolls Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
      alt="GT Auto Biped Follow Eye Example">
 
 
@@ -761,9 +761,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fingers.gif" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
      alt="GT Auto Biped Finger Automation Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_stretchy.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
      alt="GT Auto Biped Stretchy System Example">
 
 <br>
