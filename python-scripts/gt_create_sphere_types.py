@@ -3,11 +3,14 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-04 - github.com/TrevisanGMW
  Tested on Maya 2020 - Windows 10
  
- 1.1 - 2020/11/22
+ 1.1 - 2020-11-22
  Minor changes to the UI
  
- 1.2 - 2020/12/03
+ 1.2 - 2020-12-03
  Platonic Sphere A is now created with soft normals
+ 
+ 1.3 - 2021-01-25
+ Adjusted the size of the spacing between buttons
  
  To do:
  Improve the generate window to give better feedback
@@ -35,7 +38,7 @@ import base64
 import os
 
 # Script Version
-script_version = "1.2"
+script_version = "1.3"
 
 def build_gui_sphere_type():
     ''' Builds the UI for GT Sphere Types '''
@@ -70,10 +73,10 @@ def build_gui_sphere_type():
     cmds.text("Sphere Options:")
     cmds.separator(h=5, p=content_main, st="none" )
     cmds.rowColumnLayout( p=content_main, numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
-    cmds.separator(h=10, p=content_main, st="none" )
+    cmds.separator(h=3, p=content_main, st="none" )
     cmds.button( l ="Standard Sphere", c=lambda x:create_standard_sphere(), w=100)
     cmds.button( l ="Platonic Sphere A", c=lambda x:create_platonic_sphere_a())
-    cmds.separator(h=10, st="none" )
+    #cmds.separator(h=10, st="none" )
     cmds.rowColumnLayout(p=content_main, numberOfColumns=2, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
     cmds.button( l ="Cube Sphere", c=lambda x:create_cube_sphere(), w=100)
     cmds.button( l ="Platonic Sphere B", c=lambda x:create_platonic_sphere_b())

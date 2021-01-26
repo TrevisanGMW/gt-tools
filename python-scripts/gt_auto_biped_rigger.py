@@ -47,6 +47,7 @@
  Added finger abduction/adduction control and updated the name of a few attributes
     
  1.4 - 2021-01-23
+ Create auto breathing system
  Added check for geometry group (common name)
  Updated "orient_to_target" function to enforce proxy direction properly
  Added manip default to the foot roll controls
@@ -57,8 +58,9 @@
  Created sin function without expressions
  Created a trigonometry sine function that doesn't use third-party plugins or expressions
  Added debugging option to auto import proxy templates and auto bind geometry
-     Added auto breathing system
-     Added notes to the knee proxies (similar to elbows)
+ Added a check for required plugins before running the script
+ Changed the data transfer type of the clavicles to allow for offsets (for auto breathing)
+ Added notes to the knee proxies (similar to elbows)
  
 
  To do:
@@ -98,7 +100,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.4-beta"
+script_version = "1.4"
 
 # General Vars
 grp_suffix = 'grp'
@@ -116,11 +118,12 @@ automation_ctrl_color = (.6,.2,1) # Purple
 # Debugging Vars
 debugging = False # Activate Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
-debugging_display_lra = True # Display LRA for all joints after generating
+debugging_display_lra = False # Display LRA for all joints after generating
+debugging_auto_breathing = True # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
-debugging_import_path = '' # Path to auto import
+debugging_import_path = 'C:\\template.json' # Path to auto import
 debugging_bind_rig = True # Auto Binds Rig
-debugging_bind_geo = '' # Name of the geo to bind
+debugging_bind_geo = 'body_geo' # Name of the geo to bind
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -863,7 +866,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None):
     return [end_loc_one, stretchy_grp, end_ik_jnt]
 
 
-def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_used_inputs=True, add_absolute_output=False, nice_name_prefix=True):
+def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_unkeyable=True, add_absolute_output=False, nice_name_prefix=True):
     ''' 
     Create Sine function without using third-party plugins or expressions
     
@@ -871,11 +874,13 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
                 obj (string): Name of the object
                 sine (string): Prefix given to the name of the attributes (default is "sine")
                 tick_source_attr (string): Name of the attribute used as the source for time. It uses the default "time1" node if nothing else is specified
-                hide_used_inputs (bool): Hides the tick and output attributes as they already have an input connection
+                hide_unkeyable (bool): Hides the tick and output attributes
                 add_absolute_output (bool): Also creates an output version that gives only positive numbers much like the abs() expression
 
             Returns:
-                sine_output_attr (string): A string with the name of the object and the name of the sine output attribute. E.g. "pSphere1.sineOutput"
+                sine_output_attrs (list): A string with the name of the object and the name of the sine output attribute. E.g. "pSphere1.sineOutput"
+                                          In case an absolute output is added, it will be the second object in the list. E.g. ["pSphere1.sineOutput", "pSphere1.sineAbsOutput"]
+                                          If add_absolute_output is False the second attribute is None
     '''
     # Load Required Plugins
     required_plugin = 'quatNodes'
@@ -883,7 +888,7 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
         cmds.loadPlugin(required_plugin, qt=False)
   
     # Set Variables
-    influence_suffix = 'TimeInfluence'
+    influence_suffix = 'Time'
     amplitude_suffix = 'Amplitude'
     frequency_suffix = 'Frequency'
     offset_suffix = 'Offset'
@@ -917,7 +922,7 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
         if add_absolute_output:
             cmds.addAttr(obj, ln=abs_attr, at='double', k=True)
     else:
-        cmds.addAttr(obj, ln=influence_attr, at='double', k=True, maxValue=1, minValue=0, nn=re.sub(r'(\w)([A-Z])', r'\1 \2', influence_suffix))
+        cmds.addAttr(obj, ln=influence_attr, at='double', k=True, maxValue=1, minValue=0, nn=influence_suffix)
         cmds.addAttr(obj, ln=amplitude_attr, at='double', k=True, nn=amplitude_suffix)
         cmds.addAttr(obj, ln=frequency_attr, at='double', k=True, nn=frequency_suffix)
         cmds.addAttr(obj, ln=offset_attr, at='double', k=True, nn=offset_suffix)
@@ -929,9 +934,11 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
     cmds.setAttr(obj + '.' + amplitude_attr, 1)
     cmds.setAttr(obj + '.' + frequency_attr, 10)
     
-    if hide_used_inputs:
+    if hide_unkeyable:
         cmds.setAttr(obj + '.' + tick_attr, k=False)
         cmds.setAttr(obj + '.' + output_attr, k=False)
+    if add_absolute_output and hide_unkeyable:
+        cmds.setAttr(obj + '.' + abs_attr, k=False)
     
     cmds.connectAttr(tick_source_attr, influence_multiply_node + '.input1X')
     cmds.connectAttr(influence_multiply_node + '.outputX', obj + '.' + tick_attr)
@@ -957,8 +964,11 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
         cmds.connectAttr(obj + '.' + output_attr, squared_node + '.input1X')
         cmds.connectAttr(squared_node + '.outputX', reverse_squared_node + '.input1X')
         cmds.connectAttr(reverse_squared_node + '.outputX', obj + '.' + abs_attr)
+        return [(obj + '.' + output_attr), (obj + '.' + abs_attr)]
+    else:
+        return [(obj + '.' + output_attr), None]
     
-    return (obj + '.' + output_attr)
+    
 
 
 def create_visualization_line(object_a, object_b):
@@ -1237,6 +1247,13 @@ def validate_operation(operation, debugging=False):
                 debugging (bool): Debugging mode causes the script to auto delete previous objects (for quick iteration)
 
     '''
+    
+    # Load Required Plugins
+    required_plugins = ['quatNodes','matrixNodes']
+    for plugin in required_plugins:
+        if not cmds.pluginInfo(plugin, q=True, loaded=True):
+            cmds.loadPlugin(plugin, qt=False)
+    
     is_valid = True
     if operation == 'create_proxy':
         # Debugging (Auto deletes generated proxy)
@@ -1330,7 +1347,7 @@ def validate_operation(operation, debugging=False):
                 except:
                     pass
             # Debugging (Auto binds joints to provided geo)
-            if debugging_bind_rig and cmds.objExists(debugging_bind_geo):
+            if debugging and debugging_bind_rig and cmds.objExists(debugging_bind_geo):
                 cmds.select(d=True)
                 select_skinning_joints()
                 selection = cmds.ls(selection=True)
@@ -2389,9 +2406,13 @@ def create_proxy(colorize_proxy=True):
             # Notes Only
             if gt_ab_settings.get('left_eye_proxy_crv') in proxy_crv or gt_ab_settings.get('right_eye_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an eye proxy.\nThis element should be snapped to the center of the eye geometry.\nYou can see the center of the eye by selecting the eye geometry then going to "Display > Transform Display > Local Rotation Axes".\nYou can then use this axis to snap the joint to its center. (Using "Ctrl + V")\n\nPS: If for some reason the pivot point is not in the center of the eye, you can reset it first: "Modify > Center Pivot".')
+            
             if gt_ab_settings.get('left_elbow_proxy_crv') in proxy_crv or gt_ab_settings.get('right_elbow_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an elbow proxy.\nThe movement of this element is intentionaly limited to attempt to keep the joints in one single plane. For better results keep the arm joints in "T" or "A" pose.')
-                
+            
+            if gt_ab_settings.get('left_knee_proxy_crv') in proxy_crv or gt_ab_settings.get('right_knee_proxy_crv') in proxy_crv:
+                add_node_note(proxy_crv, 'This is a knee proxy.\nThe movement of this element is intentionaly limited to attempt to keep the joints in one single plane. For better results keep the leg joints in "T" or "A" pose.')
+
             if colorize_proxy:
                 change_viewport_color(proxy_crv, color)
             if colorize_proxy and is_end_jnt:
@@ -6354,7 +6375,11 @@ def create_controls():
     cmds.parent(left_forearm_grp, arms_automation_grp)
     cmds.parent(right_forearm_grp, arms_automation_grp)
     
-    # Top Groups Groups
+    # General Automation Hierarchy - Used for auto breathing
+    general_automation_grp = cmds.group(name='generalAutomation_grp', world=True, empty=True)
+    change_outliner_color(general_automation_grp, (1, .65, .45))
+    
+    ###### Main Hierarchy for Top Parent Groups ######
     if cmds.objExists('geometry_grp'):
         geometry_grp = 'geometry_grp'
     else:
@@ -6363,6 +6388,7 @@ def create_controls():
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1,.45,.7))
     cmds.parent(stretchy_system_grp, rig_setup_grp)
+    cmds.parent(general_automation_grp, rig_setup_grp)
     cmds.parent(arms_automation_grp, rig_setup_grp)
     cmds.parent(finger_automation_grp, rig_setup_grp)
     cmds.parent(spine_automation_grp, rig_setup_grp)
@@ -6408,14 +6434,15 @@ def create_controls():
     
     ################# Joint Inflation System #################
     
-    # Elements to Inflate/Deflate
+    # Elements to Inflate/Deflate - Ctrl, CtrlGrp, Joint, CreateOffset?
+    create_offset = True
     inflation_system_groups = [
         [cog_ctrl, cog_ctrl_grp, gt_ab_joints.get('cog_jnt')], 
         [hip_ctrl, hip_ctrl_grp, gt_ab_joints.get('hip_jnt')], 
-        [spine01_ctrl, spine01_ctrl_grp, gt_ab_joints.get('spine01_jnt')],
-        [spine02_ctrl, spine02_ctrl_grp, gt_ab_joints.get('spine02_jnt')],
-        [spine03_ctrl, spine03_ctrl_grp, gt_ab_joints.get('spine03_jnt')],
-        [spine04_ctrl, spine04_ctrl_grp, gt_ab_joints.get('spine04_jnt')],
+        [spine01_ctrl, spine01_ctrl_grp, gt_ab_joints.get('spine01_jnt'), create_offset],
+        [spine02_ctrl, spine02_ctrl_grp, gt_ab_joints.get('spine02_jnt'), create_offset],
+        [spine03_ctrl, spine03_ctrl_grp, gt_ab_joints.get('spine03_jnt'), create_offset],
+        [spine04_ctrl, spine04_ctrl_grp, gt_ab_joints.get('spine04_jnt'), create_offset],
    
         [neck_base_ctrl, neck_base_ctrl_grp, gt_ab_joints.get('neck_base_jnt')],
         [neck_mid_ctrl, neck_mid_ctrl_grp, gt_ab_joints.get('neck_mid_jnt')],
@@ -6494,8 +6521,8 @@ def create_controls():
     ]
     
     # Joint Inflation Basic Setup
-    for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint
-        
+    for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint, CreateOffset?
+    
         blend_node = cmds.createNode('blendColors', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inflation_blend')
    
         cmds.setAttr(blend_node + '.color2R', 1)
@@ -6516,6 +6543,20 @@ def create_controls():
         cmds.setAttr(ctrl_grps[0] + '.minScaleXLimitEnable', 1)
         cmds.setAttr(ctrl_grps[0] + '.minScaleYLimitEnable', 1)
         cmds.setAttr(ctrl_grps[0] + '.minScaleZLimitEnable', 1)
+        
+        if len(ctrl_grps) > 3: # Create Offset Input
+            if ctrl_grps[3]:
+                offset_node = cmds.createNode('plusMinusAverage', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'offset_sum')
+                
+                cmds.addAttr(ctrl_grps[0] , ln='scaleOffset', at='double3', k=False)
+                cmds.addAttr(ctrl_grps[0] , ln='scaleOffsetX', at='double', k=False, minValue=0, parent='scaleOffset')
+                cmds.addAttr(ctrl_grps[0] , ln='scaleOffsetY', at='double', k=False, minValue=0, parent='scaleOffset')
+                cmds.addAttr(ctrl_grps[0] , ln='scaleOffsetZ', at='double', k=False, minValue=0, parent='scaleOffset')
+
+                cmds.connectAttr(blend_node + '.output', offset_node + '.input3D[0]', force=True)
+                cmds.connectAttr(ctrl_grps[0] + '.scaleOffset', offset_node + '.input3D[1]', force=True)
+                cmds.connectAttr(offset_node + '.output3D', ctrl_grps[2] + '.scale', force=True)
+                
     
     # Joint Inflation/Deflation Mechanics & Special Cases
     left_wrist_scale_blend = cmds.createNode('blendColors', name='left_wrist_switchScale_blend')
@@ -6570,13 +6611,107 @@ def create_controls():
     cmds.connectAttr(right_ball_scale_blend + '.output', gt_ab_joints.get('right_ball_jnt') + '.scale', f=True)
     cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_ball_scale_blend + '.blender')
     
+    # Auto Breathing System
+    cmds.addAttr(main_ctrl, ln="autoBreathingSystem", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(main_ctrl + '.autoBreathingSystem', e=True, lock=True)
+    sine_output = add_sine_attributes(main_ctrl, sine_prefix='breathing', hide_unkeyable=True, add_absolute_output=False, nice_name_prefix=True)
+    
+    breathing_sine_min = -1
+    breathing_sine_max = 1
+    breathing_new_min = 0
+    limit_scale_prefix= 'maxScale' 
+    
+    for ctrl in [spine01_ctrl, spine02_ctrl, spine03_ctrl, spine04_ctrl]:
+        ctrl_name = ctrl.replace(ctrl_suffix, '').replace('_', '')
+        breathing_range_node = cmds.createNode('setRange', name=ctrl_name + '_breathing_range')
+        cmds.addAttr(main_ctrl, ln=limit_scale_prefix + ctrl_name.capitalize(), at='double', keyable=True)
+        
+        for attr in ['x', 'y', 'z']:
+            cmds.setAttr(breathing_range_node + '.oldMin' + attr.capitalize(), breathing_sine_min)
+            cmds.setAttr(breathing_range_node + '.oldMax' + attr.capitalize(), breathing_sine_max)
+            cmds.setAttr(breathing_range_node + '.min' + attr.capitalize(), breathing_new_min)
+            cmds.connectAttr(main_ctrl + '.' + limit_scale_prefix + ctrl_name.capitalize(), breathing_range_node + '.max' + attr.capitalize())
+        
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueX')
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueY')
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueZ')
+        
+        cmds.connectAttr(breathing_range_node + '.outValueX', ctrl + '.scaleOffsetX')
+        cmds.connectAttr(breathing_range_node + '.outValueY', ctrl + '.scaleOffsetY')
+        cmds.connectAttr(breathing_range_node + '.outValueZ', ctrl + '.scaleOffsetZ')
+    
+    # Clean time1 input from main_ctrl
+    cmds.addAttr(main_ctrl_grp, ln='inputTime', at='double', keyable=True)
+    cmds.connectAttr('time1.outTime', main_ctrl_grp + '.inputTime', force=True)
+    breathing_multiply = cmds.listConnections(main_ctrl + '.breathingTime') or []
+    cmds.connectAttr(main_ctrl_grp + '.inputTime', breathing_multiply[0] + '.input1X', force=True)
+    
+    # Other Breathing Adjustments
+    cmds.setAttr(main_ctrl + '.' + limit_scale_prefix + 'Spine01', .05)
+    cmds.setAttr(main_ctrl + '.' + limit_scale_prefix + 'Spine02', .1)
+    cmds.setAttr(main_ctrl + '.' + limit_scale_prefix + 'Spine03', .15)
+    cmds.setAttr(main_ctrl + '.' + limit_scale_prefix + 'Spine04', .2)
+    if debugging and debugging_auto_breathing:
+        cmds.setAttr(main_ctrl + '.breathingTime', 1)
+    cmds.setAttr(main_ctrl + '.breathingFrequency', 6)
+    
+    # Create Alternative Setup for Clavicles
+    cmds.delete(left_clavicle_constraint)
+    cmds.delete(right_clavicle_constraint)
+    
+    left_clavicle_pos_loc = cmds.spaceLocator( name=left_clavicle_ctrl.replace(ctrl_suffix, 'posLoc') )[0]
+    right_clavicle_pos_loc = cmds.spaceLocator( name=right_clavicle_ctrl.replace(ctrl_suffix, 'posLoc') )[0]
+    
+    left_clavicle_pos_loc_grp = cmds.group(name=left_clavicle_pos_loc + 'Grp', world=True, empty=True )
+    right_clavicle_pos_loc_grp = cmds.group(name=right_clavicle_pos_loc + 'Grp', world=True, empty=True )
+    
+    cmds.parent(left_clavicle_pos_loc, left_clavicle_pos_loc_grp)
+    cmds.parent(right_clavicle_pos_loc, right_clavicle_pos_loc_grp)
+    
+    cmds.pointConstraint(left_clavicle_ctrl, left_clavicle_pos_loc_grp)
+    cmds.pointConstraint(right_clavicle_ctrl, right_clavicle_pos_loc_grp)
+    
+    cmds.pointConstraint(left_clavicle_pos_loc, gt_ab_joints.get('left_clavicle_jnt'))
+    cmds.pointConstraint(right_clavicle_pos_loc, gt_ab_joints.get('right_clavicle_jnt'))
+    
+    cmds.connectAttr(left_clavicle_ctrl + '.rotate', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
+    cmds.connectAttr(right_clavicle_ctrl + '.rotate', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
+    
+    cmds.parent(left_clavicle_pos_loc_grp, general_automation_grp) # Group created above with the other top parent groups
+    cmds.parent(right_clavicle_pos_loc_grp, general_automation_grp)
+    
+    # Clavicle Breathig Mechanics
+    for ctrl_pair in [(left_clavicle_ctrl, left_clavicle_pos_loc), (right_clavicle_ctrl, right_clavicle_pos_loc)]:
+        ctrl_name = ctrl_pair[0].replace('_' + ctrl_suffix, '')
+        if 'left_' in ctrl_name:
+            attr_name = 'L' + ctrl_name.replace('left_','').capitalize()
+            attr_nice_name = 'Max Trans L ' + ctrl_name.replace('left_','').capitalize()
+        else:
+            attr_name = 'R' + ctrl_name.replace('right_','').capitalize()
+            attr_nice_name = 'Max Trans R ' + ctrl_name.replace('right_','').capitalize()
+        
+        breathing_range_node = cmds.createNode('setRange', name=ctrl_name + '_breathing_range')
+        
+        breathing_sine_min = -1
+        breathing_sine_max = 1
+        breathing_new_min = 0
+        limit_translate_prefix = 'maxTranslate'
+        
+        cmds.addAttr(main_ctrl, ln=limit_translate_prefix + attr_name, at='double', keyable=True, nn=attr_nice_name)
+            
+        for attr in ['x', 'y', 'z']:
+            cmds.setAttr(breathing_range_node + '.oldMin' + attr.capitalize(), breathing_sine_min)
+            cmds.setAttr(breathing_range_node + '.oldMax' + attr.capitalize(), breathing_sine_max)
+            cmds.setAttr(breathing_range_node + '.min' + attr.capitalize(), breathing_new_min)
+            cmds.connectAttr(main_ctrl + '.' + limit_translate_prefix + attr_name, breathing_range_node + '.max' + attr.capitalize())
+        
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueX')
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueY')
+        cmds.connectAttr(sine_output[0], breathing_range_node + '.valueZ')
+  
+        cmds.connectAttr(breathing_range_node + '.outValueY', ctrl_pair[1] + '.ty')
+        cmds.setAttr(main_ctrl + '.' + limit_translate_prefix + attr_name, 1)
 
-    # @@@
-    # cmds.addAttr(main_ctrl, ln="autoBreathingSystem", at="enum", en="-------------:", keyable=True)
-    # cmds.setAttr(main_ctrl + '.autoBreathingSystem', e=True, lock=True)
-    # #cmds.addAttr(attribute_holder , ln='stretch', at='double', k=True, minValue=0, maxValue=1)
-    # sine_output = add_sine_attributes(main_ctrl, sine_prefix='breathing', hide_used_inputs=False, add_absolute_output=True, nice_name_prefix=False)
-    # print(sine_output)
 
 
     ################# Bulletproof Controls #################
@@ -6681,7 +6816,7 @@ def create_controls():
     lock_hide_default_attr(stretchy_system_grp, visibility=False)
     lock_hide_default_attr(ik_solvers_grp, visibility=False)
     
-
+    
     # Create Seamless FK/IK Switch References
     left_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_ankle_ik_reference') )[0]
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_ankle_ref_loc))
@@ -7245,10 +7380,10 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                         set_unlocked_os_attr(curent_object[0], 'sy', curent_object[3][1])
                                         set_unlocked_os_attr(curent_object[0], 'sz', curent_object[3][2])
          
-
-                        unique_message = '<' + str(random.random()) + '>'
-                        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>', pos='botLeft', fade=True, alpha=.9)
-                        sys.stdout.write('Pose imported from the file "' + pose_file + '".')
+                        if not debugging:
+                            unique_message = '<' + str(random.random()) + '>'
+                            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>', pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
 
                 except Exception as e:
                     print(e)

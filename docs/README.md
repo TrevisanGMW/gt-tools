@@ -44,6 +44,7 @@
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
   <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
   <li><a href="#-gt-make-ik-stretchy-">GT Make IK Stretchy</a></li>
+  <li><a href="#-gt-add-sine-attributes-">GT Add Sine Attributes</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -70,7 +71,7 @@
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_windows.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_windows.gif?raw=true"
      alt="GT Tools Windows Auto Installation Demo">
 
 This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
@@ -138,7 +139,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_mac.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_mac.gif?raw=true"
      alt="GT Tools MacOS Auto Installation Demo">
 
 This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya. (Tested in MacOS Big Sur 11.1)
@@ -209,7 +210,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_linux.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_linux.gif?raw=true"
      alt="GT Tools Linux Auto Installation Demo">
 
 This script collection comes with an auto installer (setup_linux.sh) you can simply download it, run the setup and reopen Maya. (Tested in Ubuntu 20.10)
@@ -702,7 +703,7 @@ These are utilities and extra functions that you can use after creating your rig
 
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fkik.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
      alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
@@ -715,7 +716,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
 <br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_hik.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
      alt="GT Auto Biped attached to HumanIK Example">
 
 
@@ -730,9 +731,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_foot.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
      alt="GT Auto Biped Foot Rolls Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_eyes.gif" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
      alt="GT Auto Biped Follow Eye Example">
 
 
@@ -761,10 +762,51 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_fingers.gif" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
      alt="GT Auto Biped Finger Automation Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_auto_biped_rigger_stretchy.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
      alt="GT Auto Biped Stretchy System Example">
+
+<br>
+<p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
+<b>- Auto Breathing</b>: Causes the spine and clavicles joints to scale/translate up and down in a breathing rhythm. To control this system you can use the attributes found under the "main_ctrl". 
+<ul>
+	<li><b>Breathing Time:</b> Amount of time transferred to the auto breathing system.</li>
+	<li><b>Breathing Amplitude:</b> Maximum amount of air going in (peak of the wave).</li>
+	<li><b>Breathing Frequency:</b> How often the character breaths in and out.</li>
+	<li><b>Breathing Offset:</b> Value added after operation is calculated.</li>
+	<li><b>Max Scale + Spine Joint:</b> Maximum value allow for the scale .</li>
+	<li><b>Max Scale + Clavicle Joint:</b> Maximum value allow for the translation Y of the clavicles .</li>
+</ul></p>
+<br>
+<p><b>- Abduction/Adduction System:</b>: You can control the abduction and adduction actions for the fingers by scaling the "finger_ctrl" in "Z".
+<ul>
+	<li><b>Arrow Visibility:</b> Whether or not the template arrow (abduction/adduction feedback) is visible.</li>
+	<li><b>Abduction Influence:</b> How much influence the system has over the fingers.</li>
+	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
+</ul></p>
+<br>
+<p><b>- Abduction/Adduction & Knuckles Compression:</b>: The auto knucles compression system will cause the knuckle joints (thumb01, index01...) to move closer to one another as the hand closes.
+<ul>
+	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
+	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
+	<li><b>Trans Multiplier + Finger:</b> Direction and amount of translation.</li>
+</ul>
+</p>
+
+<br>
+
+<img src="./media/gt_auto_biped_rigger_abduction_system.jpg" 
+     alt="GT Auto Biped Abduction Attribute Example">
+<img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
+     alt="GT Auto Biped Auto Breathing Attributes Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
+     alt="GT Auto Biped Breathing Automation Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
+     alt="GT Auto Biped Abduction/Adduction System Example">
+
+
 
 <br>
 
@@ -969,6 +1011,34 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br><br>
 
 </div>
+
+
+<!-- GT Add Sine Attributes -->
+<div>
+<h1> GT Add Sine Attributes </h1>
+
+<img src="./media/gt_add_sine_attributes.jpg" align="right"
+     alt="GT Add Sine Attributes GUI">
+
+<p>Create Sine attributes without using third-party plugins or expressions.
+<br>Just select and object, then click on "Add Sine Attributes"</p>
+
+<br>
+<p><b>- Sine Attributes:</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
+<ul>
+	<li><b>Time:</b> Multiplier for the time input (tick)</li>
+	<li><b>Amplitude:</b> Wave amplitude (how high it gets)</li>
+	<li><b>Frequency:</b> Wave frequency (how often it happens)</li>
+	<li><b>Offset:</b> Value added after calculation, offset.</li>
+	<li><b>Tick:</b> Time as seen by the sine system.</li>
+	<li><b>Output:</b> Result of the sine operation.</li>
+	<li><b>Abs Output:</b> Aboslute output. (no negative values).</li>
+</ul></p>
+
+<br><br>
+
+</div>
+
 
 <!-- GT Utilities -->
 <div>

@@ -228,6 +228,8 @@ del %~1\gt_auto_biped_rigger.py
 del %~1\gt_auto_biped_rigger.pyc
 del %~1\gt_make_ik_stretchy.py
 del %~1\gt_make_ik_stretchy.pyc
+del %~1\gt_add_sine_attributes.py
+del %~1\gt_add_sine_attributes.pyc
 EXIT /B 0
 
 
