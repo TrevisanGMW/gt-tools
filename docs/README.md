@@ -778,14 +778,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Max Scale + Spine Joint:</b> Maximum value allow for the scale .</li>
 	<li><b>Max Scale + Clavicle Joint:</b> Maximum value allow for the translation Y of the clavicles .</li>
 </ul></p>
-
+<br>
 <p><b>- Abduction/Adduction System:</b>: You can control the abduction and adduction actions for the fingers by scaling the "finger_ctrl" in "Z".
 <ul>
 	<li><b>Arrow Visibility:</b> Whether or not the template arrow (abduction/adduction feedback) is visible.</li>
 	<li><b>Abduction Influence:</b> How much influence the system has over the fingers.</li>
 	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
 </ul></p>
-
+<br>
 <p><b>- Abduction/Adduction & Knuckles Compression:</b>: The auto knucles compression system will cause the knuckle joints (thumb01, index01...) to move closer to one another as the hand closes.
 <ul>
 	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
