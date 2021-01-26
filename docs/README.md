@@ -793,7 +793,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
 </ul></p>
 <br>
-<p><b>- Abduction/Adduction & Knuckles Compression:</b>: The auto knucles compression system will cause the knuckle joints (thumb01, index01...) to move closer to one another as the hand closes.
+<p><b>- Auto Knuckles Compression:</b>: The auto knucles compression system will make the knuckle joints (thumb01, index01...) move closer to one another as the hand closes in order to prevent gaps between the fingers.
 <ul>
 	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
 	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
