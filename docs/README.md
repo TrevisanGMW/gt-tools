@@ -44,6 +44,7 @@
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
   <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
   <li><a href="#-gt-make-ik-stretchy-">GT Make IK Stretchy</a></li>
+  <li><a href="#-gt-add-sine-attributes-">GT Add Sine Attributes</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
