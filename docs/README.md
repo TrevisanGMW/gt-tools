@@ -970,6 +970,34 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 
 </div>
 
+
+<!-- GT Add Sine Attributes -->
+<div>
+<h1> GT Add Sine Attributes </h1>
+
+<img src="./media/gt_add_sine_attributes.jpg" align="right"
+     alt="GT Add Sine Attributes GUI">
+
+<p>Create Sine attributes without using third-party plugins or expressions.
+<br>Just select and object, then click on "Add Sine Attributes"</p>
+
+<br>
+<p><b>- Sine Attributes:</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
+<ul>
+	<li><b>Time:</b> Multiplier for the time input (tick)</li>
+	<li><b>Amplitude:</b> Wave amplitude (how high it gets)</li>
+	<li><b>Frequency:</b> Wave frequency (how often it happens)</li>
+	<li><b>Offset:</b> Value added after calculation, offset.</li>
+	<li><b>Tick:</b> Time as seen by the sine system.</li>
+	<li><b>Output:</b> Result of the sine operation.</li>
+	<li><b>Abs Output:</b> Aboslute output. (no negative values).</li>
+</ul></p>
+
+<br><br>
+
+</div>
+
+
 <!-- GT Utilities -->
 <div>
 <h1> GT Utilities </h1>
