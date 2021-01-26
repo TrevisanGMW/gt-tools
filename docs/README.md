@@ -70,7 +70,7 @@
 
 <h3>Auto Installation</h3>
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/main/gt_tools/media/gt_tools_installation_windows.gif"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_windows.gif?raw=true"
      alt="GT Tools Windows Auto Installation Demo">
 
 This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
