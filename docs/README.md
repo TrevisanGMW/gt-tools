@@ -810,9 +810,13 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Abduction/Adduction System Example">
 
 
+<p><h3>Imports/Exporting Skin Weights:</h3>
+This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
+</p>
+<br>
 
 <p><h3>Skin Weights with ngSkinTools:</h3>
-If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" 
+If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" </p>
 
 <br>
 <br>
