@@ -767,6 +767,47 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
      alt="GT Auto Biped Stretchy System Example">
 
+
+<p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
+<b>- Auto Breathing</b>: Causes the spine and clavicles joints to scale/translate up and down in a breathing rhythm. To control this system you can use the attributes found under the "main_ctrl". 
+<ul>
+	<li><b>Breathing Time:</b> Amount of time transferred to the auto breathing system.</li>
+	<li><b>Breathing Amplitude:</b> Maximum amount of air going in (peak of the wave).</li>
+	<li><b>Breathing Frequency:</b> How often the character breaths in and out.</li>
+	<li><b>Breathing Offset:</b> Value added after operation is calculated.</li>
+	<li><b>Max Scale + Spine Joint:</b> Maximum value allow for the scale .</li>
+	<li><b>Max Scale + Clavicle Joint:</b> Maximum value allow for the translation Y of the clavicles .</li>
+</ul></p>
+
+<p><b>- Abduction/Adduction System:</b>: You can control the abduction and adduction actions for the fingers by scaling the "finger_ctrl" in "Z".
+<ul>
+	<li><b>Arrow Visibility:</b> Whether or not the template arrow (abduction/adduction feedback) is visible.</li>
+	<li><b>Abduction Influence:</b> How much influence the system has over the fingers.</li>
+	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
+</ul></p>
+
+<p><b>- Abduction/Adduction & Knuckles Compression:</b>: The auto knucles compression system will cause the knuckle joints (thumb01, index01...) to move closer to one another as the hand closes.
+<ul>
+	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
+	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
+	<li><b>Trans Multiplier + Finger:</b> Direction and amount of translation.</li>
+</ul>
+</p>
+
+<br>
+
+<img src="./media/gt_auto_biped_rigger_breathing_system.jpg"
+     alt="GT Auto Biped Auto Breathing Attributes Example">
+<img src="./media/gt_auto_biped_rigger_abduction_system.jpg" align="right"
+     alt="GT Auto Biped Abduction Attribute Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
+     alt="GT Auto Biped Breathing Automation Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
+     alt="GT Auto Biped Abduction/Adduction System Example">
+
+
+
 <br>
 
 </div>
