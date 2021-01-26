@@ -767,7 +767,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
      alt="GT Auto Biped Stretchy System Example">
 
-
+<br>
 <p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
 <b>- Auto Breathing</b>: Causes the spine and clavicles joints to scale/translate up and down in a breathing rhythm. To control this system you can use the attributes found under the "main_ctrl". 
 <ul>
