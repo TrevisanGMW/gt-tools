@@ -762,9 +762,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
      alt="GT Auto Biped Follow Attribute Example">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" 
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
      alt="GT Auto Biped Finger Automation Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true" align="right"
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
      alt="GT Auto Biped Stretchy System Example">
 
 
@@ -796,10 +796,10 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 
 <br>
 
-<img src="./media/gt_auto_biped_rigger_breathing_system.jpg"
-     alt="GT Auto Biped Auto Breathing Attributes Example">
-<img src="./media/gt_auto_biped_rigger_abduction_system.jpg" align="right"
+<img src="./media/gt_auto_biped_rigger_abduction_system.jpg" 
      alt="GT Auto Biped Abduction Attribute Example">
+<img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
+     alt="GT Auto Biped Auto Breathing Attributes Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
      alt="GT Auto Biped Breathing Automation Example">
