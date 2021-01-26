@@ -1347,7 +1347,7 @@ def validate_operation(operation, debugging=False):
                 except:
                     pass
             # Debugging (Auto binds joints to provided geo)
-            if debugging_bind_rig and cmds.objExists(debugging_bind_geo):
+            if debugging and debugging_bind_rig and cmds.objExists(debugging_bind_geo):
                 cmds.select(d=True)
                 select_skinning_joints()
                 selection = cmds.ls(selection=True)
