@@ -1,8 +1,9 @@
 """
  Python Curve Generator
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-02
+ @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2020-01-02
+ 
  1.1 - 2020-01-03
- Minor patch.
+ Minor patch adjustments to the script
  
  1.2 - 2020-06-07
  Fixed random window widthHeight issue.
@@ -16,9 +17,11 @@
  
  1.4 - 2020-06-27
  No longer failing to generate curves with non-unique names
- 
- 1.5 - 2020-11-15
  Tweaked the color and text for the title and help menu
+  
+ 1.5 - 2021-01-26
+ Fixed way the curve is generated to account for closed and opened curves
+ 
  
 """
 
@@ -41,18 +44,19 @@ except ImportError:
 script_name = "GT - Generate Python Curve"
 
 # Version:
-script_version = "1.4"
+script_version = "1.5"
 
 # Default Settings
-close_curve = True
+close_curve = False
 add_import = False
 
 # Function for the "Run Code" button
 def run_output_code(out):
     try:
         exec(out)
-    except:
+    except Exception as e:
         cmds.warning("Something is wrong with your code!")
+        cmds.warning(e)
 
 
 # Main Form ============================================================================
@@ -68,10 +72,6 @@ def build_gui_py_curve():
                           
     cmds.window(window_name, e=True, s=True, wh=[1,1])
     
-    column_main = cmds.columnLayout() 
-
-    form = cmds.formLayout(p=column_main)
-
     content_main = cmds.columnLayout(adj = True)
 
     # Title
@@ -90,7 +90,7 @@ def build_gui_py_curve():
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)])
 
     settings = cmds.checkBoxGrp(columnWidth2=[150, 1], numberOfCheckBoxes=2, \
-                                label1 = 'Add import \"maya.cmds\" ', label2 = "Close Curve", v1 = add_import, v2 = close_curve)
+                                label1 = 'Add import \"maya.cmds\" ', label2 = "Force Open", v1 = add_import, v2 = close_curve)
                                 
     cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,0)])
     cmds.separator(h=10, style='none') # Empty Space
@@ -113,31 +113,51 @@ def build_gui_py_curve():
         if len(cmds.ls(selection=True)) != 0:
             getcontext().prec = 5
             
-            shape = cmds.listRelatives(cmds.ls(sl=1)[0], s=1 , fullPath=True)[0]
+            sel_one = cmds.ls(sl=1)[0]
+            
+            shape = cmds.listRelatives(sel_one, s=1 , fullPath=True)[0]
             type_checker = str(cmds.objectType(shape))
             
 
             if "nurbsCurve" in type_checker or "bezierCurve" in type_checker:
                 
+                opened_curve = cmds.checkBoxGrp (settings, q=True, value2=True)
+
+                per_state = cmds.getAttr(shape + '.form')
+                knots_string = ''
+                extra_cvs_per = ''
+                is_periodic = False
+                
+                if not opened_curve and per_state == 2:
+                    is_periodic=True
+                    curve_info = cmds.arclen(sel_one, ch=True)
+                    curve_knots = cmds.getAttr( curve_info + '.knots[*]' )
+                    knots_string = ', per=True, k=' + str(curve_knots)
+                    cmds.delete(curve_info)
+
+                
                 cvs = cmds.getAttr(shape+'.cv[*]')
                 cvs_list = []
                 
-                
                 for c in cvs:
                     cvs_list.append([float(Decimal("%.3f" % c[0])),float(Decimal("%.3f" % c[1])),float(Decimal("%.3f" % c[2]))])
-
-                if cmds.checkBoxGrp (settings, q=True, value1=True):
+                
+                if is_periodic and len(cvs) > 2:
+                    extra_cvs_per = ', '
+                    for i in range(3):
+                        if i != 2:
+                            extra_cvs_per += str(cvs_list[i]) + ', '
+                        else:
+                            extra_cvs_per += str(cvs_list[i])
+                
+                if cmds.checkBoxGrp(settings, q=True, value1=True):
                     out = 'import maya.cmds as cmds\n\ncmds.curve(p='
                 else:
                     out = 'cmds.curve(p='
                     
-                out += '[%s]' % ', '.join(map(str, cvs_list))
-                out += ',d='+str(cmds.getAttr(shape+'.degree'))+')'
+                out += '[%s' % ', '.join(map(str, cvs_list))
+                out += extra_cvs_per + '], d='+str(cmds.getAttr(shape+'.degree'))+ knots_string + ')'
                 
-                if cmds.checkBoxGrp (settings, q=True, value2=True):
-                    out += '\n\ncmds.closeCurve(ch=False, ps=False, rpo=True)'
-                else:
-                    pass
                 
                 print ("#" * 100)
                 print out
@@ -195,8 +215,8 @@ def build_gui_help_py_curve():
     cmds.text(l='Adds a line that imports Maya\'s API. This is necessary', align="left")
     cmds.text(l='when running python scripts.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
-    cmds.text(l='Close Curve: ', align="left", fn="boldLabelFont")
-    cmds.text(l='Adds a line to close the curve after creating it.', align="left")
+    cmds.text(l='Force Open: ', align="left", fn="boldLabelFont")
+    cmds.text(l='Doens\'t check if the curve is periodic leaving it open.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='"Generate" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to create the curve', align="left")
