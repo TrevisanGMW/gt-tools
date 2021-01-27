@@ -215,8 +215,8 @@ def build_gui_help_py_curve():
     cmds.text(l='Adds a line that imports Maya\'s API. This is necessary', align="left")
     cmds.text(l='when running python scripts.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
-    cmds.text(l='Close Curve: ', align="left", fn="boldLabelFont")
-    cmds.text(l='Adds a line to close the curve after creating it.', align="left")
+    cmds.text(l='Force Open: ', align="left", fn="boldLabelFont")
+    cmds.text(l='Doens\'t check if the curve is periodic leaving it open.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='"Generate" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to create the curve', align="left")

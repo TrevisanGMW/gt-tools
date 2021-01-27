@@ -569,7 +569,7 @@ It works on its own. <br>As the name suggests, it copy transforms, which populat
 
 <p><b>Add import "maya.cmds": </b><br>Adds a line that imports Maya's cmds API. This is necessary for when running python scripts.</p>
 
-<p><b>Close Curve: </b><br>Adds a line to close the curve after creating it.</p>
+<p><b>Force Open: </b><br>Doesn't check if the curve is periodic leaving it open.</p>
 
 <p><b>"Generate" button:</b><br>Outputs the python code necessary to create the curve inside the "Output PYthon Curve" box.</p>
 
