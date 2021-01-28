@@ -71,6 +71,9 @@
  Fixed an issue where the shape of some controls would stay opened
  Updated most curves to be created as periodic curves to avoid creation issues
  Fixed the direction of the right side FK/IK switch shapes
+ 
+ 1.6-beta - 2021-01-27
+ Fixed an issue where the fingers would still move even when the stretchy system was deactivated
 
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
@@ -109,7 +112,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.5"
+script_version = "1.6-beta"
 
 # General Vars
 grp_suffix = 'grp'
@@ -5910,7 +5913,7 @@ def create_controls():
     left_elbow_constraint = cmds.parentConstraint([left_elbow_fk_jnt, left_elbow_ik_jnt], gt_ab_joints.get('left_elbow_jnt'))
     left_wrist_constraint = cmds.pointConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'))
     left_switch_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl], left_arm_switch_grp, mo=True)
-    left_hand_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl], left_hand_grp, mo=True)
+    left_hand_constraint = cmds.parentConstraint([left_wrist_ik_jnt, left_wrist_fk_jnt], left_hand_grp, mo=True)
     
 
     left_switch_reverse_node = cmds.createNode('reverse', name='left_arm_switch_reverse')
@@ -6162,7 +6165,7 @@ def create_controls():
     right_elbow_constraint = cmds.parentConstraint([right_elbow_fk_jnt, right_elbow_ik_jnt], gt_ab_joints.get('right_elbow_jnt'))
     right_wrist_constraint = cmds.pointConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'))
     right_switch_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl], right_arm_switch_grp, mo=True)
-    right_hand_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl], right_hand_grp, mo=True)
+    right_hand_constraint = cmds.parentConstraint([right_wrist_ik_jnt, right_wrist_fk_jnt], right_hand_grp, mo=True)
     
 
     right_switch_reverse_node = cmds.createNode('reverse', name='right_arm_switch_reverse')
