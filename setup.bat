@@ -230,6 +230,8 @@ del %~1\gt_make_ik_stretchy.py
 del %~1\gt_make_ik_stretchy.pyc
 del %~1\gt_add_sine_attributes.py
 del %~1\gt_add_sine_attributes.pyc
+del %~1\gt_create_testing_keys.py
+del %~1\gt_create_testing_keys.pyc
 EXIT /B 0
 
 

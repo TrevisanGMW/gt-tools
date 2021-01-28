@@ -570,7 +570,7 @@ def gtu_delete_display_layers():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
             
 def gtu_delete_keyframes():
-    '''Deletes all nodes of the type "animCurveTA" (keyframes)'''       
+    '''Deletes all keyframes. (Doesn't include Set Driven Keys)'''       
     function_name = 'GTU Delete All Keyframes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
