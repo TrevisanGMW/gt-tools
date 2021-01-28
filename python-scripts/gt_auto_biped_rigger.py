@@ -3339,7 +3339,10 @@ def create_controls():
     cmds.parent(hip_ctrl_grp, cog_ctrl)
     
     # Spine01 Control
-    spine01_ctrl = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299], [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13], [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299], [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126], [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
+    spine01_ctrl_a = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299], [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13], [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299], [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126], [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
+    spine01_ctrl_b = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + 'dot', p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
+    spine01_ctrl = gtu_combine_curves_list([spine01_ctrl_a, spine01_ctrl_b])
+    
     cmds.setAttr(spine01_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine01_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine01_ctrl + '.scaleZ', general_scale_offset)
@@ -3354,6 +3357,7 @@ def create_controls():
     
     # Spine02 Control
     spine02_ctrl = cmds.curve(name=gt_ab_joints.get('spine02_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261], [-0.053, -0.9, -0.105], [-0.061, -0.909, -0.001], [-0.053, -0.899, 0.109], [-0.114, -0.849, 0.261], [0.0, -0.849, 0.261], [0.114, -0.849, 0.261], [0.053, -0.899, 0.109], [0.061, -0.909, -0.001], [0.053, -0.9, -0.105], [0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
+    
     cmds.setAttr(spine02_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleZ', general_scale_offset)
@@ -3367,7 +3371,10 @@ def create_controls():
     cmds.parent(spine02_ctrl_grp, spine01_ctrl)
     
     # Spine03 Control
-    spine03_ctrl = cmds.curve(name=gt_ab_joints.get('spine03_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2], [-0.058, -0.901, -0.092], [-0.053, -0.908, -0.001], [-0.058, -0.901, 0.094], [-0.089, -0.869, 0.2], [-0.0, -0.869, 0.2], [0.089, -0.869, 0.2], [0.058, -0.901, 0.094], [0.053, -0.908, -0.001], [0.058, -0.901, -0.092], [0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
+    spine03_ctrl_a = cmds.curve(name=gt_ab_joints.get('spine03_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2], [-0.058, -0.901, -0.092], [-0.053, -0.908, -0.001], [-0.058, -0.901, 0.094], [-0.089, -0.869, 0.2], [-0.0, -0.869, 0.2], [0.089, -0.869, 0.2], [0.058, -0.901, 0.094], [0.053, -0.908, -0.001], [0.058, -0.901, -0.092], [0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
+    spine03_ctrl_b = cmds.curve(name=gt_ab_joints.get('spine03_jnt').replace(jnt_suffix, '') + 'dot', p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
+    spine03_ctrl = gtu_combine_curves_list([spine03_ctrl_a, spine03_ctrl_b])
+   
     cmds.setAttr(spine03_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine03_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine03_ctrl + '.scaleZ', general_scale_offset)
@@ -4713,10 +4720,10 @@ def create_controls():
     cmds.connectAttr(spine02_ctrl + '.spine01AutoRotate', spine01_condition_node + '.firstTerm', f=True)
     
     cmds.addAttr(spine02_ctrl, ln="spine01Visibility", at='bool', k=True, niceName='Visibility Spine 01')
-    cmds.setAttr(spine02_ctrl + '.spine01Visibility', 1)
+    #cmds.setAttr(spine02_ctrl + '.spine01Visibility', 1)
     
-    for shape in cmds.listRelatives(spine01_ctrl, s=True, f=True) or []:
-        cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shape + '.visibility', f=True)
+    shapes = cmds.listRelatives(spine01_ctrl, s=True, f=True) or []
+    cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shapes[0] + '.v', f=True)
     
     
     # Spine 02
@@ -4745,10 +4752,10 @@ def create_controls():
     cmds.connectAttr(spine04_ctrl + '.spine03AutoRotate', spine03_condition_node + '.firstTerm', f=True)
     
     cmds.addAttr(spine04_ctrl, ln="spine03Visibility", at='bool', k=True, niceName='Visibility Spine 03')
-    cmds.setAttr(spine04_ctrl + '.spine03Visibility', 1)
+    #cmds.setAttr(spine04_ctrl + '.spine03Visibility', 1)
     
-    for shape in cmds.listRelatives(spine03_ctrl, s=True, f=True) or []:
-        cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shape + '.visibility', f=True)
+    shapes = cmds.listRelatives(spine03_ctrl, s=True, f=True) or []
+    cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shapes[0] + '.v', f=True)
         
     # Spine 04
     cmds.parentConstraint(spine04_ctrl, gt_ab_joints.get('spine04_jnt')) 
@@ -7160,6 +7167,7 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky01_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
+    
     
     ################# Store Created Joints #################
     gt_ab_joints_default['left_forearm_jnt'] = left_forearm_jnt
