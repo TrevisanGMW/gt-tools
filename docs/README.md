@@ -987,6 +987,45 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
+<!-- GT Create Testing Keys -->
+<div>
+<h1> GT Create Testing Keys </h1>
+
+<img src="./media/gt_create_testing_keys.jpg" align="right"
+     alt="GT Create Testing Keys GUI">
+
+<p>This script creates a sequence of keys with offset,
+<br> usually used for testing controls or skin weights.</p>
+
+<p><b>How to use:</b>
+<br>1. Select Target Object(s)
+<br>2. Provide Offset Value(s)
+<br>3. Create Testing Keyframes</p>
+
+<p><b>Offset Amount:</b>
+<br>These are the values that will be added to the object.
+<br>If set to "0.0" it will be ignored. (No keys will be created)</p>
+
+<p><b>Reset All Offset Values:</b>
+<br>Resets all offset text fields to "0.0"</p>
+
+<p><b>Add Inverted Offset Movement:</b>
+<br>Auto creates another key with the inverted offset value.
+<br>For example, an offset of "1.0" will also create another offset at "-1.0"
+<br>creating an oscillating movement like a sine function.</p>
+
+<p><b>Delete Previously Created Keys:</b>
+<br>Deletes all keys attached to the selected controls before creating new ones. 
+<br>(Doesn't include Set Driven Keys)</p>
+
+<p><b>Create Testing Keyframes:</b>
+<br>Creates keyframes according to the provided settings.</p>
+
+<br><br>
+
+</div>
+
+
 <!-- GT Make Stretchy Legs -->
 <div>
 <h1> GT Make IK Stretchy </h1>
@@ -1022,43 +1061,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <p>By default, the attribute holder termines the stretch, to change this behavior, constraint or parent the object "stretchyTerm_end" to another object.</p>
 
-
-<br><br>
-
-</div>
-
-<!-- GT Create Testing Keys -->
-<div>
-<h1> GT Create Testing Keys </h1>
-
-<img src="./media/gt_add_create_testing_keys.jpg" align="right"
-     alt="GT Create Testing Keys GUI">
-
-<p>This script creates a sequence of keys with offset, usually used for testing controls or skin weights.</p>
-
-<p><b>How to use:</b>
-<br>1. Select Target Object(s)
-<br>2. Provide Offset Value(s)
-<br>3. Create Testing Keyframes</p>
-
-<p><b>Offset Amount:</b>
-<br>These are the values that will be added to the object.
-<br>If set to "0.0" it will be ignored. (No keys will be created)</p>
-
-<p><b>Reset All Offset Values:</b>
-<br>Resets all offset text fields to "0.0"</p>
-
-<p><b>Add Inverted Offset Movement:</b>
-<br>Auto creates another key with the inverted offset value.
-<br>For example, an offset of "1.0" will also create another offset at "-1.0"
-<br>creating an oscillating movement like a sine function.</p>
-
-<p><b>Delete Previously Created Keys:</b>
-<br>Deletes all keys attached to the selected controls before creating new ones. 
-<br>(Doesn't include Set Driven Keys)</p>
-
-<p><b>Create Testing Keyframes:</b>
-<br>Creates keyframes according to the provided settings.</p>
 
 <br><br>
 
