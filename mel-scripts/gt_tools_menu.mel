@@ -131,7 +131,7 @@
 //	 Only updated the version, no changes to the menu
 //
 //   1.6.9
-//	 Only updated the version, no changes to the menu
+//	 Added GT Create Testing Keys
 //
 //----------------------------------------------------------------------------
 
@@ -321,17 +321,17 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
     
-    // menuItem 
-    // -l ("Create IK Leg") 
-    // -c ("python(\"import gt_create_ik_leg\\nreload(gt_create_ik_leg)\\ngt_create_ik_leg.build_gui_simple_ik_leg()\");") 
-    // -ann ("Automated solution for create a simple IK leg.") 
-    // -image "kinHandle.png" ;
-
     menuItem 
     -l ("Make IK Stretchy") 
     -c ("python(\"import gt_make_ik_stretchy\\nreload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
     -ann ("Automated solution for making an IK system stretchy.") 
     -image "ikSCsolver.svg" ;
+    
+    menuItem 
+    -l ("Create Testing Keys") 
+    -c ("python(\"import gt_create_testing_keys\\nreload(gt_create_testing_keys)\\ngt_create_testing_keys.build_gui_create_testing_keys()\");") 
+    -ann ("Automated solution for making an IK system stretchy.") 
+    -image "setMaxInfluence.png" ;
     
     menuItem 
     -l ("Add Sine Attributes") 
