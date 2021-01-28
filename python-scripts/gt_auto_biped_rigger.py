@@ -4713,6 +4713,7 @@ def create_controls():
     cmds.connectAttr(spine02_ctrl + '.spine01AutoRotate', spine01_condition_node + '.firstTerm', f=True)
     
     cmds.addAttr(spine02_ctrl, ln="spine01Visibility", at='bool', k=True, niceName='Visibility Spine 01')
+    cmds.setAttr(spine02_ctrl + '.spine01Visibility', 1)
     
     for shape in cmds.listRelatives(spine01_ctrl, s=True, f=True) or []:
         cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shape + '.visibility', f=True)
@@ -4744,6 +4745,7 @@ def create_controls():
     cmds.connectAttr(spine04_ctrl + '.spine03AutoRotate', spine03_condition_node + '.firstTerm', f=True)
     
     cmds.addAttr(spine04_ctrl, ln="spine03Visibility", at='bool', k=True, niceName='Visibility Spine 03')
+    cmds.setAttr(spine04_ctrl + '.spine03Visibility', 1)
     
     for shape in cmds.listRelatives(spine03_ctrl, s=True, f=True) or []:
         cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shape + '.visibility', f=True)
@@ -6707,7 +6709,7 @@ def create_controls():
         cmds.connectAttr(sine_output[0], breathing_range_node + '.valueY')
         cmds.connectAttr(sine_output[0], breathing_range_node + '.valueZ')
         
-        influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "breathingInfluence_" + multiply_suffix)
+        influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_breathingInfluence_" + multiply_suffix)
         
         cmds.connectAttr(breathing_range_node + '.outValueX', influnce_multiply_node + '.input1X')
         cmds.connectAttr(breathing_range_node + '.outValueY', influnce_multiply_node + '.input1Y')
@@ -6858,14 +6860,7 @@ def create_controls():
     cmds.connectAttr(right_switch_hand_blend_b + '.outputG', right_hand_constraint[0] + '.w2', f=True)
     cmds.connectAttr(right_switch_hand_blend_b + '.outputR', right_hand_constraint[0] + '.w3', f=True)
 
-
-    # So COG will move Spine Controls
-    cmds.setAttr(spine01_ctrl + '.lockTranslate', 0)
-    cmds.setAttr(spine02_ctrl + '.lockTranslate', 0)
-    cmds.setAttr(spine03_ctrl + '.lockTranslate', 0)
-    cmds.setAttr(spine04_ctrl + '.lockTranslate', 0)
-    
-    # No Flip Setup for Wrists @@@
+    # No Flip Setup for Wrists
     cmds.parent(left_wrist_ik_dir_jnt, left_wrist_ik_jnt)
     cmds.move(left_wrist_scale_offset, left_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True)
     left_hand_sc_ik_handle = cmds.ikHandle( n='left_hand_SC_ikHandle', sj=left_wrist_ik_jnt, ee=left_wrist_ik_dir_jnt[0], sol='ikSCsolver')
