@@ -130,10 +130,13 @@
 //   1.6.8
 //	 Only updated the version, no changes to the menu
 //
+//   1.6.9
+//	 Only updated the version, no changes to the menu
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.6.8";
+global string $scriptVersion = "1.6.9";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
