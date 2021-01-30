@@ -9,7 +9,11 @@
  1.0 - 2021-01-28
  Initial Release
  
-
+ 1.1 - 2021-01-29
+ Changed way that attributes are updated to account for long hierarchies (changed to setAttr instead of move/xform)
+ Added a missing undoInfo(openChunk) function that would break the undo queue
+ Udated a few incorrect comments
+ 
 """
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
@@ -29,7 +33,7 @@ except ImportError:
 script_name = "GT - Create Testing Keys"
 
 # Version:
-script_version = "1.0"
+script_version = "1.1"
 
 
 # Main Form ============================================================================
@@ -128,11 +132,13 @@ def build_gui_create_testing_keys():
         '''
         errors = ''
         try:
+            cmds.undoInfo(openChunk=True, chunkName=script_name)
             offset_text_fields = [tx_offset_text_field, ty_offset_text_field, tz_offset_text_field,\
                                 rx_offset_text_field, ry_offset_text_field, rz_offset_text_field,\
                                 sx_offset_text_field, sy_offset_text_field, sz_offset_text_field]
 
-            initial_time = cmds.currentTime(q=True) 
+            initial_time = cmds.currentTime(q=True)
+            selection = cmds.ls(selection=True)
             if len(cmds.ls(selection=True)) != 0:
                 interval = cmds.floatSliderGrp(interval_text_field, q=True, value=True)
                 
@@ -162,7 +168,6 @@ def build_gui_create_testing_keys():
                     if value > 0:
                         create_testing_keyframes(value, attr, interval, create_inverted=add_inverted)
                         
-                
             else: 
                 cmds.warning('Select at least one object to create testing key frames.')
             cmds.currentTime(initial_time) # Return Time to initial value
@@ -176,11 +181,10 @@ def build_gui_create_testing_keys():
             print(errors)
             print('#########################')
         
-        
             
     def create_testing_keyframes(offset, attr, interval, create_inverted=False):
         '''
-        Creates a sequence of keyframes on the selected objects so they move up and down
+        Creates a sequence of keyframes on the selected objects so they move for testing
         Used to quickly test joints when rigging
         
                 Parameters:
@@ -215,74 +219,151 @@ def build_gui_create_testing_keys():
             offset_vec = (offset_vec[0], offset, offset_vec[2])
         else:
             offset_vec = (offset_vec[0], offset_vec[1], offset)
+            
 
         for obj in selection:
             if cmds.objExists(obj):
                 # Create key at neutral pose
                 cmds.setKeyframe(obj, at=attr, t=current_frame, itt='linear', ott='linear')
                 
+                if translate:
+                    orig_tx = cmds.getAttr(obj + '.tx')
+                    orig_ty = cmds.getAttr(obj + '.ty')
+                    orig_tz = cmds.getAttr(obj + '.tz')
+                    
+                if rotate:
+                    orig_rx = cmds.getAttr(obj + '.rx')
+                    orig_ry = cmds.getAttr(obj + '.ry')
+                    orig_rz = cmds.getAttr(obj + '.rz')
+
                 if scale:
                     orig_sx = cmds.getAttr(obj + '.sx')
                     orig_sy = cmds.getAttr(obj + '.sy')
                     orig_sz = cmds.getAttr(obj + '.sz')
-                
+                    
                 # Create key at positive pose
                 current_frame += interval
                 if translate:
-                    cmds.move(offset_vec[0], offset_vec[1], offset_vec[2], obj, relative=True, ws=True)
+                    offset_tx = orig_tx + offset_vec[0]
+                    offset_ty = orig_ty + offset_vec[1]
+                    offset_tz = orig_tz + offset_vec[2] 
+                    if not cmds.getAttr(obj + '.tx', lock=True) and offset_tx != orig_tx:
+                        cmds.setAttr(obj + '.tx', offset_tx)
+                    if not cmds.getAttr(obj + '.ty', lock=True) and offset_ty != orig_ty:
+                        cmds.setAttr(obj + '.ty', offset_ty)
+                    if not cmds.getAttr(obj + '.tz', lock=True) and offset_tz != orig_tz:
+                        cmds.setAttr(obj + '.tz', offset_tz)
+
                 if rotate:
-                    cmds.rotate(offset_vec[0], offset_vec[1], offset_vec[2], obj, relative=True, ws=True)
+                    offset_rx = orig_rx + offset_vec[0]
+                    offset_ry = orig_ry + offset_vec[1]
+                    offset_rz = orig_rz + offset_vec[2]
+                    if not cmds.getAttr(obj + '.rx', lock=True) and offset_rx != orig_rx:
+                        cmds.setAttr(obj + '.rx', offset_rx)
+                    if not cmds.getAttr(obj + '.ry', lock=True) and offset_ry != orig_ry:
+                        cmds.setAttr(obj + '.ry', offset_ry)
+                    if not cmds.getAttr(obj + '.rz', lock=True) and offset_rz != orig_rz:
+                        cmds.setAttr(obj + '.rz', offset_rz)
+
                 if scale:
-                    sx = orig_sx + offset_vec[0]
-                    sy = orig_sy + offset_vec[1]
-                    sz = orig_sz + offset_vec[2]
-                    cmds.setAttr(obj + '.sx', sx)
-                    cmds.setAttr(obj + '.sy', sy)
-                    cmds.setAttr(obj + '.sz', sz)
+                    offset_sx = orig_sx + offset_vec[0]
+                    offset_sy = orig_sy + offset_vec[1]
+                    offset_sz = orig_sz + offset_vec[2]
+                    if not cmds.getAttr(obj + '.sx', lock=True) and offset_sx != orig_sx:
+                        cmds.setAttr(obj + '.sx', offset_sx)
+                    if not cmds.getAttr(obj + '.sy', lock=True) and offset_sy != orig_sy:
+                        cmds.setAttr(obj + '.sy', offset_sy)
+                    if not cmds.getAttr(obj + '.sz', lock=True) and offset_sz != orig_sz:
+                        cmds.setAttr(obj + '.sz', offset_sz)
                 cmds.setKeyframe(obj, at=attr, t=current_frame, itt='linear', ott='linear')
-                
+
                 if create_inverted:
                     # Create key at negative pose
                     current_frame += interval
                     if translate:
-                        cmds.move((offset_vec[0]*-1)*2, (offset_vec[1]*-1)*2, (offset_vec[2]*-1)*2, obj, relative=True, ws=True)
+                        offset_tx = orig_tx + offset_vec[0]*-1
+                        offset_ty = orig_ty + offset_vec[1]*-1
+                        offset_tz = orig_tz + offset_vec[2]*-1
+                        if not cmds.getAttr(obj + '.tx', lock=True) and offset_tx != orig_tx:
+                            cmds.setAttr(obj + '.tx', offset_tx)
+                        if not cmds.getAttr(obj + '.ty', lock=True) and offset_ty != orig_ty:
+                            cmds.setAttr(obj + '.ty', offset_ty)
+                        if not cmds.getAttr(obj + '.tz', lock=True) and offset_tz != orig_tz:
+                            cmds.setAttr(obj + '.tz', offset_tz)
+                            
                     if rotate:
-                        cmds.rotate((offset_vec[0]*-1)*2, (offset_vec[1]*-1)*2, (offset_vec[2]*-1)*2, obj, relative=True, ws=True)
+                        offset_rx = orig_rx + offset_vec[0]*-1
+                        offset_ry = orig_ry + offset_vec[1]*-1
+                        offset_rz = orig_rz + offset_vec[2]*-1
+                        if not cmds.getAttr(obj + '.rx', lock=True) and offset_rx != orig_rx:
+                            cmds.setAttr(obj + '.rx', offset_rx)
+                        if not cmds.getAttr(obj + '.ry', lock=True) and offset_ry != orig_ry:
+                            cmds.setAttr(obj + '.ry', offset_ry)
+                        if not cmds.getAttr(obj + '.rz', lock=True) and offset_rz != orig_rz:
+                            cmds.setAttr(obj + '.rz', offset_rz)
                     if scale:
-                        sx = orig_sx + (orig_sx*-1)*2 + (offset_vec[0]*-1)
-                        sy = orig_sy + (orig_sy*-1)*2 + (offset_vec[1]*-1)
-                        sz = orig_sz + (orig_sz*-1)*2 + (offset_vec[2]*-1)
-                        cmds.setAttr(obj + '.sx', sx)
-                        cmds.setAttr(obj + '.sy', sy)
-                        cmds.setAttr(obj + '.sz', sz)
+                        offset_sx = orig_sx + (orig_sx*-1)*2 + (offset_vec[0]*-1)
+                        offset_sy = orig_sy + (orig_sy*-1)*2 + (offset_vec[1]*-1)
+                        offset_sz = orig_sz + (orig_sz*-1)*2 + (offset_vec[2]*-1)
+                        if not cmds.getAttr(obj + '.sx', lock=True) and offset_sx != orig_sx:
+                            cmds.setAttr(obj + '.sx', offset_sx)
+                        if not cmds.getAttr(obj + '.sy', lock=True) and offset_sy != orig_sy:
+                            cmds.setAttr(obj + '.sy', offset_sy)
+                        if not cmds.getAttr(obj + '.sz', lock=True) and offset_sz != orig_sz:
+                            cmds.setAttr(obj + '.sz', offset_sz)     
                     cmds.setKeyframe(obj, at=attr, t=current_frame, itt='linear', ott='linear')
 
                     # Create key at neutral pose
                     current_frame += interval
                     if translate:
-                        cmds.move(offset_vec[0], offset_vec[1], offset_vec[2], obj, relative=True, ws=True)
+                        if not cmds.getAttr(obj + '.tx', lock=True):
+                            cmds.setAttr(obj + '.tx', orig_tx)
+                        if not cmds.getAttr(obj + '.ty', lock=True):
+                            cmds.setAttr(obj + '.ty', orig_ty)
+                        if not cmds.getAttr(obj + '.tz', lock=True):
+                            cmds.setAttr(obj + '.tz', orig_tz)
                     if rotate:
-                        cmds.rotate(offset_vec[0], offset_vec[1], offset_vec[2], obj, relative=True, ws=True)
+
+                        if not cmds.getAttr(obj + '.rx', lock=True):
+                            cmds.setAttr(obj + '.rx', orig_rx)
+                        if not cmds.getAttr(obj + '.ry', lock=True):
+                            cmds.setAttr(obj + '.ry', orig_ry)
+                        if not cmds.getAttr(obj + '.rz', lock=True):
+                            cmds.setAttr(obj + '.rz', orig_rz)
                     if scale:
-                        sx = orig_sx
-                        sy = orig_sy
-                        sz = orig_sz
-                        cmds.setAttr(obj + '.sx', sx)
-                        cmds.setAttr(obj + '.sy', sy)
-                        cmds.setAttr(obj + '.sz', sz)
+                        if not cmds.getAttr(obj + '.sx', lock=True):
+                            cmds.setAttr(obj + '.sx', orig_sx)
+                        if not cmds.getAttr(obj + '.sy', lock=True):
+                            cmds.setAttr(obj + '.sy', orig_sy)
+                        if not cmds.getAttr(obj + '.sz', lock=True):
+                            cmds.setAttr(obj + '.sz', orig_sz)
                     cmds.setKeyframe(obj, at=attr, t=current_frame, itt='linear', ott='linear')
+                    
                 else:
                     # Create key at neutral pose
                     current_frame += interval
                     if translate:
-                        cmds.move((offset_vec[0]*-1), (offset_vec[1]*-1), (offset_vec[2]*-1), obj, relative=True, ws=True)
+                        if not cmds.getAttr(obj + '.tx', lock=True):
+                            cmds.setAttr(obj + '.tx', orig_tx)
+                        if not cmds.getAttr(obj + '.ty', lock=True):
+                            cmds.setAttr(obj + '.ty', orig_ty)
+                        if not cmds.getAttr(obj + '.tz', lock=True):
+                            cmds.setAttr(obj + '.tz', orig_tz)
                     if rotate:
-                        cmds.rotate((offset_vec[0]*-1), (offset_vec[1]*-1), (offset_vec[2]*-1), obj, relative=True, ws=True)
+
+                        if not cmds.getAttr(obj + '.rx', lock=True):
+                            cmds.setAttr(obj + '.rx', orig_rx)
+                        if not cmds.getAttr(obj + '.ry', lock=True):
+                            cmds.setAttr(obj + '.ry', orig_ry)
+                        if not cmds.getAttr(obj + '.rz', lock=True):
+                            cmds.setAttr(obj + '.rz', orig_rz)
                     if scale:
-                        sx = orig_sx
-                        sy = orig_sy
-                        sz = orig_sz
-                        cmds.scale(sx, sy, sz, obj, relative=True)
+                        if not cmds.getAttr(obj + '.sx', lock=True):
+                            cmds.setAttr(obj + '.sx', orig_sx)
+                        if not cmds.getAttr(obj + '.sy', lock=True):
+                            cmds.setAttr(obj + '.sy', orig_sy)
+                        if not cmds.getAttr(obj + '.sz', lock=True):
+                            cmds.setAttr(obj + '.sz', orig_sz)
                     cmds.setKeyframe(obj, at=attr, t=current_frame, itt='linear', ott='linear')
                   
         if current_frame > current_max_time:
@@ -413,7 +494,6 @@ def build_gui_help_create_testing_keys():
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
- 
 # Build UI
 if __name__ == '__main__':
     build_gui_create_testing_keys()
