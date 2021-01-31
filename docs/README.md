@@ -454,8 +454,8 @@ The icon on the left describes the validity of the path. If the file or director
 with the provided prefix "Right Side Tag" to objects 
 with the provided prefix "Left Side Tag".</p>
 
-<p><b>Copy and Paste Transforms: </b><br>This function doesn't take in consideration the previous settings.
-It works on its own. <br>As the name suggests, it copy transforms, which populates the text fields, or it pastes transforms from selected fields back to selected objects.</p>
+<p><b>Copy and Paste Transforms: </b>
+<br>As the name suggests, it copy transforms, which populates the text fields, or it pastes transforms from selected fields back to selected objects.</p>
 <br>
 
 </div>
