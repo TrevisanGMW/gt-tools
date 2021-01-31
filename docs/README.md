@@ -456,6 +456,11 @@ with the provided prefix "Left Side Tag".</p>
 
 <p><b>Copy and Paste Transforms: </b>
 <br>As the name suggests, it copy transforms, which populates the text fields, or it pastes transforms from selected fields back to selected objects.</p>
+
+<p><b>Export and Import Transforms: </b>
+<br>Exports a file contaning Translate, Rotate, and Scale data for every selected object.
+<br>When importing, it tries to find the same elements to apply the exported data.</p>
+
 <br>
 
 </div>

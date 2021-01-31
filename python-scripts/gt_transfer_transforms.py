@@ -510,6 +510,9 @@ def build_gui_help_transfer_transforms():
     cmds.text(l='populates the text fields, or it pastes transforms', align='left')
     cmds.text(l='from selected fields back to selected objects.', align='left')
     cmds.text(l='', align='left')
+    cmds.text(l='Export and Import Transforms:', align='left', fn='boldLabelFont')
+    cmds.text(l='Exports a file contaning Translate, Rotate, and Scale\ndata for every selected object.', align='left')
+    cmds.text(l='When importing, it tries to find the same elements\nto apply the exported data.', align='left')
     cmds.separator(h=15, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p='main_column')
     cmds.text('Guilherme Trevisan  ')
