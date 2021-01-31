@@ -133,10 +133,13 @@
 //   1.6.9
 //	 Added GT Create Testing Keys
 //
+//   1.7.0
+//	 No changes to this menu, only version
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.6.9";
+global string $scriptVersion = "1.7.0";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
