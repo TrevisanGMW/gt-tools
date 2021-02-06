@@ -42,6 +42,9 @@
  1.9 - 2021-01-05
  Added Uniform Joint Label Toggle
  
+ 2.0 - 2021-02-05
+ Added "Select Non-Unique Objects" Utility
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -80,7 +83,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "1.9"
+gtu_script_version = "2.0"
     
 ''' ____________________________ General Functions ____________________________'''
 
@@ -301,7 +304,44 @@ def gtu_uniform_jnt_label_toggle():
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+def gtu_select_non_unique_objects():
+    ''' Selects all non-unique objects (objects with the same short name) '''  
+    
+    def get_short_name(obj):
+            '''
+            Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+                    Parameters:
+                            obj (string) - object to extract short name
+            '''
+            if obj == '':
+                return ''
+            split_path = obj.split('|')
+            if len(split_path) >= 1:
+                short_name = split_path[len(split_path)-1]
+            return short_name
+
+    all_transforms = cmds.ls(type = 'transform')
+    short_names = []
+    non_unique_transforms = []
+    for obj in all_transforms: # Get all Short Names
+        short_names.append(get_short_name(obj))
         
+    for obj in all_transforms:
+        short_name = get_short_name(obj)        
+        if short_names.count(short_name) > 1:
+            non_unique_transforms.append(obj)
+
+    cmds.select(non_unique_transforms, r=True)
+    
+    if len(non_unique_transforms) > 0:
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(len(non_unique_transforms)) + '</span> non-unique objects were selected.'
+    else:
+        message = 'All objects seem to have unique names in this scene.'
+    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        
+
 def gtu_import_references():
     ''' Imports all references ''' 
     try:
@@ -944,6 +984,7 @@ def gtu_build_gui_about_gt_tools():
 #gtu_remove_references()
 #gtu_uniform_lra_toggle()
 #gtu_uniform_jnt_label_toggle()
+#gtu_select_non_unique_objects()
 
 #gtu_copy_material()
 #gtu_paste_material()
