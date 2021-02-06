@@ -78,8 +78,9 @@
  Fixed issue where the spine controls would look locked when moving the cog control
  
  1.7 - 2021-02-05
- Fixed issue where the ik shoulders would sometimes flip when during a main control rotation
-  
+ Fixed issue where the ik shoulders would sometimes flip during a main control rotation
+ Unlocked translate Z for hip proxies
+ 
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
@@ -2200,8 +2201,8 @@ def create_proxy(colorize_proxy=True):
     cmds.setAttr(right_elbow_proxy_crv + '.scale', l=True, k=False, channelBox=False)
 
     # Legs
-    cmds.setAttr(right_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
+    #cmds.setAttr(right_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
+    #cmds.setAttr(left_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
     
     cmds.setAttr(right_hip_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
     cmds.setAttr(left_hip_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
@@ -2389,7 +2390,6 @@ def create_proxy(colorize_proxy=True):
     gt_ab_settings['right_knee_upvec_loc'] = right_knee_upvec_loc[0]
     gt_ab_settings['right_knee_divide_node'] = right_knee_divide_node
     gt_ab_settings['right_ball_pivot_grp'] = right_ball_pivot_grp
-    
     
     
     # Visibility Adjustments
