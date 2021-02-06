@@ -391,8 +391,8 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
 	menuItem 
     -l ("Select Non-Unique Objects")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_jnt_label_toggle()\");") 
-    -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
+    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_select_non_unique_objects()\");") 
+    -ann ("Selects all objects with the same short name. (non-unique objects)") 
     -image "gotoLine.png";
     
     // References
