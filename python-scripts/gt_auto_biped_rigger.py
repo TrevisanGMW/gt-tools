@@ -77,13 +77,13 @@
  Fixed another issue where the wrist joints would flip flipping 
  Fixed issue where the spine controls would look locked when moving the cog control
  
-
+ 1.7 - 2021-02-05
+ Fixed issue where the ik shoulders would sometimes flip when during a main control rotation
+  
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
-    Add option to colorize (or not) proxy and rig elements
-    Add option to not include forearm/eyes in the skinning joints
     Create button to add a shelf button for an animation picker
     
 """ 
@@ -115,7 +115,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.6"
+script_version = "1.7"
 
 # General Vars
 grp_suffix = 'grp'
@@ -3154,7 +3154,8 @@ def create_controls():
     cmds.setAttr(hip_switch_jnt + '.radius', ik_jnt_scale)
     change_viewport_color(hip_switch_jnt, ikfk_jnt_color)
     cmds.parent(hip_switch_jnt, skeleton_grp)
-    cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_switch_jnt)
+    hip_switch_constraint = cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_switch_jnt)
+    cmds.setAttr(hip_switch_constraint[0] + '.interpType', 0)
 
     # Left Leg IK
     left_hip_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_hip_jnt'), name=gt_ab_joints.get('left_hip_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
@@ -4842,7 +4843,8 @@ def create_controls():
     cmds.parentConstraint(left_ball_ctrl, left_ball_fk_jnt)
 
     # Left Arm
-    cmds.parentConstraint(left_clavicle_ctrl, left_clavicle_switch_jnt)
+    left_clavicle_switch_constraint = cmds.parentConstraint(left_clavicle_ctrl, left_clavicle_switch_jnt)
+    cmds.setAttr(left_clavicle_switch_constraint[0] + '.interpType', 0)
     cmds.parentConstraint(left_shoulder_ctrl, left_shoulder_fk_jnt)
     cmds.parentConstraint(left_elbow_ctrl, left_elbow_fk_jnt)
     cmds.parentConstraint(left_wrist_ctrl, left_wrist_fk_jnt)
@@ -5134,7 +5136,8 @@ def create_controls():
     cmds.parentConstraint(right_ball_ctrl, right_ball_fk_jnt)
 
     # Right Arm
-    cmds.parentConstraint(right_clavicle_ctrl, right_clavicle_switch_jnt)
+    right_clavicle_switch_constraint = cmds.parentConstraint(right_clavicle_ctrl, right_clavicle_switch_jnt)
+    cmds.setAttr(right_clavicle_switch_constraint[0] + '.interpType', 0)
     cmds.parentConstraint(right_shoulder_ctrl, right_shoulder_fk_jnt)
     cmds.parentConstraint(right_elbow_ctrl, right_elbow_fk_jnt)
     cmds.parentConstraint(right_wrist_ctrl, right_wrist_fk_jnt)
