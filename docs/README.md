@@ -1136,6 +1136,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <h3>Uniform Joint Label Toggle</h3>
 <p>Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).</p>
 
+<h3>Select Non-Unique Objects</h3>
+<p>Selects all objects with the same short name. (A short name is the name of the object without its path)</p>
+
 <h3>Import References</h3>
 <p>Attempts to import all loaded references.</p>
 
