@@ -648,7 +648,7 @@ with the provided prefix "Left Side Tag".</p>
 	<li> Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
 	<li> Automatic forearm rotation with support for stretched limbs.</li>
 	<li> Shelf button with Seamless FK/IK Switch for arms and legs.</li>
-	<li> Scalable controls that inflate/deflate the joint without affecting their children.</li>
+	<li> Scalable controls that inflate/deflate the joints without affecting their children.</li>
 	<li> Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
 	<li> Automatic breathing system without using expressions.</li>
 </ul>
