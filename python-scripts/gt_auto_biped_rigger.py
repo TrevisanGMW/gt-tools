@@ -81,6 +81,9 @@
  Fixed issue where the ik shoulders would sometimes flip during a main control rotation
  Unlocked translate Z for hip proxies
  
+ 1.7.1 - 2021-02-14
+ Fixed issue where "right_forearm_jnt" would rotate to the wrong direction
+ 
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
@@ -116,7 +119,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7"
+script_version = "1.7.1"
 
 # General Vars
 grp_suffix = 'grp'
@@ -6257,9 +6260,10 @@ def create_controls():
 
     cmds.connectAttr(gt_ab_joints.get('right_wrist_jnt') + '.rotateX', right_forearm_multiply_node + '.input1X', f=True)
     
-    right_forearm_reverse_node = cmds.createNode('reverse', name='right_forearm_reverse')
-    cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_reverse_node + '.inputX', f=True)
-    cmds.connectAttr(right_forearm_reverse_node + '.outputX', right_forearm_jnt + '.rx')
+    #right_forearm_reverse_node = cmds.createNode('reverse', name='right_forearm_reverse')
+    #cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_reverse_node + '.inputX', f=True)
+    #cmds.connectAttr(right_forearm_reverse_node + '.outputX', right_forearm_jnt + '.rx')
+    cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_jnt + '.rx', f=True)
     
     cmds.pointConstraint(right_forearm_loc, right_forearm_jnt) # Receive Position from Mechanics
     
