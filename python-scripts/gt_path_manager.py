@@ -48,6 +48,7 @@ import maya.OpenMayaUI as omui
 import maya.cmds as cmds
 import maya.mel as mel
 import time
+import sys
 import os
 import re
 

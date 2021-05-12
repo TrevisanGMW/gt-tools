@@ -38,6 +38,7 @@
 """
 import maya.cmds as cmds
 import copy
+import sys
 from maya import OpenMayaUI as omui
 
 try:

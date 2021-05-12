@@ -33,6 +33,7 @@ import maya.cmds as cmds
 import base64
 import json
 import math
+import sys
 import os
 
 # Script Name

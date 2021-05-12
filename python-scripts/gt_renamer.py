@@ -36,8 +36,9 @@
 """
 import maya.cmds as cmds
 import traceback
-import copy
 import random
+import copy
+import sys
 from maya import OpenMayaUI as omui
 
 try:

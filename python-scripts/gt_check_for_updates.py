@@ -70,6 +70,7 @@ from json import loads
 import maya.utils as utils
 import maya.cmds as cmds
 import threading
+import sys
 import os
 import re
 

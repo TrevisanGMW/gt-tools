@@ -15,6 +15,7 @@
 """ 
 import maya.cmds as cmds
 import base64
+import sys
 import os
 
 def gt_generate_icons():

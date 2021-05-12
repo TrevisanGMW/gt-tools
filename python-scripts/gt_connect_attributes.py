@@ -25,6 +25,7 @@
 
 import maya.cmds as cmds
 import maya.mel as mel
+import sys
 from maya import OpenMayaUI as omui
 
 try:

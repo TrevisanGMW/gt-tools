@@ -139,10 +139,13 @@
 //   1.7.1
 //	 Added GTU Select Non-unique Objects
 //
+//   1.7.2
+//   Updated Scripts so they are compatible with Python 3 (Maya 2022+)
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.7.1";
+global string $scriptVersion = "1.7.2";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 

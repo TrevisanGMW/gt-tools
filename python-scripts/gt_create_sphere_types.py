@@ -38,6 +38,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import maya.OpenMayaUI as omui
 import base64
+import sys
 import os
 
 # Script Version

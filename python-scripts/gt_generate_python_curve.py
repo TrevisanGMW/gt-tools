@@ -29,6 +29,7 @@
 """
 
 import maya.cmds as cmds
+import sys
 from decimal import *
 from maya import OpenMayaUI as omui
 

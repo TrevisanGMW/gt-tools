@@ -20,6 +20,7 @@ import maya.cmds as cmds
 import random
 import math
 import copy
+import sys
 from maya import OpenMayaUI as omui
 
 try:
