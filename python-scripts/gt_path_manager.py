@@ -19,6 +19,9 @@
  1.1 - 2020-12-03
  Added support for Image Planes
  
+ 1.2 - 2021-05-11
+ Made script compatible with Python 3 (Maya 2022)
+ 
  Todo:
     Add support for Goalem Nodes
         'SimulationCacheProxyManager', 'destinationTerrainFile', accepts_empty=True
@@ -52,14 +55,21 @@ import re
 script_name = "GT Path Manager" 
 
 # Version
-script_version = '1.1'
+script_version = '1.2'
+
+# Python Version
+python_version = sys.version_info.major
 
 def maya_main_window():
     '''
     Return the Maya main window widget as a Python object
     '''
     main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
+    
+    if python_version == 3:
+        return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    else:
+        return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
     
     
 def list_reference_pairs():
@@ -868,7 +878,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         
         # Set Window Icon
         qw = omui.MQtUtil.findWindow(window_name)
-        widget = wrapInstance(long(qw), QtWidgets.QWidget)
+        if python_version == 3:
+            widget = wrapInstance(int(qw), QtWidgets.QWidget)
+        else:
+            widget = wrapInstance(long(qw), QtWidgets.QWidget)
         icon = QtGui.QIcon(':/question.png')
         widget.setWindowIcon(icon)
         
@@ -919,7 +932,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         
         # Set Window Icon
         qw = omui.MQtUtil.findWindow(window_name)
-        widget = wrapInstance(long(qw), QtWidgets.QWidget)
+        if python_version == 3:
+            widget = wrapInstance(int(qw), QtWidgets.QWidget)
+        else:
+            widget = wrapInstance(long(qw), QtWidgets.QWidget)
         icon = QtGui.QIcon(':/search.png')
         widget.setWindowIcon(icon)
         

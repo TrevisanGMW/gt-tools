@@ -34,6 +34,9 @@
  1.6 - 2021-01-04
  Changed stretchy system so it doesn't use a floatConstant node
  
+ 1.7 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 try:
     from shiboken2 import wrapInstance
@@ -58,6 +61,9 @@ script_name = "GT - Make IK Stretchy"
 
 # Version:
 script_version = "1.5"
+
+#Python Version
+python_version = sys.version_info.major
 
 # Settings
 gt_make_ik_stretchy_settings = { 'ik_handle' : '',
@@ -133,7 +139,10 @@ def build_gui_make_ik_stretchy():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/ikSCsolver.svg')
     widget.setWindowIcon(icon)
 
@@ -298,7 +307,10 @@ def build_gui_help_make_stretchy_ik():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

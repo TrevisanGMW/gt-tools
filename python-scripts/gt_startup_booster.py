@@ -2,6 +2,9 @@
  GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-20 - github.com/TrevisanGMW
  
+ 1.1 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+  
 """ 
 try:
     from shiboken2 import wrapInstance
@@ -22,7 +25,10 @@ import maya.OpenMayaUI as omui
 import sys
 
 # Script Version
-script_version = "1.0"
+script_version = "1.1"
+
+#Python Version
+python_version = sys.version_info.major
 
 # Script Version
 script_name = "GT Startup Booster"
@@ -499,7 +505,10 @@ def build_gui_startup_booster():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(build_gui_startup_booster)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/out_time.png')
     
     widget.setWindowIcon(icon)
@@ -530,7 +539,7 @@ def create_shelf_button(command,
                 bgc_color (tuple):  A tuple containing three floats, these are RGB 0 to 1 values to determine the background of the icon
     
     '''
-    maya_version = cmds.about(v=True)
+    maya_version = int(cmds.about(v=True))
     
     shelf_top_level = mel.eval('$temp=$gShelfTopLevel')
     if not cmds.tabLayout(shelf_top_level, exists=True):
@@ -628,7 +637,10 @@ def build_gui_help_startup_booster():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

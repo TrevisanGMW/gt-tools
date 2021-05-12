@@ -14,6 +14,9 @@
  1.3 - 2020-11-15
  Tweaked the color and text for the title and help menu
  
+ 1.4 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 
 import maya.cmds as cmds
@@ -34,7 +37,10 @@ except ImportError:
 script_name = "GT - Text Curve Generator"
 
 # Version
-script_version = "1.3"
+script_version = "1.4"
+
+#Python Version
+python_version = sys.version_info.major
 
 # Font Variables
 default_font = 'MS Shell Dlg 2'
@@ -92,7 +98,10 @@ def build_gui_generate_text_curve():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/text.png')
     widget.setWindowIcon(icon)
     
@@ -169,7 +178,10 @@ def build_gui_help_generate_text_curve():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

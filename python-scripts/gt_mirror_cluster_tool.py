@@ -6,6 +6,9 @@
  1.1 - 2020-11-15
  Tweaked the color and text for the title and help menu
  
+ 1.2 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+ 
  To Do:
  Add option to mirror other deformers
  Mirror multiple clusters and meshes at the same time
@@ -30,7 +33,10 @@ except ImportError:
 script_name = "GT Mirror Cluster Tool"
 
 # Version
-script_version = "1.1";
+script_version = "1.1"
+
+#Python Version
+python_version = sys.version_info.major
 
 global_settings = { 'loaded_mesh' : '', 
                     'loaded_cluster_handle' : '',
@@ -140,7 +146,10 @@ def build_gui_mirror_cluster_tool():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/cluster.png')
     widget.setWindowIcon(icon)
 
@@ -208,7 +217,10 @@ def build_gui_help_mirror_cluster_tool():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

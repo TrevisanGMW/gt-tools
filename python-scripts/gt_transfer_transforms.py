@@ -27,6 +27,9 @@
  Changed the inverted behavior for when getting and settings to only apply when setting
  Managed the "get attribute" by storing full 32-bit precision value while showing truncated version (3f)
  
+ 1.5 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 try:
     from shiboken2 import wrapInstance
@@ -52,6 +55,9 @@ script_name = 'GT - Transfer Transforms'
 
 # Version:
 script_version = '1.4'
+
+#Python Version
+python_version = sys.version_info.major
 
 # Stored Values Dict - Get/Set Function
 gt_transfer_transforms_dict = { 'tx': 0.0,
@@ -455,7 +461,10 @@ def build_gui_transfer_transforms():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/transform.svg')
     widget.setWindowIcon(icon)
     
@@ -534,7 +543,10 @@ def build_gui_help_transfer_transforms():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

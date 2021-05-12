@@ -12,6 +12,9 @@
  1.3 - 2020-12-03
  Fixed an issue where shape nodes wouldn't reset properly
  
+ 1.4 - 2021-05-11
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 import maya.cmds as cmds
 import random
@@ -35,7 +38,10 @@ except ImportError:
 script_name = "GT Color Manager"
 
 # Version
-script_version = "1.3";
+script_version = "1.4";
+
+# Python Version
+python_version = sys.version_info.major
 
 gt_color_manager_settings = { 'current_color': [.3,.3,.3],
                               'default_mode' : 'Drawing Override',
@@ -445,7 +451,10 @@ def build_gui_color_manager():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/render_swColorPerVertex.png')
     widget.setWindowIcon(icon)
 
@@ -530,7 +539,10 @@ def build_gui_help_color_manager():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

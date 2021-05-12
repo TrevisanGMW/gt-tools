@@ -24,6 +24,10 @@
  1.4 - 20202-11-15
  Updated a few UI elements (color and text)
  
+ 1.5 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+
+ 
  To Do:
  Add Selection base on Shader name, Texture, TRS
  Add Apply function to outliner color
@@ -50,8 +54,10 @@ except ImportError:
 script_name = "GT Selection Manager"
 
 # Version:
-script_version = "1.4"
- 
+script_version = "1.5"
+
+#Python Version
+python_version = sys.version_info.major
 
 gt_sel_manager = { 'use_contains_string' : False,             # Active Functions
                    'use_contains_no_string' : False,
@@ -487,7 +493,10 @@ def build_gui_selection_manager():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/selectByHierarchy.png')
     widget.setWindowIcon(icon)
     
@@ -853,7 +862,10 @@ def build_gui_help_selection_manager():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

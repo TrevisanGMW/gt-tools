@@ -45,6 +45,10 @@
  2.0 - 2021-02-05
  Added "Select Non-Unique Objects" Utility
  
+ 2.1 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -83,7 +87,10 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "2.0"
+gtu_script_version = '2.1'
+
+#Python Version
+python_version = sys.version_info.major
     
 ''' ____________________________ General Functions ____________________________'''
 
@@ -966,7 +973,10 @@ def gtu_build_gui_about_gt_tools():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

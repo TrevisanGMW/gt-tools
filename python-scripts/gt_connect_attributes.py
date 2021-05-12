@@ -18,6 +18,9 @@
  Tweaked the title color and text
  Tweaked a few other colors
  
+ 1.6 - 2021-05-11
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 
 import maya.cmds as cmds
@@ -40,9 +43,11 @@ except ImportError:
 script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "1.5"
- 
+script_version = "1.6"
 
+# Python Version
+python_version = sys.version_info.major
+ 
 settings = { 'target_list': [], 
              'source_obj': [],
              'def_reverse_node': False,
@@ -310,7 +315,10 @@ def build_gui_connect_attributes():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/hsRearrange.png')
     widget.setWindowIcon(icon)
     
@@ -396,7 +404,10 @@ def build_gui_help_connect_attributes():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

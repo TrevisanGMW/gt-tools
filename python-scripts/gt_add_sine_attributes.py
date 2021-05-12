@@ -4,6 +4,9 @@
 
  1.0 - 2021-01-25
  Initial Release
+ 
+ 1.1 - 2021-05-10
+ Made script compatible with Python 3 (Maya 2022)
 
 """
 try:
@@ -28,8 +31,10 @@ import sys
 script_name = "GT - Add Sine Attributes"
 
 # Version:
-script_version = "1.0"
+script_version = "1.1"
 
+# Python Version
+python_version = sys.version_info.major
 
 # Main Form ============================================================================
 def build_gui_add_sine_attr():
@@ -93,7 +98,10 @@ def build_gui_add_sine_attr():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/sineCurveProfile.png')
     widget.setWindowIcon(icon)
 
@@ -217,7 +225,10 @@ def build_gui_help_add_sine_attr():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

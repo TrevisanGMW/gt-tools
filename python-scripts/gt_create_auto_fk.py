@@ -32,6 +32,9 @@
  1.7 - 2020-11-15
  Tweaked the color and text for the title and help menu
  
+ 1.8 - 2021-05-11
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 import maya.cmds as cmds
 import copy
@@ -52,8 +55,10 @@ except ImportError:
 script_name = "GT - Auto FK"
 
 # Version:
-script_version = "1.7"
+script_version = "1.8"
 
+# Python Version
+python_version = sys.version_info.major
 
 # Custom Curve Dictionary
 gt_auto_fk_settings = { 'using_custom_curve': False, 
@@ -446,7 +451,10 @@ def build_gui_auto_fk():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/kinInsert.png')
     widget.setWindowIcon(icon)
     
@@ -527,7 +535,10 @@ def build_gui_help_auto_FK():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

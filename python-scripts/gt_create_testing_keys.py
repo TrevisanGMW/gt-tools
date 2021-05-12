@@ -14,6 +14,9 @@
  Added a missing undoInfo(openChunk) function that would break the undo queue
  Udated a few incorrect comments
  
+ 1.2 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022)
+ 
 """
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
@@ -33,7 +36,10 @@ except ImportError:
 script_name = "GT - Create Testing Keys"
 
 # Version:
-script_version = "1.1"
+script_version = "1.2"
+
+#Python Version
+python_version = sys.version_info.major
 
 
 # Main Form ============================================================================
@@ -413,7 +419,10 @@ def build_gui_create_testing_keys():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/setMaxInfluence.png')
     widget.setWindowIcon(icon)
     
@@ -486,7 +495,10 @@ def build_gui_help_create_testing_keys():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     
