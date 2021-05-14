@@ -85,7 +85,7 @@
  Fixed issue where "right_forearm_jnt" would rotate to the wrong direction
  
  1.7.2 - 2021-05-10
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
  To do:
     Create ribbon setup for the spine ( add switch to the master control )

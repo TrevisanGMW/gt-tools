@@ -15,7 +15,7 @@
  Tweaked the color and text for the title and help menu
  
  1.4 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 

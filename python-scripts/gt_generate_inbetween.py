@@ -18,7 +18,7 @@
  Tweaked the color and text for the title and help menu
  
  1.5 - 2021-05-12
- Made script compatible with Python 3.0 (Maya 2022)
+ Made script compatible with Python 3.0 (Maya 2022+)
  
  To do: 
  Add option to use a different methods of position matching (use getAttr values)

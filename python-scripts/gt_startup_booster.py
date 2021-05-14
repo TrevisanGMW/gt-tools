@@ -3,7 +3,7 @@
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-20 - github.com/TrevisanGMW
  
  1.1 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
   
 """ 
 try:

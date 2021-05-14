@@ -33,7 +33,7 @@
  Tweaked the color and text for the title and help menu
  
  1.8 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 import maya.cmds as cmds

@@ -27,7 +27,7 @@
     Fixed issue where spaces would cause resolution check to fail
     
  1.4 - 2021-05-12
-    Made script compatible with Python 3 (Maya 2022)
+    Made script compatible with Python 3 (Maya 2022+)
 
  Todo:
     Add checks for xgen

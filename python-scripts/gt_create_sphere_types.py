@@ -13,7 +13,7 @@
  Adjusted the size of the spacing between buttons
  
  1.3.1 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
  To do:
  Improve the generate window to give better feedback

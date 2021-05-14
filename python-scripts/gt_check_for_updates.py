@@ -20,7 +20,7 @@
  Added threading support (so the http request doesn't slow things down)
  
  1.5 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
 
 
     Debugging Lines:

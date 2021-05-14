@@ -23,7 +23,7 @@
  Fixed way the curve is generated to account for closed and opened curves
  
  1.6 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
  
 """

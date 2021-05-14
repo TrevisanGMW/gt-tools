@@ -12,7 +12,7 @@
  Added Sanity Checks
  
  1.1 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 try:

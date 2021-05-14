@@ -19,7 +19,7 @@
  Tweaked a few other colors
  
  1.6 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 

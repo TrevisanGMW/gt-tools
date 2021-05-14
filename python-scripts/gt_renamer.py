@@ -22,7 +22,7 @@
  Removed a few unnecessary lines
  
  1.5 - 2021-05-08
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
  Todo:
     Add persistent settings for the selection type (Selected, Hierarchy, All)

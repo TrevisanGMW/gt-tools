@@ -28,7 +28,7 @@
  Managed the "get attribute" by storing full 32-bit precision value while showing truncated version (3f)
  
  1.5 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 try:

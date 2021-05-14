@@ -25,7 +25,7 @@
  Updated a few UI elements (color and text)
  
  1.5 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
 
  
  To Do:

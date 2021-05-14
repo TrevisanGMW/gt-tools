@@ -149,6 +149,9 @@ global string $scriptVersion = "1.7.2";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
+catchQuiet(python("import sys\nimport importlib\npython_version = sys.version_info.major"));
+
+
 // Recreate icons if the version is different
 if (`optionVar -exists "gt_tools_version"` && $scriptVersion != $installedVersion)
     {
@@ -190,37 +193,37 @@ setParent -menu gtToolsMenu ;
 menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     menuItem 
     -l ("Renamer") 
-    -c ("python(\"import gt_renamer\\nreload(gt_renamer)\\ngt_renamer.build_gui_renamer()\");") 
+    -c ("python(\"import gt_renamer\\nif python_version==3:\\n\\timportlib.reload(gt_renamer)\\nelse:\\n\\treload(gt_renamer)\\ngt_renamer.build_gui_renamer()\");") 
     -ann ("Script for renaming multiple objects.") 
     -image "renamePreset.png" ;
     
     menuItem 
     -l ("Selection Manager") 
-    -c ("python(\"import gt_selection_manager\\nreload(gt_selection_manager)\\ngt_selection_manager.build_gui_selection_manager()\");") 
+    -c ("python(\"import gt_selection_manager\\nif python_version==3:\\n\\timportlib.reload(gt_selection_manager)\\nelse:\\n\\treload(gt_selection_manager)\\ngt_selection_manager.build_gui_selection_manager()\");") 
     -ann ("Manages or creates custom selections.") 
     -image "selectByHierarchy.png" ;
     
     menuItem 
     -l ("Path Manager") 
-    -c ("python(\"import gt_path_manager\\nreload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ngt_path_manager.try_to_close_gt_path_manager()\\ngt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
+    -c ("python(\"import gt_path_manager\\nif python_version == 3:\\n\\timportlib.reload(gt_path_manager)\\nelse:\\n\\treload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\n\\tgt_path_manager.try_to_close_gt_path_manager()\\n\\tgt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\n\\tgt_path_manager_dialog.show()\");") 
     -ann ("A script for managing and repairing the path of many nodes.") 
     -image "annotation.png" ;
     
     menuItem 
     -l ("Color Manager") 
-    -c ("python(\"import gt_color_manager\\nreload(gt_color_manager)\\ngt_color_manager.build_gui_color_manager()\");") 
+    -c ("python(\"import gt_color_manager\\nif python_version==3:\\n\\timportlib.reload(gt_color_manager)\\nelse:\\n\\treload(gt_color_manager)\\ngt_color_manager.build_gui_color_manager()\");") 
     -ann ("A way to quickly change colors of objects and objects names (outliner).") 
     -image "render_swColorPerVertex.png" ;
     
     menuItem 
     -l ("Transfer Transforms") 
-    -c ("python(\"import gt_transfer_transforms\\nreload(gt_transfer_transforms)\\ngt_transfer_transforms.build_gui_transfer_transforms()\");") 
+    -c ("python(\"import gt_transfer_transforms\\nif python_version==3:\\n\\timportlib.reload(gt_transfer_transforms)\\nelse:\\n\\treload(gt_transfer_transforms)\\ngt_transfer_transforms.build_gui_transfer_transforms()\");") 
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
     -image "transform.svg" ;
     
     menuItem 
     -l ("Render Checklist") 
-    -c ("python(\"import gt_render_checklist\\nreload(gt_render_checklist)\\ngt_render_checklist.build_gui_gt_render_checklist()\");") 
+    -c ("python(\"import gt_render_checklist\\nif python_version==3:\\n\\timportlib.reload(gt_render_checklist)\\nelse:\\n\\treload(gt_render_checklist)\\ngt_render_checklist.build_gui_gt_render_checklist()\");") 
     -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
     -image "checkboxOn.png" ;
     
@@ -233,7 +236,7 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
 
     menuItem 
     -l ("Generate Python Curve") 
-    -c ("python(\"import gt_generate_python_curve\\nreload(gt_generate_python_curve)\\ngt_generate_python_curve.build_gui_py_curve()\");") 
+    -c ("python(\"import gt_generate_python_curve\\nif python_version==3:\\n\\timportlib.reload(gt_generate_python_curve)\\nelse:\\n\\treload(gt_generate_python_curve)\\ngt_generate_python_curve.build_gui_py_curve()\");") 
     -ann ("Generates the python code necessary to create a selected curve.") 
     -image "pythonFamily.png" ;
     

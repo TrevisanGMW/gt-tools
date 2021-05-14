@@ -10,7 +10,7 @@
  Creates fSpy Importer Icon
  
  1.2 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """ 
 import maya.cmds as cmds

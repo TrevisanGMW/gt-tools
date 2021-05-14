@@ -6,7 +6,7 @@
  Initial Release
  
  1.1 - 2021-05-10
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
 
 """
 try:

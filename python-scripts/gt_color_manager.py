@@ -13,7 +13,7 @@
  Fixed an issue where shape nodes wouldn't reset properly
  
  1.4 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022)
+ Made script compatible with Python 3 (Maya 2022+)
  
 """
 import maya.cmds as cmds
