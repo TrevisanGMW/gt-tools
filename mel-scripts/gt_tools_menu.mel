@@ -242,7 +242,7 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     
     menuItem 
     -l ("Generate Text Curve") 
-    -c ("python(\"import gt_generate_text_curve\\nreload(gt_generate_text_curve)\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
+    -c ("python(\"import gt_generate_text_curve\\nif python_version==3:\\n\\timportlib.reload(gt_generate_text_curve)\\nelse:\\n\\treload(gt_generate_text_curve)\\ngt_generate_text_curve.build_gui_generate_text_curve()\");") 
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
     -image "text.png" ;
 
@@ -252,7 +252,8 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     
     menuItem 
     -l ("Combine Curves")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
+    //-c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
     -ann ("Combine curves by moving all the shape objects inside one single transform.") 
     -image "nurbsCurve.svg";
     
