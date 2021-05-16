@@ -141,6 +141,7 @@
 //
 //   1.7.2
 //   Updated Scripts so they are compatible with Python 3 (Maya 2022+)
+//   Fixed issue where GT Path Manager would sometimes not open
 //
 //----------------------------------------------------------------------------
 
@@ -205,7 +206,7 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     
     menuItem 
     -l ("Path Manager") 
-    -c ("python(\"import gt_path_manager\\nif python_version == 3:\\n\\timportlib.reload(gt_path_manager)\\nelse:\\n\\treload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\n\\tgt_path_manager.try_to_close_gt_path_manager()\\n\\tgt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\n\\tgt_path_manager_dialog.show()\");") 
+    -c ("python(\"import gt_path_manager\\nif python_version == 3:\\n\\timportlib.reload(gt_path_manager)\\nelse:\\n\\treload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ngt_path_manager.try_to_close_gt_path_manager()\\ngt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
     -ann ("A script for managing and repairing the path of many nodes.") 
     -image "annotation.png" ;
     
@@ -232,7 +233,7 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     
     
 // -----------------------------------------CURVES------------------------------------
-menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
+menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
 
     menuItem 
     -l ("Generate Python Curve") 
@@ -252,14 +253,13 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
     
     menuItem 
     -l ("Combine Curves")
-    //-c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
     -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_combine_curves()\");") 
     -ann ("Combine curves by moving all the shape objects inside one single transform.") 
     -image "nurbsCurve.svg";
     
     menuItem 
     -l ("Separate Curves")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_separate_curves()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_separate_curves()\");") 
     -ann ("Separate curves by moving every shape object to their own separated transform.") 
     -image "curveEditor.png";
 
@@ -271,13 +271,13 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png"; //out_stroke.png
 menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     menuItem 
     -l ("Sphere Types") 
-    -c ("python(\"import gt_create_sphere_types\\nreload(gt_create_sphere_types)\\ngt_create_sphere_types.build_gui_sphere_type()\");") 
+    -c ("python(\"import gt_create_sphere_types\\nif python_version==3:\\n\\timportlib.reload(gt_create_sphere_types)\\nelse:\\n\\treload(gt_create_sphere_types)\\ngt_create_sphere_types.build_gui_sphere_type()\");") 
     -ann ("A reminder.") 
     -image "blinn.svg" ;
     
         menuItem 
     -l ("Convert Bif to Mesh")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_convert_bif_to_mesh()\");") 
     -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
     -image "nurbsToPolygons.png";
 
@@ -287,13 +287,13 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     
     menuItem 
     -l ("Copy Material")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_copy_material()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_copy_material()\");") 
     -ann ("Copies material to clipboard.") 
     -image "polyBakeSetAssign.png";
     
     menuItem 
     -l ("Paste Material")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_paste_material()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_paste_material()\");") 
     -ann ("Pastes material from clipboard.") 
     -image "polyBakeSetEdit.png";
 
@@ -306,49 +306,49 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
 
     menuItem 
     -l ("Auto Biped Rigger") 
-    -c ("python(\"import gt_auto_biped_rigger\\nreload(gt_auto_biped_rigger)\\ngt_auto_biped_rigger.build_gui_auto_biped_rig()\");") 
+    -c ("python(\"import gt_auto_biped_rigger\\nif python_version==3:\\n\\timportlib.reload(gt_auto_biped_rigger)\\nelse:\\n\\treload(gt_auto_biped_rigger)\\ngt_auto_biped_rigger.build_gui_auto_biped_rig()\");") 
     -ann ("Automated solution for creating a biped rig.") 
     -image "kinReroot.png" ;
     
     menuItem 
     -l ("Connect Attributes") 
-    -c ("python(\"import gt_connect_attributes\\nreload(gt_connect_attributes)\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
+    -c ("python(\"import gt_connect_attributes\\nif python_version==3:\\n\\timportlib.reload(gt_connect_attributes)\\nelse:\\n\\treload(gt_connect_attributes)\\ngt_connect_attributes.build_gui_connect_attributes()\");") 
     -ann ("Automated solution for connecting multiple attributes.") 
     -image "hsRearrange.png";
     
     menuItem 
     -l ("Mirror Cluster Tool") 
-    -c ("python(\"import gt_mirror_cluster_tool\\nreload(gt_mirror_cluster_tool)\\ngt_mirror_cluster_tool.build_gui_mirror_cluster_tool()\");") 
+    -c ("python(\"import gt_mirror_cluster_tool\\nif python_version==3:\\n\\timportlib.reload(gt_mirror_cluster_tool)\\nelse:\\n\\treload(gt_mirror_cluster_tool)\\ngt_mirror_cluster_tool.build_gui_mirror_cluster_tool()\");") 
     -ann ("Automated solution for mirroring clusters.") 
     -image "cluster.png";
     
     menuItem 
     -l ("Generate In-Between") 
-    -c ("python(\"import gt_generate_inbetween\\nreload(gt_generate_inbetween)\\ngt_generate_inbetween.build_gui_generate_inbetween()\");") 
+    -c ("python(\"import gt_generate_inbetween\\nif python_version==3:\\n\\timportlib.reload(gt_generate_inbetween)\\nelse:\\n\\treload(gt_generate_inbetween)\\ngt_generate_inbetween.build_gui_generate_inbetween()\");") 
     -ann ("Generates inbetween transforms that can be used as layers for rigging/animation.") 
     -image "hsGraphMaterial.png" ;
     
     menuItem 
     -l ("Create Auto FK") 
-    -c ("python(\"import gt_create_auto_fk\\nreload(gt_create_auto_fk)\\ngt_create_auto_fk.build_gui_auto_fk()\");") 
+    -c ("python(\"import gt_create_auto_fk\\nif python_version==3:\\n\\timportlib.reload(gt_create_auto_fk)\\nelse:\\n\\treload(gt_create_auto_fk)\\ngt_create_auto_fk.build_gui_auto_fk()\");") 
     -ann ("Automated solution for created an FK control curve.") 
     -image "kinInsert.png" ;
 
     menuItem 
     -l ("Create Testing Keys") 
-    -c ("python(\"import gt_create_testing_keys\\nreload(gt_create_testing_keys)\\ngt_create_testing_keys.build_gui_create_testing_keys()\");") 
+    -c ("python(\"import gt_create_testing_keys\\nif python_version==3:\\n\\timportlib.reload(gt_create_testing_keys)\\nelse:\\n\\treload(gt_create_testing_keys)\\ngt_create_testing_keys.build_gui_create_testing_keys()\");") 
     -ann ("Automated solution for making an IK system stretchy.") 
     -image "setMaxInfluence.png" ;
 
     menuItem 
     -l ("Make IK Stretchy") 
-    -c ("python(\"import gt_make_ik_stretchy\\nreload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
+    -c ("python(\"import gt_make_ik_stretchy\\nif python_version==3:\\n\\timportlib.reload(gt_make_ik_stretchy)\\nelse:\\n\\treload(gt_make_ik_stretchy)\\ngt_make_ik_stretchy.build_gui_make_ik_stretchy()\");") 
     -ann ("Automated solution for making an IK system stretchy.") 
     -image "ikSCsolver.svg" ;
     
     menuItem 
     -l ("Add Sine Attributes") 
-    -c ("python(\"import gt_add_sine_attributes\\nreload(gt_add_sine_attributes)\\ngt_add_sine_attributes.build_gui_add_sine_attr()\");") 
+    -c ("python(\"import gt_add_sine_attributes\\nif python_version==3:\\n\\timportlib.reload(gt_add_sine_attributes)\\nelse:\\n\\treload(gt_add_sine_attributes)\\ngt_add_sine_attributes.build_gui_add_sine_attr()\");") 
     -ann ("Create Sine function without using third-party plugins or expressions.") 
     -image "sineCurveProfile.png" ;
     
@@ -362,43 +362,43 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Reload File")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_reload_file()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_reload_file()\");") 
     -ann ("Reopens the opened file (to revert back any changes done to the file since it was first opened)") 
     -image "openLoadGeneric.png";
     
     menuItem 
     -l ("Resource Browser")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_open_resource_browser()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_open_resource_browser()\");") 
     -ann ("Opens Maya's Resource Browser. A good way to find icons or elements you may want to use.") 
     -image "bsd-head.png";
     
     menuItem 
     -l ("Unlock Default Channels")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_unlock_default_channels()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_unlock_default_channels()\");") 
     -ann ("Unlocks the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
     -image "Lock_OFF_grey.png";
     
     menuItem 
     -l ("Unhide Default Channels")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_unhide_default_channels()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_unhide_default_channels()\");") 
     -ann ("Unhides the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
     -image "RS_filter_list.png";
     
     menuItem 
     -l ("Uniform LRA Toggle")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_uniform_lra_toggle()\");") 
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "srt.png";
 	
 	menuItem 
     -l ("Uniform Joint Label Toggle")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_uniform_jnt_label_toggle()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_uniform_jnt_label_toggle()\");") 
     -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
     -image "QR_xRay.png";
     
 	menuItem 
     -l ("Select Non-Unique Objects")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_select_non_unique_objects()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_select_non_unique_objects()\");") 
     -ann ("Selects all objects with the same short name. (non-unique objects)") 
     -image "gotoLine.png";
     
@@ -407,13 +407,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Import References")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_import_references()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_import_references()\");") 
     -ann ("Imports all references.") 
     -image "reference.svg";
     
     menuItem 
     -l ("Remove References")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_remove_references()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_remove_references()\");") 
     -ann ("Removes all references.") 
     -image "referenceProxy.png";
     
@@ -423,19 +423,19 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Move Pivot to Top")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_move_pivot_to_top()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_move_pivot_to_top()\");") 
     -ann ("Moves pivot point to the top of the boundingbox of every selected object.") 
     -image "moveLayerUp.png";
     
     menuItem 
     -l ("Move Pivot to Base")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_move_pivot_to_base()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_move_pivot_to_base()\");") 
     -ann ("Moves pivot point to the base of the boundingbox of every selected object.") 
     -image "moveLayerDown.png";
     
     menuItem 
     -l ("Move Object to Origin")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_move_to_origin()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_move_to_origin()\");") 
     -ann ("Moves selected objects to origin according to their pivot point.") 
     -image "grid.svg";
 
@@ -444,19 +444,19 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
 
     menuItem 
     -l ("Reset Transforms")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_reset_transforms()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_reset_transforms()\");") 
     -ann ("Reset transforms. It checks for incomming connections, then set the attribute to 0 if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)") 
     -image "CenterPivot.png";
     
     menuItem 
     -l ("Reset Joints Display")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_reset_joint_sizes()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_reset_joint_sizes()\");") 
     -ann ("Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one.") 
     -image "kinJoint.png";
     
     menuItem 
     -l ("Reset \"persp\" Camera")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_reset_persp_shape_attributes()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_reset_persp_shape_attributes()\");") 
     -ann ("If persp camera exists (default camera), reset its attributes.") 
     -image "camera.svg";
 
@@ -466,27 +466,25 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Delete Namespaces")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_namespaces()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_delete_namespaces()\");") 
     -ann ("Deletes all namespaces in the scene.") 
-    //-image "rename.png";
     -image "renamePreset.png";
-    //-image "namespaceEditor.png";
     
     menuItem 
     -l ("Delete Display Layers")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_display_layers()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_delete_display_layers()\");") 
     -ann ("Deletes all display layers.") 
     -image "displayLayer.svg";
 
     menuItem 
     -l ("Delete Nucleus Nodes")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_nucleus_nodes()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_delete_nucleus_nodes()\");") 
     -ann ("Deletes all nodes related to particles. (Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)") 
     -image "nParticle.svg";
 
     menuItem 
     -l ("Delete Keyframes")
-    -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_delete_keyframes()\");") 
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_delete_keyframes()\");") 
     -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
     -image "keyIntoclip.png";
 
@@ -499,7 +497,7 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     menuItem 
     -l ("Startup Booster") 
-    -c ("python(\"import gt_startup_booster\\nreload(gt_startup_booster)\\ngt_startup_booster.build_gui_startup_booster()\");") 
+    -c ("python(\"import gt_startup_booster\\nif python_version==3:\\n\\timportlib.reload(gt_startup_booster)\\nelse:\\n\\treload(gt_startup_booster)\\ngt_startup_booster.build_gui_startup_booster()\");") 
     -ann ("Improve startup times by managing which plugins get loaded when starting Maya.") 
     -image "out_time.png" ;
     
@@ -533,13 +531,13 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
 
     menuItem 
     -l ("fSpy Importer") 
-    -c ("python(\"import gt_fspy_importer\\nreload(gt_fspy_importer)\\ngt_fspy_importer.build_gui_fspy_importer()\");") 
+    -c ("python(\"import gt_fspy_importer\\nif python_version==3:\\n\\timportlib.reload(gt_fspy_importer)\\nelse:\\n\\treload(gt_fspy_importer)\\ngt_fspy_importer.build_gui_fspy_importer()\");") 
     -ann ("Imports the JSON data exported out of fSpy (Camera Matching software).") 
     -image $fSpyImporterIcon ;
 
     menuItem 
     -l ("Maya to Discord") 
-    -c ("python(\"import gt_maya_to_discord\\nreload(gt_maya_to_discord)\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
+    -c ("python(\"import gt_maya_to_discord\\nif python_version==3:\\n\\timportlib.reload(gt_maya_to_discord)\\nelse:\\n\\treload(gt_maya_to_discord)\\ngt_maya_to_discord.build_gui_maya_to_discord()\");") 
     -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
     -image $mayaToDiscordIcon ;
     
@@ -552,9 +550,31 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
 // -----------------------------------------ABOUT------------------------------------
 
     menuItem -divider true ;
-    menuItem -l "Help" -sm true -to true -image "defaultOutliner.svg";
+    menuItem 
+    -l "Help" 
+    -sm true 
+    -to true 
+    -image "defaultOutliner.svg";
     
-    menuItem -l "About"  -c ("python(\"import gt_utilities\\nreload(gt_utilities)\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") -ann ("Opens about menu.") -image "help.png" ;
-    menuItem -l "Re-Build Menu" -c ("rehash; source \"gt_tools_menu.mel\" ;") -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") -image "refresh.png" ;
-    menuItem -l "Check for Updates"  -c ("python(\"import gt_check_for_updates\\nreload(gt_check_for_updates)\\ngt_check_for_updates.build_gui_gt_check_for_updates()\");") -ann ("Check for updates by comparing current version with latest release.") -image "RS_import_layer.png" ;
-    menuItem -l ("Installed Version: "   +  $scriptVersion) -en false -itl true -image "SP_FileDialogToParent_Disabled.png";
+    menuItem -l "About"  
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_build_gui_about_gt_tools()\");") 
+    -ann ("Opens about menu.") 
+    -image "help.png" ;
+    
+    menuItem 
+    -l "Re-Build Menu" 
+    -c ("rehash; source \"gt_tools_menu.mel\" ;") 
+    -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") 
+    -image "refresh.png" ;
+    
+    menuItem 
+    -l "Check for Updates"  
+    -c ("python(\"import gt_check_for_updates\\nif python_version==3:\\n\\timportlib.reload(gt_check_for_updates)\\nelse:\\n\\treload(gt_check_for_updates)\\ngt_check_for_updates.build_gui_gt_check_for_updates()\");") 
+    -ann ("Check for updates by comparing current version with latest release.") 
+    -image "RS_import_layer.png" ;
+    
+    menuItem 
+    -l ("Installed Version: "   +  $scriptVersion) 
+    -en false 
+    -itl true 
+    -image "SP_FileDialogToParent_Disabled.png";
