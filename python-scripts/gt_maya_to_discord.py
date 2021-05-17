@@ -36,6 +36,10 @@
  Changed the color of a few UI elements
  Removed a few unnecessary lines
  
+ 1.6 - 2021-05-16
+ Made script compatible with Python 3 (Maya 2022+)
+ Removed a few old unecessary lines
+ 
  Todo:
     Improve embeds for discord image uploader - Add colors, emojis and more
     Add option to deactive threading. (This should affect all send functions)
@@ -57,6 +61,11 @@ except ImportError:
     from PySide import QtWidgets, QtGui, QtCore
     from PySide.QtGui import QIcon, QWidget
 
+try:
+    from httplib2 import Http
+except ImportError:
+    import http.client
+
 import maya.OpenMayaUI as omui
 import maya.utils as utils
 import maya.OpenMaya as om
@@ -76,15 +85,17 @@ import sys
 import os
 from json import dumps
 from json import loads
-from httplib2 import Http
 
 
 # Script Name
 script_name = "GT Maya to Discord"
 
 # Versions:
-script_version = "1.4"
+script_version = "1.6"
 maya_version = cmds.about(version=True)
+
+# Python Version
+python_version = sys.version_info.major
 
 # Used to define multipart/form-data boundary
 _BOUNDARY_CHARS = string.digits + string.ascii_letters
@@ -106,7 +117,6 @@ gt_mtod_settings = { 'discord_webhook':'',
 
 # Default Settings (Deep Copy)
 gt_mtod_settings_default = copy.deepcopy(gt_mtod_settings)   
-
 
 def get_persistent_settings_maya_to_discord():
     ''' 
@@ -286,7 +296,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(icon_image) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTA3LTA1VDE5OjU2OjQwLTA3OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0wNy0wN1QxNToyNToyOS0wNzowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0wNy0wN1QxNToyNToyOS0wNzowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo3ZGNlNzRhMi04YTE3LTI4NDItOGEwMy1lZWZmYzRjNGVkYWEiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDpkNjdiM2JkNy1iMjk3LWI3NDItOTNkOC0wYTYyZjZhYzUzMmYiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDplOTM5YzQ0Yi1lNjdkLWJjNGMtYWMyZS00YmY3ZjcwYzgzODAiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmU5MzljNDRiLWU2N2QtYmM0Yy1hYzJlLTRiZjdmNzBjODM4MCIgc3RFdnQ6d2hlbj0iMjAyMC0wNy0wNVQxOTo1Njo0MC0wNzowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo3ZGNlNzRhMi04YTE3LTI4NDItOGEwMy1lZWZmYzRjNGVkYWEiIHN0RXZ0OndoZW49IjIwMjAtMDctMDdUMTU6MjU6MjktMDc6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7Q7fCFAAAIwklEQVR4nO3bf6xlVXUH8M/a5755w/BDfmaYCunAkyq22hFQbClia1sZMBicaIc2bWJqajQpwR9pY6TYKkk1jiBNbZpQq40mVCI60USjERqIP+LQoQRSx6hjfxEjTQpl+DXMu3cv/zjn3nnvdWbefe/O64Uw32TlnZx7ztrfvc7aa+299n6RmZ7PKNMmMG0cM8C0CUwbxwwwbQLTxjEDTJvAtPG8N0Dvpk8v/1AmOUBQGhI5TwZlFgOikuEkXCRskd6LH0f6taGe2iCJbHXp5mAR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'
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(icon_image, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -296,7 +307,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_desktop_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTExLTAzVDExOjU1OjM4LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0xMS0wM1QxMjoyNzoxMi0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0xMS0wM1QxMjoyNzoxMi0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpiZTc1ODU2NC04YThkLTQ2NDUtYmU2Yy1lMmY5ZmQwMWU0YjgiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDozYjViOWNhMy1lODgwLTgxNGQtYmFjOS1mNTNmNDExMWQ0MDciIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo5MGM2ZTQ5My0xZDNkLTNiNGQtODI0ZS1kN2JhZDRlNzQ1MzQiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjkwYzZlNDkzLTFkM2QtM2I0ZC04MjRlLWQ3YmFkNGU3NDUzNCIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDpiZTc1ODU2NC04YThkLTQ2NDUtYmU2Yy1lMmY5ZmQwMWU0YjgiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTI6Mjc6MTItMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7PHrkDAAAFDklEQVRYhe2XT2gUVxzHP+/N7M5kdetG6+ISY1sRak38Q7L9RwyUhlioh4aI1nry3EKgiKcWUS8tVQjkkAZbpLSRVg/anEzFYGJzsU5AAqUhpUuyQdckWje7+bPZnZnXQ3bDanbWikUv/Z5m5v3e+33e7733e78RSimep/ShoaH9QBOQAZ4FjQ5kgV/r6+t/1oEjruvWAdozcA6A4zhOIpE4EI1G0YG6qakpZ3BwUOq6LmzbRgjh2VkIUbJdKcXjllNKiWEYNDc3+zZs2LAR+FQH1JUrV/xdXV0xKeVV13V9QA7wplhqkyW+u5RZRiklVVVVq2tqat6LRCIvAm/oAJqmKV3Xe/r7+6uEEE1CCD/gPMa5KnqnjD2AVErds237m4GBgW8jkcg1YC0sbQiy2SyVlZWmlPJgJpPJ3rx5UxmGoQkhSs4mH+oVESplr5RCCEF9fX1ofHz85IkTJ+jv7884jgOg9EJoNE3LAvT09PhPnTqVBK4Bq8rMqhRcyWULBALi3Llzb7muG3Qc50MppZ0HWIpAXhLAMAyAHyzLaivjfFnRaPSxNtevXw8qpX6LxWKbWDpt9kNOAdRSXFV+h1f8G+dPIqWUVErJYucPATyicifgP5UXwDPT/wArAMql4adUyYFXACwsLHgaP4XmgYyUKwOuw3K2EoCorKxk27ZtGvBqmQGXR7Isq/DolrEPSCkDuq4X+i4fxeVMaNu2C7Bnzx62b9/eksvl3lFKlYyEEIISbV6XkBJCSJ/PVz07O5sB/CsAbNvmzp07i1NTUx/39vZ2GoaxxjRN23XdkjWCKLFRXNcteRcUNDs7+2BwcLBS1/VU8bWtAyIUColIJKKFw+GvOzo65oBawKR8WL2uY09pmpY+dOhQDDhSmIOwLEtls1nu379/LxwOT2iatoD3JtTyTh7k3yuANBAAVrO0DOWqEiNvuxUgGo1mdOBYX1/fSb/fvzYWi2n5imfFTKSUpNNpx3EcGhsb1/n9fjE5OTlXVVUVjMfjMyMjI2nTNCt8Pp/wgsiHXqbT6eTo6GgIMHXgi66uropMJrNFKeXLd14RgVwup9LptLtv377Vzc3NzRcuXMidP3/e6OjoWDRNc017e/v49PT0YCgUWi+l9HtBSClxXZdUKvU3MKoD9u3bt48BL1BmDY8ePbqupaWlzTCMg8lkcrS7u3vL3bt3OxKJxPDOnTvPdnZ2vhYIBL7fu3fvJ0CQ8kWuyPuaFUXnuFgm0AC8DmwCaoBXgOrh4eGR48ePr4/H46PAQSDe1tZ2ZPfu3V9t3rxZptPpqWAwaAG/AxPAQDQaHfYk8QDYqpT6BdgohJDz8/OZoaGh1KVLl8StW7fWp1Kpn4DPLcv6q1CQNDU1tYbD4Y6Ghoaquro65ff7RS6XyyUSiT9bW1s/AkpC6KU+AqYQYtPAwMD86dOnjUwmY87Nzc1ls9leoBu4YVnWg+IOfX19F4EbV69e/cDn8x0A3jxz5oxp2/ZW4Evg/ScBACAYDAZ27NgxcPjw4YvBYFCEQqFF0zSrgZdYWkdlWVZxVayA+ZmZmbPT09PfhcPh9rGxsVVAtZcPL4DU4uLi2K5du16ura1t1HX97bxD4bplc00BXAWDQaSUvrGxsSxlNrcXwGQ8Hu+cmJj4LJlMviCEkHkAz7+fR7KzkFKilHIuX77sB/7wAhCFur2EVgH7gXdZuk6L5ZXtHh2o8APzI9DvCfA89Q9+dgWL9W/IeAAAAABJRU5ErkJggg=='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_desktop_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -309,7 +321,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_maya_window_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTExLTAzVDExOjU1OjM4LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0xMS0wM1QxMjoyNTozNS0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0xMS0wM1QxMjoyNTozNS0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDphMmEzYWE2ZC00ZmE2LTViNDktYjJmYi04Y2VhOWEwMGE0OTQiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDozZjI0OTk0ZS0zM2Y2LWZhNDctODE1OC1lNjhiNzFiM2EyYTEiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo0ZTFhNDdlNi0wNTgyLWMwNDQtOWRhNy0yZDZkMWU5ODJiNWYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjRlMWE0N2U2LTA1ODItYzA0NC05ZGE3LTJkNmQxZTk4MmI1ZiIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDphMmEzYWE2ZC00ZmE2LTViNDktYjJmYi04Y2VhOWEwMGE0OTQiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTI6MjU6MzUtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7TOzviAAADuUlEQVRYheWXX0ybVRiHn+9ryzA0ICYOOivD6AWRQbr00wsB2xs3qSEgeAGR1OgFmOyCGAw0ImZxlTDvJKYJFxqhmvSKxN1IMGnsBLPU05o4scjMYDSMhUQ7/hRXSnu8KGDchbSugIm/y/Oe8/6enPfkzXsUKSXHKfVY3f8LAPpQKHQFqANKjshTAj9ZrdazAHqgaWFh4e709PR2LBY7UV5erqysrMjS0lIFIBaLSZPJpOTLXVVVHA6HRVGUH6SUZ/UAAwMDD8/Pzwerqqq+n5ubu1VdXX1mdnb2R+BkbW1tidfrvQGczhdETU1NM/AkZG6AVCrF6OjoFavV2qFpWuPY2Nh3MzMzk3V1ddeBTzVNe14IcTNP/gpwBri3D1BWVkZ3d/eXwC3gK+Dxnp6eKNAJvAFcBcx5ApBAEigEUIQQG4lEwqiq6prBYNgAioD43oZd0qI8me9J0TQtKKU8rwf0kUgkFY1GjTqd7oSqqql0Ol2kqmoynU7rAOPumiEfzqqqYrFY9MCzkClBocfj2Q6Hw9eAX8nU6FDl9XrPkSnD/hsoAN4VQnx72OaAAZgC/oC/d8KKIzAHQEqpAA/dD5CrBoGFB4V5EIB2oNLpdC4fB0Ax8DSA3W4/pWma5agBBqWUMb/fT2dnJ8ArhwlgJtOYloEbZBrT25OTkxGXy/V7QUEBQogBIArc3I0P5hNgbXNzcwo4BTw1MjKy3tfXl3S73c+l0+mRVCp1vr+/n1AoZAaeiMfjhq6urkFN07KCyAZgw263Oy9fvnw1Ho9TWVn5qN/vfyuRSLwMfKjT6abq6+svWiyWe4FA4I7NZlPD4XAc+CYbAH02m4QQG4Ctvb39VZ/P97nFYnmvoqKibDdc09TUdDEYDI719va2AZ8JIV7PJi/k+Ah9Pt8XwI7b7T7pcrkiwMfA9WQyeScYDL4GXMrFPGcAoAvYcTgc6eHh4Srgwurq6m8GgyHa1ta28y/y5XzAARS2tLSoQ0NDkzabjbW1tUeAZ0wmk95sNr95mAA6oHlpaeluY2MjExMTL8bj8Zc6OjpKPB7PbYCGhobTmqblNLrtj2RZKLW+vl7d2to6CwigWQhxezf2mNPpHFxeXn4faAE++oc8STJT0V8AW1tbAAdSFBcX/wxUCSF+uT82Pj5+SdO0T4DEQXkURUnueStCCAmQSqXiOp1u56DDeZACFGua9rWU8pweGAgEAh8YjcYiVVUPHUBKyeLi4jbwAoAipURRlHfIzGhH+TuKSCkvKP/73/GfvZZpfU8vP8IAAAAASUVORK5CYII='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_maya_window_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -322,7 +335,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_playblast_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAJ5WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjAtMTEtMDNUMTY6MTQ6MDUtMDg6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjAtMTEtMDNUMTY6MTQ6MDUtMDg6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiBJRUM2MTk2Ni0yLjEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6Zjk0YTBjMDUtZDZhMy0zOTQzLTgwNWQtOTkzMzZlNjg5OWEyIiB4bXBNTTpEb2N1bWVudElEPSJhZG9iZTpkb2NpZDpwaG90b3Nob3A6ODI3Nzc4MTctNjlhMC1mYzQ2LTgwYzAtMTkxMzJkNjlkZGQ0IiB4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ9InhtcC5kaWQ6Nzk5NGJlMmQtMTY5My1jNjRkLWI5Y2ItZjkzYzBiMmE0OGYxIj4gPHhtcE1NOkhpc3Rvcnk+IDxyZGY6U2VxPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0iY3JlYXRlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo3OTk0YmUyZC0xNjkzLWM2NGQtYjljYi1mOTNjMGIyYTQ4ZjEiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTE6NTU6MzgtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0iY29udmVydGVkIiBzdEV2dDpwYXJhbWV0ZXJzPSJmcm9tIGltYWdlL3BuZyB0byBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9zaG9wIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo1ZTI0ZjJlMC1iNDEwLTgwNGUtYTNhZi1kYWQ5MGVmZGEzMGIiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTM6NTc6MTYtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0ic2F2ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6YjY1ZWJjZmMtMGMxYS0wMDQ0LTk1NDItYzllNjkwOWRhM2QyIiBzdEV2dDp3aGVuPSIyMDIwLTExLTAzVDE2OjE0OjA1LTA4OjAwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHN0RXZ0OmNoYW5nZWQ9Ii8iLz4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNvbnZlcnRlZCIgc3RFdnQ6cGFyYW1ldGVycz0iZnJvbSBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9zaG9wIHRvIGltYWdlL3BuZyIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0iZGVyaXZlZCIgc3RFdnQ6cGFyYW1ldGVycz0iY29udmVydGVkIGZyb20gYXBwbGljYXRpb24vdm5kLmFkb2JlLnBob3Rvc2hvcCB0byBpbWFnZS9wbmciLz4gPHJkZjpsaSBzdEV2dDphY3Rpb249InNhdmVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmY5NGEwYzA1LWQ2YTMtMzk0My04MDVkLTk5MzM2ZTY4OTlhMiIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxNjoxNDowNS0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIiBzdEV2dDpjaGFuZ2VkPSIvIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpiNjVlYmNmYy0wYzFhLTAwNDQtOTU0Mi1jOWU2OTA5ZGEzZDIiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6Nzk5NGJlMmQtMTY5My1jNjRkLWI5Y2ItZjkzYzBiMmE0OGYxIiBzdFJlZjpvcmlnaW5hbERvY3VtZW50SUQ9InhtcC5kaWQ6Nzk5NGJlMmQtMTY5My1jNjRkLWI5Y2ItZjkzYzBiMmE0OGYxIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+sI+MuwAABUBJREFUWIXFl39I1Gccx1935+p0wmztxGYIGxEy3KB1U1sSLUrYgnKbGCS5CIz9QEMYWynsFzK2wrYkMrbGMoggWF32w8gDDwvd8n0zHK2MYebI2qyDmLb8dc/+8PsVtfuRbrA3HHf3fT6f5/16nu/3+zyfx2GM4f9UAkAwGHyU2LlAAfAm8Arw1LT2O0Az8APgA4bidbh06VIcxhiCwSBerzdikKQngI+BCvva3bt3B69cufLY7du35wB4PB4WLVpEenr6RN7o6GhtQkLCR16v914siJgAkt4CDgL09vberK2tTW9ra2NoaAigG/gF6LPCn3a73S/k5uY+U1xczJIlSwAIhULv5Ofn749KYIxBUiTzbyWZQCBwKysrywAGaGH8NiTGGFQiUJCdnd1x7NgxI8kcPnw4MCMASSckmZ07d/5iGXcBOTFMoymnsrIyJMnU19f3PBKApO8kmYqKisuW+VezMJ6iqqqq85LM7t27b8QEkLRRktm1a5dt/sG/NbdVV1d3QZLZvHlzICKApARJpqWl5U/LfE+kjiS9KiltNhB+v/+eJJOYmLjJvuac1P41QElJiQe4DmyLYF4NnAFuNTY2fjpTgJSUlByAsrKyQ1hrkA3gBN7r6+vr7+npAXgtSh+vj42NjXV1deHxeD7y+/1/SHrkh9Pr9V598ODBr0VFRTidzj2TAQoAqqurPcDPwNUofTx1586dseLi4qHS0tKucDicCvzY1NTUKmn6yhhRbrd7G8DKlSvfBZw2QAnAxYsXAT6MkT/idDoTgJsdHR2Z+fn5Lx08eHBw3rx5y4D+M2fOlMUD8Hq9foC1a9cCFNgAa0Kh0N/Wb3+MfONwOAwwx/qvvXv3JpeXl9d1d3eTmppae+rUqcuSUuNw9Obk5ACU2ABJly5dmgP0xhtBJLW2tr5bVFSUdeDAgT/S0tKeGxgY+H3r1q2ZMVJ+crvdAGsm3oL+/n4X8NNsACxd3r9/f9r69es/SU5OnrNw4cIOHt4xbd22vpMSojTMSpJcjG/bSHIDO4EtsXImZmD+/Pn/xhtJrwGDwI7m5ua2hoYGgPNRwicWMnsG7mdlZSVNbpiBcRLwDVA8Ojo6WFZW5mxvb18GfAF8HyUtZ3h4eAxw2TPQlJaWBvF3PNc08zcYH3Wx3++/mpub+3h7e/sgsArYEaOfDEnDwH0b4BBAdnZ2RhwAx8jICB6PxyXpFPDD0NBQaMuWLWzfvj2T8eV8HuOlWURJWg3g8/kSgSYbwAdQXl4OsDoGwI0FCxa4GhsbFwBrfT7fb8uXL3+ys7OzD3iZSWVbDH0JEAgEAA7ZAOFwOLwvMzOTxYsXR9wFLb1/7dq1v44fP86KFSuorq5eBHwOpANt8ZwlZQIvnj59uj8cDgP4HtqOGxoaDBBrEckDLjD+4CXHM50G0C3JuFwuA+wFphYkra2tmySZysrKmJXsbCRpjySzbt06u95IeAgA4MiRIwFJpqqq6sJ/aP6BJLNv3z670to40RipKK2vr79hJURbSGZi/pUkc/ToUdv8uykB0crympqaHknm3LlzoZkUHZOMcyR1WQOxq+sTDwVGAwAoLS0NSDKSTHNzc4ekAklRzwSSEq2YFjuvsLDwlmX+baScuEezjIyMtwsLC+s2bpxy2647HI5OJp2KgOeBZ+2YkydP3qypqUkfGBgA2AzUzwrA0hNJSUmf5eXlla9atQqv10tKSsqUgMHBweFgMDhy9uzZxwOBAMPDwzB+pvgUiP5WGWOYwRF9LrABOAr0Mz61kz/9VtsGKzau/gFGuKBUsRuTMAAAAABJRU5ErkJggg=='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_playblast_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -336,7 +350,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_obj_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTExLTAzVDExOjU1OjM4LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0xMS0wM1QxMjo0Njo1MC0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0xMS0wM1QxMjo0Njo1MC0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDphODY0N2JkMS0zMjYzLTBjNGYtOGY4OS00NzNhYTc5NDY4MjQiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDo3MDMzNGVkMi02YWQwLWZmNDctYWNkNi0xNzI2YTY1NjYzMjciIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo3ZWJlMzQwNy03NWI4LWYwNGEtOGU3Ni0xMzIwMmM3MGI3NWYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjdlYmUzNDA3LTc1YjgtZjA0YS04ZTc2LTEzMjAyYzcwYjc1ZiIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDphODY0N2JkMS0zMjYzLTBjNGYtOGY4OS00NzNhYTc5NDY4MjQiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTI6NDY6NTAtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz6cG5g7AAAEzElEQVRYhcWWbWxTVRjHf7fcDjXYAhoN2T5AACMRqMplEj6MhZfFwQiIBKLWrsniJmEbiYnJqMlc7NAPpibEppka5wYZCQtZNqVIFvYCH7qlnAKR2SFLJL5tIYXOzXbMvdzjh93WuYyxFcz+yU37nPv0/n+3z3nOOYqUkvmUChAKhWbK8QDFQNoj8owBEvhlw4YN69QHJNcCjsHBwb+8Xq8JAzgV6bpOb28vRUVFi2w2G8BaRVGuz/TAasDR19fXH4lEljQ0NPwKVAJKqhAHDhxYsX79+ve7u7vj6enpFmDt/QBqAYfD4TizadOm/QUFBTrwuxDiq1TNgXeAss7OzmMej6esvr4eIGqaJvEE4HC73S3hcHi/3W4/qyjKCGB7SPMvOzo6/MXFxR/s2bPHpygKwJKpAN8Ab1dWVrY2NTVtA3ZaLJaYrusmYCxF8yLD/GxJSckuwG232y8b95TJAD7AuW/fvtONjY1bgV1CiO+Bfl3XJRMzNxXzqkAg4C8pKckDPhJClAPjiYTEHPgUOHTnzp0/s7OzDzqdzmqLxZIL7AS2LVy4UHW5XI8Bn8/BPAaUdXR0+EtLS3cZ5h9OTVKklIRCITkwMDAQiUSsGRkZuqqqY1JKRUopVVU1m0wmZWhoCLPZPDobZyklaWlp5q6urm6n07kGcBtvntCbQJ2maf/2tdvttra3t98yyFdgtFtVVdUCTdMWZGVlAfzNLNuwra1NvXnz5hrg9BTz/ygJoKoqwHtCiMYpObtramo8wGohxJOzMTd012q1LgIGZkpKApjNZgDzNDnfeb1egOfmYA5GeQHLrAAMTbfefyGE2AqsniNAQjN2z3QL0VTZgFWapvWkCDCjZgNwMD8//wdg1XwBRFeuXOkA1s0XQFN5efk1oHe+AHrj8fgocPf/AJjNAcO+ZcsWgFfnCyBLCOEH7HN9+AznzeRmNJsSlAGnNE17Y47+48PDw/fbRfvnApARjUaHc3JyTgG3gJPG+NdGXGDE1414BZABLM7JyUlrbm7ebYzfAn4GLgKfzAVgQV1dXTQej0f6+vr66+rqdmuadhL4LRwOqy6X62NN0wqAn0Kh0FN5eXkXPR7PMimlHBwcVG7cuPFEMBh8JhgMPnvu3LmnI5HIZuDl1tbWKDBRJyGEzM3NlcBbQgiM67AQokIIAfAjcBjYDviBY8Z4hRHvNeIzRpweDAbvulyuceAPY8xvMpn8gUBg5Pjx40NMlKY2OQmNM1pCrwPeK1eutBcWFlYIIV6YdO9C4osQomLyj4QQ+yeFitVqHQW+FUIcYmJJvyalvHDkyJFXgEYgP1kCXdcTJVkGjJw/f95bWFiYDSx+UI3uI8VkMimAFXgRuBaLxS5v3LhxO9AphHgNJrXh7du3qaio2AycqK6ufsnn8zVPvJSoTRHA3NPToy9duvRx4GosFgtmZ2dnAm1CiJxEUvIfiMfj2Gy2ZYFAoMHn8119SHOAcGZmprm5uXnv2NjYRcO81djak0qeCS9dusTo6Oi7fr9/x/Lly++VlpbWP4S5BD4DVnd1dfU7nc4lQIsQYvvkJE3TkgDdwPNSSqlMmY2pStf1kZaWluGjR49agAtCiB1TczRNm2hDY8nsNsjHjc9Hcd0DamYC/Qfb3R8nqSPZYgAAAABJRU5ErkJggg=='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_obj_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -349,7 +364,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_fbx_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTExLTAzVDExOjU1OjM4LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0xMS0wM1QxMjo1NjozOS0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0xMS0wM1QxMjo1NjozOS0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozY2U2OWNjNy1lODkwLTVlNGEtOWI3Mi1kZTFjMzA4ZWU0Y2EiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDo5MDFkZGY4NC1jNzIyLWFiNGQtYTI3Yi1hYjZkNDg3NGEwMzMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo3NGEyNGY5Yi1lZWZlLWYwNGYtOWI2Zi01NmRhZWIyNDBjNGQiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjc0YTI0ZjliLWVlZmUtZjA0Zi05YjZmLTU2ZGFlYjI0MGM0ZCIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDozY2U2OWNjNy1lODkwLTVlNGEtOWI3Mi1kZTFjMzA4ZWU0Y2EiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTI6NTY6MzktMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4KTpaaAAAGLElEQVRYhcWWb2hU2RnGf+ece2fGQSdmolXQBoWKEXbV1sT1i23YTaqNXWxlaxdNswEtspCYT6WaioXGQqH4xUooLaTdhUJXSqqiFFM3tiBGkxtiachkhLTWHZKaxMRkopNM5p7TD7kzOxlnoptd6AuXe7nnve/z3HOe948wxvD/NAugt7d3KZ/zQAPg+4IwZwAD/GfXrl2vWy9x/gCom56ejl+8eFHiEV6Oaa0ZHh7mxIkTK3fs2AHwmhDin0sFbAPqRkZGJsfGxorb29sfAecAsVwShw8f3rx9+/YfRSKRZxs2bAgBrxUi8AFQV1dX96c9e/a8c+zYMQ3EHMf57XLBgR8Cp+7evfvz8+fPn7p06RLAhMzj+CFQ19LS8vHAwMA7tbW114QQSWDH5wT/TVdX1/WGhoafHDx4sFUIAVCcS+B3wA/OnTvXeeXKlbeAmlAoNKO1lkBqmeAnPPBrjY2NB4CW2traHm9NZBNoBeoPHTr00eXLl98EDjiO8xdgUmttWFDucsB/fefOneuNjY3fBn7mOM5ZwE07pDXwS+D98fHxp5WVld+vr69vC4VC3wJqgLf8fr/V3NwcAH71GcBngFNdXV3XT548ecAD/2mukzDG0Nvba6ampqbGxsaKNm7cqJVSKa01WmutlFLGGCuRSBAIBJJSSiG8Ayxkxhh8Pp/d398fqa+v3wa0eH+etiPAH8rLyz/N60gkUjQyMjI5MDAwl0gkwgBCCIwx8+3t7fNDQ0MAz7xds3w+n9y3b58qKyuTaT7ZVbWmpsY8ePBgG/BRDvgiyxDQWlNSUvJw9erVo9kOw8PDT4eGhv4BXInH4wPZ38bj8eq+vr53Hz9+vC43sN/v31tUVGQBU0vtVkaEyWQS8ghtbm4uBTzKAQdAKZWybbtQdghvR0KvREBKiVIqXzABzBV4L6SUeikAXpI9GQJ+vx9jzAvi8gSXT3TGdd1ll+UXCFiWheu6dq5DMBi0CxBIKaU+N4GMCIeGhnj48OFkSUnJJ+l3gUDAKi0tXd3W1nYAKMr6zgDPgsHgf7u7u6OxWEyYBUMpJZVSoqys7LMR6Onpoaur667P5/sbgFJK+P1+0dTU9LX9+/e/9+jRozf49DyF1nr+xo0bfz179uy1YDDYZ4yxXNfVfr9fKKXUkSNHvgeoVyagtWZ2drZ7dna2M2tdHD161HVd991YLFYqhMgIyhjDyMhIdSqVuj09Pf3nNNjz588NIC3LmuUVhpgMAdu2AUw8Hs/NBPHkyRPjgWbO3HVdo7X2AeF4PG5Y3KzcaDT6VAix6mUEMiJUSlGIcb7sABBCaAoPKMNSymSBtUwzyhDwymm+ASVvnntlukB8AB5rrdPzX65Nph8ygB6BfH8zk4+ElFIkk8m8bToajSoguHfv3rUdHR1vA//2lgzwCbDyBQJbtmyhqqpqDzCfE+/5hQsXfhGNRn9s27aSUqK1RkrJmjVr7NbW1gpy6v3WrVtXDg4OFicSidTg4GDQsiwFiPHx8VRFRcWX165da3V2dk4A4Uw7vnr1Kps2bboRDoefZAeLxWKjDQ0NN4F/AV8CbEAWFxfLM2fOfHXz5s3btdbKsqxFxFetWvX1e/fuWc3NzRq47+0at2/fru7p6Uk1NTWtAD7M7EAikSCZTPonJiZKsgONjo4KYGU8Ho8AkawlFY/HTX9//1disdiG3GMIh8NFgUDABf7oOM77LMyU940xN5uamt4ALgPvLSrFtm3PS7nwKn03C0rLJyTh8/l0vmYkpcSyLNsYE2Chgu4E7s/MzPRUVFRUAXcdx/ku5HRDb/hESim0XhQ3LwHXdfNN1WmNyGg0SjgcXgH0zczMdFdWVlYAtxzH+WYGN/0wNzeHMUZ6o5gplPvZ5rquKOQ3MTExunv3brujo+M7qVTq75WVlbuBTsdx3sz2y2hg3bp1rFixAsC2bVsJIYRlWWr9+vX6+PHj26LRaDXgx0tVKaUKhUKvFxUVlc7Pz4e9yZn0zOj3+wM7d+5U/f39k/X19d8APnYcp+qFbfSyIAKUGWPMywbOV7VUKuXeunXr2enTp0PATcdxqnN9ysvLF5qKV9EiLJy1692/iCsB/H4pov8DCy25+irlAG4AAAAASUVORK5CYII='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_fbx_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -362,7 +378,8 @@ def build_gui_maya_to_discord():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(send_message_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDggNzkuMTY0MDM2LCAyMDE5LzA4LzEzLTAxOjA2OjU3ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjEuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTExLTAzVDExOjU1OjM4LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMC0xMS0wM1QxMzoyMDowOC0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMC0xMS0wM1QxMzoyMDowOC0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo0YmU0YzBlZi05OWYzLTliNDItYTIwOC0xNTRiZDFhOGQyOTMiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDozMWQyOGU2MC1jZTlhLWMwNDktODY3ZS1hMTE1M2Y1ZDVlNTYiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDplN2EzZjY5NC1jNDAxLTllNDYtYjAyZC1hOTA4MmEwODc0MmUiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmU3YTNmNjk0LWM0MDEtOWU0Ni1iMDJkLWE5MDgyYTA4NzQyZSIgc3RFdnQ6d2hlbj0iMjAyMC0xMS0wM1QxMTo1NTozOC0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIxLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo0YmU0YzBlZi05OWYzLTliNDItYTIwOC0xNTRiZDFhOGQyOTMiIHN0RXZ0OndoZW49IjIwMjAtMTEtMDNUMTM6MjA6MDgtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMS4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7oCTqAAAADaElEQVRYhe2XTUhcVxTHf/eNzles2ZXoIlMIpISIDfV10ZrABIKJIi5TqkQFqQwUW5DioogUrasuQiRuQnBhAlmKRsgHQYgjScHrgLGII51NakKN1fapYdCZNzeL9950ZpqRxJngIvnDg/dxzj2/e855990nlFIcpLQDjf4BACgBmJubK2SMHmAAmAPuAdeBZ8Bp4CJwDvgUOAM8cpxqamqA4mQgCbiBL4GflVJP4/H4FBAGuoATgNbW1hbWdf0rx0kIAdgZKFBXW1tbD3u93r5gMEhzc7Pm8/nObm1t7Y6MjLhnZ2dZXV3FMAzNhs1SMQB2FxcXB4FrkUjkWCAQuFJbW3uqr6/PHQ6HXwC/AlPAn8DGuwBASrmLVfdnwAPgVCqVAuiQUk7u5esAHKfwfvjbPjwAbrcbIAUcBfw5tilgORNgHvAWEn1tbe1WfX3991JKAEzTxIZ5CHySaauU2gGqgWUHwAsQi8WIx+P7AhgbG/sG+AcwId3lSWAyGo1+m0gkPABVVVUIITxYk/Zl9UBnZyeGYfwOvNwXBUSAzwBcLhdYZe1qaWkB+AJgenq6xu/3l2BP2gFQgPD7/RiGEZRSfg748gR5Afy2B8RQxrkLQErZlXHvX+Cwc5GVgZ2dHYAy4H6+0be3t58Gg8GvpZR7Qbyxsjrfrlsc+CufQzQaPYq13BZFWQD2u6sBR/I5VFRUAKwVCyCrBB6PB6wu7h0dHf3ldQ4rKysAgWIDCICNjQ2wmm9waGgIMpolR38UEDP1OoAEUNrb20tdXV0PkHQWlDw6CVzJuXcHuJuOYpVTAN9hrbSOPkom//smOQClAA0NDdgOb635+fkLHR0dPzjgNoAJXHbGTwctKQFr0mmAS/39/Tf2E9jR0tLScaANu0E1TXMAmgYGBiaVUi7H1s5AaSbAzYmJCbA2FoUoArRD+pV2AbfHx8cbgcoc291MAKSUNwsM7mgbYH19HezmllLezTXSdZ0sgCLoEHAeqwyEQiFisdjHWFkw8zkJpVShm9J2YJCMFG9ubqbKy8s1AKVUQgjxHGgCnjg2uq6jlCrKprQSqDRNk5mZGbq7u2lsbNSGh4dfLiwsIIQoBQKhUOieruvV//NWSlGE37OfsL6oCWASa7ZlwI/AY/uZAmpzY4sP/4bvPcAr3RsqGl/Oz1oAAAAASUVORK5CYII='
-        image_64_decode = base64.decodestring(image_enconded)
+        #image_64_decode = base64.decodestring(image_enconded)
+        image_64_decode = base64.b64decode(image_enconded)
         image_result = open(send_message_btn_ico, 'wb')
         image_result.write(image_64_decode)
         image_result.close()
@@ -370,8 +387,6 @@ def build_gui_maya_to_discord():
     if os.path.exists(send_message_btn_ico) == False:
         send_message_btn_ico = 'renamePreset.png'
 
-
-    
     cmds.separator(h=5)
     cmds.separator(h=7, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 100),(2, 143),(4, 37)], cs=[(1, 18),(2, 0),(3, 0),(4, 0)], p=content_main)
@@ -402,21 +417,6 @@ def build_gui_maya_to_discord():
     attached_message_txtfield = cmds.textField(pht='Attached Message (Optional)', text="")
     cmds.separator(h=10, style='none') # Empty Space
     
-    # send_desktop_btn_ico = cmds.button(l ="Send Entire Desktop", bgc=(.6, .8, .6), c=lambda x:send_dekstop_screenshot())  
-    # cmds.separator(h=5, style='none') # Empty Space
-    # send_maya_window_btn_ico = cmds.button(l ="Send Maya Window", bgc=(.6, .8, .6), c=lambda x:send_maya_window())   
-    # cmds.separator(h=5, style='none') # Empty Space   
-    # send_viewport_btn = cmds.button(l ="Send Viewport", bgc=(.6, .8, .6), c=lambda x:send_viewport_only())                                                                                             
-    # cmds.separator(h=5, style='none') # Empty Space
-    # send_playblast_btn_ico = cmds.button(l ="Send Playblast", bgc=(.6, .8, .6), c=lambda x:send_animated_playblast())                                                                                                                                                                                      
-    # cmds.separator(h=5, style='none') # Empty Space
-    # send_message_btn = cmds.button(l ="Send Message Only", bgc=(.6, .8, .6), c=lambda x:send_message_only())                                                                                                                                                                                      
-    # cmds.separator(h=10, style='none') # Empty Space
-    
-    # cmds.rowColumnLayout(nc=2, cw=[(1, 130),(2, 130),(3, 5)], cs=[(1, 10),(2, 0),(3, 0)], p=content_main) 
-    # send_message_btn = cmds.button(l ="Send OBJ", bgc=(.6, .8, .6), c=lambda x:send_model_obj())    
-    # send_message_btn = cmds.button(l ="Send FBX", bgc=(.6, .8, .6), c=lambda x:send_model_fbx())                                                                                                                                                                                      
-    # cmds.separator(h=10, style='none') # Empty Space
     
     cmds.rowColumnLayout(nc=1, cw=[(1, 260),(2, 1),(3, 5)], cs=[(1, 10),(2, 0),(3, 0)], p=content_main)
     send_message_btn = cmds.iconTextButton( style='iconAndTextHorizontal', image1=send_message_btn_ico, label='Send Message Only',\
@@ -466,8 +466,6 @@ def build_gui_maya_to_discord():
                                         command=lambda: send_model_fbx())
                     
     cmds.separator(h=10, style='none') # Empty Space
-    
-    
     
 
     
@@ -901,7 +899,10 @@ def build_gui_maya_to_discord():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(icon_image)
     
     widget.setWindowIcon(icon)
@@ -1015,7 +1016,10 @@ def build_gui_help_maya_to_discord():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     
@@ -1136,7 +1140,10 @@ def build_gui_settings_maya_to_discord():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/toolSettings.png')
     widget.setWindowIcon(icon)
     
@@ -1238,7 +1245,10 @@ def capture_desktop_screenshot(image_file):
     '''
     app = QtWidgets.QApplication.instance()
     win = omui.MQtUtil_mainWindow()
-    ptr = wrapInstance(long(win), QtWidgets.QMainWindow)
+    if python_version == 3:
+        ptr = wrapInstance(int(win), QtWidgets.QMainWindow)
+    else:
+        ptr = wrapInstance(long(win), QtWidgets.QMainWindow)
     screen_number = app.desktop().screenNumber(ptr)
     screen_geometry = app.desktop().screenGeometry(screen_number)
     frame = app.primaryScreen().grabWindow(0, screen_geometry.x(), screen_geometry.y(), screen_geometry.width(), screen_geometry.height())
@@ -1258,9 +1268,14 @@ def capture_app_window(image_file):
     
     '''
     win = omui.MQtUtil_mainWindow()
-    ptr = wrapInstance(long(win), QtWidgets.QMainWindow)
-    main_window_id = ptr.winId()
-    long_win_id = long(main_window_id)
+    if python_version == 3:
+        ptr = wrapInstance(int(win), QtWidgets.QMainWindow)
+        main_window_id = ptr.winId()
+        long_win_id = int(main_window_id)
+    else:
+        ptr = wrapInstance(long(win), QtWidgets.QMainWindow)
+        main_window_id = ptr.winId()
+        long_win_id = long(main_window_id)
     frame = QtGui.QPixmap.grabWindow(long_win_id)
     frame.save(image_file)
     return image_file
@@ -1314,24 +1329,68 @@ def discord_post_message(username, message, webhook_url):
             Returns:
                 response (dict): Returns the response generated by the http object
                 
-    '''       
-    bot_message = {
-    'username': username,
-    'content': message
-    } 
+    ''' 
+    
+    def parse_discord_api(discord_webhook_full_path):
+        ''' Parses and returns two strings to be used with HTTPSConnection instead of Http()
+        
+                Parameters:
+                    discord_webhook_full_path (str): Discord Webhook (Full Path)
+                    
+                Returns:
+                    discord_api_host (str): Only the host used for discord's api
+                    discord_api_repo (str): The rest of the path used to describe the webhook
+        '''
+        path_elements = discord_webhook_full_path.replace('https://','').replace('http://','').split('/')
+        host = ''
+        repo = ''
+        if len(path_elements) == 1:
+            raise Exception('Failed to parse Discord Webhook path.')
+        else:
+            host = path_elements[0]
+            for path_part in path_elements:
+                if path_part != host:
+                    repo += '/' + path_part
+            return host, repo #@@@
+    
+    # Starts Here
+    if python_version == 3:
+        try:
+#temp
+discord_webhook_full_path = 'https://discord.com/api/webhooks/843586759425523714/RB5ILSBzvgnLkFvEOAEx_NK2EQYbgVerZhA0VWysZ_Ydml6vZ9TD1PBhi3YT7Tfp1Dlq'
+host, path = parse_discord_api(discord_webhook_full_path)
+connection = http.client.HTTPSConnection(host)
+connection.request("GET", path, headers={'Content-Type': 'application/json; charset=UTF-8', 'User-Agent' : 'gt_maya_to_discord/' + str(script_version)})
+response = connection.getresponse()
+content = loads(response.read())
+         
+            return content#[content, response.status, response.reason]
+        except:
+            error_content_dict = {'body' : 'Error requesting latest release.',
+                                  'tag_name' : 'v0.0.0'}
+            return [error_content_dict, 0, 'Error']
+    else:
+        bot_message = {
+        'username': username,
+        'content': message
+        } 
 
-    message_headers = {'Content-Type': 'application/json; charset=UTF-8'}
+        message_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
-    http_obj = Http()
+        http_obj = Http()
 
-    response = http_obj.request(
-        uri=webhook_url,
-        method='POST',
-        headers=message_headers,
-        body=dumps(bot_message),
-    )
+        response = http_obj.request(
+            uri=webhook_url,
+            method='POST',
+            headers=message_headers,
+            body=dumps(bot_message),
+        )
 
-    return response
+        return response
+        
+    
+          
+    
 
 
 def encode_multipart(fields, files, boundary=None):
@@ -1580,4 +1639,6 @@ def response_inview_feedback(operation_name, response, write_output=True, displa
 #Get Settings & Build GUI
 get_persistent_settings_maya_to_discord()
 if __name__ == '__main__':
-    build_gui_maya_to_discord()
+    #build_gui_maya_to_discord()
+    pass
+    output = discord_post_message('my username', 'my message', 'https://discord.com/api/webhooks/843586759425523714/RB5ILSBzvgnLkFvEOAEx_NK2EQYbgVerZhA0VWysZ_Ydml6vZ9TD1PBhi3YT7Tfp1Dlq')
