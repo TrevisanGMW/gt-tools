@@ -45,6 +45,11 @@
  2.0 - 2021-02-05
  Added "Select Non-Unique Objects" Utility
  
+ 2.1 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022+)
+ Added refresh to combine curves function as they were not automatically updating after reparenting shapes
+
+ 
  To Do:
  Add proper error handling to all functions.
  New functions:
@@ -69,6 +74,7 @@
 """
 import maya.cmds as cmds
 import maya.mel as mel
+import sys
 from maya import OpenMayaUI as omui
 
 try:
@@ -83,7 +89,10 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = "2.0"
+gtu_script_version = '2.1'
+
+#Python Version
+python_version = sys.version_info.major
     
 ''' ____________________________ General Functions ____________________________'''
 
@@ -738,12 +747,10 @@ def gtu_combine_curves():
                     valid_selection = False
                     cmds.warning('Make sure you selected only curves.')
             
-            
         if valid_selection and len(selection) < 2:
             cmds.warning('You need to select at least two curves.')
             valid_selection = False
-            
-            
+              
         if len(bezier_in_selection) > 0 and valid_selection:
             user_input = cmds.confirmDialog( title='Bezier curve detected!',\
                                 message='A bezier curve was found in your selection.\nWould you like to convert Bezier to NURBS before combining?',\
@@ -756,28 +763,34 @@ def gtu_combine_curves():
                     for obj in bezier_in_selection:
                             cmds.bezierCurveToNurbs()
    
+
         if valid_selection:
             shapes = cmds.listRelatives(shapes=True, fullPath=True)
             for obj in range(len(selection)):
                 cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
-
+ 
             group = cmds.group(empty=True, world=True, name=selection[0])
+            cmds.refresh()
             cmds.select(shapes[0])
             for obj in range(1, (len(shapes))):
                 cmds.select(shapes[obj], add=True)
-                
+            
             cmds.select(group, add=True) 
             cmds.parent(relative=True, shape=True)
             cmds.delete(selection)   
-         
+     
+            
+
     except Exception as e:
         errors += str(e) + '\n'
         cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
     finally:
+        
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
         print('######## Errors: ########')
         print(errors)
+    
 
 def gtu_separate_curves():
     ''' 
@@ -966,7 +979,10 @@ def gtu_build_gui_about_gt_tools():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

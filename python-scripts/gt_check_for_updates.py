@@ -18,6 +18,9 @@
  Added a text for when the version is higher than expected (Unreleased Version)
  Added an auto check for updates so user's don't forget to update
  Added threading support (so the http request doesn't slow things down)
+ 
+ 1.5 - 2021-05-11
+ Made script compatible with Python 3 (Maya 2022+)
 
 
     Debugging Lines:
@@ -55,21 +58,29 @@ try:
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
+try:
+    from httplib2 import Http
+except ImportError:
+    import http.client
+
 from maya import OpenMayaUI as omui
 from datetime import datetime
-from httplib2 import Http
 from json import dumps
 from json import loads
 import maya.utils as utils
 import maya.cmds as cmds
 import threading
+import sys
 import os
 import re
 
 # Script Version (This Script)
-script_version = '1.4'
+script_version = '1.5'
 gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
 gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
+
+# Python Version
+python_version = sys.version_info.major
 
 # Versions Dictionary
 gt_check_for_updates = { 'current_version' : "v0.0.0",
@@ -163,7 +174,10 @@ def build_gui_gt_check_for_updates():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/SP_FileDialogToParent_Disabled.png')
     widget.setWindowIcon(icon)
     
@@ -337,7 +351,7 @@ def build_gui_gt_check_for_updates():
                         before_previous_version_tag += c + '.'
                     before_previous_version_tag = before_previous_version_tag[:-1]
                     
-
+                    
                     previous_version_response = get_github_release(gt_tools_tag_release_api + previous_version_tag)
                     before_previous_version_response = get_github_release(gt_tools_tag_release_api + before_previous_version_tag)
                     
@@ -397,15 +411,54 @@ def get_github_release(github_api):
             Returns:
                 response_list (list): A list containing a dictionary (response) the response status and the response reason (e.g. [response, 200, "OK"])
     '''
-    try:
-        http_obj = Http()
-        response, content = http_obj.request(github_api)
-        response_content_dict = loads(content) 
-        return [response_content_dict, response.status, response.reason]
-    except:
-        error_content_dict = {'body' : 'Error requesting latest release.',
-                              'tag_name' : 'v0.0.0'}
-        return [error_content_dict, 0, 'Error']
+    
+    
+    def parse_github_api(github_api_full_path):
+        ''' Parses and returns two strings to be used with HTTPSConnection instead of Http()
+        
+                Parameters:
+                    github_api_full_path (str): Github Rest API for latest releases. e.g. "https://api.github.com/repos/**USER**/**REPO**/releases/latest"
+                    
+                Returns:
+                    github_api_host (str): Only the host used for github's api
+                    github_api_repo (str): The rest of the path used to describe the repository used
+        '''
+        path_elements = github_api_full_path.replace('https://','').replace('http://','').split('/')
+        host = ''
+        repo = ''
+        if len(path_elements) == 1:
+            raise Exception('Failed to parse github API path.')
+        else:
+            host = path_elements[0]
+            for path_part in path_elements:
+                if path_part != host:
+                    repo += '/' + path_part
+            return host, repo
+            
+    # Starts Here
+    if python_version == 3:
+        try:
+            host, path = parse_github_api(github_api)
+            connection = http.client.HTTPSConnection(host)
+            connection.request("GET", path, headers={'Content-Type': 'application/json; charset=UTF-8', 'User-Agent' : 'gt_check_for_updates/' + str(script_version)})
+            response = connection.getresponse()
+            content = loads(response.read())
+         
+            return [content, response.status, response.reason]
+        except:
+            error_content_dict = {'body' : 'Error requesting latest release.',
+                                  'tag_name' : 'v0.0.0'}
+            return [error_content_dict, 0, 'Error']
+    else:
+        try:
+            http_obj = Http()
+            response, content = http_obj.request(github_api)
+            response_content_dict = loads(content) 
+            return [response_content_dict, response.status, response.reason]
+        except:
+            error_content_dict = {'body' : 'Error requesting latest release.',
+                                  'tag_name' : 'v0.0.0'}
+            return [error_content_dict, 0, 'Error']
         
 
 def silent_update_check():

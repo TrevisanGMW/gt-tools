@@ -17,12 +17,16 @@
  1.4 - 2020-11-15
  Tweaked the color and text for the title and help menu
  
+ 1.5 - 2021-05-12
+ Made script compatible with Python 3.0 (Maya 2022+)
+ 
  To do: 
  Add option to use a different methods of position matching (use getAttr values)
  Add option to use joint's orientation instead of rotation
  
 """
 import maya.cmds as cmds
+import sys
 from maya import OpenMayaUI as omui
 
 try:
@@ -41,7 +45,10 @@ except ImportError:
 script_name = "GT - In-between Generator"
 
 # Version
-script_version = "1.4";
+script_version = "1.5"
+
+#Python Version
+python_version = sys.version_info.major
 
 settings = { 'outliner_color': [0,1,0] }
 
@@ -118,7 +125,10 @@ def build_gui_generate_inbetween():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/hsGraphMaterial.png')
     widget.setWindowIcon(icon)
 
@@ -184,7 +194,10 @@ def build_gui_help_generate_inbetween():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

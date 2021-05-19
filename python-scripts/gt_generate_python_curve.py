@@ -22,10 +22,14 @@
  1.5 - 2021-01-26
  Fixed way the curve is generated to account for closed and opened curves
  
+ 1.6 - 2021-05-12
+ Made script compatible with Python 3 (Maya 2022+)
+ 
  
 """
 
 import maya.cmds as cmds
+import sys
 from decimal import *
 from maya import OpenMayaUI as omui
 
@@ -44,7 +48,10 @@ except ImportError:
 script_name = "GT - Generate Python Curve"
 
 # Version:
-script_version = "1.5"
+script_version = "1.6"
+
+#Python Version
+python_version = sys.version_info.major
 
 # Default Settings
 close_curve = False
@@ -160,7 +167,7 @@ def build_gui_py_curve():
                 
                 
                 print ("#" * 100)
-                print out
+                print (out)
                 print ("#" * 100)
                 
                 cmds.scrollField(output_python, edit=True, wordWrap=True, text=out ,sl=True)
@@ -179,7 +186,10 @@ def build_gui_py_curve():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/pythonFamily.png')
     widget.setWindowIcon(icon)
     
@@ -246,7 +256,10 @@ def build_gui_help_py_curve():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

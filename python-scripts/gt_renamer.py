@@ -21,6 +21,9 @@
  Changed the color and text for a few UI elements
  Removed a few unnecessary lines
  
+ 1.5 - 2021-05-08
+ Made script compatible with Python 3 (Maya 2022+)
+ 
  Todo:
     Add persistent settings for the selection type (Selected, Hierarchy, All)
     Consider adding more types to auto suffix.
@@ -33,8 +36,9 @@
 """
 import maya.cmds as cmds
 import traceback
-import copy
 import random
+import copy
+import sys
 from maya import OpenMayaUI as omui
 
 try:
@@ -53,7 +57,10 @@ except ImportError:
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.4"
+script_version = "1.5"
+
+# Python Version
+python_version = sys.version_info.major
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = { 'transform_suffix' : '_grp',
@@ -498,7 +505,7 @@ def build_gui_renamer():
             try:
                 pass
             except Exception as e:
-                print traceback.format_exc()
+                print(traceback.format_exc())
                 cmds.error("## Error, see script editor: %s" % e)
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=script_name)
@@ -510,7 +517,10 @@ def build_gui_renamer():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/renamePreset.png')
     widget.setWindowIcon(icon)
     
@@ -603,7 +613,10 @@ def build_gui_help_renamer():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     

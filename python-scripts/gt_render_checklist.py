@@ -25,6 +25,9 @@
     Added support for non-unique objects to non-manifold checks
     Fixed typos in the help text
     Fixed issue where spaces would cause resolution check to fail
+    
+ 1.4 - 2021-05-12
+    Made script compatible with Python 3 (Maya 2022+)
 
  Todo:
     Add checks for xgen
@@ -33,6 +36,7 @@
 import maya.cmds as cmds
 import maya.mel as mel
 import copy
+import sys
 from maya import OpenMayaUI as omui
 
 try:
@@ -51,7 +55,10 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.3"
+script_version = "1.4"
+
+#Python Version
+python_version = sys.version_info.major
 
 # Status Colors
 def_color = 0.3, 0.3, 0.3
@@ -300,7 +307,10 @@ def build_gui_gt_render_checklist():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/checkboxOn.png')
     widget.setWindowIcon(icon)
 
@@ -525,7 +535,10 @@ def build_gui_help_gt_render_checklist():
     
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(long(qw), QWidget)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
     
