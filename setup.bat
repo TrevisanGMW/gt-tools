@@ -78,16 +78,16 @@ EXIT /B 0
 
 :copy_files
 SET RobocopyError=0
-ROBOCOPY %CopyDirSource% %~1 /Z /IF "*.py" /njh /njs /ndl /nc /ns
+ROBOCOPY "%CopyDirSource% " "%~1 " /Z /IF "*.py" /njh /njs /ndl /nc /ns
 IF %ERRORLEVEL%==16 SET RobocopyError=1
-ROBOCOPY %CopyDirSource% %~1  /Z /IF "*.mel" /njh /njs /ndl /nc /ns
+ROBOCOPY "%CopyDirSource% " "%~1 "  /Z /IF "*.mel" /njh /njs /ndl /nc /ns
 IF %ERRORLEVEL%==16 SET RobocopyError=1
-IF EXIST %CopyDirSourceMel% (
-	ROBOCOPY %CopyDirSourceMel% %~1  /Z /IF "*.mel" /XF "userSetup*" /njh /njs /ndl /nc /ns
+IF EXIST "%CopyDirSourceMel% " (
+	ROBOCOPY "%CopyDirSourceMel% " "%~1 "  /Z /IF "*.mel" /XF "userSetup*" /njh /njs /ndl /nc /ns
 	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
-IF EXIST %CopyDirSourcePy% (
-	ROBOCOPY %CopyDirSourcePy% %~1  /Z /IF "*.py" /njh /njs /ndl /nc /ns
+IF EXIST "%CopyDirSourcePy% " (
+	ROBOCOPY "%CopyDirSourcePy%" "%~1 "  /Z /IF "*.py" /njh /njs /ndl /nc /ns
 	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
 EXIT /B 0
