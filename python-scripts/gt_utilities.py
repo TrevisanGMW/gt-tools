@@ -714,7 +714,7 @@ def gtu_delete_nucleus_nodes():
          
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occured. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -854,7 +854,7 @@ def gtu_separate_curves():
 
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occured when separating the curves. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -871,11 +871,11 @@ def gtu_convert_bif_to_mesh():
         function_name = 'GTU Convert Bif to Mesh'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         valid_selection = True
-        
+
         selection = cmds.ls(selection=True)
         bif_objects = []
+        bif_graph_objects = []
 
-        
         if len(selection) < 1:
             valid_selection = False
             cmds.warning('You need to select at least one bif object.')
@@ -886,7 +886,9 @@ def gtu_convert_bif_to_mesh():
                 for shape in shapes:
                     if cmds.objectType(shape) == 'bifShape':
                         bif_objects.append(shape)
-        
+                    if cmds.objectType(shape) == 'bifrostGraphShape':
+                        bif_graph_objects.append(shape)
+
             for bif in bif_objects:
                 parent = cmds.listRelatives(bif, parent=True) or []
                 for par in parent:
@@ -902,7 +904,21 @@ def gtu_convert_bif_to_mesh():
                             cmds.hyperShade( assign='lambert1')
                         except:
                             pass
-            
+                            
+            for bif in bif_graph_objects:
+                    bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
+                    print(bifrost_attributes)
+                    for output in bifrost_attributes:
+                        conversion_node = cmds.createNode("bifrostGeoToMaya")
+                        cmds.connectAttr(bif + '.' + output, conversion_node + '.bifrostGeo' )
+                        mesh_node = cmds.createNode("mesh")
+                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
+                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
+                        cmds.rename(mesh_transform[0], 'bifToGeo1')
+                        try:
+                            cmds.hyperShade( assign='lambert1')
+                        except:
+                            pass
     except Exception as e:
         errors += str(e) + '\n'
     finally:
@@ -911,6 +927,8 @@ def gtu_convert_bif_to_mesh():
         cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
         print('######## Errors: ########')
         print(errors)
+
+
 
 
 ''' ____________________________ About Window ____________________________''' 
@@ -991,6 +1009,45 @@ def gtu_build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
             
             
+def gtu_delete_all_locators():
+    ''' Deletes all locators '''   
+    errors= '' 
+    try:
+        function_name = 'GTU Delete All Locators'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        
+
+        # With Transform
+        locators = cmds.ls(typ='locator')
+   
+
+        deleted_counter = 0
+        for obj in locators:
+            try:
+                parent = cmds.listRelatives(obj, parent=True) or []
+                cmds.delete(parent[0])
+                deleted_counter += 1
+            except:
+                pass
+                  
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'locators were'
+        if deleted_counter == 1:
+            is_plural = 'locator was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+         
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when deleting locators. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+            
+            
 ''' ____________________________ Functions ____________________________'''   
 #gtu_reload_file()
 #gtu_open_resource_browser()
@@ -1024,3 +1081,6 @@ def gtu_build_gui_about_gt_tools():
 #gtu_convert_bif_to_mesh()
 
 #gtu_build_gui_about_gt_tools()
+
+# --- Other Functions ---
+#gtu_delete_all_locators()

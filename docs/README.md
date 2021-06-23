@@ -615,11 +615,11 @@ with the provided prefix "Left Side Tag".</p>
 <img src="./media/gt_transfer_uvs.jpg" align="right"
      alt="GT Transfer UVs GUI">
 
-<p>Script used to quickly transfer UVs. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
+<p>Script used to quickly transfer UVs between objects. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
 
 <p><b>Export UVs: </b><br>Exports an OBJ file containing the model and its UVs (similar to simply exporting and OBJ file through the file menu)</p>
-<p><b>Import UVs: </b><br>Imports the previously exported OBJ file and transfers its UVs to the intermediate object of your selection. Allow you to import the UVs without generating history.</p>
-<p><b>Transfer from Source to Target(s) </b><br>Allows you to quickly transfer UVs from the first object in your selection to the other objects in the same selection. Thus, you first select your source, then you targets. This method will also use the intermediate object, so no construction history will be left behind.</p>
+<p><b>Import UVs: </b><br>Imports the previously exported OBJ file and transfers its UVs to the intermediate object of your selection. It allows you to import the UVs without generating history.</p>
+<p><b>Transfer from Source to Target(s) </b><br>Allows you to quickly transfer UVs from the first object in your selection to the other objects in the same selection. Thus, you first select your source, then your targets. This method will also use the intermediate object, so no construction history will be left behind.</p>
 
 <br>
 
@@ -1036,6 +1036,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>Auto creates another key with the inverted offset value.
 <br>For example, an offset of "1.0" will also create another offset at "-1.0"
 <br>creating an oscillating movement like a sine function.</p>
+
+<p><b>Use World Space (WS) Values:</b>
+<br>Moves objects as if they were not part of a hierarchy, which mimics the behaviour of the world space.</p>
 
 <p><b>Delete Previously Created Keys:</b>
 <br>Deletes all keys attached to the selected controls before creating new ones. 

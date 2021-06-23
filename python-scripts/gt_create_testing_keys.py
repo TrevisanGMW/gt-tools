@@ -17,6 +17,9 @@
  1.2 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
  
+ 1.3 - 2021-06-23
+ Added option to use world space to get predictable movement with joints
+ 
 """
 import maya.cmds as cmds
 import sys
@@ -37,7 +40,7 @@ except ImportError:
 script_name = "GT - Create Testing Keys"
 
 # Version:
-script_version = "1.2"
+script_version = "1.3"
 
 #Python Version
 python_version = sys.version_info.major
@@ -111,7 +114,9 @@ def build_gui_create_testing_keys():
     cmds.rowColumnLayout(nc=1, cw=[(1, 200)], cs=[(1,25)], p=body_column) 
     add_inverted_checkbox = cmds.checkBox(l=' Add Inverted Offset Movement', value=True)  
     cmds.separator(h=5, style='none') # Empty Space 
-    delete_keys_checkbox = cmds.checkBox(l=' Delete Previously Created Keys', value=True)  
+    delete_keys_checkbox = cmds.checkBox(l=' Delete Previously Created Keys', value=True) 
+    cmds.separator(h=5, style='none') # Empty Space 
+    use_ws_checkbox = cmds.checkBox(l=' Use World Space (WS) Values', value=True)  
     
     cmds.separator(h=5, style='none', p=body_column) # Empty Space 
     
@@ -150,7 +155,8 @@ def build_gui_create_testing_keys():
                 interval = cmds.floatSliderGrp(interval_text_field, q=True, value=True)
                 
                 add_inverted = cmds.checkBox(add_inverted_checkbox, q=True, value=True)  
-                delete_keys = cmds.checkBox(delete_keys_checkbox, q=True, value=True)  
+                delete_keys = cmds.checkBox(delete_keys_checkbox, q=True, value=True)
+                use_ws = cmds.checkBox(use_ws_checkbox, q=True, value=True)
                 
                 if delete_keys:
                     for obj in cmds.ls(selection=True):
@@ -173,7 +179,7 @@ def build_gui_create_testing_keys():
                     except:
                         pass
                     if value > 0:
-                        create_testing_keyframes(value, attr, interval, create_inverted=add_inverted)
+                        create_testing_keyframes(value, attr, interval, create_inverted=add_inverted, ws_method=use_ws)
                         
             else: 
                 cmds.warning('Select at least one object to create testing key frames.')
@@ -189,7 +195,7 @@ def build_gui_create_testing_keys():
             print('#########################')
         
             
-    def create_testing_keyframes(offset, attr, interval, create_inverted=False):
+    def create_testing_keyframes(offset, attr, interval, create_inverted=False, ws_method=True):
         '''
         Creates a sequence of keyframes on the selected objects so they move for testing
         Used to quickly test joints when rigging
@@ -200,6 +206,7 @@ def build_gui_create_testing_keys():
                     interval (int): Interval between keyframes (frequency)
                     create_inverted (bool): Whether or not to increate a key with the inverted offset value
         '''
+    
         initial_time = cmds.currentTime(q=True) 
         selection = cmds.ls(selection=True)
         current_frame = cmds.playbackOptions( animationStartTime=True, q=True ) # Gets the first frame available in the timeline (usually 0 or 1)
@@ -226,7 +233,6 @@ def build_gui_create_testing_keys():
             offset_vec = (offset_vec[0], offset, offset_vec[2])
         else:
             offset_vec = (offset_vec[0], offset_vec[1], offset)
-            
 
         for obj in selection:
             if cmds.objExists(obj):
@@ -238,10 +244,32 @@ def build_gui_create_testing_keys():
                     orig_ty = cmds.getAttr(obj + '.ty')
                     orig_tz = cmds.getAttr(obj + '.tz')
                     
+                    if ws_method:
+                        temp_grp = cmds.group(name='temp_grp_', w=True, em=True )
+                        cmds.parentConstraint(obj, temp_grp)
+                        orig_tx = cmds.getAttr(temp_grp + '.tx')
+                        orig_ty = cmds.getAttr(temp_grp + '.ty')
+                        orig_tz = cmds.getAttr(temp_grp + '.tz')
+                        cmds.delete(temp_grp)
+                        cmds.setKeyframe(obj, at='.tx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ty', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.tz', t=current_frame, itt='linear', ott='linear')
+
                 if rotate:
                     orig_rx = cmds.getAttr(obj + '.rx')
                     orig_ry = cmds.getAttr(obj + '.ry')
                     orig_rz = cmds.getAttr(obj + '.rz')
+                    
+                    if ws_method:
+                        temp_grp = cmds.group(name='temp_grp_', w=True, em=True )
+                        cmds.parentConstraint(obj, temp_grp)
+                        orig_rx = cmds.getAttr(temp_grp + '.rx')
+                        orig_ry = cmds.getAttr(temp_grp + '.ry')
+                        orig_rz = cmds.getAttr(temp_grp + '.rz')
+                        cmds.delete(temp_grp)
+                        cmds.setKeyframe(obj, at='.rx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ry', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.rz', t=current_frame, itt='linear', ott='linear')
 
                 if scale:
                     orig_sx = cmds.getAttr(obj + '.sx')
@@ -250,7 +278,7 @@ def build_gui_create_testing_keys():
                     
                 # Create key at positive pose
                 current_frame += interval
-                if translate:
+                if translate and not ws_method:
                     offset_tx = orig_tx + offset_vec[0]
                     offset_ty = orig_ty + offset_vec[1]
                     offset_tz = orig_tz + offset_vec[2] 
@@ -260,8 +288,17 @@ def build_gui_create_testing_keys():
                         cmds.setAttr(obj + '.ty', offset_ty)
                     if not cmds.getAttr(obj + '.tz', lock=True) and offset_tz != orig_tz:
                         cmds.setAttr(obj + '.tz', offset_tz)
+                elif translate and ws_method: # WS Pose
+                    offset_tx = orig_tx + offset_vec[0]
+                    offset_ty = orig_ty + offset_vec[1]
+                    offset_tz = orig_tz + offset_vec[2]                     
+                    cmds.xform(obj, ws=True, t=(offset_tx, offset_ty, offset_tz))
+                    cmds.setKeyframe(obj, at='.tx', t=current_frame, itt='linear', ott='linear')
+                    cmds.setKeyframe(obj, at='.ty', t=current_frame, itt='linear', ott='linear')
+                    cmds.setKeyframe(obj, at='.tz', t=current_frame, itt='linear', ott='linear')
+                    
 
-                if rotate:
+                if rotate and not ws_method:
                     offset_rx = orig_rx + offset_vec[0]
                     offset_ry = orig_ry + offset_vec[1]
                     offset_rz = orig_rz + offset_vec[2]
@@ -271,6 +308,14 @@ def build_gui_create_testing_keys():
                         cmds.setAttr(obj + '.ry', offset_ry)
                     if not cmds.getAttr(obj + '.rz', lock=True) and offset_rz != orig_rz:
                         cmds.setAttr(obj + '.rz', offset_rz)
+                elif rotate and ws_method: # WS Pose
+                    offset_rx = orig_rx + offset_vec[0]
+                    offset_ry = orig_ry + offset_vec[1]
+                    offset_rz = orig_rz + offset_vec[2]
+                    cmds.xform(obj, ws=True, ro=(offset_rx, offset_ry, offset_rz))
+                    cmds.setKeyframe(obj, at='.rx', t=current_frame, itt='linear', ott='linear')
+                    cmds.setKeyframe(obj, at='.ry', t=current_frame, itt='linear', ott='linear')
+                    cmds.setKeyframe(obj, at='.rz', t=current_frame, itt='linear', ott='linear')
 
                 if scale:
                     offset_sx = orig_sx + offset_vec[0]
@@ -287,7 +332,7 @@ def build_gui_create_testing_keys():
                 if create_inverted:
                     # Create key at negative pose
                     current_frame += interval
-                    if translate:
+                    if translate and not ws_method:
                         offset_tx = orig_tx + offset_vec[0]*-1
                         offset_ty = orig_ty + offset_vec[1]*-1
                         offset_tz = orig_tz + offset_vec[2]*-1
@@ -297,8 +342,16 @@ def build_gui_create_testing_keys():
                             cmds.setAttr(obj + '.ty', offset_ty)
                         if not cmds.getAttr(obj + '.tz', lock=True) and offset_tz != orig_tz:
                             cmds.setAttr(obj + '.tz', offset_tz)
+                    elif translate and ws_method: # WS Pose
+                        offset_tx = orig_tx + offset_vec[0]*-1
+                        offset_ty = orig_ty + offset_vec[1]*-1
+                        offset_tz = orig_tz + offset_vec[2]*-1                    
+                        cmds.xform(obj, ws=True, t=(offset_tx, offset_ty, offset_tz))
+                        cmds.setKeyframe(obj, at='.tx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ty', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.tz', t=current_frame, itt='linear', ott='linear')
                             
-                    if rotate:
+                    if rotate and not ws_method:
                         offset_rx = orig_rx + offset_vec[0]*-1
                         offset_ry = orig_ry + offset_vec[1]*-1
                         offset_rz = orig_rz + offset_vec[2]*-1
@@ -308,6 +361,16 @@ def build_gui_create_testing_keys():
                             cmds.setAttr(obj + '.ry', offset_ry)
                         if not cmds.getAttr(obj + '.rz', lock=True) and offset_rz != orig_rz:
                             cmds.setAttr(obj + '.rz', offset_rz)
+                    elif rotate and ws_method: # WS Pose
+                        offset_rx = orig_rx + offset_vec[0]*-1
+                        offset_ry = orig_ry + offset_vec[1]*-1
+                        offset_rz = orig_rz + offset_vec[2]*-1
+                        cmds.xform(obj, ws=True, ro=(offset_rx, offset_ry, offset_rz))
+                        cmds.setKeyframe(obj, at='.rx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ry', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.rz', t=current_frame, itt='linear', ott='linear')
+                            
+                            
                     if scale:
                         offset_sx = orig_sx + (orig_sx*-1)*2 + (offset_vec[0]*-1)
                         offset_sy = orig_sy + (orig_sy*-1)*2 + (offset_vec[1]*-1)
@@ -322,21 +385,32 @@ def build_gui_create_testing_keys():
 
                     # Create key at neutral pose
                     current_frame += interval
-                    if translate:
+                    if translate and not ws_method:
                         if not cmds.getAttr(obj + '.tx', lock=True):
                             cmds.setAttr(obj + '.tx', orig_tx)
                         if not cmds.getAttr(obj + '.ty', lock=True):
                             cmds.setAttr(obj + '.ty', orig_ty)
                         if not cmds.getAttr(obj + '.tz', lock=True):
                             cmds.setAttr(obj + '.tz', orig_tz)
-                    if rotate:
-
+                    elif translate and ws_method: # WS Pose                   
+                        cmds.xform(obj, ws=True, t=(orig_tx, orig_ty, orig_tz))
+                        cmds.setKeyframe(obj, at='.tx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ty', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.tz', t=current_frame, itt='linear', ott='linear')
+   
+                    if rotate and not ws_method:
                         if not cmds.getAttr(obj + '.rx', lock=True):
                             cmds.setAttr(obj + '.rx', orig_rx)
                         if not cmds.getAttr(obj + '.ry', lock=True):
                             cmds.setAttr(obj + '.ry', orig_ry)
                         if not cmds.getAttr(obj + '.rz', lock=True):
-                            cmds.setAttr(obj + '.rz', orig_rz)
+                            cmds.setAttr(obj + '.rz', orig_rz)    
+                    elif rotate and ws_method: # WS Pose
+                        cmds.xform(obj, ws=True, ro=(orig_rx, orig_ry, orig_rz))
+                        cmds.setKeyframe(obj, at='.rx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ry', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.rz', t=current_frame, itt='linear', ott='linear')        
+                    
                     if scale:
                         if not cmds.getAttr(obj + '.sx', lock=True):
                             cmds.setAttr(obj + '.sx', orig_sx)
@@ -349,21 +423,32 @@ def build_gui_create_testing_keys():
                 else:
                     # Create key at neutral pose
                     current_frame += interval
-                    if translate:
+                    if translate and not ws_method:
                         if not cmds.getAttr(obj + '.tx', lock=True):
                             cmds.setAttr(obj + '.tx', orig_tx)
                         if not cmds.getAttr(obj + '.ty', lock=True):
                             cmds.setAttr(obj + '.ty', orig_ty)
                         if not cmds.getAttr(obj + '.tz', lock=True):
                             cmds.setAttr(obj + '.tz', orig_tz)
-                    if rotate:
-
+                    elif translate and ws_method: # WS Pose                   
+                        cmds.xform(obj, ws=True, t=(orig_tx, orig_ty, orig_tz))
+                        cmds.setKeyframe(obj, at='.tx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ty', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.tz', t=current_frame, itt='linear', ott='linear')
+                        
+                    if rotate and not ws_method:
                         if not cmds.getAttr(obj + '.rx', lock=True):
                             cmds.setAttr(obj + '.rx', orig_rx)
                         if not cmds.getAttr(obj + '.ry', lock=True):
                             cmds.setAttr(obj + '.ry', orig_ry)
                         if not cmds.getAttr(obj + '.rz', lock=True):
                             cmds.setAttr(obj + '.rz', orig_rz)
+                    elif rotate and ws_method: # WS Pose
+                        cmds.xform(obj, ws=True, ro=(orig_rx, orig_ry, orig_rz))
+                        cmds.setKeyframe(obj, at='.rx', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.ry', t=current_frame, itt='linear', ott='linear')
+                        cmds.setKeyframe(obj, at='.rz', t=current_frame, itt='linear', ott='linear')         
+                            
                     if scale:
                         if not cmds.getAttr(obj + '.sx', lock=True):
                             cmds.setAttr(obj + '.sx', orig_sx)
@@ -375,6 +460,8 @@ def build_gui_create_testing_keys():
                   
         if current_frame > current_max_time:
             cmds.playbackOptions( maxTime=current_frame ) # Expand max time if necessary
+            
+        cmds.select(selection) # Bring back original selection
 
     def reset_offset_values():
         offset_text_fields = [tx_offset_text_field, ty_offset_text_field, tz_offset_text_field,\
@@ -472,6 +559,9 @@ def build_gui_help_create_testing_keys():
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='Delete Previously Created Keys:', align="left", fn="boldLabelFont")
     cmds.text(l='Deletes all keys attached to the selected controls before\ncreating new ones. (Doesn\'t include Set Driven Keys)', align="left")
+    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(l='Use World Space (WS) Values:', align="left", fn="boldLabelFont")
+    cmds.text(l='Moves objects as if they were not part of a hierarchy,\nwhich mimics the behaviour of the world space.', align="left")
     cmds.separator(h=15, style='none') # Empty Space
     cmds.text(l='Create Testing Keyframes:', align="left", fn="boldLabelFont")
     cmds.text(l='Creates keyframes according to the provided settings.', align="left")
