@@ -31,6 +31,7 @@
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
+  <li><a href="#-gt-transfer-uvs-">GT Transfer UVs</a></li>
   <li><a href="#-gt-sphere-types-">GT Sphere Types</a></li>
 </ul>
 
@@ -607,6 +608,23 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<!-- Transfer UVs -->
+<div>
+<h1> GT Transfer UVs </h1>
+
+<img src="./media/gt_transfer_uvs.jpg" align="right"
+     alt="GT Transfer UVs GUI">
+
+<p>Script used to quickly transfer UVs. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
+
+<p><b>Export UVs: </b><br>Exports an OBJ file containing the model and its UVs (similar to simply exporting and OBJ file through the file menu)</p>
+<p><b>Import UVs: </b><br>Imports the previously exported OBJ file and transfers its UVs to the intermediate object of your selection. Allow you to import the UVs without generating history.</p>
+<p><b>Transfer from Source to Target(s) </b><br>Allows you to quickly transfer UVs from the first object in your selection to the other objects in the same selection. Thus, you first select your source, then you targets. This method will also use the intermediate object, so no construction history will be left behind.</p>
+
+<br>
+
+</div>
+
 <!-- GT Sphere Types -->
 <div>
 <h1> GT Sphere Types </h1>
@@ -624,7 +642,6 @@ with the provided prefix "Left Side Tag".</p>
 <br>
 
 </div>
-
 
 <!-- GT Auto Biped Rigger -->
 <div>
