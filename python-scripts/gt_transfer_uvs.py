@@ -6,6 +6,10 @@
  1.1 - 2021-06-22
  It now iterates through all intermediate objects to guarantee they all have the same UVs
  
+ 1.2 - 2021-06-23
+ Added a help window
+ Added a comparison check before the counter
+ 
  To do:
     Add check to see if UVs were really copied for the count
 
@@ -35,7 +39,7 @@ import os
 script_name = 'GT - Transfer UVs'
 
 # Script Version
-script_version = '1.1'
+script_version = '1.2'
 
 #Python Version
 python_version = sys.version_info.major
