@@ -45,7 +45,7 @@ import sys
 import os
 
 # Script Version
-script_version = "1.3.1"
+script_version = "1.3.2"
 
 #Python Version
 python_version = sys.version_info.major
