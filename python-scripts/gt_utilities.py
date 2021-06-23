@@ -871,11 +871,11 @@ def gtu_convert_bif_to_mesh():
         function_name = 'GTU Convert Bif to Mesh'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         valid_selection = True
-        
+
         selection = cmds.ls(selection=True)
         bif_objects = []
+        bif_graph_objects = []
 
-        
         if len(selection) < 1:
             valid_selection = False
             cmds.warning('You need to select at least one bif object.')
@@ -886,7 +886,9 @@ def gtu_convert_bif_to_mesh():
                 for shape in shapes:
                     if cmds.objectType(shape) == 'bifShape':
                         bif_objects.append(shape)
-        
+                    if cmds.objectType(shape) == 'bifrostGraphShape':
+                        bif_graph_objects.append(shape)
+
             for bif in bif_objects:
                 parent = cmds.listRelatives(bif, parent=True) or []
                 for par in parent:
@@ -902,7 +904,21 @@ def gtu_convert_bif_to_mesh():
                             cmds.hyperShade( assign='lambert1')
                         except:
                             pass
-            
+                            
+            for bif in bif_graph_objects:
+                    bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
+                    print(bifrost_attributes)
+                    for output in bifrost_attributes:
+                        conversion_node = cmds.createNode("bifrostGeoToMaya")
+                        cmds.connectAttr(bif + '.' + output, conversion_node + '.bifrostGeo' )
+                        mesh_node = cmds.createNode("mesh")
+                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
+                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
+                        cmds.rename(mesh_transform[0], 'bifToGeo1')
+                        try:
+                            cmds.hyperShade( assign='lambert1')
+                        except:
+                            pass
     except Exception as e:
         errors += str(e) + '\n'
     finally:
@@ -911,6 +927,8 @@ def gtu_convert_bif_to_mesh():
         cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
         print('######## Errors: ########')
         print(errors)
+
+
 
 
 ''' ____________________________ About Window ____________________________''' 
