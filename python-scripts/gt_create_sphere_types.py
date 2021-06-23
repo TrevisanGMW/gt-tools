@@ -15,6 +15,9 @@
  1.3.1 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
  
+ 1.3.2 - 2021-06-22
+ Fixed a little inconsistency on the size of the window
+ 
  To do:
  Improve the generate window to give better feedback
  Add more sphere options
@@ -80,7 +83,7 @@ def build_gui_sphere_type():
   
     cmds.text("Sphere Options:")
     cmds.separator(h=5, p=content_main, st="none" )
-    cmds.rowColumnLayout( p=content_main, numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5),(3,5)])
+    cmds.rowColumnLayout( p=content_main, numberOfColumns=3, columnWidth=[(1, 100), (2, 100),(3,10)], cs=[(1,10),(2,5)])
     cmds.separator(h=3, p=content_main, st="none" )
     cmds.button( l ="Standard Sphere", c=lambda x:create_standard_sphere(), w=100)
     cmds.button( l ="Platonic Sphere A", c=lambda x:create_platonic_sphere_a())
