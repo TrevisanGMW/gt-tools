@@ -281,7 +281,7 @@ def delete_temp_namespace(temp_namespace):
 
 def open_transfer_uvs_docs():
         ''' Opens a web browser with the docs about this script '''
-        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True) 
+        cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-transfer-uvs-', absolute=True) 
         
 # Build UI
 if __name__ == "__main__":
