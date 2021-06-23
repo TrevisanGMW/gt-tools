@@ -1037,12 +1037,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>For example, an offset of "1.0" will also create another offset at "-1.0"
 <br>creating an oscillating movement like a sine function.</p>
 
+<p><b>Use World Space (WS) Values:</b>
+<br>Moves objects as if they were not part of a hierarchy, which mimics the behaviour of the world space.</p>
+
 <p><b>Delete Previously Created Keys:</b>
 <br>Deletes all keys attached to the selected controls before creating new ones. 
 <br>(Doesn't include Set Driven Keys)</p>
-
-<p><b>Use World Space (WS) Values:</b>
-<br>Moves objects as if they were not part of a hierarchy, which mimics the behaviour of the world space.</p>
 
 <p><b>Create Testing Keyframes:</b>
 <br>Creates keyframes according to the provided settings.</p>
