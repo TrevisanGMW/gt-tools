@@ -11,9 +11,6 @@
  Added a comparison check before the counter
  Added operation result to output line
  
- To do:
-    Add check to see if UVs were really copied for the count
-
 """ 
 try:
     from shiboken2 import wrapInstance
