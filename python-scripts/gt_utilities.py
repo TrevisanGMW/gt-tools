@@ -714,7 +714,7 @@ def gtu_delete_nucleus_nodes():
          
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occured. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -854,7 +854,7 @@ def gtu_separate_curves():
 
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occured when separating the curves. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -991,6 +991,45 @@ def gtu_build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
             
             
+def gtu_delete_all_locators():
+    ''' Deletes all locators '''   
+    errors= '' 
+    try:
+        function_name = 'GTU Delete All Locators'
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        
+
+        # With Transform
+        locators = cmds.ls(typ='locator')
+   
+
+        deleted_counter = 0
+        for obj in locators:
+            try:
+                parent = cmds.listRelatives(obj, parent=True) or []
+                cmds.delete(parent[0])
+                deleted_counter += 1
+            except:
+                pass
+                  
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'locators were'
+        if deleted_counter == 1:
+            is_plural = 'locator was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+         
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occured when deleting locators. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+            
+            
 ''' ____________________________ Functions ____________________________'''   
 #gtu_reload_file()
 #gtu_open_resource_browser()
@@ -1024,3 +1063,6 @@ def gtu_build_gui_about_gt_tools():
 #gtu_convert_bif_to_mesh()
 
 #gtu_build_gui_about_gt_tools()
+
+# --- Other Functions ---
+#gtu_delete_all_locators()
