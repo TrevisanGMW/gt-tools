@@ -2,6 +2,9 @@
  GT Transfer UVs - Script for exporting/importing or transfering UVs
  @Guilherme Trevisan - TrevisanGMW@gmail.com - 2021-06-22 - github.com/TrevisanGMW
  Tested on Maya 2020.4 - Windows 10
+ 
+ 1.1 - 2021-06-22
+ Iterate through all intermediate objects to guarantee they all have the same UVs
 
 """ 
 try:
@@ -28,7 +31,7 @@ import os
 script_name = 'GT - Transfer UVs'
 
 # Script Version
-script_version = '1.0'
+script_version = '1.1'
 
 #Python Version
 python_version = sys.version_info.major
@@ -124,19 +127,23 @@ def uv_import():
                             try:
                                 transfer_history = cmds.transferAttributes(imported_objects[0], obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
                                 history = cmds.listHistory( obj )
-                                intermediate_obj = ''
+                                intermediate_objs = []
                                 for obj in history:
                                     if cmds.objectType(obj) == 'mesh':
                                         if cmds.objExists(obj + '.intermediateObject'):
                                             if cmds.getAttr(obj + '.intermediateObject') == True:
-                                                intermediate_obj = obj
+                                                intermediate_objs.append(obj) 
                                 
-                                if intermediate_obj != '':
-                                    cmds.setAttr(intermediate_obj + '.intermediateObject', 0)
-                                    cmds.transferAttributes(imported_objects[0], intermediate_obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
-                                    cmds.delete(intermediate_obj, constructionHistory = True)
-                                    cmds.setAttr(intermediate_obj + '.intermediateObject', 1)
+                                for obj in intermediate_objs:
+                                    cmds.setAttr(obj + '.intermediateObject', 0)
+                                    cmds.transferAttributes(imported_objects[0], obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
+                                    cmds.delete(obj, constructionHistory = True)
+                                    cmds.setAttr(obj + '.intermediateObject', 1)
+                                    
+                                try:
                                     cmds.delete(transfer_history)
+                                except:
+                                    pass
                                     
                                 transfer_count += 1
                             except:
@@ -187,23 +194,26 @@ def uv_transfer_source_target():
                         transfer_history = cmds.transferAttributes(selection[0], obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
 
                         history = cmds.listHistory( obj )
-                        intermediate_obj = ''
+                        intermediate_objs = []
                         for obj in history:
                             if cmds.objectType(obj) == 'mesh':
                                 if cmds.objExists(obj + '.intermediateObject'):
                                     if cmds.getAttr(obj + '.intermediateObject') == True:
-                                        intermediate_obj = obj
+                                        intermediate_objs.append(obj)
+
+                        for obj in intermediate_objs:
+                            cmds.setAttr(obj + '.intermediateObject', 0)
+                            cmds.transferAttributes(selection[0], obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
+                            cmds.delete(obj, constructionHistory = True)
+                            cmds.setAttr(obj + '.intermediateObject', 1)
                         
-                        if intermediate_obj != '':
-                            cmds.setAttr(intermediate_obj + '.intermediateObject', 0)
-                            cmds.transferAttributes(selection[0], intermediate_obj, transferPositions=0, transferNormals=0, transferUVs=2, transferColors=2, sampleSpace=4, searchMethod=3, colorBorders=1)
-                            cmds.delete(intermediate_obj, constructionHistory = True)
-                            cmds.setAttr(intermediate_obj + '.intermediateObject', 1)
+                        try:
                             cmds.delete(transfer_history)
-                            
+                        except:
+                            pass
                         transfer_count += 1
         
-                    except:
+                    except Exception as e:
                         error_occured = True
             unique_message = '<' + str(random.random()) + '>'
             if transfer_count == 1:
