@@ -143,10 +143,13 @@
 //   Updated Scripts so they are compatible with Python 3 (Maya 2022+)
 //   Fixed issue where GT Path Manager would sometimes not open
 //
+//   1.7.3
+//   Added gt_transfer_uvs
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.7.2";
+global string $scriptVersion = "1.7.3";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -270,9 +273,15 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
 // -----------------------------------------MODELING------------------------------------
 menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     menuItem 
+    -l ("Transfer UVs") 
+    -c ("python(\"import gt_transfer_uvs\\nif python_version==3:\\n\\timportlib.reload(gt_transfer_uvs)\\nelse:\\n\\treload(gt_transfer_uvs)\\ngt_transfer_uvs.build_gui_uv_transfer()\");") 
+    -ann ("A script to export/import UVs as well as transfer them between objects.") 
+    -image "uvChooser.svg" ;
+    
+    menuItem 
     -l ("Sphere Types") 
     -c ("python(\"import gt_create_sphere_types\\nif python_version==3:\\n\\timportlib.reload(gt_create_sphere_types)\\nelse:\\n\\treload(gt_create_sphere_types)\\ngt_create_sphere_types.build_gui_sphere_type()\");") 
-    -ann ("A reminder.") 
+    -ann ("A reminder for students that there are other sphere types.") 
     -image "blinn.svg" ;
     
         menuItem 
