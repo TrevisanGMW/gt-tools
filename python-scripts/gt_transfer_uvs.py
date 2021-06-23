@@ -9,6 +9,7 @@
  1.2 - 2021-06-23
  Added a help window
  Added a comparison check before the counter
+ Added operation result to output line
  
  To do:
     Add check to see if UVs were really copied for the count
@@ -163,8 +164,10 @@ def uv_import():
                         unique_message = '<' + str(random.random()) + '>'
                         if transfer_count == 1:
                             cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(transfer_count) + '</span><span style=\"color:#FFFFFF;\"> object received transfered UVs.</span>', pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write(str(transfer_count) + ' object received transfered UVs.')
                         else:
                             cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(transfer_count) + '</span><span style=\"color:#FFFFFF;\"> objects received transfered UVs.</span>', pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write(str(transfer_count) + ' objects received transfered UVs.')
                         if error_occured:
                             cmds.warning('Some UVs were not transfered as expected, please make sure you\'re using identical meshes. (Consider its history and intermediate objects)')
                             
@@ -230,8 +233,10 @@ def uv_transfer_source_target():
             unique_message = '<' + str(random.random()) + '>'
             if transfer_count == 1:
                 cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(transfer_count) + '</span><span style=\"color:#FFFFFF;\"> object received transfered UVs.</span>', pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(transfer_count) + ' object received transfered UVs.')
             else:
                 cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(transfer_count) + '</span><span style=\"color:#FFFFFF;\"> objects received transfered UVs.</span>', pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(transfer_count) + ' objects received transfered UVs.')
             if error_occured:
                 cmds.warning('Some UVs were not transfered as expected, please make sure you\'re using identical meshes. (Consider its history and intermediate objects)')
         except Exception as e:
