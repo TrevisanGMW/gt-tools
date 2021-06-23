@@ -1041,6 +1041,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>Deletes all keys attached to the selected controls before creating new ones. 
 <br>(Doesn't include Set Driven Keys)</p>
 
+<p><b>Use World Space (WS) Values:</b>
+<br>Moves objects as if they were not part of a hierarchy, which mimics the behaviour of the world space.</p>
+
 <p><b>Create Testing Keyframes:</b>
 <br>Creates keyframes according to the provided settings.</p>
 
