@@ -1603,8 +1603,9 @@ def discord_get_webhook_name(webhook_url):
             if response.status in success_codes: 
                 return response_content_dict.get('name')
             else:
-                return 'Error reading webhook response'
-        except:
+                return 'Error reading webhook response' #@@@
+        except Exception as e:
+            print(e)
             cmds.warning('Error connecting to provided webhook. Make sure you\'re pasting the correct URL')
             return 'Error connecting to webhook'
     else:
@@ -1616,7 +1617,8 @@ def discord_get_webhook_name(webhook_url):
                 return response_content_dict.get('name')
             else:
                 return 'Error reading webhook response'
-        except:
+        except Exception as e:
+            print(e)
             cmds.warning('Error connecting to provided webhook. Make sure you\'re pasting the correct URL')
             return 'Error connecting to webhook'
 
