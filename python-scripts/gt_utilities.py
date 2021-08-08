@@ -48,6 +48,11 @@
  2.1 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
  Added refresh to combine curves function as they were not automatically updating after reparenting shapes
+ 
+ 2.2 - 2021-06-25
+ Updated bif to mesh to work with newer versions of bifrost
+ Updated bif to mesh to delete empty meshes (objects that weren't geometry)
+ Added function to delete all locators
 
  
  To Do:
@@ -89,7 +94,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = '2.1'
+gtu_script_version = '2.2'
 
 #Python Version
 python_version = sys.version_info.major
@@ -907,18 +912,26 @@ def gtu_convert_bif_to_mesh():
                             
             for bif in bif_graph_objects:
                     bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
-                    print(bifrost_attributes)
                     for output in bifrost_attributes:
                         conversion_node = cmds.createNode("bifrostGeoToMaya")
                         cmds.connectAttr(bif + '.' + output, conversion_node + '.bifrostGeo' )
                         mesh_node = cmds.createNode("mesh")
                         mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
                         cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
-                        cmds.rename(mesh_transform[0], 'bifToGeo1')
+                        bif_mesh = cmds.rename(mesh_transform[0], 'bifToGeo1')
                         try:
-                            cmds.hyperShade( assign='lambert1')
+                            cmds.hyperShade(assign='lambert1')
                         except:
                             pass
+                       
+                        vtx = cmds.ls(bif_mesh+'.vtx[*]', fl=True) or []
+                        if len(vtx) == 0:
+                            try:
+                                cmds.delete(bif_mesh)
+                                # cmds.delete(conversion_node)
+                                # cmds.delete(mesh_node)
+                            except:
+                                pass
     except Exception as e:
         errors += str(e) + '\n'
     finally:

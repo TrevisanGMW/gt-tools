@@ -87,6 +87,9 @@
  1.7.2 - 2021-05-10
  Made script compatible with Python 3 (Maya 2022+)
  
+ 1.7.3 - 2021-08-07
+ Fixed an issue where the foot would sometimes be flipped when the angle of the leg is not perfectly straight (Enforce footToe ikHandle position)
+ 
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
@@ -122,7 +125,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.2"
+script_version = "1.7.3"
 
 # Python Version
 python_version = sys.version_info.major
@@ -6969,6 +6972,10 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
     cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
     cmds.setAttr(right_elbow_ref_loc + '.v', 0)
+
+    # Enforce footToe ikHandle position
+    cmds.matchTransform(right_leg_toe_ik_handle[0], right_toe_fk_jnt, pos=1, rot=1)
+    cmds.matchTransform(left_leg_toe_ik_handle[0], left_toe_fk_jnt, pos=1, rot=1)
 
     # Delete Proxy
     cmds.delete(gt_ab_settings.get('main_proxy_grp'))

@@ -16,7 +16,7 @@
  Removed a few unnecessary lines
  
  1.4 - 2021-01-30
- Minor adjusmtnets to the GUI
+ Minor adjustments to the GUI
  Updated help to reflect new changes
  Added documentation to all functions
  Removed initial focus from textfield
@@ -29,6 +29,11 @@
  
  1.5 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
+ 
+ 1.6 - 2021-08-08
+ Fixed an issue where the script would stop execution when failing to change a locked attribute
+ Added better feedback for when values are set (with inView error warning)
+ Removed a few unnecessary lines
  
 """
 try:
@@ -54,7 +59,7 @@ import re
 script_name = 'GT - Transfer Transforms'
 
 # Version:
-script_version = '1.4'
+script_version = '1.6'
 
 #Python Version
 python_version = sys.version_info.major
@@ -99,18 +104,7 @@ def build_gui_transfer_transforms():
     cmds.button( l ='Help', bgc=title_bgc_color, c=lambda x:build_gui_help_transfer_transforms())
     cmds.separator(h=10, style='none') # Empty Space
     
-    
 
-    
-    # cmds.rowColumnLayout(p=content_main, numberOfRows=1, adj=True)
-    # cmds.text('Export/Import Transforms')
-    # cmds.separator(h=7, style='none', p=content_main) # Empty Space
-    
-    # c
-    
-    # cmds.separator(h=7, style='none', p=content_main) # Empty Space
-    
-    # cmds.separator(h=10, p=content_main)
     
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1,10)], p=content_main)
@@ -310,6 +304,7 @@ def build_gui_transfer_transforms():
             
             # Settings
             transforms = get_desired_transforms()
+            errors = []
             
             # Transfer 
             for transform in transforms:
@@ -320,7 +315,20 @@ def build_gui_transfer_transforms():
                         source_transform = cmds.getAttr(source + '.' + transform[2])
                     
                     for target in targets:
-                        cmds.setAttr(target + '.' + transform[2], source_transform)
+                        if not cmds.getAttr(target + '.' + transform[2], lock=True):
+                            cmds.setAttr(target + '.' + transform[2], source_transform)
+                        else:
+                            errors.append(target + ' "' + transform[2]+'" is locked.' )
+            if len(errors) != 0:
+                unique_message = '<' + str(random.random()) + '>'
+                if len(errors) == 1:
+                    is_plural = ' attribute was '
+                else:
+                    is_plural = ' attributes were '
+                cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'+ str(len(errors))+ '</span><span style=\"color:#FFFFFF;\"> locked'+ is_plural + 'ignored. (Open Script Editor to see a list)</span>', pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                for error in errors:
+                    print(str(error))
         else:
             cmds.warning('Select source 1st, then targets 2nd, 3rd...')
                         
@@ -336,6 +344,7 @@ def build_gui_transfer_transforms():
             left_side_tag = parse_text_field(cmds.textField(left_tag_text_field, q=True, text=True))[0]
             right_side_tag = parse_text_field(cmds.textField(right_tag_text_field, q=True, text=True))[0]
             transforms = get_desired_transforms()
+            errors = []
             
             selection = cmds.ls(selection=True)
             
@@ -365,8 +374,11 @@ def build_gui_transfer_transforms():
                                         source_transform = (cmds.getAttr(right_obj + '.' + transform[2]) * -1)
                                     else:
                                         source_transform = cmds.getAttr(right_obj + '.' + transform[2])
-                                    
-                                    cmds.setAttr(left_obj + '.' + transform[2], source_transform)
+
+                                    if not cmds.getAttr(left_obj + '.' + transform[2], lock=True):
+                                        cmds.setAttr(left_obj + '.' + transform[2], source_transform)
+                                    else:
+                                        errors.append(left_obj + ' "' + transform[2]+'" is locked.' )
                                     
                         # Transfer Left to Right
                         if source_side is 'left':
@@ -377,7 +389,21 @@ def build_gui_transfer_transforms():
                                     else:
                                         source_transform = cmds.getAttr(left_obj + '.' + transform[2])
                                     
-                                    cmds.setAttr(right_obj + '.' + transform[2], source_transform)
+                                    if not cmds.getAttr(right_obj + '.' + transform[2], lock=True):
+                                        cmds.setAttr(right_obj + '.' + transform[2], source_transform)
+                                    else:
+                                        errors.append(right_obj + ' "' + transform[2]+'" is locked.' )
+                                        
+            if len(errors) != 0:
+                unique_message = '<' + str(random.random()) + '>'
+                if len(errors) == 1:
+                    is_plural = ' attribute was '
+                else:
+                    is_plural = ' attributes were '
+                cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'+ str(len(errors))+ '</span><span style=\"color:#FFFFFF;\"> locked'+ is_plural + 'ignored. (Open Script Editor to see a list)</span>', pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                for error in errors:
+                    print(str(error))
         else:
             cmds.warning('Select all elements you want to match before running the script')                 
     # Side to Side Function Ends --------------------------------------------
@@ -420,15 +446,31 @@ def build_gui_transfer_transforms():
 
                 # Settings
                 transforms = get_desired_transforms()
+                errors = []
                 
                 # Transfer 
                 for transform in transforms: # Using Transform, Inverted?, Attribute
                     if transform[0]: # Using Transform?
                         for target in targets:
-                            if transform[1]: #Inverted?
-                                cmds.setAttr(target + '.' + transform[2], (float(gt_transfer_transforms_dict.get(transform[2])*-1)))
+                            if not cmds.getAttr(target + '.' + transform[2], lock=True):
+                                if transform[1]: #Inverted?
+                                    cmds.setAttr(target + '.' + transform[2], (float(gt_transfer_transforms_dict.get(transform[2])*-1)))
+                                else:
+                                    cmds.setAttr(target + '.' + transform[2], float(gt_transfer_transforms_dict.get(transform[2])))
                             else:
-                                cmds.setAttr(target + '.' + transform[2], float(gt_transfer_transforms_dict.get(transform[2])))
+                                errors.append(target + ' (' + transform[2]+') is locked.' )
+                                
+                if len(errors) != 0:
+                    unique_message = '<' + str(random.random()) + '>'
+                    if len(errors) == 1:
+                        is_plural = ' attribute was '
+                    else:
+                        is_plural = ' attributes were '
+                    cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'+ str(len(errors))+ '</span><span style=\"color:#FFFFFF;\"> locked'+ is_plural + 'ignored. (Open Script Editor to see a list)</span>', pos='botLeft', fade=True, alpha=.9)
+                    sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                    for error in errors:
+                        print(str(error))
+            
             else: 
                 cmds.warning('Select objects to set their transforms')
     # Copy Paste Function Ends --------------------------------------------
@@ -649,10 +691,15 @@ def import_trs_transforms():
                     target (string): Name of the target object (object that will receive transforms)
                     attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
                     value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+                    
+                Returns:
+                    error_message(string): Error message. (Returns nothing if there were no errors)
         
         '''
         if not cmds.getAttr(target + '.' + attr, lock=True):
             cmds.setAttr(target + '.' + attr, value)
+        else:
+            return str(target) + ' (' + attr +') is locked.'
     
     import_version = 0.0
 
@@ -680,6 +727,8 @@ def import_trs_transforms():
       
                     
                     failed_imports = []
+                    set_attr_responses = []
+                    
                     for obj in data:
                         if obj != 'gt_transfer_transforms_version':
                             # General Vars
@@ -701,20 +750,36 @@ def import_trs_transforms():
     
                             # Apply Data
                             if found:
-                                set_unlocked_attr(found_obj, 'tx', t_data[0])
-                                set_unlocked_attr(found_obj, 'ty', t_data[1])
-                                set_unlocked_attr(found_obj, 'tz', t_data[2])
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'tx', t_data[0]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'ty', t_data[1]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'tz', t_data[2]))
                                 
-                                set_unlocked_attr(found_obj, 'rx', r_data[0])
-                                set_unlocked_attr(found_obj, 'ry', r_data[1])
-                                set_unlocked_attr(found_obj, 'rz', r_data[2])
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'rx', r_data[0]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'ry', r_data[1]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'rz', r_data[2]))
                                 
-                                set_unlocked_attr(found_obj, 'sx', s_data[0])
-                                set_unlocked_attr(found_obj, 'sy', s_data[1])
-                                set_unlocked_attr(found_obj, 'sz', s_data[2])
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'sx', s_data[0]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'sy', s_data[1]))
+                                set_attr_responses.append(set_unlocked_attr(found_obj, 'sz', s_data[2]))
                             else:
                                 failed_imports.append([short_name, long_name])
-                               
+                    
+                    errors = []
+                    for response in set_attr_responses:
+                        if response:
+                            errors.append(response)
+                            
+                    if len(errors) != 0:
+                        unique_message = '<' + str(random.random()) + '>'
+                        if len(response) == 1:
+                            is_plural = ' attribute was '
+                        else:
+                            is_plural = ' attributes were '
+                        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'+ str(len(errors))+ '</span><span style=\"color:#FFFFFF;\"> locked'+ is_plural + 'ignored. (Open Script Editor to see a list)</span>', pos='botLeft', fade=True, alpha=.9)
+                        sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                        for error in errors:
+                            print(str(error))
+                    
                     if failed_imports:
                         cmds.warning('Not all transforms were imported, because not all objects were found. See script editor for more info.')
                         print('#' * 80)

@@ -1604,8 +1604,9 @@ def discord_get_webhook_name(webhook_url):
                 return response_content_dict.get('name')
             else:
                 return 'Error reading webhook response'
-        except:
-            cmds.warning('Error connecting to provided webhook. Make sure you\'re pasting the correct URL')
+        except Exception as e:
+            print(e)
+            cmds.warning('Error connecting to the provided webhook. Make sure you\'re pasting the correct URL and check your internet connection or firewall.')
             return 'Error connecting to webhook'
     else:
         try: 
@@ -1616,8 +1617,9 @@ def discord_get_webhook_name(webhook_url):
                 return response_content_dict.get('name')
             else:
                 return 'Error reading webhook response'
-        except:
-            cmds.warning('Error connecting to provided webhook. Make sure you\'re pasting the correct URL')
+        except Exception as e:
+            print(e)
+            cmds.warning('Error connecting to the provided webhook. Make sure you\'re pasting the correct URL and check your internet connection or firewall.')
             return 'Error connecting to webhook'
 
 def get_readable_size(size, precision=2):
