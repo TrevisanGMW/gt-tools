@@ -135,4 +135,4 @@ If you'd like to contribute, please fork the repository and make changes as you'
 Don't know how to code but want to contribute? You could [__buy me a coffee! :coffee:__](https://www.buymeacoffee.com/TrevisanGMW)
 
 <h1> Licensing </h1>
-The MIT License 2020 - Guilherme Trevisan
+The MIT License 2021 - Guilherme Trevisan
