@@ -20,6 +20,9 @@
  1.5 - 2021-05-12
  Made script compatible with Python 3.0 (Maya 2022+)
  
+ 1.5.1 - 2021-08-22
+ Changed default suffix from "_rigLayer" to "_offset"
+ 
  To do: 
  Add option to use a different methods of position matching (use getAttr values)
  Add option to use joint's orientation instead of rotation
@@ -45,7 +48,7 @@ except ImportError:
 script_name = "GT - In-between Generator"
 
 # Version
-script_version = "1.5"
+script_version = "1.5.1"
 
 #Python Version
 python_version = sys.version_info.major
@@ -104,7 +107,7 @@ def build_gui_generate_inbetween():
     cmds.separator(h=15, p=body_column)
     bottom_container = cmds.rowColumnLayout(p=body_column,adj=True)
     cmds.text('New Transform Suffix:',p=bottom_container)
-    desired_tag = cmds.textField(p = bottom_container, text="_rigLayer", enterCommand=lambda x:create_inbetween(parse_text_field(cmds.textField(desired_tag, q=True, text=True))[0],\
+    desired_tag = cmds.textField(p = bottom_container, text="_offset", enterCommand=lambda x:create_inbetween(parse_text_field(cmds.textField(desired_tag, q=True, text=True))[0],\
                                                                         cmds.optionMenu(transform_parent_type, q=True, value=True),\
                                                                         cmds.optionMenu(transform_type, q=True, value=True)))
     cmds.separator(h=10, style='none') # Empty Space
