@@ -21,6 +21,9 @@
  1.6 - 2021-05-11
  Made script compatible with Python 3 (Maya 2022+)
  
+ 1.7 - 2021-08-22
+ Fixed issue where default state for "use selection for source" would cause script to crash
+ 
 """
 
 import maya.cmds as cmds
@@ -44,7 +47,7 @@ except ImportError:
 script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "1.6"
+script_version = "1.7"
 
 # Python Version
 python_version = sys.version_info.major
@@ -309,6 +312,8 @@ def build_gui_connect_attributes():
             cmds.button(target_status, l ="Failed to Load",e=True, bgc=(1, .4, .4), w=130,\
                         c="cmds.headsUpMessage( 'Make sure you select at least one target element', verticalOffset=150 , time=5.0)")
 
+    # Update Connection Type
+    is_using_single_target(settings.get("def_single_source_target"))
     
     # Show and Lock Window
     cmds.showWindow(build_gui_connect_attributes)
