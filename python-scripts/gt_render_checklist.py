@@ -28,6 +28,10 @@
     
  1.4 - 2021-05-12
     Made script compatible with Python 3 (Maya 2022+)
+    
+ 1.4.1 - 2021-08-27
+    Added PATCH field to the version 11.11.(11)
+    Changed default expected network path and file paths
 
  Todo:
     Add checks for xgen
@@ -55,7 +59,7 @@ except ImportError:
 script_name = "GT Render Checklist" 
 
 # Version
-script_version = "1.4"
+script_version = "1.4.1"
 
 #Python Version
 python_version = sys.version_info.major
@@ -72,8 +76,8 @@ checklist_items = { 0 : ["Frame Rate", "film"],
                     1 : ["Scene Units", "cm"],
                     2 : ["Output Resolution", ["1920","1080"] ],
                     3 : ["Total Texture Count", [40, 50] ],
-                    4 : ["Network File Paths", ["vfsstorage10"] ], # Uses startswith and ignores slashes
-                    5 : ["Network Reference Paths", ["vfsstorage10"] ], # Uses startswith and ignores slashes
+                    4 : ["Network File Paths", ["C:\\"] ], # Uses startswith and ignores slashes
+                    5 : ["Network Reference Paths", ["C:\\"] ], # Uses startswith and ignores slashes
                     6 : ["Unparented Objects", 0],
                     7 : ["Total Triangle Count", [1800000, 2000000] ],
                     8 : ["Total Poly Object Count", [90, 100] ],
@@ -89,7 +93,7 @@ checklist_items = { 0 : ["Frame Rate", "film"],
                    18 : ["Animated Visibility", 0],
                    19 : ["Non Deformer History", 0 ],
                    20 : ["Textures Color Space", 0 ],
-                   21 : ["Other Network Paths", ["vfsstorage10"] ] 
+                   21 : ["Other Network Paths", ["C:\\"] ] 
                   }
 
 # Store Default Values for Reseting

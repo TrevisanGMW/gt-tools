@@ -41,7 +41,7 @@ For help on how to use these scripts, click on the “Help” button at the top 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
 Hopefully these scripts are helpful to you as they are to me.
 
-<p><b>Tested using Autodeks Maya 2020 (Windows 10)</b></p>
+<p><b>Tested using Autodesk Maya 2020 (Windows 10)</b></p>
 
 
 <h1> Organization </h1>

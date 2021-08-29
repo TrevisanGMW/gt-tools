@@ -26,11 +26,12 @@
  
  1.5 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
-
  
+ 1.6 - 2021-08-18
+ Added a select hierarchy button for convenience
+
  To Do:
  Add Selection base on Shader name, Texture, TRS
- Add Apply function to outliner color
  Add choice between transform and shape for outliner color
  
 """
@@ -55,7 +56,7 @@ except ImportError:
 script_name = "GT Selection Manager"
 
 # Version:
-script_version = "1.5"
+script_version = "1.6"
 
 #Python Version
 python_version = sys.version_info.major
@@ -249,12 +250,17 @@ def build_gui_selection_manager():
     cmds.separator(h=10, p=body_column)
     
     cmds.separator(h=10, style='none', p=body_column)  # Empty Space
+    
+    # Select Hierarchy
+    cmds.button(p=body_column, l ="Select Hierarchy", c=lambda x:select_hierarchy())
+    
+    cmds.separator(h=5, style='none', p=body_column)  # Empty Space
     # Create New Selection (Main Function)
     cmds.button(p=body_column, l ="Create New Selection", c=lambda x:update_stored_values_and_run(True))
     
     cmds.separator(h=5, style='none', p=body_column)  # Empty Space
     # Update Selection (Main Function)
-    cmds.button(p=body_column, l ="Update Current Selection", bgc=(.6, .6, .6), c=lambda x:update_stored_values_and_run(False))
+    cmds.button(p=body_column, l ="Update Current Selection", c=lambda x:update_stored_values_and_run(False))
     cmds.separator(h=10, style='none', p=body_column)  # Empty Space
     
     # End of Main Dialog =========================================================================================================
@@ -690,6 +696,13 @@ def export_to_txt(export_list):
 
     notepad_command = 'exec("notepad ' + txt_file + '");'
     mel.eval(notepad_command)
+
+     
+def select_hierarchy():
+    ''' 
+    Adds the hierarchy of the selected object to the selection              
+    '''
+    cmds.select(hierarchy=True)
 
      
 def is_object_shape(obj):
