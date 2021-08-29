@@ -63,12 +63,11 @@
 <br>
 </div>
 
-
 <!-- Windows Installation -->
 
 <h1>Windows Installation</h1>
 
-<b>TL;DR :</b> Download files, then open "setup.bat". 
+<b>TL;DR :</b> Download files, then open "setup.bat".
 <br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
 
 <h3>Auto Installation</h3>
@@ -78,6 +77,7 @@
 
 This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
 Here is how you do it in more details:
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -92,6 +92,7 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 <h3>Manual Installation</h3>
 
 In case you need/want to manually install the scripts. It's also a pretty straightforward process.
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -137,7 +138,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h1>MacOS Installation</h1>
 
-<b>TL;DR :</b> Download files, run the bash script "setup_mac.sh". 
+<b>TL;DR :</b> Download files, run the bash script "setup_mac.sh".
 
 <h3>Auto Installation</h3>
 
@@ -146,6 +147,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya. (Tested in MacOS Big Sur 11.1)
 Here is how you do it in more details:
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -161,6 +163,7 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 <h3>Manual Installation</h3>
 
 In case you need/want to manually install the scripts. It's easy..
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -203,12 +206,11 @@ In case you need/want to manually install the scripts. It's easy..
 
 <br>
 
-
 <!-- Linux Installation -->
 
 <h1>Linux Installation</h1>
 
-<b>TL;DR :</b> Download files, sudo run the bash script "setup_linux.sh". 
+<b>TL;DR :</b> Download files, sudo run the bash script "setup_linux.sh".
 
 <h3>Auto Installation</h3>
 
@@ -217,6 +219,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 This script collection comes with an auto installer (setup_linux.sh) you can simply download it, run the setup and reopen Maya. (Tested in Ubuntu 20.10)
 Here is how you do it in more details:
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -233,6 +236,7 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 <h3>Manual Installation</h3>
 
 In case you need/want to manually install the scripts. It's easy..
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -275,14 +279,11 @@ In case you need/want to manually install the scripts. It's easy..
 
 <br>
 
-
-
 <!-- GT Menu -->
 <div>
 <h1> GT Menu </h1>
 <img src="./media/gt_menu.jpg" align="right"
      alt="GT Dropdown Menu and Help">
-
 
 <p>The script "gt_tools_menu.mel" adds a new dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
 <br>This menu contains sub-menus that have been organized to contain related tools. For example: modeling, rigging, utilities, etc...</p>
@@ -305,7 +306,6 @@ In case you need/want to manually install the scripts. It's easy..
 <h1> GT Check for Updates </h1>
 <img src="./media/gt_check_for_updates.jpg" align="right"
      alt="GT Check for Updates UI">
-
 
 <p>This script compares your current GT Tools version with the latest release from Github. In case the version installed is older than the latest release, an option to update becomes available.<br>In this window you can also control how often the script will automatically check for updates.</p>
 
@@ -389,7 +389,6 @@ The icon on the left describes the validity of the path. If the file or director
 
 <p><b>Auto Path Repair: </b>This function walks through the folders under the provided directory looking for missing files. If it finds a match, the path is updated.</p>
 
-
 <p><b>Search and Replace: </b>This function allows you to search and replace strings in the listed paths.</p>
 
 <p><b>Refresh: </b>Re-populates the list while re-checking for path validity.</p>
@@ -400,12 +399,12 @@ The icon on the left describes the validity of the path. If the file or director
 <br>file (UDIMS and Image Sequences), audio, cacheFile, AlembicNode, BifMeshImportNode, gpuCache, MASH_Audio, aiPhotometricLight, aiStandIn, aiVolume, RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight, imagePlane</p>
 
 <br><br>
+
 </div>
 
 <!-- GT Color Manager -->
 <div>
 <h1> GT Color Manager </h1>
-
 
 <img src="./media/gt_color_manager.jpg" align="right"
      alt="GT Color Manager GUI">
@@ -422,11 +421,9 @@ The icon on the left describes the validity of the path. If the file or director
 <img src="./media/gt_color_manager_sample_a.gif" align="right"
 	 alt="GT Path Manager Sample A">
 
-
 <p><b>Current Color: </b><br>The color used in the operation. Click on the color to open Maya's color picker.</p>
 
 <p><b>Color Presets: </b><br>A list of common colors. When clicked it sets the color.</p>
-
 
 <p><b>Set Color For: </b><br>- Outliner:  Control the outliner color
 <br>- Wireframe Color:  Control the wireframe color seen in the viewport</p>
@@ -693,7 +690,6 @@ This button will create many temporary curves that will later be used to generat
 <br>For tips on how to position every proxy curve, open the attribute editor and read the information under "Transform Node > Notes:"
 </p>
 
-
 <p><h3>Step 2:</h3>
 Pose the proxy (guide) to match your character. 
 <br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy elements, essentially "recreating" the proxy.  
@@ -721,10 +717,10 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 
 These are utilities and extra functions that you can use after creating your rig.
 <br>
-<br><b>- Add Seamless FK/IK Switch to Shelf:</b>  Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs.
-<br><b>		- Toggle:</b> Seamlessly Toggles between FK and IK. 
-<br><b>		- FK to IK:</b> Switches to IK and copies the FK pose into it. 
-<br><b>		- IK to FK:</b> Switches to FK and copies the IK pose into it.
+<br><b>- Add Seamless FK/IK Switch to Shelf:</b> Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs.
+<br><b> - Toggle:</b> Seamlessly Toggles between FK and IK.
+<br><b> - FK to IK:</b> Switches to IK and copies the FK pose into it.
+<br><b> - IK to FK:</b> Switches to FK and copies the IK pose into it.
 <br>
 <br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
 <br>
@@ -750,12 +746,10 @@ These are utilities and extra functions that you can use after creating your rig
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
      alt="GT Auto Biped attached to HumanIK Example">
 
-
 <p><h3>Lock Attribute and Follow Object:</h3>
 This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
 <p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
-
 
 <img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
      alt="GT Auto Biped Lock Attribute Example">
@@ -766,8 +760,6 @@ This rig comes with many custom attributes so you can tweak how much stability/f
      alt="GT Auto Biped Foot Rolls Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
      alt="GT Auto Biped Follow Eye Example">
-
-
 
 <p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
 <p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
@@ -837,7 +829,6 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
      alt="GT Auto Biped Abduction/Adduction System Example">
 
-
 <p><h3>Imports/Exporting Skin Weights:</h3>
 This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
 <br></p>
@@ -846,10 +837,23 @@ This might be obvious, but when exporting and importing skin weights, don't forg
 If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" </p>
 
 <br>
+<p><h3>Auto Rigger Work Sample:</h3></p>
+<p>Below you can watch a few animations that used GT Auto Biped Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Auto Biped Rigger Home Remedy Promo">
+
+<p>
+<ul>
+	<li><b>Home Remedy - Animated Short Film:</b><br><a href="https://vimeo.com/579130303">vimeo.com/579130303</a></li>
+	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br><a href="https://vimeo.com/564743576">vimeo.com/564743576</a></li>
+	<li><b>Short Horror Animation:</b><br><a href="https://youtu.be/pH62aGjf9-Y?t=1198">youtu.be/pH62aGjf9-Y</a></li>
+</ul></p>
+
+<p>Do you want to share your animation here? Send me a message!<br></p>
+
+<br>
 <br>
 
 </div>
-
 
 <!-- GT Connect Attributes -->
 <div>
@@ -1051,7 +1055,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-
 <!-- GT Make Stretchy Legs -->
 <div>
 <h1> GT Make IK Stretchy </h1>
@@ -1087,11 +1090,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <p>By default, the attribute holder termines the stretch, to change this behavior, constraint or parent the object "stretchyTerm_end" to another object.</p>
 
-
 <br><br>
 
 </div>
-
 
 <!-- GT Add Sine Attributes -->
 <div>
@@ -1119,14 +1120,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-
 <!-- GT Utilities -->
 <div>
 <h1> GT Utilities </h1>
 
 <img src="./media/gt_utilities.jpg" align="right"
      alt="GT Utilities Menu">
-	 
 
 <p>GT Utilities (GTU) is a collection of smaller functions that don't necessary need or use a window/dialog.
 <br>Most of these functions can be found under "GT Tools > Utilities" but a few of them are scattered throughout other menus.</p>
@@ -1212,7 +1211,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <img src="./media/gtu_curves.jpg" align="right"
      alt="GT Utilities Curves">
-	 
+
 <h3>Combine Curves</h3>
 <p>Moves curve shapes of the selected curves into one single transform, essentially combining them.
 <br>In case a bezier curve is found, the script gives you the option of converting them to NURBS.</p>
@@ -1262,8 +1261,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-
-
 <!-- GT fSpy Importer -->
 <div>
 <h1> GT fSpy Importer </h1>
@@ -1273,11 +1270,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <p>This script allows you import the data of a JSON file (exported out of fSpy) into Maya.</p>
 
-
 <p><b>What is fSpy: </b>
 <br>fSpy is a fantastic software that allows you to quickly and easily create a 3D camera match.<br>The files created with it can easily be imported in Blender, but not in Maya. That's what this script aims to address.<br>
 <br>You can find more information and a tutorial on their website: <a href="https://fspy.io/">https://fspy.io/</a></p>
-
 
 <p><b>How It works: </b>
 <br>Using the JSON file, this script applies the exported matrix to a camera so it matches the position and rotation identified in fSpy.
@@ -1310,9 +1305,6 @@ Do not change the resolution of the image file or crop the image or it might not
 <br>
 
 </div>
-
-
-
 
 <!-- GT Maya to Discord -->
 <div>
