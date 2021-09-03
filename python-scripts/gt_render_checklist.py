@@ -32,9 +32,13 @@
  1.4.1 - 2021-08-27
     Added PATCH field to the version 11.11.(11)
     Changed default expected network path and file paths
+    
+ 1.4.2 - 2021-09-03
+    Added import line for fileTexturePathResolver
 
  Todo:
     Add checks for xgen
+    Create a better error handling option for the total texture count function
     
 """
 import maya.cmds as cmds
@@ -58,8 +62,9 @@ except ImportError:
 # Checklist Name
 script_name = "GT Render Checklist" 
 
-# Version
-script_version = "1.4.1"
+# Versions
+script_version = "1.4.2"
+maya_version = cmds.about(version=True)
 
 #Python Version
 python_version = sys.version_info.major
@@ -724,9 +729,14 @@ def check_total_texture_count():
         if uv_tiling_mode != 0:
             use_frame_extension = cmds.getAttr(file + '.useFrameExtension')
             file_path = cmds.getAttr(file + ".fileTextureName")
-            udim_file_pattern = maya.app.general.fileTexturePathResolver.getFilePatternString(file_path, use_frame_extension, uv_tiling_mode)
-            udim_textures = maya.app.general.fileTexturePathResolver.findAllFilesForPattern(udim_file_pattern, None)
-            received_value +=len(udim_textures)
+            
+            try:
+                import maya.app.general.fileTexturePathResolver 
+                udim_file_pattern = maya.app.general.fileTexturePathResolver.getFilePatternString(file_path, use_frame_extension, uv_tiling_mode)
+                udim_textures = maya.app.general.fileTexturePathResolver.findAllFilesForPattern(udim_file_pattern, None)
+            except:
+                udim_textures = 0
+            received_value +=len(udim_textures) 
         else:
             received_value +=1
         
