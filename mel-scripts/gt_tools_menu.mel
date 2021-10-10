@@ -115,9 +115,6 @@
 //   Removed Create IK Leg
 //	 Updated Make IK Stretchy
 //
-//   1.6.4
-//	 Only updated the version, no changes to the menu
-//
 //   1.6.5
 //	 Added gtu_uniform_jnt_label_toggle to GT Utilities
 //
@@ -127,8 +124,6 @@
 //   1.6.7
 //	 Added Add Sine Attributes
 //
-//   1.6.8
-//	 Only updated the version, no changes to the menu
 //
 //   1.6.9
 //	 Added GT Create Testing Keys
@@ -144,12 +139,15 @@
 //   Fixed issue where GT Path Manager would sometimes not open
 //
 //   1.7.3
-//   Added gt_transfer_uvs
+//   Added "gt_transfer_uvs"
+//
+//   1.7.8
+//   Added "gtu_full_hud_toggle"
 //
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.7.7";
+global string $scriptVersion = "1.7.8";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -410,6 +408,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_select_non_unique_objects()\");") 
     -ann ("Selects all objects with the same short name. (non-unique objects)") 
     -image "gotoLine.png";
+    
+	menuItem 
+    -l ("Full HUD Toggle")
+    -c ("python(\"import gt_utilities\\nif python_version==3:\\n\\timportlib.reload(gt_utilities)\\nelse:\\n\\treload(gt_utilities)\\ngt_utilities.gtu_full_hud_toggle()\");") 
+    -ann ("Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. (Keeps default elements intact when toggling it off)") 
+    -image "channelBox.png";
     
     // References
     menuItem -divider true ;
