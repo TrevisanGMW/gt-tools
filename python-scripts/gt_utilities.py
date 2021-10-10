@@ -1059,7 +1059,133 @@ def gtu_delete_all_locators():
     if errors != '':
         print('######## Errors: ########')
         print(errors)
-            
+        
+        
+def gtu_full_hud_toggle():
+    ''' Toggles common HUD options so all the common ones are either active or inactive  '''
+    
+    hud_current_state = {}
+    
+    # 1 - Animation Details
+    hud_current_state['animationDetailsVisibility'] = int(mel.eval('optionVar -q animationDetailsVisibility;'))
+    # 2 - Cache
+    try:
+        from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+        hud_current_state['CachePreferenceHud'] = int(CachePreferenceHud().get_value() or 0)
+    except:
+        hud_current_state['CachePreferenceHud'] = 0
+    # 3 - Camera Names
+    hud_current_state['cameraNamesVisibility'] = int(mel.eval('optionVar -q cameraNamesVisibility;'))
+    # 4 - Caps Lock
+    hud_current_state['capsLockVisibility'] = int(mel.eval('optionVar -q capsLockVisibility;'))
+    # 5 - Current Asset
+    hud_current_state['currentContainerVisibility'] = int(mel.eval('optionVar -q currentContainerVisibility;'))
+    # 6 - Current Frame
+    hud_current_state['currentFrameVisibility'] = int(mel.eval('optionVar -q currentFrameVisibility;'))
+    # 7 - Evaluation
+    hud_current_state['evaluationVisibility'] = int(mel.eval('optionVar -q evaluationVisibility;'))
+    # 8 - Focal Length
+    hud_current_state['focalLengthVisibility'] = int(mel.eval('optionVar -q focalLengthVisibility;'))
+    # 9 - Frame Rate
+    hud_current_state['frameRateVisibility'] = int(mel.eval('optionVar -q frameRateVisibility;'))
+    # 10 - HumanIK Details
+    hud_current_state['hikDetailsVisibility'] = int(mel.eval('optionVar -q hikDetailsVisibility;'))
+    # 11 - Material Loading Details
+    hud_current_state['materialLoadingDetailsVisibility'] = int(mel.eval('optionVar -q materialLoadingDetailsVisibility;'))
+    # 12 - Object Details
+    hud_current_state['objectDetailsVisibility'] = int(mel.eval('optionVar -q objectDetailsVisibility;'))
+    # 13 - Origin Axis - Ignored as non-hud element
+    #hud_current_state['originAxesMenuUpdate'] = mel.eval('optionVar -q originAxesMenuUpdate;')
+    # 14 - Particle Count
+    hud_current_state['particleCountVisibility'] = int(mel.eval('optionVar -q particleCountVisibility;'))
+    # 15 - Poly Count
+    hud_current_state['polyCountVisibility'] = int(mel.eval('optionVar -q polyCountVisibility;'))
+    # 16 - Scene Timecode
+    hud_current_state['sceneTimecodeVisibility'] = int(mel.eval('optionVar -q sceneTimecodeVisibility;'))
+    # 17 - Select Details
+    hud_current_state['selectDetailsVisibility'] = int(mel.eval('optionVar -q selectDetailsVisibility;'))
+    # 18 - Symmetry
+    hud_current_state['symmetryVisibility'] = int(mel.eval('optionVar -q symmetryVisibility;'))
+    # 19 - View Axis
+    hud_current_state['viewAxisVisibility'] = int(mel.eval('optionVar -q viewAxisVisibility;'))
+    # 20 - Viewport Renderer
+    hud_current_state['viewportRendererVisibility'] = int(mel.eval('optionVar -q viewportRendererVisibility;'))
+    # ------- Separator -------
+    # 21 - In-view Messages
+    hud_current_state['inViewMessageEnable'] = int(mel.eval('optionVar -q inViewMessageEnable;'))
+    # 22 - In-view Editors
+    hud_current_state['inViewEditorVisible'] = int(mel.eval('optionVar -q inViewEditorVisible;'))
+    # Conditional - XGen Info
+    hud_current_state['xgenHUDVisibility'] = int(mel.eval('optionVar -q xgenHUDVisibility;'))
+    
+    # Check if toggle ON or OFF
+    toggle = True
+    count = 0
+    for item_state in hud_current_state:
+        if hud_current_state.get(item_state):
+            count +=1
+    # More than half is on, so OFF else ON (Default)
+    if count > len(hud_current_state)/2:
+        toggle = False
+
+    # Toggles non-standard hud elements
+    if toggle:
+        mel.eval('setAnimationDetailsVisibility(true)')
+        try:
+            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+            CachePreferenceHud().set_value(True)
+        except:
+            pass
+        mel.eval('setCameraNamesVisibility(true)')
+        mel.eval('setCapsLockVisibility(true)')
+        mel.eval('setCurrentContainerVisibility(true)')
+        mel.eval('setCurrentFrameVisibility(true)')
+        mel.eval('SetEvaluationManagerHUDVisibility(1)')
+        mel.eval('setFocalLengthVisibility(true)')
+        mel.eval('setFrameRateVisibility(true)')
+        if not hud_current_state.get('hikDetailsVisibility'):
+            cmds.ToggleHikDetails()
+            mel.eval('setHikDetailsVisibility(true)')
+        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(true)')
+        mel.eval('setObjectDetailsVisibility(true)')
+        mel.eval('setParticleCountVisibility(true)')
+        mel.eval('setPolyCountVisibility(true)')
+        mel.eval('setSceneTimecodeVisibility(true)')
+        mel.eval('setSelectDetailsVisibility(true)')
+        mel.eval('setSymmetryVisibility(true)')
+        mel.eval('setViewAxisVisibility(true)')
+        mel.eval('setViewportRendererVisibility(true)')
+        mel.eval('setXGenHUDVisibility(true)')
+        if not hud_current_state.get('inViewMessageEnable'):
+            cmds.ToggleInViewMessage()
+        if not hud_current_state.get('inViewEditorVisible'):
+            cmds.ToggleInViewEditor()
+    else: 
+        mel.eval('setAnimationDetailsVisibility(false)')
+        try:
+            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+            CachePreferenceHud().set_value(False)
+        except:
+            pass
+        mel.eval('setCurrentContainerVisibility(false)')
+        mel.eval('setCurrentFrameVisibility(false)')
+        mel.eval('SetEvaluationManagerHUDVisibility(0)')
+        mel.eval('setFocalLengthVisibility(false)')
+        mel.eval('setFrameRateVisibility(false)')
+        if hud_current_state.get('hikDetailsVisibility'):
+            cmds.ToggleHikDetails()
+            mel.eval('setHikDetailsVisibility(false)')
+            mel.eval('hikDetailsKeyingMode()')
+        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(false)')
+        mel.eval('setObjectDetailsVisibility(false)')
+        mel.eval('setParticleCountVisibility(false)')
+        mel.eval('setPolyCountVisibility(false)')
+        mel.eval('setSceneTimecodeVisibility(false)')
+        mel.eval('setSelectDetailsVisibility(false)')
+        mel.eval('setViewportRendererVisibility(false)')
+        mel.eval('setXGenHUDVisibility(false)')
+	# Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
+
             
 ''' ____________________________ Functions ____________________________'''   
 #gtu_reload_file()
@@ -1097,3 +1223,4 @@ def gtu_delete_all_locators():
 
 # --- Other Functions ---
 #gtu_delete_all_locators()
+#gtu_full_hud_toggle()
