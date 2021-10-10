@@ -1159,6 +1159,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <h3>Select Non-Unique Objects</h3>
 <p>Selects all objects with the same short name. (A short name is the name of the object without its path)</p>
 
+<h3>Full HUD Toggle</h3>
+<p>Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. (Keeps default elements ON when toggling it OFF)</p>
+
 <h3>Import References</h3>
 <p>Attempts to import all loaded references.</p>
 
