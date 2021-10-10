@@ -89,12 +89,21 @@
  
  1.7.3 - 2021-08-07
  Fixed an issue where the foot would sometimes be flipped when the angle of the leg is not perfectly straight (Enforce footToe ikHandle position)
+
+ 1.7.4 - 2021-10-10
+ Fixed an issue where the rig would start flickering when following motion capture using a custom rig setup (HumanIK)
+ Modified inflation/deflation system to use controls instead of inverseMatrix nodes (less convenient, but more robust)
+ Removed extraction of hip rotation from the "Extra Proxy Pose From Generated Rig" to fix an issue where it would sometimes be flipped
+ Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
+ Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
+ 
  
  To do:
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
     Create button to add a shelf button for an animation picker
+    Create exporter with options to auto generate selection sets based on LOD names.
     
 """ 
 try:
@@ -125,7 +134,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.3"
+script_version = "1.7.4"
 
 # Python Version
 python_version = sys.version_info.major
@@ -152,6 +161,7 @@ debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.json' # Path to auto import
 debugging_bind_rig = True # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
+debugging_bind_heatmap = False #If not using heatmap, then closest distance
 
 # Loaded Elements Dictionary
 gt_ab_settings = { # General Settings
@@ -256,11 +266,16 @@ def build_gui_auto_biped_rig():
 
     # Title Text
     title_bgc_color = (.4, .4, .4)
+    main_window_title = script_name
+    if debugging:
+        title_bgc_color = (1, .3, .3)
+        main_window_title = "Debugging Mode Activated"
+
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
     cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
-    cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    cmds.text(main_window_title, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
     cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_help_gui_auto_biped_rig())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
@@ -273,7 +288,6 @@ def build_gui_auto_biped_rig():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(create_proxy_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNi4wLWMwMDIgNzkuMTY0NDg4LCAyMDIwLzA3LzEwLTIyOjA2OjUzICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjIuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTEyLTMwVDIyOjI4OjU0LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMS0wMS0wM1QxMToxNDowOS0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMS0wMS0wM1QxMToxNDowOS0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpjOTRkMjQ0MS03ZDAyLTZk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'
-        #image_64_decode = base64.decodestring(image_enconded)
         image_64_decode = base64.b64decode(image_enconded)
         image_result = open(create_proxy_btn_ico, 'wb')
         image_result.write(image_64_decode)
@@ -284,7 +298,6 @@ def build_gui_auto_biped_rig():
     
     if os.path.isdir(icons_folder_dir) and os.path.exists(create_rig_btn_ico) == False:
         image_enconded = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNi4wLWMwMDIgNzkuMTY0NDg4LCAyMDIwLzA3LzEwLTIyOjA2OjUzICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjIuMCAoV2luZG93cykiIHhtcDpDcmVhdGVEYXRlPSIyMDIwLTEyLTMwVDIyOjM2OjU3LTA4OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyMS0wMS0wM1QxMTo1OTowNC0wODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyMS0wMS0wM1QxMTo1OTowNC0wODowMCIgZGM6Zm9ybWF0PSJpbWFnZS9wbmciIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDphOTMwMjJjNC0zZTljLWQ5NGYtOGZiMi0xMThkNzc2Y2I4YTYiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDowZGQ3ODU1NS05Nzk0LTk1NDctOGJmOS02NTM5YmFiOTU0ODkiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpmMDJjNmFhZC1lZmRmLWQ5NDktOTYyYy1lOThmMTZiOTljMDgiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmYwMmM2YWFkLWVmZGYtZDk0OS05NjJjLWU5OGYxNmI5OWMwOCIgc3RFdnQ6d2hlbj0iMjAyMC0xMi0zMFQyMjozNjo1Ny0wODowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIyLjAgKFdpbmRvd3MpIi8+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDphOTMwMjJjNC0zZTljLWQ5NGYtOGZiMi0xMThkNzc2Y2I4YTYiIHN0RXZ0OndoZW49IjIwMjEtMDEtMDNUMTE6NTk6MDQtMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCAyMi4wIChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4QupX8AAACnElEQVRYhcWXPWsUURSG33XDfkUQVGKimw/TCRYiiCJisBDEVjAIKQQ7FX9AOv0FloKdFmlECyG9IMRKUdFCiYW4S8wmxtVEXVEfi3uGGWdnZndnZ/HAgZnznq977plz7+QA/U8a6kJnVtINSXVJnyXlJb2X9Nr4paT11BkAnfg0sIVPz4FN/qU14HoXvtq4F+V5C3YPyJnsMHAFeGxYA5gaVAICjligTaAcwqrAD8P3DioBAbus5FjQIDYM1A2b7sZfjnRfQdEaLy+pHMKGJK1J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'
-        #image_64_decode = base64.decodestring(image_enconded)
         image_64_decode = base64.b64decode(image_enconded)
         image_result = open(create_rig_btn_ico, 'wb')
         image_result.write(image_64_decode)
@@ -1387,7 +1400,10 @@ def validate_operation(operation, debugging=False):
                 cmds.select(d=True)
                 select_skinning_joints()
                 selection = cmds.ls(selection=True)
-                cmds.skinCluster( selection, debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68, toSelectedBones=True, smoothWeights=0.5, maximumInfluences=5)
+                if debugging_bind_heatmap:
+                    cmds.skinCluster( selection, debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68, toSelectedBones=True, smoothWeights=0.5, maximumInfluences=4)
+                else:
+                    cmds.skinCluster( selection, debugging_bind_geo, bindMethod=1, toSelectedBones=True, smoothWeights=0.5, maximumInfluences=4)
                 cmds.select(d=True)
             
 
@@ -5598,11 +5614,14 @@ def create_controls():
     cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_up_down_ctrl_grp + '.v', f=True)
     
     # IK Knee Automation
-    left_knee_ctrl_constraint = cmds.parentConstraint(left_foot_ik_ctrl, left_knee_ik_ctrl_grp, mo=True)
+    left_knee_ctrl_constraint = cmds.parentConstraint([left_foot_ik_ctrl, direction_ctrl], left_knee_ik_ctrl_grp, mo=True)
     cmds.addAttr(left_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_knee_ik_ctrl + '.kneeAutomation', lock=True)
-    cmds.addAttr(left_knee_ik_ctrl , ln='followFoot', at='bool', k=True)
+    cmds.addAttr(left_knee_ik_ctrl , ln='followFoot', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(left_knee_ik_ctrl + '.followFoot', left_knee_ctrl_constraint[0] + '.w0', f=True)
+    left_knee_reverse_node = cmds.createNode('reverse', name='left_knee_parent_reverse')
+    cmds.connectAttr(left_knee_ik_ctrl + '.followFoot', left_knee_reverse_node + '.inputX', f=True)
+    cmds.connectAttr(left_knee_reverse_node + '.outputX', left_knee_ctrl_constraint[0] + '.w1', f=True)
     
     # Left Leg Stretchy System
     
@@ -5788,11 +5807,14 @@ def create_controls():
     cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_up_down_ctrl_grp + '.v', f=True)
     
     # IK Knee Automation
-    right_knee_ctrl_constraint = cmds.parentConstraint(right_foot_ik_ctrl, right_knee_ik_ctrl_grp, mo=True)
+    right_knee_ctrl_constraint = cmds.parentConstraint([right_foot_ik_ctrl, direction_ctrl], right_knee_ik_ctrl_grp, mo=True)
     cmds.addAttr(right_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_knee_ik_ctrl + '.kneeAutomation', lock=True)
-    cmds.addAttr(right_knee_ik_ctrl , ln='followFoot', at='bool', k=True)
+    cmds.addAttr(right_knee_ik_ctrl , ln='followFoot', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(right_knee_ik_ctrl + '.followFoot', right_knee_ctrl_constraint[0] + '.w0', f=True)
+    right_knee_reverse_node = cmds.createNode('reverse', name='right_knee_parent_reverse')
+    cmds.connectAttr(right_knee_ik_ctrl + '.followFoot', right_knee_reverse_node + '.inputX', f=True)
+    cmds.connectAttr(right_knee_reverse_node + '.outputX', right_knee_ctrl_constraint[0] + '.w1', f=True)
         
     # Right Leg Stretchy System
     cmds.addAttr(right_leg_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
@@ -5952,11 +5974,15 @@ def create_controls():
     cmds.connectAttr(left_arm_switch + '.ctrlVisibility', left_fingers_ctrl_grp + '.v', f=True)
 
     # IK Wrist Automation
-    left_wrist_ctrl_constraint = cmds.parentConstraint(left_wrist_ik_ctrl, left_elbow_ik_ctrl_grp, mo=True)
+    left_wrist_ctrl_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, direction_ctrl], left_elbow_ik_ctrl_grp, mo=True)
     cmds.addAttr(left_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_elbow_ik_ctrl + '.elbowAutomation', lock=True)
-    cmds.addAttr(left_elbow_ik_ctrl , ln='followWrist', at='bool', k=True)
+    cmds.addAttr(left_elbow_ik_ctrl , ln='followWrist', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(left_elbow_ik_ctrl + '.followWrist', left_wrist_ctrl_constraint[0] + '.w0', f=True)
+    left_wrist_reverse_node = cmds.createNode('reverse', name='left_wrist_parent_reverse')
+    cmds.connectAttr(left_elbow_ik_ctrl + '.followWrist', left_wrist_reverse_node + '.inputX', f=True)
+    cmds.connectAttr(left_wrist_reverse_node + '.outputX', left_knee_ctrl_constraint[0] + '.w1', f=True)
+    
 
     # Left Leg Stretchy System
     cmds.addAttr(left_arm_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
@@ -5977,7 +6003,7 @@ def create_controls():
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_elbow_scale_blend + '.blender', f=True)
     cmds.connectAttr(left_elbow_scale_blend + '.output', gt_ab_joints.get('left_elbow_jnt') + '.scale', f=True)
     
-    
+
     # Left Hand Ctrl Visibility Type
     cmds.addAttr(left_arm_switch, ln="armControls", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_arm_switch + '.armControls', lock=True)
@@ -6171,11 +6197,14 @@ def create_controls():
     cmds.connectAttr(right_arm_switch + '.ctrlVisibility', right_fingers_ctrl_grp + '.v', f=True)
 
     # IK Wrist Automation
-    right_wrist_ctrl_constraint = cmds.parentConstraint(right_wrist_ik_ctrl, right_elbow_ik_ctrl_grp, mo=True)
+    right_wrist_ctrl_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, direction_ctrl], right_elbow_ik_ctrl_grp, mo=True)
     cmds.addAttr(right_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(right_elbow_ik_ctrl + '.elbowAutomation', lock=True)
-    cmds.addAttr(right_elbow_ik_ctrl , ln='followWrist', at='bool', k=True)
+    cmds.addAttr(right_elbow_ik_ctrl , ln='followWrist', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(right_elbow_ik_ctrl + '.followWrist', right_wrist_ctrl_constraint[0] + '.w0', f=True)
+    right_wrist_reverse_node = cmds.createNode('reverse', name='right_wrist_parent_reverse')
+    cmds.connectAttr(right_elbow_ik_ctrl + '.followWrist', right_wrist_reverse_node + '.inputX', f=True)
+    cmds.connectAttr(right_wrist_reverse_node + '.outputX', right_knee_ctrl_constraint[0] + '.w1', f=True)
 
     # Right Leg Stretchy System
     cmds.addAttr(right_arm_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
@@ -6455,8 +6484,8 @@ def create_controls():
     cmds.addAttr(main_ctrl, ln="controlsVisibility", at="bool", keyable=True)
     cmds.setAttr(main_ctrl + '.controlsVisibility', 1)
 
-    cmds.addAttr(main_ctrl , ln='controlsScaleJoints', at='double', k=True, minValue=0, maxValue=1)
-    cmds.setAttr(main_ctrl + ".controlsScaleJoints", 1)
+    cmds.addAttr(main_ctrl , ln='jointCtrlsScaleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(main_ctrl + ".jointCtrlsScaleInfluence", 1)
 
     cmds.setAttr(geometry_grp + '.overrideEnabled', 1)
     cmds.connectAttr(main_ctrl + '.geometryDisplayMode', geometry_grp + '.overrideDisplayType', f=True)
@@ -6484,7 +6513,7 @@ def create_controls():
    
         [neck_base_ctrl, neck_base_ctrl_grp, gt_ab_joints.get('neck_base_jnt')],
         [neck_mid_ctrl, neck_mid_ctrl_grp, gt_ab_joints.get('neck_mid_jnt')],
-        #[head_ctrl, head_ctrl_grp, gt_ab_joints.get('head_jnt')], Issues with eyes
+        #[head_ctrl, head_ctrl_grp, gt_ab_joints.get('head_jnt')],# Issues with eyes
         #[jaw_ctrl, jaw_ctrl_grp, gt_ab_joints.get('jaw_jnt')], Really necessary?
         # Left Arm
         [left_clavicle_ctrl, left_clavicle_ctrl_grp, gt_ab_joints.get('left_clavicle_jnt')],
@@ -6555,10 +6584,12 @@ def create_controls():
         [right_pinky01_ctrl_list[0], right_pinky01_ctrl_list[1], gt_ab_joints.get('right_pinky01_jnt')],
         [right_pinky02_ctrl_list[0], right_pinky02_ctrl_list[1], gt_ab_joints.get('right_pinky02_jnt')],
         [right_pinky03_ctrl_list[0], right_pinky03_ctrl_list[1], gt_ab_joints.get('right_pinky03_jnt')],
- 
+    
     ]
     
+
     # Joint Inflation Basic Setup
+    jnt_scale_ctrl_scale = general_scale_offset*0.05
     for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint, CreateOffset?
     
         blend_node = cmds.createNode('blendColors', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inflation_blend')
@@ -6567,20 +6598,26 @@ def create_controls():
         cmds.setAttr(blend_node + '.color2G', 1)
         cmds.setAttr(blend_node + '.color2B', 1)
    
-        cmds.connectAttr(main_ctrl + '.controlsScaleJoints', blend_node + '.blender') # Main Control's Slave
-        cmds.connectAttr(ctrl_grps[0] + '.scale', blend_node + '.color1')
+        cmds.connectAttr(main_ctrl + '.jointCtrlsScaleInfluence', blend_node + '.blender') # Main Control's Slave
+        
+        jnt_scale_ctrl = create_loc_joint_curve(ctrl_grps[0].replace(ctrl_suffix, 'scaleCtrl'), jnt_scale_ctrl_scale)
+        cmds.delete(cmds.parentConstraint(ctrl_grps[0], jnt_scale_ctrl))
+        cmds.parent(jnt_scale_ctrl, ctrl_grps[0])
+        cmds.connectAttr(jnt_scale_ctrl+ '.scale', blend_node + '.color1') 
         cmds.connectAttr(blend_node + '.output', ctrl_grps[2] + '.scale')
+        lock_hide_default_attr(jnt_scale_ctrl, scale=False, visibility=False)
+        cmds.setAttr(jnt_scale_ctrl + '.v', keyable=False) 
         
-        decompose_matrix_node = cmds.createNode('decomposeMatrix', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inverseScale')
-        cmds.connectAttr(ctrl_grps[0] + '.inverseMatrix', decompose_matrix_node + '.inputMatrix')
-        cmds.connectAttr(decompose_matrix_node + '.outputScale', ctrl_grps[1] + '.scale')
+        cmds.addAttr(ctrl_grps[0], ln="showScaleCtrl", at="bool", keyable=True)
+        cmds.connectAttr(ctrl_grps[0] + '.showScaleCtrl', jnt_scale_ctrl + '.visibility')
+        cmds.setAttr(ctrl_grps[0] + '.showScaleCtrl', 0)
         
-        cmds.setAttr(ctrl_grps[0] + '.minScaleXLimit', 0.01)
-        cmds.setAttr(ctrl_grps[0] + '.minScaleYLimit', 0.01)
-        cmds.setAttr(ctrl_grps[0] + '.minScaleZLimit', 0.01)
-        cmds.setAttr(ctrl_grps[0] + '.minScaleXLimitEnable', 1)
-        cmds.setAttr(ctrl_grps[0] + '.minScaleYLimitEnable', 1)
-        cmds.setAttr(ctrl_grps[0] + '.minScaleZLimitEnable', 1)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleXLimit', 0.01)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleYLimit', 0.01)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleZLimit', 0.01)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleXLimitEnable', 1)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleYLimitEnable', 1)
+        cmds.setAttr(jnt_scale_ctrl + '.minScaleZLimitEnable', 1)
         
         if len(ctrl_grps) > 3: # Create Offset Input
             if ctrl_grps[3]:
@@ -6595,29 +6632,29 @@ def create_controls():
                 cmds.connectAttr(ctrl_grps[0] + '.scaleOffset', offset_node + '.input3D[1]', force=True)
                 cmds.connectAttr(offset_node + '.output3D', ctrl_grps[2] + '.scale', force=True)
                 
-    
+
     # Joint Inflation/Deflation Mechanics & Special Cases
     left_wrist_scale_blend = cmds.createNode('blendColors', name='left_wrist_switchScale_blend')
-    cmds.connectAttr(left_wrist_ik_ctrl + '.scale', left_wrist_scale_blend + '.color1')
-    cmds.connectAttr(left_wrist_ctrl + '.scale', left_wrist_scale_blend + '.color2')
+    cmds.connectAttr(left_wrist_ik_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_wrist_scale_blend + '.color1')
+    cmds.connectAttr(left_wrist_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_wrist_scale_blend + '.color2')
     cmds.connectAttr(left_wrist_scale_blend + '.output', gt_ab_joints.get('left_wrist_jnt') + '.scale')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_wrist_scale_blend + '.blender')
     
     right_wrist_scale_blend = cmds.createNode('blendColors', name='right_wrist_switchScale_blend')
-    cmds.connectAttr(right_wrist_ik_ctrl + '.scale', right_wrist_scale_blend + '.color1')
-    cmds.connectAttr(right_wrist_ctrl + '.scale', right_wrist_scale_blend + '.color2')
+    cmds.connectAttr(right_wrist_ik_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', right_wrist_scale_blend + '.color1')
+    cmds.connectAttr(right_wrist_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', right_wrist_scale_blend + '.color2')
     cmds.connectAttr(right_wrist_scale_blend + '.output', gt_ab_joints.get('right_wrist_jnt') + '.scale')
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_wrist_scale_blend + '.blender')
     
     left_ankle_scale_blend = cmds.createNode('blendColors', name='left_ankle_switchScale_blend')
-    cmds.connectAttr(left_foot_ik_ctrl + '.scale', left_ankle_scale_blend + '.color1')
-    cmds.connectAttr(left_ankle_ctrl + '.scale', left_ankle_scale_blend + '.color2')
+    cmds.connectAttr(left_foot_ik_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_ankle_scale_blend + '.color1')
+    cmds.connectAttr(left_ankle_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_ankle_scale_blend + '.color2')
     cmds.connectAttr(left_ankle_scale_blend + '.output', gt_ab_joints.get('left_ankle_jnt') + '.scale')
     cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_ankle_scale_blend + '.blender')
     
     right_ankle_scale_blend = cmds.createNode('blendColors', name='right_ankle_switchScale_blend')
-    cmds.connectAttr(right_foot_ik_ctrl + '.scale', right_ankle_scale_blend + '.color1')
-    cmds.connectAttr(right_ankle_ctrl + '.scale', right_ankle_scale_blend + '.color2')
+    cmds.connectAttr(right_foot_ik_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', right_ankle_scale_blend + '.color1')
+    cmds.connectAttr(right_ankle_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', right_ankle_scale_blend + '.color2')
     cmds.connectAttr(right_ankle_scale_blend + '.output', gt_ab_joints.get('right_ankle_jnt') + '.scale')
     cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_ankle_scale_blend + '.blender')
     
@@ -6841,38 +6878,38 @@ def create_controls():
     
 
     ################# Bulletproof Controls #################
-    lock_hide_default_attr(cog_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(spine02_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(spine03_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(spine04_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(neck_base_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(neck_mid_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(cog_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(spine02_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(spine03_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(spine04_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(neck_base_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(neck_mid_ctrl, translate=False, rotate=False)
     lock_hide_default_attr(head_ctrl, translate=False, rotate=False)
     lock_hide_default_attr(jaw_ctrl, translate=False, rotate=False)
-    lock_hide_default_attr(hip_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(hip_ctrl, translate=False, rotate=False)
 
     # Legs and Arms FK
-    lock_hide_default_attr(left_hip_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_knee_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_ankle_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_ball_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_hip_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_knee_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_ankle_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_ball_ctrl, translate=False, rotate=False)
 
-    lock_hide_default_attr(right_hip_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_knee_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_ankle_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_ball_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_hip_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_knee_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_ankle_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_ball_ctrl, translate=False, rotate=False)
     
     # Arms IK
-    lock_hide_default_attr(left_clavicle_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_shoulder_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_elbow_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(left_wrist_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(left_clavicle_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_shoulder_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_elbow_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(left_wrist_ctrl, translate=False, rotate=False)
     
-    lock_hide_default_attr(right_clavicle_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_shoulder_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_elbow_ctrl, translate=False, rotate=False, scale=False)
-    lock_hide_default_attr(right_wrist_ctrl, translate=False, rotate=False, scale=False)
+    lock_hide_default_attr(right_clavicle_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_shoulder_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_elbow_ctrl, translate=False, rotate=False)
+    lock_hide_default_attr(right_wrist_ctrl, translate=False, rotate=False)
     
     lock_hide_default_attr(left_wrist_ik_ctrl, translate=False, rotate=False)
     lock_hide_default_attr(left_elbow_ik_ctrl, translate=False)
@@ -6903,7 +6940,7 @@ def create_controls():
                     ]
                    
     for finger in lock_fingers:
-        lock_hide_default_attr(finger, translate=False, rotate=False, scale=False)
+        lock_hide_default_attr(finger, translate=False, rotate=False)
 
     # Foot Automation
     lock_hide_default_attr(left_foot_ik_ctrl, translate=False, rotate=False)
@@ -7854,7 +7891,7 @@ def extract_proxy_pose():
         
         export_dict = {'gt_auto_biped_version' : script_version, 'gt_auto_biped_export_method' : 'world-space'}
         
-        no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee']
+        no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
         left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
         right_offset_rot_string_list = ['right_clavicle', 'right_wrist']
         no_rot_list = []
