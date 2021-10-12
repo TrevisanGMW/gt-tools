@@ -53,6 +53,17 @@
  Updated bif to mesh to work with newer versions of bifrost
  Updated bif to mesh to delete empty meshes (objects that weren't geometry)
  Added function to delete all locators
+ 
+ 2.2 - 2021-10-25
+ Updated bif to mesh to work with newer versions of bifrost
+ Updated bif to mesh to delete empty meshes (objects that weren't geometry)
+ Added function to delete all locators
+ 
+ 2.3 - 2021-10-10
+ Created Full HUD Toggle
+ 
+ 2.4 - 2021-10-10
+ Fixed gtu full hud toggle as it would return an error if xGen was not loaded
 
  
  To Do:
@@ -94,7 +105,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
     
 # Script Version
-gtu_script_version = '2.2'
+gtu_script_version = '2.4'
 
 #Python Version
 python_version = sys.version_info.major
@@ -1145,7 +1156,7 @@ def gtu_full_hud_toggle():
         mel.eval('setFrameRateVisibility(true)')
         if not hud_current_state.get('hikDetailsVisibility'):
             cmds.ToggleHikDetails()
-            mel.eval('setHikDetailsVisibility(true)')
+            mel.eval('catchQuiet(setHikDetailsVisibility(true));')
         mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(true)')
         mel.eval('setObjectDetailsVisibility(true)')
         mel.eval('setParticleCountVisibility(true)')
@@ -1155,7 +1166,8 @@ def gtu_full_hud_toggle():
         mel.eval('setSymmetryVisibility(true)')
         mel.eval('setViewAxisVisibility(true)')
         mel.eval('setViewportRendererVisibility(true)')
-        mel.eval('setXGenHUDVisibility(true)')
+        mel.eval('catchQuiet(setXGenHUDVisibility(true));')
+        
         if not hud_current_state.get('inViewMessageEnable'):
             cmds.ToggleInViewMessage()
         if not hud_current_state.get('inViewEditorVisible'):
@@ -1174,8 +1186,8 @@ def gtu_full_hud_toggle():
         mel.eval('setFrameRateVisibility(false)')
         if hud_current_state.get('hikDetailsVisibility'):
             cmds.ToggleHikDetails()
-            mel.eval('setHikDetailsVisibility(false)')
-            mel.eval('hikDetailsKeyingMode()')
+            mel.eval('catchQuiet(setHikDetailsVisibility(false));')
+            mel.eval('catchQuiet(hikDetailsKeyingMode());')
         mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(false)')
         mel.eval('setObjectDetailsVisibility(false)')
         mel.eval('setParticleCountVisibility(false)')
@@ -1183,7 +1195,7 @@ def gtu_full_hud_toggle():
         mel.eval('setSceneTimecodeVisibility(false)')
         mel.eval('setSelectDetailsVisibility(false)')
         mel.eval('setViewportRendererVisibility(false)')
-        mel.eval('setXGenHUDVisibility(false)')
+        mel.eval('catchQuiet(setXGenHUDVisibility(false));')
 	# Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
 
             

@@ -147,7 +147,7 @@
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.7.8";
+global string $scriptVersion = "1.7.9";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
