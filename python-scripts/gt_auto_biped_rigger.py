@@ -97,8 +97,14 @@
  Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
  Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
  
+ 1.7.5 - 2021-10-19
+ Added option to generate secondary skeleton used for game engines (no Segment Scale Compensate)
+ Added option to create lines between pole vectors and their targets
+ 
  
  To do:
+    Add option to mirror pose
+    Move functions to a module (this script is getting to big)
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
@@ -134,7 +140,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.4"
+script_version = "1.7.5"
 
 # Python Version
 python_version = sys.version_info.major
@@ -151,14 +157,16 @@ second_shape_suffix = '2nd'
 left_ctrl_color = (0, .3, 1) # Red
 right_ctrl_color = (1, 0, 0) # Soft Blue
 automation_ctrl_color = (.6,.2,1) # Purple
+create_real_time_skeleton = True
 
 # Debugging Vars
-debugging = False # Activate Debugging Mode
+debugging = True # Activate Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_display_lra = False # Display LRA for all joints after generating
-debugging_auto_breathing = True # Auto activates breathing Time
+debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.json' # Path to auto import
+
 debugging_bind_rig = True # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
@@ -1018,6 +1026,217 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
         return [(obj + '.' + output_attr), None]
     
     
+def get_inverted_hierarchy_tree(obj_list, return_short_name=True):
+    ''' 
+    Receives a list (usually a Maya selection) and returns a sorted version of it 
+    starting with objects at the bottom of the hierarchy then working its way up to
+    the top parents. It extracts the number of "|" symbols in the full path to the file
+    to determine its position in the hierarchy before sorting it.
+    
+            Parameters:
+                obj_list (list): A list of strings with the name of the Maya elements (Usually a maya selection)
+                return_short_name (optional, bool): Determines if the return list will return the full path or just the short name.
+                
+            Returns:
+                inverted_hierarchy_tree (list) : A list containing the same elements, but sorted from lowest child to top parent.
+    
+    '''
+    # Find hierarchy position and create pair
+    sorted_pairs = []
+    for obj in obj_list:
+        if cmds.objExists(obj):
+            long_name = cmds.ls(obj, l=True) or []
+            number_of_parents = len(long_name[0].split('|'))
+            sorted_pairs.append((long_name[0], number_of_parents))
+        
+    sorted_pairs.sort(key=lambda x:x[1], reverse=True)
+    
+    # Extract elements and return them
+    inverted_hierarchy_tree = []
+    for pair in sorted_pairs:
+        if return_short_name:
+            short_name = ''
+            split_path = pair[0].split('|')
+            if len(split_path) >= 1:
+                short_name = split_path[len(split_path)-1]
+            inverted_hierarchy_tree.append(short_name)
+        else:
+            inverted_hierarchy_tree.append(pair[0])
+    return inverted_hierarchy_tree
+
+
+
+def mimic_segment_scale_compensate_behaviour(joints_with_ssc, joints_no_ssc):
+    '''
+    Mimics the behaviour of segment scale compensate tranform system present in Maya
+    transfering the baked values to a secondary joint chain. 
+    The secondary skeleton is compatible with real time engines as it calculates and bakes 
+    scale values directly into the joints.
+    
+    
+    '''
+    # Check if lists are identical, name length and names?
+    
+    scale_compensate_multiply_prefix = "ssc_scale_multiplier_"
+    scale_compensate_divide_prefix = "ssc_scale_divide_"
+    
+    for index in range(len(joints_no_ssc)):
+        if index != len(joints_no_ssc)-1: # Don't apply it to the last one as it doesn't have children
+
+            joint_parent = cmds.listRelatives(joints_no_ssc[index], parent=True)
+
+            scale_compensate_multiply_node = scale_compensate_multiply_prefix + joints_no_ssc[index]
+            scale_compensate_multiply_node = cmds.createNode('multiplyDivide', name=scale_compensate_multiply_node)
+
+            cmds.connectAttr(scale_compensate_multiply_node + '.output', joints_no_ssc[index] + '.scale', f=True)
+            cmds.connectAttr(joints_with_ssc[index] + '.scale', scale_compensate_multiply_node + '.input2', f=True)
+
+            scale_compensate_divide_node = scale_compensate_divide_prefix + joint_parent[0]
+            if not cmds.objExists(scale_compensate_divide_node):
+                scale_compensate_divide_node = cmds.createNode('multiplyDivide', name=scale_compensate_divide_node)
+                cmds.setAttr(scale_compensate_divide_node + '.operation', 2)
+                cmds.setAttr(scale_compensate_divide_node + '.input1X', 1)
+                cmds.setAttr(scale_compensate_divide_node + '.input1Y', 1)
+                cmds.setAttr(scale_compensate_divide_node + '.input1Z', 1)
+                
+            try:
+                if not cmds.isConnected( joint_parent[0] + '.scale', scale_compensate_divide_node + '.input2' ):
+                    cmds.connectAttr(joint_parent[0] + '.scale', scale_compensate_divide_node + '.input2', f=True)
+                if not cmds.isConnected( scale_compensate_divide_node + '.output', scale_compensate_multiply_node + '.input1' ):
+                    cmds.connectAttr(scale_compensate_divide_node + '.output', scale_compensate_multiply_node + '.input1', f=True)
+            except:
+                pass
+    
+    # Try to connect hierarchy divide nodes
+    for index in range(len(joints_no_ssc)):
+        if index != len(joints_no_ssc)-1: # Ignore top parent
+                joint_parent = cmds.listRelatives(joints_no_ssc[index], parent=True) or []
+                
+                try:
+                    cmds.connectAttr(scale_compensate_divide_prefix + joint_parent[0] + '.output', scale_compensate_divide_prefix + joints_no_ssc[index] + '.input1', f=True)
+                except:
+                    pass
+            
+
+def get_short_name(obj):
+    '''
+    Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+            Parameters:
+                    obj (string) - object to extract short name
+    '''
+    if obj == '':
+        return ''
+    split_path = obj.split('|')
+    if len(split_path) >= 1:
+        short_name = split_path[len(split_path)-1]
+    return short_name
+
+def generate_no_ssc_skeleton(new_suffix='game'):
+    '''
+    Uses other functions to build a secondary skeleton that doesn't rely 
+    on Maya's segment scale compensate system. It insteads bakes the scale
+    on to the children joints.
+    
+            Dependencies:
+                get_short_name()
+                mimic_segment_scale_compensate_behaviour()
+                get_inverted_hierarchy_tree()
+                jnt_suffix : string variable
+                gt_ab_joints_default : list of joints
+                
+    '''
+    cmds.select(gt_ab_joints_default.get('main_jnt'))
+    game_skeleton = cmds.duplicate(renameChildren=True)
+    for obj in game_skeleton:
+        if cmds.objectType(obj) != "joint":
+            cmds.delete(obj)
+
+    # Rename new skeleton
+    to_rename = []
+    search_jnt = '_' + jnt_suffix + '1' # Automatic renamed during duplication
+    search_end_jnt = '_end' + jnt_suffix.capitalize() + '1'
+    new_suffix_end_jnt = '_' + new_suffix + '_end' + jnt_suffix.capitalize()
+    new_suffix = '_' + new_suffix + '_' + jnt_suffix
+    for jnt in game_skeleton:
+        object_short_name = get_short_name(jnt)
+        new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+        if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+            to_rename.append([jnt,new_name])
+           
+    duplicated_joints = []
+    for pair in reversed(to_rename):
+        if cmds.objExists(pair[0]):
+            duplicated_joints.append(cmds.rename(pair[0], pair[1]))
+            
+    return duplicated_joints, cmds.ls(selection=True)[0]
+
+
+def attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, scale_constraint_ctrl, new_skeleton_suffix = 'game'):
+    '''
+    Attaches a previously generated game skeleton (no ssc skeleton) 
+    to follow and mimic the scale of the original gt auto biped rigger skeleton
+            
+            Parameters:
+                new_skeleton_suffix (optional, string): expected in-between string for game skeleton. 
+                                                        Used to pair with original skeleton
+                duplicated_joints (list): A list of string containing all generated real time joints
+                game_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
+                scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint (usually main_ctrl)
+            
+            Dependencies:
+                generate_no_ssc_skeleton()
+                get_inverted_hierarchy_tree()
+                mimic_segment_scale_compensate_behaviour()
+ 
+                jnt_suffix : string variable
+                gt_ab_joints_default : list of joints
+                
+            Returns:
+                sorted_no_ssc_joints (list): A list containing game skeleton joints
+    '''
+    
+    # Turn off SSC
+    for jnt in duplicated_joints:
+        cmds.setAttr(jnt + '.segmentScaleCompensate', 0)
+
+    cmds.select(game_root_jnt, hierarchy=True) # Sync selection order
+    duplicated_joints = cmds.ls(selection=True, type='joint')
+
+    cmds.select(gt_ab_joints_default.get('main_jnt'), hierarchy=True)
+    original_joints = cmds.ls(selection=True, type='joint')
+
+    sorted_original_joints = get_inverted_hierarchy_tree(original_joints)
+    sorted_no_ssc_joints = get_inverted_hierarchy_tree(duplicated_joints)
+    mimic_segment_scale_compensate_behaviour(sorted_original_joints, sorted_no_ssc_joints)
+
+    # Parent Constraint new system
+    remove_dupe_str = '_' + new_skeleton_suffix + '_' + jnt_suffix
+
+    remove_org_str = '_' + jnt_suffix
+
+    remove_dupe_end_str = '_' + new_skeleton_suffix + '_end' + jnt_suffix.capitalize()
+    remove_org_end_str = '_end' + jnt_suffix.capitalize()
+
+    # Parent Constraint Game Skeleton
+    for jnt in sorted_original_joints:
+        for game_jnt in sorted_no_ssc_joints:
+            joint_org = jnt.replace(remove_org_str, '')
+            joint_dupe = game_jnt.replace(remove_dupe_str, '')
+            if joint_org == joint_dupe:
+                cmds.parentConstraint( jnt, game_jnt )
+
+    for jnt in sorted_original_joints:
+        for game_jnt in sorted_no_ssc_joints:
+            joint_org = jnt.replace(remove_org_end_str, '')
+            joint_dupe = game_jnt.replace(remove_dupe_end_str, '')
+            if joint_org == joint_dupe:
+                cmds.parentConstraint( jnt, game_jnt )
+    
+    # Scale Constraint Rootf
+    cmds.scaleConstraint(scale_constraint_ctrl, game_root_jnt)
+
+    return sorted_no_ssc_joints
 
 
 def create_visualization_line(object_a, object_b):
@@ -7168,6 +7387,12 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
     
+    # Creates game skeleton (No Segment Scale Compensate)
+    if create_real_time_skeleton:
+        new_skeleton_suffix = 'game'
+        duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix)
+        sorted_no_ssc_joints = attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, main_ctrl, new_skeleton_suffix)
+    
     
     ################# Store Created Joints #################
     gt_ab_joints_default['left_forearm_jnt'] = left_forearm_jnt
@@ -7963,6 +8188,10 @@ def extract_proxy_pose():
             print (e)
             successfully_created_file = False
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
+
+
+
+
 
 
 # Build UI
