@@ -105,10 +105,13 @@
  Created "settings" button and the GUI updates necessary to display it
  Created the base for persistent settings and implemented "User Real-time Skeleton" option
  Created a custom help window that takes strings as help inputs to display it to the user
+
+ 1.7.7 - 2021-10-21
+ Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
  
  To do:
-    Add option to mirror pose
-    Move functions to a module (this script is getting to big)
+    Add option to mirror rigged pose (for animators)
+    Move functions to a module (this script is getting too big)
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
@@ -144,7 +147,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.6"
+script_version = "1.7.7"
 
 # Python Version
 python_version = sys.version_info.major
@@ -304,7 +307,13 @@ def reset_persistent_settings_auto_biped_rigger():
     cmds.optionVar( remove='gt_auto_biped_rigger_setup' )
     gt_ab_settings = gt_ab_settings_default
     cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
-    cmds.evalDeferred("build_gui_auto_biped_rig()")
+    try:
+        cmds.evalDeferred("gt_auto_biped_rigger.build_gui_auto_biped_rig()")
+    except:
+        try:
+            build_gui_auto_biped_rig()
+        except:
+            pass
     
 
 
@@ -1300,12 +1309,22 @@ def get_short_name(obj):
         short_name = split_path[len(split_path)-1]
     return short_name
 
-def generate_no_ssc_skeleton(new_suffix='game'):
+def generate_no_ssc_skeleton(new_suffix='game', jnt_suffix='jnt'):
     '''
     Uses other functions to build a secondary skeleton that doesn't rely 
     on Maya's segment scale compensate system. It insteads bakes the scale
     on to the children joints.
     
+            Parameters:
+                new_suffix (optional, string): The in-between word used to create a new suffix.
+                                               The new one will be new_suffix + "_" + jnt_suffix.
+                                               e.g. myJoint_jnt => myJOint_game_jnt
+                jnt_suffix (optional, string): The suffix the script expects 
+                                               to find at the end of every joint
+            Returns:
+                duplicated_joints (string): Generated joints
+                no_ssc_root_jnt (string): Root joint for the generated joints
+
             Dependencies:
                 get_short_name()
                 mimic_segment_scale_compensate_behaviour()
@@ -1336,11 +1355,22 @@ def generate_no_ssc_skeleton(new_suffix='game'):
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
             duplicated_joints.append(cmds.rename(pair[0], pair[1]))
+
+    # Turn off SSC
+    for jnt in duplicated_joints:
+        cmds.setAttr(jnt + '.segmentScaleCompensate', 0)
             
     return duplicated_joints, cmds.ls(selection=True)[0]
 
 
-def attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, scale_constraint_ctrl, new_skeleton_suffix = 'game'):
+def attach_no_ssc_skeleton(duplicated_joints, 
+                           realtime_root_jnt, 
+                           current_root_jnt, 
+                           root_scale_constraint_ctrl, 
+                           new_skeleton_suffix = 'game', 
+                           jnt_suffix='jnt',
+                           swap_names=True,
+                           driver_suffix='driver'):
     '''
     Attaches a previously generated game skeleton (no ssc skeleton) 
     to follow and mimic the scale of the original gt auto biped rigger skeleton
@@ -1349,29 +1379,25 @@ def attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, scale_constraint_ct
                 new_skeleton_suffix (optional, string): expected in-between string for game skeleton. 
                                                         Used to pair with original skeleton
                 duplicated_joints (list): A list of string containing all generated real-time joints
-                game_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
-                scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint (usually main_ctrl)
-            
+                realtime_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
+                current_root_jnt (string): The name of the root joint (usually the top parent) of the current skeleton
+                root_scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint (usually main_ctrl)
+                jnt_suffix (optional, string): The suffix the script expects 
+                                               to find at the end of every joint
+
+            Returns:
+                sorted_no_ssc_joints (list): A list containing game skeleton joints
+          
             Dependencies:
+                get_short_name()
                 generate_no_ssc_skeleton()
                 get_inverted_hierarchy_tree()
                 mimic_segment_scale_compensate_behaviour()
- 
-                jnt_suffix : string variable
-                gt_ab_joints_default : list of joints
-                
-            Returns:
-                sorted_no_ssc_joints (list): A list containing game skeleton joints
     '''
-    
-    # Turn off SSC
-    for jnt in duplicated_joints:
-        cmds.setAttr(jnt + '.segmentScaleCompensate', 0)
-
-    cmds.select(game_root_jnt, hierarchy=True) # Sync selection order
+    cmds.select(realtime_root_jnt, hierarchy=True) # Sync selection order
     duplicated_joints = cmds.ls(selection=True, type='joint')
 
-    cmds.select(gt_ab_joints_default.get('main_jnt'), hierarchy=True)
+    cmds.select(current_root_jnt, hierarchy=True)
     original_joints = cmds.ls(selection=True, type='joint')
 
     sorted_original_joints = get_inverted_hierarchy_tree(original_joints)
@@ -1379,30 +1405,68 @@ def attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, scale_constraint_ct
     mimic_segment_scale_compensate(sorted_original_joints, sorted_no_ssc_joints)
 
     # Parent Constraint new system
-    remove_dupe_str = '_' + new_skeleton_suffix + '_' + jnt_suffix
-
-    remove_org_str = '_' + jnt_suffix
+    remove_new_str = '_' + new_skeleton_suffix + '_' + jnt_suffix
+    remove_old_str = '_' + jnt_suffix
 
     remove_dupe_end_str = '_' + new_skeleton_suffix + '_end' + jnt_suffix.capitalize()
     remove_org_end_str = '_end' + jnt_suffix.capitalize()
 
-    # Parent Constraint Game Skeleton
+    # Parent Constraint Real-time Skeleton
     for jnt in sorted_original_joints:
-        for game_jnt in sorted_no_ssc_joints:
-            joint_org = jnt.replace(remove_org_str, '')
-            joint_dupe = game_jnt.replace(remove_dupe_str, '')
+        for realtime_jnt in sorted_no_ssc_joints:
+            joint_org = jnt.replace(remove_old_str, '')
+            joint_dupe = realtime_jnt.replace(remove_new_str, '')
             if joint_org == joint_dupe:
-                cmds.parentConstraint( jnt, game_jnt )
+                cmds.parentConstraint( jnt, realtime_jnt )
 
     for jnt in sorted_original_joints:
-        for game_jnt in sorted_no_ssc_joints:
+        for realtime_jnt in sorted_no_ssc_joints:
             joint_org = jnt.replace(remove_org_end_str, '')
-            joint_dupe = game_jnt.replace(remove_dupe_end_str, '')
+            joint_dupe = realtime_jnt.replace(remove_dupe_end_str, '')
             if joint_org == joint_dupe:
-                cmds.parentConstraint( jnt, game_jnt )
+                cmds.parentConstraint( jnt, realtime_jnt )
     
-    # Scale Constraint Rootf
-    cmds.scaleConstraint(scale_constraint_ctrl, game_root_jnt)
+    # Scale Constraint Root
+    cmds.scaleConstraint(root_scale_constraint_ctrl, realtime_root_jnt)
+
+    # Swap Names (Real-time skeleton becomes the standard skeleton)
+    if swap_names:
+
+        # Make original invisible
+        cmds.setAttr(current_root_jnt + '.v', 0)
+
+        # Move Game Skeleton To Top
+        cmds.reorder(realtime_root_jnt, front=True)
+
+        to_rename = []
+        # Search RT
+        search_end_jnt = '_' + new_skeleton_suffix + '_end' + jnt_suffix.capitalize()
+        search_jnt = '_' + new_skeleton_suffix + '_' + jnt_suffix
+        # Replace RT
+        new_suffix = '_' + jnt_suffix
+        new_suffix_end_jnt = '_end' + jnt_suffix.capitalize()
+        for jnt in sorted_no_ssc_joints:
+            object_short_name = get_short_name(jnt)
+            new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+            if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+                to_rename.append([jnt,new_name])
+        # Search
+        search_end_jnt = '_end' + jnt_suffix.capitalize()
+        search_jnt = '_' + jnt_suffix
+        # Replace
+        new_suffix = '_' + driver_suffix + '_' + jnt_suffix
+        new_suffix_end_jnt = '_' + driver_suffix + '_end' + jnt_suffix.capitalize()
+        for jnt in sorted_original_joints:
+            object_short_name = get_short_name(jnt)
+            new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+            if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+                to_rename.append([jnt,new_name])
+
+        for pair in reversed(to_rename):
+            if cmds.objExists(pair[0]):
+                cmds.rename(pair[0], pair[1])
+
+        
 
     return sorted_no_ssc_joints
 
@@ -6849,7 +6913,8 @@ def create_controls():
     cmds.parent(foot_automation_grp, rig_setup_grp)
 
     # Scale Constraints
-    cmds.scaleConstraint(main_ctrl, skeleton_grp)
+    main_skeleton_constraint = cmds.scaleConstraint(main_ctrl, skeleton_grp)
+    cmds.setAttr(main_skeleton_constraint[0] + '.v', 0)
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
      
     # Hierarchy Adjustments and Color
@@ -7559,7 +7624,7 @@ def create_controls():
     if gt_ab_settings.get('using_no_ssc_skeleton'):
         new_skeleton_suffix = 'game'
         duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix)
-        sorted_no_ssc_joints = attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, main_ctrl, new_skeleton_suffix)
+        sorted_no_ssc_joints = attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, gt_ab_joints_default.get('main_jnt'), main_ctrl, new_skeleton_suffix)
     
     
     ################# Store Created Joints #################
