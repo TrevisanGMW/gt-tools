@@ -21,6 +21,10 @@
  
  1.5 - 2021-05-11
  Made script compatible with Python 3 (Maya 2022+)
+ 
+ 1.6 - 2021-10-21
+ Updated parsing mechanism to be fully compatible with semantic versioning
+ Updated the silent update checker
 
 
     Debugging Lines:
@@ -75,7 +79,7 @@ import os
 import re
 
 # Script Version (This Script)
-script_version = '1.5'
+script_version = '1.6'
 gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
 gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 
@@ -317,14 +321,51 @@ def build_gui_gt_check_for_updates():
             current_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version'))))
             latest_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version'))))
             
-            if current_version_int < latest_version_int:
+            current_version_major = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[0]))
+            current_version_minor = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[1]))
+            current_version_patch = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[2]))
+
+            latest_version_major = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[0]))
+            latest_version_minor = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[1]))
+            latest_version_patch = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[2]))
+
+            current_state = 'unknown'
+
+            # Check Major
+            if current_version_major < latest_version_major:
+                current_state = 'update'
+            elif current_version_major > latest_version_major:
+                current_state = 'unreleased'
+            else:
+                current_state = 'same'
+
+            # Check Minor
+            if current_state == 'same': 
+                if current_version_minor < latest_version_minor:
+                    current_state = 'update'
+                elif current_version_minor > latest_version_minor:
+                    current_state = 'unreleased'
+                else:
+                    current_state = 'same'
+
+            # Check Patch
+            if current_state == 'same': 
+                if current_version_patch < latest_version_patch:
+                    current_state = 'update'
+                elif current_version_patch > latest_version_patch:
+                    current_state = 'unreleased'
+
+            if current_state == 'update':
                 cmds.button(update_btn, e=True, en=True, bgc=(.6, .6, .6))
                 cmds.text(update_status, e=True, l="New Update Available!", fn="tinyBoldLabelFont", bgc=(1, .5, .5))
-            elif current_version_int > latest_version_int:
+            elif current_state == 'unreleased':
                 cmds.text(update_status, e=True, l="Unreleased update!", fn="tinyBoldLabelFont", bgc=(.7, 0 , 1))
                 cmds.button(update_btn, e=True, en=False)
-            else:
+            elif current_state == 'same':
                 cmds.text(update_status, e=True, l="You're up to date!", fn="tinyBoldLabelFont", bgc=(0, 1, 0))
+                cmds.button(update_btn, e=True, en=False)
+            else:
+                cmds.text(update_status, e=True, l="Unknown!", fn="tinyBoldLabelFont", bgc=(0, 0, 0))
                 cmds.button(update_btn, e=True, en=False)
             
             published_at = ''
@@ -338,22 +379,33 @@ def build_gui_gt_check_for_updates():
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=response_list[0].get('body'))
             
             if latest_version_int != 0:
-                try:
-                    previous_version = str(latest_version_int - 1)
-                    previous_version_tag = 'v'
-                    for c in previous_version:
-                        previous_version_tag += c + '.'
-                    previous_version_tag = previous_version_tag[:-1]
+                try:                    
+                    previous_version = ''
+                    if latest_version_patch != 0:
+                        previous_version = 'v' + str(latest_version_major) + '.'  + str(latest_version_minor) + '.'  + str(latest_version_patch-1) 
+                    else:
+                        if latest_version_minor != 0:
+                            previous_version = 'v' + str(latest_version_major) + '.'  + str(latest_version_minor-1) + '.'  + str(latest_version_patch) 
+                        else:
+                            if latest_version_major != 0:
+                                previous_version = 'v' + str(latest_version_major-1) + '.'  + str(latest_version_minor) + '.'  + str(latest_version_patch)
+    
+                    previous_version_major = int(re.sub("[^0-9]", "", str(previous_version.split('.')[0])))
+                    previous_version_minor = int(re.sub("[^0-9]", "", str(previous_version.split('.')[1])))
+                    previous_version_patch = int(re.sub("[^0-9]", "", str(previous_version.split('.')[2])))
+
+                    before_previous_version = ''
+                    if previous_version_patch != 0:
+                        before_previous_version = 'v' + str(previous_version_major) + '.'  + str(previous_version_minor) + '.'  + str(previous_version_patch-1) 
+                    else:
+                        if previous_version_minor != 0:
+                            before_previous_version = 'v' + str(previous_version_major) + '.'  + str(previous_version_minor-1) + '.'  + str(previous_version_patch) 
+                        else:
+                            if previous_version_major != 0:
+                                before_previous_version = 'v' + str(previous_version_major-1) + '.'  + str(previous_version_minor) + '.'  + str(previous_version_patch)
                     
-                    before_previous_version = str(latest_version_int - 2)
-                    before_previous_version_tag = 'v'
-                    for c in before_previous_version:
-                        before_previous_version_tag += c + '.'
-                    before_previous_version_tag = before_previous_version_tag[:-1]
-                    
-                    
-                    previous_version_response = get_github_release(gt_tools_tag_release_api + previous_version_tag)
-                    before_previous_version_response = get_github_release(gt_tools_tag_release_api + before_previous_version_tag)
+                    previous_version_response = get_github_release(gt_tools_tag_release_api + previous_version)
+                    before_previous_version_response = get_github_release(gt_tools_tag_release_api + before_previous_version)
                     
                     if previous_version_response[1] in success_codes:
                         published_at = ''
@@ -364,7 +416,6 @@ def build_gui_gt_check_for_updates():
                         cmds.scrollField(output_scroll_field, e=True, ip=0, it='\n\n' + (previous_version_response[0].get('tag_name') + (' ' * 80) + '(' + published_at + ')\n'))
                         cmds.scrollField(output_scroll_field, e=True, ip=0, it=previous_version_response[0].get('body'))
                     
-
                     
                     if before_previous_version_response[1] in success_codes:
                         published_at = ''
@@ -475,6 +526,7 @@ def silent_update_check():
     
     if is_active:
         def compare_current_latest():
+                        
             # Get Interval
             check_interval = gt_check_for_updates.get('def_auto_updater_interval')
             persistent_check_interval_exists = cmds.optionVar(exists=('gt_check_for_updates_interval_days'))
@@ -492,10 +544,12 @@ def silent_update_check():
                     last_check_date = today_date # Failed to extract date
             else: 
                 last_check_date = today_date # Failed to extract date
+                cmds.optionVar(sv=('gt_check_for_updates_last_date', str(today_date))) # Store check for updates last date
 
             # Calculate Delta
             delta = today_date - last_check_date
             days_since_last_check = delta.days
+            
 
             if days_since_last_check > check_interval:
                 # Define Current Version
@@ -510,18 +564,46 @@ def silent_update_check():
                 response_list = get_github_release(gt_tools_latest_release_api)
                 gt_check_for_updates['latest_version'] = response_list[0].get('tag_name') or "v0.0.0"
                 
-                current_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version'))))
-                latest_version_int = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version'))))
-                
-                if current_version_int == 0 or latest_version_int == 0:
-                    pass
+                current_version_major = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[0]))
+                current_version_minor = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[1]))
+                current_version_patch = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('current_version')).split('.')[2]))
+
+                latest_version_major = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[0]))
+                latest_version_minor = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[1]))
+                latest_version_patch = int(re.sub("[^0-9]", "", str(gt_check_for_updates.get('latest_version')).split('.')[2]))
+
+                current_state = 'unknown'
+
+                # Check Major
+                if current_version_major < latest_version_major:
+                    current_state = 'update'
+                elif current_version_major > latest_version_major:
+                    current_state = 'unreleased'
                 else:
-                    cmds.optionVar( sv=('gt_check_for_updates_last_date', str(today_date))) # Store check date
-                    if current_version_int < latest_version_int:
-                        #print("New Update Available!")
-                        build_gui_gt_check_for_updates()
+                    current_state = 'same'
+
+                # Check Minor
+                if current_state == 'same': 
+                    if current_version_minor < latest_version_minor:
+                        current_state = 'update'
+                    elif current_version_minor > latest_version_minor:
+                        current_state = 'unreleased'
+                    else:
+                        current_state = 'same'
+
+                # Check Patch
+                if current_state == 'same': 
+                    if current_version_patch < latest_version_patch:
+                        current_state = 'update'
+                    elif current_version_patch > latest_version_patch:
+                        current_state = 'unreleased'
+
                 
-                # Print Output - Debugging
+                if current_state == 'update':
+                    cmds.optionVar( sv=('gt_check_for_updates_last_date', str(today_date))) # Store check date
+                    build_gui_gt_check_for_updates()
+                
+                ## Print Output - Debugging
                 # print('Check Interval: ' + str(check_interval))
                 # print('Check Delta: ' + str(days_since_last_check))
                 # print('Current Version: ' + str(current_version_int))

@@ -829,6 +829,12 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
      alt="GT Auto Biped Abduction/Adduction System Example">
 
+<h3>Settings:</h3>
+<ul>
+	<li><b>Use Real-time Skeleton:</b><br> Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behaviour of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.
+	As this baked version does not yet fully support non-uniform scaling, it's recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application. This will allow you to preserve the stretchy settings even in programs that do not support it.</li>
+</ul>
+
 <p><h3>Imports/Exporting Skin Weights:</h3>
 This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
 <br></p>

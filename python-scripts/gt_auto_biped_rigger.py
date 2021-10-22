@@ -97,8 +97,21 @@
  Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
  Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
  
+ 1.7.5 - 2021-10-19
+ Added option to generate secondary skeleton used for game engines (no Segment Scale Compensate)
+ Added option to create lines between pole vectors and their targets
+ 
+ 1.7.6 - 2021-10-20
+ Created "settings" button and the GUI updates necessary to display it
+ Created the base for persistent settings and implemented "User Real-time Skeleton" option
+ Created a custom help window that takes strings as help inputs to display it to the user
+
+ 1.7.7 - 2021-10-21
+ Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
  
  To do:
+    Add option to mirror rigged pose (for animators)
+    Move functions to a module (this script is getting too big)
     Create ribbon setup for the spine ( add switch to the master control )
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
@@ -134,7 +147,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.4"
+script_version = "1.7.7"
 
 # Python Version
 python_version = sys.version_info.major
@@ -153,18 +166,25 @@ right_ctrl_color = (1, 0, 0) # Soft Blue
 automation_ctrl_color = (.6,.2,1) # Purple
 
 # Debugging Vars
-debugging = False # Activate Debugging Mode
+debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_display_lra = False # Display LRA for all joints after generating
-debugging_auto_breathing = True # Auto activates breathing Time
+debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.json' # Path to auto import
 debugging_bind_rig = True # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
 
+# Persistent Settings
+gt_ab_settings = { 
+    'is_settings_visible' : False,
+    'body_column_height' : 0, # determined during settings GUI creation
+    'using_no_ssc_skeleton' : False,
+}
+
 # Loaded Elements Dictionary
-gt_ab_settings = { # General Settings
+gt_ab_elements = { # General Settings
                    'main_proxy_grp' : 'auto_biped_proxy' + '_' + grp_suffix,
                    # Center Elements
                    'main_crv' : 'root' + '_' + proxy_suffix,
@@ -229,23 +249,72 @@ gt_ab_settings = { # General Settings
                  }
 
 # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
-gt_ab_settings_list = list(gt_ab_settings)
-for item in gt_ab_settings_list:
+gt_ab_elements_list = list(gt_ab_elements)
+for item in gt_ab_elements_list:
     if item.startswith('left_'):
-        gt_ab_settings[item] = 'left_' + gt_ab_settings.get(item) # Add "left_" prefix
-        gt_ab_settings[item.replace('left_', 'right_')] = gt_ab_settings.get(item).replace('left_', 'right_') # Add right copy
+        gt_ab_elements[item] = 'left_' + gt_ab_elements.get(item) # Add "left_" prefix
+        gt_ab_elements[item.replace('left_', 'right_')] = gt_ab_elements.get(item).replace('left_', 'right_') # Add right copy
 
 # Store Default Values
+gt_ab_elements_default = copy.deepcopy(gt_ab_elements)
 gt_ab_settings_default = copy.deepcopy(gt_ab_settings)
 
 # Create Joints List
 gt_ab_joints_default = {}
-for obj in gt_ab_settings:
+for obj in gt_ab_elements:
     if obj.endswith('_crv'):
-        name = gt_ab_settings.get(obj).replace(proxy_suffix, jnt_suffix).replace('end' + proxy_suffix.capitalize(), 'end' + jnt_suffix.capitalize())
+        name = gt_ab_elements.get(obj).replace(proxy_suffix, jnt_suffix).replace('end' + proxy_suffix.capitalize(), 'end' + jnt_suffix.capitalize())
         gt_ab_joints_default[obj.replace('_crv','_' + jnt_suffix).replace('_proxy', '')] = name
 gt_ab_joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
 gt_ab_joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
+
+# Manage Persistent Settings
+def get_persistent_settings_auto_biped_rigger():
+    ''' 
+    Checks if persistant settings for GT Auto Biped Rigger exists and transfer them to the settings dictionary.
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    '''
+    # Check if there is anything stored
+    stored_setup_exists = cmds.optionVar(exists=("gt_auto_biped_rigger_setup"))
+ 
+    # The values in these keys will not get imported (No persistent behaviour)
+    ignore_keys = ['is_settings_visible', 'body_column_height'] 
+ 
+    if stored_setup_exists:
+        stored_settings = {}
+        try:
+            stored_settings = eval(str(cmds.optionVar(q=("gt_auto_biped_rigger_setup"))))
+            for stored_item in stored_settings:
+                #print(stored_item)
+                for item in gt_ab_settings:
+                    if stored_item == item and item not in ignore_keys:
+                        gt_ab_settings[item] = stored_settings.get(stored_item)
+        except:
+            print('Couldn\'t load persistent settings, try resetting it in the help menu.')
+            
+
+def set_persistent_settings_auto_biped_rigger():
+    ''' 
+    Stores persistant settings for GT Auto Biped Rigger.
+    It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
+    It assumes that persistent settings were stored using the cmds.optionVar function.
+    '''
+    cmds.optionVar( sv=('gt_auto_biped_rigger_setup', str(gt_ab_settings)))
+
+
+def reset_persistent_settings_auto_biped_rigger():
+    ''' Resets persistant settings for GT Auto Biped Rigger '''
+    cmds.optionVar( remove='gt_auto_biped_rigger_setup' )
+    gt_ab_settings = gt_ab_settings_default
+    cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
+    try:
+        cmds.evalDeferred("gt_auto_biped_rigger.build_gui_auto_biped_rig()")
+    except:
+        try:
+            build_gui_auto_biped_rig()
+        except:
+            pass
+    
 
 
 # Main Dialog ============================================================================
@@ -255,8 +324,10 @@ def build_gui_auto_biped_rig():
     if cmds.window(window_name, exists =True):
         cmds.deleteUI(window_name)    
 
-    # Main GUI Start Here =================================================================================
+    # Get Persistent Settings
+    get_persistent_settings_auto_biped_rigger()
 
+    # Main GUI Start Here =================================================================================
     build_gui_auto_biped_rig = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
                           
@@ -273,9 +344,10 @@ def build_gui_auto_biped_rig():
 
     cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.rowColumnLayout(nc=4, cw=[(1, 10), (2, 150), (3, 50), (4, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
+    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Space
     cmds.text(main_window_title, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
+    settings_btn = cmds.button( l ="Settings", bgc=title_bgc_color, c=lambda x:update_gui_settings())
     cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_help_gui_auto_biped_rig())
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
 
@@ -303,7 +375,30 @@ def build_gui_auto_biped_rig():
         image_result.write(image_64_decode)
         image_result.close()
 
+    
+    # Settings ================ @@@
+    settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], h=1, p=content_main) 
+    
+    # General Settings
+    settings_bgc_color = (.4, .4, .4)
+    cmds.text('General Settings:', font='boldLabelFont')
+    cmds.separator(h=5, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 210), (3, 20)], cs=[(1,10)]) 
+    cmds.text(" ", bgc=settings_bgc_color, h=20) # Tiny Empty Space   
+    cmds.checkBox( label='  Use Real-time Skeleton', value=gt_ab_settings.get('using_no_ssc_skeleton'), ebg=True, cc=lambda x:invert_stored_setting('using_no_ssc_skeleton')) 
+    
 
+    custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behaviour of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.\nAs this baked version does not yet fully support non-uniform scaling, it\'s recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application.\n\nThis will allow you to preserve the stretchy settings even in programs that do not support it.'
+    custom_help_title = 'Use Real-time Skeleton'
+    cmds.button(l ="?", bgc=settings_bgc_color, c=lambda x:build_custom_help_window(custom_help_message, custom_help_title))
+    
+    cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_column) 
+    
+    cmds.separator(h=25)
+    cmds.separator(h=5, style='none') # Empty Space
+    cmds.button(l ="Reset Persistent Settings", bgc=settings_bgc_color, c=lambda x:reset_persistent_settings_auto_biped_rigger())
+    
+    
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     
@@ -392,6 +487,40 @@ def build_gui_auto_biped_rig():
     widget.setWindowIcon(icon)
     
     
+    ### GUI Functions ###
+    def invert_stored_setting(key_string):
+        '''
+        Used for boolean values, it inverts the value, so if True it becomes False and vice-versa
+        
+                Parameters:
+                    key_string (string) : Key name, used to determine what bool value to flip
+        '''
+        gt_ab_settings[key_string] = not gt_ab_settings.get(key_string)
+    
+    def update_gui_settings():
+        '''
+        Function to show or hide settings. 
+        It acomplishes this by switching the height of the body_column and the settings_column. @@@
+        '''
+        if gt_ab_settings.get('is_settings_visible') != True:
+            gt_ab_settings["is_settings_visible"] = True
+
+            cmds.button(settings_btn, e=True, l='Apply', bgc=(.6, .6, .6)) 
+
+            # Hide Checklist Items
+            gt_ab_settings["body_column_height"] = cmds.rowColumnLayout(body_column, q=True, h=True)
+            cmds.rowColumnLayout(body_column, e=True, h=1)
+            
+            # Show Settings Items
+            cmds.rowColumnLayout(settings_column, e=True, h=(gt_ab_settings.get('body_column_height')))
+        else:
+            gt_ab_settings["is_settings_visible"] = False
+            cmds.rowColumnLayout(body_column, e=True, h=gt_ab_settings.get('body_column_height'))
+            cmds.rowColumnLayout(settings_column, e=True, h=1)
+            cmds.button(settings_btn, e=True, l='Settings', bgc=title_bgc_color)
+            set_persistent_settings_auto_biped_rigger() 
+            get_persistent_settings_auto_biped_rigger()
+
     # Main GUI Ends Here =================================================================================
     
 
@@ -491,6 +620,62 @@ def build_help_gui_auto_biped_rig():
     # Help Dialog Ends Here =================================================================================
 
 
+def build_custom_help_window(input_text, help_title=''):
+    ''' 
+    Creates a help window to display the provided text
+
+            Parameters:
+                input_text (string): Text used as help, this is displayed in a scroll fields.
+                help_title (optinal, string)
+    '''
+    window_name = help_title.replace(" ","_").replace("-","_").lower().strip() + "_help_window"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title= help_title + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1,1])
+
+    main_column = cmds.columnLayout(p= window_name)
+   
+    # Title Text
+    cmds.separator(h=12, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column
+    cmds.text(help_title + " Help", bgc=(.4, .4, .4),  fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p=main_column) # Empty Space
+
+    # Body ====================       
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)
+    
+    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
+ 
+    cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
+    cmds.scrollField(help_scroll_field, e=True, ip=1, it='') # Bring Back to the Top
+    
+    # Close Button 
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style='none')
+    
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+    
+    # Set Window Icon
+    qw = omui.MQtUtil.findWindow(window_name)
+    if python_version == 3:
+        widget = wrapInstance(int(qw), QWidget)
+    else:
+        widget = wrapInstance(long(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+    
+    def close_help_gui():
+        ''' Closes help windows '''
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
+    # Custom Help Dialog Ends Here =================================================================================
 
 
 def gtu_combine_curves_list(curve_list):
@@ -1018,6 +1203,272 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
         return [(obj + '.' + output_attr), None]
     
     
+def get_inverted_hierarchy_tree(obj_list, return_short_name=True):
+    ''' 
+    Receives a list (usually a Maya selection) and returns a sorted version of it 
+    starting with objects at the bottom of the hierarchy then working its way up to
+    the top parents. It extracts the number of "|" symbols in the full path to the file
+    to determine its position in the hierarchy before sorting it.
+    
+            Parameters:
+                obj_list (list): A list of strings with the name of the Maya elements (Usually a maya selection)
+                return_short_name (optional, bool): Determines if the return list will return the full path or just the short name.
+                
+            Returns:
+                inverted_hierarchy_tree (list) : A list containing the same elements, but sorted from lowest child to top parent.
+    
+    '''
+    # Find hierarchy position and create pair
+    sorted_pairs = []
+    for obj in obj_list:
+        if cmds.objExists(obj):
+            long_name = cmds.ls(obj, l=True) or []
+            number_of_parents = len(long_name[0].split('|'))
+            sorted_pairs.append((long_name[0], number_of_parents))
+        
+    sorted_pairs.sort(key=lambda x:x[1], reverse=True)
+    
+    # Extract elements and return them
+    inverted_hierarchy_tree = []
+    for pair in sorted_pairs:
+        if return_short_name:
+            short_name = ''
+            split_path = pair[0].split('|')
+            if len(split_path) >= 1:
+                short_name = split_path[len(split_path)-1]
+            inverted_hierarchy_tree.append(short_name)
+        else:
+            inverted_hierarchy_tree.append(pair[0])
+    return inverted_hierarchy_tree
+
+
+
+def mimic_segment_scale_compensate(joints_with_ssc, joints_no_ssc):
+    '''
+    Mimics the behaviour of segment scale compensate tranform system present in Maya
+    transfering the baked values to a secondary joint chain. 
+    The secondary skeleton is compatible with real-time engines as it calculates and bakes 
+    scale values directly into the joints.
+    
+    
+    '''
+    # Check if lists are identical, name length and names?
+    
+    scale_compensate_multiply_prefix = "ssc_scale_multiplier_"
+    scale_compensate_divide_prefix = "ssc_scale_divide_"
+    
+    for index in range(len(joints_no_ssc)):
+        if index != len(joints_no_ssc)-1: # Don't apply it to the last one as it doesn't have children
+
+            joint_parent = cmds.listRelatives(joints_no_ssc[index], parent=True)
+
+            scale_compensate_multiply_node = scale_compensate_multiply_prefix + joints_no_ssc[index]
+            scale_compensate_multiply_node = cmds.createNode('multiplyDivide', name=scale_compensate_multiply_node)
+
+            cmds.connectAttr(scale_compensate_multiply_node + '.output', joints_no_ssc[index] + '.scale', f=True)
+            cmds.connectAttr(joints_with_ssc[index] + '.scale', scale_compensate_multiply_node + '.input2', f=True)
+
+            scale_compensate_divide_node = scale_compensate_divide_prefix + joint_parent[0]
+            if not cmds.objExists(scale_compensate_divide_node):
+                scale_compensate_divide_node = cmds.createNode('multiplyDivide', name=scale_compensate_divide_node)
+                cmds.setAttr(scale_compensate_divide_node + '.operation', 2)
+                cmds.setAttr(scale_compensate_divide_node + '.input1X', 1)
+                cmds.setAttr(scale_compensate_divide_node + '.input1Y', 1)
+                cmds.setAttr(scale_compensate_divide_node + '.input1Z', 1)
+                
+            try:
+                if not cmds.isConnected( joint_parent[0] + '.scale', scale_compensate_divide_node + '.input2' ):
+                    cmds.connectAttr(joint_parent[0] + '.scale', scale_compensate_divide_node + '.input2', f=True)
+                if not cmds.isConnected( scale_compensate_divide_node + '.output', scale_compensate_multiply_node + '.input1' ):
+                    cmds.connectAttr(scale_compensate_divide_node + '.output', scale_compensate_multiply_node + '.input1', f=True)
+            except:
+                pass
+    
+    # Try to connect hierarchy divide nodes
+    for index in range(len(joints_no_ssc)):
+        if index != len(joints_no_ssc)-1: # Ignore top parent
+                joint_parent = cmds.listRelatives(joints_no_ssc[index], parent=True) or []
+                
+                try:
+                    cmds.connectAttr(scale_compensate_divide_prefix + joint_parent[0] + '.output', scale_compensate_divide_prefix + joints_no_ssc[index] + '.input1', f=True)
+                except:
+                    pass
+            
+
+def get_short_name(obj):
+    '''
+    Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+            Parameters:
+                    obj (string) - object to extract short name
+    '''
+    if obj == '':
+        return ''
+    split_path = obj.split('|')
+    if len(split_path) >= 1:
+        short_name = split_path[len(split_path)-1]
+    return short_name
+
+def generate_no_ssc_skeleton(new_suffix='game', jnt_suffix='jnt'):
+    '''
+    Uses other functions to build a secondary skeleton that doesn't rely 
+    on Maya's segment scale compensate system. It insteads bakes the scale
+    on to the children joints.
+    
+            Parameters:
+                new_suffix (optional, string): The in-between word used to create a new suffix.
+                                               The new one will be new_suffix + "_" + jnt_suffix.
+                                               e.g. myJoint_jnt => myJOint_game_jnt
+                jnt_suffix (optional, string): The suffix the script expects 
+                                               to find at the end of every joint
+            Returns:
+                duplicated_joints (string): Generated joints
+                no_ssc_root_jnt (string): Root joint for the generated joints
+
+            Dependencies:
+                get_short_name()
+                mimic_segment_scale_compensate_behaviour()
+                get_inverted_hierarchy_tree()
+                jnt_suffix : string variable
+                gt_ab_joints_default : list of joints
+                
+    '''
+    cmds.select(gt_ab_joints_default.get('main_jnt'))
+    game_skeleton = cmds.duplicate(renameChildren=True)
+    for obj in game_skeleton:
+        if cmds.objectType(obj) != "joint":
+            cmds.delete(obj)
+
+    # Rename new skeleton
+    to_rename = []
+    search_jnt = '_' + jnt_suffix + '1' # Automatic renamed during duplication
+    search_end_jnt = '_end' + jnt_suffix.capitalize() + '1'
+    new_suffix_end_jnt = '_' + new_suffix + '_end' + jnt_suffix.capitalize()
+    new_suffix = '_' + new_suffix + '_' + jnt_suffix
+    for jnt in game_skeleton:
+        object_short_name = get_short_name(jnt)
+        new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+        if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+            to_rename.append([jnt,new_name])
+           
+    duplicated_joints = []
+    for pair in reversed(to_rename):
+        if cmds.objExists(pair[0]):
+            duplicated_joints.append(cmds.rename(pair[0], pair[1]))
+
+    # Turn off SSC
+    for jnt in duplicated_joints:
+        cmds.setAttr(jnt + '.segmentScaleCompensate', 0)
+            
+    return duplicated_joints, cmds.ls(selection=True)[0]
+
+
+def attach_no_ssc_skeleton(duplicated_joints, 
+                           realtime_root_jnt, 
+                           current_root_jnt, 
+                           root_scale_constraint_ctrl, 
+                           new_skeleton_suffix = 'game', 
+                           jnt_suffix='jnt',
+                           swap_names=True,
+                           driver_suffix='driver'):
+    '''
+    Attaches a previously generated game skeleton (no ssc skeleton) 
+    to follow and mimic the scale of the original gt auto biped rigger skeleton
+            
+            Parameters:
+                new_skeleton_suffix (optional, string): expected in-between string for game skeleton. 
+                                                        Used to pair with original skeleton
+                duplicated_joints (list): A list of string containing all generated real-time joints
+                realtime_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
+                current_root_jnt (string): The name of the root joint (usually the top parent) of the current skeleton
+                root_scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint (usually main_ctrl)
+                jnt_suffix (optional, string): The suffix the script expects 
+                                               to find at the end of every joint
+
+            Returns:
+                sorted_no_ssc_joints (list): A list containing game skeleton joints
+          
+            Dependencies:
+                get_short_name()
+                generate_no_ssc_skeleton()
+                get_inverted_hierarchy_tree()
+                mimic_segment_scale_compensate_behaviour()
+    '''
+    cmds.select(realtime_root_jnt, hierarchy=True) # Sync selection order
+    duplicated_joints = cmds.ls(selection=True, type='joint')
+
+    cmds.select(current_root_jnt, hierarchy=True)
+    original_joints = cmds.ls(selection=True, type='joint')
+
+    sorted_original_joints = get_inverted_hierarchy_tree(original_joints)
+    sorted_no_ssc_joints = get_inverted_hierarchy_tree(duplicated_joints)
+    mimic_segment_scale_compensate(sorted_original_joints, sorted_no_ssc_joints)
+
+    # Parent Constraint new system
+    remove_new_str = '_' + new_skeleton_suffix + '_' + jnt_suffix
+    remove_old_str = '_' + jnt_suffix
+
+    remove_dupe_end_str = '_' + new_skeleton_suffix + '_end' + jnt_suffix.capitalize()
+    remove_org_end_str = '_end' + jnt_suffix.capitalize()
+
+    # Parent Constraint Real-time Skeleton
+    for jnt in sorted_original_joints:
+        for realtime_jnt in sorted_no_ssc_joints:
+            joint_org = jnt.replace(remove_old_str, '')
+            joint_dupe = realtime_jnt.replace(remove_new_str, '')
+            if joint_org == joint_dupe:
+                cmds.parentConstraint( jnt, realtime_jnt )
+
+    for jnt in sorted_original_joints:
+        for realtime_jnt in sorted_no_ssc_joints:
+            joint_org = jnt.replace(remove_org_end_str, '')
+            joint_dupe = realtime_jnt.replace(remove_dupe_end_str, '')
+            if joint_org == joint_dupe:
+                cmds.parentConstraint( jnt, realtime_jnt )
+    
+    # Scale Constraint Root
+    cmds.scaleConstraint(root_scale_constraint_ctrl, realtime_root_jnt)
+
+    # Swap Names (Real-time skeleton becomes the standard skeleton)
+    if swap_names:
+
+        # Make original invisible
+        cmds.setAttr(current_root_jnt + '.v', 0)
+
+        # Move Game Skeleton To Top
+        cmds.reorder(realtime_root_jnt, front=True)
+
+        to_rename = []
+        # Search RT
+        search_end_jnt = '_' + new_skeleton_suffix + '_end' + jnt_suffix.capitalize()
+        search_jnt = '_' + new_skeleton_suffix + '_' + jnt_suffix
+        # Replace RT
+        new_suffix = '_' + jnt_suffix
+        new_suffix_end_jnt = '_end' + jnt_suffix.capitalize()
+        for jnt in sorted_no_ssc_joints:
+            object_short_name = get_short_name(jnt)
+            new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+            if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+                to_rename.append([jnt,new_name])
+        # Search
+        search_end_jnt = '_end' + jnt_suffix.capitalize()
+        search_jnt = '_' + jnt_suffix
+        # Replace
+        new_suffix = '_' + driver_suffix + '_' + jnt_suffix
+        new_suffix_end_jnt = '_' + driver_suffix + '_end' + jnt_suffix.capitalize()
+        for jnt in sorted_original_joints:
+            object_short_name = get_short_name(jnt)
+            new_name = str(object_short_name).replace(search_jnt, new_suffix).replace(search_end_jnt, new_suffix_end_jnt)
+            if cmds.objExists(jnt) and 'shape' not in cmds.nodeType(jnt, inherited=True) and jnt != new_name:
+                to_rename.append([jnt,new_name])
+
+        for pair in reversed(to_rename):
+            if cmds.objExists(pair[0]):
+                cmds.rename(pair[0], pair[1])
+
+        
+
+    return sorted_no_ssc_joints
 
 
 def create_visualization_line(object_a, object_b):
@@ -1308,16 +1759,16 @@ def validate_operation(operation, debugging=False):
         # Debugging (Auto deletes generated proxy)
         if debugging and debugging_auto_recreate:
             try:
-                cmds.delete(gt_ab_settings_default.get('main_proxy_grp'))
+                cmds.delete(gt_ab_elements_default.get('main_proxy_grp'))
             except:
                 pass
 
 
         # Check if proxy exists in the scene
-        proxy_elements = [gt_ab_settings_default.get('main_proxy_grp')]
-        for proxy in gt_ab_settings_default:
+        proxy_elements = [gt_ab_elements_default.get('main_proxy_grp')]
+        for proxy in gt_ab_elements_default:
             if '_crv' in proxy:
-                proxy_elements.append(gt_ab_settings_default.get(proxy))
+                proxy_elements.append(gt_ab_elements_default.get(proxy))
         for obj in proxy_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
@@ -1353,8 +1804,8 @@ def validate_operation(operation, debugging=False):
             try:
                 if cmds.objExists('rig_grp'):
                     cmds.delete('rig_grp')
-                if cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
-                    cmds.delete(gt_ab_settings.get('main_proxy_grp'))
+                if cmds.objExists(gt_ab_elements.get('main_proxy_grp')):
+                    cmds.delete(gt_ab_elements.get('main_proxy_grp'))
                 create_proxy(colorize_proxy=True)
                 # Debugging (Auto imports proxy)
                 if debugging_import_proxy and os.path.exists(debugging_import_path):
@@ -1363,14 +1814,14 @@ def validate_operation(operation, debugging=False):
                 pass
                 
         # Validate Proxy
-        if not cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
+        if not cmds.objExists(gt_ab_elements.get('main_proxy_grp')):
             is_valid = False
             cmds.warning('Proxy couldn\'t be found. Make sure you first create a proxy (guide objects) before generating a rig.')
         
-        proxy_elements = [gt_ab_settings.get('main_proxy_grp')]
-        for proxy in gt_ab_settings_default:
+        proxy_elements = [gt_ab_elements.get('main_proxy_grp')]
+        for proxy in gt_ab_elements_default:
             if '_crv' in proxy:
-                proxy_elements.append(gt_ab_settings.get(proxy))
+                proxy_elements.append(gt_ab_elements.get(proxy))
         for obj in proxy_elements:
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
@@ -1423,84 +1874,84 @@ def create_proxy(colorize_proxy=True):
         cmds.warning('Proxy creation already in progress, please finish it first.')
 
     # Main
-    main_crv = create_main_control(gt_ab_settings_default.get('main_crv'))
-    main_grp = cmds.group(empty=True, world=True, name=gt_ab_settings_default.get('main_proxy_grp'))
+    main_crv = create_main_control(gt_ab_elements_default.get('main_crv'))
+    main_grp = cmds.group(empty=True, world=True, name=gt_ab_elements_default.get('main_proxy_grp'))
     cmds.parent(main_crv, main_grp)
 
     # Root
-    cog_proxy_crv = create_joint_curve(gt_ab_settings_default.get('cog_proxy_crv'), 1)
+    cog_proxy_crv = create_joint_curve(gt_ab_elements_default.get('cog_proxy_crv'), 1)
     root_proxy_grp = cmds.group(empty=True, world=True, name=cog_proxy_crv + grp_suffix.capitalize())
     cmds.parent(cog_proxy_crv, root_proxy_grp)
     cmds.move(0, 89.2, 0, root_proxy_grp)
 
     # Spine 1
-    spine01_proxy_crv = create_joint_curve(gt_ab_settings_default.get('spine01_proxy_crv'), 0.5)
+    spine01_proxy_crv = create_joint_curve(gt_ab_elements_default.get('spine01_proxy_crv'), 0.5)
     spine01_proxy_grp = cmds.group(empty=True, world=True, name=spine01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(spine01_proxy_crv, spine01_proxy_grp)
     cmds.move(0, 98.5, 0, spine01_proxy_grp)
 
     # Spine 2
-    spine02_proxy_crv = create_joint_curve(gt_ab_settings_default.get('spine02_proxy_crv'), 0.5)
+    spine02_proxy_crv = create_joint_curve(gt_ab_elements_default.get('spine02_proxy_crv'), 0.5)
     spine02_proxy_grp = cmds.group(empty=True, world=True, name=spine02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(spine02_proxy_crv, spine02_proxy_grp)
     cmds.move(0, 108.2, 0, spine02_proxy_grp)
 
     # Spine 3
-    spine03_proxy_crv = create_joint_curve(gt_ab_settings_default.get('spine03_proxy_crv'), 0.5)
+    spine03_proxy_crv = create_joint_curve(gt_ab_elements_default.get('spine03_proxy_crv'), 0.5)
     spine03_proxy_grp = cmds.group(empty=True, world=True, name=spine03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(spine03_proxy_crv, spine03_proxy_grp)
     cmds.move(0, 117.8, 0, spine03_proxy_grp)
 
     # Spine 4
-    spine04_proxy_crv = create_joint_curve(gt_ab_settings_default.get('spine04_proxy_crv'), 1)
+    spine04_proxy_crv = create_joint_curve(gt_ab_elements_default.get('spine04_proxy_crv'), 1)
     spine04_proxy_grp = cmds.group(empty=True, world=True, name=spine04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(spine04_proxy_crv, spine04_proxy_grp)
     cmds.move(0, 127.5, 0, spine04_proxy_grp)
 
     # Neck Base
-    neck_base_proxy_crv = create_joint_curve(gt_ab_settings_default.get('neck_base_proxy_crv'), .5)
+    neck_base_proxy_crv = create_joint_curve(gt_ab_elements_default.get('neck_base_proxy_crv'), .5)
     neck_base_proxy_grp = cmds.group(empty=True, world=True, name=neck_base_proxy_crv + grp_suffix.capitalize())
     cmds.parent(neck_base_proxy_crv, neck_base_proxy_grp)
     cmds.move(0, 137.1, 0, neck_base_proxy_grp)
     
     # Neck Mid
-    neck_mid_proxy_crv = create_joint_curve(gt_ab_settings_default.get('neck_mid_proxy_crv'), .2)
+    neck_mid_proxy_crv = create_joint_curve(gt_ab_elements_default.get('neck_mid_proxy_crv'), .2)
     neck_mid_proxy_grp = cmds.group(empty=True, world=True, name=neck_mid_proxy_crv + grp_suffix.capitalize())
     cmds.parent(neck_mid_proxy_crv, neck_mid_proxy_grp)
     cmds.move(0, 139.8, 0, neck_mid_proxy_grp)
 
     # Head
-    head_proxy_crv = create_joint_curve(gt_ab_settings_default.get('head_proxy_crv'), .5)
+    head_proxy_crv = create_joint_curve(gt_ab_elements_default.get('head_proxy_crv'), .5)
     head_proxy_grp = cmds.group(empty=True, world=True, name=head_proxy_crv + grp_suffix.capitalize())
     cmds.parent(head_proxy_crv, head_proxy_grp)
     cmds.move(0, 142.4, 0, head_proxy_grp)
 
     # Head End
-    head_end_proxy_crv = create_joint_curve(gt_ab_settings_default.get('head_end_proxy_crv'), .2) 
+    head_end_proxy_crv = create_joint_curve(gt_ab_elements_default.get('head_end_proxy_crv'), .2) 
     head_end_proxy_grp = cmds.group(empty=True, world=True, name=head_end_proxy_crv + grp_suffix.capitalize())
     cmds.parent(head_end_proxy_crv, head_end_proxy_grp)
     cmds.move(0, 160, 0, head_end_proxy_grp)
 
     # Jaw
-    jaw_proxy_crv = create_joint_curve(gt_ab_settings_default.get('jaw_proxy_crv'), .5)
+    jaw_proxy_crv = create_joint_curve(gt_ab_elements_default.get('jaw_proxy_crv'), .5)
     jaw_proxy_grp = cmds.group(empty=True, world=True, name=jaw_proxy_crv + grp_suffix.capitalize())
     cmds.parent(jaw_proxy_crv, jaw_proxy_grp)
     cmds.move(0, 147.4, 2.35, jaw_proxy_grp)
 
     # Jaw End
-    jaw_end_proxy_crv = create_joint_curve(gt_ab_settings_default.get('jaw_end_proxy_crv'), .2)
+    jaw_end_proxy_crv = create_joint_curve(gt_ab_elements_default.get('jaw_end_proxy_crv'), .2)
     jaw_end_proxy_grp = cmds.group(empty=True, world=True, name=jaw_end_proxy_crv + grp_suffix.capitalize())
     cmds.parent(jaw_end_proxy_crv, jaw_end_proxy_grp)
     cmds.move(0, 142.7, 10.8, jaw_end_proxy_grp)
 
     # Right Eye
-    right_eye_proxy_crv = create_loc_joint_curve(gt_ab_settings_default.get('right_eye_proxy_crv'), .6)
+    right_eye_proxy_crv = create_loc_joint_curve(gt_ab_elements_default.get('right_eye_proxy_crv'), .6)
     right_eye_proxy_grp = cmds.group(empty=True, world=True, name=right_eye_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_eye_proxy_crv, right_eye_proxy_grp)
     cmds.move(-3.5, 151.2, 8.7, right_eye_proxy_grp)
 
     # Left Eye
-    left_eye_proxy_crv = create_loc_joint_curve(gt_ab_settings_default.get('left_eye_proxy_crv'), .6)
+    left_eye_proxy_crv = create_loc_joint_curve(gt_ab_elements_default.get('left_eye_proxy_crv'), .6)
     left_eye_proxy_grp = cmds.group(empty=True, world=True, name=left_eye_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_eye_proxy_crv, left_eye_proxy_grp)
     cmds.move(3.5, 151.2, 8.7, left_eye_proxy_grp)
@@ -1508,134 +1959,134 @@ def create_proxy(colorize_proxy=True):
 
     ################# Left Arm #################
     # Left Clavicle
-    left_clavicle_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_clavicle_proxy_crv'), .5)
+    left_clavicle_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_clavicle_proxy_crv'), .5)
     left_clavicle_proxy_grp = cmds.group(empty=True, world=True, name=left_clavicle_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_clavicle_proxy_crv, left_clavicle_proxy_grp)
     cmds.move(7.3, 130.4, 0, left_clavicle_proxy_grp)
 
     # Left Shoulder
-    left_shoulder_proxy_crv = create_joint_curve(gt_ab_settings_default.get('left_shoulder_proxy_crv'), .5)
+    left_shoulder_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_shoulder_proxy_crv'), .5)
     left_shoulder_proxy_grp = cmds.group(empty=True, world=True, name=left_shoulder_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_shoulder_proxy_crv, left_shoulder_proxy_grp)
     cmds.move(17.2, 130.4, 0, left_shoulder_proxy_grp)
 
     # Left Elbow
-    left_elbow_proxy_crv = create_aim_joint_curve(gt_ab_settings_default.get('left_elbow_proxy_crv'), .5)
+    left_elbow_proxy_crv = create_aim_joint_curve(gt_ab_elements_default.get('left_elbow_proxy_crv'), .5)
     left_elbow_proxy_grp = cmds.group(empty=True, world=True, name=left_elbow_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_elbow_proxy_crv, left_elbow_proxy_grp)
     cmds.move(37.7, 130.4, 0, left_elbow_proxy_grp)
 
     # Left Wrist
-    left_wrist_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_wrist_proxy_crv'), .6)
+    left_wrist_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_wrist_proxy_crv'), .6)
     left_wrist_proxy_grp = cmds.group(empty=True, world=True, name=left_wrist_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_wrist_proxy_crv, left_wrist_proxy_grp)
     cmds.move(58.2, 130.4, 0, left_wrist_proxy_grp)
 
 
     # Left Thumb
-    left_thumb01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_thumb01_proxy_crv'), proxy_finger_scale)
+    left_thumb01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_thumb01_proxy_crv'), proxy_finger_scale)
     left_thumb01_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_thumb01_proxy_crv, left_thumb01_proxy_grp)
     cmds.move(60.8, 130.4, 2.9, left_thumb01_proxy_grp)
 
-    left_thumb02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_thumb02_proxy_crv'), proxy_finger_scale)
+    left_thumb02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_thumb02_proxy_crv'), proxy_finger_scale)
     left_thumb02_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_thumb02_proxy_crv, left_thumb02_proxy_grp)
     cmds.move(60.8, 130.4, 7.3, left_thumb02_proxy_grp)
 
-    left_thumb03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_thumb03_proxy_crv'), proxy_finger_scale)
+    left_thumb03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_thumb03_proxy_crv'), proxy_finger_scale)
     left_thumb03_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_thumb03_proxy_crv, left_thumb03_proxy_grp)
     cmds.move(60.8, 130.4, 11.7, left_thumb03_proxy_grp)
 
-    left_thumb04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_thumb04_proxy_crv'), proxy_end_joint_scale)
+    left_thumb04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_thumb04_proxy_crv'), proxy_end_joint_scale)
     left_thumb04_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_thumb04_proxy_crv, left_thumb04_proxy_grp)
     cmds.move(60.8, 130.4, 16.3, left_thumb04_proxy_grp)
 
     # Left Index
-    left_index01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_index01_proxy_crv'), proxy_finger_scale)
+    left_index01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_index01_proxy_crv'), proxy_finger_scale)
     left_index01_proxy_grp = cmds.group(empty=True, world=True, name=left_index01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_index01_proxy_crv, left_index01_proxy_grp)
     cmds.move(66.9, 130.4, 3.5, left_index01_proxy_grp)
 
-    left_index02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_index02_proxy_crv'), proxy_finger_scale)
+    left_index02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_index02_proxy_crv'), proxy_finger_scale)
     left_index02_proxy_grp = cmds.group(empty=True, world=True, name=left_index02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_index02_proxy_crv, left_index02_proxy_grp)
     cmds.move(70.1, 130.4, 3.5, left_index02_proxy_grp)
 
-    left_index03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_index03_proxy_crv'), proxy_finger_scale)
+    left_index03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_index03_proxy_crv'), proxy_finger_scale)
     left_index03_proxy_grp = cmds.group(empty=True, world=True, name=left_index03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_index03_proxy_crv, left_index03_proxy_grp)
     cmds.move(74.2, 130.4, 3.5, left_index03_proxy_grp)
 
-    left_index04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_index04_proxy_crv'), proxy_end_joint_scale)
+    left_index04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_index04_proxy_crv'), proxy_end_joint_scale)
     left_index04_proxy_grp = cmds.group(empty=True, world=True, name=left_index04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_index04_proxy_crv, left_index04_proxy_grp)
     cmds.move(77.5, 130.4, 3.5, left_index04_proxy_grp)
 
 
     # Left Middle
-    left_middle01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_middle01_proxy_crv'), proxy_finger_scale)
+    left_middle01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_middle01_proxy_crv'), proxy_finger_scale)
     left_middle01_proxy_grp = cmds.group(empty=True, world=True, name=left_middle01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_middle01_proxy_crv, left_middle01_proxy_grp)
     cmds.move(66.9, 130.4, 1.1, left_middle01_proxy_grp)
 
-    left_middle02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_middle02_proxy_crv'), proxy_finger_scale)
+    left_middle02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_middle02_proxy_crv'), proxy_finger_scale)
     left_middle02_proxy_grp = cmds.group(empty=True, world=True, name=left_middle02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_middle02_proxy_crv, left_middle02_proxy_grp)
     cmds.move(70.7, 130.4, 1.1, left_middle02_proxy_grp)
 
-    left_middle03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_middle03_proxy_crv'), proxy_finger_scale)
+    left_middle03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_middle03_proxy_crv'), proxy_finger_scale)
     left_middle03_proxy_grp = cmds.group(empty=True, world=True, name=left_middle03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_middle03_proxy_crv, left_middle03_proxy_grp)
     cmds.move(74.4, 130.4, 1.1, left_middle03_proxy_grp)
 
-    left_middle04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_middle04_proxy_crv'), proxy_end_joint_scale)
+    left_middle04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_middle04_proxy_crv'), proxy_end_joint_scale)
     left_middle04_proxy_grp = cmds.group(empty=True, world=True, name=left_middle04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_middle04_proxy_crv, left_middle04_proxy_grp)
     cmds.move(78.0, 130.4, 1.1, left_middle04_proxy_grp)
         
         
     # Left Ring
-    left_ring01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_ring01_proxy_crv'), proxy_finger_scale)
+    left_ring01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_ring01_proxy_crv'), proxy_finger_scale)
     left_ring01_proxy_grp = cmds.group(empty=True, world=True, name=left_ring01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ring01_proxy_crv, left_ring01_proxy_grp)
     cmds.move(66.9, 130.4, -1.1, left_ring01_proxy_grp)
 
-    left_ring02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_ring02_proxy_crv'), proxy_finger_scale)
+    left_ring02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_ring02_proxy_crv'), proxy_finger_scale)
     left_ring02_proxy_grp = cmds.group(empty=True, world=True, name=left_ring02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ring02_proxy_crv, left_ring02_proxy_grp)
     cmds.move(70.4, 130.4, -1.1, left_ring02_proxy_grp)
 
-    left_ring03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_ring03_proxy_crv'), proxy_finger_scale)
+    left_ring03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_ring03_proxy_crv'), proxy_finger_scale)
     left_ring03_proxy_grp = cmds.group(empty=True, world=True, name=left_ring03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ring03_proxy_crv, left_ring03_proxy_grp)
     cmds.move(74, 130.4, -1.1, left_ring03_proxy_grp)
 
-    left_ring04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_ring04_proxy_crv'), proxy_end_joint_scale)
+    left_ring04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_ring04_proxy_crv'), proxy_end_joint_scale)
     left_ring04_proxy_grp = cmds.group(empty=True, world=True, name=left_ring04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ring04_proxy_crv, left_ring04_proxy_grp)
     cmds.move(77.5, 130.4, -1.1, left_ring04_proxy_grp)
 
 
     # Left Pinky
-    left_pinky01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_pinky01_proxy_crv'), proxy_finger_scale)
+    left_pinky01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_pinky01_proxy_crv'), proxy_finger_scale)
     left_pinky01_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_pinky01_proxy_crv, left_pinky01_proxy_grp)
     cmds.move(66.3, 130.4, -3.2, left_pinky01_proxy_grp)
 
-    left_pinky02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_pinky02_proxy_crv'), proxy_finger_scale)
+    left_pinky02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_pinky02_proxy_crv'), proxy_finger_scale)
     left_pinky02_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_pinky02_proxy_crv, left_pinky02_proxy_grp)
     cmds.move(69.6, 130.4, -3.2, left_pinky02_proxy_grp)
 
-    left_pinky03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_pinky03_proxy_crv'), proxy_finger_scale)
+    left_pinky03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_pinky03_proxy_crv'), proxy_finger_scale)
     left_pinky03_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_pinky03_proxy_crv, left_pinky03_proxy_grp)
     cmds.move(72.8, 130.4, -3.2, left_pinky03_proxy_grp)
 
-    left_pinky04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('left_pinky04_proxy_crv'), proxy_end_joint_scale)
+    left_pinky04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('left_pinky04_proxy_crv'), proxy_end_joint_scale)
     left_pinky04_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_pinky04_proxy_crv, left_pinky04_proxy_grp)
     cmds.move(76.3, 130.4, -3.2, left_pinky04_proxy_grp)
@@ -1643,155 +2094,155 @@ def create_proxy(colorize_proxy=True):
 
     ################# Right Arm #################
     # Right Clavicle
-    right_clavicle_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_clavicle_proxy_crv'), .5)
+    right_clavicle_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_clavicle_proxy_crv'), .5)
     right_clavicle_proxy_grp = cmds.group(empty=True, world=True, name=right_clavicle_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_clavicle_proxy_crv, right_clavicle_proxy_grp)
     cmds.move(-7.3, 130.4, 0, right_clavicle_proxy_grp)
 
     # Right Shoulder
-    right_shoulder_proxy_crv = create_joint_curve(gt_ab_settings_default.get('right_shoulder_proxy_crv'), .5)
+    right_shoulder_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_shoulder_proxy_crv'), .5)
     right_shoulder_proxy_grp = cmds.group(empty=True, world=True, name=right_shoulder_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_shoulder_proxy_crv, right_shoulder_proxy_grp)
     cmds.move(-17.2, 130.4, 0, right_shoulder_proxy_grp)
 
     # Right Elbow
-    right_elbow_proxy_crv = create_aim_joint_curve(gt_ab_settings_default.get('right_elbow_proxy_crv'), .5)
+    right_elbow_proxy_crv = create_aim_joint_curve(gt_ab_elements_default.get('right_elbow_proxy_crv'), .5)
     right_elbow_proxy_grp = cmds.group(empty=True, world=True, name=right_elbow_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_elbow_proxy_crv, right_elbow_proxy_grp)
     cmds.move(-37.7, 130.4, 0, right_elbow_proxy_grp)
 
 
     # Right Wrist
-    right_wrist_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_wrist_proxy_crv'), .6)
+    right_wrist_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_wrist_proxy_crv'), .6)
     right_wrist_proxy_grp = cmds.group(empty=True, world=True, name=right_wrist_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_wrist_proxy_crv, right_wrist_proxy_grp)
     cmds.move(-58.2, 130.4, 0, right_wrist_proxy_grp)
 
 
     # Right Thumb
-    right_thumb01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_thumb01_proxy_crv'), proxy_finger_scale)
+    right_thumb01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_thumb01_proxy_crv'), proxy_finger_scale)
     right_thumb01_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_thumb01_proxy_crv, right_thumb01_proxy_grp)
     cmds.move(-60.8, 130.4, 2.9, right_thumb01_proxy_grp)
 
-    right_thumb02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_thumb02_proxy_crv'), proxy_finger_scale)
+    right_thumb02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_thumb02_proxy_crv'), proxy_finger_scale)
     right_thumb02_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_thumb02_proxy_crv, right_thumb02_proxy_grp)
     cmds.move(-60.8, 130.4, 7.3, right_thumb02_proxy_grp)
 
-    right_thumb03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_thumb03_proxy_crv'), proxy_finger_scale)
+    right_thumb03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_thumb03_proxy_crv'), proxy_finger_scale)
     right_thumb03_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_thumb03_proxy_crv, right_thumb03_proxy_grp)
     cmds.move(-60.8, 130.4, 11.7, right_thumb03_proxy_grp)
 
-    right_thumb04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_thumb04_proxy_crv'), proxy_end_joint_scale)
+    right_thumb04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_thumb04_proxy_crv'), proxy_end_joint_scale)
     right_thumb04_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_thumb04_proxy_crv, right_thumb04_proxy_grp)
     cmds.move(-60.8, 130.4, 16.3, right_thumb04_proxy_grp)
 
     # Right Index
-    right_index01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_index01_proxy_crv'), proxy_finger_scale)
+    right_index01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_index01_proxy_crv'), proxy_finger_scale)
     right_index01_proxy_grp = cmds.group(empty=True, world=True, name=right_index01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_index01_proxy_crv, right_index01_proxy_grp)
     cmds.move(-66.9, 130.4, 3.5, right_index01_proxy_grp)
 
-    right_index02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_index02_proxy_crv'), proxy_finger_scale)
+    right_index02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_index02_proxy_crv'), proxy_finger_scale)
     right_index02_proxy_grp = cmds.group(empty=True, world=True, name=right_index02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_index02_proxy_crv, right_index02_proxy_grp)
     cmds.move(-70.1, 130.4, 3.5, right_index02_proxy_grp)
 
-    right_index03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_index03_proxy_crv'), proxy_finger_scale)
+    right_index03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_index03_proxy_crv'), proxy_finger_scale)
     right_index03_proxy_grp = cmds.group(empty=True, world=True, name=right_index03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_index03_proxy_crv, right_index03_proxy_grp)
     cmds.move(-74.2, 130.4, 3.5, right_index03_proxy_grp)
 
-    right_index04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_index04_proxy_crv'), proxy_end_joint_scale)
+    right_index04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_index04_proxy_crv'), proxy_end_joint_scale)
     right_index04_proxy_grp = cmds.group(empty=True, world=True, name=right_index04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_index04_proxy_crv, right_index04_proxy_grp)
     cmds.move(-77.5, 130.4, 3.5, right_index04_proxy_grp)
 
 
     # Right Middle
-    right_middle01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_middle01_proxy_crv'), proxy_finger_scale)
+    right_middle01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_middle01_proxy_crv'), proxy_finger_scale)
     right_middle01_proxy_grp = cmds.group(empty=True, world=True, name=right_middle01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_middle01_proxy_crv, right_middle01_proxy_grp)
     cmds.move(-66.9, 130.4, 1.1, right_middle01_proxy_grp)
 
-    right_middle02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_middle02_proxy_crv'), proxy_finger_scale)
+    right_middle02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_middle02_proxy_crv'), proxy_finger_scale)
     right_middle02_proxy_grp = cmds.group(empty=True, world=True, name=right_middle02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_middle02_proxy_crv, right_middle02_proxy_grp)
     cmds.move(-70.7, 130.4, 1.1, right_middle02_proxy_grp)
 
-    right_middle03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_middle03_proxy_crv'), proxy_finger_scale)
+    right_middle03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_middle03_proxy_crv'), proxy_finger_scale)
     right_middle03_proxy_grp = cmds.group(empty=True, world=True, name=right_middle03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_middle03_proxy_crv, right_middle03_proxy_grp)
     cmds.move(-74.4, 130.4, 1.1, right_middle03_proxy_grp)
 
-    right_middle04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_middle04_proxy_crv'), proxy_end_joint_scale)
+    right_middle04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_middle04_proxy_crv'), proxy_end_joint_scale)
     right_middle04_proxy_grp = cmds.group(empty=True, world=True, name=right_middle04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_middle04_proxy_crv, right_middle04_proxy_grp)
     cmds.move(-78, 130.4, 1.1, right_middle04_proxy_grp)
         
         
     # Right Ring
-    right_ring01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_ring01_proxy_crv'), proxy_finger_scale)
+    right_ring01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_ring01_proxy_crv'), proxy_finger_scale)
     right_ring01_proxy_grp = cmds.group(empty=True, world=True, name=right_ring01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ring01_proxy_crv, right_ring01_proxy_grp)
     cmds.move(-66.9, 130.4, -1.1, right_ring01_proxy_grp)
 
-    right_ring02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_ring02_proxy_crv'), proxy_finger_scale)
+    right_ring02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_ring02_proxy_crv'), proxy_finger_scale)
     right_ring02_proxy_grp = cmds.group(empty=True, world=True, name=right_ring02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ring02_proxy_crv, right_ring02_proxy_grp)
     cmds.move(-70.4, 130.4, -1.1, right_ring02_proxy_grp)
 
-    right_ring03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_ring03_proxy_crv'), proxy_finger_scale)
+    right_ring03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_ring03_proxy_crv'), proxy_finger_scale)
     right_ring03_proxy_grp = cmds.group(empty=True, world=True, name=right_ring03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ring03_proxy_crv, right_ring03_proxy_grp)
     cmds.move(-74, 130.4, -1.1, right_ring03_proxy_grp)
 
-    right_ring04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_ring04_proxy_crv'), proxy_end_joint_scale)
+    right_ring04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_ring04_proxy_crv'), proxy_end_joint_scale)
     right_ring04_proxy_grp = cmds.group(empty=True, world=True, name=right_ring04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ring04_proxy_crv, right_ring04_proxy_grp)
     cmds.move(-77.5, 130.4, -1.1, right_ring04_proxy_grp)
 
 
     # Right Pinky
-    right_pinky01_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_pinky01_proxy_crv'), proxy_finger_scale)
+    right_pinky01_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_pinky01_proxy_crv'), proxy_finger_scale)
     right_pinky01_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky01_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_pinky01_proxy_crv, right_pinky01_proxy_grp)
     cmds.move(-66.3, 130.4, -3.2, right_pinky01_proxy_grp)
 
-    right_pinky02_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_pinky02_proxy_crv'), proxy_finger_scale)
+    right_pinky02_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_pinky02_proxy_crv'), proxy_finger_scale)
     right_pinky02_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky02_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_pinky02_proxy_crv, right_pinky02_proxy_grp)
     cmds.move(-69.6, 130.4, -3.2, right_pinky02_proxy_grp)
 
-    right_pinky03_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_pinky03_proxy_crv'), proxy_finger_scale)
+    right_pinky03_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_pinky03_proxy_crv'), proxy_finger_scale)
     right_pinky03_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky03_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_pinky03_proxy_crv, right_pinky03_proxy_grp)
     cmds.move(-72.8, 130.4, -3.2, right_pinky03_proxy_grp)
 
-    right_pinky04_proxy_crv = create_directional_joint_curve(gt_ab_settings_default.get('right_pinky04_proxy_crv'), proxy_end_joint_scale)
+    right_pinky04_proxy_crv = create_directional_joint_curve(gt_ab_elements_default.get('right_pinky04_proxy_crv'), proxy_end_joint_scale)
     right_pinky04_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky04_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_pinky04_proxy_crv, right_pinky04_proxy_grp)
     cmds.move(-76.3, 130.4, -3.2, right_pinky04_proxy_grp)
 
 
     # Hip
-    hip_proxy_crv = create_joint_curve(gt_ab_settings_default.get('hip_proxy_crv'), .4)
+    hip_proxy_crv = create_joint_curve(gt_ab_elements_default.get('hip_proxy_crv'), .4)
     hip_proxy_grp = cmds.group(empty=True, world=True, name=hip_proxy_crv + grp_suffix.capitalize())
     cmds.parent(hip_proxy_crv, hip_proxy_grp)
     cmds.move(0, 84.5, 0, hip_proxy_grp)
         
     ################# Left Leg #################
     # Left Hip
-    left_hip_proxy_crv = create_joint_curve(gt_ab_settings_default.get('left_hip_proxy_crv'), .4)
+    left_hip_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_hip_proxy_crv'), .4)
     left_hip_proxy_grp = cmds.group(empty=True, world=True, name=left_hip_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_hip_proxy_crv, left_hip_proxy_grp)
     cmds.move(10.2, 84.5, 0, left_hip_proxy_grp)
 
     # Left Knee
-    left_knee_proxy_crv = create_aim_joint_curve(gt_ab_settings_default.get('left_knee_proxy_crv'), .5)
+    left_knee_proxy_crv = create_aim_joint_curve(gt_ab_elements_default.get('left_knee_proxy_crv'), .5)
     cmds.rotate(0, 180, 90, left_knee_proxy_crv)
     cmds.makeIdentity(left_knee_proxy_crv, apply=True, translate=True, scale=True, rotate=True)
     left_knee_proxy_grp = cmds.group(empty=True, world=True, name=left_knee_proxy_crv + grp_suffix.capitalize())
@@ -1799,19 +2250,19 @@ def create_proxy(colorize_proxy=True):
     cmds.move(10.2, 46.8, 0, left_knee_proxy_grp)
 
     # Left Ankle
-    left_ankle_proxy_crv = create_joint_curve(gt_ab_settings_default.get('left_ankle_proxy_crv'), .4)
+    left_ankle_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_ankle_proxy_crv'), .4)
     left_ankle_proxy_grp = cmds.group(empty=True, world=True, name=left_ankle_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ankle_proxy_crv, left_ankle_proxy_grp)
     cmds.move(10.2, 9.6, 0, left_ankle_proxy_grp)
 
     # Left Ball
-    left_ball_proxy_crv = create_joint_curve(gt_ab_settings_default.get('left_ball_proxy_crv'), .4)
+    left_ball_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_ball_proxy_crv'), .4)
     left_ball_proxy_grp = cmds.group(empty=True, world=True, name=left_ball_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_ball_proxy_crv, left_ball_proxy_grp)
     cmds.move(10.2, 0, 13.1, left_ball_proxy_grp)
 
     # Left Toe
-    left_toe_proxy_crv = create_joint_curve(gt_ab_settings_default.get('left_toe_proxy_crv'), .35)
+    left_toe_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_toe_proxy_crv'), .35)
     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
@@ -1819,13 +2270,13 @@ def create_proxy(colorize_proxy=True):
 
     ################# Right Leg #################
     # Right Hip
-    right_hip_proxy_crv = create_joint_curve(gt_ab_settings_default.get('right_hip_proxy_crv'), .4)
+    right_hip_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_hip_proxy_crv'), .4)
     right_hip_proxy_grp = cmds.group(empty=True, world=True, name=right_hip_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_hip_proxy_crv, right_hip_proxy_grp)
     cmds.move(-10.2, 84.5, 0, right_hip_proxy_grp)
 
     # Right Knee
-    right_knee_proxy_crv = create_aim_joint_curve(gt_ab_settings_default.get('right_knee_proxy_crv'), .5)
+    right_knee_proxy_crv = create_aim_joint_curve(gt_ab_elements_default.get('right_knee_proxy_crv'), .5)
     cmds.rotate(0, 180, 90, right_knee_proxy_crv)
     cmds.makeIdentity(right_knee_proxy_crv, apply=True, translate=True, scale=True, rotate=True)
     right_knee_proxy_grp = cmds.group(empty=True, world=True, name=right_knee_proxy_crv + grp_suffix.capitalize())
@@ -1833,19 +2284,19 @@ def create_proxy(colorize_proxy=True):
     cmds.move(-1.75, 8, 0, right_knee_proxy_grp)
 
     # Right Ankle
-    right_ankle_proxy_crv = create_joint_curve(gt_ab_settings_default.get('right_ankle_proxy_crv'), .4)
+    right_ankle_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_ankle_proxy_crv'), .4)
     right_ankle_proxy_grp = cmds.group(empty=True, world=True, name=right_ankle_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ankle_proxy_crv, right_ankle_proxy_grp)
     cmds.move(-10.2, 9.6, 0, right_ankle_proxy_grp)
 
     # Right Ball
-    right_ball_proxy_crv = create_joint_curve(gt_ab_settings_default.get('right_ball_proxy_crv'), .4)
+    right_ball_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_ball_proxy_crv'), .4)
     right_ball_proxy_grp = cmds.group(empty=True, world=True, name=right_ball_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_ball_proxy_crv, right_ball_proxy_grp)
     cmds.move(-10.2, 0, 13.1, right_ball_proxy_grp)
 
     # Right Toe
-    right_toe_proxy_crv = create_joint_curve(gt_ab_settings_default.get('right_toe_proxy_crv'), .35)
+    right_toe_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_toe_proxy_crv'), .35)
     right_toe_proxy_grp = cmds.group(empty=True, world=True, name=right_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_toe_proxy_crv, right_toe_proxy_grp)
     cmds.move(-10.2, 0, 23.4, right_toe_proxy_grp)
@@ -1974,14 +2425,14 @@ def create_proxy(colorize_proxy=True):
     
     # Left Elbow Constraints
     # Left Elbow Pole Vector Dir
-    left_elbow_pv_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_pv_dir') )
-    cmds.delete(cmds.pointConstraint(gt_ab_settings_default.get('left_elbow_proxy_crv'), left_elbow_pv_loc[0]))
-    cmds.parent(left_elbow_pv_loc[0], gt_ab_settings_default.get('left_elbow_proxy_crv'))
+    left_elbow_pv_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_elbow_pv_dir') )
+    cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('left_elbow_proxy_crv'), left_elbow_pv_loc[0]))
+    cmds.parent(left_elbow_pv_loc[0], gt_ab_elements_default.get('left_elbow_proxy_crv'))
     cmds.move(0,0,-9.6, left_elbow_pv_loc[0], relative=True)
     
-    left_elbow_dir_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_dir_loc') )
-    left_elbow_aim_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_aim_loc') )
-    left_elbow_upvec_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_upvec_loc') )
+    left_elbow_dir_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_elbow_dir_loc') )
+    left_elbow_aim_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_elbow_aim_loc') )
+    left_elbow_upvec_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_elbow_upvec_loc') )
     left_elbow_upvec_loc_grp = cmds.group(empty=True, world=True, name=left_elbow_upvec_loc[0] + grp_suffix.capitalize())
     
     cmds.parent(left_elbow_aim_loc, left_elbow_dir_loc)
@@ -1995,7 +2446,7 @@ def create_proxy(colorize_proxy=True):
     
     cmds.pointConstraint(left_shoulder_proxy_crv, left_elbow_upvec_loc_grp, skip=['x','z'])
     
-    left_elbow_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_settings_default.get('left_elbow_divide_node'))
+    left_elbow_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_elements_default.get('left_elbow_divide_node'))
     
     cmds.setAttr(left_elbow_divide_node + '.operation', 2) # Make Divide
     cmds.setAttr(left_elbow_divide_node + '.input2X', -2)
@@ -2012,14 +2463,14 @@ def create_proxy(colorize_proxy=True):
 
     # Right Elbow Constraints
     # Right Elbow Pole Vector Dir
-    right_elbow_pv_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_pv_dir') )
-    cmds.delete(cmds.pointConstraint(gt_ab_settings_default.get('right_elbow_proxy_crv'), right_elbow_pv_loc[0]))
-    cmds.parent(right_elbow_pv_loc[0], gt_ab_settings_default.get('right_elbow_proxy_crv'))
+    right_elbow_pv_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_elbow_pv_dir') )
+    cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('right_elbow_proxy_crv'), right_elbow_pv_loc[0]))
+    cmds.parent(right_elbow_pv_loc[0], gt_ab_elements_default.get('right_elbow_proxy_crv'))
     cmds.move(0,0,-9.6, right_elbow_pv_loc[0], relative=True)
     
-    right_elbow_dir_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_dir_loc') )
-    right_elbow_aim_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_aim_loc') )
-    right_elbow_upvec_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_upvec_loc') )
+    right_elbow_dir_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_elbow_dir_loc') )
+    right_elbow_aim_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_elbow_aim_loc') )
+    right_elbow_upvec_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_elbow_upvec_loc') )
     right_elbow_upvec_loc_grp = cmds.group(empty=True, world=True, name=right_elbow_upvec_loc[0] + grp_suffix.capitalize())
     
     cmds.parent(right_elbow_aim_loc, right_elbow_dir_loc)
@@ -2033,7 +2484,7 @@ def create_proxy(colorize_proxy=True):
     
     cmds.pointConstraint(right_shoulder_proxy_crv, right_elbow_upvec_loc_grp, skip=['x','z'])
     
-    right_elbow_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_settings_default.get('right_elbow_divide_node'))
+    right_elbow_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_elements_default.get('right_elbow_divide_node'))
     
     cmds.setAttr(right_elbow_divide_node + '.operation', 2) # Make Divide
     cmds.setAttr(right_elbow_divide_node + '.input2X', -2)
@@ -2050,7 +2501,7 @@ def create_proxy(colorize_proxy=True):
 
 
     # Left Knee Setup
-    left_knee_pv_dir = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_pv_dir') )
+    left_knee_pv_dir = cmds.spaceLocator( name=gt_ab_elements_default.get('left_knee_pv_dir') )
     temp = cmds.pointConstraint(left_knee_proxy_crv, left_knee_pv_dir)
     cmds.delete(temp)
     cmds.move(0, 0, 12.9, left_knee_pv_dir, relative=True)
@@ -2058,7 +2509,7 @@ def create_proxy(colorize_proxy=True):
     
 
     # Right Knee Setup
-    right_knee_pv_dir = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_pv_dir') )
+    right_knee_pv_dir = cmds.spaceLocator( name=gt_ab_elements_default.get('right_knee_pv_dir') )
     temp = cmds.pointConstraint(right_knee_proxy_crv, right_knee_pv_dir)
     cmds.delete(temp)
     cmds.move(0, 0, 12.9, right_knee_pv_dir, relative=True)
@@ -2066,16 +2517,16 @@ def create_proxy(colorize_proxy=True):
     
 
     # Left Knee Constraints
-    left_knee_dir_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_dir_loc') )
-    left_knee_aim_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_aim_loc') )
-    left_knee_upvec_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_upvec_loc') )
+    left_knee_dir_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_knee_dir_loc') )
+    left_knee_aim_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_knee_aim_loc') )
+    left_knee_upvec_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_knee_upvec_loc') )
     left_knee_upvec_loc_grp = cmds.group(empty=True, world=True, name=left_knee_upvec_loc[0] + grp_suffix.capitalize())
     cmds.parent(left_knee_upvec_loc, left_knee_upvec_loc_grp)
     cmds.parent(left_knee_upvec_loc_grp, main_crv)
     cmds.parent(left_knee_dir_loc[0], main_crv)
     cmds.parent(left_knee_aim_loc[0], left_knee_dir_loc[0])
     
-    left_knee_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_settings_default.get('left_knee_divide_node'))
+    left_knee_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_elements_default.get('left_knee_divide_node'))
     cmds.setAttr(left_knee_divide_node + '.operation', 2) # Make Divide
     cmds.setAttr(left_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(left_ankle_proxy_crv + '.tx', left_knee_divide_node + '.input1X')
@@ -2094,16 +2545,16 @@ def create_proxy(colorize_proxy=True):
 
 
     # Right Knee Constraints
-    right_knee_dir_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_dir_loc') )
-    right_knee_aim_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_aim_loc') )
-    right_knee_upvec_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_upvec_loc') )
+    right_knee_dir_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_knee_dir_loc') )
+    right_knee_aim_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_knee_aim_loc') )
+    right_knee_upvec_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_knee_upvec_loc') )
     right_knee_upvec_loc_grp = cmds.group(empty=True, world=True, name=right_knee_upvec_loc[0] + grp_suffix.capitalize())
     cmds.parent(right_knee_upvec_loc, right_knee_upvec_loc_grp)
     cmds.parent(right_knee_upvec_loc_grp, main_crv)
     cmds.parent(right_knee_dir_loc[0], main_crv)
     cmds.parent(right_knee_aim_loc[0], right_knee_dir_loc[0])
     
-    right_knee_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_settings_default.get('right_knee_divide_node'))
+    right_knee_divide_node = cmds.createNode('multiplyDivide', name=gt_ab_elements_default.get('right_knee_divide_node'))
     cmds.setAttr(right_knee_divide_node + '.operation', 2) # Make Divide
     cmds.setAttr(right_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(right_ankle_proxy_crv + '.tx', right_knee_divide_node + '.input1X')
@@ -2122,7 +2573,7 @@ def create_proxy(colorize_proxy=True):
 
 
     # Left Rolls
-    left_ball_pivot_grp = cmds.group(empty=True, world=True, name=gt_ab_settings_default.get('left_ball_pivot_grp'))
+    left_ball_pivot_grp = cmds.group(empty=True, world=True, name=gt_ab_elements_default.get('left_ball_pivot_grp'))
     cmds.parent(left_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(left_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], left_ball_pivot_grp, moveX=True)
@@ -2133,7 +2584,7 @@ def create_proxy(colorize_proxy=True):
     cmds.parent(left_ball_proxy_grp, left_ball_pivot_grp)
     
     # Right Rolls
-    right_ball_pivot_grp = cmds.group(empty=True, world=True, name=gt_ab_settings_default.get('right_ball_pivot_grp'))
+    right_ball_pivot_grp = cmds.group(empty=True, world=True, name=gt_ab_elements_default.get('right_ball_pivot_grp'))
     cmds.parent(right_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(right_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], right_ball_pivot_grp, moveX=True)
@@ -2329,119 +2780,119 @@ def create_proxy(colorize_proxy=True):
     cmds.connectAttr(right_ankle_proxy_crv + '.followHip', constraint[0] + '.w0')
     
     # Store new names into settings in case they were modified
-    gt_ab_settings['main_crv'] = main_crv
-    gt_ab_settings['cog_proxy_crv'] = cog_proxy_crv
-    gt_ab_settings['spine01_proxy_crv'] = spine01_proxy_crv
-    gt_ab_settings['spine02_proxy_crv'] = spine02_proxy_crv
-    gt_ab_settings['spine03_proxy_crv'] = spine03_proxy_crv
-    gt_ab_settings['spine04_proxy_crv'] = spine04_proxy_crv
-    gt_ab_settings['neck_base_proxy_crv'] = neck_base_proxy_crv
-    gt_ab_settings['neck_mid_proxy_crv'] = neck_mid_proxy_crv
-    gt_ab_settings['head_proxy_crv'] = head_proxy_crv
-    gt_ab_settings['head_end_proxy_crv'] = head_end_proxy_crv
-    gt_ab_settings['jaw_proxy_crv'] = jaw_proxy_crv
-    gt_ab_settings['jaw_end_proxy_crv'] = jaw_end_proxy_crv
-    gt_ab_settings['hip_proxy_crv'] = hip_proxy_crv
+    gt_ab_elements['main_crv'] = main_crv
+    gt_ab_elements['cog_proxy_crv'] = cog_proxy_crv
+    gt_ab_elements['spine01_proxy_crv'] = spine01_proxy_crv
+    gt_ab_elements['spine02_proxy_crv'] = spine02_proxy_crv
+    gt_ab_elements['spine03_proxy_crv'] = spine03_proxy_crv
+    gt_ab_elements['spine04_proxy_crv'] = spine04_proxy_crv
+    gt_ab_elements['neck_base_proxy_crv'] = neck_base_proxy_crv
+    gt_ab_elements['neck_mid_proxy_crv'] = neck_mid_proxy_crv
+    gt_ab_elements['head_proxy_crv'] = head_proxy_crv
+    gt_ab_elements['head_end_proxy_crv'] = head_end_proxy_crv
+    gt_ab_elements['jaw_proxy_crv'] = jaw_proxy_crv
+    gt_ab_elements['jaw_end_proxy_crv'] = jaw_end_proxy_crv
+    gt_ab_elements['hip_proxy_crv'] = hip_proxy_crv
     # Left Side Elements
-    gt_ab_settings['left_eye_proxy_crv'] = left_eye_proxy_crv
-    gt_ab_settings['left_clavicle_proxy_crv'] = left_clavicle_proxy_crv
-    gt_ab_settings['left_shoulder_proxy_crv'] = left_shoulder_proxy_crv
-    gt_ab_settings['left_elbow_proxy_crv'] = left_elbow_proxy_crv
-    gt_ab_settings['left_wrist_proxy_crv'] = left_wrist_proxy_crv
-    gt_ab_settings['left_thumb01_proxy_crv'] = left_thumb01_proxy_crv
-    gt_ab_settings['left_thumb02_proxy_crv'] = left_thumb02_proxy_crv
-    gt_ab_settings['left_thumb03_proxy_crv'] = left_thumb03_proxy_crv
-    gt_ab_settings['left_thumb04_proxy_crv'] = left_thumb04_proxy_crv
-    gt_ab_settings['left_index01_proxy_crv'] = left_index01_proxy_crv
-    gt_ab_settings['left_index02_proxy_crv'] = left_index02_proxy_crv
-    gt_ab_settings['left_index03_proxy_crv'] = left_index03_proxy_crv
-    gt_ab_settings['left_index04_proxy_crv'] = left_index04_proxy_crv
-    gt_ab_settings['left_middle01_proxy_crv'] = left_middle01_proxy_crv
-    gt_ab_settings['left_middle02_proxy_crv'] = left_middle02_proxy_crv
-    gt_ab_settings['left_middle03_proxy_crv'] = left_middle03_proxy_crv
-    gt_ab_settings['left_middle04_proxy_crv'] = left_middle04_proxy_crv
-    gt_ab_settings['left_ring01_proxy_crv'] = left_ring01_proxy_crv
-    gt_ab_settings['left_ring02_proxy_crv'] = left_ring02_proxy_crv
-    gt_ab_settings['left_ring03_proxy_crv'] = left_ring03_proxy_crv
-    gt_ab_settings['left_ring04_proxy_crv'] = left_ring04_proxy_crv
-    gt_ab_settings['left_pinky01_proxy_crv'] = left_pinky01_proxy_crv
-    gt_ab_settings['left_pinky02_proxy_crv'] = left_pinky02_proxy_crv
-    gt_ab_settings['left_pinky03_proxy_crv'] = left_pinky03_proxy_crv
-    gt_ab_settings['left_pinky04_proxy_crv'] = left_pinky04_proxy_crv
-    gt_ab_settings['left_hip_proxy_crv'] = left_hip_proxy_crv
-    gt_ab_settings['left_knee_proxy_crv'] = left_knee_proxy_crv
-    gt_ab_settings['left_ankle_proxy_crv'] = left_ankle_proxy_crv
-    gt_ab_settings['left_ball_proxy_crv'] = left_ball_proxy_crv
-    gt_ab_settings['left_toe_proxy_crv'] = left_toe_proxy_crv
-    gt_ab_settings['left_elbow_pv_loc'] = left_elbow_pv_loc[0] 
-    gt_ab_settings['left_elbow_dir_loc'] = left_elbow_dir_loc[0] 
-    gt_ab_settings['left_elbow_aim_loc'] = left_elbow_aim_loc[0]
-    gt_ab_settings['left_elbow_upvec_loc'] = left_elbow_upvec_loc[0]
-    gt_ab_settings['left_elbow_divide_node'] = left_elbow_divide_node
-    gt_ab_settings['left_knee_pv_dir'] = left_knee_pv_dir[0]
-    gt_ab_settings['left_knee_dir_loc'] = left_knee_dir_loc[0]
-    gt_ab_settings['left_knee_aim_loc'] = left_knee_aim_loc[0]
-    gt_ab_settings['left_knee_upvec_loc'] = left_knee_upvec_loc[0]
-    gt_ab_settings['left_knee_divide_node'] = left_knee_divide_node
-    gt_ab_settings['left_ball_pivot_grp'] = left_ball_pivot_grp
+    gt_ab_elements['left_eye_proxy_crv'] = left_eye_proxy_crv
+    gt_ab_elements['left_clavicle_proxy_crv'] = left_clavicle_proxy_crv
+    gt_ab_elements['left_shoulder_proxy_crv'] = left_shoulder_proxy_crv
+    gt_ab_elements['left_elbow_proxy_crv'] = left_elbow_proxy_crv
+    gt_ab_elements['left_wrist_proxy_crv'] = left_wrist_proxy_crv
+    gt_ab_elements['left_thumb01_proxy_crv'] = left_thumb01_proxy_crv
+    gt_ab_elements['left_thumb02_proxy_crv'] = left_thumb02_proxy_crv
+    gt_ab_elements['left_thumb03_proxy_crv'] = left_thumb03_proxy_crv
+    gt_ab_elements['left_thumb04_proxy_crv'] = left_thumb04_proxy_crv
+    gt_ab_elements['left_index01_proxy_crv'] = left_index01_proxy_crv
+    gt_ab_elements['left_index02_proxy_crv'] = left_index02_proxy_crv
+    gt_ab_elements['left_index03_proxy_crv'] = left_index03_proxy_crv
+    gt_ab_elements['left_index04_proxy_crv'] = left_index04_proxy_crv
+    gt_ab_elements['left_middle01_proxy_crv'] = left_middle01_proxy_crv
+    gt_ab_elements['left_middle02_proxy_crv'] = left_middle02_proxy_crv
+    gt_ab_elements['left_middle03_proxy_crv'] = left_middle03_proxy_crv
+    gt_ab_elements['left_middle04_proxy_crv'] = left_middle04_proxy_crv
+    gt_ab_elements['left_ring01_proxy_crv'] = left_ring01_proxy_crv
+    gt_ab_elements['left_ring02_proxy_crv'] = left_ring02_proxy_crv
+    gt_ab_elements['left_ring03_proxy_crv'] = left_ring03_proxy_crv
+    gt_ab_elements['left_ring04_proxy_crv'] = left_ring04_proxy_crv
+    gt_ab_elements['left_pinky01_proxy_crv'] = left_pinky01_proxy_crv
+    gt_ab_elements['left_pinky02_proxy_crv'] = left_pinky02_proxy_crv
+    gt_ab_elements['left_pinky03_proxy_crv'] = left_pinky03_proxy_crv
+    gt_ab_elements['left_pinky04_proxy_crv'] = left_pinky04_proxy_crv
+    gt_ab_elements['left_hip_proxy_crv'] = left_hip_proxy_crv
+    gt_ab_elements['left_knee_proxy_crv'] = left_knee_proxy_crv
+    gt_ab_elements['left_ankle_proxy_crv'] = left_ankle_proxy_crv
+    gt_ab_elements['left_ball_proxy_crv'] = left_ball_proxy_crv
+    gt_ab_elements['left_toe_proxy_crv'] = left_toe_proxy_crv
+    gt_ab_elements['left_elbow_pv_loc'] = left_elbow_pv_loc[0] 
+    gt_ab_elements['left_elbow_dir_loc'] = left_elbow_dir_loc[0] 
+    gt_ab_elements['left_elbow_aim_loc'] = left_elbow_aim_loc[0]
+    gt_ab_elements['left_elbow_upvec_loc'] = left_elbow_upvec_loc[0]
+    gt_ab_elements['left_elbow_divide_node'] = left_elbow_divide_node
+    gt_ab_elements['left_knee_pv_dir'] = left_knee_pv_dir[0]
+    gt_ab_elements['left_knee_dir_loc'] = left_knee_dir_loc[0]
+    gt_ab_elements['left_knee_aim_loc'] = left_knee_aim_loc[0]
+    gt_ab_elements['left_knee_upvec_loc'] = left_knee_upvec_loc[0]
+    gt_ab_elements['left_knee_divide_node'] = left_knee_divide_node
+    gt_ab_elements['left_ball_pivot_grp'] = left_ball_pivot_grp
     # Right Side Elements
-    gt_ab_settings['right_eye_proxy_crv'] = right_eye_proxy_crv
-    gt_ab_settings['right_clavicle_proxy_crv'] = right_clavicle_proxy_crv
-    gt_ab_settings['right_shoulder_proxy_crv'] = right_shoulder_proxy_crv
-    gt_ab_settings['right_elbow_proxy_crv'] = right_elbow_proxy_crv
-    gt_ab_settings['right_wrist_proxy_crv'] = right_wrist_proxy_crv
-    gt_ab_settings['right_thumb01_proxy_crv'] = right_thumb01_proxy_crv
-    gt_ab_settings['right_thumb02_proxy_crv'] = right_thumb02_proxy_crv
-    gt_ab_settings['right_thumb03_proxy_crv'] = right_thumb03_proxy_crv
-    gt_ab_settings['right_thumb04_proxy_crv'] = right_thumb04_proxy_crv
-    gt_ab_settings['right_index01_proxy_crv'] = right_index01_proxy_crv
-    gt_ab_settings['right_index02_proxy_crv'] = right_index02_proxy_crv
-    gt_ab_settings['right_index03_proxy_crv'] = right_index03_proxy_crv
-    gt_ab_settings['right_index04_proxy_crv'] = right_index04_proxy_crv
-    gt_ab_settings['right_middle01_proxy_crv'] = right_middle01_proxy_crv
-    gt_ab_settings['right_middle02_proxy_crv'] = right_middle02_proxy_crv
-    gt_ab_settings['right_middle03_proxy_crv'] = right_middle03_proxy_crv
-    gt_ab_settings['right_middle04_proxy_crv'] = right_middle04_proxy_crv
-    gt_ab_settings['right_ring01_proxy_crv'] = right_ring01_proxy_crv
-    gt_ab_settings['right_ring02_proxy_crv'] = right_ring02_proxy_crv
-    gt_ab_settings['right_ring03_proxy_crv'] = right_ring03_proxy_crv
-    gt_ab_settings['right_ring04_proxy_crv'] = right_ring04_proxy_crv
-    gt_ab_settings['right_pinky01_proxy_crv'] = right_pinky01_proxy_crv
-    gt_ab_settings['right_pinky02_proxy_crv'] = right_pinky02_proxy_crv
-    gt_ab_settings['right_pinky03_proxy_crv'] = right_pinky03_proxy_crv
-    gt_ab_settings['right_pinky04_proxy_crv'] = right_pinky04_proxy_crv
-    gt_ab_settings['right_hip_proxy_crv'] = right_hip_proxy_crv
-    gt_ab_settings['right_knee_proxy_crv'] = right_knee_proxy_crv
-    gt_ab_settings['right_ankle_proxy_crv'] = right_ankle_proxy_crv
-    gt_ab_settings['right_ball_proxy_crv'] = right_ball_proxy_crv
-    gt_ab_settings['right_toe_proxy_crv'] = right_toe_proxy_crv
-    gt_ab_settings['right_elbow_pv_loc'] = right_elbow_pv_loc[0] 
-    gt_ab_settings['right_elbow_dir_loc'] = right_elbow_dir_loc[0] 
-    gt_ab_settings['right_elbow_aim_loc'] = right_elbow_aim_loc[0]
-    gt_ab_settings['right_elbow_upvec_loc'] = right_elbow_upvec_loc[0]
-    gt_ab_settings['right_elbow_divide_node'] = right_elbow_divide_node
-    gt_ab_settings['right_knee_pv_dir'] = right_knee_pv_dir[0]
-    gt_ab_settings['right_knee_dir_loc'] = right_knee_dir_loc[0]
-    gt_ab_settings['right_knee_aim_loc'] = right_knee_aim_loc[0]
-    gt_ab_settings['right_knee_upvec_loc'] = right_knee_upvec_loc[0]
-    gt_ab_settings['right_knee_divide_node'] = right_knee_divide_node
-    gt_ab_settings['right_ball_pivot_grp'] = right_ball_pivot_grp
+    gt_ab_elements['right_eye_proxy_crv'] = right_eye_proxy_crv
+    gt_ab_elements['right_clavicle_proxy_crv'] = right_clavicle_proxy_crv
+    gt_ab_elements['right_shoulder_proxy_crv'] = right_shoulder_proxy_crv
+    gt_ab_elements['right_elbow_proxy_crv'] = right_elbow_proxy_crv
+    gt_ab_elements['right_wrist_proxy_crv'] = right_wrist_proxy_crv
+    gt_ab_elements['right_thumb01_proxy_crv'] = right_thumb01_proxy_crv
+    gt_ab_elements['right_thumb02_proxy_crv'] = right_thumb02_proxy_crv
+    gt_ab_elements['right_thumb03_proxy_crv'] = right_thumb03_proxy_crv
+    gt_ab_elements['right_thumb04_proxy_crv'] = right_thumb04_proxy_crv
+    gt_ab_elements['right_index01_proxy_crv'] = right_index01_proxy_crv
+    gt_ab_elements['right_index02_proxy_crv'] = right_index02_proxy_crv
+    gt_ab_elements['right_index03_proxy_crv'] = right_index03_proxy_crv
+    gt_ab_elements['right_index04_proxy_crv'] = right_index04_proxy_crv
+    gt_ab_elements['right_middle01_proxy_crv'] = right_middle01_proxy_crv
+    gt_ab_elements['right_middle02_proxy_crv'] = right_middle02_proxy_crv
+    gt_ab_elements['right_middle03_proxy_crv'] = right_middle03_proxy_crv
+    gt_ab_elements['right_middle04_proxy_crv'] = right_middle04_proxy_crv
+    gt_ab_elements['right_ring01_proxy_crv'] = right_ring01_proxy_crv
+    gt_ab_elements['right_ring02_proxy_crv'] = right_ring02_proxy_crv
+    gt_ab_elements['right_ring03_proxy_crv'] = right_ring03_proxy_crv
+    gt_ab_elements['right_ring04_proxy_crv'] = right_ring04_proxy_crv
+    gt_ab_elements['right_pinky01_proxy_crv'] = right_pinky01_proxy_crv
+    gt_ab_elements['right_pinky02_proxy_crv'] = right_pinky02_proxy_crv
+    gt_ab_elements['right_pinky03_proxy_crv'] = right_pinky03_proxy_crv
+    gt_ab_elements['right_pinky04_proxy_crv'] = right_pinky04_proxy_crv
+    gt_ab_elements['right_hip_proxy_crv'] = right_hip_proxy_crv
+    gt_ab_elements['right_knee_proxy_crv'] = right_knee_proxy_crv
+    gt_ab_elements['right_ankle_proxy_crv'] = right_ankle_proxy_crv
+    gt_ab_elements['right_ball_proxy_crv'] = right_ball_proxy_crv
+    gt_ab_elements['right_toe_proxy_crv'] = right_toe_proxy_crv
+    gt_ab_elements['right_elbow_pv_loc'] = right_elbow_pv_loc[0] 
+    gt_ab_elements['right_elbow_dir_loc'] = right_elbow_dir_loc[0] 
+    gt_ab_elements['right_elbow_aim_loc'] = right_elbow_aim_loc[0]
+    gt_ab_elements['right_elbow_upvec_loc'] = right_elbow_upvec_loc[0]
+    gt_ab_elements['right_elbow_divide_node'] = right_elbow_divide_node
+    gt_ab_elements['right_knee_pv_dir'] = right_knee_pv_dir[0]
+    gt_ab_elements['right_knee_dir_loc'] = right_knee_dir_loc[0]
+    gt_ab_elements['right_knee_aim_loc'] = right_knee_aim_loc[0]
+    gt_ab_elements['right_knee_upvec_loc'] = right_knee_upvec_loc[0]
+    gt_ab_elements['right_knee_divide_node'] = right_knee_divide_node
+    gt_ab_elements['right_ball_pivot_grp'] = right_ball_pivot_grp
     
     
     # Visibility Adjustments
-    for obj in gt_ab_settings:
+    for obj in gt_ab_elements:
         if obj.endswith('_crv'):
-            proxy_crv = gt_ab_settings.get(obj)
+            proxy_crv = gt_ab_elements.get(obj)
             is_end_jnt = False
             color = (0,0,0)
             if '_endProxy' in proxy_crv:
                 add_node_note(proxy_crv, 'This is an end proxy. This element will be used to determine the orientation of its parent. For example:\n"jaw_endProxy" determines the orientation of the "jaw_proxy".\n\nEven though a joint will be generated it mostly likely shouldn\'t be an influence when skinning.')
                 color = (.5,.5,0)
                 is_end_jnt=True
-            elif gt_ab_settings.get('neck_mid_proxy_crv') in proxy_crv:
+            elif gt_ab_elements.get('neck_mid_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is the neckMid proxy. This element will be automated to receive part of its transforms from the neckBase and the other part from the head.')
                 color = (.3,.3,0)
-            elif gt_ab_settings.get('left_toe_proxy_crv') in proxy_crv or gt_ab_settings.get('right_toe_proxy_crv') in proxy_crv:
+            elif gt_ab_elements.get('left_toe_proxy_crv') in proxy_crv or gt_ab_elements.get('right_toe_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is a toe proxy. This element will be used to automate toe poses. Much like an end proxy, it will generate a joint that most likely shoudln\'t be used as an influence when skinning.\n\nThis joint should be placed at the end of the longest toe.')
                 color = (.3,.3,0)
                 is_end_jnt=True
@@ -2449,19 +2900,19 @@ def create_proxy(colorize_proxy=True):
                 color = (1,.4,.4)
             elif proxy_crv.startswith('left_'):
                 color = (.2,.6,1)
-            elif gt_ab_settings.get('spine01_proxy_crv') in proxy_crv or gt_ab_settings.get('spine02_proxy_crv') in proxy_crv or gt_ab_settings.get('spine03_proxy_crv') in proxy_crv:
+            elif gt_ab_elements.get('spine01_proxy_crv') in proxy_crv or gt_ab_elements.get('spine02_proxy_crv') in proxy_crv or gt_ab_elements.get('spine03_proxy_crv') in proxy_crv:
                 color = (.3,.3,0)
             else:
                 color = (1,1,.65)
             
             # Notes Only
-            if gt_ab_settings.get('left_eye_proxy_crv') in proxy_crv or gt_ab_settings.get('right_eye_proxy_crv') in proxy_crv:
+            if gt_ab_elements.get('left_eye_proxy_crv') in proxy_crv or gt_ab_elements.get('right_eye_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an eye proxy.\nThis element should be snapped to the center of the eye geometry.\nYou can see the center of the eye by selecting the eye geometry then going to "Display > Transform Display > Local Rotation Axes".\nYou can then use this axis to snap the joint to its center. (Using "Ctrl + V")\n\nPS: If for some reason the pivot point is not in the center of the eye, you can reset it first: "Modify > Center Pivot".')
             
-            if gt_ab_settings.get('left_elbow_proxy_crv') in proxy_crv or gt_ab_settings.get('right_elbow_proxy_crv') in proxy_crv:
+            if gt_ab_elements.get('left_elbow_proxy_crv') in proxy_crv or gt_ab_elements.get('right_elbow_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an elbow proxy.\nThe movement of this element is intentionaly limited to attempt to keep the joints in one single plane. For better results keep the arm joints in "T" or "A" pose.')
             
-            if gt_ab_settings.get('left_knee_proxy_crv') in proxy_crv or gt_ab_settings.get('right_knee_proxy_crv') in proxy_crv:
+            if gt_ab_elements.get('left_knee_proxy_crv') in proxy_crv or gt_ab_elements.get('right_knee_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is a knee proxy.\nThe movement of this element is intentionaly limited to attempt to keep the joints in one single plane. For better results keep the leg joints in "T" or "A" pose.')
 
             if colorize_proxy:
@@ -2471,81 +2922,81 @@ def create_proxy(colorize_proxy=True):
     
     # Create Lines
     line_list = []
-    line_list.append(create_visualization_line(gt_ab_settings.get('cog_proxy_crv'), gt_ab_settings.get('hip_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('cog_proxy_crv'), gt_ab_settings.get('spine01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine01_proxy_crv'), gt_ab_settings.get('spine02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine02_proxy_crv'), gt_ab_settings.get('spine03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine03_proxy_crv'), gt_ab_settings.get('spine04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('neck_base_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('neck_base_proxy_crv'), gt_ab_settings.get('neck_mid_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('neck_mid_proxy_crv'), gt_ab_settings.get('head_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('head_end_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('jaw_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('jaw_proxy_crv'), gt_ab_settings.get('jaw_end_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('left_eye_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('head_proxy_crv'), gt_ab_settings.get('right_eye_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('cog_proxy_crv'), gt_ab_elements.get('hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('cog_proxy_crv'), gt_ab_elements.get('spine01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine01_proxy_crv'), gt_ab_elements.get('spine02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine02_proxy_crv'), gt_ab_elements.get('spine03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine03_proxy_crv'), gt_ab_elements.get('spine04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine04_proxy_crv'), gt_ab_elements.get('neck_base_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('neck_base_proxy_crv'), gt_ab_elements.get('neck_mid_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('neck_mid_proxy_crv'), gt_ab_elements.get('head_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('head_proxy_crv'), gt_ab_elements.get('head_end_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('head_proxy_crv'), gt_ab_elements.get('jaw_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('jaw_proxy_crv'), gt_ab_elements.get('jaw_end_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('head_proxy_crv'), gt_ab_elements.get('left_eye_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('head_proxy_crv'), gt_ab_elements.get('right_eye_proxy_crv')))
     # Left Side
-    line_list.append(create_visualization_line(gt_ab_settings.get('hip_proxy_crv'), gt_ab_settings.get('left_hip_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_hip_proxy_crv'), gt_ab_settings.get('left_knee_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_knee_proxy_crv'), gt_ab_settings.get('left_ankle_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_ankle_proxy_crv'), gt_ab_settings.get('left_ball_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_ball_proxy_crv'), gt_ab_settings.get('left_toe_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('left_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_clavicle_proxy_crv'), gt_ab_settings.get('left_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_shoulder_proxy_crv'), gt_ab_settings.get('left_elbow_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_elbow_proxy_crv'), gt_ab_settings.get('left_wrist_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('hip_proxy_crv'), gt_ab_elements.get('left_hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_hip_proxy_crv'), gt_ab_elements.get('left_knee_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_knee_proxy_crv'), gt_ab_elements.get('left_ankle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_ankle_proxy_crv'), gt_ab_elements.get('left_ball_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_ball_proxy_crv'), gt_ab_elements.get('left_toe_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine04_proxy_crv'), gt_ab_elements.get('left_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_clavicle_proxy_crv'), gt_ab_elements.get('left_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_shoulder_proxy_crv'), gt_ab_elements.get('left_elbow_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_elbow_proxy_crv'), gt_ab_elements.get('left_wrist_proxy_crv')))
     # Left Fingers
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb01_proxy_crv'), gt_ab_settings.get('left_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb02_proxy_crv'), gt_ab_settings.get('left_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_thumb03_proxy_crv'), gt_ab_settings.get('left_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_index01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_index01_proxy_crv'), gt_ab_settings.get('left_index02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_index02_proxy_crv'), gt_ab_settings.get('left_index03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_index03_proxy_crv'), gt_ab_settings.get('left_index04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle01_proxy_crv'), gt_ab_settings.get('left_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle02_proxy_crv'), gt_ab_settings.get('left_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_middle03_proxy_crv'), gt_ab_settings.get('left_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring01_proxy_crv'), gt_ab_settings.get('left_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring02_proxy_crv'), gt_ab_settings.get('left_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_ring03_proxy_crv'), gt_ab_settings.get('left_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_wrist_proxy_crv'), gt_ab_settings.get('left_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky01_proxy_crv'), gt_ab_settings.get('left_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky02_proxy_crv'), gt_ab_settings.get('left_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('left_pinky03_proxy_crv'), gt_ab_settings.get('left_pinky04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_wrist_proxy_crv'), gt_ab_elements.get('left_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_thumb01_proxy_crv'), gt_ab_elements.get('left_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_thumb02_proxy_crv'), gt_ab_elements.get('left_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_thumb03_proxy_crv'), gt_ab_elements.get('left_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_wrist_proxy_crv'), gt_ab_elements.get('left_index01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_index01_proxy_crv'), gt_ab_elements.get('left_index02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_index02_proxy_crv'), gt_ab_elements.get('left_index03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_index03_proxy_crv'), gt_ab_elements.get('left_index04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_wrist_proxy_crv'), gt_ab_elements.get('left_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_middle01_proxy_crv'), gt_ab_elements.get('left_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_middle02_proxy_crv'), gt_ab_elements.get('left_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_middle03_proxy_crv'), gt_ab_elements.get('left_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_wrist_proxy_crv'), gt_ab_elements.get('left_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_ring01_proxy_crv'), gt_ab_elements.get('left_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_ring02_proxy_crv'), gt_ab_elements.get('left_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_ring03_proxy_crv'), gt_ab_elements.get('left_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_wrist_proxy_crv'), gt_ab_elements.get('left_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_pinky01_proxy_crv'), gt_ab_elements.get('left_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_pinky02_proxy_crv'), gt_ab_elements.get('left_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('left_pinky03_proxy_crv'), gt_ab_elements.get('left_pinky04_proxy_crv')))
     # Right Side
-    line_list.append(create_visualization_line(gt_ab_settings.get('hip_proxy_crv'), gt_ab_settings.get('right_hip_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_hip_proxy_crv'), gt_ab_settings.get('right_knee_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_knee_proxy_crv'), gt_ab_settings.get('right_ankle_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_ankle_proxy_crv'), gt_ab_settings.get('right_ball_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_ball_proxy_crv'), gt_ab_settings.get('right_toe_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('spine04_proxy_crv'), gt_ab_settings.get('right_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_clavicle_proxy_crv'), gt_ab_settings.get('right_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_shoulder_proxy_crv'), gt_ab_settings.get('right_elbow_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_elbow_proxy_crv'), gt_ab_settings.get('right_wrist_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('hip_proxy_crv'), gt_ab_elements.get('right_hip_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_hip_proxy_crv'), gt_ab_elements.get('right_knee_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_knee_proxy_crv'), gt_ab_elements.get('right_ankle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_ankle_proxy_crv'), gt_ab_elements.get('right_ball_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_ball_proxy_crv'), gt_ab_elements.get('right_toe_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('spine04_proxy_crv'), gt_ab_elements.get('right_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_clavicle_proxy_crv'), gt_ab_elements.get('right_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_shoulder_proxy_crv'), gt_ab_elements.get('right_elbow_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_elbow_proxy_crv'), gt_ab_elements.get('right_wrist_proxy_crv')))
     # Right Fingers
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb01_proxy_crv'), gt_ab_settings.get('right_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb02_proxy_crv'), gt_ab_settings.get('right_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_thumb03_proxy_crv'), gt_ab_settings.get('right_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_index01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_index01_proxy_crv'), gt_ab_settings.get('right_index02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_index02_proxy_crv'), gt_ab_settings.get('right_index03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_index03_proxy_crv'), gt_ab_settings.get('right_index04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle01_proxy_crv'), gt_ab_settings.get('right_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle02_proxy_crv'), gt_ab_settings.get('right_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_middle03_proxy_crv'), gt_ab_settings.get('right_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring01_proxy_crv'), gt_ab_settings.get('right_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring02_proxy_crv'), gt_ab_settings.get('right_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_ring03_proxy_crv'), gt_ab_settings.get('right_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_wrist_proxy_crv'), gt_ab_settings.get('right_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky01_proxy_crv'), gt_ab_settings.get('right_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky02_proxy_crv'), gt_ab_settings.get('right_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(gt_ab_settings.get('right_pinky03_proxy_crv'), gt_ab_settings.get('right_pinky04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_wrist_proxy_crv'), gt_ab_elements.get('right_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_thumb01_proxy_crv'), gt_ab_elements.get('right_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_thumb02_proxy_crv'), gt_ab_elements.get('right_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_thumb03_proxy_crv'), gt_ab_elements.get('right_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_wrist_proxy_crv'), gt_ab_elements.get('right_index01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_index01_proxy_crv'), gt_ab_elements.get('right_index02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_index02_proxy_crv'), gt_ab_elements.get('right_index03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_index03_proxy_crv'), gt_ab_elements.get('right_index04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_wrist_proxy_crv'), gt_ab_elements.get('right_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_middle01_proxy_crv'), gt_ab_elements.get('right_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_middle02_proxy_crv'), gt_ab_elements.get('right_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_middle03_proxy_crv'), gt_ab_elements.get('right_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_wrist_proxy_crv'), gt_ab_elements.get('right_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_ring01_proxy_crv'), gt_ab_elements.get('right_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_ring02_proxy_crv'), gt_ab_elements.get('right_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_ring03_proxy_crv'), gt_ab_elements.get('right_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_wrist_proxy_crv'), gt_ab_elements.get('right_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_pinky01_proxy_crv'), gt_ab_elements.get('right_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_pinky02_proxy_crv'), gt_ab_elements.get('right_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(gt_ab_elements.get('right_pinky03_proxy_crv'), gt_ab_elements.get('right_pinky04_proxy_crv')))
     
     lines_grp = cmds.group(name='visualization_lines', empty=True, world=True)
     cmds.setAttr(lines_grp + '.overrideEnabled', 1)
@@ -2554,19 +3005,19 @@ def create_proxy(colorize_proxy=True):
         for obj in line_objs:
             cmds.parent(obj, lines_grp)
    
-    cmds.parent(lines_grp, gt_ab_settings.get('main_proxy_grp'))
+    cmds.parent(lines_grp, gt_ab_elements.get('main_proxy_grp'))
     
-    cmds.addAttr(gt_ab_settings.get('main_crv'), ln="proxyOptions", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(gt_ab_settings.get('main_crv') + '.proxyOptions', lock=True)
-    cmds.addAttr(gt_ab_settings.get('main_crv'), ln="linesVisibility", at="bool", keyable=True)
-    cmds.setAttr(gt_ab_settings.get('main_crv') + '.linesVisibility', 1)
-    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.linesVisibility', lines_grp + '.v', f=True)
+    cmds.addAttr(gt_ab_elements.get('main_crv'), ln="proxyOptions", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(gt_ab_elements.get('main_crv') + '.proxyOptions', lock=True)
+    cmds.addAttr(gt_ab_elements.get('main_crv'), ln="linesVisibility", at="bool", keyable=True)
+    cmds.setAttr(gt_ab_elements.get('main_crv') + '.linesVisibility', 1)
+    cmds.connectAttr(gt_ab_elements.get('main_crv') + '.linesVisibility', lines_grp + '.v', f=True)
     
     # Main Proxy Control Scale
-    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.sy', gt_ab_settings.get('main_crv') + '.sx', f=True)
-    cmds.connectAttr(gt_ab_settings.get('main_crv') + '.sy', gt_ab_settings.get('main_crv') + '.sz', f=True)
-    cmds.setAttr(gt_ab_settings.get('main_crv') + '.sx', k=False)
-    cmds.setAttr(gt_ab_settings.get('main_crv') + '.sz', k=False)
+    cmds.connectAttr(gt_ab_elements.get('main_crv') + '.sy', gt_ab_elements.get('main_crv') + '.sx', f=True)
+    cmds.connectAttr(gt_ab_elements.get('main_crv') + '.sy', gt_ab_elements.get('main_crv') + '.sz', f=True)
+    cmds.setAttr(gt_ab_elements.get('main_crv') + '.sx', k=False)
+    cmds.setAttr(gt_ab_elements.get('main_crv') + '.sz', k=False)
     
     
     # Clean Selection and Print Feedback
@@ -2722,11 +3173,11 @@ def create_controls():
 
     # Create Joints
     gt_ab_joints = {}
-    for obj in gt_ab_settings:
+    for obj in gt_ab_elements:
         if obj.endswith('_crv'):
             cmds.select(d=True)
-            joint = cmds.joint(name=rename_proxy(gt_ab_settings.get(obj)), radius=1)
-            constraint = cmds.pointConstraint(gt_ab_settings.get(obj), joint)
+            joint = cmds.joint(name=rename_proxy(gt_ab_elements.get(obj)), radius=1)
+            constraint = cmds.pointConstraint(gt_ab_elements.get(obj), joint)
             cmds.delete(constraint)
             gt_ab_joints[obj.replace('_crv','_' + jnt_suffix).replace('_proxy', '')] = joint
    
@@ -2741,46 +3192,46 @@ def create_controls():
     orient_to_target(gt_ab_joints.get('jaw_jnt'), gt_ab_joints.get('jaw_end_jnt'), (90, 0, 90))
     
     # Left Finger Orients
-    orient_to_target(gt_ab_joints.get('left_thumb01_jnt'), gt_ab_joints.get('left_thumb02_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_thumb02_jnt'), gt_ab_joints.get('left_thumb03_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_thumb03_jnt'), gt_ab_joints.get('left_thumb04_jnt'), (0, 0, 0), gt_ab_settings.get('left_thumb03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_thumb01_jnt'), gt_ab_joints.get('left_thumb02_jnt'), (0, 0, 0), gt_ab_elements.get('left_thumb01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_thumb02_jnt'), gt_ab_joints.get('left_thumb03_jnt'), (0, 0, 0), gt_ab_elements.get('left_thumb02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_thumb03_jnt'), gt_ab_joints.get('left_thumb04_jnt'), (0, 0, 0), gt_ab_elements.get('left_thumb03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_index01_jnt'), gt_ab_joints.get('left_index02_jnt'), (0, 0, 90), gt_ab_settings.get('left_index01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_index02_jnt'), gt_ab_joints.get('left_index03_jnt'), (0, 0, 90), gt_ab_settings.get('left_index02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_index03_jnt'), gt_ab_joints.get('left_index04_jnt'), (0, 0, 90), gt_ab_settings.get('left_index03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_index01_jnt'), gt_ab_joints.get('left_index02_jnt'), (0, 0, 90), gt_ab_elements.get('left_index01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_index02_jnt'), gt_ab_joints.get('left_index03_jnt'), (0, 0, 90), gt_ab_elements.get('left_index02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_index03_jnt'), gt_ab_joints.get('left_index04_jnt'), (0, 0, 90), gt_ab_elements.get('left_index03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_middle01_jnt'), gt_ab_joints.get('left_middle02_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_middle02_jnt'), gt_ab_joints.get('left_middle03_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_middle03_jnt'), gt_ab_joints.get('left_middle04_jnt'), (0, 0, 90), gt_ab_settings.get('left_middle03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_middle01_jnt'), gt_ab_joints.get('left_middle02_jnt'), (0, 0, 90), gt_ab_elements.get('left_middle01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_middle02_jnt'), gt_ab_joints.get('left_middle03_jnt'), (0, 0, 90), gt_ab_elements.get('left_middle02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_middle03_jnt'), gt_ab_joints.get('left_middle04_jnt'), (0, 0, 90), gt_ab_elements.get('left_middle03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_ring01_jnt'), gt_ab_joints.get('left_ring02_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_ring02_jnt'), gt_ab_joints.get('left_ring03_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_ring03_jnt'), gt_ab_joints.get('left_ring04_jnt'), (0, 0, 90), gt_ab_settings.get('left_ring03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_ring01_jnt'), gt_ab_joints.get('left_ring02_jnt'), (0, 0, 90), gt_ab_elements.get('left_ring01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_ring02_jnt'), gt_ab_joints.get('left_ring03_jnt'), (0, 0, 90), gt_ab_elements.get('left_ring02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_ring03_jnt'), gt_ab_joints.get('left_ring04_jnt'), (0, 0, 90), gt_ab_elements.get('left_ring03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('left_pinky01_jnt'), gt_ab_joints.get('left_pinky02_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_pinky02_jnt'), gt_ab_joints.get('left_pinky03_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('left_pinky03_jnt'), gt_ab_joints.get('left_pinky04_jnt'), (0, 0, 90), gt_ab_settings.get('left_pinky03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_pinky01_jnt'), gt_ab_joints.get('left_pinky02_jnt'), (0, 0, 90), gt_ab_elements.get('left_pinky01_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_pinky02_jnt'), gt_ab_joints.get('left_pinky03_jnt'), (0, 0, 90), gt_ab_elements.get('left_pinky02_proxy_crv'), up_vec=(0,1,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('left_pinky03_jnt'), gt_ab_joints.get('left_pinky04_jnt'), (0, 0, 90), gt_ab_elements.get('left_pinky03_proxy_crv'), up_vec=(0,1,0), brute_force=True)
     
     # Right Finger Orients
-    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb01_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb02_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (0, 180, 0), gt_ab_settings.get('right_thumb03_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_thumb01_jnt'), gt_ab_joints.get('right_thumb02_jnt'), (0, 180, 0), gt_ab_elements.get('right_thumb01_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_thumb02_jnt'), gt_ab_joints.get('right_thumb03_jnt'), (0, 180, 0), gt_ab_elements.get('right_thumb02_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_thumb03_jnt'), gt_ab_joints.get('right_thumb04_jnt'), (0, 180, 0), gt_ab_elements.get('right_thumb03_proxy_crv'), up_vec=(0,-1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_index01_jnt'), gt_ab_joints.get('right_index02_jnt'), (0, 180, 0), gt_ab_settings.get('right_index01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_index02_jnt'), gt_ab_joints.get('right_index03_jnt'), (0, 180, 0), gt_ab_settings.get('right_index02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_index03_jnt'), gt_ab_joints.get('right_index04_jnt'), (0, 180, 0), gt_ab_settings.get('right_index03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_index01_jnt'), gt_ab_joints.get('right_index02_jnt'), (0, 180, 0), gt_ab_elements.get('right_index01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_index02_jnt'), gt_ab_joints.get('right_index03_jnt'), (0, 180, 0), gt_ab_elements.get('right_index02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_index03_jnt'), gt_ab_joints.get('right_index04_jnt'), (0, 180, 0), gt_ab_elements.get('right_index03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_middle01_jnt'), gt_ab_joints.get('right_middle02_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_middle02_jnt'), gt_ab_joints.get('right_middle03_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_middle03_jnt'), gt_ab_joints.get('right_middle04_jnt'), (0, 180, 0), gt_ab_settings.get('right_middle03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_middle01_jnt'), gt_ab_joints.get('right_middle02_jnt'), (0, 180, 0), gt_ab_elements.get('right_middle01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_middle02_jnt'), gt_ab_joints.get('right_middle03_jnt'), (0, 180, 0), gt_ab_elements.get('right_middle02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_middle03_jnt'), gt_ab_joints.get('right_middle04_jnt'), (0, 180, 0), gt_ab_elements.get('right_middle03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_ring01_jnt'), gt_ab_joints.get('right_ring02_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_ring02_jnt'), gt_ab_joints.get('right_ring03_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_ring03_jnt'), gt_ab_joints.get('right_ring04_jnt'), (0, 180, 0), gt_ab_settings.get('right_ring03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_ring01_jnt'), gt_ab_joints.get('right_ring02_jnt'), (0, 180, 0), gt_ab_elements.get('right_ring01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_ring02_jnt'), gt_ab_joints.get('right_ring03_jnt'), (0, 180, 0), gt_ab_elements.get('right_ring02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_ring03_jnt'), gt_ab_joints.get('right_ring04_jnt'), (0, 180, 0), gt_ab_elements.get('right_ring03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     
-    orient_to_target(gt_ab_joints.get('right_pinky01_jnt'), gt_ab_joints.get('right_pinky02_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_pinky02_jnt'), gt_ab_joints.get('right_pinky03_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
-    orient_to_target(gt_ab_joints.get('right_pinky03_jnt'), gt_ab_joints.get('right_pinky04_jnt'), (0, 180, 0), gt_ab_settings.get('right_pinky03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_pinky01_jnt'), gt_ab_joints.get('right_pinky02_jnt'), (0, 180, 0), gt_ab_elements.get('right_pinky01_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_pinky02_jnt'), gt_ab_joints.get('right_pinky03_jnt'), (0, 180, 0), gt_ab_elements.get('right_pinky02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
+    orient_to_target(gt_ab_joints.get('right_pinky03_jnt'), gt_ab_joints.get('right_pinky04_jnt'), (0, 180, 0), gt_ab_elements.get('right_pinky03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
 
     
     # Center Parenting
@@ -2899,13 +3350,13 @@ def create_controls():
             change_viewport_color(joint, (.3,.3,0))
         
     # Set Orientation For Arms
-    orient_to_target(gt_ab_joints.get('left_clavicle_jnt'), gt_ab_joints.get('left_shoulder_jnt'), (-90,0,0), gt_ab_settings.get('left_clavicle_proxy_crv'))
+    orient_to_target(gt_ab_joints.get('left_clavicle_jnt'), gt_ab_joints.get('left_shoulder_jnt'), (-90,0,0), gt_ab_elements.get('left_clavicle_proxy_crv'))
     orient_to_target(gt_ab_joints.get('left_shoulder_jnt'), gt_ab_joints.get('left_elbow_jnt'), (-90,0,0))
-    orient_to_target(gt_ab_joints.get('left_elbow_jnt'), gt_ab_joints.get('left_wrist_jnt'), (-90,0,0), gt_ab_settings.get('left_elbow_proxy_crv'))
+    orient_to_target(gt_ab_joints.get('left_elbow_jnt'), gt_ab_joints.get('left_wrist_jnt'), (-90,0,0), gt_ab_elements.get('left_elbow_proxy_crv'))
     
-    orient_to_target(gt_ab_joints.get('right_clavicle_jnt'), gt_ab_joints.get('right_shoulder_jnt'), (90,0,0), gt_ab_settings.get('right_clavicle_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_clavicle_jnt'), gt_ab_joints.get('right_shoulder_jnt'), (90,0,0), gt_ab_elements.get('right_clavicle_proxy_crv'), (-1,0,0))
     orient_to_target(gt_ab_joints.get('right_shoulder_jnt'), gt_ab_joints.get('right_elbow_jnt'), (90,0,0), aim_vec=(-1,0,0))
-    orient_to_target(gt_ab_joints.get('right_elbow_jnt'), gt_ab_joints.get('right_wrist_jnt'), (90,0,0), gt_ab_settings.get('right_elbow_proxy_crv'), aim_vec=(-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_elbow_jnt'), gt_ab_joints.get('right_wrist_jnt'), (90,0,0), gt_ab_elements.get('right_elbow_proxy_crv'), aim_vec=(-1,0,0))
  
     # Left Arm Parenting
     cmds.parent(gt_ab_joints.get('left_clavicle_jnt'), gt_ab_joints.get('spine04_jnt'))
@@ -2929,12 +3380,12 @@ def create_controls():
     cmds.parent(gt_ab_joints.get('left_pinky01_jnt'), world=True)
     
     # Left Wrist Orient
-    temp_transform = cmds.group(empty=True, world=True, name=gt_ab_settings.get('left_wrist_proxy_crv') + '_orient_target')
-    constraint = cmds.parentConstraint(gt_ab_settings.get('left_wrist_proxy_crv'), temp_transform)
+    temp_transform = cmds.group(empty=True, world=True, name=gt_ab_elements.get('left_wrist_proxy_crv') + '_orient_target')
+    constraint = cmds.parentConstraint(gt_ab_elements.get('left_wrist_proxy_crv'), temp_transform)
     cmds.delete(constraint)
-    cmds.parent(temp_transform, gt_ab_settings.get('left_wrist_proxy_crv'))
+    cmds.parent(temp_transform, gt_ab_elements.get('left_wrist_proxy_crv'))
     cmds.setAttr(temp_transform + '.tx', 1)
-    orient_to_target(gt_ab_joints.get('left_wrist_jnt'), temp_transform, (-90,0,0), gt_ab_settings.get('left_wrist_proxy_crv'))
+    orient_to_target(gt_ab_joints.get('left_wrist_jnt'), temp_transform, (-90,0,0), gt_ab_elements.get('left_wrist_proxy_crv'))
     cmds.delete(temp_transform)
 
     # Left Add Fingers
@@ -2955,12 +3406,12 @@ def create_controls():
     cmds.parent(gt_ab_joints.get('right_pinky01_jnt'), world=True)
     
     # Right Wrist Orient
-    temp_transform = cmds.group(empty=True, world=True, name=gt_ab_settings.get('right_wrist_proxy_crv') + '_orient_target')
-    constraint = cmds.parentConstraint(gt_ab_settings.get('right_wrist_proxy_crv'), temp_transform)
+    temp_transform = cmds.group(empty=True, world=True, name=gt_ab_elements.get('right_wrist_proxy_crv') + '_orient_target')
+    constraint = cmds.parentConstraint(gt_ab_elements.get('right_wrist_proxy_crv'), temp_transform)
     cmds.delete(constraint)
-    cmds.parent(temp_transform, gt_ab_settings.get('right_wrist_proxy_crv'))
+    cmds.parent(temp_transform, gt_ab_elements.get('right_wrist_proxy_crv'))
     cmds.setAttr(temp_transform + '.tx', -1)
-    orient_to_target(gt_ab_joints.get('right_wrist_jnt'), temp_transform, (90,0,0), gt_ab_settings.get('right_wrist_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_wrist_jnt'), temp_transform, (90,0,0), gt_ab_elements.get('right_wrist_proxy_crv'), (-1,0,0))
     cmds.delete(temp_transform)
 
     # Right Add Fingers
@@ -2979,7 +3430,7 @@ def create_controls():
     cmds.parent(gt_ab_joints.get('spine01_jnt'), world=True)
     
     # Root Orients
-    cog_orients = cmds.xform(gt_ab_settings.get('cog_proxy_crv'), q=True, ro=True)
+    cog_orients = cmds.xform(gt_ab_elements.get('cog_proxy_crv'), q=True, ro=True)
     cmds.joint(gt_ab_joints.get('cog_jnt'), e=True, oj='none', zso=True) # ch
     cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientX', 90)
     cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientY', 0)
@@ -2988,7 +3439,7 @@ def create_controls():
     cmds.makeIdentity(gt_ab_joints.get('cog_jnt'), apply=True, rotate=True)
     
     # Hip Orients
-    hip_orients = cmds.xform(gt_ab_settings.get('hip_proxy_crv'), q=True, ro=True)
+    hip_orients = cmds.xform(gt_ab_elements.get('hip_proxy_crv'), q=True, ro=True)
     cmds.joint(gt_ab_joints.get('hip_jnt'), e=True, oj='none', zso=True)
     cmds.setAttr(gt_ab_joints.get('hip_jnt') + '.jointOrientX', 90)
     cmds.setAttr(gt_ab_joints.get('hip_jnt') + '.jointOrientY', 0)
@@ -2997,19 +3448,19 @@ def create_controls():
     cmds.makeIdentity(gt_ab_joints.get('hip_jnt'), apply=True, rotate=True)
     
     
-    orient_to_target(gt_ab_joints.get('left_hip_jnt'), gt_ab_joints.get('left_knee_jnt'), (90,0,-90), gt_ab_settings.get('left_knee_proxy_crv'))
-    orient_to_target(gt_ab_joints.get('left_knee_jnt'), gt_ab_joints.get('left_ankle_jnt'), (90,0,-90), gt_ab_settings.get('left_knee_proxy_crv'))
+    orient_to_target(gt_ab_joints.get('left_hip_jnt'), gt_ab_joints.get('left_knee_jnt'), (90,0,-90), gt_ab_elements.get('left_knee_proxy_crv'))
+    orient_to_target(gt_ab_joints.get('left_knee_jnt'), gt_ab_joints.get('left_ankle_jnt'), (90,0,-90), gt_ab_elements.get('left_knee_proxy_crv'))
     
-    orient_to_target(gt_ab_joints.get('right_hip_jnt'), gt_ab_joints.get('right_knee_jnt'), (90,0,-90), gt_ab_settings.get('right_knee_proxy_crv'), (-1,0,0))
-    orient_to_target(gt_ab_joints.get('right_knee_jnt'), gt_ab_joints.get('right_ankle_jnt'), (90,0,-90), gt_ab_settings.get('right_knee_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_hip_jnt'), gt_ab_joints.get('right_knee_jnt'), (90,0,-90), gt_ab_elements.get('right_knee_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_knee_jnt'), gt_ab_joints.get('right_ankle_jnt'), (90,0,-90), gt_ab_elements.get('right_knee_proxy_crv'), (-1,0,0))
     
     # Feet Orients
     # Left Foot
-    orient_to_target(gt_ab_joints.get('left_ankle_jnt'), gt_ab_joints.get('left_ball_jnt'), (90,0,-90), gt_ab_settings.get('left_ankle_proxy_crv'))#, (-1,0,0))
-    orient_to_target(gt_ab_joints.get('left_ball_jnt'), gt_ab_joints.get('left_toe_jnt'), (90,0,-90), gt_ab_settings.get('left_ball_proxy_crv'))#, (-1,0,0))
+    orient_to_target(gt_ab_joints.get('left_ankle_jnt'), gt_ab_joints.get('left_ball_jnt'), (90,0,-90), gt_ab_elements.get('left_ankle_proxy_crv'))#, (-1,0,0))
+    orient_to_target(gt_ab_joints.get('left_ball_jnt'), gt_ab_joints.get('left_toe_jnt'), (90,0,-90), gt_ab_elements.get('left_ball_proxy_crv'))#, (-1,0,0))
     # Right Foot
-    orient_to_target(gt_ab_joints.get('right_ankle_jnt'), gt_ab_joints.get('right_ball_jnt'), (90,0,-90), gt_ab_settings.get('right_ankle_proxy_crv'), (-1,0,0))
-    orient_to_target(gt_ab_joints.get('right_ball_jnt'), gt_ab_joints.get('right_toe_jnt'), (90,0,-90), gt_ab_settings.get('right_ball_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_ankle_jnt'), gt_ab_joints.get('right_ball_jnt'), (90,0,-90), gt_ab_elements.get('right_ankle_proxy_crv'), (-1,0,0))
+    orient_to_target(gt_ab_joints.get('right_ball_jnt'), gt_ab_joints.get('right_toe_jnt'), (90,0,-90), gt_ab_elements.get('right_ball_proxy_crv'), (-1,0,0))
 
 
     # Right Leg Parenting
@@ -3059,19 +3510,19 @@ def create_controls():
     change_viewport_color(gt_ab_joints.get('right_forearm_jnt'), (1,1,0))
 
     # # Left Eye Orient
-    # temp_transform = cmds.group(empty=True, world=True, name=gt_ab_settings.get('left_eye_proxy_crv') + '_orient_target')
-    # cmds.delete(cmds.parentConstraint(gt_ab_settings.get('left_eye_proxy_crv'), temp_transform))
-    # cmds.parent(temp_transform, gt_ab_settings.get('left_eye_proxy_crv'))
+    # temp_transform = cmds.group(empty=True, world=True, name=gt_ab_elements.get('left_eye_proxy_crv') + '_orient_target')
+    # cmds.delete(cmds.parentConstraint(gt_ab_elements.get('left_eye_proxy_crv'), temp_transform))
+    # cmds.parent(temp_transform, gt_ab_elements.get('left_eye_proxy_crv'))
     # cmds.setAttr(temp_transform + '.tz', 1)
-    # orient_to_target(gt_ab_joints.get('left_eye_jnt'), temp_transform, (0,0,0), gt_ab_settings.get('left_eye_proxy_crv'))#, (-1,0,0))
+    # orient_to_target(gt_ab_joints.get('left_eye_jnt'), temp_transform, (0,0,0), gt_ab_elements.get('left_eye_proxy_crv'))#, (-1,0,0))
     # cmds.delete(temp_transform)
 
     # # Right Eye Orient
-    # temp_transform = cmds.group(empty=True, world=True, name=gt_ab_settings.get('right_eye_proxy_crv') + '_orient_target')
-    # cmds.delete(cmds.parentConstraint(gt_ab_settings.get('right_eye_proxy_crv'), temp_transform))
-    # cmds.parent(temp_transform, gt_ab_settings.get('right_eye_proxy_crv'))
+    # temp_transform = cmds.group(empty=True, world=True, name=gt_ab_elements.get('right_eye_proxy_crv') + '_orient_target')
+    # cmds.delete(cmds.parentConstraint(gt_ab_elements.get('right_eye_proxy_crv'), temp_transform))
+    # cmds.parent(temp_transform, gt_ab_elements.get('right_eye_proxy_crv'))
     # cmds.setAttr(temp_transform + '.tz', 1)
-    # orient_to_target(gt_ab_joints.get('right_eye_jnt'), temp_transform, (0,0,0), gt_ab_settings.get('right_eye_proxy_crv'))#, (-1,0,0))
+    # orient_to_target(gt_ab_joints.get('right_eye_jnt'), temp_transform, (0,0,0), gt_ab_elements.get('right_eye_proxy_crv'))#, (-1,0,0))
     # cmds.delete(temp_transform)
 
 
@@ -3323,7 +3774,7 @@ def create_controls():
     
     # Main Ctrl
     main_ctrl = create_main_control(name='main_' + ctrl_suffix)
-    main_ctrl_scale = cmds.xform(gt_ab_settings.get('main_crv'), q=True, ws=True, scale=True)
+    main_ctrl_scale = cmds.xform(gt_ab_elements.get('main_crv'), q=True, ws=True, scale=True)
     cmds.scale( main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl )
 
     cmds.makeIdentity(main_ctrl, apply=True, scale=True)
@@ -3343,7 +3794,7 @@ def create_controls():
     for shape in cmds.listRelatives(direction_ctrl, s=True, f=True) or []:
         shape = cmds.rename(shape, "{0}Shape".format(direction_ctrl))
     change_viewport_color(direction_ctrl, (1,1,0))
-    cmds.delete(cmds.scaleConstraint(gt_ab_settings.get('main_crv'), direction_ctrl))
+    cmds.delete(cmds.scaleConstraint(gt_ab_elements.get('main_crv'), direction_ctrl))
     cmds.makeIdentity(direction_ctrl, apply=True, scale=True)
     direction_ctrl_grp = cmds.group(name=direction_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(direction_ctrl, direction_ctrl_grp)
@@ -3668,8 +4119,8 @@ def create_controls():
     
     # Left Knee Find Position
     temp_transform = cmds.group(name=left_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('left_knee_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(gt_ab_settings.get('left_knee_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_knee_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(gt_ab_elements.get('left_knee_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
     cmds.move(left_knee_scale_offset ,0 , 0, temp_transform, os=True, relative=True)    
     cmds.delete(cmds.pointConstraint(temp_transform, left_knee_ik_ctrl_grp))
     cmds.delete(temp_transform)
@@ -3701,8 +4152,8 @@ def create_controls():
     
     # Left Foot Position
     cmds.delete(cmds.pointConstraint([gt_ab_joints.get('left_ankle_jnt'), gt_ab_joints.get('left_toe_jnt')], left_foot_ik_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_foot_ik_ctrl_grp + '.ry', desired_rotation[1])
     
     # Left Foot Pivot Adjustment
@@ -3815,8 +4266,8 @@ def create_controls():
     
     # Right Knee Find Position
     temp_transform = cmds.group(name=right_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_knee_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(gt_ab_settings.get('right_knee_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_knee_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(gt_ab_elements.get('right_knee_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
     cmds.move(right_knee_scale_offset*-1 ,0 , 0, temp_transform, os=True, relative=True)    
     cmds.delete(cmds.pointConstraint(temp_transform, right_knee_ik_ctrl_grp))
     cmds.delete(temp_transform)
@@ -3848,8 +4299,8 @@ def create_controls():
     
     # Right Foot Position
     cmds.delete(cmds.pointConstraint([gt_ab_joints.get('right_ankle_jnt'), gt_ab_joints.get('right_toe_jnt')], right_foot_ik_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_foot_ik_ctrl_grp + '.ry', desired_rotation[1])
     
     # Right Foot Pivot Adjustment
@@ -4058,8 +4509,8 @@ def create_controls():
     # Left Knee Find Position
     left_arm_scale_offset = left_arm_scale_offset*.5
     temp_transform = cmds.group(name=left_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('left_elbow_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(gt_ab_settings.get('left_elbow_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_elbow_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(gt_ab_elements.get('left_elbow_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,-1,0), worldUpType="vector", worldUpVector=(0,1,0)))
     cmds.move(left_arm_scale_offset ,0 , 0, temp_transform, os=True, relative=True)    
     cmds.delete(cmds.pointConstraint(temp_transform, left_elbow_ik_ctrl_grp))
     cmds.delete(temp_transform)
@@ -4269,8 +4720,8 @@ def create_controls():
     # Right Elbow Find Position
     right_arm_scale_offset = abs(right_arm_scale_offset)*.5
     temp_transform = cmds.group(name=right_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_elbow_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(gt_ab_settings.get('right_elbow_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0)))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_elbow_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(gt_ab_elements.get('right_elbow_pv_dir'), temp_transform, offset=(0,0,0), aimVector=(1,0,0), upVector=(0,1,0), worldUpType="vector", worldUpVector=(0,1,0)))
     cmds.move(right_arm_scale_offset ,0 , 0, temp_transform, os=True, relative=True)    
     cmds.delete(cmds.pointConstraint(temp_transform, right_elbow_ik_ctrl_grp))
     cmds.delete(temp_transform)
@@ -4311,7 +4762,7 @@ def create_controls():
     cmds.parent(left_arm_switch, left_arm_switch_grp)
     
     change_viewport_color(left_arm_switch, left_ctrl_color)
-    cmds.delete(cmds.parentConstraint(gt_ab_settings.get('left_wrist_proxy_crv'), left_arm_switch_grp))
+    cmds.delete(cmds.parentConstraint(gt_ab_elements.get('left_wrist_proxy_crv'), left_arm_switch_grp))
     cmds.parent(left_arm_switch_grp, main_ctrl)
     
     # Right Arm
@@ -4340,7 +4791,7 @@ def create_controls():
     cmds.parent(right_arm_switch, right_arm_switch_grp)
     
     change_viewport_color(right_arm_switch, right_ctrl_color)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_wrist_proxy_crv'), right_arm_switch_grp))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_wrist_proxy_crv'), right_arm_switch_grp))
     cmds.parent(right_arm_switch_grp, main_ctrl)
     
     
@@ -4370,9 +4821,9 @@ def create_controls():
     cmds.parent(left_leg_switch, left_leg_switch_grp)
 
     change_viewport_color(left_leg_switch, left_ctrl_color)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('left_ankle_proxy_crv'), left_leg_switch_grp))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_ankle_proxy_crv'), left_leg_switch_grp))
     
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_leg_switch_grp + '.ry', desired_rotation[1])
     
     cmds.parent(left_leg_switch_grp, main_ctrl)
@@ -4405,7 +4856,7 @@ def create_controls():
     
     
     change_viewport_color(right_leg_switch, right_ctrl_color)
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_ankle_proxy_crv'), right_leg_switch_grp))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_ankle_proxy_crv'), right_leg_switch_grp))
     cmds.parent(right_leg_switch_grp, main_ctrl)
     
     
@@ -4430,8 +4881,8 @@ def create_controls():
     
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_toe_jnt'), left_toe_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset/4,left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -4456,8 +4907,8 @@ def create_controls():
     
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_toe_jnt'), left_toe_up_down_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset/2.6,left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -4484,8 +4935,8 @@ def create_controls():
     
     # Left Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_ball_jnt'), left_ball_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset/3,left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
     
@@ -4512,8 +4963,8 @@ def create_controls():
     
     # Left Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_ankle_jnt'), left_heel_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset/3.5*-1,left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -4546,8 +4997,8 @@ def create_controls():
     
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_toe_jnt'), right_toe_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset/4,right_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -4572,8 +5023,8 @@ def create_controls():
     
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_toe_jnt'), right_toe_up_down_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset/2.6,right_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -4604,8 +5055,8 @@ def create_controls():
     
     # Right Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_ball_jnt'), right_ball_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(right_foot_scale_offset/3,right_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
     
@@ -4636,8 +5087,8 @@ def create_controls():
     
     # Right Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_ankle_jnt'), right_heel_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset/3.5*-1,right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
@@ -5501,11 +5952,11 @@ def create_controls():
     cmds.parent(left_toe_pos_pivot_grp, left_toe_pivot_grp)
 
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_ankle_jnt'), left_foot_pivot_grp))
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('left_ball_pivot_grp'), left_heel_pivot_grp))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_ball_pivot_grp'), left_heel_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_ball_jnt'), left_ball_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_toe_jnt'), left_toe_pivot_grp))
     
-    desired_rotation = cmds.xform(gt_ab_settings.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_foot_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_ball_pivot_grp + '.ry', desired_rotation[1])
@@ -5694,11 +6145,11 @@ def create_controls():
     cmds.parent(right_toe_pos_pivot_grp, right_toe_pivot_grp)
 
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_ankle_jnt'), right_foot_pivot_grp))
-    cmds.delete(cmds.pointConstraint(gt_ab_settings.get('right_ball_pivot_grp'), right_heel_pivot_grp))
+    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_ball_pivot_grp'), right_heel_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_ball_jnt'), right_ball_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_toe_jnt'), right_toe_pivot_grp))
     
-    desired_rotation = cmds.xform(gt_ab_settings.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(gt_ab_elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_foot_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_ball_pivot_grp + '.ry', desired_rotation[1])
@@ -6462,7 +6913,8 @@ def create_controls():
     cmds.parent(foot_automation_grp, rig_setup_grp)
 
     # Scale Constraints
-    cmds.scaleConstraint(main_ctrl, skeleton_grp)
+    main_skeleton_constraint = cmds.scaleConstraint(main_ctrl, skeleton_grp)
+    cmds.setAttr(main_skeleton_constraint[0] + '.v', 0)
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
      
     # Hierarchy Adjustments and Color
@@ -6980,32 +7432,32 @@ def create_controls():
     lock_hide_default_attr(ik_solvers_grp, visibility=False)
     
     # Create Seamless FK/IK Switch References
-    left_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_ankle_ik_reference') )[0]
+    left_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_ankle_ik_reference') )[0]
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_ankle_ref_loc))
     cmds.parent(left_ankle_ref_loc, left_ankle_fk_jnt)
     cmds.setAttr(left_ankle_ref_loc + '.v', 0)
     
-    left_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_knee_ik_reference') )[0]
+    left_knee_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_knee_ik_reference') )[0]
     cmds.delete(cmds.pointConstraint(left_knee_ik_ctrl, left_knee_ref_loc))
     cmds.parent(left_knee_ref_loc, left_knee_fk_jnt)
     cmds.setAttr(left_knee_ref_loc + '.v', 0)
     
-    left_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('left_elbow_ik_reference') )[0]
+    left_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_elbow_ik_reference') )[0]
     cmds.delete(cmds.pointConstraint(left_elbow_ik_ctrl, left_elbow_ref_loc))
     cmds.parent(left_elbow_ref_loc, left_elbow_fk_jnt)
     cmds.setAttr(left_elbow_ref_loc + '.v', 0)
   
-    right_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_ankle_ik_reference') )[0]
+    right_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_ankle_ik_reference') )[0]
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_ankle_ref_loc))
     cmds.parent(right_ankle_ref_loc, right_ankle_fk_jnt)
     cmds.setAttr(right_ankle_ref_loc + '.v', 0)
     
-    right_knee_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_knee_ik_reference') )[0]
+    right_knee_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_knee_ik_reference') )[0]
     cmds.delete(cmds.pointConstraint(right_knee_ik_ctrl, right_knee_ref_loc))
     cmds.parent(right_knee_ref_loc, right_knee_fk_jnt)
     cmds.setAttr(right_knee_ref_loc + '.v', 0)
     
-    right_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_settings_default.get('right_elbow_ik_reference') )[0]
+    right_elbow_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_elbow_ik_reference') )[0]
     cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
     cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
     cmds.setAttr(right_elbow_ref_loc + '.v', 0)
@@ -7015,7 +7467,7 @@ def create_controls():
     cmds.matchTransform(left_leg_toe_ik_handle[0], left_toe_fk_jnt, pos=1, rot=1)
 
     # Delete Proxy
-    cmds.delete(gt_ab_settings.get('main_proxy_grp'))
+    cmds.delete(gt_ab_elements.get('main_proxy_grp'))
     
     # Add Notes
     note = 'This rig was created using ' + str(script_name) + '. (v' + str(script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
@@ -7168,6 +7620,12 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
     
+    # Creates game skeleton (No Segment Scale Compensate)
+    if gt_ab_settings.get('using_no_ssc_skeleton'):
+        new_skeleton_suffix = 'game'
+        duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix)
+        sorted_no_ssc_joints = attach_no_ssc_skeleton(duplicated_joints, game_root_jnt, gt_ab_joints_default.get('main_jnt'), main_ctrl, new_skeleton_suffix)
+    
     
     ################# Store Created Joints #################
     gt_ab_joints_default['left_forearm_jnt'] = left_forearm_jnt
@@ -7222,9 +7680,9 @@ def reset_proxy(suppress_warning=False):
     attributes_set_zero = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'followHip']
     attributes_set_one = ['sx', 'sy', 'sz', 'v']
     proxy_elements = []
-    for proxy in gt_ab_settings_default:
+    for proxy in gt_ab_elements_default:
         if '_crv' in proxy:
-            proxy_elements.append(gt_ab_settings_default.get(proxy))
+            proxy_elements.append(gt_ab_elements_default.get(proxy))
     for obj in proxy_elements:
         if cmds.objExists(obj):
             for attr in attributes_set_zero:
@@ -7258,7 +7716,7 @@ def delete_proxy(suppress_warning=False):
     
     is_deleted = False
     
-    to_delete_elements = [gt_ab_settings.get('main_proxy_grp'), gt_ab_settings.get('main_crv') ]
+    to_delete_elements = [gt_ab_elements.get('main_proxy_grp'), gt_ab_elements.get('main_crv') ]
     for obj in to_delete_elements:
         if cmds.objExists(obj) and is_deleted == False:
             cmds.delete(obj)
@@ -7296,14 +7754,14 @@ def mirror_proxy(operation):
     
     # Validate Proxy
     is_valid = True
-    if not cmds.objExists(gt_ab_settings.get('main_proxy_grp')):
+    if not cmds.objExists(gt_ab_elements.get('main_proxy_grp')):
         is_valid = False
         cmds.warning('Proxy couldn\'t be found. Make sure you first create a proxy (guide objects) before mirroring it.')
     
-    proxy_elements = [gt_ab_settings.get('main_proxy_grp')]
-    for proxy in gt_ab_settings_default:
+    proxy_elements = [gt_ab_elements.get('main_proxy_grp')]
+    for proxy in gt_ab_elements_default:
         if '_crv' in proxy:
-            proxy_elements.append(gt_ab_settings.get(proxy))
+            proxy_elements.append(gt_ab_elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -7314,11 +7772,11 @@ def mirror_proxy(operation):
     right_elements = []
     
     if is_valid:
-        for obj in gt_ab_settings:
+        for obj in gt_ab_elements:
             if obj.startswith('left_') and '_crv' in obj:
-                left_elements.append(gt_ab_settings.get(obj))
+                left_elements.append(gt_ab_elements.get(obj))
             elif obj.startswith('right_') and '_crv' in obj:
-                right_elements.append(gt_ab_settings.get(obj))
+                right_elements.append(gt_ab_elements.get(obj))
         
         for left_obj in left_elements:
             for right_obj in right_elements:
@@ -7348,10 +7806,10 @@ def export_proxy_pose():
     is_valid = True
     successfully_created_file = False
     
-    proxy_elements = [gt_ab_settings.get('main_proxy_grp')]
-    for proxy in gt_ab_settings_default:
+    proxy_elements = [gt_ab_elements.get('main_proxy_grp')]
+    for proxy in gt_ab_elements_default:
         if '_crv' in proxy:
-            proxy_elements.append(gt_ab_settings.get(proxy))
+            proxy_elements.append(gt_ab_elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -7366,12 +7824,12 @@ def export_proxy_pose():
     if successfully_created_file and is_valid:
         
         export_dict = {'gt_auto_biped_version' : script_version, 'gt_auto_biped_export_method' : 'object-space'}
-        for obj in gt_ab_settings_default:
+        for obj in gt_ab_elements_default:
             if '_crv' in obj:
-                translate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(gt_ab_settings_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(gt_ab_settings_default.get(obj) + '.scale')[0]
-                to_save = [gt_ab_settings_default.get(obj), translate, rotate, scale]
+                translate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(gt_ab_elements_default.get(obj) + '.scale')[0]
+                to_save = [gt_ab_elements_default.get(obj), translate, rotate, scale]
                 export_dict[obj] = to_save
     
         try: 
@@ -7483,9 +7941,9 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                         proxy_exists = True
 
                         proxy_elements = []
-                        for proxy in gt_ab_settings_default:
+                        for proxy in gt_ab_elements_default:
                             if '_crv' in proxy:
-                                proxy_elements.append(gt_ab_settings.get(proxy))
+                                proxy_elements.append(gt_ab_elements.get(proxy))
                         for obj in proxy_elements:
                             if not cmds.objExists(obj) and proxy_exists:
                                 proxy_exists = False
@@ -7948,7 +8406,7 @@ def extract_proxy_pose():
             else:
                 values_to_store = extract_transform_joint_to_proxy(jnt)
             
-            for proxy_key in gt_ab_settings_default:
+            for proxy_key in gt_ab_elements_default:
                 if jnt_key.replace('_' + jnt_suffix, '_proxy_crv') == proxy_key:
                     export_dict[proxy_key] = values_to_store
         
@@ -7963,6 +8421,10 @@ def extract_proxy_pose():
             print (e)
             successfully_created_file = False
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
+
+
+
+
 
 
 # Build UI

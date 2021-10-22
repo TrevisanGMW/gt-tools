@@ -144,10 +144,13 @@
 //   1.7.8
 //   Added "gtu_full_hud_toggle"
 //
+//   1.7.10
+//   Added optionVar "gt_check_for_updates_interval_days" and set it to 15 in case it doesn't exist (default value)
+//
 //----------------------------------------------------------------------------
 
 // Globals 
-global string $scriptVersion = "1.7.9";
+global string $scriptVersion = "1.7.10";
 global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
@@ -172,9 +175,10 @@ if (`optionVar -exists "gt_check_for_updates_auto_active"` && $silentlyAutoCheck
     catchQuiet(python("gt_check_for_updates.silent_update_check()"));
     }
     
-if (`optionVar -exists "gt_check_for_updates_auto_active"` == 0)
+if (`optionVar -exists "gt_check_for_updates_auto_active"` == 0) // First time running
     {
-    optionVar -sv "gt_check_for_updates_auto_active" 1; // First time running
+    optionVar -sv "gt_check_for_updates_auto_active" 1;
+    optionVar -sv "gt_check_for_updates_interval_days" 15;
     }
     
     
