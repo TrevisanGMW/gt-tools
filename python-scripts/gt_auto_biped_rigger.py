@@ -1250,6 +1250,11 @@ def mimic_segment_scale_compensate(joints_with_ssc, joints_no_ssc):
     The secondary skeleton is compatible with real-time engines as it calculates and bakes 
     scale values directly into the joints.
     
+            Parameters:
+                joints_with_ssc (list): A list of joints with segment scale compensate active (default joints)
+                joints_no_ssc (list): A duplicated version of the "joints_with_ssc" list with the attribute segment scale compensate inactive.
+                                      Use the function "generate_no_ssc_skeleton" to duplicate it.
+    
     
     '''
     # Check if lists are identical, name length and names?
@@ -1300,7 +1305,10 @@ def get_short_name(obj):
     Get the name of the objects without its path (Maya returns full path if name is not unique)
 
             Parameters:
-                    obj (string) - object to extract short name
+                    obj (string) : object to extract short name
+                    
+            Returns:
+                    short_name (string) : Name of the object without its full path
     '''
     if obj == '':
         return ''
@@ -1376,14 +1384,18 @@ def attach_no_ssc_skeleton(duplicated_joints,
     to follow and mimic the scale of the original gt auto biped rigger skeleton
             
             Parameters:
-                new_skeleton_suffix (optional, string): expected in-between string for game skeleton. 
-                                                        Used to pair with original skeleton
                 duplicated_joints (list): A list of string containing all generated real-time joints
                 realtime_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
                 current_root_jnt (string): The name of the root joint (usually the top parent) of the current skeleton
                 root_scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint (usually main_ctrl)
+                new_skeleton_suffix (optional, string): expected in-between string for game skeleton. 
+                                                        Used to pair with original skeleton
                 jnt_suffix (optional, string): The suffix the script expects 
                                                to find at the end of every joint
+                swap_names (optional, bool): Whether or not to overwrite the original skeleton (use same name)
+                driver_suffix (optional, string) : String added to the original skeleton in case swapping. 
+                                                 This is joint_name + driver_suffix + jnt_suffix
+                                                 e.g. joint_driver_jnt
 
             Returns:
                 sorted_no_ssc_joints (list): A list containing game skeleton joints
