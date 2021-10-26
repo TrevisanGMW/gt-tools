@@ -109,7 +109,13 @@
  1.7.7 - 2021-10-21
  Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
  
+ 1.7.8 - 2021-10-24
+ Added aim lines to pole vectors and eye controls
+ Added some missing documentation
+ Fixed a missing connection between follow attributes and their constraints (pole vectors and eyes)
+ 
  To do:
+    Add IK behaviour to fingers (move handle closer to palm)
     Add option to mirror rigged pose (for animators)
     Move functions to a module (this script is getting too big)
     Create ribbon setup for the spine ( add switch to the master control )
@@ -147,7 +153,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.7"
+script_version = "1.7.8"
 
 # Python Version
 python_version = sys.version_info.major
@@ -376,7 +382,7 @@ def build_gui_auto_biped_rig():
         image_result.close()
 
     
-    # Settings ================ @@@
+    # Settings ================
     settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], h=1, p=content_main) 
     
     # General Settings
@@ -461,7 +467,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Utilities:', font='boldLabelFont')
     cmds.separator(h=5, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1,0)], p=body_column)
-    cmds.button( l ="Add Seamless FK/IK Switch to Shelf", bgc=(.3,.3,.3), c=lambda x:add_seamless_fkik_button())
+    cmds.button( l ="Add Seamless FK/IK Switcher to Shelf", bgc=(.3,.3,.3), c=lambda x:add_seamless_fkik_button())
     cmds.separator(h=5, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 125), (2, 125)], cs=[(1, 0), (2, 8)], p=body_column)
     cmds.button( l ="Toggle Label Visibility", bgc=(.3,.3,.3), c=lambda x:gtu_uniform_jnt_label_toggle())
@@ -500,7 +506,7 @@ def build_gui_auto_biped_rig():
     def update_gui_settings():
         '''
         Function to show or hide settings. 
-        It acomplishes this by switching the height of the body_column and the settings_column. @@@
+        It acomplishes this by switching the height of the body_column and the settings_column.
         '''
         if gt_ab_settings.get('is_settings_visible') != True:
             gt_ab_settings["is_settings_visible"] = True
@@ -5940,6 +5946,66 @@ def create_controls():
             cmds.connectAttr(right_fingers_ctrl + '.transMultiplierPinky', knuckle_multiply_node + '.input2Z')
             cmds.connectAttr(knuckle_multiply_node + '.outputZ', obj[0][2] + '.tz')
  
+ 
+    # Create Separators before Custom Attributes
+    # Main Eye
+    cmds.addAttr(main_eye_ctrl, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(main_eye_ctrl + '.controlBehavior', lock=True)
+    # Left Knee
+    cmds.addAttr(left_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(left_knee_ik_ctrl + '.kneeAutomation', lock=True)
+    # Right Knee
+    cmds.addAttr(right_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(right_knee_ik_ctrl + '.kneeAutomation', lock=True)
+    # Left Elbow
+    cmds.addAttr(left_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(left_elbow_ik_ctrl + '.elbowAutomation', lock=True)
+    # Right Elbow
+    cmds.addAttr(right_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
+    cmds.setAttr(right_elbow_ik_ctrl + '.elbowAutomation', lock=True)
+ 
+ 
+ 
+    # General Automation Hierarchy - Used for misc systems such as auto breathing and aim lines
+    general_automation_grp = cmds.group(name='generalAutomation_grp', world=True, empty=True)
+    change_outliner_color(general_automation_grp, (1, .65, .45))
+
+    # Create Aim Lines 
+    aim_pairs = [(left_knee_ik_ctrl, gt_ab_joints.get('left_knee_jnt')), 
+                 (right_knee_ik_ctrl, gt_ab_joints.get('right_knee_jnt')),
+                 (left_elbow_ik_ctrl, gt_ab_joints.get('left_elbow_jnt')),
+                 (right_elbow_ik_ctrl, gt_ab_joints.get('right_elbow_jnt')),
+                 (left_eye_ctrl, gt_ab_joints.get('left_eye_jnt')),
+                 (right_eye_ctrl, gt_ab_joints.get('right_eye_jnt')),]
+    aim_line_alternative_control = {left_eye_ctrl : main_eye_ctrl,
+                                    right_eye_ctrl : main_eye_ctrl}
+    aim_line_grp = cmds.group(name='aimLines_grp', world=True, empty=True )
+    for pair in aim_pairs:
+        ctrl = pair[0]
+        jnt = pair[1]
+        generated_line = create_visualization_line(ctrl, jnt)
+        cmds.setAttr(generated_line[0] + '.overrideEnabled', 1)
+        cmds.setAttr(generated_line[0] + '.overrideDisplayType', 1)
+        cmds.setAttr(generated_line[0] + '.inheritsTransform', 0)
+        cmds.setAttr(generated_line[0] + '.t', lock=True)
+        cmds.setAttr(generated_line[0] + '.r', lock=True)
+        cmds.setAttr(generated_line[0] + '.s', lock=True)
+        attr_name = 'showAimLine'
+        if ctrl not in aim_line_alternative_control:
+            cmds.addAttr(ctrl, ln=attr_name, at='bool', keyable=True)
+            cmds.setAttr(ctrl + '.' + attr_name, 1)
+            cmds.connectAttr(ctrl + '.' + attr_name, generated_line[0] + '.v')
+        else:
+            if not cmds.attributeQuery(attr_name, node=aim_line_alternative_control.get(ctrl), exists=True):
+                cmds.addAttr(aim_line_alternative_control.get(ctrl), ln=attr_name, at='bool', keyable=True)
+            cmds.connectAttr(aim_line_alternative_control.get(ctrl) + '.' + attr_name, generated_line[0] + '.v')
+        
+        cmds.parent(generated_line[0], ctrl)
+        cmds.parent(generated_line[1], aim_line_grp)
+        cmds.parent(generated_line[2], aim_line_grp)
+        cmds.rename(generated_line[0], generated_line[0] + '_crv')
+    cmds.parent(aim_line_grp, general_automation_grp)
+
 
     ################# IK Controls #################
     rig_setup_grp = cmds.group(name='rig_setup_' + grp_suffix, empty=True, world=True)
@@ -5948,7 +6014,7 @@ def create_controls():
     change_outliner_color(ik_solvers_grp, (1,1,.35))
     cmds.parent(ik_solvers_grp, rig_setup_grp)
     
-    
+
     ################# Left Leg IK Controls #################
     left_leg_rp_ik_handle = cmds.ikHandle( n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt, sol='ikRPsolver')
     left_leg_ball_ik_handle = cmds.ikHandle( n='left_footBall_SC_ikHandle', sj=left_ankle_ik_jnt, ee=left_ball_ik_jnt, sol='ikSCsolver')
@@ -6078,8 +6144,6 @@ def create_controls():
     
     # IK Knee Automation
     left_knee_ctrl_constraint = cmds.parentConstraint([left_foot_ik_ctrl, direction_ctrl], left_knee_ik_ctrl_grp, mo=True)
-    cmds.addAttr(left_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(left_knee_ik_ctrl + '.kneeAutomation', lock=True)
     cmds.addAttr(left_knee_ik_ctrl , ln='followFoot', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(left_knee_ik_ctrl + '.followFoot', left_knee_ctrl_constraint[0] + '.w0', f=True)
     left_knee_reverse_node = cmds.createNode('reverse', name='left_knee_parent_reverse')
@@ -6087,7 +6151,6 @@ def create_controls():
     cmds.connectAttr(left_knee_reverse_node + '.outputX', left_knee_ctrl_constraint[0] + '.w1', f=True)
     
     # Left Leg Stretchy System
-    
     cmds.addAttr(left_leg_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
     cmds.setAttr(left_leg_switch + '.squashStretch', lock=True)
     left_leg_stretchy_elements = make_stretchy_ik(left_leg_rp_ik_handle[0], 'left_leg', left_leg_switch)
@@ -6271,8 +6334,6 @@ def create_controls():
     
     # IK Knee Automation
     right_knee_ctrl_constraint = cmds.parentConstraint([right_foot_ik_ctrl, direction_ctrl], right_knee_ik_ctrl_grp, mo=True)
-    cmds.addAttr(right_knee_ik_ctrl, ln="kneeAutomation", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(right_knee_ik_ctrl + '.kneeAutomation', lock=True)
     cmds.addAttr(right_knee_ik_ctrl , ln='followFoot', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(right_knee_ik_ctrl + '.followFoot', right_knee_ctrl_constraint[0] + '.w0', f=True)
     right_knee_reverse_node = cmds.createNode('reverse', name='right_knee_parent_reverse')
@@ -6438,13 +6499,11 @@ def create_controls():
 
     # IK Wrist Automation
     left_wrist_ctrl_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, direction_ctrl], left_elbow_ik_ctrl_grp, mo=True)
-    cmds.addAttr(left_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(left_elbow_ik_ctrl + '.elbowAutomation', lock=True)
     cmds.addAttr(left_elbow_ik_ctrl , ln='followWrist', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(left_elbow_ik_ctrl + '.followWrist', left_wrist_ctrl_constraint[0] + '.w0', f=True)
     left_wrist_reverse_node = cmds.createNode('reverse', name='left_wrist_parent_reverse')
     cmds.connectAttr(left_elbow_ik_ctrl + '.followWrist', left_wrist_reverse_node + '.inputX', f=True)
-    cmds.connectAttr(left_wrist_reverse_node + '.outputX', left_knee_ctrl_constraint[0] + '.w1', f=True)
+    cmds.connectAttr(left_wrist_reverse_node + '.outputX', left_wrist_ctrl_constraint[0] + '.w1', f=True)
     
 
     # Left Leg Stretchy System
@@ -6661,13 +6720,11 @@ def create_controls():
 
     # IK Wrist Automation
     right_wrist_ctrl_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, direction_ctrl], right_elbow_ik_ctrl_grp, mo=True)
-    cmds.addAttr(right_elbow_ik_ctrl, ln="elbowAutomation", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(right_elbow_ik_ctrl + '.elbowAutomation', lock=True)
     cmds.addAttr(right_elbow_ik_ctrl , ln='followWrist', at='float', k=True, maxValue=1, minValue=0)
     cmds.connectAttr(right_elbow_ik_ctrl + '.followWrist', right_wrist_ctrl_constraint[0] + '.w0', f=True)
     right_wrist_reverse_node = cmds.createNode('reverse', name='right_wrist_parent_reverse')
     cmds.connectAttr(right_elbow_ik_ctrl + '.followWrist', right_wrist_reverse_node + '.inputX', f=True)
-    cmds.connectAttr(right_wrist_reverse_node + '.outputX', right_knee_ctrl_constraint[0] + '.w1', f=True)
+    cmds.connectAttr(right_wrist_reverse_node + '.outputX', right_wrist_ctrl_constraint[0] + '.w1', f=True)
 
     # Right Leg Stretchy System
     cmds.addAttr(right_arm_switch, ln="squashStretch", at="enum", en="-------------:", keyable=True)
@@ -6841,8 +6898,6 @@ def create_controls():
     # Eyes
     cmds.parent(main_eye_ctrl_grp, direction_ctrl)
     main_eye_constraint = cmds.parentConstraint([head_ctrl, direction_ctrl], main_eye_ctrl_grp, mo=True)
-    cmds.addAttr(main_eye_ctrl, ln="controlBehavior", at="enum", en="-------------:", keyable=True)
-    cmds.setAttr(main_eye_ctrl + '.controlBehavior', lock=True)
     cmds.addAttr(main_eye_ctrl, ln='followHead', at='double', k=True, minValue=0, maxValue=1)
     cmds.setAttr(main_eye_ctrl + '.followHead', 1)
     
@@ -6904,10 +6959,6 @@ def create_controls():
     change_outliner_color(arms_automation_grp, (1, .65, .45))
     cmds.parent(left_forearm_grp, arms_automation_grp)
     cmds.parent(right_forearm_grp, arms_automation_grp)
-    
-    # General Automation Hierarchy - Used for auto breathing
-    general_automation_grp = cmds.group(name='generalAutomation_grp', world=True, empty=True)
-    change_outliner_color(general_automation_grp, (1, .65, .45))
     
     ###### Main Hierarchy for Top Parent Groups ######
     if cmds.objExists('geometry_grp'):
@@ -7481,7 +7532,8 @@ def create_controls():
     # Delete Proxy
     cmds.delete(gt_ab_elements.get('main_proxy_grp'))
     
-    # Add Notes
+    
+    # Add Notes @@@
     note = 'This rig was created using ' + str(script_name) + '. (v' + str(script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
     add_node_note(main_ctrl, note)
     add_node_note(main_ctrl_grp, note)
@@ -8433,9 +8485,6 @@ def extract_proxy_pose():
             print (e)
             successfully_created_file = False
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
-
-
-
 
 
 
