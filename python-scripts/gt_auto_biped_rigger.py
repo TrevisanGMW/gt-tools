@@ -114,6 +114,11 @@
  Added some missing documentation
  Fixed a missing connection between follow attributes and their constraints (pole vectors and eyes)
  
+ 1.7.9 - 2021-10-26
+ Fixed an issue where the right IK switcher curve would sometimes not orient itself correctly
+ Added parenting options to IK Switchers (chest, clavicle, world)
+ 
+ 
  To do:
     Add IK behaviour to fingers (move handle closer to palm)
     Add option to mirror rigged pose (for animators)
@@ -153,7 +158,7 @@ import re
 script_name = "GT Auto Biped Rigger"
 
 # Version:
-script_version = "1.7.8"
+script_version = "1.7.9"
 
 # Python Version
 python_version = sys.version_info.major
@@ -178,7 +183,7 @@ debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.json' # Path to auto import
-debugging_bind_rig = True # Auto Binds Rig
+debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
 
@@ -4809,7 +4814,7 @@ def create_controls():
     cmds.parent(right_arm_switch, right_arm_switch_grp)
     
     change_viewport_color(right_arm_switch, right_ctrl_color)
-    cmds.delete(cmds.pointConstraint(gt_ab_elements.get('right_wrist_proxy_crv'), right_arm_switch_grp))
+    cmds.delete(cmds.parentConstraint(gt_ab_elements.get('right_wrist_proxy_crv'), right_arm_switch_grp))
     cmds.parent(right_arm_switch_grp, main_ctrl)
     
     
@@ -6608,11 +6613,34 @@ def create_controls():
     
     cmds.pointConstraint(left_forearm_loc, left_forearm_jnt) # Receive Position from Mechanics
     
-    # Left IK Follow Clavicle
-    left_clavicle_wrist_constraint = cmds.parentConstraint(left_clavicle_ctrl, left_wrist_ik_ctrl_grp, mo=True)
-    cmds.addAttr(left_arm_switch, ln='followClavicle', at='bool', k=True)
-    cmds.setAttr(left_arm_switch + '.followClavicle', 1)
-    cmds.connectAttr(left_arm_switch + '.followClavicle', left_clavicle_wrist_constraint[0] + '.w0', f=True)
+    # Left IK Switcher Parent System
+    left_clavicle_wrist_constraint = cmds.parentConstraint([controls_grp, left_clavicle_ctrl, gt_ab_joints.get('spine04_jnt')], left_wrist_ik_ctrl_grp, mo=True)
+    cmds.addAttr(left_arm_switch, ln='parent', at='enum', k=True, en="World:Clavicle:Chest:")
+    cmds.setAttr(left_arm_switch + '.parent', 2)
+    
+    left_switch_world_condition_node = cmds.createNode('condition', name='left_arm_parentWorld_' + automation_suffix)
+    left_switch_clavicle_condition_node = cmds.createNode('condition', name='left_arm_parentClavicle_' + automation_suffix)
+    left_switch_chest_condition_node = cmds.createNode('condition', name='left_arm_parentChest_' + automation_suffix)
+    
+    cmds.setAttr(left_switch_world_condition_node + '.secondTerm', 0)
+    cmds.setAttr(left_switch_clavicle_condition_node + '.secondTerm', 1)
+    cmds.setAttr(left_switch_chest_condition_node + '.secondTerm', 2)
+    
+    for node in [left_switch_world_condition_node, left_switch_clavicle_condition_node, left_switch_chest_condition_node]:
+        cmds.setAttr(node + '.colorIfTrueR', 1)
+        cmds.setAttr(node + '.colorIfTrueG', 1)
+        cmds.setAttr(node + '.colorIfTrueB', 1)
+        cmds.setAttr(node + '.colorIfFalseR', 0)
+        cmds.setAttr(node + '.colorIfFalseG', 0)
+        cmds.setAttr(node + '.colorIfFalseB', 0)
+    
+    cmds.connectAttr(left_arm_switch + '.parent', left_switch_world_condition_node + '.firstTerm', f=True)
+    cmds.connectAttr(left_arm_switch + '.parent', left_switch_clavicle_condition_node + '.firstTerm', f=True)
+    cmds.connectAttr(left_arm_switch + '.parent', left_switch_chest_condition_node + '.firstTerm', f=True)
+    
+    cmds.connectAttr(left_switch_world_condition_node + '.outColorR', left_clavicle_wrist_constraint[0] + '.w0', f=True)
+    cmds.connectAttr(left_switch_clavicle_condition_node + '.outColorR', left_clavicle_wrist_constraint[0] + '.w1', f=True)
+    cmds.connectAttr(left_switch_chest_condition_node + '.outColorR', left_clavicle_wrist_constraint[0] + '.w2', f=True)
     
     
     ################# Right Arm Controls #################   
@@ -6833,11 +6861,34 @@ def create_controls():
     
     cmds.pointConstraint(right_forearm_loc, right_forearm_jnt) # Receive Position from Mechanics
     
-    # Right IK Follow Clavicle
-    right_clavicle_wrist_constraint = cmds.parentConstraint(right_clavicle_ctrl, right_wrist_ik_ctrl_grp, mo=True)
-    cmds.addAttr(right_arm_switch, ln='followClavicle', at='bool', k=True)
-    cmds.setAttr(right_arm_switch + '.followClavicle', 1)
-    cmds.connectAttr(right_arm_switch + '.followClavicle', right_clavicle_wrist_constraint[0] + '.w0', f=True)
+    # Right IK Switcher Parent System 
+    right_clavicle_wrist_constraint = cmds.parentConstraint([controls_grp, right_clavicle_ctrl, gt_ab_joints.get('spine04_jnt')], right_wrist_ik_ctrl_grp, mo=True)
+    cmds.addAttr(right_arm_switch, ln='parent', at='enum', k=True, en="World:Clavicle:Chest:")
+    cmds.setAttr(right_arm_switch + '.parent', 2)
+    
+    right_switch_world_condition_node = cmds.createNode('condition', name='right_arm_parentWorld_' + automation_suffix)
+    right_switch_clavicle_condition_node = cmds.createNode('condition', name='right_arm_parentClavicle_' + automation_suffix)
+    right_switch_chest_condition_node = cmds.createNode('condition', name='right_arm_parentChest_' + automation_suffix)
+    
+    cmds.setAttr(right_switch_world_condition_node + '.secondTerm', 0)
+    cmds.setAttr(right_switch_clavicle_condition_node + '.secondTerm', 1)
+    cmds.setAttr(right_switch_chest_condition_node + '.secondTerm', 2)
+    
+    for node in [right_switch_world_condition_node, right_switch_clavicle_condition_node, right_switch_chest_condition_node]:
+        cmds.setAttr(node + '.colorIfTrueR', 1)
+        cmds.setAttr(node + '.colorIfTrueG', 1)
+        cmds.setAttr(node + '.colorIfTrueB', 1)
+        cmds.setAttr(node + '.colorIfFalseR', 0)
+        cmds.setAttr(node + '.colorIfFalseG', 0)
+        cmds.setAttr(node + '.colorIfFalseB', 0)
+    
+    cmds.connectAttr(right_arm_switch + '.parent', right_switch_world_condition_node + '.firstTerm', f=True)
+    cmds.connectAttr(right_arm_switch + '.parent', right_switch_clavicle_condition_node + '.firstTerm', f=True)
+    cmds.connectAttr(right_arm_switch + '.parent', right_switch_chest_condition_node + '.firstTerm', f=True)
+    
+    cmds.connectAttr(right_switch_world_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w0', f=True)
+    cmds.connectAttr(right_switch_clavicle_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w1', f=True)
+    cmds.connectAttr(right_switch_chest_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w2', f=True)
 
     ################# Lock Parameters for FK Controls #################
     for obj in [left_knee_ctrl, left_elbow_ctrl, right_knee_ctrl, right_elbow_ctrl]:
@@ -7532,8 +7583,7 @@ def create_controls():
     # Delete Proxy
     cmds.delete(gt_ab_elements.get('main_proxy_grp'))
     
-    
-    # Add Notes @@@
+    # Add Notes
     note = 'This rig was created using ' + str(script_name) + '. (v' + str(script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
     add_node_note(main_ctrl, note)
     add_node_note(main_ctrl_grp, note)
@@ -8491,3 +8541,5 @@ def extract_proxy_pose():
 # Build UI
 if __name__ == '__main__':
     build_gui_auto_biped_rig()
+    
+    import maya.cmds as cmds
