@@ -1,3 +1,4 @@
 # gitignore to ignore work in progress files.
 
 /workbench
+Thumbs.db
