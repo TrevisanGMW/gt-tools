@@ -21,8 +21,20 @@
  Added custom rig name (if not empty, it will display a message describing unique rig target)
  Added system to get and set persistent settings to store the namespace input
  Added warning message reminding user to check their namespace in case elements are not found
+ 
+ 1.3.1 - 2021-11-01
+ Changed versioning system to semantic to account for patches
+ Fixed some typos in the "locked" message for when trying to mirror
+ Added scale mirroring functions (fixes finger abduction pose)
+ Included curl controls in the mirroring list
+ 
+ 
+ TODO:
+    Add settings (option to simplify GUI, only toggles)
+    Option to reset persistent settings
+    Option to save pose thumbnail when exporting it 
+    Option to show or not feedback messages
   
-
 """
 try:
     from shiboken2 import wrapInstance
@@ -43,11 +55,11 @@ import os
 
 
 # Script Name
-script_name = 'GT - Custom Rig Interface'
+script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3"
+script_version = "1.3.1"
 
 # Python Version
 python_version = sys.version_info.major
@@ -129,9 +141,17 @@ invert_all = (True, True, True)
 
 # Dictionary Pattern:
 # Key: Control name (if not in the center, remove prefix)
-# Value: A list with two tuples. [(Is Translate XYZ inverted?), (Is Rotate XYZ inverted?)]
-gt_ab_general_ctrls = {# Fingers
-                   '_fingers_ctrl': [not_inverted, not_inverted],
+# Value: A list with two tuples. [(Is Translate XYZ inverted?), (Is Rotate XYZ inverted?), Is mirroring scale?]
+# Value Example: '_fingers_ctrl': [not_inverted, not_inverted, True] = Not inverting Translate XYZ. Not inverting Rotate XYZ. Yes, mirroring scale.
+gt_ab_general_ctrls = {# Fingers Automation
+                   '_fingers_ctrl': [not_inverted, not_inverted, True],
+                   '_thumbCurl_ctrl': [not_inverted, not_inverted],
+                   '_indexCurl_ctrl': [not_inverted, not_inverted],
+                   '_middleCurl_ctrl': [not_inverted, not_inverted],
+                   '_ringCurl_ctrl': [not_inverted, not_inverted],
+                   '_pinkyCurl_ctrl': [not_inverted, not_inverted],
+                   
+                   # Fingers
                    '_thumb03_ctrl': [not_inverted, not_inverted],
                    '_thumb02_ctrl': [not_inverted, not_inverted],
                    '_thumb01_ctrl': [not_inverted, not_inverted],
@@ -213,7 +233,6 @@ def get_persistent_settings_auto_biped_rig_interface():
         try:
             stored_settings = eval(str(cmds.optionVar(q=("gt_auto_biped_rig_interface_setup"))))
             for stored_item in stored_settings:
-                #print(stored_item)
                 for item in gt_ab_interface_settings:
                     if stored_item == item:
                         gt_ab_interface_settings[item] = stored_settings.get(stored_item)
@@ -236,7 +255,7 @@ def reset_persistent_settings_auto_biped_rig_interface():
     gt_ab_interface_settings['namespace'] = ''
     cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
   
-    
+  
              
 # Main Window ============================================================================
 def build_gui_custom_rig_interface():
@@ -473,12 +492,18 @@ def gt_ab_mirror_pose(gt_ab_ctrls, source_side, namespace=''):
                     key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]
                     transforms = []
 
-                    transforms.append([True, key[0][0], 'tx'])
+                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.
+                    transforms.append([True, key[0][0], 'tx']) 
                     transforms.append([True, key[0][1], 'ty'])
                     transforms.append([True, key[0][2], 'tz'])
                     transforms.append([True, key[1][0], 'rx'])
                     transforms.append([True, key[1][1], 'ry'])
                     transforms.append([True, key[1][2], 'rz'])
+                    
+                    if len(key) > 2: # Mirroring Scale?
+                        transforms.append([True, False, 'sx'])
+                        transforms.append([True, False, 'sy'])
+                        transforms.append([True, False, 'sz'])
                     
                     # Transfer Right to Left
                     if source_side is 'right':
@@ -519,12 +544,12 @@ def gt_ab_mirror_pose(gt_ab_ctrls, source_side, namespace=''):
         if len(errors) != 0:
             unique_message = '<' + str(random.random()) + '>'
             if len(errors) == 1:
-                is_plural = ' attribute was '
+                is_plural = 'attribute was'
             else:
-                is_plural = ' attributes were '
+                is_plural = 'attributes were'
             for error in errors:
                 print(str(error))
-            sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + 'ignored. (Open Script Editor to see a list)\n')
+            sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + ' ignored. (Open Script Editor to see a list)\n')
     else:
         cmds.warning('No controls were found. Please check if a namespace is necessary.')
     cmds.setFocus("MayaWindow")
