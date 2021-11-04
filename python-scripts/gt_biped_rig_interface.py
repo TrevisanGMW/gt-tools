@@ -31,12 +31,12 @@
  1.3.2 - 2021-11-03
  Added IK fingers to mirroring functions
  
- 1.3.2 - 2021-11-04
+ 1.3.3 - 2021-11-04
  Added animation import/export functions. (".anim" with ".json" data)
  Changed the pose file extension to ".pose" instead of ".json" to avoid confusion
  Added animation mirroring functions
  
- 
+
  TODO:
     Add settings (option to simplify GUI, only toggles)
     Option to reset persistent settings
