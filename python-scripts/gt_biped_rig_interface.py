@@ -28,6 +28,9 @@
  Added scale mirroring functions (fixes finger abduction pose)
  Included curl controls in the mirroring list
  
+ 1.3.2 - 2021-11-03
+ Added IK fingers to mirroring functions
+ 
  
  TODO:
     Add settings (option to simplify GUI, only toggles)
@@ -59,7 +62,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.1"
+script_version = "1.3.2"
 
 # Python Version
 python_version = sys.version_info.major
@@ -136,6 +139,7 @@ right_prefix = 'right'
 not_inverted = (False, False, False)
 invert_x = (True, False, False)
 invert_y = (False, True, False)
+invert_z = (False, False, True)
 invert_yz = (False, True, True)
 invert_all = (True, True, True)
 
@@ -151,7 +155,7 @@ gt_ab_general_ctrls = {# Fingers Automation
                    '_ringCurl_ctrl': [not_inverted, not_inverted],
                    '_pinkyCurl_ctrl': [not_inverted, not_inverted],
                    
-                   # Fingers
+                   # Fingers FK
                    '_thumb03_ctrl': [not_inverted, not_inverted],
                    '_thumb02_ctrl': [not_inverted, not_inverted],
                    '_thumb01_ctrl': [not_inverted, not_inverted],
@@ -167,6 +171,13 @@ gt_ab_general_ctrls = {# Fingers Automation
                    '_pinky03_ctrl': [not_inverted, not_inverted],
                    '_pinky02_ctrl': [not_inverted, not_inverted],
                    '_pinky01_ctrl': [not_inverted, not_inverted],
+                   
+                   # Finger IK
+                   '_thumb_ik_ctrl': [invert_z, invert_x],
+                   '_index_ik_ctrl': [invert_z, invert_x],
+                   '_middle_ik_ctrl': [invert_z, invert_x],
+                   '_ring_ik_ctrl': [invert_z, invert_x],
+                   '_pinky_ik_ctrl': [invert_z, invert_x],
                    # Clavicle
                    '_clavicle_ctrl': [not_inverted, not_inverted],
                    # Eyes
