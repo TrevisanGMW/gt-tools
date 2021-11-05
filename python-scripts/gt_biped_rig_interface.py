@@ -31,7 +31,12 @@
  1.3.2 - 2021-11-03
  Added IK fingers to mirroring functions
  
+ 1.3.3 - 2021-11-04
+ Added animation import/export functions. (".anim" with ".json" data)
+ Changed the pose file extension to ".pose" instead of ".json" to avoid confusion
+ Added animation mirroring functions
  
+
  TODO:
     Add settings (option to simplify GUI, only toggles)
     Option to reset persistent settings
@@ -62,7 +67,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.2"
+script_version = "1.3.3"
 
 # Python Version
 python_version = sys.version_info.major
@@ -333,10 +338,9 @@ def build_gui_custom_rig_interface():
     cmds.button(l ="IK to FK", c=lambda x:gt_ab_seamless_fk_ik_switch(right_leg_seamless_dict, 'ik_to_fk', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) #R
     cmds.button(l ="IK to FK", c=lambda x:gt_ab_seamless_fk_ik_switch(left_leg_seamless_dict, 'ik_to_fk', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) #L
     
+    # Pose Management
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=body_column)
-    
-    # Pose Management
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.text('Pose Management:') 
     cmds.rowColumnLayout(nc=2, cw=[(1, 129),(2, 130)], cs=[(1,0), (2,5)], p=body_column)
@@ -353,14 +357,40 @@ def build_gui_custom_rig_interface():
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,0)], p=body_column)
     cmds.button(l ="Reset Back to Default Pose", c=lambda x:gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130)
     
-    # Export Import
+    # Export Import Pose
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.text('Import/Export Poses:') 
     cmds.rowColumnLayout(nc=2, cw=[(1, 129),(2, 130)], cs=[(1,0), (2,5)], p=body_column)
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.separator(h=btn_margin, style='none') # Empty Space
-    cmds.button(l ="Import Current Pose", c=lambda x:import_current_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130)
-    cmds.button(l ="Export Current Pose", c=lambda x:export_current_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) 
+    cmds.button(l ="Import Current Pose", c=lambda x:gt_import_rig_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130)
+    cmds.button(l ="Export Current Pose", c=lambda x:gt_export_rig_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) 
+    
+    # Animation Management
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=body_column)
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.text('Animation Management:') 
+    cmds.rowColumnLayout(nc=2, cw=[(1, 129),(2, 130)], cs=[(1,0), (2,5)], p=body_column)
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.button(l ="Mirror Right to Left", c=lambda x:gt_ab_mirror_anim([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) #R
+    cmds.button(l ="Mirror Left to Right", c=lambda x:gt_ab_mirror_anim([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) #L
+
+    cmds.separator(h=2, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,0)], p=body_column)
+    cmds.button(l ="Reset Back to Default Pose", c=lambda x:gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130)
+    
+    # Export Import Animation
+    cmds.separator(h=2, style='none') # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,0)], p=body_column)
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.text('Import/Export Animation:') 
+    cmds.rowColumnLayout(nc=2, cw=[(1, 129),(2, 130)], cs=[(1,0), (2,5)], p=body_column)
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.separator(h=btn_margin, style='none') # Empty Space
+    cmds.button(l ="Import Animation", c=lambda x:gt_import_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130)
+    cmds.button(l ="Export Animation", c=lambda x:gt_export_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), w=130) 
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
                                                                                                
@@ -624,9 +654,9 @@ def gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespa
                     cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
 
 
-def export_current_pose(namespace =''):
+def gt_export_rig_pose(namespace =''):
     ''' 
-    Exports a JSON file containing the translate, rotate and scale data from the rig controls (used to export a pose)
+    Exports a Pose (JSON) file containing the translate, rotate and scale data from the rig controls (used to export a pose)
     Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
     
         Parameters:
@@ -668,7 +698,7 @@ def export_current_pose(namespace =''):
 
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - POSE File (*.pose)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -696,9 +726,9 @@ def export_current_pose(namespace =''):
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
-def import_current_pose(debugging=False, debugging_path='', namespace=''):
+def gt_import_rig_pose(debugging=False, debugging_path='', namespace=''):
     ''' 
-    Imports a JSON file containing the translate, rotate and scale data for the rig controls (exported using the "export_current_pose" function)
+    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the "gt_export_rig_pose" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
     
             Parameters:
@@ -777,7 +807,7 @@ def import_current_pose(debugging=False, debugging_path='', namespace=''):
     import_method = 'object-space'
     
     if not debugging:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - POSE File (*.pose)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
     else:
         file_name = [debugging_path]
     
@@ -826,16 +856,343 @@ def import_current_pose(debugging=False, debugging_path='', namespace=''):
                         
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose imported from </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(pose_file) +'</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True, alpha=.9)
-                        sys.stdout.write('Pose exported to the file "' + pose_file + '".')
+                        sys.stdout.write('Pose imported from the file "' + pose_file + '".')
                     
                 except Exception as e:
                     print(e)
-                    cmds.warning('An error occured when importing the pose. Make sure you imported the correct JSON file.')
+                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid POSE file.')
         except:
             file_exists = False
             cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
 
 
+def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
+    '''
+    Mirrors the character animation from one side to the other
+
+        Parameters:
+                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
+                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    
+    '''
+    # Merge Dictionaries
+    gt_ab_ctrls_dict = {}
+    for ctrl_dict in gt_ab_ctrls:
+        gt_ab_ctrls_dict.update(ctrl_dict)
+   
+    # Find available Ctrls
+    available_ctrls = []
+    for obj in gt_ab_ctrls_dict:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    # Start Mirroring
+    if len(available_ctrls) != 0:
+     
+        errors = []
+            
+        right_side_objects = []
+        left_side_objects = []
+
+        for obj in available_ctrls:  
+            if right_prefix in obj:
+                right_side_objects.append(obj)
+                
+        for obj in available_ctrls:  
+            if left_prefix in obj:
+                left_side_objects.append(obj)
+                
+        for left_obj in left_side_objects:
+            for right_obj in right_side_objects:
+                remove_side_tag_left = left_obj.replace(left_prefix,'')
+                remove_side_tag_right = right_obj.replace(right_prefix,'')
+                if remove_side_tag_left == remove_side_tag_right:
+                    # print(right_obj + ' was paired with ' + left_obj)
+                    
+                    key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]
+                    transforms = []
+
+                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.
+                    transforms.append([True, key[0][0], 'tx']) 
+                    transforms.append([True, key[0][1], 'ty'])
+                    transforms.append([True, key[0][2], 'tz'])
+                    transforms.append([True, key[1][0], 'rx'])
+                    transforms.append([True, key[1][1], 'ry'])
+                    transforms.append([True, key[1][2], 'rz'])
+                    
+                    if len(key) > 2: # Mirroring Scale?
+                        transforms.append([True, False, 'sx'])
+                        transforms.append([True, False, 'sy'])
+                        transforms.append([True, False, 'sz'])
+                    
+                    # Transfer Right to Left 
+                    if source_side is 'right':
+                        for transform in transforms:
+                            if transform[0]: # Using Transform?
+                                # Get Keys/Values
+                                frames = cmds.keyframe(namespace + right_obj, q=1, at=transform[2])
+                                values = cmds.keyframe(namespace + right_obj, q=1, at=transform[2], valueChange=True)
+                                
+                                if transform[1]: # Inverted?
+                                    inverted_values = []
+                                    for val in values:
+                                        inverted_values.append(val* -1)
+                                    values = inverted_values
+                                
+                                # Set Keys/Values
+                                for index in range(len(values)):
+                                    cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=transform[2], value=values[index])
+
+                        # Other Attributes
+                        attributes = cmds.listAnimatable(namespace + right_obj)
+                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
+                        for attr in attributes:
+                            try:
+                                short_attr = attr.split('.')[-1]
+                                if short_attr not in default_channels:
+                                     # Get Keys/Values
+                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=short_attr)
+                                    values = cmds.keyframe(namespace + right_obj, q=1, at=short_attr, valueChange=True)
+
+                                    # Set Keys/Values
+                                    for index in range(len(values)):
+                                        cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=short_attr, value=values[index])
+                            except:
+                                pass # 0 keyframes
+                    
+
+                    # Transfer Left to Right
+                    if source_side is 'left':
+                        for transform in transforms:
+                            if transform[0]: # Using Transform?
+                            
+                                try:
+                                    # Get Keys/Values
+                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=transform[2])
+                                    values = cmds.keyframe(namespace + left_obj, q=1, at=transform[2], valueChange=True)
+                                    
+                                    if transform[1]: # Inverted?
+                                        inverted_values = []
+                                        for val in values:
+                                            inverted_values.append(val* -1)
+                                        values = inverted_values
+                                    
+                                    # Set Keys/Values
+                                    for index in range(len(values)):
+                                        cmds.setKeyframe(namespace + right_obj, time=frames[index], attribute=transform[2], value=values[index])
+                                except:
+                                    pass # 0 keyframes
+
+                        # Other Attributes
+                        attributes = cmds.listAnimatable(namespace + left_obj)
+                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
+                        for attr in attributes:
+                            try:
+                                short_attr = attr.split('.')[-1]
+                                if short_attr not in default_channels:
+                                     # Get Keys/Values
+                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=short_attr)
+                                    values = cmds.keyframe(namespace + left_obj, q=1, at=short_attr, valueChange=True)
+
+                                    # Set Keys/Values
+                                    for index in range(len(values)):
+                                        cmds.setKeyframe(namespace + right_obj, time=frames[index], attribute=short_attr, value=values[index])
+                            except:
+                                pass # 0 keyframes
+
+        # Print Feedback
+        unique_message = '<' + str(random.random()) + '>'
+        source_message = '(Left to Right)'
+        if source_side == 'right':
+            source_message = '(Right to Left)'
+        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation </span><span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)
+                           
+        if len(errors) != 0:
+            unique_message = '<' + str(random.random()) + '>'
+            if len(errors) == 1:
+                is_plural = ' error '
+            else:
+                is_plural = ' errors '
+            for error in errors:
+                print(str(error))
+            sys.stdout.write(str(len(errors)) + is_plural + 'occurred. (Open Script Editor to see a list)\n')
+    else:
+        cmds.warning('No controls were found. Please check if a namespace is necessary.')
+    cmds.setFocus("MayaWindow")
+
+
+
+def gt_export_rig_animation(namespace =''):
+    ''' 
+    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe (animation) data from the rig controls.
+
+        Parameters:
+            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    
+    ''' 
+    # Validate Operation and Write file
+    is_valid = True
+    successfully_created_file = False
+
+    # Find Available Controls
+    available_ctrls = []
+    for obj in gt_ab_ik_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_fk_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_general_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_center_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+    
+    
+    # No Controls were found
+    if len(available_ctrls) == 0:
+        is_valid=False
+        cmds.warning('No controls were found. Make sure you are using the correct namespace.')
+
+
+    if is_valid:
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - ANIM File (*.anim)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Animation for "' + script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+            
+
+    if successfully_created_file and is_valid:
+        export_dict = {'gt_interface_version' : script_version, 'gt_export_method' : 'object-space'}
+                
+        # Extract Keyframes:
+        for obj in available_ctrls:
+            attributes = cmds.listAnimatable(namespace + obj)
+            for attr in attributes:
+                try:
+                    short_attr = attr.split('.')[-1]
+                    # all the time value
+                    frames = cmds.keyframe(namespace + obj, q=1, at=short_attr)
+                    # all the attribute value associated
+                    values = cmds.keyframe(namespace + obj, q=1, at=short_attr, valueChange=True)
+                    # store it in the dictionary with key 'objectName.attribute' and value
+                    export_dict['{}.{}'.format(obj, short_attr)]=zip(frames, values)
+                except:
+                    pass # 0 keyframes
+
+        try: 
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+      
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Animation exported to </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(file_name[0]) +'</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Animation exported to the file "' + pose_file + '".')
+        except Exception as e:
+            print (e)
+            successfully_created_file = False
+            cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
+
+
+def gt_import_rig_animation(debugging=False, debugging_path='', namespace=''):
+    ''' 
+    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the "gt_export_rig_animation" function)
+    Uses the imported data to set the translate, rotate and scale position of every control curve
+    
+            Parameters:
+                debugging (bool): If debugging, the function will attempt to auto load the file provided in the "debugging_path" parameter
+                debugging_path (string): Debugging path for the import function
+                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    
+    ''' 
+    # Find Available Controls
+    available_ctrls = []
+    for obj in gt_ab_ik_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_fk_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_general_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_center_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+    
+    # Track Current State
+    import_version = 0.0
+    import_method = 'object-space'
+    
+    if not debugging:
+        file_name = cmds.fileDialog2(fileFilter=script_name + " - ANIM File (*.anim)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+    else:
+        file_name = [debugging_path]
+    
+    if len(file_name) > 0:
+        anim_file = file_name[0]
+        file_exists = True
+    else:
+        file_exists = False
+    
+    if file_exists:
+        try: 
+            with open(anim_file) as json_file:
+                data = json.load(json_file)
+                try:
+                    is_valid_file = True
+                    is_operation_valid = True
+
+                    if not data.get('gt_interface_version'):
+                        is_valid_file = False
+                        cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
+                    else:                       
+                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_interface_version'))))
+                
+                    if data.get('gt_export_method'):
+                      import_method = data.get('gt_export_method')
+                
+                    if len(available_ctrls) == 0:
+                        cmds.warning('No controls were found. Please check if a namespace is necessary.')
+                        is_operation_valid = False
+                        
+                    if is_operation_valid:
+                        # Object-Space
+                        for key, value in data.iteritems():
+                            if key != 'gt_interface_version' and key != 'gt_export_method':
+                                for time, attr_value in value:
+                                    obj, attr = key.split('.')
+                                    cmds.setKeyframe(namespace + obj, time=time, attribute=attr, value=attr_value)
+
+                        unique_message = '<' + str(random.random()) + '>'
+                        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation imported from </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(anim_file) +'</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True, alpha=.9)
+                        sys.stdout.write('Animation imported from the file "' + anim_file + '".')
+                    
+                except Exception as e:
+                    print(e)
+                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')
+        except:
+            file_exists = False
+            cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
             
 #Build UI
 if __name__ == '__main__':
