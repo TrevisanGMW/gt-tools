@@ -131,7 +131,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
     def create_widgets(self):
         ''' Create Widgets '''
         # Title
-        self.title_label = QtWidgets.QLabel("GT Path Manager")
+        self.title_label = QtWidgets.QLabel(script_name)
         self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); \
                                         border: 0px solid rgb(93, 93, 93); \
                                         color: rgb(255, 255, 255);\
