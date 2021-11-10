@@ -155,6 +155,9 @@
  
  1.7.16 - 2021-11-08
  Big update to custom rig interface
+ 
+ 1.7.17 - 2021-11-08
+ Fixed an issue where IK fingers wouldn't follow the correct prefered angle
 
  TODO:
     Make scale system and breathing system optional
@@ -193,7 +196,7 @@ import re
 script_name = 'GT Auto Biped Rigger'
 
 # Version:
-script_version = '1.7.16'
+script_version = '1.7.17'
 
 # Python Version
 python_version = sys.version_info.major
@@ -5946,7 +5949,7 @@ def create_controls():
         for index in range(len(ik_chain)):
             change_viewport_color(ik_chain[index][0], ik_jnt_color)
             cmds.setAttr(ik_chain[index][0] + '.radius', (cmds.getAttr(ik_chain[index][0] + '.radius')*.5))
-            cmds.setAttr(ik_chain[index][0] + '.preferredAngleZ', -0.01)
+            cmds.setAttr(ik_chain[index][0] + '.preferredAngleZ', -30)
             if index == 0:
                 cmds.parent(ik_chain[index][0], left_ik_wrist_switch)
                 ik_chain_start = ik_chain[index][0]
@@ -6421,7 +6424,7 @@ def create_controls():
         for index in range(len(ik_chain)):
             change_viewport_color(ik_chain[index][0], ik_jnt_color)
             cmds.setAttr(ik_chain[index][0] + '.radius', (cmds.getAttr(ik_chain[index][0] + '.radius')*.5))
-            cmds.setAttr(ik_chain[index][0] + '.preferredAngleZ', -0.01)
+            cmds.setAttr(ik_chain[index][0] + '.preferredAngleZ', -30)
             if index == 0:
                 cmds.parent(ik_chain[index][0], right_ik_wrist_switch)
                 ik_chain_start = ik_chain[index][0]
