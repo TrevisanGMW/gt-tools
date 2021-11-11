@@ -45,13 +45,16 @@
  Fixed issue where the arm pole vector wouldn't mirror properly
  Added option to reset persistent settings
  
+ 1.3.5 - 2021-11-10
+ Added animation and pose reset
+ Updates animation functions to account for tangents and other key properties
+ 
  TODO:
     Convert GUI to QT
-    Extract keyframe tangents
-    Add Flip options to animation and pose (instead of just mirror)
+    Add Flip options
+    Overwrite keys for animation functions
     Add Namespace picker (button to the right of the namespace textfield)
     Option to save pose thumbnail when exporting it 
-    Option to show or not feedback messages
     Add option to open multiple instances
     
 """
@@ -79,7 +82,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.4"
+script_version = "1.3.5"
 
 # Python Version
 python_version = sys.version_info.major
@@ -248,7 +251,8 @@ gt_ab_interface_settings = {
                             'auto_key_method_bake' : True,
                             'auto_key_start_frame' : 1,
                             'auto_key_end_frame' : 10,
-                            'pose_export_thumbnail' : True,
+                            'pose_export_thumbnail' : False,
+                            'allow_multiple_instances' : False,
                            }
                            
 gt_ab_interface_settings_default = copy.deepcopy(gt_ab_interface_settings)
@@ -397,7 +401,6 @@ def build_gui_custom_rig_interface():
 
         update_fk_ik_buttons()
 
-
                            
     def get_auto_key_current_frame(target_integer_field='start'):
         '''
@@ -425,6 +428,14 @@ def build_gui_custom_rig_interface():
         '''
         
         gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
+        
+        
+    def reset_animation_and_pose():
+        '''
+        Deletes Keyframes and Resets pose back to default
+        '''
+        gt_reset_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
+        gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
         
     def build_custom_help_window(input_text, help_title=''):
         ''' 
@@ -674,7 +685,7 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space
     cmds.button(l ="Reset Animation (Delete Keyframes)", c=lambda x:gt_reset_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)
     cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space
-    cmds.button(l ="Reset Animation and Pose", c=lambda x:gt_reset_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)
+    cmds.button(l ="Reset Animation and Pose", c=lambda x:reset_animation_and_pose(), p=anim_management_column)
     
 
     # Export Import Pose
@@ -687,10 +698,9 @@ def build_gui_custom_rig_interface():
     cmds.button(l ="Import Animation", c=lambda x:gt_import_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)
     cmds.button(l ="Export Animation", c=lambda x:gt_export_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) 
     
-
+    
     ############# Settings Tab #############
     settings_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,0)], p=tabs)
-    # settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 0)], p=settings_tab)
     
     # General Settings
     enabled_bgc_color = (.4, .4, .4)
@@ -700,19 +710,26 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=5, style='none') # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 20)], cs=[(1,10)]) 
     
+    # Allow Multiple Instances
+    is_option_enabled = False
+    cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
+    cmds.checkBox( label='  Allow Multiple Instances', value=gt_ab_interface_settings.get('allow_multiple_instances'), ebg=True, cc=lambda x:invert_stored_setting('allow_multiple_instances'), en=is_option_enabled) 
+
+    multiple_instances_help_message = 'Allow Multiple Instances Help Placeholder.'
+    multiple_instances_help_title = 'Allow Multiple Instances'
+    cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))
+    
     # Export Thumbnail With Pose
     is_option_enabled = False
     cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
-    # cmds.text(' ', bgc=disabled_color, h=20) # Tiny Empty Space
     cmds.checkBox( label='  Export Thumbnail with Pose', value=gt_ab_interface_settings.get('pose_export_thumbnail'), ebg=True, cc=lambda x:invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled) 
 
     export_pose_thumbnail_help_message = 'Exports a thumbnail ".jpg" file together with your ".pose" file.\nThis extra thumbnail file can be used to quickly undestand what you pose looks like before importing it.\n\nThe thumbnail is a screenshot of you active viewport at the moment of exporting the pose. If necessary, export it again to generate another thumbnail.'
     export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'
     cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(export_pose_thumbnail_help_message, export_pose_thumbnail_help_title))
-    
+   
     # Reset Persistent Settings
     cmds.separator(h=btn_margin, style='none', p=settings_tab) # Empty Space
-    
     settings_buttons_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_tab) 
     cmds.button(l ="Reset Persistent Settings", c=lambda x:reset_persistent_settings_auto_biped_rig_interface(), p=settings_buttons_column)
         
@@ -1325,6 +1342,25 @@ def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
                 namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     '''
+    
+    def invert_float_list_values(float_list):
+        '''
+        Returns a list where all the float values are inverted. For example, if the value is 5, it will then become -5.
+
+            Parameters:
+                    float_list (list) : A list of floats.
+                    
+            Returns:
+                    inverted_float_list (list): A list of floats with their values inverted
+    
+        '''
+
+        inverted_values = []
+        for val in float_list:
+            inverted_values.append(val* -1)
+        return inverted_values
+
+    
     # Merge Dictionaries
     gt_ab_ctrls_dict = {}
     for ctrl_dict in gt_ab_ctrls:
@@ -1380,20 +1416,44 @@ def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
                     # Transfer Right to Left 
                     if source_side is 'right':
                         for transform in transforms:
-                            if transform[0]: # Using Transform?
-                                # Get Keys/Values
-                                frames = cmds.keyframe(namespace + right_obj, q=1, at=transform[2])
-                                values = cmds.keyframe(namespace + right_obj, q=1, at=transform[2], valueChange=True)
-                                
-                                if transform[1]: # Inverted?
-                                    inverted_values = []
-                                    for val in values:
-                                        inverted_values.append(val* -1)
-                                    values = inverted_values
-                                
-                                # Set Keys/Values
-                                for index in range(len(values)):
-                                    cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=transform[2], value=values[index])
+                            if transform[0]: # Using Transform? Inverted? Name of the Attr
+                                try:
+                                    attr = transform[2]
+                                    
+                                    # Get Values
+                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=attr)
+                                    values = cmds.keyframe(namespace + right_obj, q=1, at=attr, valueChange=True)
+                                    
+                                    in_angle_tangent = cmds.keyTangent(namespace + right_obj, at=attr, inAngle=True, query=True)
+                                    out_angle_tanget = cmds.keyTangent(namespace + right_obj, at=attr, outAngle=True, query=True)
+                                    is_locked = cmds.keyTangent(namespace + right_obj, at=attr, weightLock=True, query=True)
+                                    in_weight = cmds.keyTangent(namespace + right_obj, at=attr, inWeight=True, query=True)
+                                    out_weight = cmds.keyTangent(namespace + right_obj, at=attr, outWeight=True, query=True)
+                                    in_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, inTangentType=True, query=True)
+                                    out_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, outTangentType=True, query=True)
+                                    
+                                    if transform[1]: # Inverted?
+                                        values = invert_float_list_values(values)
+                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)
+                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)
+                                        in_weight = invert_float_list_values(in_weight)
+                                        out_weight = invert_float_list_values(out_weight)
+
+
+                                    # Set Keys/Values
+                                    for index in range(len(values)):
+                                        time = frames[index]
+                                        cmds.setKeyframe(namespace + left_obj, time=time, attribute=attr, value=values[index])
+                                        # Set Tangents
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)
+                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)
+                                except:
+                                    pass # 0 keyframes
 
                         # Other Attributes
                         attributes = cmds.listAnimatable(namespace + right_obj)
@@ -1412,26 +1472,45 @@ def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
                             except:
                                 pass # 0 keyframes
                     
-
                     # Transfer Left to Right
                     if source_side is 'left':
                         for transform in transforms:
-                            if transform[0]: # Using Transform?
-                            
+                            if transform[0]: # Using Transform? Inverted? Name of the Attr
                                 try:
-                                    # Get Keys/Values
-                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=transform[2])
-                                    values = cmds.keyframe(namespace + left_obj, q=1, at=transform[2], valueChange=True)
+                                    attr = transform[2]
+                                    
+                                    # Get Values
+                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=attr)
+                                    values = cmds.keyframe(namespace + left_obj, q=1, at=attr, valueChange=True)
+                                    
+                                    in_angle_tangent = cmds.keyTangent(namespace + left_obj, at=attr, inAngle=True, query=True)
+                                    out_angle_tanget = cmds.keyTangent(namespace + left_obj, at=attr, outAngle=True, query=True)
+                                    is_locked = cmds.keyTangent(namespace + left_obj, at=attr, weightLock=True, query=True)
+                                    in_weight = cmds.keyTangent(namespace + left_obj, at=attr, inWeight=True, query=True)
+                                    out_weight = cmds.keyTangent(namespace + left_obj, at=attr, outWeight=True, query=True)
+                                    in_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, inTangentType=True, query=True)
+                                    out_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, outTangentType=True, query=True)
                                     
                                     if transform[1]: # Inverted?
-                                        inverted_values = []
-                                        for val in values:
-                                            inverted_values.append(val* -1)
-                                        values = inverted_values
-                                    
+                                        values = invert_float_list_values(values)
+                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)
+                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)
+                                        in_weight = invert_float_list_values(in_weight)
+                                        out_weight = invert_float_list_values(out_weight)
+
+
                                     # Set Keys/Values
                                     for index in range(len(values)):
-                                        cmds.setKeyframe(namespace + right_obj, time=frames[index], attribute=transform[2], value=values[index])
+                                        time = frames[index]
+                                        cmds.setKeyframe(namespace + right_obj, time=time, attribute=attr, value=values[index])
+                                        # Set Tangents
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)
+                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)
                                 except:
                                     pass # 0 keyframes
 
@@ -1533,14 +1612,19 @@ def gt_export_rig_animation(namespace =''):
             for attr in attributes:
                 try:
                     short_attr = attr.split('.')[-1]
-                    # all the time value
                     frames = cmds.keyframe(namespace + obj, q=1, at=short_attr)
-                    # all the attribute value associated
                     values = cmds.keyframe(namespace + obj, q=1, at=short_attr, valueChange=True)
-                    # store it in the dictionary with key 'objectName.attribute' and value
-                    export_dict['{}.{}'.format(obj, short_attr)]=zip(frames, values)
+                    in_angle_tangent = cmds.keyTangent(namespace + obj, at=short_attr, inAngle=True, query=True)
+                    out_angle_tanget = cmds.keyTangent(namespace + obj, at=short_attr, outAngle=True, query=True)
+                    is_locked = cmds.keyTangent(namespace + obj, at=short_attr, weightLock=True, query=True)
+                    in_weight = cmds.keyTangent(namespace + obj, at=short_attr, inWeight=True, query=True)
+                    out_weight = cmds.keyTangent(namespace + obj, at=short_attr, outWeight=True, query=True)
+                    in_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, inTangentType=True, query=True)
+                    out_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, outTangentType=True, query=True)
+                    export_dict['{}.{}'.format(obj, short_attr)] = zip(frames, values, in_angle_tangent, out_angle_tanget, is_locked, in_weight, out_weight, in_tangent_type, out_tangent_type)
                 except:
                     pass # 0 keyframes
+
 
         try: 
             with open(pose_file, 'w') as outfile:
@@ -1627,16 +1711,37 @@ def gt_import_rig_animation(debugging=False, debugging_path='', namespace=''):
                         
                     if is_operation_valid:
                         # Object-Space
-                        for key, value in data.iteritems():
+                        for key, dict_value in data.iteritems():
                             if key != 'gt_interface_version' and key != 'gt_export_method':
-                                for time, attr_value in value:
-                                    obj, attr = key.split('.')
-                                    cmds.setKeyframe(namespace + obj, time=time, attribute=attr, value=attr_value)
+                                for key_data in dict_value:
+                                    # Unpack Data
+                                    time = key_data[0]
+                                    value = key_data[1]
+                                    in_angle_tangent = key_data[2]
+                                    out_angle_tanget = key_data[3] 
+                                    is_locked = key_data[4]
+                                    in_weight = key_data[5]
+                                    out_weight = key_data[6] 
+                                    in_tangent_type = key_data[7] 
+                                    out_tangent_type = key_data[8] 
+                                    
+                                    try:
+                                        obj, attr = key.split('.')
+                                        cmds.setKeyframe(namespace + obj, time=time, attribute=attr, value=value)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), lock=is_locked, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inAngle=in_angle_tangent, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outAngle=out_angle_tanget, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inWeight=in_weight, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outWeight=out_weight, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inTangentType=in_tangent_type, e=True)
+                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outTangentType=out_tangent_type, e=True)
+                                    except:
+                                        pass
 
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation imported from </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(anim_file) +'</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Animation imported from the file "' + anim_file + '".')
-                    
+                            
                 except Exception as e:
                     print(e)
                     cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')
