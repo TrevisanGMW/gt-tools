@@ -438,7 +438,7 @@ def build_gui_custom_rig_interface():
         It also stores the new values after they are changed so future instances remember it.
         
                 Parameters:
-                    key_string (string) : Key name, used to determine what bool value to flip @@@
+                    key_string (string) : Key name, used to determine what bool value to flip
         '''
         gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)
         set_persistent_settings_rig_interface()
@@ -1444,7 +1444,7 @@ def gt_rig_pose_flip(namespace =''):
             # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)
         
             
-            # WIP WIP WIP @@@
+            # TODO
             # Set Pose
             # for ctrl in pose_dict:
             #     curent_object = pose_dict.get(ctrl) # Name, T, R, S
