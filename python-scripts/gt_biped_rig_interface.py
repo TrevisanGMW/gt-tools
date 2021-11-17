@@ -1,8 +1,7 @@
 """
  Custom Rig Interface for GT Auto Biped Rigger.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2021-01-05
- github.com/TrevisanGMW/gt-tools
-
+ github.com/TrevisanGMW/gt-tools - 2021-01-05
+ 
  1.0 - 2021-01-05
  Initial Release
 
@@ -49,7 +48,14 @@
  Added animation and pose reset
  Updates animation functions to account for tangents and other key properties
  
+ 1.3.6 - 2021-11-12
+ Allowed for multiple instances (in case animating multiple characters)
+ Changed icons and assigned an alternative one for extra instances
+ Added a missing import for "sys"
+
+ 
  TODO:
+    Created flip pose function
     Convert GUI to QT
     Add Flip options
     Overwrite keys for animation functions
@@ -74,6 +80,7 @@ import maya.cmds as cmds
 import random
 import json
 import copy
+import sys
 import os
 
 
@@ -82,7 +89,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.5"
+script_version = "1.3.6"
 
 # Python Version
 python_version = sys.version_info.major
@@ -245,21 +252,21 @@ gt_ab_center_ctrls = ['cog_ctrl',
                       'right_eye_ctrl',
                       ]            
 
-gt_ab_interface_settings = {
-                            'namespace' : '',
-                            'auto_key_switch' : True,
-                            'auto_key_method_bake' : True,
-                            'auto_key_start_frame' : 1,
-                            'auto_key_end_frame' : 10,
-                            'pose_export_thumbnail' : False,
-                            'allow_multiple_instances' : False,
-                           }
+gt_custom_rig_interface_settings = {
+                                    'namespace' : '',
+                                    'auto_key_switch' : True,
+                                    'auto_key_method_bake' : True,
+                                    'auto_key_start_frame' : 1,
+                                    'auto_key_end_frame' : 10,
+                                    'pose_export_thumbnail' : False,
+                                    'allow_multiple_instances' : False,
+                                   }
                            
-gt_ab_interface_settings_default = copy.deepcopy(gt_ab_interface_settings)
+gt_custom_rig_interface_settings_default = copy.deepcopy(gt_custom_rig_interface_settings)
 
 
 # Manage Persistent Settings
-def get_persistent_settings_auto_biped_rig_interface():
+def get_persistent_settings_rig_interface():
     ''' 
     Checks if persistant settings for GT Auto Biped Rig Interface exists and loads it if this is the case.
     It assumes that persistent settings were stored using the cmds.optionVar function.
@@ -272,27 +279,27 @@ def get_persistent_settings_auto_biped_rig_interface():
         try:
             stored_settings = eval(str(cmds.optionVar(q=("gt_auto_biped_rig_interface_setup"))))
             for stored_item in stored_settings:
-                for item in gt_ab_interface_settings:
+                for item in gt_custom_rig_interface_settings:
                     if stored_item == item:
-                        gt_ab_interface_settings[item] = stored_settings.get(stored_item)
+                        gt_custom_rig_interface_settings[item] = stored_settings.get(stored_item)
         except:
             print('Couldn\'t load persistent settings, try resetting it in the help menu.')
 
 
-def set_persistent_settings_auto_biped_rig_interface():
+def set_persistent_settings_rig_interface():
     ''' 
     Stores persistant settings for GT Auto Biped Rig Interface.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
     '''
-    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_ab_interface_settings)))
+    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings)))
 
 
-def reset_persistent_settings_auto_biped_rig_interface():
+def reset_persistent_settings_rig_interface():
     ''' Resets persistant settings for GT Auto Biped Rig Interface '''
     cmds.optionVar( remove='gt_auto_biped_rig_interface_setup' )
-    gt_ab_interface_settings =  gt_ab_interface_settings_default
-    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_ab_interface_settings_default)))
+    gt_custom_rig_interface_settings =  gt_custom_rig_interface_settings_default
+    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings_default)))
     cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
     try:
         cmds.evalDeferred('build_gui_custom_rig_interface()')
@@ -308,9 +315,27 @@ def reset_persistent_settings_auto_biped_rig_interface():
              
 # Main Window ============================================================================
 def build_gui_custom_rig_interface():
+    
+    # Retrieve Persistent Settings
+    get_persistent_settings_rig_interface()
+    
     rig_interface_window_name = 'build_gui_custom_rig_interface'
-    if cmds.window(rig_interface_window_name, exists =True):
-        cmds.deleteUI(rig_interface_window_name)    
+    is_secondary_instance = False
+    print(gt_custom_rig_interface_settings)
+    if cmds.window(rig_interface_window_name, exists=True) and not gt_custom_rig_interface_settings.get('allow_multiple_instances'):
+        cmds.deleteUI(rig_interface_window_name)  
+    # In case it's a secondary instance 
+    if gt_custom_rig_interface_settings.get('allow_multiple_instances'):
+        if cmds.window(rig_interface_window_name, exists=True):
+            rig_interface_window_name = rig_interface_window_name + '_' + str(random.random()).replace('.','')
+            is_secondary_instance = True
+            
+            gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)
+   
+            # print(gt_custom_rig_interface_settings_instanced)
+            
+            # gt_custom_rig_interface_settings = {}
+            # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_instanced
 
     # Main GUI Start Here =================================================================================
     def update_fk_ik_buttons():
@@ -327,9 +352,9 @@ def build_gui_custom_rig_interface():
                           [left_leg_seamless_dict, left_leg_fk_btn, left_leg_ik_btn]
                          ]
         for ctrl_btns in ctrl_btn_lists:
-            if cmds.objExists(gt_ab_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl')):
+            if cmds.objExists(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl')):
                 try:
-                    current_system = cmds.getAttr(gt_ab_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl') + '.influenceSwitch')
+                    current_system = cmds.getAttr(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl') + '.influenceSwitch')
                     if current_system < 0.5:
                         cmds.button(ctrl_btns[1], e=True, bgc=active_color) # FK Button
                         cmds.button(ctrl_btns[2], e=True, bgc=inactive_color) # IK Button
@@ -343,20 +368,25 @@ def build_gui_custom_rig_interface():
                 cmds.button(ctrl_btns[1], e=True, bgc=inactive_color) # IK Button
     
 
-    def update_stored_settings():
+    def update_stored_settings(is_instance=False):
         '''
         Extracts the namespace used and stores it as a persistent variable
         This function also calls "update_fk_ik_buttons()" so it updates the UI
+        
+                    Parameters:
+                        is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not
+                                                      This is used for secondary instances (multiple windows)
+                                              
         '''
-        gt_ab_interface_settings['namespace'] = cmds.textField(namespace_txt, q=True, text=True)
-        gt_ab_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)
-        gt_ab_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)
-        gt_ab_interface_settings['auto_key_method_bake'] = cmds.radioButton(auto_key_method_rb1, query=True, select=True)
-        gt_ab_interface_settings['auto_key_start_frame'] = cmds.intField(auto_key_start_int_field, q=True, value=0)
-        gt_ab_interface_settings['auto_key_end_frame'] = cmds.intField(auto_key_end_int_field, q=True, value=0)
+        gt_custom_rig_interface_settings['namespace'] = cmds.textField(namespace_txt, q=True, text=True)
+        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)
+        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)
+        gt_custom_rig_interface_settings['auto_key_method_bake'] = cmds.radioButton(auto_key_method_rb1, query=True, select=True)
+        gt_custom_rig_interface_settings['auto_key_start_frame'] = cmds.intField(auto_key_start_int_field, q=True, value=0)
+        gt_custom_rig_interface_settings['auto_key_end_frame'] = cmds.intField(auto_key_end_int_field, q=True, value=0)
 
 
-        if gt_ab_interface_settings.get('auto_key_switch'):
+        if gt_custom_rig_interface_settings.get('auto_key_switch'):
             cmds.radioButton(auto_key_method_rb1, e=True, en=True)
             cmds.radioButton(auto_key_method_rb2, e=True, en=True)
             cmds.rowColumnLayout(switch_range_column, e=True, en=True)
@@ -365,7 +395,8 @@ def build_gui_custom_rig_interface():
             cmds.radioButton(auto_key_method_rb2, e=True, en=False)
             cmds.rowColumnLayout(switch_range_column, e=True, en=False)
         
-        set_persistent_settings_auto_biped_rig_interface()
+        if not is_instance: # Doesn't update persistent settings for secondary instances
+            set_persistent_settings_rig_interface()
         update_fk_ik_buttons()
 
 
@@ -378,37 +409,49 @@ def build_gui_custom_rig_interface():
                      ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch
                      direction (optinal, string): Either "fk_to_ik" or "ik_to_fk". It determines what is the source and what is the target.
         '''
-        method = 'bake' if gt_ab_interface_settings.get('auto_key_method_bake') else 'sparse' 
+        method = 'bake' if gt_custom_rig_interface_settings.get('auto_key_method_bake') else 'sparse' 
         
         if is_auto_switch:
-            gt_ab_seamless_fk_ik_switch_auto(ik_fk_dict, 
+            gt_rig_fk_ik_switch_auto(ik_fk_dict, 
                                              namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,
-                                             keyframe=gt_ab_interface_settings.get('auto_key_switch'),
-                                             start_time=int(gt_ab_interface_settings.get('auto_key_start_frame')), 
-                                             end_time=int(gt_ab_interface_settings.get('auto_key_end_frame')), 
+                                             keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
+                                             start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), 
+                                             end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), 
                                              method=method
                                              )
 
         else:
-            gt_ab_seamless_fk_ik_switch(ik_fk_dict, 
+            gt_rig_fk_ik_switch(ik_fk_dict, 
                                         direction, 
                                         namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,
-                                        keyframe=gt_ab_interface_settings.get('auto_key_switch'),
-                                        start_time=int(gt_ab_interface_settings.get('auto_key_start_frame')), 
-                                        end_time=int(gt_ab_interface_settings.get('auto_key_end_frame')), 
+                                        keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
+                                        start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), 
+                                        end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), 
                                         method=method
                                         )
 
         update_fk_ik_buttons()
 
-                           
-    def get_auto_key_current_frame(target_integer_field='start'):
+    def invert_stored_setting(key_string):
+        '''
+        Used for boolean values, it inverts the value, so if True it becomes False and vice-versa.
+        It also stores the new values after they are changed so future instances remember it.
+        
+                Parameters:
+                    key_string (string) : Key name, used to determine what bool value to flip
+        '''
+        gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)
+        set_persistent_settings_rig_interface()
+                       
+    def get_auto_key_current_frame(target_integer_field='start', is_instance=False):
         '''
         Gets the current frame and auto fills an integer field.
         
                 Parameters:
                     target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the start or end integer field.
                                                               Can only be "start" or "end". Anything else will be understood as "end".
+                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not
+                                                      This is used for secondary instances (multiple windows)
         
         '''
         current_time = cmds.currentTime(q=True)
@@ -416,7 +459,8 @@ def build_gui_custom_rig_interface():
             cmds.intField(auto_key_start_int_field, e=True, value=current_time)
         else:
             cmds.intField(auto_key_end_int_field, e=True, value=current_time)
-        update_stored_settings()
+
+        update_stored_settings(is_instance)
     
     
     def mirror_fk_ik_pose(source_side='right'):
@@ -427,16 +471,17 @@ def build_gui_custom_rig_interface():
                      source_side (optinal, string): Either "right" or "left". It determines what is the source and what is the target of the mirror.
         '''
         
-        gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
+        gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
         
         
     def reset_animation_and_pose():
         '''
         Deletes Keyframes and Resets pose back to default
         '''
-        gt_reset_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
-        gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
-        
+        gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
+        gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)
+    
+
     def build_custom_help_window(input_text, help_title=''):
         ''' 
         Creates a help window to display the provided text
@@ -494,15 +539,17 @@ def build_gui_custom_rig_interface():
                 cmds.deleteUI(window_name, window=True)
         # Custom Help Dialog Ends Here =================================================================================
         
-    # Retrieve Persistent Settings
-    get_persistent_settings_auto_biped_rig_interface()
-
-    # Build UI
+    # Build UI.
     script_title = script_name
     if unique_rig != '':
         script_title = 'GT - Rig Interface for ' + unique_rig
       
-    build_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + '  (v' + script_version + ')',\
+    if is_secondary_instance:
+      script_version_title = '  (Extra Instance)'
+    else:
+      script_version_title = '  (v' + script_version + ')'
+      
+    build_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + script_version_title,\
                           titleBar=True, mnb=False, mxb=False, sizeable =True)
 
     cmds.window(rig_interface_window_name, e=True, s=True, wh=[1,1])
@@ -523,7 +570,7 @@ def build_gui_custom_rig_interface():
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     
     cmds.text('Namespace:')
-    namespace_txt = cmds.textField(text=gt_ab_interface_settings.get('namespace'), pht='Namespace:: (Optional)', cc=lambda x:update_stored_settings())
+    namespace_txt = cmds.textField(text=gt_custom_rig_interface_settings.get('namespace'), pht='Namespace:: (Optional)', cc=lambda x:update_stored_settings(is_secondary_instance))
     
     cmds.separator(h=10, style='none') # Empty Space
     
@@ -578,20 +625,20 @@ def build_gui_custom_rig_interface():
     switch_settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=[(1, 6)], p=fk_ik_switch_tab)
     cmds.separator(h=15) # Empty Space
     switch_auto_key_column = cmds.rowColumnLayout(nc=3, cw=[(1, 80),(2, 130),(3, 60)], cs=[(1, 25)], p=fk_ik_switch_tab)
-    auto_key_switch_chk = cmds.checkBox( label='Auto Key',  value=gt_ab_interface_settings.get('auto_key_switch'), cc=lambda x:update_stored_settings())
+    auto_key_switch_chk = cmds.checkBox( label='Auto Key',  value=gt_custom_rig_interface_settings.get('auto_key_switch'), cc=lambda x:update_stored_settings(is_secondary_instance))
     
     method_container = cmds.rowColumnLayout( p=switch_auto_key_column, numberOfRows=1)
     auto_key_method_rc = cmds.radioCollection()
-    auto_key_method_rb1 = cmds.radioButton( p=method_container, label=' Bake  ', sl=gt_ab_interface_settings.get('auto_key_method_bake'), cc=lambda x:update_stored_settings())
-    auto_key_method_rb2 = cmds.radioButton( p=method_container,  label=' Sparse ', sl=(not gt_ab_interface_settings.get('auto_key_method_bake')), cc=lambda x:update_stored_settings())
+    auto_key_method_rb1 = cmds.radioButton( p=method_container, label=' Bake  ', sl=gt_custom_rig_interface_settings.get('auto_key_method_bake'), cc=lambda x:update_stored_settings(is_secondary_instance))
+    auto_key_method_rb2 = cmds.radioButton( p=method_container,  label=' Sparse ', sl=(not gt_custom_rig_interface_settings.get('auto_key_method_bake')), cc=lambda x:update_stored_settings(is_secondary_instance))
     cmds.separator(h=5, style='none', p=fk_ik_switch_tab) # Empty Space
     
     switch_range_column = cmds.rowColumnLayout(nc=6, cw=[(1, 40),(2, 40),(3, 30),(4, 30),(5, 40),(6, 30)], cs=[(1, 10), (4, 10)], p=fk_ik_switch_tab)
     cmds.text('Start:', p=switch_range_column)
-    auto_key_start_int_field = cmds.intField(value=int(gt_ab_interface_settings.get('auto_key_start_frame')), p=switch_range_column, cc=lambda x:update_stored_settings())
+    auto_key_start_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))
     cmds.button(l ="Get", c=lambda x:get_auto_key_current_frame(), p=switch_range_column, h=5) #L
     cmds.text('End:', p=switch_range_column)
-    auto_key_end_int_field = cmds.intField(value=int(gt_ab_interface_settings.get('auto_key_end_frame')),p=switch_range_column, cc=lambda x:update_stored_settings())
+    auto_key_end_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))
     cmds.button(l ="Get", c=lambda x:get_auto_key_current_frame('end'), p=switch_range_column, h=5) #L
     cmds.separator(h=10, style='none', p=fk_ik_switch_tab) # Empty Space
     
@@ -627,13 +674,13 @@ def build_gui_custom_rig_interface():
     pose_mirror_ik_fk_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=pose_management_tab)
     
     # IK Pose Mirror
-    cmds.button(l ="IK Only >", c=lambda x:gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R
-    cmds.button(l ="FK Only >", c=lambda x:gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R
+    cmds.button(l ="IK Only >", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R
+    cmds.button(l ="FK Only >", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R
     
     
     # FK Pose Mirror
-    cmds.button(l ="< IK Only", c=lambda x:gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L
-    cmds.button(l ="< FK Only", c=lambda x:gt_ab_mirror_pose([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L
+    cmds.button(l ="< IK Only", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L
+    cmds.button(l ="< FK Only", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L
     
 
     # Reset Pose
@@ -641,7 +688,7 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=15, style='none', p=pose_management_column) # Empty Space
     cmds.text('Reset Pose:', p=pose_management_column) #R
     cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space
-    cmds.button(l ="Reset Back to Default Pose", c=lambda x:gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_management_column)
+    cmds.button(l ="Reset Back to Default Pose", c=lambda x:gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_management_column)
 
     # Export Import Pose
     cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space
@@ -651,8 +698,8 @@ def build_gui_custom_rig_interface():
     import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.separator(h=btn_margin, style='none') # Empty Space
-    cmds.button(l ="Import Current Pose", c=lambda x:gt_import_rig_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)
-    cmds.button(l ="Export Current Pose", c=lambda x:gt_export_rig_pose(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) 
+    cmds.button(l ="Import Current Pose", c=lambda x:gt_rig_pose_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)
+    cmds.button(l ="Export Current Pose", c=lambda x:gt_rig_pose_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) 
 
 
     ############# Animation Management Tab #############
@@ -675,19 +722,18 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.separator(h=btn_margin, style='none') # Empty Space
     
-    cmds.button(l ="Mirror ->", c=lambda x:gt_ab_mirror_anim([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #R
-    cmds.button(l ="<- Mirror", c=lambda x:gt_ab_mirror_anim([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #L
+    cmds.button(l ="Mirror ->", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #R
+    cmds.button(l ="<- Mirror", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #L
     
     # Reset Animation
     anim_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=anim_management_tab)
     cmds.separator(h=15, style='none', p=anim_management_column) # Empty Space
     cmds.text('Reset Animation:', p=anim_management_column) #R
     cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space
-    cmds.button(l ="Reset Animation (Delete Keyframes)", c=lambda x:gt_reset_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)
+    cmds.button(l ="Reset Animation (Delete Keyframes)", c=lambda x:gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)
     cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space
     cmds.button(l ="Reset Animation and Pose", c=lambda x:reset_animation_and_pose(), p=anim_management_column)
     
-
     # Export Import Pose
     cmds.separator(h=17, style='none', p=anim_management_column) # Empty Space
     cmds.text('Import/Export Animation:', p=anim_management_column) 
@@ -695,48 +741,53 @@ def build_gui_custom_rig_interface():
     import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=anim_management_tab)
     cmds.separator(h=btn_margin, style='none') # Empty Space
     cmds.separator(h=btn_margin, style='none') # Empty Space
-    cmds.button(l ="Import Animation", c=lambda x:gt_import_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)
-    cmds.button(l ="Export Animation", c=lambda x:gt_export_rig_animation(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) 
-    
+    cmds.button(l ="Import Animation", c=lambda x:gt_rig_anim_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)
+    cmds.button(l ="Export Animation", c=lambda x:gt_rig_anim_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) 
     
     ############# Settings Tab #############
     settings_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,0)], p=tabs)
     
-    # General Settings
-    enabled_bgc_color = (.4, .4, .4)
-    disabled_bgc_color = (.3,.3,.3)
-    cmds.separator(h=5, style='none') # Empty Space
-    cmds.text('General Settings:', font='boldLabelFont')
-    cmds.separator(h=5, style='none') # Empty Space
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 20)], cs=[(1,10)]) 
-    
-    # Allow Multiple Instances
-    is_option_enabled = False
-    cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
-    cmds.checkBox( label='  Allow Multiple Instances', value=gt_ab_interface_settings.get('allow_multiple_instances'), ebg=True, cc=lambda x:invert_stored_setting('allow_multiple_instances'), en=is_option_enabled) 
-
-    multiple_instances_help_message = 'Allow Multiple Instances Help Placeholder.'
-    multiple_instances_help_title = 'Allow Multiple Instances'
-    cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))
-    
-    # Export Thumbnail With Pose
-    is_option_enabled = False
-    cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
-    cmds.checkBox( label='  Export Thumbnail with Pose', value=gt_ab_interface_settings.get('pose_export_thumbnail'), ebg=True, cc=lambda x:invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled) 
-
-    export_pose_thumbnail_help_message = 'Exports a thumbnail ".jpg" file together with your ".pose" file.\nThis extra thumbnail file can be used to quickly undestand what you pose looks like before importing it.\n\nThe thumbnail is a screenshot of you active viewport at the moment of exporting the pose. If necessary, export it again to generate another thumbnail.'
-    export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'
-    cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(export_pose_thumbnail_help_message, export_pose_thumbnail_help_title))
-   
-    # Reset Persistent Settings
-    cmds.separator(h=btn_margin, style='none', p=settings_tab) # Empty Space
-    settings_buttons_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_tab) 
-    cmds.button(l ="Reset Persistent Settings", c=lambda x:reset_persistent_settings_auto_biped_rig_interface(), p=settings_buttons_column)
+    if not is_secondary_instance:
+        # General Settings
+        enabled_bgc_color = (.4, .4, .4)
+        disabled_bgc_color = (.3,.3,.3)
+        cmds.separator(h=5, style='none') # Empty Space
+        cmds.text('General Settings:', font='boldLabelFont')
+        cmds.separator(h=5, style='none') # Empty Space
+        cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 20)], cs=[(1,10)]) 
         
-  
+        # Allow Multiple Instances
+        is_option_enabled = True
+        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
+        cmds.checkBox( label='  Allow Multiple Instances', value=gt_custom_rig_interface_settings.get('allow_multiple_instances'), ebg=True, cc=lambda x:invert_stored_setting('allow_multiple_instances'), en=is_option_enabled) 
+
+        multiple_instances_help_message = 'This option will allow you to open multiple instances of this script. (multiple windows)\nThis can be helpful in case you are animating more than one character at the same time.\n\nThe extra instance will not be allowed to change settings or to set persistent options, so make sure to change these in your main (primary) instance of the script.'
+        multiple_instances_help_title = 'Allow Multiple Instances'
+        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))
+        
+        # Export Thumbnail With Pose
+        is_option_enabled = False
+        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
+        cmds.checkBox( label='  Export Thumbnail with Pose', value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True, cc=lambda x:invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled) 
+
+        export_pose_thumbnail_help_message = 'This option will be included in future versions, thank you for your patience.\n\nExports a thumbnail ".jpg" file together with your ".pose" file.\nThis extra thumbnail file can be used to quickly undestand what you pose looks like before importing it.\n\nThe thumbnail is a screenshot of you active viewport at the moment of exporting the pose. If necessary, export it again to generate another thumbnail.'
+        export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'
+        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(export_pose_thumbnail_help_message, export_pose_thumbnail_help_title))
+       
+        # Reset Persistent Settings
+        cmds.separator(h=btn_margin, style='none', p=settings_tab) # Empty Space
+        settings_buttons_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_tab) 
+        cmds.button(l ="Reset Persistent Settings", c=lambda x:reset_persistent_settings_rig_interface(), p=settings_buttons_column)
+    else:
+        # Secondary Instance Can't change settings
+        cmds.rowColumnLayout(settings_tab, e=True, cw=[(1, 250)], cs=[(1,0)])
+        cmds.separator(h=100, style='none') # Empty Space
+        cmds.text('Use main instance for settings', font='boldLabelFont', en=False)
+
   
     ################# END TABS #################
     cmds.tabLayout( tabs, edit=True, tabLabel=((fk_ik_switch_tab, ' FK/IK '), (pose_management_tab, ' Pose '), (anim_management_tab, 'Animation'), (settings_tab, ' Settings ')))
+
     # Outside Margin
     cmds.separator(h=10, style='none', p=content_main) # Empty Space
  
@@ -750,12 +801,14 @@ def build_gui_custom_rig_interface():
         widget = wrapInstance(int(qw), QWidget)
     else:
         widget = wrapInstance(long(qw), QWidget)
-    icon = QIcon(':/ikSCsolver.svg')
+    icon = QIcon(':/out_timeEditorAnimSource.png')
+    if is_secondary_instance:
+        icon = QIcon(':/animateSnapshot.png')
     widget.setWindowIcon(icon)
 
     # Update FK/IK States and Settings for the first run time
     update_fk_ik_buttons()
-    update_stored_settings()
+    update_stored_settings(is_secondary_instance)
 
     # Remove the focus from the textfield and give it to the window
     cmds.setFocus(rig_interface_window_name)
@@ -763,8 +816,11 @@ def build_gui_custom_rig_interface():
     # Main GUI Ends Here =================================================================================
     
 
+def open_gt_tools_documentation():
+    ''' Opens a web browser with the the auto rigger docs  '''
+    cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True) 
 
-def gt_ab_seamless_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
+def gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
     '''
     Transfer the position of the FK to IK or IK to FK systems in a seamless way, so the animator can easily switch between one and the other
     
@@ -920,9 +976,9 @@ def gt_ab_seamless_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', 
             switch()
             print_inview_feedback()
 
-def gt_ab_seamless_fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
+def gt_rig_fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
     ''' 
-    Calls gt_ab_seamless_fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. 
+    Calls gt_rig_fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. 
     It automatically checks the influenceSwitch value attribute and determines what direction to take it. "0-0.5":IK and "0.5-1":FK
     
             Parameters:
@@ -938,21 +994,76 @@ def gt_ab_seamless_fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, s
         if cmds.objExists(namespace + ik_fk_dict.get('switch_ctrl')):
             current_system = cmds.getAttr(namespace + ik_fk_dict.get('switch_ctrl') + '.influenceSwitch')
             if current_system < 0.5:
-                gt_ab_seamless_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)
+                gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)
             else:
-                gt_ab_seamless_fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)
+                gt_rig_fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)
         else:
             cmds.warning('Switch control was not found. Please check if a namespace is necessary.')
     except Exception as e:
         cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))
 
 
-def open_gt_tools_documentation():
-    ''' Opens a web browser with the the auto rigger docs  '''
-    cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True) 
 
 
-def gt_ab_mirror_pose(gt_ab_ctrls, source_side, namespace=''):
+def gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''):
+    '''
+    Reset transforms list of controls back to 0 Transalte and Rotate values. 
+
+        Parameters:
+                gt_ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. "_wrist_ctrl")
+                gt_ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. "_wrist_ctrl")
+                gt_ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. "spine01_ctrl")
+                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    
+    '''
+    available_ctrls = []
+    for obj in gt_ab_ik_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_fk_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_general_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_center_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+    
+    if len(available_ctrls) == 0:
+        cmds.warning('No controls were found. Please check if a namespace is necessary.')
+    else:
+        unique_message = '<' + str(random.random()) + '>'
+        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span><span style=\"color:#FF0000;text-decoration:underline;\"> Reset!</span>', pos='botLeft', fade=True, alpha=.9)
+    
+    for ctrl in available_ctrls:
+        dimensions = ['x','y','z']
+        transforms = ['t', 'r', 's']
+        for transform in transforms:
+            for dimension in dimensions:
+                try:
+                    if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:
+                        cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
+                except:
+                    pass
+    
+    # Special Cases
+    special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']
+    for ctrl in special_case_ctrls:
+        if cmds.objExists(namespace + ctrl):
+            if cmds.getAttr(namespace + ctrl + '.' + 'sz', lock=True) is False:
+                    cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
+                    
+def gt_rig_pose_mirror(gt_ab_ctrls, source_side, namespace=''):
     '''
     Mirrors the character pose from one side to the other
 
@@ -1047,8 +1158,7 @@ def gt_ab_mirror_pose(gt_ab_ctrls, source_side, namespace=''):
         if source_side == 'right':
             source_message = '(Right to Left)'
         cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span><span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)
-                    
-                    
+                        
         if len(errors) != 0:
             unique_message = '<' + str(random.random()) + '>'
             if len(errors) == 1:
@@ -1062,66 +1172,8 @@ def gt_ab_mirror_pose(gt_ab_ctrls, source_side, namespace=''):
         cmds.warning('No controls were found. Please check if a namespace is necessary.')
     cmds.setFocus("MayaWindow")
     
-def gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''):
-    '''
-    Reset transforms list of controls back to 0 Transalte and Rotate values. 
-
-        Parameters:
-                gt_ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. "_wrist_ctrl")
-                gt_ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. "_wrist_ctrl")
-                gt_ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. "spine01_ctrl")
-                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
-    '''
-    available_ctrls = []
-    for obj in gt_ab_ik_ctrls:
-        if cmds.objExists(namespace + left_prefix + obj):
-            available_ctrls.append(left_prefix + obj)
-        if cmds.objExists(namespace + right_prefix + obj):
-            available_ctrls.append(right_prefix + obj)
-            
-    for obj in gt_ab_fk_ctrls:
-        if cmds.objExists(namespace + left_prefix + obj):
-            available_ctrls.append(left_prefix + obj)
-        if cmds.objExists(namespace + right_prefix + obj):
-            available_ctrls.append(right_prefix + obj)
-            
-    for obj in gt_ab_general_ctrls:
-        if cmds.objExists(namespace + left_prefix + obj):
-            available_ctrls.append(left_prefix + obj)
-        if cmds.objExists(namespace + right_prefix + obj):
-            available_ctrls.append(right_prefix + obj)
-            
-    for obj in gt_ab_center_ctrls:
-        if cmds.objExists(namespace + obj):
-            available_ctrls.append(obj)
-    
-    if len(available_ctrls) == 0:
-        cmds.warning('No controls were found. Please check if a namespace is necessary.')
-    else:
-        unique_message = '<' + str(random.random()) + '>'
-        cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span><span style=\"color:#FF0000;text-decoration:underline;\"> Reset!</span>', pos='botLeft', fade=True, alpha=.9)
-    
-    for ctrl in available_ctrls:
-        dimensions = ['x','y','z']
-        transforms = ['t', 'r', 's']
-        for transform in transforms:
-            for dimension in dimensions:
-                try:
-                    if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:
-                        cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
-                except:
-                    pass
-    
-    # Special Cases
-    special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']
-    for ctrl in special_case_ctrls:
-        if cmds.objExists(namespace + ctrl):
-            if cmds.getAttr(namespace + ctrl + '.' + 'sz', lock=True) is False:
-                    cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
-
-
-def gt_export_rig_pose(namespace =''):
+def gt_rig_pose_export(namespace =''):
     ''' 
     Exports a Pose (JSON) file containing the translate, rotate and scale data from the rig controls (used to export a pose)
     Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
@@ -1193,9 +1245,11 @@ def gt_export_rig_pose(namespace =''):
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
-def gt_import_rig_pose(debugging=False, debugging_path='', namespace=''):
+
+
+def gt_rig_pose_import(debugging=False, debugging_path='', namespace=''):
     ''' 
-    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the "gt_export_rig_pose" function)
+    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the "gt_rig_pose_export" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
     
             Parameters:
@@ -1333,7 +1387,121 @@ def gt_import_rig_pose(debugging=False, debugging_path='', namespace=''):
             cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
 
 
-def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
+
+def gt_rig_pose_flip(namespace =''):
+    ''' 
+    Flips the current pose (Essentially like a mirror in both sides at te same time)
+    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls (used to store a pose)
+    
+        Parameters:
+            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    
+    ''' 
+    # Validate Operation and Write file
+    is_valid = True
+
+    # Find Available Controls
+    available_ctrls = []
+    for obj in gt_ab_ik_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_fk_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_general_ctrls:
+        if cmds.objExists(namespace + left_prefix + obj):
+            available_ctrls.append(left_prefix + obj)
+        if cmds.objExists(namespace + right_prefix + obj):
+            available_ctrls.append(right_prefix + obj)
+            
+    for obj in gt_ab_center_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+    
+    # No Controls were found
+    if len(available_ctrls) == 0:
+        is_valid=False
+        cmds.warning('No controls were found. Make sure you are using the correct namespace.')
+
+
+    if is_valid:
+        pose_dict = {}
+        for obj in available_ctrls:
+            # Get Pose
+            translate = cmds.getAttr(obj + '.translate')[0]
+            rotate = cmds.getAttr(obj + '.rotate')[0]
+            scale = cmds.getAttr(obj + '.scale')[0]
+            to_save = [obj, translate, rotate, scale]
+            pose_dict[obj] = to_save
+            
+            # Reset Current Pose ?
+            # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)
+        
+            
+            # TODO
+            # Set Pose
+            # for ctrl in pose_dict:
+            #     curent_object = pose_dict.get(ctrl) # Name, T, R, S
+            #     if cmds.objExists(namespace + curent_object[0]):
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])
+            #         set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])
+            
+
+
+def gt_rig_anim_reset(namespace=''):
+    '''
+    Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)
+    
+            Parameters:
+                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    
+    '''   
+    function_name = 'GT Reset Rig Animation'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        keys_ta = cmds.ls(type='animCurveTA')
+        keys_tl = cmds.ls(type='animCurveTL')
+        keys_tt = cmds.ls(type='animCurveTT')
+        keys_tu = cmds.ls(type='animCurveTU')
+        deleted_counter = 0
+        all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
+        for key in all_keyframes:
+            try:
+                key_target_namespace = cmds.listConnections(key, destination=True)[0].split(':')[0]
+                if key_target_namespace == namespace.replace(':', '') or len(cmds.listConnections(key, destination=True)[0].split(':')) == 1:
+                    cmds.delete(key)
+                    deleted_counter += 1
+            except:
+                pass   
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        is_plural = 'keyframe nodes were'
+        if deleted_counter == 1:
+            is_plural = 'keyframe node was'
+        message += is_plural + ' deleted.'
+        
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        
+        # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace) # Add as an option?
+        
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+        
+        
+def gt_rig_anim_mirror(gt_ab_ctrls, source_side, namespace=''):
     '''
     Mirrors the character animation from one side to the other
 
@@ -1553,7 +1721,7 @@ def gt_ab_mirror_anim(gt_ab_ctrls, source_side, namespace=''):
 
 
 
-def gt_export_rig_animation(namespace =''):
+def gt_rig_anim_export(namespace =''):
     ''' 
     Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe (animation) data from the rig controls.
 
@@ -1639,9 +1807,9 @@ def gt_export_rig_animation(namespace =''):
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
 
-def gt_import_rig_animation(debugging=False, debugging_path='', namespace=''):
+def gt_rig_anim_import(debugging=False, debugging_path='', namespace=''):
     ''' 
-    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the "gt_export_rig_animation" function)
+    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the "gt_rig_anim_export" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
     
             Parameters:
@@ -1749,45 +1917,6 @@ def gt_import_rig_animation(debugging=False, debugging_path='', namespace=''):
             file_exists = False
             cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
          
-         
-def gt_reset_rig_animation(namespace=''):
-    '''
-    Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)
-    
-            Parameters:
-                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    
-    '''   
-    function_name = 'GT Reset Rig Animation'
-    cmds.undoInfo(openChunk=True, chunkName=function_name)
-    try:
-        keys_ta = cmds.ls(type='animCurveTA')
-        keys_tl = cmds.ls(type='animCurveTL')
-        keys_tt = cmds.ls(type='animCurveTT')
-        keys_tu = cmds.ls(type='animCurveTU')
-        deleted_counter = 0
-        all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
-        for key in all_keyframes:
-            try:
-                key_target_namespace = cmds.listConnections(key, destination=True)[0].split(':')[0]
-                if key_target_namespace == namespace.replace(':', '') or len(cmds.listConnections(key, destination=True)[0].split(':')) == 1:
-                    cmds.delete(key)
-                    deleted_counter += 1
-            except:
-                pass   
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
-        is_plural = 'keyframe nodes were'
-        if deleted_counter == 1:
-            is_plural = 'keyframe node was'
-        message += is_plural + ' deleted.'
-        
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-        
-        # gt_ab_reset_pose(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace) # Add as an option?
-        
-    except Exception as e:
-        cmds.warning(str(e))
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
             
 #Build UI
 if __name__ == '__main__':
