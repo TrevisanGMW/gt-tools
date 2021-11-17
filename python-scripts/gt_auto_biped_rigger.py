@@ -160,29 +160,32 @@
  Fixed an issue where IK fingers wouldn't follow the correct preferred angle
  
  1.8.0 - 2021-11-15
- Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visibile by default)
+ Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visible by default)
  Changed IK Spine to be the default influence
  Secondary chest adjustment control only affects the chest, not the head (so you can keep line of sight)
  Arm pole vector controls now follow arm's plane instead of wrist
  Moved pole vector custom attributes to wrist for ease of access
  Added twist attributes to the pole vector controls for the arms (found under wrists)
- Added 3d visibility type shapes to ik feet and ik wrists
+ Added 3D visibility type shapes to IK feet and IK wrists
  Changed the source constraint for the feet stretchy system so it accounts for the roll controls
  
  1.8.1 - 2021-11-16
  Brought back the follow wrist option for the elbow pole vector controls
- Fixed an issue where the elbow controls (pvec) would sometimes receive rotation from the spine (missing aim up dir)
+ Fixed an issue where the elbow controls (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
  Slightly changed the shape of the IK spine control for a better starting point
  Moved the pole vector controls little bit further away during creation
  Created pole vector twist and parenting system for legs
+ 
+ 1.8.2 - 2021-11-17
+ Slightly changed the initial hand and spine box shapes to better conform to the body shape
+ Created auto clavicle system. Clavicle rotates based on wrist position (according to influence % under the wrist ctrl)
+ 
 
  TODO:
-    Create same pvec twist system for legs
-    Auto clavicle, follow wrist % of the wrist control
-    Head as IK? Rotate the neck without rotating the head.
-    Push pVecs further away during creation
-    Attempt to make the control orientation uniform (Same as main control, world)
     
+    Head as IK? Rotate the neck without rotating the head.
+    Attempt to make the control orientation uniform (Same as main control, world)
+ 
     Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (inheritance percentage)
     Make scale system and breathing system optional
     Add IK behaviour to fingers (move handle closer to palm)
@@ -220,7 +223,7 @@ import re
 script_name = 'GT Auto Biped Rigger'
 
 # Version:
-script_version = '1.8.1'
+script_version = '1.8.2'
 
 # Python Version
 python_version = sys.version_info.major
@@ -242,7 +245,7 @@ rotate_order_enum_tagged = 'xyz (default):yzx:zxy:xzy (up first):yxz:zyx'
 custom_attr_separator = 'controlBehaviour'
 
 # Debugging Vars
-debugging = False # Activates Debugging Mode
+debugging = True # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
@@ -261,6 +264,7 @@ gt_ab_settings = {
     'body_column_height' : 0, # determined during settings GUI creation
     'using_no_ssc_skeleton' : False,
     'proxy_limits' : False,
+    'offer_heel_roll_positioning' : True,
     'uniform_ctrl_orient' : True,
 }
 
@@ -2434,6 +2438,12 @@ def create_proxy(colorize_proxy=True):
     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
+    
+    # if gt_ab_settings.get('offer_heel_roll_positioning'): # @@@
+    #     left_toe_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_toe_proxy_crv'), .35)
+    #     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + grp_suffix.capitalize())
+    #     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
+    #     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
 
 
     ################# Right Leg #################
@@ -3718,6 +3728,7 @@ def create_controls():
     ik_jnt_color = (.5,.5 ,1)
     fk_jnt_scale = ik_jnt_scale/2
     fk_jnt_color = (1,.5,.5)
+    automation_jnt_color = (1,.17,.45)
     
     # Left Arms FK/IK
     left_clavicle_switch_jnt = cmds.duplicate(gt_ab_joints.get('left_clavicle_jnt'), name=gt_ab_joints.get('left_clavicle_jnt').replace(jnt_suffix, 'switch_' + jnt_suffix), parentOnly=True)[0]
@@ -4008,7 +4019,6 @@ def create_controls():
         cmds.delete(temp_grp_dir)
         cmds.delete(temp_grp)
 
-    
     if gt_ab_settings.get('uniform_ctrl_orient'): # @@
         pass
         # override_local_orientation(cog_ctrl)
@@ -4743,7 +4753,7 @@ def create_controls():
     
     cmds.setAttr(left_wrist_ik_ctrl + '.scaleX', left_wrist_scale_offset)
     cmds.setAttr(left_wrist_ik_ctrl + '.scaleY', left_wrist_scale_offset)
-    cmds.setAttr(left_wrist_ik_ctrl + '.scaleZ', left_wrist_scale_offset)
+    cmds.setAttr(left_wrist_ik_ctrl + '.scaleZ', left_wrist_scale_offset*.5)
     cmds.makeIdentity(left_wrist_ik_ctrl, apply=True, scale=True)
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
@@ -4964,7 +4974,7 @@ def create_controls():
     
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleX', right_wrist_scale_offset*-1)
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleY', right_wrist_scale_offset*-1)
-    cmds.setAttr(right_wrist_ik_ctrl + '.scaleZ', right_wrist_scale_offset*-1)
+    cmds.setAttr(right_wrist_ik_ctrl + '.scaleZ', (right_wrist_scale_offset*-1)*.5)
     cmds.makeIdentity(right_wrist_ik_ctrl, apply=True, scale=True)
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
@@ -5619,9 +5629,9 @@ def create_controls():
     ribbon_cog_jnt = cmds.duplicate(gt_ab_joints.get('cog_jnt'), name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, 'ribbon_' + jnt_suffix), po=True)
     ribbon_spine02_jnt = cmds.duplicate(gt_ab_joints.get('spine02_jnt'), name='spine_ribbon_' + jnt_suffix, po=True)
     ribbon_spine04_jnt = cmds.duplicate(gt_ab_joints.get('spine04_jnt'), name='chest_ribbon_' + jnt_suffix, po=True)
-    change_viewport_color(ribbon_cog_jnt[0], (1,0,0))
-    change_viewport_color(ribbon_spine02_jnt[0], (1,0,0))
-    change_viewport_color(ribbon_spine04_jnt[0], (1,0,0))
+    change_viewport_color(ribbon_cog_jnt[0], automation_jnt_color)
+    change_viewport_color(ribbon_spine02_jnt[0], automation_jnt_color)
+    change_viewport_color(ribbon_spine04_jnt[0], automation_jnt_color)
     cmds.parent(ribbon_cog_jnt, world=True)
     cmds.parent(ribbon_spine02_jnt, world=True)
     cmds.parent(ribbon_spine04_jnt, world=True)
@@ -5644,7 +5654,7 @@ def create_controls():
     cmds.setAttr(chest_ribbon_ctrl_a + '.sz', general_scale_offset*.55)
     cmds.setAttr(chest_ribbon_ctrl_b + '.sx', general_scale_offset*1.2)
     cmds.setAttr(chest_ribbon_ctrl_b + '.sy', general_scale_offset*.8)
-    cmds.setAttr(chest_ribbon_ctrl_b + '.sz', general_scale_offset*1.2)
+    cmds.setAttr(chest_ribbon_ctrl_b + '.sz', general_scale_offset*1.5)
     cmds.makeIdentity(chest_ribbon_ctrl_a, apply=True, scale=True, rotate=True)
     cmds.makeIdentity(chest_ribbon_ctrl_b, apply=True, scale=True, rotate=True)
     
@@ -8707,13 +8717,90 @@ def create_controls():
     cmds.pointConstraint(left_clavicle_pos_loc, gt_ab_joints.get('left_clavicle_jnt'))
     cmds.pointConstraint(right_clavicle_pos_loc, gt_ab_joints.get('right_clavicle_jnt'))
     
-    cmds.connectAttr(left_clavicle_ctrl + '.rotate', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
-    cmds.connectAttr(right_clavicle_ctrl + '.rotate', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
+    # Left Auto Clavicle
+    left_clavicle_auto_jnt = cmds.duplicate(gt_ab_joints.get('left_clavicle_jnt'), name=gt_ab_joints.get('left_clavicle_jnt').replace(jnt_suffix, 'autoJnt'), parentOnly=True)[0]
+    left_shoulder_auto_jnt = cmds.duplicate(gt_ab_joints.get('left_shoulder_jnt'), name=gt_ab_joints.get('left_shoulder_jnt').replace(jnt_suffix, 'autoEndJnt'), parentOnly=True)[0]
+    cmds.parent(left_clavicle_auto_jnt, world=True)
+    cmds.parent(left_shoulder_auto_jnt, left_clavicle_auto_jnt)
     
-    cmds.parent(left_clavicle_pos_loc_grp, general_automation_grp) # Group created above with the other top parent groups
-    cmds.parent(right_clavicle_pos_loc_grp, general_automation_grp)
+    left_auto_clavicle_sc_ik_handle = cmds.ikHandle( n='left_auto_clavicle_SC_ikHandle', sj=left_clavicle_auto_jnt, ee=left_shoulder_auto_jnt, sol='ikSCsolver')
+    left_auto_clavicle_sc_ik_handle_grp = cmds.group(name=left_auto_clavicle_sc_ik_handle[0] + grp_suffix.capitalize(), empty=True, world=True)
+    left_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=left_auto_clavicle_sc_ik_handle[0] + 'Offset', empty=True, world=True)
+    cmds.parent(left_auto_clavicle_sc_ik_handle_offset_grp, left_auto_clavicle_sc_ik_handle_grp)
+    cmds.delete(cmds.parentConstraint(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_grp))
+    cmds.parent(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_offset_grp)
     
-    # Clavicle Breathig Mechanics
+    cmds.addAttr(left_wrist_ik_ctrl , ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(left_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    
+    offset_influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleInfluence_" + multiply_suffix)
+    
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2X', force=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Y', force=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Z', force=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.translate', offset_influnce_multiply_node + '.input1', force=True)
+    cmds.connectAttr(offset_influnce_multiply_node + '.output', left_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+    
+    change_viewport_color(left_clavicle_auto_jnt, automation_jnt_color)
+    change_viewport_color(left_shoulder_auto_jnt, automation_jnt_color)
+    cmds.setAttr(left_clavicle_auto_jnt + ".radius", 1)
+    cmds.setAttr(left_shoulder_auto_jnt + ".radius", .5)
+    
+    left_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
+    
+    cmds.connectAttr(left_clavicle_ctrl + '.rotate', left_clavicle_offset_plus_node + '.input3D[0]')
+    cmds.connectAttr(left_clavicle_auto_jnt + '.rotate', left_clavicle_offset_plus_node + '.input3D[1]')
+    cmds.connectAttr(left_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
+    
+    # Right Auto Clavicle
+    right_clavicle_auto_jnt = cmds.duplicate(gt_ab_joints.get('right_clavicle_jnt'), name=gt_ab_joints.get('right_clavicle_jnt').replace(jnt_suffix, 'autoJnt'), parentOnly=True)[0]
+    right_shoulder_auto_jnt = cmds.duplicate(gt_ab_joints.get('right_shoulder_jnt'), name=gt_ab_joints.get('right_shoulder_jnt').replace(jnt_suffix, 'autoEndJnt'), parentOnly=True)[0]
+    cmds.parent(right_clavicle_auto_jnt, world=True)
+    cmds.parent(right_shoulder_auto_jnt, right_clavicle_auto_jnt)
+    
+    right_auto_clavicle_sc_ik_handle = cmds.ikHandle( n='right_auto_clavicle_SC_ikHandle', sj=right_clavicle_auto_jnt, ee=right_shoulder_auto_jnt, sol='ikSCsolver')
+    right_auto_clavicle_sc_ik_handle_grp = cmds.group(name=right_auto_clavicle_sc_ik_handle[0] + grp_suffix.capitalize(), empty=True, world=True)
+    right_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=right_auto_clavicle_sc_ik_handle[0] + 'Offset', empty=True, world=True)
+    cmds.parent(right_auto_clavicle_sc_ik_handle_offset_grp, right_auto_clavicle_sc_ik_handle_grp)
+    cmds.delete(cmds.parentConstraint(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_grp))
+    cmds.parent(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_offset_grp)
+    
+    cmds.addAttr(right_wrist_ik_ctrl , ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(right_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    
+    offset_influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleInfluence_" + multiply_suffix)
+    
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2X', force=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Y', force=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Z', force=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.translate', offset_influnce_multiply_node + '.input1', force=True)
+    cmds.connectAttr(offset_influnce_multiply_node + '.output', right_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+    
+    change_viewport_color(right_clavicle_auto_jnt, automation_jnt_color)
+    change_viewport_color(right_shoulder_auto_jnt, automation_jnt_color)
+    cmds.setAttr(right_clavicle_auto_jnt + ".radius", 1)
+    cmds.setAttr(right_shoulder_auto_jnt + ".radius", .5)
+    
+    right_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
+    
+    cmds.connectAttr(right_clavicle_ctrl + '.rotate', right_clavicle_offset_plus_node + '.input3D[0]')
+    cmds.connectAttr(right_clavicle_auto_jnt + '.rotate', right_clavicle_offset_plus_node + '.input3D[1]')
+    cmds.connectAttr(right_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
+    
+    # Organize Auto Clavicle System
+    cmds.setAttr(left_clavicle_auto_jnt + ".v", 0)
+    cmds.setAttr(right_clavicle_auto_jnt + ".v", 0)
+    cmds.parent(left_clavicle_auto_jnt, skeleton_grp)
+    cmds.parent(right_clavicle_auto_jnt, skeleton_grp)
+    
+    auto_clavicle_grp = cmds.group(name='autoClavicle_grp', empty=True, world=True)
+    cmds.parent(left_auto_clavicle_sc_ik_handle_grp, auto_clavicle_grp)
+    cmds.parent(right_auto_clavicle_sc_ik_handle_grp, auto_clavicle_grp)
+    cmds.parent(left_clavicle_pos_loc_grp, auto_clavicle_grp) 
+    cmds.parent(right_clavicle_pos_loc_grp, auto_clavicle_grp)
+    cmds.parent(auto_clavicle_grp, general_automation_grp) # Group created above with the other top parent groups
+         
+    # Clavicle Breathing Mechanics
     for ctrl_pair in [(left_clavicle_ctrl, left_clavicle_pos_loc), (right_clavicle_ctrl, right_clavicle_pos_loc)]:
         ctrl_name = ctrl_pair[0].replace('_' + ctrl_suffix, '')
         if 'left_' in ctrl_name:
@@ -8724,7 +8811,7 @@ def create_controls():
             attr_nice_name = 'Max Trans R ' + ctrl_name.replace('right_','').capitalize()
         
         breathing_range_node = cmds.createNode('setRange', name=ctrl_name + '_breathing_range')
-        
+
         breathing_sine_min = -1
         breathing_sine_max = 1
         breathing_new_min = 0
@@ -8750,6 +8837,9 @@ def create_controls():
         cmds.connectAttr(influnce_multiply_node + '.outputY', ctrl_pair[1] + '.ty')
       
         cmds.setAttr(main_ctrl + '.' + limit_translate_prefix + attr_name, 1)
+
+
+
 
     # Eye Visibility Attr
     cmds.addAttr(head_ctrl, ln='eyeCtrlVisibility', at='bool', keyable=True)
