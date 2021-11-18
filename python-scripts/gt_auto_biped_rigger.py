@@ -179,10 +179,11 @@
  1.8.2 - 2021-11-17
  Slightly changed the initial hand and spine box shapes to better conform to the body shape
  Created auto clavicle system. Clavicle rotates based on wrist position (according to influence % under the wrist ctrl)
+ Added option to define heel roll as a proxy step (This should allow for a quicker rig profile import/export)
+ Gave proxy pose a default extension ".ppose" instead of just ".json" to avoid confusion with other scripts
  
 
  TODO:
-    
     Head as IK? Rotate the neck without rotating the head.
     Attempt to make the control orientation uniform (Same as main control, world)
  
@@ -245,14 +246,14 @@ rotate_order_enum_tagged = 'xyz (default):yzx:zxy:xzy (up first):yxz:zyx'
 custom_attr_separator = 'controlBehaviour'
 
 # Debugging Vars
-debugging = True # Activates Debugging Mode
+debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
 debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
-debugging_import_path = 'C:\\template.json' # Path to auto import
+debugging_import_path = 'C:\\template.ppose' # Path to auto import
 debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
@@ -317,6 +318,7 @@ gt_ab_elements = { # General Settings
                    'left_ankle_proxy_crv' : 'ankle' + '_' + proxy_suffix,
                    'left_ball_proxy_crv' : 'ball' + '_' + proxy_suffix,
                    'left_toe_proxy_crv' : 'toe' + '_' + proxy_suffix,
+                   'left_heel_proxy_pivot' : 'heel_pivot' + '_' + proxy_suffix,
                    'left_elbow_pv_dir' : 'elbow_proxy_poleVecDir', 
                    'left_elbow_dir_loc' : 'elbow_proxy_dirParent', 
                    'left_elbow_aim_loc' : 'elbow_proxy_dirAim',
@@ -477,6 +479,14 @@ def build_gui_auto_biped_rig():
     realtime_custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behaviour of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.\nAs this baked version does not yet fully support non-uniform scaling, it\'s recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application.\n\nThis will allow you to preserve the stretchy settings even in programs that do not support it.'
     realtime_custom_help_title = 'Use Real-time Skeleton'
     cmds.button(l ='?', bgc=settings_bgc_color, c=lambda x:build_custom_help_window(realtime_custom_help_message, realtime_custom_help_title))
+    
+    # Create Heel Pivot Proxy
+    cmds.text(' ', bgc=settings_bgc_color, h=20) # Tiny Empty Space   
+    cmds.checkBox( label='  Create Heel Pivot Proxy', value=gt_ab_settings.get('offer_heel_roll_positioning'), ebg=True, cc=lambda x:invert_stored_setting('offer_heel_roll_positioning')) 
+    
+    create_heel_pivot_custom_help_message = 'Creates an extra proxy curve which can be used to define the heel pivot position before generating the rig.\n\This extra curve can help save time when generating the same rigs multiple times.'
+    create_heel_pivot_custom_help_title = 'Create Heel Pivot Proxy'
+    cmds.button(l ='?', bgc=settings_bgc_color, c=lambda x:build_custom_help_window(create_heel_pivot_custom_help_message, create_heel_pivot_custom_help_title))
     
     # Limit Proxy Movement
     cmds.text(' ', bgc=settings_bgc_color, h=20) # Tiny Empty Space   
@@ -2439,13 +2449,25 @@ def create_proxy(colorize_proxy=True):
     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
     
-    # if gt_ab_settings.get('offer_heel_roll_positioning'): # @@@
-    #     left_toe_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_toe_proxy_crv'), .35)
-    #     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + grp_suffix.capitalize())
-    #     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
-    #     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
+    # Left Heel Roll Pivot (Optional)
+    if gt_ab_settings.get('offer_heel_roll_positioning'):
+        left_heel_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_heel_proxy_pivot'), .1)
+        left_heel_proxy_grp = cmds.group(empty=True, world=True, name=left_heel_proxy_crv + grp_suffix.capitalize())
+        cmds.parent(left_heel_proxy_crv, left_heel_proxy_grp)
+        cmds.parent(left_heel_proxy_grp, left_ankle_proxy_grp)
+        cmds.move(10.2, 0, 0, left_heel_proxy_grp)
+        change_viewport_color(left_heel_proxy_crv, (1,0,0))
+        cmds.addAttr(left_heel_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(left_heel_proxy_crv + '.proxyControl', e=True, lock=True)
+        cmds.addAttr(left_heel_proxy_crv, ln="followAnkle", at="bool", keyable=True)
+        cmds.setAttr(left_heel_proxy_crv + '.followAnkle', 1)
+        constraint = cmds.pointConstraint(left_ankle_proxy_crv, left_heel_proxy_grp , skip=('y'))
+        cmds.connectAttr(left_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
+        cmds.setAttr(left_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
+        cmds.setAttr(left_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+        cmds.setAttr(left_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
 
-
+  
     ################# Right Leg #################
     # Right Hip
     right_hip_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_hip_proxy_crv'), .4)
@@ -2478,6 +2500,24 @@ def create_proxy(colorize_proxy=True):
     right_toe_proxy_grp = cmds.group(empty=True, world=True, name=right_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_toe_proxy_crv, right_toe_proxy_grp)
     cmds.move(-10.2, 0, 23.4, right_toe_proxy_grp)
+
+    # Right Heel Roll Pivot (Optional)
+    if gt_ab_settings.get('offer_heel_roll_positioning'):
+        right_heel_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_heel_proxy_pivot'), .1)
+        right_heel_proxy_grp = cmds.group(empty=True, world=True, name=right_heel_proxy_crv + grp_suffix.capitalize())
+        cmds.parent(right_heel_proxy_crv, right_heel_proxy_grp)
+        cmds.parent(right_heel_proxy_grp, right_ankle_proxy_grp)
+        cmds.move(10.2, 0, 0, right_heel_proxy_grp)
+        change_viewport_color(right_heel_proxy_crv, (1,0,0))
+        cmds.addAttr(right_heel_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(right_heel_proxy_crv + '.proxyControl', e=True, lock=True)
+        cmds.addAttr(right_heel_proxy_crv, ln="followAnkle", at="bool", keyable=True)
+        cmds.setAttr(right_heel_proxy_crv + '.followAnkle', 1)
+        constraint = cmds.pointConstraint(right_ankle_proxy_crv, right_heel_proxy_grp , skip=('y'))
+        cmds.connectAttr(right_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
+        cmds.setAttr(right_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
+        cmds.setAttr(right_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+        cmds.setAttr(right_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
 
         
     # Assemble Hierarchy
@@ -3058,7 +3098,6 @@ def create_proxy(colorize_proxy=True):
     gt_ab_elements['right_knee_divide_node'] = right_knee_divide_node
     gt_ab_elements['right_ball_pivot_grp'] = right_ball_pivot_grp
     
-    
     # Visibility Adjustments
     for obj in gt_ab_elements:
         if obj.endswith('_crv'):
@@ -3084,7 +3123,7 @@ def create_proxy(colorize_proxy=True):
                 color = (.3,.3,0)
             else:
                 color = (1,1,.65)
-            
+     
             # Notes Only
             if gt_ab_elements.get('left_eye_proxy_crv') in proxy_crv or gt_ab_elements.get('right_eye_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an eye proxy.\nThis element should be snapped to the center of the eye geometry.\nYou can see the center of the eye by selecting the eye geometry then going to "Display > Transform Display > Local Rotation Axes".\nYou can then use this axis to snap the joint to its center. (Using "Ctrl + V")\n\nPS: If for some reason the pivot point is not in the center of the eye, you can reset it first: "Modify > Center Pivot".')
@@ -7129,7 +7168,10 @@ def create_controls():
     cmds.setAttr(left_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_toe_pivot_grp + '.ry', desired_rotation[1])
-    
+
+    if cmds.objExists(gt_ab_elements_default.get('left_heel_proxy_pivot')):
+        cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('left_heel_proxy_pivot'), left_heel_pivot_grp))
+        
     cmds.parent(left_foot_pivot_grp, rig_setup_grp)
     cmds.parent(left_heel_pivot_grp, left_foot_pivot_grp)
     cmds.parent(left_toe_pivot_grp, left_heel_pivot_grp)
@@ -7407,6 +7449,9 @@ def create_controls():
     cmds.setAttr(right_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_toe_pivot_grp + '.ry', desired_rotation[1])
     
+    if cmds.objExists(gt_ab_elements_default.get('right_heel_proxy_pivot')):
+        cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
+    
     cmds.parent(right_foot_pivot_grp, rig_setup_grp)
     cmds.parent(right_heel_pivot_grp, right_foot_pivot_grp)
     cmds.parent(right_toe_pivot_grp, right_heel_pivot_grp)
@@ -7593,7 +7638,6 @@ def create_controls():
     cmds.connectAttr(right_leg_switch + '.visibilityType', right_v_type_1_condition_node + '.firstTerm', f=True)
     cmds.setAttr(right_v_type_1_condition_node + '.secondTerm', 1)
 
-    
     for condition_node in [right_v_type_0_condition_node, right_v_type_1_condition_node]:
         cmds.setAttr(condition_node + '.colorIfTrueR', 1)
         cmds.setAttr(condition_node + '.colorIfFalseR', 0)
@@ -8547,7 +8591,7 @@ def create_controls():
     # Joint Inflation Basic Setup
     jnt_scale_ctrl_scale = general_scale_offset*0.05
     for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint, CreateOffset?
-    
+
         blend_node = cmds.createNode('blendColors', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inflation_blend')
    
         cmds.setAttr(blend_node + '.color2R', 1)
@@ -8837,8 +8881,6 @@ def create_controls():
         cmds.connectAttr(influnce_multiply_node + '.outputY', ctrl_pair[1] + '.ty')
       
         cmds.setAttr(main_ctrl + '.' + limit_translate_prefix + attr_name, 1)
-
-
 
 
     # Eye Visibility Attr
@@ -9214,6 +9256,7 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
     
+    
     # Creates game skeleton (No Segment Scale Compensate)
     if gt_ab_settings.get('using_no_ssc_skeleton'):
         new_skeleton_suffix = 'game'
@@ -9275,7 +9318,7 @@ def reset_proxy(suppress_warning=False):
     attributes_set_one = ['sx', 'sy', 'sz', 'v']
     proxy_elements = []
     for proxy in gt_ab_elements_default:
-        if '_crv' in proxy:
+        if '_crv' in proxy or proxy.endswith('_pivot'):
             proxy_elements.append(gt_ab_elements_default.get(proxy))
     for obj in proxy_elements:
         if cmds.objExists(obj):
@@ -9410,7 +9453,7 @@ def export_proxy_pose():
             cmds.warning('"' + obj + '" is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.')
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -9425,6 +9468,14 @@ def export_proxy_pose():
                 scale = cmds.getAttr(gt_ab_elements_default.get(obj) + '.scale')[0]
                 to_save = [gt_ab_elements_default.get(obj), translate, rotate, scale]
                 export_dict[obj] = to_save
+    
+            if obj.endswith('_pivot'):
+                if cmds.objExists(gt_ab_elements_default.get(obj)):
+                    translate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.translate')[0]
+                    rotate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.rotate')[0]
+                    scale = cmds.getAttr(gt_ab_elements_default.get(obj) + '.scale')[0]
+                    to_save = [gt_ab_elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
     
         try: 
             with open(pose_file, 'w') as outfile:
@@ -9494,7 +9545,7 @@ def import_proxy_pose(debugging=False, debugging_path=''):
     import_method = 'object-space'
     
     if not debugging:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
     else:
         file_name = [debugging_path]
     
@@ -9544,7 +9595,7 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                 delete_proxy(True)
                                 validate_operation('create_proxy', debugging)
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
-                    
+                  
                     if is_valid_file and is_valid_scene:
                         if import_method == 'world-space':
                             reset_proxy(suppress_warning=True)
@@ -9558,12 +9609,11 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                         sorted_pairs.append((curent_object, number_of_parents))
                
                                     sorted_pairs.sort(key=lambda x:x[1], reverse=True)
-                     
+                            
                             # Scale (Children First)
                             for obj in sorted_pairs:
                                 curent_object = obj[0]
                                 if cmds.objExists(curent_object[0]):
-                                    #set_unlocked_ws_attr(curent_object[0], 'scale', curent_object[3])
                                     set_unlocked_os_attr(curent_object[0], 'sx', curent_object[3][0])
                                     set_unlocked_os_attr(curent_object[0], 'sy', curent_object[3][1])
                                     set_unlocked_os_attr(curent_object[0], 'sz', curent_object[3][2])
@@ -9582,8 +9632,8 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                     if cmds.objExists(curent_object[0]):
                                         set_unlocked_ws_attr(curent_object[0], 'translate', curent_object[1])
                                         set_unlocked_ws_attr(curent_object[0], 'rotate', curent_object[2])
-                            
-                                     
+                                      
+                                           
                         else: # Object-Space
                             for proxy in data:
                                 if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
@@ -9934,7 +9984,7 @@ def extract_proxy_pose():
     
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -10004,6 +10054,15 @@ def extract_proxy_pose():
                 if jnt_key.replace('_' + jnt_suffix, '_proxy_crv') == proxy_key:
                     export_dict[proxy_key] = values_to_store
         
+        # Heel Pivot Extraction 
+        for pivot in ['left_heel_pivotGrp', 'right_heel_pivotGrp']:
+            if cmds.objExists(pivot):
+                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
+                cmds.delete(cmds.parentConstraint(pivot, temp_grp))
+                pivot_pos = extract_transform_joint_to_proxy(temp_grp, ignore_translate=False, ignore_rotate=True, ignore_scale=True)
+                cmds.delete(temp_grp)
+                export_dict[pivot.replace('_pivotGrp', '_proxy_pivot')] = (pivot.replace('_pivotGrp', '_pivot_proxy'), pivot_pos[1], pivot_pos[2], pivot_pos[3])
+ 
         try: 
             with open(pose_file, 'w') as outfile:
                 json.dump(export_dict, outfile, indent=4)
