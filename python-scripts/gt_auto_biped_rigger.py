@@ -183,13 +183,14 @@
  Gave proxy pose a default extension ".ppose" instead of just ".json" to avoid confusion with other scripts
  
  1.8.3 - 2021-11-18
- Added offset controls to wrists
+ Added offset controls to wrists, chest, cog
 
  TODO:
     Head as IK? Rotate the neck without rotating the head.
     Attempt to make the control orientation uniform (Same as main control, world)
-    Addd logging
-     
+    Add logging for debugging
+    
+    Add option to leave all lock translation attributes off
     Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (inheritance percentage)
     Make scale system and breathing system optional
     Add IK behaviour to fingers (move handle closer to palm)
@@ -248,7 +249,7 @@ rotate_order_enum_tagged = 'xyz (default):yzx:zxy:xzy (up first):yxz:zyx'
 custom_attr_separator = 'controlBehaviour'
 
 # Debugging Vars
-debugging = True # Activates Debugging Mode
+debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
@@ -256,7 +257,6 @@ debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.ppose' # Path to auto import
-
 debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
@@ -3389,7 +3389,7 @@ def create_controls():
         if visibility:
             cmds.setAttr(obj + '.v', lock=True, k=False, channelBox=False)
             
-    def setup_shape_switch(control, attr='controlShape', shape_names=['box', 'semiCircle', 'pin'], shape_enum=['Box', 'Semi-Circle', 'Pin'] ):
+    def setup_shape_switch(control, attr='controlShape', shape_names=['box', 'semiCircle', 'pin'], shape_enum=['Box', 'Semi-Circle', 'Pin']):
         '''
         Creates the nodes and connections necessary to switch between three shapes. 
         One is the default 3D shape, another is a flat 2D shape and the third is a pin for when constraining
@@ -3398,36 +3398,38 @@ def create_controls():
                             control (string): Name of the control to create the switch
                             attr (optional, string): Attribute name, default is "controlShape"
                             shape_names (optional, list): A list of three elements with the expected names of the shapes, [3D, 2D, PIN]
+                                                          If using only two, the third one will be ignored.
                             shape_enum (optional, list): A list of three elements with the enum names of the shapes, [3D, 2D, PIN]
         '''       
+        enum_string = ''
+        for string in shape_enum:
+            enum_string += string + ':'
+            
         if not cmds.attributeQuery(attr, node=control, exists=True):
-            cmds.addAttr(control, ln=attr, at='enum', en= shape_enum[0] + ':' + shape_enum[1] + ':' + shape_enum[2] + ':', keyable=True)
+            cmds.addAttr(control, ln=attr, at='enum', en=enum_string, keyable=True)
 
-        v_type_0_condition_node = cmds.createNode('condition', name= control.replace(ctrl_suffix, '') + '_shapeBox_condition')
-        v_type_1_condition_node = cmds.createNode('condition', name= control.replace(ctrl_suffix, '') + '_shapeSemiCircle_condition')
-        v_type_2_condition_node = cmds.createNode('condition', name= control.replace(ctrl_suffix, '') + '_shapePin_condition')
-        cmds.connectAttr(control + '.' + attr, v_type_0_condition_node + '.firstTerm', f=True)
-        cmds.connectAttr(control + '.' + attr, v_type_1_condition_node + '.firstTerm', f=True)
-        cmds.connectAttr(control + '.' + attr, v_type_2_condition_node + '.firstTerm', f=True)
-        cmds.setAttr(v_type_1_condition_node + '.secondTerm', 1)
-        cmds.setAttr(v_type_2_condition_node + '.secondTerm', 2)
-        
-        for condition_node in [v_type_0_condition_node, v_type_1_condition_node, v_type_2_condition_node]:
+        condition_pairs = []
+                
+        for index in range(len(shape_names)):
+            condition_pairs.append([cmds.createNode('condition', name= control.replace(ctrl_suffix, '') + 'shape' + shape_names[index].capitalize() + '_condition'), shape_names[index]])
+            
+        for index in range(len(condition_pairs)):
+            condition_node = condition_pairs[index][0]
             cmds.setAttr(condition_node + '.colorIfTrueR', 1)
             cmds.setAttr(condition_node + '.colorIfFalseR', 0)
             cmds.setAttr(condition_node + '.colorIfTrueG', 1)
             cmds.setAttr(condition_node + '.colorIfFalseG', 0)
             cmds.setAttr(condition_node + '.colorIfTrueB', 1)
             cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-        for shape in cmds.listRelatives(control, s=True, f=True) or []:
-            if shape_names[0] in shape:
-                cmds.connectAttr(v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-            elif shape_names[1] in shape:
-                cmds.connectAttr(v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-            elif shape_names[2] in shape:
-                cmds.connectAttr(v_type_2_condition_node + '.outColorR', shape + '.v', f=True)
-
+            cmds.setAttr(condition_node + '.secondTerm', index)
+            cmds.connectAttr(control + '.' + attr, condition_node + '.firstTerm', f=True)
+            
+        available_shapes = cmds.listRelatives(control, s=True, f=True) or []
+        for shape in available_shapes:
+            for condition_pair in condition_pairs:
+                if condition_pair[1] in shape:
+                    cmds.connectAttr(condition_pair[0] + '.outColorR', shape + '.v', f=True)
+   
     # Store selection and symmetry states
     cmds.select(d=True) # Clear Selection
     cmds.symmetricModelling(e=True, symmetry=False) # Turn off symmetry
@@ -4076,9 +4078,15 @@ def create_controls():
     cmds.rebuildCurve(direction_ctrl, ch=False,rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     
     # COG Control
-    cog_ctrl = cmds.circle(name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, '') + ctrl_suffix, nr=(1,0,0), ch=False, radius=general_scale_offset)[0]
-    for shape in cmds.listRelatives(cog_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(cog_ctrl))
+    
+    cog_ctrl_a = cmds.circle(name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, '') + ctrl_suffix, nr=(1,0,0), ch=False, radius=general_scale_offset)[0]
+    cog_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -18.225, 0.0], [0.681, -18.317, 0.0], [1.301, -18.581, 0.0], [1.838, -18.988, 0.0], [2.254, -19.526, 0.0], [2.509, -20.155, 0.0], [2.6, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -18.225, 0.0], [-0.681, -18.317, 0.0], [-1.311, -18.581, 0.0], [-1.838, -18.988, 0.0], [-2.254, -19.536, 0.0], [-2.509, -20.155, 0.0], [-2.61, -20.825, 0.0], [-2.519, -21.507, 0.0], [-2.254, -22.126, 0.0], [-1.838, -22.665, 0.0], [-1.301, -23.082, 0.0], [-0.681, -23.336, 0.0], [0.0, -23.437, 0.0], [0.67, -23.346, 0.0], [1.301, -23.082, 0.0], [1.838, -22.675, 0.0], [2.244, -22.136, 0.0], [2.509, -21.496, 0.0], [2.6, -20.825, 0.0], [-2.61, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -23.437, 0.0]], d=1)
+    cog_ctrl = gtu_combine_curves_list([cog_ctrl_a, cog_ctrl_b])
+    
+    shapes = cmds.listRelatives(cog_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(cog_ctrl.replace(ctrl_suffix, 'circle')))
+    cmds.rename(shapes[1], '{0}Shape'.format(cog_ctrl.replace(ctrl_suffix, 'pin')))
+        
     change_viewport_color(cog_ctrl, (1,1,0))
     cmds.makeIdentity(cog_ctrl, apply=True, scale=True)
     cog_ctrl_grp = cmds.group(name=cog_ctrl + grp_suffix.capitalize(), empty=True, world=True)
@@ -4086,22 +4094,69 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('cog_jnt'), cog_ctrl_grp))
     cmds.parent(cog_ctrl_grp, direction_ctrl)
     
-    def override_local_orientation(obj, aim_vec=(0,1,0)):
-        '''
-        TODO
-        '''
-        temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
-        temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
-        cmds.delete(cmds.parentConstraint(obj, temp_grp))
-        cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
-        cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
-        cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=aim_vec, upVector=(0,1,0), worldUpType='vector', worldUpVector=(0,1,0)))
-        cmds.matchTransform(obj, temp_grp, rot=1)
-        cmds.delete(temp_grp_dir)
-        cmds.delete(temp_grp)
+    # Add Separator
+    cmds.addAttr(cog_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(cog_ctrl + '.' + custom_attr_separator, lock=True)
 
-    if gt_ab_settings.get('uniform_ctrl_orient'): # @@
-        pass
+    # Expose Custom Rotate Order
+    cmds.addAttr(cog_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(cog_ctrl + '.rotationOrder', cog_ctrl + '.rotateOrder', f=True)
+    
+    # Setup Shape Swtich
+    setup_shape_switch(cog_ctrl, attr='controlShape', shape_names=['circle', 'pin'], shape_enum=['Circle', 'Pin'])
+    
+    # Show Scale Ctrl
+    cmds.addAttr(cog_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Cog In-Between Offset
+    cog_offset_ctrl = cmds.duplicate(cog_ctrl, name=cog_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.deleteAttr( cog_offset_ctrl, at='showScaleCtrl' )
+    cmds.setAttr(cog_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(cog_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(cog_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(cog_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(cog_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(cog_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(cog_offset_ctrl + '.v', k=False, channelBox=False)
+    setup_shape_switch(cog_offset_ctrl, attr='controlShape', shape_names=['circle', 'pin'], shape_enum=['Circle', 'Pin'])
+    
+    # Recreate Connections 
+    cmds.connectAttr(cog_offset_ctrl + '.rotationOrder', cog_offset_ctrl + '.rotateOrder', f=True)
+
+    cog_offset_ctrl_grp = cmds.group(name=cog_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cog_offset_data_grp = cmds.group(name=cog_offset_ctrl.replace(ctrl_suffix.capitalize(), 'Data') + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.connectAttr(cog_offset_ctrl + '.rotationOrder', cog_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(cog_offset_data_grp, cog_offset_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(cog_offset_ctrl, cog_offset_ctrl_grp))
+    
+    cmds.parent(cog_offset_ctrl, cog_offset_ctrl_grp)
+    cmds.parent(cog_offset_ctrl_grp, cog_ctrl)
+    
+    cmds.connectAttr(cog_offset_ctrl + '.translate', cog_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(cog_offset_ctrl + '.rotate', cog_offset_data_grp + '.rotate', f=True)
+        
+    cmds.addAttr(cog_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(cog_ctrl + '.showOffsetCtrl', cog_offset_ctrl + '.v', f=True)
+    
+    #### End Chest In-Between Offset
+    
+
+    # def override_local_orientation(obj, aim_vec=(0,1,0)):
+    #     '''
+    #     TODO
+    #     '''
+    #     temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
+    #     temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
+    #     cmds.delete(cmds.parentConstraint(obj, temp_grp))
+    #     cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
+    #     cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
+    #     cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=aim_vec, upVector=(0,1,0), worldUpType='vector', worldUpVector=(0,1,0)))
+    #     cmds.matchTransform(obj, temp_grp, rot=1)
+    #     cmds.delete(temp_grp_dir)
+    #     cmds.delete(temp_grp)
+
+    # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
+    #     pass
         # override_local_orientation(cog_ctrl)
         # cmds.makeIdentity(cog_ctrl, apply=True, rotate=True)
         # override_local_orientation(cog_ctrl_grp, (0,0,1))
@@ -4119,18 +4174,73 @@ def create_controls():
          # cmds.xform('cog_ctrlGrp', ro=[0, -90, 0], relative=True)
 
     # Hip Control
-    hip_ctrl = cmds.curve(name=gt_ab_joints.get('hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185], [-0.05, 0.592, 0.366], [0.037, 0.515, 0.493], [0.12, 0.406, 0.632], [-0.062, -0.0, 0.818], [0.12, -0.406, 0.632], [0.037, -0.515, 0.493], [-0.05, -0.592, 0.366], [-0.159, -0.65, 0.185], [-0.183, -0.671, -0.001], [-0.159, -0.65, -0.185], [-0.05, -0.592, -0.366], [0.037, -0.515, -0.493], [0.12, -0.406, -0.632], [-0.062, 0.0, -0.818], [0.12, 0.406, -0.632], [0.037, 0.515, -0.493], [-0.05, 0.606, -0.366], [-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+    hip_ctrl_a = cmds.curve(name=gt_ab_joints.get('hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185], [-0.05, 0.592, 0.366], [0.037, 0.515, 0.493], [0.12, 0.406, 0.632], [-0.062, -0.0, 0.818], [0.12, -0.406, 0.632], [0.037, -0.515, 0.493], [-0.05, -0.592, 0.366], [-0.159, -0.65, 0.185], [-0.183, -0.671, -0.001], [-0.159, -0.65, -0.185], [-0.05, -0.592, -0.366], [0.037, -0.515, -0.493], [0.12, -0.406, -0.632], [-0.062, 0.0, -0.818], [0.12, 0.406, -0.632], [0.037, 0.515, -0.493], [-0.05, 0.606, -0.366], [-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+    hip_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -0.754, 0.0], [0.03, -0.761, 0.0], [0.054, -0.769, 0.0], [0.077, -0.787, 0.0], [0.095, -0.808, 0.0], [0.104, -0.834, 0.0], [0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.754, 0.0], [-0.03, -0.761, 0.0], [-0.054, -0.769, 0.0], [-0.077, -0.787, 0.0], [-0.095, -0.811, 0.0], [-0.104, -0.834, 0.0], [-0.109, -0.864, 0.0], [-0.104, -0.891, 0.0], [-0.095, -0.917, 0.0], [-0.077, -0.941, 0.0], [-0.054, -0.955, 0.0], [-0.03, -0.967, 0.0], [0.0, -0.971, 0.0], [0.026, -0.967, 0.0], [0.054, -0.955, 0.0], [0.077, -0.941, 0.0], [0.092, -0.917, 0.0], [0.104, -0.891, 0.0], [0.109, -0.864, 0.0], [-0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.971, 0.0]], d=1)
+    hip_ctrl = gtu_combine_curves_list([hip_ctrl_a, hip_ctrl_b])
+    
+    shapes = cmds.listRelatives(hip_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(hip_ctrl.replace(ctrl_suffix, 'default')))
+    cmds.rename(shapes[1], '{0}Shape'.format(hip_ctrl.replace(ctrl_suffix, 'pin')))
+
     cmds.setAttr(hip_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(hip_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(hip_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(hip_ctrl, apply=True, scale=True)
-    for shape in cmds.listRelatives(hip_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(hip_ctrl))
+
     change_viewport_color(hip_ctrl, (.8,.8,0))
     hip_ctrl_grp = cmds.group(name=hip_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(hip_ctrl, hip_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_ctrl_grp))
-    cmds.parent(hip_ctrl_grp, cog_ctrl)
+    cmds.parent(hip_ctrl_grp, cog_offset_data_grp)
+    
+    # Add Separator
+    cmds.addAttr(hip_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(hip_ctrl + '.' + custom_attr_separator, lock=True)
+
+    # Expose Custom Rotate Order
+    cmds.addAttr(hip_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(hip_ctrl + '.rotationOrder', hip_ctrl + '.rotateOrder', f=True)
+    
+    # Setup Shape Switch
+    setup_shape_switch(hip_ctrl, attr='controlShape', shape_names=['default', 'pin'], shape_enum=['Default', 'Pin'])
+    
+    # Show Scale Ctrl
+    cmds.addAttr(hip_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Hip In-Between Offset
+    hip_offset_ctrl = cmds.duplicate(hip_ctrl, name=hip_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.deleteAttr( hip_offset_ctrl, at='showScaleCtrl' )
+    cmds.setAttr(hip_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(hip_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(hip_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(hip_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(hip_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(hip_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(hip_offset_ctrl + '.v', k=False, channelBox=False)
+    
+    # Recreate Connections 
+    cmds.connectAttr(hip_offset_ctrl + '.rotationOrder', hip_offset_ctrl + '.rotateOrder', f=True)
+    
+    setup_shape_switch(hip_offset_ctrl, attr='controlShape', shape_names=['default', 'pin'], shape_enum=['Default', 'Pin'])
+
+    hip_offset_ctrl_grp = cmds.group(name=hip_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    hip_offset_data_grp = cmds.group(name=hip_offset_ctrl.replace(ctrl_suffix.capitalize(), 'Data') + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.connectAttr(hip_offset_ctrl + '.rotationOrder', hip_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(hip_offset_data_grp, hip_offset_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(hip_offset_ctrl, hip_offset_ctrl_grp))
+    
+    cmds.parent(hip_offset_ctrl, hip_offset_ctrl_grp)
+    cmds.parent(hip_offset_ctrl_grp, hip_ctrl)
+    
+    cmds.connectAttr(hip_offset_ctrl + '.translate', hip_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(hip_offset_ctrl + '.rotate', hip_offset_data_grp + '.rotate', f=True)
+        
+    cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(hip_ctrl + '.showOffsetCtrl', hip_offset_ctrl + '.v', f=True)
+    
+    #### End Chest In-Between Offset
+    
+    
     # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
     #      cmds.xform(hip_ctrl, ro=[90, 0, 90], relative=True)
     #      cmds.makeIdentity(hip_ctrl, apply=True, rotate=True)
@@ -4152,7 +4262,7 @@ def create_controls():
     spine01_ctrl_grp = cmds.group(name=spine01_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(spine01_ctrl, spine01_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine01_jnt'), spine01_ctrl_grp))
-    cmds.parent(spine01_ctrl_grp, cog_ctrl)
+    cmds.parent(spine01_ctrl_grp, cog_offset_data_grp)
     # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
     #      cmds.xform(spine01_ctrl, ro=[90, 0, 90], relative=True)
     #      cmds.makeIdentity(spine01_ctrl, apply=True, rotate=True)
@@ -4355,7 +4465,7 @@ def create_controls():
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_hip_jnt'), left_hip_ctrl_grp))
     change_viewport_color(left_hip_ctrl, left_ctrl_color)
-    cmds.parent(left_hip_ctrl_grp, hip_ctrl)
+    cmds.parent(left_hip_ctrl_grp, hip_offset_data_grp)
     
     # Adjust Size
     left_leg_scale_offset = left_leg_scale_offset*.8
@@ -4450,16 +4560,18 @@ def create_controls():
     cmds.parent(left_knee_ik_ctrl_grp, direction_ctrl)
     
     ################# Left Foot IK Control #################
-    left_foot_ik_ctrl_a = cmds.curve(name='left_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
-    left_foot_ik_ctrl_b = cmds.curve(p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, 0.321, -0.641], [-0.267, 0.321, -0.641], [-0.267, 0.321, 0.671], [0.267, 0.321, 0.671], [0.267, 0.321, -0.641], [0.267, 0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.321, 0.671], [-0.267, 0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
-    left_foot_ik_ctrl = gtu_combine_curves_list([left_foot_ik_ctrl_a, left_foot_ik_ctrl_b])
+    left_foot_ik_ctrl_a = cmds.curve(name='left_foot_ik_' + ctrl_suffix, p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, 0.321, -0.641], [-0.267, 0.321, -0.641], [-0.267, 0.321, 0.671], [0.267, 0.321, 0.671], [0.267, 0.321, -0.641], [0.267, 0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.321, 0.671], [-0.267, 0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
+    left_foot_ik_ctrl_b = cmds.curve(p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
+    left_foot_ik_ctrl_c = cmds.curve(p=[[0.0, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, -0.021, 0.0], [0.584, -0.041, 0.0], [0.597, -0.058, 0.0], [0.614, -0.071, 0.0], [0.633, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, 0.021, 0.0], [0.584, 0.041, 0.0], [0.597, 0.058, 0.0], [0.614, 0.071, 0.0], [0.633, 0.079, 0.0], [0.655, 0.082, 0.0], [0.676, 0.079, 0.0], [0.695, 0.071, 0.0], [0.712, 0.058, 0.0], [0.726, 0.041, 0.0], [0.734, 0.021, 0.0], [0.737, 0.0, 0.0], [0.734, -0.021, 0.0], [0.726, -0.041, 0.0], [0.713, -0.058, 0.0], [0.696, -0.07, 0.0], [0.676, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.082, 0.0], [0.655, 0.0, 0.0], [0.737, 0.0, 0.0]], d=1)
+    left_foot_ik_ctrl = gtu_combine_curves_list([left_foot_ik_ctrl_a, left_foot_ik_ctrl_b, left_foot_ik_ctrl_c])
 
     left_foot_ik_ctrl_grp = cmds.group(name=left_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_foot_ik_ctrl, left_foot_ik_ctrl_grp)
     
-    shape = cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []
-    cmds.rename(shape[0], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
-    cmds.rename(shape[1], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    shapes = cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'pin')))
     
     # Left Foot Scale
     left_foot_scale_offset = 0
@@ -4515,7 +4627,7 @@ def create_controls():
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_hip_jnt'), right_hip_ctrl_grp))
     change_viewport_color(right_hip_ctrl, right_ctrl_color)
-    cmds.parent(right_hip_ctrl_grp, hip_ctrl)
+    cmds.parent(right_hip_ctrl_grp, hip_offset_data_grp)
     
     # Adjust Size
     right_leg_scale_offset = right_leg_scale_offset*.8
@@ -4610,16 +4722,18 @@ def create_controls():
     cmds.parent(right_knee_ik_ctrl_grp, direction_ctrl)
     
     ################# Right Foot IK Control #################
-    right_foot_ik_ctrl_a = cmds.curve(name='right_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
-    right_foot_ik_ctrl_b = cmds.curve(p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, -0.321, -0.641], [-0.267, -0.321, -0.641], [-0.267, -0.321, 0.671], [0.267, -0.321, 0.671], [0.267, -0.321, -0.641], [0.267, -0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, -0.321, 0.671], [-0.267, -0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
-    right_foot_ik_ctrl = gtu_combine_curves_list([right_foot_ik_ctrl_a, right_foot_ik_ctrl_b])
+    right_foot_ik_ctrl_a = cmds.curve(name='right_foot_ik_' + ctrl_suffix, p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, -0.321, -0.641], [-0.267, -0.321, -0.641], [-0.267, -0.321, 0.671], [0.267, -0.321, 0.671], [0.267, -0.321, -0.641], [0.267, -0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, -0.321, 0.671], [-0.267, -0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
+    right_foot_ik_ctrl_b = cmds.curve(p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
+    right_foot_ik_ctrl_c = cmds.curve(p=[[0.0, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, -0.021, 0.0], [0.584, -0.041, 0.0], [0.597, -0.058, 0.0], [0.614, -0.071, 0.0], [0.633, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, 0.021, 0.0], [0.584, 0.041, 0.0], [0.597, 0.058, 0.0], [0.614, 0.071, 0.0], [0.633, 0.079, 0.0], [0.655, 0.082, 0.0], [0.676, 0.079, 0.0], [0.695, 0.071, 0.0], [0.712, 0.058, 0.0], [0.726, 0.041, 0.0], [0.734, 0.021, 0.0], [0.737, 0.0, 0.0], [0.734, -0.021, 0.0], [0.726, -0.041, 0.0], [0.713, -0.058, 0.0], [0.696, -0.07, 0.0], [0.676, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.082, 0.0], [0.655, 0.0, 0.0], [0.737, 0.0, 0.0]], d=1)
+    right_foot_ik_ctrl = gtu_combine_curves_list([right_foot_ik_ctrl_a, right_foot_ik_ctrl_b, right_foot_ik_ctrl_c])
 
     right_foot_ik_ctrl_grp = cmds.group(name=right_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_foot_ik_ctrl, right_foot_ik_ctrl_grp)
     
-    shape = cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []
-    cmds.rename(shape[0], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
-    cmds.rename(shape[1], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    shapes = cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'pin')))
     
     # Right Foot Scale
     right_foot_scale_offset = 0
@@ -4852,7 +4966,7 @@ def create_controls():
     # Left Hand Ctrl Visibility Type
     setup_shape_switch(left_wrist_ik_ctrl)
         
-    # Left Wrist Wrist In-Between Offset
+    # Left Wrist In-Between Offset
     left_wrist_offset_ik_ctrl = cmds.duplicate(left_wrist_ik_ctrl, name=left_wrist_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
     cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleY', .9)
@@ -5100,7 +5214,7 @@ def create_controls():
     # Right Hand Ctrl Visibility Type
     setup_shape_switch(right_wrist_ik_ctrl)
     
-    # Right Wrist Wrist In-Between Offset
+    # Right Wrist In-Between Offset
     right_wrist_offset_ik_ctrl = cmds.duplicate(right_wrist_ik_ctrl, name=right_wrist_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleY', .9)
@@ -5697,7 +5811,7 @@ def create_controls():
     cmds.parentConstraint(main_ctrl, gt_ab_joints.get('main_jnt'))
     
     
-    ############## IK Spine (Ribbon) ############## @@@
+    ############## IK Spine (Ribbon) ##############
     spine_ik_grp = cmds.group(name='spineRibbon_grp', empty=True)
     cmds.setAttr(spine_ik_grp + '.inheritsTransform', 0)
     cog_ws_pos = cmds.xform(gt_ab_joints.get('cog_jnt'),q=1,ws=1,rp=1)
@@ -5710,7 +5824,7 @@ def create_controls():
     ribbon_two_crv = cmds.duplicate(ribbon_one_crv, name='spine_ribbon_crv_two')
     cmds.move( general_scale_offset*.1, ribbon_one_crv, x=True, absolute=True )
     cmds.move( general_scale_offset*-.1, ribbon_two_crv, x=True, absolute=True )
-    ribbon_sur = cmds.loft( ribbon_two_crv, ribbon_one_crv, name='spine_ribbon_sur' ,ch=False, rn=True, ar=False )[0]
+    ribbon_sur = cmds.loft( ribbon_two_crv, ribbon_one_crv, name='spine_ribbon_sur', ch=False, rn=True, ar=False )[0]
     cmds.delete(ribbon_one_crv)
     cmds.delete(ribbon_two_crv)
     
@@ -5800,27 +5914,44 @@ def create_controls():
     cmds.rename(shapes[0], '{0}Shape'.format('chest_pin'))
     cmds.rename(shapes[1], '{0}Shape'.format( 'chest_box'))
 
-    # Chest Ctrl Visibility Switch
+    # Add Separator
     cmds.addAttr(chest_ribbon_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(chest_ribbon_ctrl + '.' + custom_attr_separator, lock=True)
-    cmds.addAttr(chest_ribbon_ctrl, ln="controlShape", at='enum', en="Box:Pin:", keyable=True)
 
-    chest_v_type_condition_node = cmds.createNode('condition', name='ribbon_chest_controlShape_condition')
-    chest_v_type_reverse_node = cmds.createNode('reverse', name='ribbon_chest_controlShape_reverse')
-    cmds.connectAttr(chest_ribbon_ctrl + '.controlShape', chest_v_type_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(chest_v_type_condition_node + '.outColorR', chest_v_type_reverse_node + '.inputX', f=True)
-    
+    # Expose Custom Rotate Order
+    cmds.addAttr(chest_ribbon_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(chest_ribbon_ctrl + '.rotationOrder', chest_ribbon_ctrl + '.rotateOrder', f=True)
 
-    for shape in cmds.listRelatives(chest_ribbon_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(chest_v_type_reverse_node + '.outputX', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(chest_v_type_condition_node + '.outColorR', shape + '.v', f=True)
-    
+    # Chest Ctrl Visibility Switch
+    setup_shape_switch(chest_ribbon_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
     
     cmds.parent(chest_ribbon_ctrl, chest_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
     change_viewport_color(chest_ribbon_ctrl, (1,1,0))
+    
+    # Chest In-Between Offset
+    chest_ribbon_offset_ctrl = cmds.duplicate(chest_ribbon_ctrl, name=chest_ribbon_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(chest_ribbon_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(chest_ribbon_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(chest_ribbon_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.v', k=False, channelBox=False)
+    
+    # Recreate Connections 
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotationOrder', chest_ribbon_offset_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(chest_ribbon_offset_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
+    
+    chest_ribbon_offset_ctrl_grp = cmds.group(name=chest_ribbon_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(chest_ribbon_offset_ctrl, chest_ribbon_offset_ctrl_grp))
+    
+    cmds.parent(chest_ribbon_offset_ctrl, chest_ribbon_offset_ctrl_grp)
+    cmds.parent(chest_ribbon_offset_ctrl_grp, chest_ribbon_ctrl)
+        
+    cmds.addAttr(chest_ribbon_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(chest_ribbon_ctrl + '.showOffsetCtrl', chest_ribbon_offset_ctrl + '.v', f=True)
+    #### End Chest In-Between Offset
     
     # Chest Adjustment Ctrl
     adj_ctrl_color = (.52, .1, .78)
@@ -5843,30 +5974,17 @@ def create_controls():
     cmds.rename(shapes[0], '{0}Shape'.format('chest_adjustment_pin'))
     cmds.rename(shapes[1], '{0}Shape'.format( 'chest_adjustment_box'))
 
-    # Chest Adjustment Ctrl Visibility Switch
-    cmds.addAttr(chest_ribbon_adjustment_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.' + custom_attr_separator, lock=True)
-    cmds.addAttr(chest_ribbon_adjustment_ctrl, ln="controlShape", at='enum', en="Box:Pin:", keyable=True)
-    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.controlShape', 1) # Default Pin
+    # # Chest Adjustment Ctrl Visibility Switch
+    setup_shape_switch(chest_ribbon_adjustment_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
+    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.controlShape', 1)
 
-    chest_v_type_condition_node = cmds.createNode('condition', name='ribbon_chest_adj_controlShape_condition')
-    chest_v_type_reverse_node = cmds.createNode('reverse', name='ribbon_chest_adj_controlShape_reverse')
-    cmds.connectAttr(chest_ribbon_adjustment_ctrl + '.controlShape', chest_v_type_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(chest_v_type_condition_node + '.outColorR', chest_v_type_reverse_node + '.inputX', f=True)
-    
-
-    for shape in cmds.listRelatives(chest_ribbon_adjustment_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(chest_v_type_reverse_node + '.outputX', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(chest_v_type_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
     cmds.parent(chest_ribbon_adjustment_ctrl, chest_ribbon_adjustment_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_adjustment_ctrl_grp))
     cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0])
     change_viewport_color(chest_ribbon_adjustment_ctrl, adj_ctrl_color)
-    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_ctrl) # Make Chest Control the main driver
+    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_offset_ctrl_grp) # Make Chest Control the main driver
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.translate', chest_ribbon_adjustment_ctrl_grp + '.translate', f=True)
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotate', chest_ribbon_adjustment_ctrl_grp + '.rotate', f=True)
     
     # Spine Ctrl
     spine_ribbon_ctrl = cmds.curve(name=ribbon_spine02_jnt[0].replace(jnt_suffix, '') + ctrl_suffix, p=[[0.0, 0.0, 0.0], [0.0, -1.794, 0.0], [0.067, -1.803, 0.0], [0.128, -1.829, 0.0], [0.181, -1.869, 0.0], [0.222, -1.922, 0.0], [0.247, -1.984, 0.0], [0.256, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -1.794, 0.0], [-0.067, -1.803, 0.0], [-0.129, -1.829, 0.0], [-0.181, -1.869, 0.0], [-0.222, -1.923, 0.0], [-0.247, -1.984, 0.0], [-0.257, -2.05, 0.0], [-0.248, -2.117, 0.0], [-0.222, -2.178, 0.0], [-0.181, -2.231, 0.0], [-0.128, -2.272, 0.0], [-0.067, -2.297, 0.0], [0.0, -2.307, 0.0], [0.066, -2.298, 0.0], [0.128, -2.272, 0.0], [0.181, -2.232, 0.0], [0.221, -2.179, 0.0], [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -2.307, 0.0]], d=1)
@@ -5898,7 +6016,6 @@ def create_controls():
     cmds.connectAttr(chest_ribbon_ctrl + '.showAdjustmentControls', spine_ribbon_ctrl_grp + '.v', f=True)
     cmds.connectAttr(chest_ribbon_ctrl + '.showAdjustmentControls', chest_ribbon_adjustment_ctrl_grp + '.v', f=True)
     
-
     ### FK Spine ###
     
     # Create FK Chain
@@ -6043,7 +6160,7 @@ def create_controls():
 
 
     #### FK IK Constraints ####
-    cmds.parentConstraint(cog_ctrl, fk_cog_jnt[0]) 
+    cmds.parentConstraint(cog_offset_data_grp, fk_cog_jnt[0]) 
     cog_constraint = cmds.parentConstraint([fk_cog_jnt[0], ik_cog_jnt[0]], gt_ab_joints.get('cog_jnt'))
     spine01_constraint = cmds.parentConstraint([fk_spine01_jnt[0], ik_spine01_jnt[0]], gt_ab_joints.get('spine01_jnt'))
     spine02_constraint = cmds.parentConstraint([fk_spine02_jnt[0], ik_spine02_jnt[0]], gt_ab_joints.get('spine02_jnt'))
@@ -6070,9 +6187,9 @@ def create_controls():
 
     
     # IK FK Spine Mechanics
-    cmds.parent(cog_ribbon_ctrl_grp, cog_ctrl)
-    cmds.parent(spine_ribbon_ctrl_grp, cog_ctrl)
-    cmds.parent(chest_ribbon_ctrl_grp, cog_ctrl)
+    cmds.parent(cog_ribbon_ctrl_grp, cog_offset_data_grp)
+    cmds.parent(spine_ribbon_ctrl_grp, cog_offset_data_grp)
+    cmds.parent(chest_ribbon_ctrl_grp, cog_offset_data_grp)
     spine04_offset_group = cmds.group(name=spine04_ctrl.replace(ctrl_suffix, '') + 'switch_ctrl_grp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine04_jnt'), spine04_offset_group))
     cmds.parent(right_clavicle_ctrl_grp, spine04_offset_group)
@@ -6086,14 +6203,14 @@ def create_controls():
     cmds.parent(neck_base_offset_group, main_ctrl)
     
     # Keep Line of Sight
-    head_ik_fk_constraint = cmds.parentConstraint([chest_ribbon_ctrl, spine04_ctrl], neck_base_offset_group)
+    head_ik_fk_constraint = cmds.parentConstraint([chest_ribbon_offset_ctrl, spine04_ctrl], neck_base_offset_group)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', head_ik_fk_constraint[0] + '.w0', f=True)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', head_ik_fk_constraint[0] + '.w1', f=True)
     spine_switcher_constraint = cmds.parentConstraint([chest_ribbon_adjustment_ctrl, spine04_ctrl], spine04_offset_group)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', spine_switcher_constraint[0] + '.w1', f=True)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', spine_switcher_constraint[0] + '.w0', f=True)
     
-    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_ribbon_ctrl, cog_ctrl], spine_ribbon_ctrl_grp, mo=True)
+    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_ribbon_offset_ctrl, cog_ctrl], spine_ribbon_ctrl_grp, mo=True)
     
     cmds.parent(spine_ik_grp, general_automation_grp)
     
@@ -6194,7 +6311,7 @@ def create_controls():
     cmds.parentConstraint(jaw_ctrl, gt_ab_joints.get('jaw_jnt')) 
     
     # Hip Ctrl
-    cmds.parentConstraint(hip_ctrl, gt_ab_joints.get('hip_jnt')) 
+    cmds.parentConstraint(hip_offset_data_grp, gt_ab_joints.get('hip_jnt')) 
     
     ################# Left FK Controls #################
     # Left Leg
@@ -7372,7 +7489,7 @@ def create_controls():
     left_knee_ik_offset_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     left_hip_ik_offset_reference = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_hip_jnt'), left_hip_ik_offset_reference))
-    cmds.parent(left_hip_ik_offset_reference, hip_ctrl)
+    cmds.parent(left_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(left_knee_ik_offset_grp, direction_ctrl)
     cmds.pointConstraint([left_hip_ik_offset_reference, left_foot_ik_ctrl], left_knee_ik_offset_grp)
 
@@ -7440,34 +7557,11 @@ def create_controls():
             cmds.delete(child)
     cmds.parentConstraint(left_ball_pivot_grp, left_leg_stretchy_elements[0], mo=True)
     
-    # Left Foot Control Type Visibility
-    cmds.addAttr(left_leg_switch, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(left_leg_switch + '.footControl', lock=True)
-    cmds.addAttr(left_leg_switch, ln="controlShape", at='enum', en="Box:Flat:", keyable=True)
-
-    left_v_type_0_condition_node = cmds.createNode('condition', name='left_foot_controlShapeBox_condition')
-    left_v_type_1_condition_node = cmds.createNode('condition', name='left_foot_controlShapeFlat_condition')
-   
-    cmds.connectAttr(left_leg_switch + '.controlShape', left_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(left_leg_switch + '.controlShape', left_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(left_v_type_1_condition_node + '.secondTerm', 1)
-
-    
-    for condition_node in [left_v_type_0_condition_node, left_v_type_1_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(left_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'flat' in shape:
-            cmds.connectAttr(left_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
+    # Left Foot Control Type Visibility @@@@
+    cmds.addAttr(left_foot_ik_ctrl, ln="footControl", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(left_foot_ik_ctrl + '.footControl', lock=True)
+    setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+     
     # Transfer Data to Base Skeleton
     left_hip_scale_blend = cmds.createNode('blendColors', name='left_hip_switchScale_blend')
     left_knee_scale_blend = cmds.createNode('blendColors', name='left_knee_switchScale_blend')
@@ -7652,7 +7746,7 @@ def create_controls():
     right_knee_ik_offset_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     right_hip_ik_offset_reference = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_hip_jnt'), right_hip_ik_offset_reference))
-    cmds.parent(right_hip_ik_offset_reference, hip_ctrl)
+    cmds.parent(right_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(right_knee_ik_offset_grp, direction_ctrl)
     cmds.pointConstraint([right_hip_ik_offset_reference, right_foot_ik_ctrl], right_knee_ik_offset_grp)
     
@@ -7720,33 +7814,11 @@ def create_controls():
             cmds.delete(child)
     cmds.parentConstraint(right_ball_pivot_grp, right_leg_stretchy_elements[0], mo=True)
     
-        # Right Foot Control Type Visibility
-    cmds.addAttr(right_leg_switch, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(right_leg_switch + '.footControl', lock=True)
-    cmds.addAttr(right_leg_switch, ln="controlShape", at='enum', en="Box:Flat:", keyable=True)
-
-    right_v_type_0_condition_node = cmds.createNode('condition', name='right_foot_controlShapeBox_condition')
-    right_v_type_1_condition_node = cmds.createNode('condition', name='right_foot_controlShapeFlat_condition')
-   
-    cmds.connectAttr(right_leg_switch + '.controlShape', right_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(right_leg_switch + '.controlShape', right_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(right_v_type_1_condition_node + '.secondTerm', 1)
-
-    for condition_node in [right_v_type_0_condition_node, right_v_type_1_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(right_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'flat' in shape:
-            cmds.connectAttr(right_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
+    # # Right Foot Control Type Visibility @@@@
+    cmds.addAttr(right_foot_ik_ctrl, ln="footControl", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(right_foot_ik_ctrl + '.footControl', lock=True)
+    setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+ 
     # Transfer Data to Base Skeleton
     right_hip_scale_blend = cmds.createNode('blendColors', name='right_hip_switchScale_blend')
     right_knee_scale_blend = cmds.createNode('blendColors', name='right_knee_switchScale_blend')
@@ -8397,11 +8469,13 @@ def create_controls():
                 spine01_ctrl, spine02_ctrl, spine03_ctrl, spine04_ctrl, neck_base_ctrl, neck_mid_ctrl, hip_ctrl, jaw_ctrl, head_ctrl]:
         
         if not obj.startswith('spine02') and not obj.startswith('spine04') and not obj.startswith('neckBase'):
-            cmds.addAttr(obj, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
-            cmds.setAttr(obj + '.' + custom_attr_separator, lock=True)
+            if not cmds.attributeQuery(custom_attr_separator, node=obj, exists=True):
+                cmds.addAttr(obj, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+                cmds.setAttr(obj + '.' + custom_attr_separator, lock=True)
             # Expose Custom Rotate Order
-            cmds.addAttr(obj, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
-            cmds.connectAttr(obj + '.rotationOrder', obj + '.rotateOrder', f=True)
+            if not cmds.attributeQuery(custom_attr_separator, node=obj, exists=True):
+                cmds.addAttr(obj, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+                cmds.connectAttr(obj + '.rotationOrder', obj + '.rotateOrder', f=True)
         
             
         cmds.addAttr(obj, ln='lockTranslate', at='bool', k=True)
@@ -8675,7 +8749,7 @@ def create_controls():
                 cmds.connectAttr(offset_node + '.output3D', ctrl_grps[2] + '.scale', force=True)
                 
 
-    # Joint Inflation/Deflation Mechanics & Special Cases @@@ Deal with wrist
+    # Joint Inflation/Deflation Mechanics & Special Cases
     left_wrist_scale_blend = cmds.createNode('blendColors', name='left_wrist_switchScale_blend')
     cmds.connectAttr(left_wrist_ik_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_wrist_scale_blend + '.color1')
     cmds.connectAttr(left_wrist_ctrl.replace(ctrl_suffix, 'scaleCtrl') + '.scale', left_wrist_scale_blend + '.color2')
