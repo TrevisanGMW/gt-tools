@@ -184,11 +184,16 @@
  
  1.8.3 - 2021-11-18
  Added offset controls to wrists, chest, cog
+ 
+ 1.8.4 - 2021-11-19
+ Added offset controls to feet
 
  TODO:
     Head as IK? Rotate the neck without rotating the head.
     Attempt to make the control orientation uniform (Same as main control, world)
     Add logging for debugging
+    Fix feet offset default shape
+    Add twist to feet and wrist offset controls with a plus node
     
     Add option to leave all lock translation attributes off
     Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (inheritance percentage)
@@ -227,7 +232,7 @@ import re
 script_name = 'GT Auto Biped Rigger'
 
 # Version:
-script_version = '1.8.3'
+script_version = '1.8.4'
 
 # Python Version
 python_version = sys.version_info.major
@@ -4587,10 +4592,20 @@ def create_controls():
     desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_foot_ik_ctrl_grp + '.ry', desired_rotation[1])
-    
+        
     # Left Foot Pivot Adjustment
     cmds.xform(left_foot_ik_ctrl_grp, piv=desired_translation, ws=True)
     cmds.xform(left_foot_ik_ctrl, piv=desired_translation, ws=True)
+    
+    # Duplicate for Offset Control And Create Data Transform
+    left_foot_offset_ik_ctrl = cmds.duplicate(left_foot_ik_ctrl, renameChildren=True, name=left_foot_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    left_foot_offset_ik_ctrl_grp = cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl + grp_suffix.capitalize())[0] # group command generates junk data
+    left_foot_offset_data_grp = cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl.replace(ctrl_suffix.capitalize(), 'Data'))[0] # group command generates junk data
+    cmds.parent(left_foot_offset_data_grp, left_foot_offset_ik_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_ik_ctrl_grp))
+    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_data_grp))
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.translate', left_foot_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotate', left_foot_offset_data_grp + '.rotate', f=True)
     
     # Left Foot General Adjustments
     change_viewport_color(left_foot_ik_ctrl, left_ctrl_color)
@@ -4753,6 +4768,16 @@ def create_controls():
     # Right Foot Pivot Adjustment
     cmds.xform(right_foot_ik_ctrl_grp, piv=desired_translation, ws=True)
     cmds.xform(right_foot_ik_ctrl, piv=desired_translation, ws=True)
+    
+    # Duplicate for Offset Control And Create Data Transform
+    right_foot_offset_ik_ctrl = cmds.duplicate(right_foot_ik_ctrl, renameChildren=True, name=right_foot_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl + grp_suffix.capitalize())[0] # group command generates junk data
+    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl.replace(ctrl_suffix.capitalize(), 'Data'))[0] # group command generates junk data
+    cmds.parent(right_foot_offset_data_grp, right_foot_offset_ik_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_ik_ctrl_grp))
+    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_data_grp))
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.translate', right_foot_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotate', right_foot_offset_data_grp + '.rotate', f=True)
     
     # Right Foot General Adjustments
     change_viewport_color(right_foot_ik_ctrl, right_ctrl_color)
@@ -5417,7 +5442,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/4,left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_toe_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_toe_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_toe_roll_ctrl_grp, left_foot_offset_data_grp)
     
     
     # Left Toe Up/Down
@@ -5443,7 +5468,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/2.6,left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_toe_up_down_ctrl, left_ctrl_color)
-    cmds.parent(left_toe_up_down_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_toe_up_down_ctrl_grp, left_foot_offset_data_grp)
     
     # Left Ball Roll
     left_ball_roll_ctrl_a = cmds.curve(name='left_ballRoll_' + ctrl_suffix, p=[[0.0, -0.095, 0.38], [0.035, -0.145, 0.354], [0.059, -0.177, 0.335], [0.092, -0.218, 0.312], [0.118, -0.248, 0.286], [0.152, -0.272, 0.254], [0.152, -0.272, 0.254], [0.152, -0.272, 0.254], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.096, -0.259, 0.275], [0.068, -0.232, 0.3], [0.046, -0.201, 0.32], [0.046, -0.201, 0.32], [0.046, -0.201, 0.32], [0.046, -0.339, 0.2], [0.046, -0.387, -0.018], [0.046, -0.332, -0.173], [0.046, -0.265, -0.256], [0.046, -0.167, -0.332], [0.046, 0.0, -0.38], [0.046, 0.167, -0.332], [0.046, 0.265, -0.256], [0.046, 0.332, -0.173], [0.046, 0.387, -0.018], [0.046, 0.339, 0.2], [0.046, 0.201, 0.32], [0.046, 0.201, 0.32], [0.046, 0.201, 0.32], [0.068, 0.232, 0.3], [0.096, 0.259, 0.275], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.152, 0.272, 0.254], [0.152, 0.272, 0.254], [0.152, 0.272, 0.254], [0.118, 0.248, 0.286], [0.092, 0.218, 0.312], [0.059, 0.177, 0.335], [0.035, 0.145, 0.354], [0.0, 0.095, 0.38]],d=3)
@@ -5471,7 +5496,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/3,left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_ball_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_ball_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_ball_roll_ctrl_grp, left_foot_offset_data_grp)
     
     # Left Heel Roll
     left_heel_roll_ctrl_a = cmds.curve(name='left_heelRoll_' + ctrl_suffix, p=[[0.0, 0.095, -0.38], [0.035, 0.145, -0.354], [0.059, 0.177, -0.335], [0.092, 0.218, -0.312], [0.118, 0.248, -0.286], [0.152, 0.272, -0.254], [0.152, 0.272, -0.254], [0.152, 0.272, -0.254], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.096, 0.259, -0.275], [0.068, 0.232, -0.3], [0.046, 0.201, -0.32], [0.046, 0.201, -0.32], [0.046, 0.201, -0.32], [0.046, 0.339, -0.2], [0.046, 0.387, 0.018], [0.046, 0.332, 0.173], [0.046, 0.265, 0.256], [0.046, 0.167, 0.332], [0.046, -0.0, 0.38], [0.046, -0.167, 0.332], [0.046, -0.265, 0.256], [0.046, -0.332, 0.173], [0.046, -0.387, 0.018], [0.046, -0.339, -0.2], [0.046, -0.201, -0.32], [0.046, -0.201, -0.32], [0.046, -0.201, -0.32], [0.068, -0.232, -0.3], [0.096, -0.259, -0.275], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.152, -0.272, -0.254], [0.152, -0.272, -0.254], [0.152, -0.272, -0.254], [0.118, -0.248, -0.286], [0.092, -0.218, -0.312], [0.059, -0.177, -0.335], [0.035, -0.145, -0.354], [0.0, -0.095, -0.38]],d=3)
@@ -5499,7 +5524,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/3.5*-1,left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_heel_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_heel_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_heel_roll_ctrl_grp, left_foot_offset_data_grp)
 
 
     # Right Foot Automation Controls
@@ -7391,7 +7416,7 @@ def create_controls():
     cmds.parent(left_leg_toe_ik_handle[0], left_toe_pos_pivot_grp)
     cmds.parent(left_leg_ball_ik_handle[0], left_ball_pivot_grp)
     cmds.parent(left_leg_rp_ik_handle[0], left_ball_pivot_grp)
-    cmds.parentConstraint(left_foot_ik_ctrl, left_foot_pivot_grp, mo=True)
+    cmds.parentConstraint(left_foot_offset_data_grp, left_foot_pivot_grp, mo=True)
     
     cmds.connectAttr(left_ball_roll_ctrl + '.rotate', left_ball_pivot_grp + '.rotate', f=True)
     cmds.connectAttr(left_toe_roll_ctrl + '.rotate', left_toe_pivot_grp + '.rotate', f=True)
@@ -7460,7 +7485,7 @@ def create_controls():
     left_knee_constraint = cmds.parentConstraint([left_knee_fk_jnt, left_knee_ik_jnt], gt_ab_joints.get('left_knee_jnt'))
     left_ankle_constraint = cmds.parentConstraint([left_ankle_fk_jnt, left_ankle_ik_jnt], gt_ab_joints.get('left_ankle_jnt'))
     left_ball_constraint = cmds.parentConstraint([left_ball_fk_jnt, left_ball_ik_jnt], gt_ab_joints.get('left_ball_jnt'))
-    left_switch_constraint = cmds.parentConstraint([left_foot_ik_ctrl, left_ankle_ctrl], left_leg_switch_grp, mo=True)
+    left_switch_constraint = cmds.parentConstraint([left_foot_offset_data_grp, left_ankle_ctrl], left_leg_switch_grp, mo=True)
 
     left_switch_reverse_node = cmds.createNode('reverse', name='left_leg_switch_reverse')
     cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_switch_reverse_node + '.inputX', f=True)
@@ -7485,18 +7510,49 @@ def create_controls():
     cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_roll_ctrl_grp + '.v', f=True)
     cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_up_down_ctrl_grp + '.v', f=True)
     
+    # Setup Shape Switch
+    setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    
+    # Left Foot In-Between Offset
+    # Offset ctrl was created earlier when creating the original ctrl
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(left_foot_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(left_foot_offset_ik_ctrl, (.3, .6, 1))
+    lock_hide_default_attr(left_foot_offset_ik_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.v', k=False, channelBox=False)
+    # Recreate Connections
+    cmds.addAttr(left_foot_offset_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotationOrder', left_foot_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(left_foot_offset_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    cmds.parent(left_foot_offset_ik_ctrl, left_foot_ik_ctrl)
+    
+
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotationOrder', left_foot_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(left_foot_offset_ik_ctrl, left_foot_offset_ik_ctrl_grp)
+    cmds.parent(left_foot_offset_ik_ctrl_grp, left_foot_ik_ctrl)
+        
+    # Add Scale Ctrl for later
+    cmds.addAttr(left_foot_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Show Offset Ctrl
+    cmds.addAttr(left_foot_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(left_foot_ik_ctrl + '.showOffsetCtrl', left_foot_offset_ik_ctrl + '.v', f=True)
+    #### End Wrist In-Between Offset
+    
     # Left IK Knee Automation
     left_knee_ik_offset_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     left_hip_ik_offset_reference = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_hip_jnt'), left_hip_ik_offset_reference))
     cmds.parent(left_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(left_knee_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([left_hip_ik_offset_reference, left_foot_ik_ctrl], left_knee_ik_offset_grp)
+    cmds.pointConstraint([left_hip_ik_offset_reference, left_foot_offset_data_grp], left_knee_ik_offset_grp)
 
     left_leg_up_dir = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_legOffsetUpDir'), empty=True, world=True) 
     cmds.move(general_scale_offset*50, left_leg_up_dir, moveX=True)
     cmds.parent(left_leg_up_dir, direction_ctrl)
-    cmds.aimConstraint(left_foot_ik_ctrl, left_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_leg_up_dir) # No WORKING
+    cmds.aimConstraint(left_foot_offset_data_grp, left_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_leg_up_dir) 
     
     left_knee_ik_override_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     left_knee_ik_twist_override_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -7522,7 +7578,7 @@ def create_controls():
     left_knee_ik_foot_offset_data_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_footOverrideData'), empty=True, world=True)
     cmds.parent(left_knee_ik_foot_offset_data_grp, left_knee_ik_foot_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_knee_ik_foot_offset_parent_grp))
-    cmds.parentConstraint(left_foot_ik_ctrl, left_knee_ik_foot_offset_data_grp)
+    cmds.parentConstraint(left_foot_offset_data_grp, left_knee_ik_foot_offset_data_grp)
     cmds.parent(left_knee_ik_foot_offset_parent_grp, main_ctrl)
     
     left_knee_ik_foot_offset_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_footOffsetDriver'), empty=True, world=True)
@@ -7556,12 +7612,7 @@ def create_controls():
         if 'Constraint' in child:
             cmds.delete(child)
     cmds.parentConstraint(left_ball_pivot_grp, left_leg_stretchy_elements[0], mo=True)
-    
-    # Left Foot Control Type Visibility @@@@
-    cmds.addAttr(left_foot_ik_ctrl, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(left_foot_ik_ctrl + '.footControl', lock=True)
-    setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
-     
+         
     # Transfer Data to Base Skeleton
     left_hip_scale_blend = cmds.createNode('blendColors', name='left_hip_switchScale_blend')
     left_knee_scale_blend = cmds.createNode('blendColors', name='left_knee_switchScale_blend')
@@ -7648,7 +7699,7 @@ def create_controls():
     cmds.parent(right_leg_toe_ik_handle[0], right_toe_pos_pivot_grp)
     cmds.parent(right_leg_ball_ik_handle[0], right_ball_pivot_grp)
     cmds.parent(right_leg_rp_ik_handle[0], right_ball_pivot_grp)
-    cmds.parentConstraint(right_foot_ik_ctrl, right_foot_pivot_grp, mo=True)
+    cmds.parentConstraint(right_foot_offset_data_grp, right_foot_pivot_grp, mo=True)
     
     cmds.connectAttr(right_ball_roll_ctrl + '.rotate', right_ball_pivot_grp + '.rotate', f=True)
     cmds.connectAttr(right_toe_roll_ctrl + '.rotate', right_toe_pivot_grp + '.rotate', f=True)
@@ -7742,18 +7793,51 @@ def create_controls():
     cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_roll_ctrl_grp + '.v', f=True)
     cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_up_down_ctrl_grp + '.v', f=True)
     
+    # Setup Shape Switch
+    setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    
+    # Right Foot In-Between Offset
+    # Offset ctrl was created earlier when creating the original ctrl
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(right_foot_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(right_foot_offset_ik_ctrl, (1,.3,.3))
+    lock_hide_default_attr(right_foot_offset_ik_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.v', k=False, channelBox=False)
+    # Recreate Connections
+    cmds.addAttr(right_foot_offset_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotationOrder', right_foot_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(right_foot_offset_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    cmds.parent(right_foot_offset_ik_ctrl, right_foot_ik_ctrl)
+    
+
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotationOrder', right_foot_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(right_foot_offset_ik_ctrl, right_foot_offset_ik_ctrl_grp)
+    cmds.parent(right_foot_offset_ik_ctrl_grp, right_foot_ik_ctrl)
+        
+    # Add Scale Ctrl for later
+    cmds.addAttr(right_foot_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Show Offset Ctrl
+    cmds.addAttr(right_foot_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(right_foot_ik_ctrl + '.showOffsetCtrl', right_foot_offset_ik_ctrl + '.v', f=True)
+      
+    #### End Wrist In-Between Offset
+    
+    
     # Right IK Knee Automation
     right_knee_ik_offset_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     right_hip_ik_offset_reference = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_hip_jnt'), right_hip_ik_offset_reference))
     cmds.parent(right_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(right_knee_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([right_hip_ik_offset_reference, right_foot_ik_ctrl], right_knee_ik_offset_grp)
+    cmds.pointConstraint([right_hip_ik_offset_reference, right_foot_offset_data_grp], right_knee_ik_offset_grp)
     
     right_leg_up_dir = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_legOffsetUpDir'), empty=True, world=True) 
     cmds.move(general_scale_offset*-50, right_leg_up_dir, moveX=True)
     cmds.parent(right_leg_up_dir, direction_ctrl)
-    cmds.aimConstraint(right_foot_ik_ctrl, right_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_leg_up_dir) # No WORKING
+    cmds.aimConstraint(right_foot_offset_data_grp, right_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_leg_up_dir) # No WORKING
 
     right_knee_ik_override_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     right_knee_ik_twist_override_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -7779,7 +7863,7 @@ def create_controls():
     right_knee_ik_foot_offset_data_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_footOverrideData'), empty=True, world=True)
     cmds.parent(right_knee_ik_foot_offset_data_grp, right_knee_ik_foot_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_knee_ik_foot_offset_parent_grp))
-    cmds.parentConstraint(right_foot_ik_ctrl, right_knee_ik_foot_offset_data_grp)
+    cmds.parentConstraint(right_foot_offset_data_grp, right_knee_ik_foot_offset_data_grp)
     cmds.parent(right_knee_ik_foot_offset_parent_grp, main_ctrl)
     
     right_knee_ik_foot_offset_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_footOffsetDriver'), empty=True, world=True)
@@ -7808,17 +7892,13 @@ def create_controls():
     cmds.addAttr(right_leg_switch, ln="squashStretch", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_leg_switch + '.squashStretch', lock=True)
     right_leg_stretchy_elements = make_stretchy_ik(right_leg_rp_ik_handle[0], 'right_leg', right_leg_switch)
+    
     # Change Stretchy System to be compatible with roll controls
     for child in cmds.listRelatives(right_leg_stretchy_elements[0], children=True) or []:
         if 'Constraint' in child:
             cmds.delete(child)
     cmds.parentConstraint(right_ball_pivot_grp, right_leg_stretchy_elements[0], mo=True)
-    
-    # # Right Foot Control Type Visibility @@@@
-    cmds.addAttr(right_foot_ik_ctrl, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(right_foot_ik_ctrl + '.footControl', lock=True)
-    setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
- 
+     
     # Transfer Data to Base Skeleton
     right_hip_scale_blend = cmds.createNode('blendColors', name='right_hip_switchScale_blend')
     right_knee_scale_blend = cmds.createNode('blendColors', name='right_knee_switchScale_blend')
