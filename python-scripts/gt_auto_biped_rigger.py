@@ -160,29 +160,45 @@
  Fixed an issue where IK fingers wouldn't follow the correct preferred angle
  
  1.8.0 - 2021-11-15
- Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visibile by default)
+ Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visible by default)
  Changed IK Spine to be the default influence
  Secondary chest adjustment control only affects the chest, not the head (so you can keep line of sight)
  Arm pole vector controls now follow arm's plane instead of wrist
  Moved pole vector custom attributes to wrist for ease of access
  Added twist attributes to the pole vector controls for the arms (found under wrists)
- Added 3d visibility type shapes to ik feet and ik wrists
+ Added 3D visibility type shapes to IK feet and IK wrists
  Changed the source constraint for the feet stretchy system so it accounts for the roll controls
  
  1.8.1 - 2021-11-16
  Brought back the follow wrist option for the elbow pole vector controls
- Fixed an issue where the elbow controls (pvec) would sometimes receive rotation from the spine (missing aim up dir)
+ Fixed an issue where the elbow controls (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
  Slightly changed the shape of the IK spine control for a better starting point
  Moved the pole vector controls little bit further away during creation
  Created pole vector twist and parenting system for legs
+ 
+ 1.8.2 - 2021-11-17
+ Slightly changed the initial hand and spine box shapes to better conform to the body shape
+ Created auto clavicle system. Clavicle rotates based on wrist position (according to influence % under the wrist ctrl)
+ Added option to define heel roll as a proxy step (This should allow for a quicker rig profile import/export)
+ Gave proxy pose a default extension ".ppose" instead of just ".json" to avoid confusion with other scripts
+ 
+ 1.8.3 - 2021-11-18
+ Added offset controls to wrists, chest, cog
+ 
+ 1.8.4 - 2021-11-19
+ Added offset controls to feet
+ 
+ 1.8.5 - 2021-11-23
+ Fixed an issue where right arm pole vector was receiving undesired offset due to new twisting system
 
  TODO:
-    Create same pvec twist system for legs
-    Auto clavicle, follow wrist % of the wrist control
     Head as IK? Rotate the neck without rotating the head.
-    Push pVecs further away during creation
     Attempt to make the control orientation uniform (Same as main control, world)
+    Add logging for debugging
+    Fix feet offset default shape
+    Add twist to feet and wrist offset controls with a plus node
     
+    Add option to leave all lock translation attributes off
     Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (inheritance percentage)
     Make scale system and breathing system optional
     Add IK behaviour to fingers (move handle closer to palm)
@@ -204,7 +220,6 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
 from maya import OpenMayaUI as omui
-from decimal import *
 import maya.cmds as cmds
 import maya.mel as mel
 import random
@@ -220,7 +235,7 @@ import re
 script_name = 'GT Auto Biped Rigger'
 
 # Version:
-script_version = '1.8.1'
+script_version = '1.8.5'
 
 # Python Version
 python_version = sys.version_info.major
@@ -234,8 +249,8 @@ automation_suffix = 'automation'
 multiply_suffix = 'multiply'
 first_shape_suffix = '1st'
 second_shape_suffix = '2nd'
-left_ctrl_color = (0, .3, 1) # Red
-right_ctrl_color = (1, 0, 0) # Soft Blue
+left_ctrl_color = (0, .3, 1) # Soft Blue
+right_ctrl_color = (1, 0, 0) # Red 
 automation_ctrl_color = (.6,.2,1) # Purple
 rotate_order_enum = 'xyz:yzx:zxy:xzy:yxz:zyx'
 rotate_order_enum_tagged = 'xyz (default):yzx:zxy:xzy (up first):yxz:zyx'
@@ -246,22 +261,24 @@ debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
-debugging_display_lra = False # Display LRA for all joints after generating
+debugging_display_lra = True # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
-debugging_import_path = 'C:\\template.json' # Path to auto import
+debugging_import_path = 'C:\\template.ppose' # Path to auto impor
 debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
+debugging_post_code = False # Runs code found at the end of the create controls command
 
 
-# Persistent Settings
+# General Settings
 gt_ab_settings = { 
     'is_settings_visible' : False,
     'body_column_height' : 0, # determined during settings GUI creation
     'using_no_ssc_skeleton' : False,
     'proxy_limits' : False,
-    'uniform_ctrl_orient' : True,
+    'offer_heel_roll_positioning' : True,
+    'uniform_ctrl_orient' : False,
 }
 
 # Loaded Elements Dictionary
@@ -313,6 +330,7 @@ gt_ab_elements = { # General Settings
                    'left_ankle_proxy_crv' : 'ankle' + '_' + proxy_suffix,
                    'left_ball_proxy_crv' : 'ball' + '_' + proxy_suffix,
                    'left_toe_proxy_crv' : 'toe' + '_' + proxy_suffix,
+                   'left_heel_proxy_pivot' : 'heel_pivot' + '_' + proxy_suffix,
                    'left_elbow_pv_dir' : 'elbow_proxy_poleVecDir', 
                    'left_elbow_dir_loc' : 'elbow_proxy_dirParent', 
                    'left_elbow_aim_loc' : 'elbow_proxy_dirAim',
@@ -473,6 +491,14 @@ def build_gui_auto_biped_rig():
     realtime_custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behaviour of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.\nAs this baked version does not yet fully support non-uniform scaling, it\'s recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application.\n\nThis will allow you to preserve the stretchy settings even in programs that do not support it.'
     realtime_custom_help_title = 'Use Real-time Skeleton'
     cmds.button(l ='?', bgc=settings_bgc_color, c=lambda x:build_custom_help_window(realtime_custom_help_message, realtime_custom_help_title))
+    
+    # Create Heel Pivot Proxy
+    cmds.text(' ', bgc=settings_bgc_color, h=20) # Tiny Empty Space   
+    cmds.checkBox( label='  Create Heel Pivot Proxy', value=gt_ab_settings.get('offer_heel_roll_positioning'), ebg=True, cc=lambda x:invert_stored_setting('offer_heel_roll_positioning')) 
+    
+    create_heel_pivot_custom_help_message = 'Creates an extra proxy curve which can be used to define the heel pivot position before generating the rig.\n\This extra curve can help save time when generating the same rigs multiple times.'
+    create_heel_pivot_custom_help_title = 'Create Heel Pivot Proxy'
+    cmds.button(l ='?', bgc=settings_bgc_color, c=lambda x:build_custom_help_window(create_heel_pivot_custom_help_message, create_heel_pivot_custom_help_title))
     
     # Limit Proxy Movement
     cmds.text(' ', bgc=settings_bgc_color, h=20) # Tiny Empty Space   
@@ -2434,8 +2460,26 @@ def create_proxy(colorize_proxy=True):
     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
+    
+    # Left Heel Roll Pivot (Optional)
+    if gt_ab_settings.get('offer_heel_roll_positioning'):
+        left_heel_proxy_crv = create_joint_curve(gt_ab_elements_default.get('left_heel_proxy_pivot'), .1)
+        left_heel_proxy_grp = cmds.group(empty=True, world=True, name=left_heel_proxy_crv + grp_suffix.capitalize())
+        cmds.parent(left_heel_proxy_crv, left_heel_proxy_grp)
+        cmds.parent(left_heel_proxy_grp, left_ankle_proxy_grp)
+        cmds.move(10.2, 0, 0, left_heel_proxy_grp)
+        change_viewport_color(left_heel_proxy_crv, (1,0,0))
+        cmds.addAttr(left_heel_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(left_heel_proxy_crv + '.proxyControl', e=True, lock=True)
+        cmds.addAttr(left_heel_proxy_crv, ln="followAnkle", at="bool", keyable=True)
+        cmds.setAttr(left_heel_proxy_crv + '.followAnkle', 1)
+        constraint = cmds.pointConstraint(left_ankle_proxy_crv, left_heel_proxy_grp , skip=('y'))
+        cmds.connectAttr(left_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
+        cmds.setAttr(left_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
+        cmds.setAttr(left_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+        cmds.setAttr(left_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
 
-
+  
     ################# Right Leg #################
     # Right Hip
     right_hip_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_hip_proxy_crv'), .4)
@@ -2468,6 +2512,24 @@ def create_proxy(colorize_proxy=True):
     right_toe_proxy_grp = cmds.group(empty=True, world=True, name=right_toe_proxy_crv + grp_suffix.capitalize())
     cmds.parent(right_toe_proxy_crv, right_toe_proxy_grp)
     cmds.move(-10.2, 0, 23.4, right_toe_proxy_grp)
+
+    # Right Heel Roll Pivot (Optional)
+    if gt_ab_settings.get('offer_heel_roll_positioning'):
+        right_heel_proxy_crv = create_joint_curve(gt_ab_elements_default.get('right_heel_proxy_pivot'), .1)
+        right_heel_proxy_grp = cmds.group(empty=True, world=True, name=right_heel_proxy_crv + grp_suffix.capitalize())
+        cmds.parent(right_heel_proxy_crv, right_heel_proxy_grp)
+        cmds.parent(right_heel_proxy_grp, right_ankle_proxy_grp)
+        cmds.move(10.2, 0, 0, right_heel_proxy_grp)
+        change_viewport_color(right_heel_proxy_crv, (1,0,0))
+        cmds.addAttr(right_heel_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(right_heel_proxy_crv + '.proxyControl', e=True, lock=True)
+        cmds.addAttr(right_heel_proxy_crv, ln="followAnkle", at="bool", keyable=True)
+        cmds.setAttr(right_heel_proxy_crv + '.followAnkle', 1)
+        constraint = cmds.pointConstraint(right_ankle_proxy_crv, right_heel_proxy_grp , skip=('y'))
+        cmds.connectAttr(right_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
+        cmds.setAttr(right_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
+        cmds.setAttr(right_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+        cmds.setAttr(right_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
 
         
     # Assemble Hierarchy
@@ -3048,7 +3110,6 @@ def create_proxy(colorize_proxy=True):
     gt_ab_elements['right_knee_divide_node'] = right_knee_divide_node
     gt_ab_elements['right_ball_pivot_grp'] = right_ball_pivot_grp
     
-    
     # Visibility Adjustments
     for obj in gt_ab_elements:
         if obj.endswith('_crv'):
@@ -3074,7 +3135,7 @@ def create_proxy(colorize_proxy=True):
                 color = (.3,.3,0)
             else:
                 color = (1,1,.65)
-            
+     
             # Notes Only
             if gt_ab_elements.get('left_eye_proxy_crv') in proxy_crv or gt_ab_elements.get('right_eye_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv, 'This is an eye proxy.\nThis element should be snapped to the center of the eye geometry.\nYou can see the center of the eye by selecting the eye geometry then going to "Display > Transform Display > Local Rotation Axes".\nYou can then use this axis to snap the joint to its center. (Using "Ctrl + V")\n\nPS: If for some reason the pivot point is not in the center of the eye, you can reset it first: "Modify > Center Pivot".')
@@ -3336,7 +3397,48 @@ def create_controls():
         
         if visibility:
             cmds.setAttr(obj + '.v', lock=True, k=False, channelBox=False)
+            
+    def setup_shape_switch(control, attr='controlShape', shape_names=['box', 'semiCircle', 'pin'], shape_enum=['Box', 'Semi-Circle', 'Pin']):
+        '''
+        Creates the nodes and connections necessary to switch between three shapes. 
+        One is the default 3D shape, another is a flat 2D shape and the third is a pin for when constraining
+        
+                    Parameters:
+                            control (string): Name of the control to create the switch
+                            attr (optional, string): Attribute name, default is "controlShape"
+                            shape_names (optional, list): A list of three elements with the expected names of the shapes, [3D, 2D, PIN]
+                                                          If using only two, the third one will be ignored.
+                            shape_enum (optional, list): A list of three elements with the enum names of the shapes, [3D, 2D, PIN]
+        '''       
+        enum_string = ''
+        for string in shape_enum:
+            enum_string += string + ':'
+            
+        if not cmds.attributeQuery(attr, node=control, exists=True):
+            cmds.addAttr(control, ln=attr, at='enum', en=enum_string, keyable=True)
 
+        condition_pairs = []
+                
+        for index in range(len(shape_names)):
+            condition_pairs.append([cmds.createNode('condition', name= control.replace(ctrl_suffix, '') + 'shape' + shape_names[index].capitalize() + '_condition'), shape_names[index]])
+            
+        for index in range(len(condition_pairs)):
+            condition_node = condition_pairs[index][0]
+            cmds.setAttr(condition_node + '.colorIfTrueR', 1)
+            cmds.setAttr(condition_node + '.colorIfFalseR', 0)
+            cmds.setAttr(condition_node + '.colorIfTrueG', 1)
+            cmds.setAttr(condition_node + '.colorIfFalseG', 0)
+            cmds.setAttr(condition_node + '.colorIfTrueB', 1)
+            cmds.setAttr(condition_node + '.colorIfFalseB', 0)
+            cmds.setAttr(condition_node + '.secondTerm', index)
+            cmds.connectAttr(control + '.' + attr, condition_node + '.firstTerm', f=True)
+            
+        available_shapes = cmds.listRelatives(control, s=True, f=True) or []
+        for shape in available_shapes:
+            for condition_pair in condition_pairs:
+                if condition_pair[1] in shape:
+                    cmds.connectAttr(condition_pair[0] + '.outColorR', shape + '.v', f=True)
+   
     # Store selection and symmetry states
     cmds.select(d=True) # Clear Selection
     cmds.symmetricModelling(e=True, symmetry=False) # Turn off symmetry
@@ -3403,6 +3505,42 @@ def create_controls():
     orient_to_target(gt_ab_joints.get('right_pinky02_jnt'), gt_ab_joints.get('right_pinky03_jnt'), (0, 180, 0), gt_ab_elements.get('right_pinky02_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
     orient_to_target(gt_ab_joints.get('right_pinky03_jnt'), gt_ab_joints.get('right_pinky04_jnt'), (0, 180, 0), gt_ab_elements.get('right_pinky03_proxy_crv'), up_vec=(0,1,0), aim_vec=(1,0,0), brute_force=True)
 
+    gt_ab_settings['uniform_ctrl_orient'] = False
+    if gt_ab_settings.get('uniform_ctrl_orient'): # @@@
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientX', 0)
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientY', 0)
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientZ', 0)
+        orient_to_target(gt_ab_joints.get('spine01_jnt'), gt_ab_joints.get('spine02_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('spine02_jnt'), gt_ab_joints.get('spine03_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('spine03_jnt'), gt_ab_joints.get('spine04_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('spine04_jnt'), gt_ab_joints.get('neck_base_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('neck_base_jnt'), gt_ab_joints.get('neck_mid_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('neck_mid_jnt'), gt_ab_joints.get('head_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('head_jnt'), gt_ab_joints.get('head_end_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
+        orient_to_target(gt_ab_joints.get('jaw_jnt'), gt_ab_joints.get('jaw_end_jnt'), orient_offset=(0, 0, 180), aim_vec=(0,1,0), up_vec=(0,-1,0))
+        
+    #      orient_to_target(gt_ab_joints.get('spine01_jnt'), gt_ab_joints.get('spine02_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('spine02_jnt'), gt_ab_joints.get('spine03_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('spine03_jnt'), gt_ab_joints.get('spine04_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('spine04_jnt'), gt_ab_joints.get('neck_base_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('neck_base_jnt'), gt_ab_joints.get('neck_mid_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('neck_mid_jnt'), gt_ab_joints.get('head_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('head_jnt'), gt_ab_joints.get('head_end_jnt'), (90, 0, 90))
+    # orient_to_target(gt_ab_joints.get('jaw_jnt'), gt_ab_joints.get('jaw_end_jnt'), (90, 0, 90))
+
+    # errorhere
+    # def orient_to_target(obj, target, orient_offset=(0,0,0), proxy_obj=None, aim_vec=(1,0,0), up_vec=(0,-1,0), brute_force=False):
+    #     ''' 
+    #     Orients an object based on a target object 
+        
+    #             Parameters:
+    #                 obj (string): Name of the object to orient (usually a joint)
+    #                 target (string): Name of the target object (usually the element that will be the child of "obj")
+    #                 orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change the result orientation
+    #                 proxy_obj (string): The name of the proxy element (used as extra rotation input)
+    #                 aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint - default value: (1,0,0)
+    #                 up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint - default value: (0,-1,0)
+    #                 brute_force (bool): Auto creates up and and dir points to determine orientation (Requires proxy object to work)
     
     # Center Parenting
     cmds.parent(gt_ab_joints.get('spine01_jnt'), gt_ab_joints.get('cog_jnt'))
@@ -3470,15 +3608,22 @@ def create_controls():
     cmds.parent(gt_ab_joints.get('right_pinky04_jnt'), gt_ab_joints.get('right_pinky03_jnt'))
     
     # Extract General Scale Offset
+    general_scale_axis = 0
+    if gt_ab_settings.get('uniform_ctrl_orient'): # @@@
+        general_scale_axis = 1
+    
     general_scale_offset = 0.0
-    general_scale_offset -= cmds.xform(gt_ab_joints.get('hip_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('spine01_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('spine02_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('spine03_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('spine04_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('neck_base_jnt'),q=True, t=True)[0]
-    general_scale_offset += cmds.xform(gt_ab_joints.get('neck_mid_jnt'),q=True, t=True)[0]
+    general_scale_offset -= cmds.xform(gt_ab_joints.get('hip_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('spine01_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('spine02_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('spine03_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('spine04_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('neck_base_jnt'),q=True, t=True)[general_scale_axis]
+    general_scale_offset += cmds.xform(gt_ab_joints.get('neck_mid_jnt'),q=True, t=True)[general_scale_axis]
     general_scale_offset = (general_scale_offset/7)*3
+    
+    if gt_ab_settings.get('uniform_ctrl_orient'): # @@@
+        general_scale_offset = general_scale_offset*-1
 
     # Adjust Joint Visibility
     joint_scale_offset = general_scale_offset*.06
@@ -3600,13 +3745,14 @@ def create_controls():
     cmds.parent(gt_ab_joints.get('spine01_jnt'), world=True)
     
     # Root Orients
-    cog_orients = cmds.xform(gt_ab_elements.get('cog_proxy_crv'), q=True, ro=True)
-    cmds.joint(gt_ab_joints.get('cog_jnt'), e=True, oj='none', zso=True) # ch
-    cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientX', 90)
-    cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientY', 0)
-    cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientZ', 90)
-    cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.rz', cog_orients[0])
-    cmds.makeIdentity(gt_ab_joints.get('cog_jnt'), apply=True, rotate=True)
+    if not gt_ab_settings.get('uniform_ctrl_orient'): # @@@
+        cog_orients = cmds.xform(gt_ab_elements.get('cog_proxy_crv'), q=True, ro=True)
+        cmds.joint(gt_ab_joints.get('cog_jnt'), e=True, oj='none', zso=True) # ch
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientX', 90)
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientY', 0)
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.jointOrientZ', 90)
+        cmds.setAttr(gt_ab_joints.get('cog_jnt') + '.rz', cog_orients[0])
+        cmds.makeIdentity(gt_ab_joints.get('cog_jnt'), apply=True, rotate=True)
     
     # Hip Orients
     hip_orients = cmds.xform(gt_ab_elements.get('hip_proxy_crv'), q=True, ro=True)
@@ -3718,6 +3864,7 @@ def create_controls():
     ik_jnt_color = (.5,.5 ,1)
     fk_jnt_scale = ik_jnt_scale/2
     fk_jnt_color = (1,.5,.5)
+    automation_jnt_color = (1,.17,.45)
     
     # Left Arms FK/IK
     left_clavicle_switch_jnt = cmds.duplicate(gt_ab_joints.get('left_clavicle_jnt'), name=gt_ab_joints.get('left_clavicle_jnt').replace(jnt_suffix, 'switch_' + jnt_suffix), parentOnly=True)[0]
@@ -3827,7 +3974,7 @@ def create_controls():
     left_ankle_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_ankle_jnt'), name=gt_ab_joints.get('left_ankle_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     left_ball_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_ball_jnt'), name=gt_ab_joints.get('left_ball_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     left_toe_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_toe_jnt'), name=gt_ab_joints.get('left_toe_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
-    
+        
     cmds.setAttr(left_hip_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(left_knee_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(left_ankle_ik_jnt + '.radius', ik_jnt_scale)
@@ -3984,9 +4131,15 @@ def create_controls():
     cmds.rebuildCurve(direction_ctrl, ch=False,rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     
     # COG Control
-    cog_ctrl = cmds.circle(name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, '') + ctrl_suffix, nr=(1,0,0), ch=False, radius=general_scale_offset)[0]
-    for shape in cmds.listRelatives(cog_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(cog_ctrl))
+    
+    cog_ctrl_a = cmds.circle(name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, '') + ctrl_suffix, nr=(1,0,0), ch=False, radius=general_scale_offset)[0]
+    cog_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -18.225, 0.0], [0.681, -18.317, 0.0], [1.301, -18.581, 0.0], [1.838, -18.988, 0.0], [2.254, -19.526, 0.0], [2.509, -20.155, 0.0], [2.6, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -18.225, 0.0], [-0.681, -18.317, 0.0], [-1.311, -18.581, 0.0], [-1.838, -18.988, 0.0], [-2.254, -19.536, 0.0], [-2.509, -20.155, 0.0], [-2.61, -20.825, 0.0], [-2.519, -21.507, 0.0], [-2.254, -22.126, 0.0], [-1.838, -22.665, 0.0], [-1.301, -23.082, 0.0], [-0.681, -23.336, 0.0], [0.0, -23.437, 0.0], [0.67, -23.346, 0.0], [1.301, -23.082, 0.0], [1.838, -22.675, 0.0], [2.244, -22.136, 0.0], [2.509, -21.496, 0.0], [2.6, -20.825, 0.0], [-2.61, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -23.437, 0.0]], d=1)
+    cog_ctrl = gtu_combine_curves_list([cog_ctrl_a, cog_ctrl_b])
+    
+    shapes = cmds.listRelatives(cog_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(cog_ctrl.replace(ctrl_suffix, 'circle')))
+    cmds.rename(shapes[1], '{0}Shape'.format(cog_ctrl.replace(ctrl_suffix, 'pin')))
+        
     change_viewport_color(cog_ctrl, (1,1,0))
     cmds.makeIdentity(cog_ctrl, apply=True, scale=True)
     cog_ctrl_grp = cmds.group(name=cog_ctrl + grp_suffix.capitalize(), empty=True, world=True)
@@ -3994,23 +4147,69 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('cog_jnt'), cog_ctrl_grp))
     cmds.parent(cog_ctrl_grp, direction_ctrl)
     
-    def override_local_orientation(obj, aim_vec=(0,1,0)):
-        '''
-        TODO
-        '''
-        temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
-        temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
-        cmds.delete(cmds.parentConstraint(obj, temp_grp))
-        cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
-        cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
-        cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=aim_vec, upVector=(0,1,0), worldUpType='vector', worldUpVector=(0,1,0)))
-        cmds.matchTransform(obj, temp_grp, rot=1)
-        cmds.delete(temp_grp_dir)
-        cmds.delete(temp_grp)
+    # Add Separator
+    cmds.addAttr(cog_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(cog_ctrl + '.' + custom_attr_separator, lock=True)
 
+    # Expose Custom Rotate Order
+    cmds.addAttr(cog_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(cog_ctrl + '.rotationOrder', cog_ctrl + '.rotateOrder', f=True)
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # @@
-        pass
+    # Setup Shape Swtich
+    setup_shape_switch(cog_ctrl, attr='controlShape', shape_names=['circle', 'pin'], shape_enum=['Circle', 'Pin'])
+    
+    # Show Scale Ctrl
+    cmds.addAttr(cog_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Cog In-Between Offset
+    cog_offset_ctrl = cmds.duplicate(cog_ctrl, name=cog_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.deleteAttr( cog_offset_ctrl, at='showScaleCtrl' )
+    cmds.setAttr(cog_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(cog_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(cog_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(cog_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(cog_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(cog_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(cog_offset_ctrl + '.v', k=False, channelBox=False)
+    setup_shape_switch(cog_offset_ctrl, attr='controlShape', shape_names=['circle', 'pin'], shape_enum=['Circle', 'Pin'])
+    
+    # Recreate Connections 
+    cmds.connectAttr(cog_offset_ctrl + '.rotationOrder', cog_offset_ctrl + '.rotateOrder', f=True)
+
+    cog_offset_ctrl_grp = cmds.group(name=cog_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cog_offset_data_grp = cmds.group(name=cog_offset_ctrl.replace(ctrl_suffix.capitalize(), 'Data') + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.connectAttr(cog_offset_ctrl + '.rotationOrder', cog_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(cog_offset_data_grp, cog_offset_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(cog_offset_ctrl, cog_offset_ctrl_grp))
+    
+    cmds.parent(cog_offset_ctrl, cog_offset_ctrl_grp)
+    cmds.parent(cog_offset_ctrl_grp, cog_ctrl)
+    
+    cmds.connectAttr(cog_offset_ctrl + '.translate', cog_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(cog_offset_ctrl + '.rotate', cog_offset_data_grp + '.rotate', f=True)
+        
+    cmds.addAttr(cog_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(cog_ctrl + '.showOffsetCtrl', cog_offset_ctrl + '.v', f=True)
+    
+    #### End Chest In-Between Offset
+    
+
+    # def override_local_orientation(obj, aim_vec=(0,1,0)):
+    #     '''
+    #     TODO
+    #     '''
+    #     temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True )
+    #     temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True )
+    #     cmds.delete(cmds.parentConstraint(obj, temp_grp))
+    #     cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
+    #     cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
+    #     cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0,0,0), aimVector=aim_vec, upVector=(0,1,0), worldUpType='vector', worldUpVector=(0,1,0)))
+    #     cmds.matchTransform(obj, temp_grp, rot=1)
+    #     cmds.delete(temp_grp_dir)
+    #     cmds.delete(temp_grp)
+
+    # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
+    #     pass
         # override_local_orientation(cog_ctrl)
         # cmds.makeIdentity(cog_ctrl, apply=True, rotate=True)
         # override_local_orientation(cog_ctrl_grp, (0,0,1))
@@ -4028,18 +4227,73 @@ def create_controls():
          # cmds.xform('cog_ctrlGrp', ro=[0, -90, 0], relative=True)
 
     # Hip Control
-    hip_ctrl = cmds.curve(name=gt_ab_joints.get('hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185], [-0.05, 0.592, 0.366], [0.037, 0.515, 0.493], [0.12, 0.406, 0.632], [-0.062, -0.0, 0.818], [0.12, -0.406, 0.632], [0.037, -0.515, 0.493], [-0.05, -0.592, 0.366], [-0.159, -0.65, 0.185], [-0.183, -0.671, -0.001], [-0.159, -0.65, -0.185], [-0.05, -0.592, -0.366], [0.037, -0.515, -0.493], [0.12, -0.406, -0.632], [-0.062, 0.0, -0.818], [0.12, 0.406, -0.632], [0.037, 0.515, -0.493], [-0.05, 0.606, -0.366], [-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+    hip_ctrl_a = cmds.curve(name=gt_ab_joints.get('hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185], [-0.05, 0.592, 0.366], [0.037, 0.515, 0.493], [0.12, 0.406, 0.632], [-0.062, -0.0, 0.818], [0.12, -0.406, 0.632], [0.037, -0.515, 0.493], [-0.05, -0.592, 0.366], [-0.159, -0.65, 0.185], [-0.183, -0.671, -0.001], [-0.159, -0.65, -0.185], [-0.05, -0.592, -0.366], [0.037, -0.515, -0.493], [0.12, -0.406, -0.632], [-0.062, 0.0, -0.818], [0.12, 0.406, -0.632], [0.037, 0.515, -0.493], [-0.05, 0.606, -0.366], [-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+    hip_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -0.754, 0.0], [0.03, -0.761, 0.0], [0.054, -0.769, 0.0], [0.077, -0.787, 0.0], [0.095, -0.808, 0.0], [0.104, -0.834, 0.0], [0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.754, 0.0], [-0.03, -0.761, 0.0], [-0.054, -0.769, 0.0], [-0.077, -0.787, 0.0], [-0.095, -0.811, 0.0], [-0.104, -0.834, 0.0], [-0.109, -0.864, 0.0], [-0.104, -0.891, 0.0], [-0.095, -0.917, 0.0], [-0.077, -0.941, 0.0], [-0.054, -0.955, 0.0], [-0.03, -0.967, 0.0], [0.0, -0.971, 0.0], [0.026, -0.967, 0.0], [0.054, -0.955, 0.0], [0.077, -0.941, 0.0], [0.092, -0.917, 0.0], [0.104, -0.891, 0.0], [0.109, -0.864, 0.0], [-0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.971, 0.0]], d=1)
+    hip_ctrl = gtu_combine_curves_list([hip_ctrl_a, hip_ctrl_b])
+    
+    shapes = cmds.listRelatives(hip_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(hip_ctrl.replace(ctrl_suffix, 'default')))
+    cmds.rename(shapes[1], '{0}Shape'.format(hip_ctrl.replace(ctrl_suffix, 'pin')))
+
     cmds.setAttr(hip_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(hip_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(hip_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(hip_ctrl, apply=True, scale=True)
-    for shape in cmds.listRelatives(hip_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(hip_ctrl))
+
     change_viewport_color(hip_ctrl, (.8,.8,0))
     hip_ctrl_grp = cmds.group(name=hip_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(hip_ctrl, hip_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_ctrl_grp))
-    cmds.parent(hip_ctrl_grp, cog_ctrl)
+    cmds.parent(hip_ctrl_grp, cog_offset_data_grp)
+    
+    # Add Separator
+    cmds.addAttr(hip_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(hip_ctrl + '.' + custom_attr_separator, lock=True)
+
+    # Expose Custom Rotate Order
+    cmds.addAttr(hip_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(hip_ctrl + '.rotationOrder', hip_ctrl + '.rotateOrder', f=True)
+    
+    # Setup Shape Switch
+    setup_shape_switch(hip_ctrl, attr='controlShape', shape_names=['default', 'pin'], shape_enum=['Default', 'Pin'])
+    
+    # Show Scale Ctrl
+    cmds.addAttr(hip_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Hip In-Between Offset
+    hip_offset_ctrl = cmds.duplicate(hip_ctrl, name=hip_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.deleteAttr( hip_offset_ctrl, at='showScaleCtrl' )
+    cmds.setAttr(hip_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(hip_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(hip_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(hip_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(hip_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(hip_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(hip_offset_ctrl + '.v', k=False, channelBox=False)
+    
+    # Recreate Connections 
+    cmds.connectAttr(hip_offset_ctrl + '.rotationOrder', hip_offset_ctrl + '.rotateOrder', f=True)
+    
+    setup_shape_switch(hip_offset_ctrl, attr='controlShape', shape_names=['default', 'pin'], shape_enum=['Default', 'Pin'])
+
+    hip_offset_ctrl_grp = cmds.group(name=hip_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    hip_offset_data_grp = cmds.group(name=hip_offset_ctrl.replace(ctrl_suffix.capitalize(), 'Data') + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.connectAttr(hip_offset_ctrl + '.rotationOrder', hip_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(hip_offset_data_grp, hip_offset_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(hip_offset_ctrl, hip_offset_ctrl_grp))
+    
+    cmds.parent(hip_offset_ctrl, hip_offset_ctrl_grp)
+    cmds.parent(hip_offset_ctrl_grp, hip_ctrl)
+    
+    cmds.connectAttr(hip_offset_ctrl + '.translate', hip_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(hip_offset_ctrl + '.rotate', hip_offset_data_grp + '.rotate', f=True)
+        
+    cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(hip_ctrl + '.showOffsetCtrl', hip_offset_ctrl + '.v', f=True)
+    
+    #### End Chest In-Between Offset
+    
+    
     # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
     #      cmds.xform(hip_ctrl, ro=[90, 0, 90], relative=True)
     #      cmds.makeIdentity(hip_ctrl, apply=True, rotate=True)
@@ -4061,7 +4315,7 @@ def create_controls():
     spine01_ctrl_grp = cmds.group(name=spine01_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(spine01_ctrl, spine01_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine01_jnt'), spine01_ctrl_grp))
-    cmds.parent(spine01_ctrl_grp, cog_ctrl)
+    cmds.parent(spine01_ctrl_grp, cog_offset_data_grp)
     # if gt_ab_settings.get('uniform_ctrl_orient'): # @@
     #      cmds.xform(spine01_ctrl, ro=[90, 0, 90], relative=True)
     #      cmds.makeIdentity(spine01_ctrl, apply=True, rotate=True)
@@ -4264,7 +4518,7 @@ def create_controls():
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_hip_jnt'), left_hip_ctrl_grp))
     change_viewport_color(left_hip_ctrl, left_ctrl_color)
-    cmds.parent(left_hip_ctrl_grp, hip_ctrl)
+    cmds.parent(left_hip_ctrl_grp, hip_offset_data_grp)
     
     # Adjust Size
     left_leg_scale_offset = left_leg_scale_offset*.8
@@ -4359,16 +4613,18 @@ def create_controls():
     cmds.parent(left_knee_ik_ctrl_grp, direction_ctrl)
     
     ################# Left Foot IK Control #################
-    left_foot_ik_ctrl_a = cmds.curve(name='left_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
-    left_foot_ik_ctrl_b = cmds.curve(p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, 0.321, -0.641], [-0.267, 0.321, -0.641], [-0.267, 0.321, 0.671], [0.267, 0.321, 0.671], [0.267, 0.321, -0.641], [0.267, 0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.321, 0.671], [-0.267, 0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
-    left_foot_ik_ctrl = gtu_combine_curves_list([left_foot_ik_ctrl_a, left_foot_ik_ctrl_b])
+    left_foot_ik_ctrl_a = cmds.curve(name='left_foot_ik_' + ctrl_suffix, p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, 0.321, -0.641], [-0.267, 0.321, -0.641], [-0.267, 0.321, 0.671], [0.267, 0.321, 0.671], [0.267, 0.321, -0.641], [0.267, 0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.321, 0.671], [-0.267, 0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
+    left_foot_ik_ctrl_b = cmds.curve(p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
+    left_foot_ik_ctrl_c = cmds.curve(p=[[0.0, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, -0.021, 0.0], [0.584, -0.041, 0.0], [0.597, -0.058, 0.0], [0.614, -0.071, 0.0], [0.633, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, 0.021, 0.0], [0.584, 0.041, 0.0], [0.597, 0.058, 0.0], [0.614, 0.071, 0.0], [0.633, 0.079, 0.0], [0.655, 0.082, 0.0], [0.676, 0.079, 0.0], [0.695, 0.071, 0.0], [0.712, 0.058, 0.0], [0.726, 0.041, 0.0], [0.734, 0.021, 0.0], [0.737, 0.0, 0.0], [0.734, -0.021, 0.0], [0.726, -0.041, 0.0], [0.713, -0.058, 0.0], [0.696, -0.07, 0.0], [0.676, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.082, 0.0], [0.655, 0.0, 0.0], [0.737, 0.0, 0.0]], d=1)
+    left_foot_ik_ctrl = gtu_combine_curves_list([left_foot_ik_ctrl_a, left_foot_ik_ctrl_b, left_foot_ik_ctrl_c])
 
     left_foot_ik_ctrl_grp = cmds.group(name=left_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(left_foot_ik_ctrl, left_foot_ik_ctrl_grp)
     
-    shape = cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []
-    cmds.rename(shape[0], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
-    cmds.rename(shape[1], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    shapes = cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(left_foot_ik_ctrl.replace(ctrl_suffix, 'pin')))
     
     # Left Foot Scale
     left_foot_scale_offset = 0
@@ -4384,10 +4640,20 @@ def create_controls():
     desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     desired_translation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_foot_ik_ctrl_grp + '.ry', desired_rotation[1])
-    
+        
     # Left Foot Pivot Adjustment
     cmds.xform(left_foot_ik_ctrl_grp, piv=desired_translation, ws=True)
     cmds.xform(left_foot_ik_ctrl, piv=desired_translation, ws=True)
+    
+    # Duplicate for Offset Control And Create Data Transform
+    left_foot_offset_ik_ctrl = cmds.duplicate(left_foot_ik_ctrl, renameChildren=True, name=left_foot_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    left_foot_offset_ik_ctrl_grp = cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl + grp_suffix.capitalize())[0] # group command generates junk data
+    left_foot_offset_data_grp = cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl.replace(ctrl_suffix.capitalize(), 'Data'))[0] # group command generates junk data
+    cmds.parent(left_foot_offset_data_grp, left_foot_offset_ik_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_ik_ctrl_grp))
+    cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_data_grp))
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.translate', left_foot_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotate', left_foot_offset_data_grp + '.rotate', f=True)
     
     # Left Foot General Adjustments
     change_viewport_color(left_foot_ik_ctrl, left_ctrl_color)
@@ -4424,7 +4690,7 @@ def create_controls():
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_hip_jnt'), right_hip_ctrl_grp))
     change_viewport_color(right_hip_ctrl, right_ctrl_color)
-    cmds.parent(right_hip_ctrl_grp, hip_ctrl)
+    cmds.parent(right_hip_ctrl_grp, hip_offset_data_grp)
     
     # Adjust Size
     right_leg_scale_offset = right_leg_scale_offset*.8
@@ -4519,16 +4785,18 @@ def create_controls():
     cmds.parent(right_knee_ik_ctrl_grp, direction_ctrl)
     
     ################# Right Foot IK Control #################
-    right_foot_ik_ctrl_a = cmds.curve(name='right_foot_ik_' + ctrl_suffix, p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
-    right_foot_ik_ctrl_b = cmds.curve(p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, -0.321, -0.641], [-0.267, -0.321, -0.641], [-0.267, -0.321, 0.671], [0.267, -0.321, 0.671], [0.267, -0.321, -0.641], [0.267, -0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, -0.321, 0.671], [-0.267, -0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
-    right_foot_ik_ctrl = gtu_combine_curves_list([right_foot_ik_ctrl_a, right_foot_ik_ctrl_b])
+    right_foot_ik_ctrl_a = cmds.curve(name='right_foot_ik_' + ctrl_suffix, p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, -0.321, -0.641], [-0.267, -0.321, -0.641], [-0.267, -0.321, 0.671], [0.267, -0.321, 0.671], [0.267, -0.321, -0.641], [0.267, -0.321, 0.671], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671], [-0.267, -0.321, 0.671], [-0.267, -0.321, -0.641], [-0.267, 0.0, -0.641]], d=1)
+    right_foot_ik_ctrl_b = cmds.curve(p=[[-0.183, 0.0, -0.323], [-0.197, 0.0, -0.428], [-0.184, 0.0, -0.521], [-0.15, 0.0, -0.575], [-0.114, 0.0, -0.611], [-0.076, 0.0, -0.631], [-0.036, 0.0, -0.641], [0.006, 0.0, -0.635], [0.047, 0.0, -0.62], [0.087, 0.0, -0.587], [0.127, 0.0, -0.538], [0.149, 0.0, -0.447], [0.146, 0.0, -0.34], [0.153, 0.0, -0.235], [0.173, 0.0, -0.136], [0.202, 0.0, -0.05], [0.23, 0.0, 0.039], [0.259, 0.0, 0.154], [0.27, 0.0, 0.234], [0.267, 0.0, 0.338], [0.247, 0.0, 0.426], [0.22, 0.0, 0.496], [0.187, 0.0, 0.553], [0.153, 0.0, 0.597], [0.116, 0.0, 0.628], [0.076, 0.0, 0.65], [0.036, 0.0, 0.66], [-0.006, 0.0, 0.656], [-0.045, 0.0, 0.638], [-0.087, 0.0, 0.611], [-0.127, 0.0, 0.571], [-0.164, 0.0, 0.517], [-0.199, 0.0, 0.451], [-0.228, 0.0, 0.366], [-0.242, 0.0, 0.263], [-0.239, 0.0, 0.181], [-0.224, 0.0, 0.063], [-0.206, 0.0, -0.028], [-0.187, 0.0, -0.117], [-0.177, 0.0, -0.216], [-0.183, 0.0, -0.323]],d=1)
+    right_foot_ik_ctrl_c = cmds.curve(p=[[0.0, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, -0.021, 0.0], [0.584, -0.041, 0.0], [0.597, -0.058, 0.0], [0.614, -0.071, 0.0], [0.633, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.0, 0.0], [0.573, 0.0, 0.0], [0.576, 0.021, 0.0], [0.584, 0.041, 0.0], [0.597, 0.058, 0.0], [0.614, 0.071, 0.0], [0.633, 0.079, 0.0], [0.655, 0.082, 0.0], [0.676, 0.079, 0.0], [0.695, 0.071, 0.0], [0.712, 0.058, 0.0], [0.726, 0.041, 0.0], [0.734, 0.021, 0.0], [0.737, 0.0, 0.0], [0.734, -0.021, 0.0], [0.726, -0.041, 0.0], [0.713, -0.058, 0.0], [0.696, -0.07, 0.0], [0.676, -0.079, 0.0], [0.655, -0.082, 0.0], [0.655, 0.082, 0.0], [0.655, 0.0, 0.0], [0.737, 0.0, 0.0]], d=1)
+    right_foot_ik_ctrl = gtu_combine_curves_list([right_foot_ik_ctrl_a, right_foot_ik_ctrl_b, right_foot_ik_ctrl_c])
 
     right_foot_ik_ctrl_grp = cmds.group(name=right_foot_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(right_foot_ik_ctrl, right_foot_ik_ctrl_grp)
     
-    shape = cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []
-    cmds.rename(shape[0], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
-    cmds.rename(shape[1], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    shapes = cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(right_foot_ik_ctrl.replace(ctrl_suffix, 'pin')))
     
     # Right Foot Scale
     right_foot_scale_offset = 0
@@ -4548,6 +4816,16 @@ def create_controls():
     # Right Foot Pivot Adjustment
     cmds.xform(right_foot_ik_ctrl_grp, piv=desired_translation, ws=True)
     cmds.xform(right_foot_ik_ctrl, piv=desired_translation, ws=True)
+    
+    # Duplicate for Offset Control And Create Data Transform
+    right_foot_offset_ik_ctrl = cmds.duplicate(right_foot_ik_ctrl, renameChildren=True, name=right_foot_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl + grp_suffix.capitalize())[0] # group command generates junk data
+    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl.replace(ctrl_suffix.capitalize(), 'Data'))[0] # group command generates junk data
+    cmds.parent(right_foot_offset_data_grp, right_foot_offset_ik_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_ik_ctrl_grp))
+    cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_data_grp))
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.translate', right_foot_offset_data_grp + '.translate', f=True)
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotate', right_foot_offset_data_grp + '.rotate', f=True)
     
     # Right Foot General Adjustments
     change_viewport_color(right_foot_ik_ctrl, right_ctrl_color)
@@ -4743,7 +5021,7 @@ def create_controls():
     
     cmds.setAttr(left_wrist_ik_ctrl + '.scaleX', left_wrist_scale_offset)
     cmds.setAttr(left_wrist_ik_ctrl + '.scaleY', left_wrist_scale_offset)
-    cmds.setAttr(left_wrist_ik_ctrl + '.scaleZ', left_wrist_scale_offset)
+    cmds.setAttr(left_wrist_ik_ctrl + '.scaleZ', left_wrist_scale_offset*.5)
     cmds.makeIdentity(left_wrist_ik_ctrl, apply=True, scale=True)
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
@@ -4757,7 +5035,34 @@ def create_controls():
     # Expose Custom Rotate Order
     cmds.addAttr(left_wrist_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum_tagged, keyable=True, niceName='Rotate Order')
     cmds.connectAttr(left_wrist_ik_ctrl + '.rotationOrder', left_wrist_ik_ctrl + '.rotateOrder', f=True)
-
+    
+    # Left Hand Ctrl Visibility Type
+    setup_shape_switch(left_wrist_ik_ctrl)
+        
+    # Left Wrist In-Between Offset
+    left_wrist_offset_ik_ctrl = cmds.duplicate(left_wrist_ik_ctrl, name=left_wrist_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(left_wrist_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(left_wrist_offset_ik_ctrl, (.3, .6, 1))
+    lock_hide_default_attr(left_wrist_offset_ik_ctrl, translate=False, rotate=False)
+    # Recreate Connections
+    cmds.connectAttr(left_wrist_offset_ik_ctrl + '.rotationOrder', left_wrist_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(left_wrist_offset_ik_ctrl)
+    cmds.parent(left_wrist_offset_ik_ctrl, left_wrist_ik_ctrl)
+    
+    left_wrist_offset_ik_ctrl_grp = cmds.group(name=left_wrist_offset_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(left_wrist_offset_ik_ctrl, left_wrist_offset_ik_ctrl_grp))
+    cmds.parent(left_wrist_offset_ik_ctrl, left_wrist_offset_ik_ctrl_grp)
+    cmds.parent(left_wrist_offset_ik_ctrl_grp, left_wrist_ik_ctrl)
+    
+    # Show Scale Ctrl
+    cmds.addAttr(left_wrist_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    cmds.addAttr(left_wrist_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.showOffsetCtrl', left_wrist_offset_ik_ctrl_grp + '.v', f=True)
+    #### End Wrist In-Between Offset
 
     # Left Elbow IK Pole Vector Ctrl
     left_elbow_ik_ctrl = cmds.curve(name=gt_ab_joints.get('left_elbow_jnt').replace(jnt_suffix, 'ik_') + ctrl_suffix, p=[[-0.125, 0.0, 0.0], [0.125, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.125], [0.0, 0.0, -0.125], [0.0, 0.0, 0.0], [0.0, 0.125, 0.0], [0.0, -0.125, 0.0]],d=1)
@@ -4767,7 +5072,7 @@ def create_controls():
     for shape in cmds.listRelatives(left_elbow_ik_ctrl, s=True, f=True) or []:
         shape = cmds.rename(shape, '{0}Shape'.format(left_elbow_ik_ctrl))
     
-    # Left Knee Find Position
+    # Left Elbow Find Position
     left_arm_scale_offset = left_arm_scale_offset*.5
     temp_transform = cmds.group(name=left_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
     cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_elbow_proxy_crv'), temp_transform))
@@ -4776,7 +5081,7 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(temp_transform, left_elbow_ik_ctrl_grp))
     cmds.delete(temp_transform)
 
-    # Left Knee Pole Vec Visibility and Parenting
+    # Left Arm Pole Vec Visibility and Parenting
     cmds.setAttr(left_elbow_ik_ctrl + '.scaleX', left_arm_scale_offset)
     cmds.setAttr(left_elbow_ik_ctrl + '.scaleY', left_arm_scale_offset)
     cmds.setAttr(left_elbow_ik_ctrl + '.scaleZ', left_arm_scale_offset)
@@ -4964,7 +5269,7 @@ def create_controls():
     
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleX', right_wrist_scale_offset*-1)
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleY', right_wrist_scale_offset*-1)
-    cmds.setAttr(right_wrist_ik_ctrl + '.scaleZ', right_wrist_scale_offset*-1)
+    cmds.setAttr(right_wrist_ik_ctrl + '.scaleZ', (right_wrist_scale_offset*-1)*.5)
     cmds.makeIdentity(right_wrist_ik_ctrl, apply=True, scale=True)
     
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
@@ -4979,6 +5284,33 @@ def create_controls():
     cmds.addAttr(right_wrist_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum_tagged, keyable=True, niceName='Rotate Order')
     cmds.connectAttr(right_wrist_ik_ctrl + '.rotationOrder', right_wrist_ik_ctrl + '.rotateOrder', f=True)
 
+    # Right Hand Ctrl Visibility Type
+    setup_shape_switch(right_wrist_ik_ctrl)
+    
+    # Right Wrist In-Between Offset
+    right_wrist_offset_ik_ctrl = cmds.duplicate(right_wrist_ik_ctrl, name=right_wrist_ik_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(right_wrist_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(right_wrist_offset_ik_ctrl, (1,.3,.3))
+    lock_hide_default_attr(right_wrist_offset_ik_ctrl, translate=False, rotate=False)
+    # Recreate Connections
+    cmds.connectAttr(right_wrist_offset_ik_ctrl + '.rotationOrder', right_wrist_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(right_wrist_offset_ik_ctrl)
+    cmds.parent(right_wrist_offset_ik_ctrl, right_wrist_ik_ctrl)
+    
+    right_wrist_offset_ik_ctrl_grp = cmds.group(name=right_wrist_offset_ik_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_wrist_offset_ik_ctrl_grp))
+    cmds.parent(right_wrist_offset_ik_ctrl, right_wrist_offset_ik_ctrl_grp)
+    cmds.parent(right_wrist_offset_ik_ctrl_grp, right_wrist_ik_ctrl)
+    
+    # Show Scale Ctrl
+    cmds.addAttr(right_wrist_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    cmds.addAttr(right_wrist_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.showOffsetCtrl', right_wrist_offset_ik_ctrl_grp + '.v', f=True)
+    #### End Wrist In-Between Offset
 
     # Right Elbow IK Pole Vector Ctrl
     right_elbow_ik_ctrl = cmds.curve(name=gt_ab_joints.get('right_elbow_jnt').replace(jnt_suffix, 'ik_') + ctrl_suffix, p=[[-0.125, 0.0, 0.0], [0.125, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.125], [0.0, 0.0, -0.125], [0.0, 0.0, 0.0], [0.0, 0.125, 0.0], [0.0, -0.125, 0.0]],d=1)
@@ -5158,7 +5490,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/4,left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_toe_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_toe_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_toe_roll_ctrl_grp, left_foot_offset_data_grp)
     
     
     # Left Toe Up/Down
@@ -5184,7 +5516,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/2.6,left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_toe_up_down_ctrl, left_ctrl_color)
-    cmds.parent(left_toe_up_down_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_toe_up_down_ctrl_grp, left_foot_offset_data_grp)
     
     # Left Ball Roll
     left_ball_roll_ctrl_a = cmds.curve(name='left_ballRoll_' + ctrl_suffix, p=[[0.0, -0.095, 0.38], [0.035, -0.145, 0.354], [0.059, -0.177, 0.335], [0.092, -0.218, 0.312], [0.118, -0.248, 0.286], [0.152, -0.272, 0.254], [0.152, -0.272, 0.254], [0.152, -0.272, 0.254], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.127, -0.279, 0.246], [0.096, -0.259, 0.275], [0.068, -0.232, 0.3], [0.046, -0.201, 0.32], [0.046, -0.201, 0.32], [0.046, -0.201, 0.32], [0.046, -0.339, 0.2], [0.046, -0.387, -0.018], [0.046, -0.332, -0.173], [0.046, -0.265, -0.256], [0.046, -0.167, -0.332], [0.046, 0.0, -0.38], [0.046, 0.167, -0.332], [0.046, 0.265, -0.256], [0.046, 0.332, -0.173], [0.046, 0.387, -0.018], [0.046, 0.339, 0.2], [0.046, 0.201, 0.32], [0.046, 0.201, 0.32], [0.046, 0.201, 0.32], [0.068, 0.232, 0.3], [0.096, 0.259, 0.275], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.127, 0.279, 0.246], [0.152, 0.272, 0.254], [0.152, 0.272, 0.254], [0.152, 0.272, 0.254], [0.118, 0.248, 0.286], [0.092, 0.218, 0.312], [0.059, 0.177, 0.335], [0.035, 0.145, 0.354], [0.0, 0.095, 0.38]],d=3)
@@ -5212,7 +5544,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/3,left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_ball_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_ball_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_ball_roll_ctrl_grp, left_foot_offset_data_grp)
     
     # Left Heel Roll
     left_heel_roll_ctrl_a = cmds.curve(name='left_heelRoll_' + ctrl_suffix, p=[[0.0, 0.095, -0.38], [0.035, 0.145, -0.354], [0.059, 0.177, -0.335], [0.092, 0.218, -0.312], [0.118, 0.248, -0.286], [0.152, 0.272, -0.254], [0.152, 0.272, -0.254], [0.152, 0.272, -0.254], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.127, 0.279, -0.246], [0.096, 0.259, -0.275], [0.068, 0.232, -0.3], [0.046, 0.201, -0.32], [0.046, 0.201, -0.32], [0.046, 0.201, -0.32], [0.046, 0.339, -0.2], [0.046, 0.387, 0.018], [0.046, 0.332, 0.173], [0.046, 0.265, 0.256], [0.046, 0.167, 0.332], [0.046, -0.0, 0.38], [0.046, -0.167, 0.332], [0.046, -0.265, 0.256], [0.046, -0.332, 0.173], [0.046, -0.387, 0.018], [0.046, -0.339, -0.2], [0.046, -0.201, -0.32], [0.046, -0.201, -0.32], [0.046, -0.201, -0.32], [0.068, -0.232, -0.3], [0.096, -0.259, -0.275], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.127, -0.279, -0.246], [0.152, -0.272, -0.254], [0.152, -0.272, -0.254], [0.152, -0.272, -0.254], [0.118, -0.248, -0.286], [0.092, -0.218, -0.312], [0.059, -0.177, -0.335], [0.035, -0.145, -0.354], [0.0, -0.095, -0.38]],d=3)
@@ -5240,7 +5572,7 @@ def create_controls():
     cmds.move(left_foot_scale_offset/3.5*-1,left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
     
     change_viewport_color(left_heel_roll_ctrl, left_ctrl_color)
-    cmds.parent(left_heel_roll_ctrl_grp, left_foot_ik_ctrl)
+    cmds.parent(left_heel_roll_ctrl_grp, left_foot_offset_data_grp)
 
 
     # Right Foot Automation Controls
@@ -5565,7 +5897,7 @@ def create_controls():
     ribbon_two_crv = cmds.duplicate(ribbon_one_crv, name='spine_ribbon_crv_two')
     cmds.move( general_scale_offset*.1, ribbon_one_crv, x=True, absolute=True )
     cmds.move( general_scale_offset*-.1, ribbon_two_crv, x=True, absolute=True )
-    ribbon_sur = cmds.loft( ribbon_two_crv, ribbon_one_crv, name='spine_ribbon_sur' ,ch=False, rn=True, ar=False )[0]
+    ribbon_sur = cmds.loft( ribbon_two_crv, ribbon_one_crv, name='spine_ribbon_sur', ch=False, rn=True, ar=False )[0]
     cmds.delete(ribbon_one_crv)
     cmds.delete(ribbon_two_crv)
     
@@ -5619,9 +5951,9 @@ def create_controls():
     ribbon_cog_jnt = cmds.duplicate(gt_ab_joints.get('cog_jnt'), name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, 'ribbon_' + jnt_suffix), po=True)
     ribbon_spine02_jnt = cmds.duplicate(gt_ab_joints.get('spine02_jnt'), name='spine_ribbon_' + jnt_suffix, po=True)
     ribbon_spine04_jnt = cmds.duplicate(gt_ab_joints.get('spine04_jnt'), name='chest_ribbon_' + jnt_suffix, po=True)
-    change_viewport_color(ribbon_cog_jnt[0], (1,0,0))
-    change_viewport_color(ribbon_spine02_jnt[0], (1,0,0))
-    change_viewport_color(ribbon_spine04_jnt[0], (1,0,0))
+    change_viewport_color(ribbon_cog_jnt[0], automation_jnt_color)
+    change_viewport_color(ribbon_spine02_jnt[0], automation_jnt_color)
+    change_viewport_color(ribbon_spine04_jnt[0], automation_jnt_color)
     cmds.parent(ribbon_cog_jnt, world=True)
     cmds.parent(ribbon_spine02_jnt, world=True)
     cmds.parent(ribbon_spine04_jnt, world=True)
@@ -5644,7 +5976,7 @@ def create_controls():
     cmds.setAttr(chest_ribbon_ctrl_a + '.sz', general_scale_offset*.55)
     cmds.setAttr(chest_ribbon_ctrl_b + '.sx', general_scale_offset*1.2)
     cmds.setAttr(chest_ribbon_ctrl_b + '.sy', general_scale_offset*.8)
-    cmds.setAttr(chest_ribbon_ctrl_b + '.sz', general_scale_offset*1.2)
+    cmds.setAttr(chest_ribbon_ctrl_b + '.sz', general_scale_offset*1.5)
     cmds.makeIdentity(chest_ribbon_ctrl_a, apply=True, scale=True, rotate=True)
     cmds.makeIdentity(chest_ribbon_ctrl_b, apply=True, scale=True, rotate=True)
     
@@ -5655,27 +5987,44 @@ def create_controls():
     cmds.rename(shapes[0], '{0}Shape'.format('chest_pin'))
     cmds.rename(shapes[1], '{0}Shape'.format( 'chest_box'))
 
-    # Chest Ctrl Visibility Switch
+    # Add Separator
     cmds.addAttr(chest_ribbon_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(chest_ribbon_ctrl + '.' + custom_attr_separator, lock=True)
-    cmds.addAttr(chest_ribbon_ctrl, ln="visibilityType", at='enum', en="Box:Pin:", keyable=True)
 
-    chest_v_type_condition_node = cmds.createNode('condition', name='ribbon_chest_visibilityType_condition')
-    chest_v_type_reverse_node = cmds.createNode('reverse', name='ribbon_chest_visibilityType_reverse')
-    cmds.connectAttr(chest_ribbon_ctrl + '.visibilityType', chest_v_type_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(chest_v_type_condition_node + '.outColorR', chest_v_type_reverse_node + '.inputX', f=True)
-    
+    # Expose Custom Rotate Order
+    cmds.addAttr(chest_ribbon_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(chest_ribbon_ctrl + '.rotationOrder', chest_ribbon_ctrl + '.rotateOrder', f=True)
 
-    for shape in cmds.listRelatives(chest_ribbon_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(chest_v_type_reverse_node + '.outputX', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(chest_v_type_condition_node + '.outColorR', shape + '.v', f=True)
-    
+    # Chest Ctrl Visibility Switch
+    setup_shape_switch(chest_ribbon_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
     
     cmds.parent(chest_ribbon_ctrl, chest_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
     change_viewport_color(chest_ribbon_ctrl, (1,1,0))
+    
+    # Chest In-Between Offset
+    chest_ribbon_offset_ctrl = cmds.duplicate(chest_ribbon_ctrl, name=chest_ribbon_ctrl.replace('_' + ctrl_suffix, '_offset' + ctrl_suffix.capitalize()))[0]
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleX', .9)
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleY', .9)
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(chest_ribbon_offset_ctrl, apply=True, scale=True)
+    change_viewport_color(chest_ribbon_offset_ctrl, (.4,.4,0))
+    lock_hide_default_attr(chest_ribbon_offset_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(chest_ribbon_offset_ctrl + '.v', k=False, channelBox=False)
+    
+    # Recreate Connections 
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotationOrder', chest_ribbon_offset_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(chest_ribbon_offset_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
+    
+    chest_ribbon_offset_ctrl_grp = cmds.group(name=chest_ribbon_offset_ctrl + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(chest_ribbon_offset_ctrl, chest_ribbon_offset_ctrl_grp))
+    
+    cmds.parent(chest_ribbon_offset_ctrl, chest_ribbon_offset_ctrl_grp)
+    cmds.parent(chest_ribbon_offset_ctrl_grp, chest_ribbon_ctrl)
+        
+    cmds.addAttr(chest_ribbon_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(chest_ribbon_ctrl + '.showOffsetCtrl', chest_ribbon_offset_ctrl + '.v', f=True)
+    #### End Chest In-Between Offset
     
     # Chest Adjustment Ctrl
     adj_ctrl_color = (.52, .1, .78)
@@ -5698,30 +6047,17 @@ def create_controls():
     cmds.rename(shapes[0], '{0}Shape'.format('chest_adjustment_pin'))
     cmds.rename(shapes[1], '{0}Shape'.format( 'chest_adjustment_box'))
 
-    # Chest Adjustment Ctrl Visibility Switch
-    cmds.addAttr(chest_ribbon_adjustment_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.' + custom_attr_separator, lock=True)
-    cmds.addAttr(chest_ribbon_adjustment_ctrl, ln="visibilityType", at='enum', en="Box:Pin:", keyable=True)
-    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.visibilityType', 1) # Default Pin
+    # # Chest Adjustment Ctrl Visibility Switch
+    setup_shape_switch(chest_ribbon_adjustment_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
+    cmds.setAttr(chest_ribbon_adjustment_ctrl + '.controlShape', 1)
 
-    chest_v_type_condition_node = cmds.createNode('condition', name='ribbon_chest_adj_visibilityType_condition')
-    chest_v_type_reverse_node = cmds.createNode('reverse', name='ribbon_chest_adj_visibilityType_reverse')
-    cmds.connectAttr(chest_ribbon_adjustment_ctrl + '.visibilityType', chest_v_type_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(chest_v_type_condition_node + '.outColorR', chest_v_type_reverse_node + '.inputX', f=True)
-    
-
-    for shape in cmds.listRelatives(chest_ribbon_adjustment_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(chest_v_type_reverse_node + '.outputX', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(chest_v_type_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
     cmds.parent(chest_ribbon_adjustment_ctrl, chest_ribbon_adjustment_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_adjustment_ctrl_grp))
     cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0])
     change_viewport_color(chest_ribbon_adjustment_ctrl, adj_ctrl_color)
-    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_ctrl) # Make Chest Control the main driver
+    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_offset_ctrl_grp) # Make Chest Control the main driver
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.translate', chest_ribbon_adjustment_ctrl_grp + '.translate', f=True)
+    cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotate', chest_ribbon_adjustment_ctrl_grp + '.rotate', f=True)
     
     # Spine Ctrl
     spine_ribbon_ctrl = cmds.curve(name=ribbon_spine02_jnt[0].replace(jnt_suffix, '') + ctrl_suffix, p=[[0.0, 0.0, 0.0], [0.0, -1.794, 0.0], [0.067, -1.803, 0.0], [0.128, -1.829, 0.0], [0.181, -1.869, 0.0], [0.222, -1.922, 0.0], [0.247, -1.984, 0.0], [0.256, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -1.794, 0.0], [-0.067, -1.803, 0.0], [-0.129, -1.829, 0.0], [-0.181, -1.869, 0.0], [-0.222, -1.923, 0.0], [-0.247, -1.984, 0.0], [-0.257, -2.05, 0.0], [-0.248, -2.117, 0.0], [-0.222, -2.178, 0.0], [-0.181, -2.231, 0.0], [-0.128, -2.272, 0.0], [-0.067, -2.297, 0.0], [0.0, -2.307, 0.0], [0.066, -2.298, 0.0], [0.128, -2.272, 0.0], [0.181, -2.232, 0.0], [0.221, -2.179, 0.0], [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -2.307, 0.0]], d=1)
@@ -5753,7 +6089,6 @@ def create_controls():
     cmds.connectAttr(chest_ribbon_ctrl + '.showAdjustmentControls', spine_ribbon_ctrl_grp + '.v', f=True)
     cmds.connectAttr(chest_ribbon_ctrl + '.showAdjustmentControls', chest_ribbon_adjustment_ctrl_grp + '.v', f=True)
     
-
     ### FK Spine ###
     
     # Create FK Chain
@@ -5898,7 +6233,7 @@ def create_controls():
 
 
     #### FK IK Constraints ####
-    cmds.parentConstraint(cog_ctrl, fk_cog_jnt[0]) 
+    cmds.parentConstraint(cog_offset_data_grp, fk_cog_jnt[0]) 
     cog_constraint = cmds.parentConstraint([fk_cog_jnt[0], ik_cog_jnt[0]], gt_ab_joints.get('cog_jnt'))
     spine01_constraint = cmds.parentConstraint([fk_spine01_jnt[0], ik_spine01_jnt[0]], gt_ab_joints.get('spine01_jnt'))
     spine02_constraint = cmds.parentConstraint([fk_spine02_jnt[0], ik_spine02_jnt[0]], gt_ab_joints.get('spine02_jnt'))
@@ -5925,9 +6260,9 @@ def create_controls():
 
     
     # IK FK Spine Mechanics
-    cmds.parent(cog_ribbon_ctrl_grp, cog_ctrl)
-    cmds.parent(spine_ribbon_ctrl_grp, cog_ctrl)
-    cmds.parent(chest_ribbon_ctrl_grp, cog_ctrl)
+    cmds.parent(cog_ribbon_ctrl_grp, cog_offset_data_grp)
+    cmds.parent(spine_ribbon_ctrl_grp, cog_offset_data_grp)
+    cmds.parent(chest_ribbon_ctrl_grp, cog_offset_data_grp)
     spine04_offset_group = cmds.group(name=spine04_ctrl.replace(ctrl_suffix, '') + 'switch_ctrl_grp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine04_jnt'), spine04_offset_group))
     cmds.parent(right_clavicle_ctrl_grp, spine04_offset_group)
@@ -5941,14 +6276,14 @@ def create_controls():
     cmds.parent(neck_base_offset_group, main_ctrl)
     
     # Keep Line of Sight
-    head_ik_fk_constraint = cmds.parentConstraint([chest_ribbon_ctrl, spine04_ctrl], neck_base_offset_group)
+    head_ik_fk_constraint = cmds.parentConstraint([chest_ribbon_offset_ctrl, spine04_ctrl], neck_base_offset_group)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', head_ik_fk_constraint[0] + '.w0', f=True)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', head_ik_fk_constraint[0] + '.w1', f=True)
     spine_switcher_constraint = cmds.parentConstraint([chest_ribbon_adjustment_ctrl, spine04_ctrl], spine04_offset_group)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', spine_switcher_constraint[0] + '.w1', f=True)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', spine_switcher_constraint[0] + '.w0', f=True)
     
-    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_ribbon_ctrl, cog_ctrl], spine_ribbon_ctrl_grp, mo=True)
+    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_ribbon_offset_ctrl, cog_ctrl], spine_ribbon_ctrl_grp, mo=True)
     
     cmds.parent(spine_ik_grp, general_automation_grp)
     
@@ -6042,16 +6377,14 @@ def create_controls():
 
     cmds.setAttr(neck_mid_shape_driver_grp + '.inheritsTransform', 0)
     
-
     # Head Ctrl
     cmds.parentConstraint(head_ctrl, gt_ab_joints.get('head_jnt'))
-    
     
     # Jaw Ctrl
     cmds.parentConstraint(jaw_ctrl, gt_ab_joints.get('jaw_jnt')) 
     
     # Hip Ctrl
-    cmds.parentConstraint(hip_ctrl, gt_ab_joints.get('hip_jnt')) 
+    cmds.parentConstraint(hip_offset_data_grp, gt_ab_joints.get('hip_jnt')) 
     
     ################# Left FK Controls #################
     # Left Leg
@@ -7095,7 +7428,9 @@ def create_controls():
 
 
     ################# IK Controls #################
-    ################# Left Leg IK Controls #################
+    ################# Left Leg IK Controls ################ @@@@@
+
+    # Left Leg IK
     left_leg_rp_ik_handle = cmds.ikHandle( n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt, sol='ikRPsolver')
     left_leg_ball_ik_handle = cmds.ikHandle( n='left_footBall_SC_ikHandle', sj=left_ankle_ik_jnt, ee=left_ball_ik_jnt, sol='ikSCsolver')
     left_leg_toe_ik_handle = cmds.ikHandle( n='left_footToe_SC_ikHandle', sj=left_ball_ik_jnt, ee=left_toe_ik_jnt, sol='ikSCsolver')
@@ -7113,13 +7448,16 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(gt_ab_elements.get('left_ball_pivot_grp'), left_heel_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_ball_jnt'), left_ball_pivot_grp))
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('left_toe_jnt'), left_toe_pivot_grp))
-    
+        
     desired_rotation = cmds.xform(gt_ab_elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_foot_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_toe_pivot_grp + '.ry', desired_rotation[1])
-    
+
+    if cmds.objExists(gt_ab_elements_default.get('left_heel_proxy_pivot')):
+        cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('left_heel_proxy_pivot'), left_heel_pivot_grp))
+        
     cmds.parent(left_foot_pivot_grp, rig_setup_grp)
     cmds.parent(left_heel_pivot_grp, left_foot_pivot_grp)
     cmds.parent(left_toe_pivot_grp, left_heel_pivot_grp)
@@ -7128,7 +7466,7 @@ def create_controls():
     cmds.parent(left_leg_toe_ik_handle[0], left_toe_pos_pivot_grp)
     cmds.parent(left_leg_ball_ik_handle[0], left_ball_pivot_grp)
     cmds.parent(left_leg_rp_ik_handle[0], left_ball_pivot_grp)
-    cmds.parentConstraint(left_foot_ik_ctrl, left_foot_pivot_grp, mo=True)
+    cmds.parentConstraint(left_foot_offset_data_grp, left_foot_pivot_grp, mo=True)
     
     cmds.connectAttr(left_ball_roll_ctrl + '.rotate', left_ball_pivot_grp + '.rotate', f=True)
     cmds.connectAttr(left_toe_roll_ctrl + '.rotate', left_toe_pivot_grp + '.rotate', f=True)
@@ -7191,13 +7529,13 @@ def create_controls():
     for shape in cmds.listRelatives(left_leg_switch, s=True, f=True) or []:
         if 'fk' in shape:
             cmds.connectAttr(left_v_reverse_node + '.outputX', shape + '.v', f=True)
-            
+    
     # FK IK Constraints
     left_hip_constraint = cmds.parentConstraint([left_hip_fk_jnt, left_hip_ik_jnt], gt_ab_joints.get('left_hip_jnt'))
-    left_knee_constraint = cmds.parentConstraint([left_knee_fk_jnt, left_knee_ik_jnt], gt_ab_joints.get('left_knee_jnt'))
+    left_knee_constraint = cmds.parentConstraint([left_knee_fk_jnt, left_knee_ik_jnt], gt_ab_joints.get('left_knee_jnt')) 
     left_ankle_constraint = cmds.parentConstraint([left_ankle_fk_jnt, left_ankle_ik_jnt], gt_ab_joints.get('left_ankle_jnt'))
     left_ball_constraint = cmds.parentConstraint([left_ball_fk_jnt, left_ball_ik_jnt], gt_ab_joints.get('left_ball_jnt'))
-    left_switch_constraint = cmds.parentConstraint([left_foot_ik_ctrl, left_ankle_ctrl], left_leg_switch_grp, mo=True)
+    left_switch_constraint = cmds.parentConstraint([left_foot_offset_data_grp, left_ankle_ctrl], left_leg_switch_grp, mo=True)
 
     left_switch_reverse_node = cmds.createNode('reverse', name='left_leg_switch_reverse')
     cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_switch_reverse_node + '.inputX', f=True)
@@ -7222,18 +7560,49 @@ def create_controls():
     cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_roll_ctrl_grp + '.v', f=True)
     cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_up_down_ctrl_grp + '.v', f=True)
     
+    # Setup Shape Switch
+    setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    
+    # Left Foot In-Between Offset
+    # Offset ctrl was created earlier when creating the original ctrl
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(left_foot_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(left_foot_offset_ik_ctrl, (.3, .6, 1))
+    lock_hide_default_attr(left_foot_offset_ik_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(left_foot_offset_ik_ctrl + '.v', k=False, channelBox=False)
+    # Recreate Connections
+    cmds.addAttr(left_foot_offset_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotationOrder', left_foot_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(left_foot_offset_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    cmds.parent(left_foot_offset_ik_ctrl, left_foot_ik_ctrl)
+    
+
+    cmds.connectAttr(left_foot_offset_ik_ctrl + '.rotationOrder', left_foot_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(left_foot_offset_ik_ctrl, left_foot_offset_ik_ctrl_grp)
+    cmds.parent(left_foot_offset_ik_ctrl_grp, left_foot_ik_ctrl)
+        
+    # Add Scale Ctrl for later
+    cmds.addAttr(left_foot_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Show Offset Ctrl
+    cmds.addAttr(left_foot_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(left_foot_ik_ctrl + '.showOffsetCtrl', left_foot_offset_ik_ctrl + '.v', f=True)
+    #### End Wrist In-Between Offset
+    
     # Left IK Knee Automation
     left_knee_ik_offset_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     left_hip_ik_offset_reference = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_hip_jnt'), left_hip_ik_offset_reference))
-    cmds.parent(left_hip_ik_offset_reference, hip_ctrl)
+    cmds.parent(left_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(left_knee_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([left_hip_ik_offset_reference, left_foot_ik_ctrl], left_knee_ik_offset_grp)
+    cmds.pointConstraint([left_hip_ik_offset_reference, left_foot_offset_data_grp], left_knee_ik_offset_grp)
 
     left_leg_up_dir = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_legOffsetUpDir'), empty=True, world=True) 
     cmds.move(general_scale_offset*50, left_leg_up_dir, moveX=True)
     cmds.parent(left_leg_up_dir, direction_ctrl)
-    cmds.aimConstraint(left_foot_ik_ctrl, left_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_leg_up_dir) # No WORKING
+    cmds.aimConstraint(left_foot_offset_data_grp, left_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_leg_up_dir) 
     
     left_knee_ik_override_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     left_knee_ik_twist_override_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -7259,7 +7628,7 @@ def create_controls():
     left_knee_ik_foot_offset_data_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_footOverrideData'), empty=True, world=True)
     cmds.parent(left_knee_ik_foot_offset_data_grp, left_knee_ik_foot_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_knee_ik_foot_offset_parent_grp))
-    cmds.parentConstraint(left_foot_ik_ctrl, left_knee_ik_foot_offset_data_grp)
+    cmds.parentConstraint(left_foot_offset_data_grp, left_knee_ik_foot_offset_data_grp)
     cmds.parent(left_knee_ik_foot_offset_parent_grp, main_ctrl)
     
     left_knee_ik_foot_offset_grp = cmds.group(name=left_knee_ik_ctrl.replace('_ctrl','_footOffsetDriver'), empty=True, world=True)
@@ -7293,35 +7662,7 @@ def create_controls():
         if 'Constraint' in child:
             cmds.delete(child)
     cmds.parentConstraint(left_ball_pivot_grp, left_leg_stretchy_elements[0], mo=True)
-    
-    # Left Foot Control Type Visibility
-    cmds.addAttr(left_leg_switch, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(left_leg_switch + '.footControl', lock=True)
-    cmds.addAttr(left_leg_switch, ln="visibilityType", at='enum', en="Box:Flat:", keyable=True)
-
-    left_v_type_0_condition_node = cmds.createNode('condition', name='left_foot_visibilityTypeBox_condition')
-    left_v_type_1_condition_node = cmds.createNode('condition', name='left_foot_visibilityTypFlat_condition')
-   
-    cmds.connectAttr(left_leg_switch + '.visibilityType', left_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(left_leg_switch + '.visibilityType', left_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(left_v_type_1_condition_node + '.secondTerm', 1)
-
-    
-    for condition_node in [left_v_type_0_condition_node, left_v_type_1_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(left_foot_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(left_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'flat' in shape:
-            cmds.connectAttr(left_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
+         
     # Transfer Data to Base Skeleton
     left_hip_scale_blend = cmds.createNode('blendColors', name='left_hip_switchScale_blend')
     left_knee_scale_blend = cmds.createNode('blendColors', name='left_knee_switchScale_blend')
@@ -7372,8 +7713,9 @@ def create_controls():
     cmds.connectAttr(left_toe_up_down_ctrl + '.lockXZ', left_toe_up_down_ctrl + '.maxTransZLimitEnable', f=True)
     
     
-    ################# Right Leg IK Controls #################
-    right_leg_rp_ik_handle = cmds.ikHandle( n='right_footAnkle_RP_ikHandle', sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt, sol='ikRPsolver')
+    ################# Right Leg IK Controls ################# @@@@@
+    # Right Leg IK
+    right_leg_rp_ik_handle = cmds.ikHandle( n='right_footAnkle_RP_ikHandle', sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt, sol='ikRPsolver') 
     right_leg_ball_ik_handle = cmds.ikHandle( n='right_footBall_SC_ikHandle', sj=right_ankle_ik_jnt, ee=right_ball_ik_jnt, sol='ikSCsolver')
     right_leg_toe_ik_handle = cmds.ikHandle( n='right_footToe_SC_ikHandle', sj=right_ball_ik_jnt, ee=right_toe_ik_jnt, sol='ikSCsolver')
     cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
@@ -7397,6 +7739,9 @@ def create_controls():
     cmds.setAttr(right_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_toe_pivot_grp + '.ry', desired_rotation[1])
     
+    if cmds.objExists(gt_ab_elements_default.get('right_heel_proxy_pivot')):
+        cmds.delete(cmds.pointConstraint(gt_ab_elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
+    
     cmds.parent(right_foot_pivot_grp, rig_setup_grp)
     cmds.parent(right_heel_pivot_grp, right_foot_pivot_grp)
     cmds.parent(right_toe_pivot_grp, right_heel_pivot_grp)
@@ -7405,7 +7750,7 @@ def create_controls():
     cmds.parent(right_leg_toe_ik_handle[0], right_toe_pos_pivot_grp)
     cmds.parent(right_leg_ball_ik_handle[0], right_ball_pivot_grp)
     cmds.parent(right_leg_rp_ik_handle[0], right_ball_pivot_grp)
-    cmds.parentConstraint(right_foot_ik_ctrl, right_foot_pivot_grp, mo=True)
+    cmds.parentConstraint(right_foot_offset_data_grp, right_foot_pivot_grp, mo=True)
     
     cmds.connectAttr(right_ball_roll_ctrl + '.rotate', right_ball_pivot_grp + '.rotate', f=True)
     cmds.connectAttr(right_toe_roll_ctrl + '.rotate', right_toe_pivot_grp + '.rotate', f=True)
@@ -7499,18 +7844,51 @@ def create_controls():
     cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_roll_ctrl_grp + '.v', f=True)
     cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_up_down_ctrl_grp + '.v', f=True)
     
+    # Setup Shape Switch
+    setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    
+    # Right Foot In-Between Offset
+    # Offset ctrl was created earlier when creating the original ctrl
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleX', .9)
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleY', .9)
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleZ', .9)
+    cmds.makeIdentity(right_foot_offset_ik_ctrl, apply=True, scale=True)
+    change_viewport_color(right_foot_offset_ik_ctrl, (1,.3,.3))
+    lock_hide_default_attr(right_foot_offset_ik_ctrl, translate=False, rotate=False, visibility=False) 
+    cmds.setAttr(right_foot_offset_ik_ctrl + '.v', k=False, channelBox=False)
+    # Recreate Connections
+    cmds.addAttr(right_foot_offset_ik_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotationOrder', right_foot_offset_ik_ctrl + '.rotateOrder', f=True)
+    setup_shape_switch(right_foot_offset_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+    cmds.parent(right_foot_offset_ik_ctrl, right_foot_ik_ctrl)
+    
+
+    cmds.connectAttr(right_foot_offset_ik_ctrl + '.rotationOrder', right_foot_offset_data_grp + '.rotateOrder', f=True)
+    cmds.parent(right_foot_offset_ik_ctrl, right_foot_offset_ik_ctrl_grp)
+    cmds.parent(right_foot_offset_ik_ctrl_grp, right_foot_ik_ctrl)
+        
+    # Add Scale Ctrl for later
+    cmds.addAttr(right_foot_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
+    
+    # Show Offset Ctrl
+    cmds.addAttr(right_foot_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+    cmds.connectAttr(right_foot_ik_ctrl + '.showOffsetCtrl', right_foot_offset_ik_ctrl + '.v', f=True)
+      
+    #### End Wrist In-Between Offset
+    
+    
     # Right IK Knee Automation
     right_knee_ik_offset_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_legOffset') + grp_suffix.capitalize(), empty=True, world=True)
     right_hip_ik_offset_reference = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_hip_jnt'), right_hip_ik_offset_reference))
-    cmds.parent(right_hip_ik_offset_reference, hip_ctrl)
+    cmds.parent(right_hip_ik_offset_reference, hip_offset_data_grp)
     cmds.parent(right_knee_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([right_hip_ik_offset_reference, right_foot_ik_ctrl], right_knee_ik_offset_grp)
+    cmds.pointConstraint([right_hip_ik_offset_reference, right_foot_offset_data_grp], right_knee_ik_offset_grp)
     
     right_leg_up_dir = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_legOffsetUpDir'), empty=True, world=True) 
     cmds.move(general_scale_offset*-50, right_leg_up_dir, moveX=True)
     cmds.parent(right_leg_up_dir, direction_ctrl)
-    cmds.aimConstraint(right_foot_ik_ctrl, right_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_leg_up_dir) # No WORKING
+    cmds.aimConstraint(right_foot_offset_data_grp, right_knee_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_leg_up_dir) # No WORKING
 
     right_knee_ik_override_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     right_knee_ik_twist_override_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -7536,7 +7914,7 @@ def create_controls():
     right_knee_ik_foot_offset_data_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_footOverrideData'), empty=True, world=True)
     cmds.parent(right_knee_ik_foot_offset_data_grp, right_knee_ik_foot_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_knee_ik_foot_offset_parent_grp))
-    cmds.parentConstraint(right_foot_ik_ctrl, right_knee_ik_foot_offset_data_grp)
+    cmds.parentConstraint(right_foot_offset_data_grp, right_knee_ik_foot_offset_data_grp)
     cmds.parent(right_knee_ik_foot_offset_parent_grp, main_ctrl)
     
     right_knee_ik_foot_offset_grp = cmds.group(name=right_knee_ik_ctrl.replace('_ctrl','_footOffsetDriver'), empty=True, world=True)
@@ -7565,40 +7943,13 @@ def create_controls():
     cmds.addAttr(right_leg_switch, ln="squashStretch", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_leg_switch + '.squashStretch', lock=True)
     right_leg_stretchy_elements = make_stretchy_ik(right_leg_rp_ik_handle[0], 'right_leg', right_leg_switch)
+    
     # Change Stretchy System to be compatible with roll controls
     for child in cmds.listRelatives(right_leg_stretchy_elements[0], children=True) or []:
         if 'Constraint' in child:
             cmds.delete(child)
     cmds.parentConstraint(right_ball_pivot_grp, right_leg_stretchy_elements[0], mo=True)
-    
-        # Right Foot Control Type Visibility
-    cmds.addAttr(right_leg_switch, ln="footControl", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(right_leg_switch + '.footControl', lock=True)
-    cmds.addAttr(right_leg_switch, ln="visibilityType", at='enum', en="Box:Flat:", keyable=True)
-
-    right_v_type_0_condition_node = cmds.createNode('condition', name='right_foot_visibilityTypeBox_condition')
-    right_v_type_1_condition_node = cmds.createNode('condition', name='right_foot_visibilityTypFlat_condition')
-   
-    cmds.connectAttr(right_leg_switch + '.visibilityType', right_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(right_leg_switch + '.visibilityType', right_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(right_v_type_1_condition_node + '.secondTerm', 1)
-
-    
-    for condition_node in [right_v_type_0_condition_node, right_v_type_1_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(right_foot_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(right_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'flat' in shape:
-            cmds.connectAttr(right_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-    
-    
+     
     # Transfer Data to Base Skeleton
     right_hip_scale_blend = cmds.createNode('blendColors', name='right_hip_switchScale_blend')
     right_knee_scale_blend = cmds.createNode('blendColors', name='right_knee_switchScale_blend')
@@ -7652,7 +8003,7 @@ def create_controls():
     left_arm_rp_ik_handle = cmds.ikHandle( n='left_armWrist_RP_ikHandle', sj=left_shoulder_ik_jnt, ee=left_wrist_ik_jnt, sol='ikRPsolver')
     cmds.poleVectorConstraint(left_elbow_ik_ctrl, left_arm_rp_ik_handle[0])
     cmds.parent(left_arm_rp_ik_handle[0], ik_solvers_grp)
-    cmds.pointConstraint(left_wrist_ik_ctrl, left_arm_rp_ik_handle[0])
+    cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_arm_rp_ik_handle[0])
 
     cmds.select(d=True)
     cmds.select(left_wrist_ik_jnt)
@@ -7721,7 +8072,7 @@ def create_controls():
     left_shoulder_constraint = cmds.parentConstraint([left_shoulder_fk_jnt, left_shoulder_ik_jnt], gt_ab_joints.get('left_shoulder_jnt'))
     left_elbow_constraint = cmds.parentConstraint([left_elbow_fk_jnt, left_elbow_ik_jnt], gt_ab_joints.get('left_elbow_jnt'))
     left_wrist_constraint = cmds.pointConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'))
-    left_switch_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl], left_arm_switch_grp, mo=True)
+    left_switch_constraint = cmds.parentConstraint([left_wrist_offset_ik_ctrl, left_wrist_ctrl], left_arm_switch_grp, mo=True)
     
     left_switch_reverse_node = cmds.createNode('reverse', name='left_arm_switch_reverse')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_switch_reverse_node + '.inputX', f=True)
@@ -7754,12 +8105,12 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_shoulder_jnt'), left_shoulder_ik_offset_reference))
     cmds.parent(left_shoulder_ik_offset_reference, left_clavicle_ctrl)
     cmds.parent(left_elbow_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([left_shoulder_ik_offset_reference, left_wrist_ik_ctrl], left_elbow_ik_offset_grp)
+    cmds.pointConstraint([left_shoulder_ik_offset_reference, left_wrist_offset_ik_ctrl], left_elbow_ik_offset_grp)
     
     left_arm_up_dir = cmds.group(name=left_elbow_ik_ctrl.replace('_ctrl','_armOffsetUpDir'), empty=True, world=True) 
     cmds.parent(left_arm_up_dir, main_ctrl)
     cmds.parentConstraint(gt_ab_joints.get('spine04_jnt'), left_arm_up_dir, mo=True)
-    cmds.aimConstraint(left_wrist_ik_ctrl, left_elbow_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_arm_up_dir)
+    cmds.aimConstraint(left_wrist_offset_ik_ctrl, left_elbow_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=left_arm_up_dir)
     
     left_elbow_ik_override_grp = cmds.group(name=left_elbow_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     left_elbow_ik_twist_override_grp = cmds.group(name=left_elbow_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -7785,7 +8136,7 @@ def create_controls():
     left_elbow_ik_wrist_offset_data_grp = cmds.group(name=left_elbow_ik_ctrl.replace('_ctrl','_wristOverrideData'), empty=True, world=True)
     cmds.parent(left_elbow_ik_wrist_offset_data_grp, left_elbow_ik_wrist_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(left_wrist_ik_ctrl, left_elbow_ik_wrist_offset_parent_grp))
-    cmds.parentConstraint(left_wrist_ik_ctrl, left_elbow_ik_wrist_offset_data_grp)
+    cmds.parentConstraint(left_wrist_offset_ik_ctrl, left_elbow_ik_wrist_offset_data_grp)
     cmds.parent(left_elbow_ik_wrist_offset_parent_grp, main_ctrl)
     
     left_elbow_ik_wrist_offset_grp = cmds.group(name=left_elbow_ik_ctrl.replace('_ctrl','_wristOffsetDriver'), empty=True, world=True)
@@ -7829,37 +8180,11 @@ def create_controls():
     cmds.connectAttr(left_elbow_fk_jnt + '.scale', left_elbow_scale_blend + '.color2', f=True)
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_elbow_scale_blend + '.blender', f=True)
     cmds.connectAttr(left_elbow_scale_blend + '.output', gt_ab_joints.get('left_elbow_jnt') + '.scale', f=True)
-
-    # Left Hand Ctrl Visibility Type
+    
+    # Left Arm Separator
     cmds.addAttr(left_arm_switch, ln="armControls", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(left_arm_switch + '.armControls', lock=True)
-    cmds.addAttr(left_arm_switch, ln="visibilityType", at='enum', en="Box:Semi-Circle:Pin:", keyable=True)
 
-    left_v_type_0_condition_node = cmds.createNode('condition', name='left_arm_visibilityTypeBox_condition')
-    left_v_type_1_condition_node = cmds.createNode('condition', name='left_arm_visibilityTypSemiCircle_condition')
-    left_v_type_2_condition_node = cmds.createNode('condition', name='left_arm_visibilityTypePin_condition')
-    cmds.connectAttr(left_arm_switch + '.visibilityType', left_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(left_arm_switch + '.visibilityType', left_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(left_arm_switch + '.visibilityType', left_v_type_2_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(left_v_type_1_condition_node + '.secondTerm', 1)
-    cmds.setAttr(left_v_type_2_condition_node + '.secondTerm', 2)
-    
-    for condition_node in [left_v_type_0_condition_node, left_v_type_1_condition_node, left_v_type_2_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(left_wrist_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(left_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'semiCircle' in shape:
-            cmds.connectAttr(left_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(left_v_type_2_condition_node + '.outColorR', shape + '.v', f=True)
-    
     # Left Fingers Limits (Connections)
     cmds.connectAttr(left_fingers_ctrl + '.maximumRotationZ', left_fingers_ctrl + '.maxRotZLimit', f=True)
     cmds.connectAttr(left_fingers_ctrl + '.minimumRotationZ', left_fingers_ctrl + '.minRotZLimit', f=True)
@@ -7870,6 +8195,7 @@ def create_controls():
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Y')
     cmds.connectAttr(left_rot_reverse_node + '.outputX', left_fingers_inverse_rot_multiply_node + '.input2Z')
  
+
     # Left Finger Curls Visibility (Connections)
     for curl_ctrl in left_curl_controls:
         for shape in cmds.listRelatives(curl_ctrl, s=True, f=True) or []:
@@ -7954,8 +8280,8 @@ def create_controls():
     right_arm_rp_ik_handle = cmds.ikHandle( n='right_armWrist_RP_ikHandle', sj=right_shoulder_ik_jnt, ee=right_wrist_ik_jnt, sol='ikRPsolver')
     cmds.poleVectorConstraint(right_elbow_ik_ctrl, right_arm_rp_ik_handle[0])
     cmds.parent(right_arm_rp_ik_handle[0], ik_solvers_grp)
-    cmds.pointConstraint(right_wrist_ik_ctrl, right_arm_rp_ik_handle[0])
-    #cmds.orientConstraint(right_wrist_ik_ctrl, right_wrist_ik_jnt)
+    cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_arm_rp_ik_handle[0])
+    #cmds.orientConstraint(right_wrist_offset_ik_ctrl, right_wrist_ik_jnt)
     
     cmds.select(d=True)
     cmds.select(right_wrist_ik_jnt)
@@ -8024,7 +8350,7 @@ def create_controls():
     right_shoulder_constraint = cmds.parentConstraint([right_shoulder_fk_jnt, right_shoulder_ik_jnt], gt_ab_joints.get('right_shoulder_jnt'))
     right_elbow_constraint = cmds.parentConstraint([right_elbow_fk_jnt, right_elbow_ik_jnt], gt_ab_joints.get('right_elbow_jnt'))
     right_wrist_constraint = cmds.pointConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'))
-    right_switch_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl], right_arm_switch_grp, mo=True)
+    right_switch_constraint = cmds.parentConstraint([right_wrist_offset_ik_ctrl, right_wrist_ctrl], right_arm_switch_grp, mo=True)
 
 
     right_switch_reverse_node = cmds.createNode('reverse', name='right_arm_switch_reverse')
@@ -8058,12 +8384,12 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_shoulder_jnt'), right_shoulder_ik_offset_reference))
     cmds.parent(right_shoulder_ik_offset_reference, right_clavicle_ctrl)
     cmds.parent(right_elbow_ik_offset_grp, direction_ctrl)
-    cmds.pointConstraint([right_shoulder_ik_offset_reference, right_wrist_ik_ctrl], right_elbow_ik_offset_grp)
+    cmds.pointConstraint([right_shoulder_ik_offset_reference, right_wrist_offset_ik_ctrl], right_elbow_ik_offset_grp)
     
     right_arm_up_dir = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_armOffsetUpDir'), empty=True, world=True) 
     cmds.parent(right_arm_up_dir, main_ctrl)
     cmds.parentConstraint(gt_ab_joints.get('spine04_jnt'), right_arm_up_dir, mo=True)
-    cmds.aimConstraint(right_wrist_ik_ctrl, right_elbow_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_arm_up_dir)
+    cmds.aimConstraint(right_wrist_offset_ik_ctrl, right_elbow_ik_offset_grp, upVector=(0, 1, 0), worldUpType="object", worldUpObject=right_arm_up_dir)
     
     right_elbow_ik_override_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_override') + grp_suffix.capitalize(), empty=True, world=True)
     right_elbow_ik_twist_override_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_twistOverride') + grp_suffix.capitalize(), empty=True, world=True)
@@ -8082,16 +8408,21 @@ def create_controls():
     cmds.connectAttr(right_wrist_reverse_node + '.outputX', right_wrist_ctrl_constraint[0] + '.w1', f=True)
     
     cmds.addAttr(right_wrist_ik_ctrl , ln='pVecTwist', at='float', k=True, niceName='Elbow Twist')
-    right_pvec_twist_reverse_node = cmds.createNode('reverse', name='right_pVecTwist_reverse')
-    cmds.connectAttr(right_wrist_ik_ctrl + '.pVecTwist', right_pvec_twist_reverse_node + '.inputX', f=True)
-    cmds.connectAttr(right_pvec_twist_reverse_node + '.outputX', right_elbow_ik_twist_override_grp + '.rx', f=True)
+    
+    # Multiply Negative (Invert Right Side)
+    right_pvec_twist_multiply_reverse_node = cmds.createNode('multiplyDivide', name='right_pVecTwist_multiply')
+    cmds.setAttr(right_pvec_twist_multiply_reverse_node + '.input2X', -1)
+    cmds.setAttr(right_pvec_twist_multiply_reverse_node + '.input2Y', -1)
+    cmds.setAttr(right_pvec_twist_multiply_reverse_node + '.input2Z', -1)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.pVecTwist', right_pvec_twist_multiply_reverse_node + '.input1X', f=True)
+    cmds.connectAttr(right_pvec_twist_multiply_reverse_node + '.outputX', right_elbow_ik_twist_override_grp + '.rx', f=True)
 
     # Follow Wrist Offset
     right_elbow_ik_wrist_offset_parent_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_wristOverrideData') + grp_suffix.capitalize(), empty=True, world=True)
     right_elbow_ik_wrist_offset_data_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_wristOverrideData'), empty=True, world=True)
     cmds.parent(right_elbow_ik_wrist_offset_data_grp, right_elbow_ik_wrist_offset_parent_grp)
     cmds.delete(cmds.parentConstraint(right_wrist_ik_ctrl, right_elbow_ik_wrist_offset_parent_grp))
-    cmds.parentConstraint(right_wrist_ik_ctrl, right_elbow_ik_wrist_offset_data_grp)
+    cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_elbow_ik_wrist_offset_data_grp)
     cmds.parent(right_elbow_ik_wrist_offset_parent_grp, main_ctrl)
     
     right_elbow_ik_wrist_offset_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_wristOffsetDriver'), empty=True, world=True)
@@ -8139,37 +8470,9 @@ def create_controls():
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_elbow_scale_blend + '.blender', f=True)
     cmds.connectAttr(right_elbow_scale_blend + '.output', gt_ab_joints.get('right_elbow_jnt') + '.scale', f=True)
     
-    
-    # Right Hand Ctrl Visibility Type
+    # Right Arm Separator
     cmds.addAttr(right_arm_switch, ln="armControls", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_arm_switch + '.armControls', lock=True)
-    cmds.addAttr(right_arm_switch, ln="visibilityType", at='enum', en="Box:Semi-Circle:Pin:", keyable=True)
-
-    right_v_type_0_condition_node = cmds.createNode('condition', name='right_arm_visibilityTypeBox_condition')
-    right_v_type_1_condition_node = cmds.createNode('condition', name='right_arm_visibilityTypSemiCircle_condition')
-    right_v_type_2_condition_node = cmds.createNode('condition', name='right_arm_visibilityTypePin_condition')
-    cmds.connectAttr(right_arm_switch + '.visibilityType', right_v_type_0_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(right_arm_switch + '.visibilityType', right_v_type_1_condition_node + '.firstTerm', f=True)
-    cmds.connectAttr(right_arm_switch + '.visibilityType', right_v_type_2_condition_node + '.firstTerm', f=True)
-    cmds.setAttr(right_v_type_1_condition_node + '.secondTerm', 1)
-    cmds.setAttr(right_v_type_2_condition_node + '.secondTerm', 2)
-    
-    for condition_node in [right_v_type_0_condition_node, right_v_type_1_condition_node, right_v_type_2_condition_node]:
-        cmds.setAttr(condition_node + '.colorIfTrueR', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseR', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueG', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseG', 0)
-        cmds.setAttr(condition_node + '.colorIfTrueB', 1)
-        cmds.setAttr(condition_node + '.colorIfFalseB', 0)
-    
-    for shape in cmds.listRelatives(right_wrist_ik_ctrl, s=True, f=True) or []:
-        if 'box' in shape:
-            cmds.connectAttr(right_v_type_0_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'semiCircle' in shape:
-            cmds.connectAttr(right_v_type_1_condition_node + '.outColorR', shape + '.v', f=True)
-        elif 'pin' in shape:
-            cmds.connectAttr(right_v_type_2_condition_node + '.outColorR', shape + '.v', f=True)
-
     
     # Right Fingers Limits (Connections)
     cmds.connectAttr(right_fingers_ctrl + '.maximumRotationZ', right_fingers_ctrl + '.maxRotZLimit', f=True)
@@ -8302,11 +8605,13 @@ def create_controls():
                 spine01_ctrl, spine02_ctrl, spine03_ctrl, spine04_ctrl, neck_base_ctrl, neck_mid_ctrl, hip_ctrl, jaw_ctrl, head_ctrl]:
         
         if not obj.startswith('spine02') and not obj.startswith('spine04') and not obj.startswith('neckBase'):
-            cmds.addAttr(obj, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
-            cmds.setAttr(obj + '.' + custom_attr_separator, lock=True)
+            if not cmds.attributeQuery(custom_attr_separator, node=obj, exists=True):
+                cmds.addAttr(obj, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+                cmds.setAttr(obj + '.' + custom_attr_separator, lock=True)
             # Expose Custom Rotate Order
-            cmds.addAttr(obj, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
-            cmds.connectAttr(obj + '.rotationOrder', obj + '.rotateOrder', f=True)
+            if not cmds.attributeQuery(custom_attr_separator, node=obj, exists=True):
+                cmds.addAttr(obj, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+                cmds.connectAttr(obj + '.rotationOrder', obj + '.rotateOrder', f=True)
         
             
         cmds.addAttr(obj, ln='lockTranslate', at='bool', k=True)
@@ -8537,7 +8842,7 @@ def create_controls():
     # Joint Inflation Basic Setup
     jnt_scale_ctrl_scale = general_scale_offset*0.05
     for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint, CreateOffset?
-    
+
         blend_node = cmds.createNode('blendColors', name= ctrl_grps[0].replace(ctrl_suffix, '') + 'inflation_blend')
    
         cmds.setAttr(blend_node + '.color2R', 1)
@@ -8554,7 +8859,8 @@ def create_controls():
         lock_hide_default_attr(jnt_scale_ctrl, scale=False, visibility=False)
         cmds.setAttr(jnt_scale_ctrl + '.v', keyable=False) 
         
-        cmds.addAttr(ctrl_grps[0], ln="showScaleCtrl", at="bool", keyable=True)
+        if not cmds.attributeQuery('showScaleCtrl', node=ctrl_grps[0], exists=True):
+            cmds.addAttr(ctrl_grps[0], ln='showScaleCtrl', at='bool', keyable=True)
         cmds.connectAttr(ctrl_grps[0] + '.showScaleCtrl', jnt_scale_ctrl + '.visibility')
         cmds.setAttr(ctrl_grps[0] + '.showScaleCtrl', 0)
         
@@ -8707,13 +9013,108 @@ def create_controls():
     cmds.pointConstraint(left_clavicle_pos_loc, gt_ab_joints.get('left_clavicle_jnt'))
     cmds.pointConstraint(right_clavicle_pos_loc, gt_ab_joints.get('right_clavicle_jnt'))
     
-    cmds.connectAttr(left_clavicle_ctrl + '.rotate', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
-    cmds.connectAttr(right_clavicle_ctrl + '.rotate', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
+    # Left Auto Clavicle
+    left_clavicle_auto_jnt = cmds.duplicate(gt_ab_joints.get('left_clavicle_jnt'), name=gt_ab_joints.get('left_clavicle_jnt').replace(jnt_suffix, 'autoJnt'), parentOnly=True)[0]
+    left_shoulder_auto_jnt = cmds.duplicate(gt_ab_joints.get('left_shoulder_jnt'), name=gt_ab_joints.get('left_shoulder_jnt').replace(jnt_suffix, 'autoEndJnt'), parentOnly=True)[0]
+    cmds.parent(left_clavicle_auto_jnt, world=True)
+    cmds.parent(left_shoulder_auto_jnt, left_clavicle_auto_jnt)
     
-    cmds.parent(left_clavicle_pos_loc_grp, general_automation_grp) # Group created above with the other top parent groups
-    cmds.parent(right_clavicle_pos_loc_grp, general_automation_grp)
+    left_auto_clavicle_sc_ik_handle = cmds.ikHandle( n='left_auto_clavicle_SC_ikHandle', sj=left_clavicle_auto_jnt, ee=left_shoulder_auto_jnt, sol='ikSCsolver')
+    left_auto_clavicle_sc_ik_handle_grp = cmds.group(name=left_auto_clavicle_sc_ik_handle[0] + grp_suffix.capitalize(), empty=True, world=True)
+    left_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=left_auto_clavicle_sc_ik_handle[0] + 'Offset', empty=True, world=True)
+    cmds.parent(left_auto_clavicle_sc_ik_handle_offset_grp, left_auto_clavicle_sc_ik_handle_grp)
+    cmds.delete(cmds.parentConstraint(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_grp))
+    cmds.parent(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_offset_grp)
     
-    # Clavicle Breathig Mechanics
+    cmds.addAttr(left_wrist_ik_ctrl , ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(left_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    
+    offset_influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleInfluence_" + multiply_suffix)
+    
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2X', force=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Y', force=True)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Z', force=True)
+    
+    # Account for Offset Control
+    left_auto_clavicle_rot = cmds.group(name='left_auto_clavicle_rot', empty=True, world=True)
+    left_auto_clavicle_rot_grp = cmds.group(name='left_auto_clavicle_rot' + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.parent(left_auto_clavicle_rot, left_auto_clavicle_rot_grp)
+    cmds.delete(cmds.parentConstraint(left_wrist_ik_ctrl, left_auto_clavicle_rot_grp))
+    cmds.parentConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_rot)
+    cmds.parent(left_auto_clavicle_rot_grp, left_wrist_ik_ctrl_grp)
+
+    cmds.connectAttr(left_auto_clavicle_rot + '.translate', offset_influnce_multiply_node + '.input1', force=True)
+    cmds.connectAttr(offset_influnce_multiply_node + '.output', left_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+    
+    change_viewport_color(left_clavicle_auto_jnt, automation_jnt_color)
+    change_viewport_color(left_shoulder_auto_jnt, automation_jnt_color)
+    cmds.setAttr(left_clavicle_auto_jnt + ".radius", 1)
+    cmds.setAttr(left_shoulder_auto_jnt + ".radius", .5)
+    
+    left_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
+    
+    cmds.connectAttr(left_clavicle_ctrl + '.rotate', left_clavicle_offset_plus_node + '.input3D[0]')
+    cmds.connectAttr(left_clavicle_auto_jnt + '.rotate', left_clavicle_offset_plus_node + '.input3D[1]')
+    cmds.connectAttr(left_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
+    
+    # Right Auto Clavicle
+    right_clavicle_auto_jnt = cmds.duplicate(gt_ab_joints.get('right_clavicle_jnt'), name=gt_ab_joints.get('right_clavicle_jnt').replace(jnt_suffix, 'autoJnt'), parentOnly=True)[0]
+    right_shoulder_auto_jnt = cmds.duplicate(gt_ab_joints.get('right_shoulder_jnt'), name=gt_ab_joints.get('right_shoulder_jnt').replace(jnt_suffix, 'autoEndJnt'), parentOnly=True)[0]
+    cmds.parent(right_clavicle_auto_jnt, world=True)
+    cmds.parent(right_shoulder_auto_jnt, right_clavicle_auto_jnt)
+    
+    right_auto_clavicle_sc_ik_handle = cmds.ikHandle( n='right_auto_clavicle_SC_ikHandle', sj=right_clavicle_auto_jnt, ee=right_shoulder_auto_jnt, sol='ikSCsolver')
+    right_auto_clavicle_sc_ik_handle_grp = cmds.group(name=right_auto_clavicle_sc_ik_handle[0] + grp_suffix.capitalize(), empty=True, world=True)
+    right_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=right_auto_clavicle_sc_ik_handle[0] + 'Offset', empty=True, world=True)
+    cmds.parent(right_auto_clavicle_sc_ik_handle_offset_grp, right_auto_clavicle_sc_ik_handle_grp)
+    cmds.delete(cmds.parentConstraint(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_grp))
+    cmds.parent(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_offset_grp)
+    
+    cmds.addAttr(right_wrist_ik_ctrl , ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(right_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    
+    offset_influnce_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleInfluence_" + multiply_suffix)
+    
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2X', force=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Y', force=True)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', offset_influnce_multiply_node + '.input2Z', force=True)
+    
+    # Account for Offset Control
+    right_auto_clavicle_rot = cmds.group(name='right_auto_clavicle_rot', empty=True, world=True)
+    right_auto_clavicle_rot_grp = cmds.group(name='right_auto_clavicle_rot' + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.parent(right_auto_clavicle_rot, right_auto_clavicle_rot_grp)
+    cmds.delete(cmds.parentConstraint(right_wrist_ik_ctrl, right_auto_clavicle_rot_grp))
+    cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_rot)
+    cmds.parent(right_auto_clavicle_rot_grp, right_wrist_ik_ctrl_grp)
+    
+    cmds.connectAttr(right_auto_clavicle_rot + '.translate', offset_influnce_multiply_node + '.input1', force=True)
+    cmds.connectAttr(offset_influnce_multiply_node + '.output', right_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+    
+    change_viewport_color(right_clavicle_auto_jnt, automation_jnt_color)
+    change_viewport_color(right_shoulder_auto_jnt, automation_jnt_color)
+    cmds.setAttr(right_clavicle_auto_jnt + ".radius", 1)
+    cmds.setAttr(right_shoulder_auto_jnt + ".radius", .5)
+    
+    right_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
+    
+    cmds.connectAttr(right_clavicle_ctrl + '.rotate', right_clavicle_offset_plus_node + '.input3D[0]')
+    cmds.connectAttr(right_clavicle_auto_jnt + '.rotate', right_clavicle_offset_plus_node + '.input3D[1]')
+    cmds.connectAttr(right_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
+    
+    # Organize Auto Clavicle System
+    cmds.setAttr(left_clavicle_auto_jnt + ".v", 0)
+    cmds.setAttr(right_clavicle_auto_jnt + ".v", 0)
+    cmds.parent(left_clavicle_auto_jnt, skeleton_grp)
+    cmds.parent(right_clavicle_auto_jnt, skeleton_grp)
+    
+    auto_clavicle_grp = cmds.group(name='autoClavicle_grp', empty=True, world=True)
+    cmds.parent(left_auto_clavicle_sc_ik_handle_grp, auto_clavicle_grp)
+    cmds.parent(right_auto_clavicle_sc_ik_handle_grp, auto_clavicle_grp)
+    cmds.parent(left_clavicle_pos_loc_grp, auto_clavicle_grp) 
+    cmds.parent(right_clavicle_pos_loc_grp, auto_clavicle_grp)
+    cmds.parent(auto_clavicle_grp, general_automation_grp) # Group created above with the other top parent groups
+         
+    # Clavicle Breathing Mechanics
     for ctrl_pair in [(left_clavicle_ctrl, left_clavicle_pos_loc), (right_clavicle_ctrl, right_clavicle_pos_loc)]:
         ctrl_name = ctrl_pair[0].replace('_' + ctrl_suffix, '')
         if 'left_' in ctrl_name:
@@ -8724,7 +9125,7 @@ def create_controls():
             attr_nice_name = 'Max Trans R ' + ctrl_name.replace('right_','').capitalize()
         
         breathing_range_node = cmds.createNode('setRange', name=ctrl_name + '_breathing_range')
-        
+
         breathing_sine_min = -1
         breathing_sine_max = 1
         breathing_new_min = 0
@@ -8751,6 +9152,7 @@ def create_controls():
       
         cmds.setAttr(main_ctrl + '.' + limit_translate_prefix + attr_name, 1)
 
+
     # Eye Visibility Attr
     cmds.addAttr(head_ctrl, ln='eyeCtrlVisibility', at='bool', keyable=True)
     cmds.setAttr(head_ctrl + '.eyeCtrlVisibility', 1)
@@ -8758,7 +9160,7 @@ def create_controls():
 
     # Fix Fingers/Hand Stretch
     # Left Side
-    left_hand_constraint = cmds.parentConstraint([left_wrist_ik_ctrl, left_wrist_ctrl, left_wrist_ik_jnt, left_wrist_fk_jnt], left_hand_grp, mo=True)
+    left_hand_constraint = cmds.parentConstraint([left_wrist_offset_ik_ctrl, left_wrist_ctrl, left_wrist_ik_jnt, left_wrist_fk_jnt], left_hand_grp, mo=True)
 
     left_switch_hand_blend_a = cmds.createNode('blendColors', name='left_hand_stretchy_blend')
     left_switch_hand_blend_b = cmds.createNode('blendColors', name='left_hand_nonStretchy_blend')
@@ -8784,7 +9186,7 @@ def create_controls():
     cmds.connectAttr(left_switch_hand_blend_b + '.outputR', left_hand_constraint[0] + '.w3', f=True)
     
     # Right Side
-    right_hand_constraint = cmds.parentConstraint([right_wrist_ik_ctrl, right_wrist_ctrl, right_wrist_ik_jnt, right_wrist_fk_jnt], right_hand_grp, mo=True)
+    right_hand_constraint = cmds.parentConstraint([right_wrist_offset_ik_ctrl, right_wrist_ctrl, right_wrist_ik_jnt, right_wrist_fk_jnt], right_hand_grp, mo=True)
 
     right_switch_hand_blend_a = cmds.createNode('blendColors', name='right_hand_stretchy_blend')
     right_switch_hand_blend_b = cmds.createNode('blendColors', name='right_hand_nonStretchy_blend')
@@ -8813,13 +9215,13 @@ def create_controls():
     cmds.parent(left_wrist_ik_dir_jnt, left_wrist_ik_jnt)
     cmds.move(left_wrist_scale_offset, left_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True)
     left_hand_sc_ik_handle = cmds.ikHandle( n='left_hand_SC_ikHandle', sj=left_wrist_ik_jnt, ee=left_wrist_ik_dir_jnt[0], sol='ikSCsolver')
-    cmds.parent(left_hand_sc_ik_handle[0], left_wrist_ik_ctrl)
+    cmds.parent(left_hand_sc_ik_handle[0], left_wrist_offset_ik_ctrl)
     cmds.setAttr(left_hand_sc_ik_handle[0] + '.v', 0)
     
     cmds.parent(right_wrist_ik_dir_jnt, right_wrist_ik_jnt)
     cmds.move(right_wrist_scale_offset*-1, right_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True)
     right_hand_sc_ik_handle = cmds.ikHandle( n='right_hand_SC_ikHandle', sj=right_wrist_ik_jnt, ee=right_wrist_ik_dir_jnt[0], sol='ikSCsolver')
-    cmds.parent(right_hand_sc_ik_handle[0], right_wrist_ik_ctrl)
+    cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl)
     cmds.setAttr(right_hand_sc_ik_handle[0] + '.v', 0)
     
 
@@ -9124,6 +9526,7 @@ def create_controls():
     cmds.setAttr(gt_ab_joints.get('right_pinky02_jnt') + '.type', 22) # Pinky Finger
     cmds.setAttr(gt_ab_joints.get('right_pinky03_jnt') + '.type', 22) # Pinky Finger
     
+    
     # Creates game skeleton (No Segment Scale Compensate)
     if gt_ab_settings.get('using_no_ssc_skeleton'):
         new_skeleton_suffix = 'game'
@@ -9143,7 +9546,86 @@ def create_controls():
     cmds.select(d=True)
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Control Rig</span><span style=\"color:#FFFFFF;\"> has been generated. Enjoy!</span>', pos='botLeft', fade=True, alpha=.9)
+
+
+    ################# Extra Debugging Commands #################
+    if debugging and debugging_post_code:
         
+        
+        make_visible_obj = [hip_switch_jnt,  # Makes Hip IK/FK joints visibile
+                            left_clavicle_switch_jnt, 
+                            right_clavicle_switch_jnt]
+        for obj in make_visible_obj:
+            cmds.setAttr(obj + '.v', 1) 
+        
+        cmds.setAttr(left_clavicle_switch_jnt + '.v', 1) 
+        cmds.setAttr(right_clavicle_switch_jnt + '.v', 1)
+        
+        cmds.setAttr(left_wrist_ik_ctrl + '.showOffsetCtrl', 1) # Show offset Controls
+        cmds.setAttr(right_wrist_ik_ctrl + '.showOffsetCtrl', 1)
+
+        
+        
+        # Annotate Debugging Elements:
+        annotate_objs = [right_elbow_ik_ctrl, 
+                         left_elbow_ik_ctrl, 
+                         gt_ab_joints.get('right_elbow_jnt'),
+                         gt_ab_joints.get('left_elbow_jnt'),
+                        ]
+                        
+        for obj in annotate_objs:
+            obj_pos = cmds.xform(obj, q=True, ws=True, t=True)
+            ws_x_pos_text = 'WS-X: {:.2f}'.format(round(obj_pos[0], 2))
+            ws_y_pos_text = 'WS-Y: {:.2f}'.format(round(obj_pos[1], 2))
+            ws_z_pos_text = 'WS-Z: {:.2f}'.format(round(obj_pos[2], 2))
+            
+            # Original WS_POS
+            ann_holder = cmds.spaceLocator(name=obj + '_ann_loc')
+            cmds.xform(ann_holder[0], ws=True, t=obj_pos)
+            annotate = cmds.annotate(ann_holder, tx=obj, p=(obj_pos[0], obj_pos[1] + 5, obj_pos[2]))
+            annotate_x = cmds.annotate(ann_holder, tx=ws_x_pos_text, p=(obj_pos[0], obj_pos[1] + 4, obj_pos[2]))
+            annotate_y = cmds.annotate(ann_holder, tx=ws_y_pos_text, p=(obj_pos[0], obj_pos[1] + 3, obj_pos[2]))
+            annotate_z = cmds.annotate(ann_holder, tx=ws_z_pos_text, p=(obj_pos[0], obj_pos[1] + 2, obj_pos[2]))
+            cmds.setAttr(annotate + '.displayArrow', 0)
+            cmds.setAttr(annotate_x + '.displayArrow', 0)
+            cmds.setAttr(annotate_y + '.displayArrow', 0)
+            change_viewport_color(annotate, (1,0,1))
+            change_viewport_color(annotate_x, (1,0,0))
+            change_viewport_color(annotate_y, (0,1,0))
+            change_viewport_color(annotate_z, (0,0,1))
+            annotation_transforms = []
+            annotation_transforms.append(cmds.listRelatives(annotate, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_x, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_y, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_z, parent=True))
+            cmds.parent(ann_holder, obj)
+            cmds.parent(annotate, ann_holder, s=True)
+            cmds.parent(annotate_x, ann_holder, s=True)
+            cmds.parent(annotate_y, ann_holder, s=True)
+            cmds.parent(annotate_z, ann_holder, s=True)
+            for empty_trans in annotation_transforms:
+                cmds.delete(empty_trans)
+            
+            
+                   # cmds.move(1, annotate, moveY=True)
+        # 'end_ik_ctrl' : 'left_wrist_ik_offsetCtrl', # IK Elements
+        #                    'pvec_ik_ctrl' : 'left_elbow_ik_ctrl',
+        #                    'base_ik_jnt' :  'left_shoulder_ik_jnt',
+        #                    'mid_ik_jnt' : 'left_elbow_ik_jnt',
+        #                    'end_ik_jnt' : 'left_wrist_ik_jnt',
+        #                    'base_fk_ctrl' : 'left_shoulder_ctrl', # FK Elements
+        #                    'mid_fk_ctrl' : 'left_elbow_ctrl',
+        #                    'end_fk_ctrl' : 'left_wrist_ctrl' ,
+        #                    'base_fk_jnt' :  'left_shoulder_fk_jnt',
+        #                    'mid_fk_jnt' : 'left_elbow_fk_jnt',
+        #                    'end_fk_jnt' : 'left_wrist_fk_jnt',
+        #                    'mid_ik_reference' : 'left_elbowSwitch_loc',
+            
+    ################# Extra Debugging Commands #################
+    
+    # End of Create Base Rig Controls
+            
+
 
 def select_skinning_joints():
     ''' Selects joints that should be used during the skinning process '''
@@ -9185,7 +9667,7 @@ def reset_proxy(suppress_warning=False):
     attributes_set_one = ['sx', 'sy', 'sz', 'v']
     proxy_elements = []
     for proxy in gt_ab_elements_default:
-        if '_crv' in proxy:
+        if '_crv' in proxy or proxy.endswith('_pivot'):
             proxy_elements.append(gt_ab_elements_default.get(proxy))
     for obj in proxy_elements:
         if cmds.objExists(obj):
@@ -9320,7 +9802,7 @@ def export_proxy_pose():
             cmds.warning('"' + obj + '" is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.')
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -9335,6 +9817,14 @@ def export_proxy_pose():
                 scale = cmds.getAttr(gt_ab_elements_default.get(obj) + '.scale')[0]
                 to_save = [gt_ab_elements_default.get(obj), translate, rotate, scale]
                 export_dict[obj] = to_save
+    
+            if obj.endswith('_pivot'):
+                if cmds.objExists(gt_ab_elements_default.get(obj)):
+                    translate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.translate')[0]
+                    rotate = cmds.getAttr(gt_ab_elements_default.get(obj) + '.rotate')[0]
+                    scale = cmds.getAttr(gt_ab_elements_default.get(obj) + '.scale')[0]
+                    to_save = [gt_ab_elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
     
         try: 
             with open(pose_file, 'w') as outfile:
@@ -9404,7 +9894,7 @@ def import_proxy_pose(debugging=False, debugging_path=''):
     import_method = 'object-space'
     
     if not debugging:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for "' + script_name + '"') or []
     else:
         file_name = [debugging_path]
     
@@ -9454,7 +9944,7 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                 delete_proxy(True)
                                 validate_operation('create_proxy', debugging)
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
-                    
+                  
                     if is_valid_file and is_valid_scene:
                         if import_method == 'world-space':
                             reset_proxy(suppress_warning=True)
@@ -9468,12 +9958,11 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                         sorted_pairs.append((curent_object, number_of_parents))
                
                                     sorted_pairs.sort(key=lambda x:x[1], reverse=True)
-                     
+                            
                             # Scale (Children First)
                             for obj in sorted_pairs:
                                 curent_object = obj[0]
                                 if cmds.objExists(curent_object[0]):
-                                    #set_unlocked_ws_attr(curent_object[0], 'scale', curent_object[3])
                                     set_unlocked_os_attr(curent_object[0], 'sx', curent_object[3][0])
                                     set_unlocked_os_attr(curent_object[0], 'sy', curent_object[3][1])
                                     set_unlocked_os_attr(curent_object[0], 'sz', curent_object[3][2])
@@ -9492,8 +9981,8 @@ def import_proxy_pose(debugging=False, debugging_path=''):
                                     if cmds.objExists(curent_object[0]):
                                         set_unlocked_ws_attr(curent_object[0], 'translate', curent_object[1])
                                         set_unlocked_ws_attr(curent_object[0], 'rotate', curent_object[2])
-                            
-                                     
+                                      
+                                           
                         else: # Object-Space
                             for proxy in data:
                                 if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
@@ -9776,7 +10265,7 @@ def add_rig_interface_button():
     Create a button for a custom rig interface to the current shelf. It contains seamless FK/IK swtichers and pose management tools.
     
     '''
-    create_shelf_button("\"\"\"\n Custom Rig Interface for GT Auto Biped Rigger.\n github.com/TrevisanGMW/gt-tools - 2021-01-05\n \n 1.0 - 2021-01-05\n Initial Release\n\n 1.1 - 2021-05-11\n Made script compatible with Python 3.0 (Maya 2022)\n\n 1.2 - 2021-10-28\n Added mirror IK functions\n Added reset pose function\n Changed it to accept namespaces with or without \":\"\n  \n 1.3 - 2021-10-29\n Changed the name from \"Seamless IK/FK Switch\" to \"Custom Rig Interface\"\n Added functions to mirror and reset FK controls\n Added center controls to reset pose function\n Added custom rig name (if not empty, it will display a message describing unique rig target)\n Added system to get and set persistent settings to store the namespace input\n Added warning message reminding user to check their namespace in case elements are not found\n \n 1.3.1 - 2021-11-01\n Changed versioning system to semantic to account for patches\n Fixed some typos in the \"locked\" message for when trying to mirror\n Added scale mirroring functions (fixes finger abduction pose)\n Included curl controls in the mirroring list\n \n 1.3.2 - 2021-11-03\n Added IK fingers to mirroring functions\n \n 1.3.3 - 2021-11-04\n Added animation import/export functions. (\".anim\" with \".json\" data)\n Changed the pose file extension to \".pose\" instead of \".json\" to avoid confusion\n Added animation mirroring functions\n \n 1.3.4 - 2021-11-08\n Add settings menu\n Made UI aware of FK/IK state\n Recreated part of the UI to use Tabs\n Improved switch functions with a mechanism to auto create keyframes (sparse or bake)\n Added inView feedback explaining switch information\n Fixed issue where the arm pole vector wouldn't mirror properly\n Added option to reset persistent settings\n \n 1.3.5 - 2021-11-10\n Added animation and pose reset\n Updates animation functions to account for tangents and other key properties\n \n 1.3.6 - 2021-11-12\n Allowed for multiple instances (in case animating multiple characters)\n Changed icons and assigned an alternative one for extra instances\n Added a missing import for \"sys\"\n\n \n TODO:\n    Created flip pose function\n    Convert GUI to QT\n    Add Flip options\n    Overwrite keys for animation functions\n    Add Namespace picker (button to the right of the namespace textfield)\n    Option to save pose thumbnail when exporting it \n    Add option to open multiple instances\n    \n\"\"\"\ntry:\n    from shiboken2 import wrapInstance\nexcept ImportError:\n    from shiboken import wrapInstance\n    \ntry:\n    from PySide2.QtGui import QIcon\n    from PySide2.QtWidgets import QWidget\nexcept ImportError:\n    from PySide.QtGui import QIcon, QWidget\n\nfrom maya import OpenMayaUI as omui\nimport maya.cmds as cmds\nimport random\nimport json\nimport copy\nimport sys\nimport os\n\n\n# Script Name\nscript_name = 'GT Custom Rig Interface'\nunique_rig = '' # If provided, it will be used in the window title\n\n# Version:\nscript_version = \"1.3.6\"\n\n# Python Version\npython_version = sys.version_info.major\n\n# FK/IK Swticher Elements\nleft_arm_seamless_dict = { 'switch_ctrl' : 'left_arm_switch_ctrl', # Switch Ctrl\n                           'end_ik_ctrl' : 'left_wrist_ik_ctrl', # IK Elements\n                           'pvec_ik_ctrl' : 'left_elbow_ik_ctrl',\n                           'base_ik_jnt' :  'left_shoulder_ik_jnt',\n                           'mid_ik_jnt' : 'left_elbow_ik_jnt',\n                           'end_ik_jnt' : 'left_wrist_ik_jnt',\n                           'base_fk_ctrl' : 'left_shoulder_ctrl', # FK Elements\n                           'mid_fk_ctrl' : 'left_elbow_ctrl',\n                           'end_fk_ctrl' : 'left_wrist_ctrl' ,\n                           'base_fk_jnt' :  'left_shoulder_fk_jnt',\n                           'mid_fk_jnt' : 'left_elbow_fk_jnt',\n                           'end_fk_jnt' : 'left_wrist_fk_jnt',\n                           'mid_ik_reference' : 'left_elbowSwitch_loc',\n                           'end_ik_reference' : ''\n                         }\n\nright_arm_seamless_dict = { 'switch_ctrl' : 'right_arm_switch_ctrl', # Switch Ctrl\n                            'end_ik_ctrl' : 'right_wrist_ik_ctrl', # IK Elements\n                            'pvec_ik_ctrl' : 'right_elbow_ik_ctrl',\n                            'base_ik_jnt' :  'right_shoulder_ik_jnt',\n                            'mid_ik_jnt' : 'right_elbow_ik_jnt',\n                            'end_ik_jnt' : 'right_wrist_ik_jnt',\n                            'base_fk_ctrl' : 'right_shoulder_ctrl', # FK Elements\n                            'mid_fk_ctrl' : 'right_elbow_ctrl',\n                            'end_fk_ctrl' : 'right_wrist_ctrl' ,\n                            'base_fk_jnt' :  'right_shoulder_fk_jnt',\n                            'mid_fk_jnt' : 'right_elbow_fk_jnt',\n                            'end_fk_jnt' : 'right_wrist_fk_jnt',\n                            'mid_ik_reference' : 'right_elbowSwitch_loc',\n                            'end_ik_reference' : ''\n                           }\n                            \nleft_leg_seamless_dict = { 'switch_ctrl' : 'left_leg_switch_ctrl', # Switch Ctrl\n                           'end_ik_ctrl' : 'left_foot_ik_ctrl', # IK Elements\n                           'pvec_ik_ctrl' : 'left_knee_ik_ctrl',\n                           'base_ik_jnt' :  'left_hip_ik_jnt',\n                           'mid_ik_jnt' : 'left_knee_ik_jnt',\n                           'end_ik_jnt' : 'left_ankle_ik_jnt',\n                           'base_fk_ctrl' : 'left_hip_ctrl', # FK Elements\n                           'mid_fk_ctrl' : 'left_knee_ctrl',\n                           'end_fk_ctrl' : 'left_ankle_ctrl' ,\n                           'base_fk_jnt' :  'left_hip_fk_jnt',\n                           'mid_fk_jnt' : 'left_knee_fk_jnt',\n                           'end_fk_jnt' : 'left_ankle_fk_jnt',\n                           'mid_ik_reference' : 'left_kneeSwitch_loc',\n                           'end_ik_reference' : 'left_ankleSwitch_loc'\n                          }\n                           \nright_leg_seamless_dict = { 'switch_ctrl' : 'right_leg_switch_ctrl', # Switch Ctrl\n                            'end_ik_ctrl' : 'right_foot_ik_ctrl', # IK Elements\n                            'pvec_ik_ctrl' : 'right_knee_ik_ctrl',\n                            'base_ik_jnt' :  'right_hip_ik_jnt',\n                            'mid_ik_jnt' : 'right_knee_ik_jnt',\n                            'end_ik_jnt' : 'right_ankle_ik_jnt',\n                            'base_fk_ctrl' : 'right_hip_ctrl', # FK Elements\n                            'mid_fk_ctrl' : 'right_knee_ctrl',\n                            'end_fk_ctrl' : 'right_ankle_ctrl' ,\n                            'base_fk_jnt' :  'right_hip_fk_jnt',\n                            'mid_fk_jnt' : 'right_knee_fk_jnt',\n                            'end_fk_jnt' : 'right_ankle_fk_jnt',\n                            'mid_ik_reference' : 'right_kneeSwitch_loc',\n                            'end_ik_reference' : 'right_ankleSwitch_loc'\n                          }\n                          \n# Mirror Elements\nnamespace_separator = ':'\nleft_prefix = 'left'\nright_prefix = 'right'\nnot_inverted = (False, False, False)\ninvert_x = (True, False, False)\ninvert_y = (False, True, False)\ninvert_z = (False, False, True)\ninvert_yz = (False, True, True)\ninvert_all = (True, True, True)\n\n# Dictionary Pattern:\n# Key: Control name (if not in the center, remove prefix)\n# Value: A list with two tuples. [(Is Translate XYZ inverted?), (Is Rotate XYZ inverted?), Is mirroring scale?]\n# Value Example: '_fingers_ctrl': [not_inverted, not_inverted, True] = Not inverting Translate XYZ. Not inverting Rotate XYZ. Yes, mirroring scale.\ngt_ab_general_ctrls = {# Fingers Automation\n                   '_fingers_ctrl': [not_inverted, not_inverted, True],\n                   '_thumbCurl_ctrl': [not_inverted, not_inverted],\n                   '_indexCurl_ctrl': [not_inverted, not_inverted],\n                   '_middleCurl_ctrl': [not_inverted, not_inverted],\n                   '_ringCurl_ctrl': [not_inverted, not_inverted],\n                   '_pinkyCurl_ctrl': [not_inverted, not_inverted],\n                   \n                   # Fingers FK\n                   '_thumb03_ctrl': [not_inverted, not_inverted],\n                   '_thumb02_ctrl': [not_inverted, not_inverted],\n                   '_thumb01_ctrl': [not_inverted, not_inverted],\n                   '_index01_ctrl': [not_inverted, not_inverted],\n                   '_middle02_ctrl': [not_inverted, not_inverted],\n                   '_middle01_ctrl': [not_inverted, not_inverted],\n                   '_index03_ctrl': [not_inverted, not_inverted],\n                   '_index02_ctrl': [not_inverted, not_inverted],\n                   '_ring03_ctrl': [not_inverted, not_inverted],\n                   '_ring02_ctrl': [not_inverted, not_inverted],\n                   '_ring01_ctrl': [not_inverted, not_inverted],\n                   '_middle03_ctrl': [not_inverted, not_inverted],\n                   '_pinky03_ctrl': [not_inverted, not_inverted],\n                   '_pinky02_ctrl': [not_inverted, not_inverted],\n                   '_pinky01_ctrl': [not_inverted, not_inverted],\n                   \n                   # Finger IK\n                   '_thumb_ik_ctrl': [invert_z, invert_x],\n                   '_index_ik_ctrl': [invert_z, invert_x],\n                   '_middle_ik_ctrl': [invert_z, invert_x],\n                   '_ring_ik_ctrl': [invert_z, invert_x],\n                   '_pinky_ik_ctrl': [invert_z, invert_x],\n                   # Clavicle\n                   '_clavicle_ctrl': [not_inverted, not_inverted],\n                   # Eyes\n                   '_eye_ctrl': [invert_x, not_inverted],\n                 }   \n\ngt_ab_ik_ctrls = { # Arm\n                   '_elbow_ik_ctrl': [invert_x, not_inverted], \n                   '_wrist_ik_ctrl': [invert_all, not_inverted],\n                   # Leg\n                   '_heelRoll_ctrl': [invert_x, not_inverted],\n                   '_ballRoll_ctrl': [invert_x, not_inverted],\n                   '_toeRoll_ctrl': [invert_x, not_inverted],\n                   '_toe_upDown_ctrl': [invert_x, not_inverted],\n                   '_foot_ik_ctrl': [invert_x, invert_yz],\n                   '_knee_ik_ctrl': [invert_x, not_inverted],\n                 }\n                   \ngt_ab_fk_ctrls = {# Arm\n                   '_shoulder_ctrl': [invert_all, not_inverted],\n                   '_elbow_ctrl': [invert_all, not_inverted],\n                   '_wrist_ctrl': [invert_all, not_inverted],\n                  # Leg\n                   '_hip_ctrl': [invert_x, invert_yz],\n                   '_knee_ctrl': [invert_all, not_inverted],\n                   '_ankle_ctrl': [invert_all, not_inverted],\n                   '_ball_ctrl': [invert_all, not_inverted],\n                 }\n                       \ngt_ab_center_ctrls = ['cog_ctrl', \n                      'hip_ctrl', \n                      'spine01_ctrl', \n                      'spine02_ctrl', \n                      'spine03_ctrl', \n                      'spine04_ctrl', \n                      'cog_ribbon_ctrl', \n                      'spine_ribbon_ctrl', \n                      'chest_ribbon_ctrl',\n                      'neckBase_ctrl',\n                      'neckMid_ctrl',\n                      'head_ctrl',\n                      'jaw_ctrl',\n                      'main_eye_ctrl',\n                      'left_eye_ctrl',\n                      'right_eye_ctrl',\n                      ]            \n\ngt_custom_rig_interface_settings = {\n                                    'namespace' : '',\n                                    'auto_key_switch' : True,\n                                    'auto_key_method_bake' : True,\n                                    'auto_key_start_frame' : 1,\n                                    'auto_key_end_frame' : 10,\n                                    'pose_export_thumbnail' : False,\n                                    'allow_multiple_instances' : False,\n                                   }\n                           \ngt_custom_rig_interface_settings_default = copy.deepcopy(gt_custom_rig_interface_settings)\n\n\n# Manage Persistent Settings\ndef get_persistent_settings_rig_interface():\n    ''' \n    Checks if persistant settings for GT Auto Biped Rig Interface exists and loads it if this is the case.\n    It assumes that persistent settings were stored using the cmds.optionVar function.\n    '''\n    # Check if there is anything stored\n    stored_setup_exists = cmds.optionVar(exists=(\"gt_auto_biped_rig_interface_setup\"))\n  \n    if stored_setup_exists:\n        stored_settings = {}\n        try:\n            stored_settings = eval(str(cmds.optionVar(q=(\"gt_auto_biped_rig_interface_setup\"))))\n            for stored_item in stored_settings:\n                for item in gt_custom_rig_interface_settings:\n                    if stored_item == item:\n                        gt_custom_rig_interface_settings[item] = stored_settings.get(stored_item)\n        except:\n            print('Couldn\\'t load persistent settings, try resetting it in the help menu.')\n\n\ndef set_persistent_settings_rig_interface():\n    ''' \n    Stores persistant settings for GT Auto Biped Rig Interface.\n    It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)\n    It assumes that persistent settings were stored using the cmds.optionVar function.\n    '''\n    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings)))\n\n\ndef reset_persistent_settings_rig_interface():\n    ''' Resets persistant settings for GT Auto Biped Rig Interface '''\n    cmds.optionVar( remove='gt_auto_biped_rig_interface_setup' )\n    gt_custom_rig_interface_settings =  gt_custom_rig_interface_settings_default\n    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings_default)))\n    cmds.warning('Persistent settings for ' + script_name + ' were cleared.')\n    try:\n        cmds.evalDeferred('build_gui_custom_rig_interface()')\n    except:\n        try:\n            build_gui_custom_rig_interface()\n        except:\n            try:\n                cmds.evalDeferred('gt_biped_rig_interface.build_gui_custom_rig_interface()')\n            except:\n                pass\n\n             \n# Main Window ============================================================================\ndef build_gui_custom_rig_interface():\n    \n    # Retrieve Persistent Settings\n    get_persistent_settings_rig_interface()\n    \n    rig_interface_window_name = 'build_gui_custom_rig_interface'\n    is_secondary_instance = False\n    print(gt_custom_rig_interface_settings)\n    if cmds.window(rig_interface_window_name, exists=True) and not gt_custom_rig_interface_settings.get('allow_multiple_instances'):\n        cmds.deleteUI(rig_interface_window_name)  \n    # In case it's a secondary instance \n    if gt_custom_rig_interface_settings.get('allow_multiple_instances'):\n        if cmds.window(rig_interface_window_name, exists=True):\n            rig_interface_window_name = rig_interface_window_name + '_' + str(random.random()).replace('.','')\n            is_secondary_instance = True\n            \n            gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)\n   \n            # print(gt_custom_rig_interface_settings_instanced)\n            \n            # gt_custom_rig_interface_settings = {}\n            # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_instanced\n\n    # Main GUI Start Here =================================================================================\n    def update_fk_ik_buttons():\n        '''\n        Updates the background color of the FK/IK buttons according to the value of the current influenceSwitch attribute.\n        This attempts to make the UI \"aware\" of the current state of the controls.\n        '''\n        active_color = (.6,.6,.6)\n        inactive_color = (.36,.36,.36)\n        ctrl_btn_lists = [\n                          [right_arm_seamless_dict, right_arm_fk_btn, right_arm_ik_btn],\n                          [left_arm_seamless_dict, left_arm_fk_btn, left_arm_ik_btn],\n                          [right_leg_seamless_dict, right_leg_fk_btn, right_leg_ik_btn],\n                          [left_leg_seamless_dict, left_leg_fk_btn, left_leg_ik_btn]\n                         ]\n        for ctrl_btns in ctrl_btn_lists:\n            if cmds.objExists(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl')):\n                try:\n                    current_system = cmds.getAttr(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl') + '.influenceSwitch')\n                    if current_system < 0.5:\n                        cmds.button(ctrl_btns[1], e=True, bgc=active_color) # FK Button\n                        cmds.button(ctrl_btns[2], e=True, bgc=inactive_color) # IK Button\n                    else:\n                        cmds.button(ctrl_btns[2], e=True, bgc=active_color) # FK Button\n                        cmds.button(ctrl_btns[1], e=True, bgc=inactive_color) # IK Button\n                except:\n                    pass\n            else:\n                cmds.button(ctrl_btns[2], e=True, bgc=inactive_color) # FK Button\n                cmds.button(ctrl_btns[1], e=True, bgc=inactive_color) # IK Button\n    \n\n    def update_stored_settings(is_instance=False):\n        '''\n        Extracts the namespace used and stores it as a persistent variable\n        This function also calls \"update_fk_ik_buttons()\" so it updates the UI\n        \n                    Parameters:\n                        is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not\n                                                      This is used for secondary instances (multiple windows)\n                                              \n        '''\n        gt_custom_rig_interface_settings['namespace'] = cmds.textField(namespace_txt, q=True, text=True)\n        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)\n        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)\n        gt_custom_rig_interface_settings['auto_key_method_bake'] = cmds.radioButton(auto_key_method_rb1, query=True, select=True)\n        gt_custom_rig_interface_settings['auto_key_start_frame'] = cmds.intField(auto_key_start_int_field, q=True, value=0)\n        gt_custom_rig_interface_settings['auto_key_end_frame'] = cmds.intField(auto_key_end_int_field, q=True, value=0)\n\n\n        if gt_custom_rig_interface_settings.get('auto_key_switch'):\n            cmds.radioButton(auto_key_method_rb1, e=True, en=True)\n            cmds.radioButton(auto_key_method_rb2, e=True, en=True)\n            cmds.rowColumnLayout(switch_range_column, e=True, en=True)\n        else:\n            cmds.radioButton(auto_key_method_rb1, e=True, en=False)\n            cmds.radioButton(auto_key_method_rb2, e=True, en=False)\n            cmds.rowColumnLayout(switch_range_column, e=True, en=False)\n        \n        if not is_instance: # Doesn't update persistent settings for secondary instances\n            set_persistent_settings_rig_interface()\n        update_fk_ik_buttons()\n\n\n    def update_switch(ik_fk_dict, direction='ik_to_fk', is_auto_switch=False):\n        '''\n        Runs the switch function using the parameters provided in the UI\n        Also updates the UI to keep track of the FK/IK state.\n        \n                Parameters:\n                     ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch\n                     direction (optinal, string): Either \"fk_to_ik\" or \"ik_to_fk\". It determines what is the source and what is the target.\n        '''\n        method = 'bake' if gt_custom_rig_interface_settings.get('auto_key_method_bake') else 'sparse' \n        \n        if is_auto_switch:\n            gt_rig_fk_ik_switch_auto(ik_fk_dict, \n                                             namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,\n                                             keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),\n                                             start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), \n                                             end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), \n                                             method=method\n                                             )\n\n        else:\n            gt_rig_fk_ik_switch(ik_fk_dict, \n                                        direction, \n                                        namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,\n                                        keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),\n                                        start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), \n                                        end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), \n                                        method=method\n                                        )\n\n        update_fk_ik_buttons()\n\n    def invert_stored_setting(key_string):\n        '''\n        Used for boolean values, it inverts the value, so if True it becomes False and vice-versa.\n        It also stores the new values after they are changed so future instances remember it.\n        \n                Parameters:\n                    key_string (string) : Key name, used to determine what bool value to flip\n        '''\n        gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)\n        set_persistent_settings_rig_interface()\n                       \n    def get_auto_key_current_frame(target_integer_field='start', is_instance=False):\n        '''\n        Gets the current frame and auto fills an integer field.\n        \n                Parameters:\n                    target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the start or end integer field.\n                                                              Can only be \"start\" or \"end\". Anything else will be understood as \"end\".\n                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not\n                                                      This is used for secondary instances (multiple windows)\n        \n        '''\n        current_time = cmds.currentTime(q=True)\n        if target_integer_field == 'start':\n            cmds.intField(auto_key_start_int_field, e=True, value=current_time)\n        else:\n            cmds.intField(auto_key_end_int_field, e=True, value=current_time)\n\n        update_stored_settings(is_instance)\n    \n    \n    def mirror_fk_ik_pose(source_side='right'):\n        '''\n        Runs a full pose mirror function.\n        \n                Parameters:\n                     source_side (optinal, string): Either \"right\" or \"left\". It determines what is the source and what is the target of the mirror.\n        '''\n        \n        gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n        \n        \n    def reset_animation_and_pose():\n        '''\n        Deletes Keyframes and Resets pose back to default\n        '''\n        gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n        gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n    \n\n    def build_custom_help_window(input_text, help_title=''):\n        ''' \n        Creates a help window to display the provided text\n\n                Parameters:\n                    input_text (string): Text used as help, this is displayed in a scroll fields.\n                    help_title (optinal, string)\n        '''\n        window_name = help_title.replace(\" \",\"_\").replace(\"-\",\"_\").lower().strip() + \"_help_window\"\n        if cmds.window(window_name, exists=True):\n            cmds.deleteUI(window_name, window=True)\n\n        cmds.window(window_name, title= help_title + \" Help\", mnb=False, mxb=False, s=True)\n        cmds.window(window_name, e=True, s=True, wh=[1,1])\n\n        main_column = cmds.columnLayout(p= window_name)\n       \n        # Title Text\n        cmds.separator(h=12, style='none') # Empty Space\n        cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment\n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column\n        cmds.text(help_title + ' Help', bgc=(.4, .4, .4),  fn='boldLabelFont', align='center')\n        cmds.separator(h=10, style='none', p=main_column) # Empty Space\n\n        # Body ====================       \n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)\n        \n        help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')\n     \n        cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)\n        cmds.scrollField(help_scroll_field, e=True, ip=1, it='') # Bring Back to the Top\n        \n        # Close Button \n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)\n        cmds.separator(h=10, style='none')\n        cmds.button(l='OK', h=30, c=lambda args: close_help_gui())\n        cmds.separator(h=8, style='none')\n        \n        # Show and Lock Window\n        cmds.showWindow(window_name)\n        cmds.window(window_name, e=True, s=False)\n        \n        # Set Window Icon\n        qw = omui.MQtUtil.findWindow(window_name)\n        if python_version == 3:\n            widget = wrapInstance(int(qw), QWidget)\n        else:\n            widget = wrapInstance(long(qw), QWidget)\n        icon = QIcon(':/question.png')\n        widget.setWindowIcon(icon)\n        \n        def close_help_gui():\n            ''' Closes help windows '''\n            if cmds.window(window_name, exists=True):\n                cmds.deleteUI(window_name, window=True)\n        # Custom Help Dialog Ends Here =================================================================================\n        \n    # Build UI.\n    script_title = script_name\n    if unique_rig != '':\n        script_title = 'GT - Rig Interface for ' + unique_rig\n      \n    if is_secondary_instance:\n      script_version_title = '  (Extra Instance)'\n    else:\n      script_version_title = '  (v' + script_version + ')'\n      \n    build_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + script_version_title,\\\n                          titleBar=True, mnb=False, mxb=False, sizeable =True)\n\n    cmds.window(rig_interface_window_name, e=True, s=True, wh=[1,1])\n\n    content_main = cmds.columnLayout(adj = True)\n\n    # Title Text\n    title_bgc_color = (.4, .4, .4)\n    cmds.separator(h=10, style='none') # Empty Space\n    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment\n    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column\n    cmds.text(\" \", bgc=title_bgc_color) # Tiny Empty Green Space\n    cmds.text(script_title, bgc=title_bgc_color,  fn=\"boldLabelFont\", align=\"left\")\n    cmds.button( l =\"Help\", bgc=title_bgc_color, c=lambda x:open_gt_tools_documentation())\n    cmds.separator(h=5, style='none') # Empty Space\n        \n    # Body ====================\n    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)\n    \n    cmds.text('Namespace:')\n    namespace_txt = cmds.textField(text=gt_custom_rig_interface_settings.get('namespace'), pht='Namespace:: (Optional)', cc=lambda x:update_stored_settings(is_secondary_instance))\n    \n    cmds.separator(h=10, style='none') # Empty Space\n    \n    form = cmds.formLayout()\n    tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5)\n    cmds.formLayout(form, edit=True, attachForm=((tabs, 'top', 0), (tabs, 'left', 0), (tabs, 'bottom', 0), (tabs, 'right', 0)) )\n\n    ############# FK/IK Switch Tab #############\n    btn_margin = 5\n    fk_ik_switch_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n\n    fk_ik_btn_width = 59\n    cw_fk_ik_states = [(1, fk_ik_btn_width),(2, fk_ik_btn_width),(3, fk_ik_btn_width),(4, fk_ik_btn_width)]\n    cs_fk_ik_states = [(1,2), (2,2), (3,3), (4,2)]\n    \n    switch_btn_width = 120\n    cw_fk_ik_switches = [(1, switch_btn_width),(2, switch_btn_width)]\n    cs_fk_ik_switches = [(1,2), (2,3)]\n    \n    arms_text = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.separator(h=2, style='none') # Empty Space\n    cmds.separator(h=2, style='none') # Empty Space\n    cmds.text('Right Arm:', p=arms_text) #R\n    cmds.text('Left Arm:', p=arms_text) #L\n    \n    arms_switch_state_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=fk_ik_switch_tab)\n    right_arm_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(right_arm_seamless_dict, 'ik_to_fk'), p=arms_switch_state_column) #R\n    right_arm_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(right_arm_seamless_dict, 'fk_to_ik'), p=arms_switch_state_column) #L\n    left_arm_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(left_arm_seamless_dict, 'ik_to_fk'), p=arms_switch_state_column) #R\n    left_arm_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(left_arm_seamless_dict, 'fk_to_ik'), p=arms_switch_state_column) #L\n    \n    arms_switch_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(right_arm_seamless_dict, is_auto_switch=True), p=arms_switch_column) #R\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(left_arm_seamless_dict, is_auto_switch=True), p=arms_switch_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.text('Right Leg:', p=arms_switch_column) #R\n    cmds.text('Left Leg:', p=arms_switch_column) #L\n\n    legs_switch_state_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=fk_ik_switch_tab)\n    right_leg_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(right_leg_seamless_dict, 'ik_to_fk'), p=legs_switch_state_column) #R\n    right_leg_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(right_leg_seamless_dict, 'fk_to_ik'), p=legs_switch_state_column) #L\n    left_leg_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(left_arm_seamless_dict, 'ik_to_fk'), p=legs_switch_state_column) #R\n    left_leg_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(left_arm_seamless_dict, 'fk_to_ik'), p=legs_switch_state_column) #L\n    \n    legs_switch_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(right_leg_seamless_dict, is_auto_switch=True), p=legs_switch_column) #R\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(left_leg_seamless_dict, is_auto_switch=True), p=legs_switch_column) #L\n    \n    # Auto Key Settings (Switch Settings)\n    switch_settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=[(1, 6)], p=fk_ik_switch_tab)\n    cmds.separator(h=15) # Empty Space\n    switch_auto_key_column = cmds.rowColumnLayout(nc=3, cw=[(1, 80),(2, 130),(3, 60)], cs=[(1, 25)], p=fk_ik_switch_tab)\n    auto_key_switch_chk = cmds.checkBox( label='Auto Key',  value=gt_custom_rig_interface_settings.get('auto_key_switch'), cc=lambda x:update_stored_settings(is_secondary_instance))\n    \n    method_container = cmds.rowColumnLayout( p=switch_auto_key_column, numberOfRows=1)\n    auto_key_method_rc = cmds.radioCollection()\n    auto_key_method_rb1 = cmds.radioButton( p=method_container, label=' Bake  ', sl=gt_custom_rig_interface_settings.get('auto_key_method_bake'), cc=lambda x:update_stored_settings(is_secondary_instance))\n    auto_key_method_rb2 = cmds.radioButton( p=method_container,  label=' Sparse ', sl=(not gt_custom_rig_interface_settings.get('auto_key_method_bake')), cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.separator(h=5, style='none', p=fk_ik_switch_tab) # Empty Space\n    \n    switch_range_column = cmds.rowColumnLayout(nc=6, cw=[(1, 40),(2, 40),(3, 30),(4, 30),(5, 40),(6, 30)], cs=[(1, 10), (4, 10)], p=fk_ik_switch_tab)\n    cmds.text('Start:', p=switch_range_column)\n    auto_key_start_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.button(l =\"Get\", c=lambda x:get_auto_key_current_frame(), p=switch_range_column, h=5) #L\n    cmds.text('End:', p=switch_range_column)\n    auto_key_end_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.button(l =\"Get\", c=lambda x:get_auto_key_current_frame('end'), p=switch_range_column, h=5) #L\n    cmds.separator(h=10, style='none', p=fk_ik_switch_tab) # Empty Space\n    \n\n    ############# Pose Management Tab #############\n    pose_management_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n\n    btn_margin = 2\n    \n    cmds.separator(h=5, style='none') # Empty Space\n    pose_title_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.text('Mirror Pose:', p=pose_title_column)\n    cmds.separator(h=5, style='none', p=pose_title_column) # Empty Space\n    \n    \n    mirror_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.text('Right to Left:', p=mirror_pose_column) #R\n    cmds.text('Left to Right:', p=mirror_pose_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.button(l =\"Mirror ->\", c=lambda x:mirror_fk_ik_pose('right'), p=mirror_pose_column) #R\n    cmds.button(l =\"<- Mirror\", c=lambda x:mirror_fk_ik_pose('left'), p=mirror_pose_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    pose_mirror_ik_fk_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=pose_management_tab)\n    \n    # IK Pose Mirror\n    cmds.button(l =\"IK Only >\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R\n    cmds.button(l =\"FK Only >\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R\n    \n    \n    # FK Pose Mirror\n    cmds.button(l =\"< IK Only\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L\n    cmds.button(l =\"< FK Only\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L\n    \n\n    # Reset Pose\n    pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.separator(h=15, style='none', p=pose_management_column) # Empty Space\n    cmds.text('Reset Pose:', p=pose_management_column) #R\n    cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space\n    cmds.button(l =\"Reset Back to Default Pose\", c=lambda x:gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_management_column)\n\n    # Export Import Pose\n    cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space\n    cmds.separator(h=15, style='none', p=pose_management_column) # Empty Space\n    cmds.text('Import/Export Poses:', p=pose_management_column) \n    \n    import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.button(l =\"Import Current Pose\", c=lambda x:gt_rig_pose_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)\n    cmds.button(l =\"Export Current Pose\", c=lambda x:gt_rig_pose_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) \n\n\n    ############# Animation Management Tab #############\n    \n    anim_management_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n    \n    cmds.separator(h=5, style='none') # Empty Space\n    anim_title_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.text('Mirror Animation:', p=anim_title_column)\n    cmds.separator(h=5, style='none', p=anim_title_column) # Empty Space\n    \n    mirror_anim_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=anim_management_tab)\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.text('Right to Left:', p=mirror_anim_column) #R\n    cmds.text('Left to Right:', p=mirror_anim_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.button(l =\"Mirror ->\", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #R\n    cmds.button(l =\"<- Mirror\", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #L\n    \n    # Reset Animation\n    anim_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.separator(h=15, style='none', p=anim_management_column) # Empty Space\n    cmds.text('Reset Animation:', p=anim_management_column) #R\n    cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space\n    cmds.button(l =\"Reset Animation (Delete Keyframes)\", c=lambda x:gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)\n    cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space\n    cmds.button(l =\"Reset Animation and Pose\", c=lambda x:reset_animation_and_pose(), p=anim_management_column)\n    \n    # Export Import Pose\n    cmds.separator(h=17, style='none', p=anim_management_column) # Empty Space\n    cmds.text('Import/Export Animation:', p=anim_management_column) \n\n    import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.button(l =\"Import Animation\", c=lambda x:gt_rig_anim_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)\n    cmds.button(l =\"Export Animation\", c=lambda x:gt_rig_anim_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) \n    \n    ############# Settings Tab #############\n    settings_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,0)], p=tabs)\n    \n    if not is_secondary_instance:\n        # General Settings\n        enabled_bgc_color = (.4, .4, .4)\n        disabled_bgc_color = (.3,.3,.3)\n        cmds.separator(h=5, style='none') # Empty Space\n        cmds.text('General Settings:', font='boldLabelFont')\n        cmds.separator(h=5, style='none') # Empty Space\n        cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 20)], cs=[(1,10)]) \n        \n        # Allow Multiple Instances\n        is_option_enabled = True\n        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac\n        cmds.checkBox( label='  Allow Multiple Instances', value=gt_custom_rig_interface_settings.get('allow_multiple_instances'), ebg=True, cc=lambda x:invert_stored_setting('allow_multiple_instances'), en=is_option_enabled) \n\n        multiple_instances_help_message = 'This option will allow you to open multiple instances of this script. (multiple windows)\\nThis can be helpful in case you are animating more than one character at the same time.\\n\\nThe extra instance will not be allowed to change settings or to set persistent options, so make sure to change these in your main (primary) instance of the script.'\n        multiple_instances_help_title = 'Allow Multiple Instances'\n        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))\n        \n        # Export Thumbnail With Pose\n        is_option_enabled = False\n        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac\n        cmds.checkBox( label='  Export Thumbnail with Pose', value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True, cc=lambda x:invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled) \n\n        export_pose_thumbnail_help_message = 'This option will be included in future versions, thank you for your patience.\\n\\nExports a thumbnail \".jpg\" file together with your \".pose\" file.\\nThis extra thumbnail file can be used to quickly undestand what you pose looks like before importing it.\\n\\nThe thumbnail is a screenshot of you active viewport at the moment of exporting the pose. If necessary, export it again to generate another thumbnail.'\n        export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'\n        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(export_pose_thumbnail_help_message, export_pose_thumbnail_help_title))\n       \n        # Reset Persistent Settings\n        cmds.separator(h=btn_margin, style='none', p=settings_tab) # Empty Space\n        settings_buttons_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_tab) \n        cmds.button(l =\"Reset Persistent Settings\", c=lambda x:reset_persistent_settings_rig_interface(), p=settings_buttons_column)\n    else:\n        # Secondary Instance Can't change settings\n        cmds.rowColumnLayout(settings_tab, e=True, cw=[(1, 250)], cs=[(1,0)])\n        cmds.separator(h=100, style='none') # Empty Space\n        cmds.text('Use main instance for settings', font='boldLabelFont', en=False)\n\n  \n    ################# END TABS #################\n    cmds.tabLayout( tabs, edit=True, tabLabel=((fk_ik_switch_tab, ' FK/IK '), (pose_management_tab, ' Pose '), (anim_management_tab, 'Animation'), (settings_tab, ' Settings ')))\n\n    # Outside Margin\n    cmds.separator(h=10, style='none', p=content_main) # Empty Space\n \n    # Show and Lock Window\n    cmds.showWindow(build_gui_custom_rig_interface)\n    cmds.window(rig_interface_window_name, e=True, s=False)\n    \n    # Set Window Icon\n    qw = omui.MQtUtil.findWindow(rig_interface_window_name)\n    if python_version == 3:\n        widget = wrapInstance(int(qw), QWidget)\n    else:\n        widget = wrapInstance(long(qw), QWidget)\n    icon = QIcon(':/out_timeEditorAnimSource.png')\n    if is_secondary_instance:\n        icon = QIcon(':/animateSnapshot.png')\n    widget.setWindowIcon(icon)\n\n    # Update FK/IK States and Settings for the first run time\n    update_fk_ik_buttons()\n    update_stored_settings(is_secondary_instance)\n\n    # Remove the focus from the textfield and give it to the window\n    cmds.setFocus(rig_interface_window_name)\n\n    # Main GUI Ends Here =================================================================================\n    \n\ndef open_gt_tools_documentation():\n    ''' Opens a web browser with the the auto rigger docs  '''\n    cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True) \n\ndef gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):\n    '''\n    Transfer the position of the FK to IK or IK to FK systems in a seamless way, so the animator can easily switch between one and the other\n    \n            Parameters:\n                ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch\n                direction (optinal, string): Either \"fk_to_ik\" or \"ik_to_fk\". It determines what is the source and what is the target.\n                namespace (optinal, string): In case the rig has a namespace, it will be used to properly select the controls.\n                \n                \n                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the\n                start_time (optinal, int): Where to create the first keyframe\n                end_time (optinal, int): Where to create the last keyframe\n                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.\n    '''\n    def switch(match_only=False):\n        '''\n        Performs the switch operation.\n        Commands were wrapped into a function to be used during the bake operation.\n        \n                Parameters:\n                    match_only (optional, bool) If active (True) it will only match the pose, but not switch\n        \n                Returns:\n                    attr_value (float): Value which the influence attribute was set to. Either 1 (fk_to_ik) or 0 (ik_to_fk).\n                                        This value is returned only if \"match_only\" is False. Otherwise, expect None.\n        '''\n        try:\n            ik_fk_ns_dict = {}\n            for obj in ik_fk_dict:\n                ik_fk_ns_dict[obj] = namespace + ik_fk_dict.get(obj)\n            \n            fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],\n                        [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],\n                        [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]            \n                        \n            if direction == 'fk_to_ik':\n                if ik_fk_dict.get('end_ik_reference') != '':\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_ik_reference'), pos=1, rot=1)\n                else:\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_fk_jnt'), pos=1, rot=1)\n                \n                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1)\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)\n                return 1\n            if direction == 'ik_to_fk':\n                for pair in fk_pairs:\n                    cmds.matchTransform(pair[1], pair[0], pos=1, rot=1)\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)\n                return 0\n        except Exception as e:\n            cmds.warning('An error occurred. Please check if a namespace is necessary or if a control was deleted.     Error: ' + str(e))\n    \n    \n    def print_inview_feedback():\n        '''\n        Prints feedback using inView messages so the user knows what operation was executed.\n        '''\n        \n\n        # namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'\n        \n        is_valid_message = True\n        message_target = 'IK' if direction == 'fk_to_ik' else 'FK'\n        \n        # Try to figure it out system:\n        message_direction = ''\n        pvec_ik_ctrl = ik_fk_dict.get(next(iter(ik_fk_dict)))\n        if pvec_ik_ctrl.startswith('right_'):\n            message_direction = 'right'\n        elif pvec_ik_ctrl.startswith('left_'):\n            message_direction = 'left'\n        else:\n            is_valid_message = False\n        \n        message_limb = ''\n        if 'knee' in pvec_ik_ctrl:\n            message_limb = 'leg'\n        elif 'elbow' in pvec_ik_ctrl:\n            message_limb = 'arm'\n        else:\n            is_valid_message = False\n        \n        message_range = ''\n        if keyframe:\n            message_range = '(Start: <span style=\\\"color:#FFFFFF;\\\">' + str(start_time) + '</span> End: <span style=\\\"color:#FFFFFF;\\\">' + str(end_time) + '</span> Method: <span style=\\\"color:#FFFFFF;\\\">' + method.capitalize() + '</span> )'\n        \n\n        if is_valid_message:\n            # Print Feedback\n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Switched ' + message_direction + ' ' + message_limb + ' to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + message_target +'</span>  ' + message_range, pos='botLeft', fade=True, alpha=.9)\n    \n\n\n    # Find Available Controls\n    available_ctrls = []\n\n    for key in ik_fk_dict:\n        if cmds.objExists(namespace + ik_fk_dict.get(key)):\n            available_ctrls.append(ik_fk_dict.get(key))\n        if cmds.objExists(namespace + key):\n            available_ctrls.append(key)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n    else:\n        if keyframe:\n            if method.lower() == 'sparse': # Only Influence Switch\n                original_time = cmds.currentTime(q=True)\n                cmds.currentTime(start_time)\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=start_time, attribute='influenceSwitch')\n                cmds.currentTime(end_time)\n                switch()\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=end_time, attribute='influenceSwitch')\n                cmds.currentTime(original_time)\n                print_inview_feedback()\n            elif method.lower() == 'bake':\n                if start_time >= end_time:\n                    cmds.warning('Invalid range. Please review the stard and end frame and try again.')\n                else:\n                    original_time = cmds.currentTime(q=True)\n                    cmds.currentTime(start_time)\n                    current_time = cmds.currentTime(q=True)\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # Start Switch\n                    for index in range(end_time - start_time):\n                        cmds.currentTime(current_time)\n                        switch(match_only=True)\n                        if direction == 'fk_to_ik':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_ik_ctrl'), time=current_time, attribute=channel+dimension) # Wrist IK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time, attribute=channel+dimension) # PVec Elbow IK Ctrl\n\n                        if direction == 'ik_to_fk':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('base_fk_ctrl'), time=current_time, attribute=channel+dimension) # Shoulder FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_fk_ctrl'), time=current_time, attribute=channel+dimension) # Wrist FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time, attribute=channel+dimension) # Elbow FK Ctrl\n                        current_time += 1\n                    switch()\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # End Switch\n                    cmds.currentTime(original_time)\n                    print_inview_feedback()\n            else:\n                cmds.warning('Invalid method was provided. Must be either \"sparse\" or \"bake\", but got ' + method)\n        else:\n            switch()\n            print_inview_feedback()\n\ndef gt_rig_fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):\n    ''' \n    Calls gt_rig_fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. \n    It automatically checks the influenceSwitch value attribute and determines what direction to take it. \"0-0.5\":IK and \"0.5-1\":FK\n    \n            Parameters:\n                ik_fk_dict (dictionary): A dicitionary containg the elements that are part of the system you want to switch\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n                \n                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the\n                start_time (optinal, int): Where to create the first keyframe\n                end_time (optinal, int): Where to create the last keyframe\n                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.    \n    '''\n    try:\n        if cmds.objExists(namespace + ik_fk_dict.get('switch_ctrl')):\n            current_system = cmds.getAttr(namespace + ik_fk_dict.get('switch_ctrl') + '.influenceSwitch')\n            if current_system < 0.5:\n                gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)\n            else:\n                gt_rig_fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)\n        else:\n            cmds.warning('Switch control was not found. Please check if a namespace is necessary.')\n    except Exception as e:\n        cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))\n\n\n\n\ndef gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''):\n    '''\n    Reset transforms list of controls back to 0 Transalte and Rotate values. \n\n        Parameters:\n                gt_ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. \"_wrist_ctrl\")\n                gt_ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. \"_wrist_ctrl\")\n                gt_ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. \"spine01_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    if len(available_ctrls) == 0:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    else:\n        unique_message = '<' + str(random.random()) + '>'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> Reset!</span>', pos='botLeft', fade=True, alpha=.9)\n    \n    for ctrl in available_ctrls:\n        dimensions = ['x','y','z']\n        transforms = ['t', 'r', 's']\n        for transform in transforms:\n            for dimension in dimensions:\n                try:\n                    if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:\n                        cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)\n                except:\n                    pass\n    \n    # Special Cases\n    special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']\n    for ctrl in special_case_ctrls:\n        if cmds.objExists(namespace + ctrl):\n            if cmds.getAttr(namespace + ctrl + '.' + 'sz', lock=True) is False:\n                    cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)\n                    \ndef gt_rig_pose_mirror(gt_ab_ctrls, source_side, namespace=''):\n    '''\n    Mirrors the character pose from one side to the other\n\n        Parameters:\n                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. \"_wrist_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    # Merge Dictionaries\n    gt_ab_ctrls_dict = {}\n    for ctrl_dict in gt_ab_ctrls:\n        gt_ab_ctrls_dict.update(ctrl_dict)\n   \n    # Find available Ctrls\n    available_ctrls = []\n    for obj in gt_ab_ctrls_dict:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    # Start Mirroring\n    if len(available_ctrls) != 0:\n     \n        errors = []\n            \n        right_side_objects = []\n        left_side_objects = []\n\n        for obj in available_ctrls:  \n            if right_prefix in obj:\n                right_side_objects.append(obj)\n                \n        for obj in available_ctrls:  \n            if left_prefix in obj:\n                left_side_objects.append(obj)\n                \n        for left_obj in left_side_objects:\n            for right_obj in right_side_objects:\n                remove_side_tag_left = left_obj.replace(left_prefix,'')\n                remove_side_tag_right = right_obj.replace(right_prefix,'')\n                if remove_side_tag_left == remove_side_tag_right:\n                    # print(right_obj + ' was paired with ' + left_obj)\n                    \n                    key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]\n                    transforms = []\n\n                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.\n                    transforms.append([True, key[0][0], 'tx']) \n                    transforms.append([True, key[0][1], 'ty'])\n                    transforms.append([True, key[0][2], 'tz'])\n                    transforms.append([True, key[1][0], 'rx'])\n                    transforms.append([True, key[1][1], 'ry'])\n                    transforms.append([True, key[1][2], 'rz'])\n                    \n                    if len(key) > 2: # Mirroring Scale?\n                        transforms.append([True, False, 'sx'])\n                        transforms.append([True, False, 'sy'])\n                        transforms.append([True, False, 'sz'])\n                    \n                    # Transfer Right to Left\n                    if source_side is 'right':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform?\n                                if transform[1]: # Inverted?\n                                    source_transform = (cmds.getAttr(namespace + right_obj + '.' + transform[2]) * -1)\n                                else:\n                                    source_transform = cmds.getAttr(namespace + right_obj + '.' + transform[2])\n\n                                if not cmds.getAttr(namespace + left_obj + '.' + transform[2], lock=True):\n                                    cmds.setAttr(namespace + left_obj + '.' + transform[2], source_transform)\n                                else:\n                                    errors.append(namespace + left_obj + ' \"' + transform[2]+'\" is locked.' )\n                                \n                    # Transfer Left to Right\n                    if source_side is 'left':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform?\n                                if transform[1]: # Inverted?\n                                    source_transform = (cmds.getAttr(namespace + left_obj + '.' + transform[2]) * -1)\n                                else:\n                                    source_transform = cmds.getAttr(namespace + left_obj + '.' + transform[2])\n                                \n                                if not cmds.getAttr(namespace + right_obj + '.' + transform[2], lock=True):\n                                    cmds.setAttr(namespace + right_obj + '.' + transform[2], source_transform)\n                                else:\n                                    errors.append(namespace + right_obj + ' \"' + transform[2]+'\" is locked.' )\n                    \n        # Print Feedback\n        unique_message = '<' + str(random.random()) + '>'\n        source_message = '(Left to Right)'\n        if source_side == 'right':\n            source_message = '(Right to Left)'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)\n                        \n        if len(errors) != 0:\n            unique_message = '<' + str(random.random()) + '>'\n            if len(errors) == 1:\n                is_plural = 'attribute was'\n            else:\n                is_plural = 'attributes were'\n            for error in errors:\n                print(str(error))\n            sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + ' ignored. (Open Script Editor to see a list)\\n')\n    else:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    cmds.setFocus(\"MayaWindow\")\n    \n    \ndef gt_rig_pose_export(namespace =''):\n    ''' \n    Exports a Pose (JSON) file containing the translate, rotate and scale data from the rig controls (used to export a pose)\n    Added a variable called \"gt_auto_biped_export_method\" after v1.3, so the extraction method can be stored.\n    \n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n    successfully_created_file = False\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - POSE File (*.pose)\", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Pose for \"' + script_name + '\"') or []\n        if len(file_name) > 0:\n            pose_file = file_name[0]\n            successfully_created_file = True\n            \n\n    if successfully_created_file and is_valid:\n        export_dict = {'gt_interface_version' : script_version, 'gt_export_method' : 'object-space'}\n        for obj in available_ctrls:\n            translate = cmds.getAttr(obj + '.translate')[0]\n            rotate = cmds.getAttr(obj + '.rotate')[0]\n            scale = cmds.getAttr(obj + '.scale')[0]\n            to_save = [obj, translate, rotate, scale]\n            export_dict[obj] = to_save\n    \n        try: \n            with open(pose_file, 'w') as outfile:\n                json.dump(export_dict, outfile, indent=4)\n\n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Current Pose exported to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(file_name[0]) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n            sys.stdout.write('Pose exported to the file \"' + pose_file + '\".')\n        except Exception as e:\n            print (e)\n            successfully_created_file = False\n            cmds.warning('Couldn\\'t write to file. Please make sure the exporting directory is accessible.')\n\n\n\n\ndef gt_rig_pose_import(debugging=False, debugging_path='', namespace=''):\n    ''' \n    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the \"gt_rig_pose_export\" function)\n    Uses the imported data to set the translate, rotate and scale position of every control curve\n    \n            Parameters:\n                debugging (bool): If debugging, the function will attempt to auto load the file provided in the \"debugging_path\" parameter\n                debugging_path (string): Debugging path for the import function\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    TODO\n        Check import method to use the proper method when setting attributes.\n        Exporting using the export button uses \"setAttr\", extract functions will use \"xform\" instead.\n    \n    ''' \n    def set_unlocked_os_attr(target, attr, value):\n        ''' \n        Sets an attribute to the provided value in case it's not locked (Uses \"cmds.setAttr\" function so object space)\n        \n                Parameters:\n                    target (string): Name of the target object (object that will receive transforms)\n                    attr (string): Name of the attribute to apply (no need to add \".\", e.g. \"rx\" would be enough)\n                    value (float): Value used to set attribute. e.g. 1.5, 2, 5...\n        \n        '''\n        try:\n            if not cmds.getAttr(target + '.' + attr, lock=True):\n                cmds.setAttr(target + '.' + attr, value)\n        except:\n            pass\n            \n    def set_unlocked_ws_attr(target, attr, value_tuple):\n        ''' \n        Sets an attribute to the provided value in case it's not locked (Uses \"cmds.xform\" function with world space)\n        \n                Parameters:\n                    target (string): Name of the target object (object that will receive transforms)\n                    attr (string): Name of the attribute to apply (no need to add \".\", e.g. \"rx\" would be enough)\n                    value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)\n        \n        '''\n        try:\n            if attr == 'translate':\n                cmds.xform(target, ws=True, t=value_tuple)\n            if attr == 'rotate':\n                cmds.xform(target, ws=True, ro=value_tuple)\n            if attr == 'scale':\n                cmds.xform(target, ws=True, s=value_tuple)\n        except:\n            pass\n     \n     \n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # Track Current State\n    import_version = 0.0\n    import_method = 'object-space'\n    \n    if not debugging:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - POSE File (*.pose)\", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for \"' + script_name + '\"') or []\n    else:\n        file_name = [debugging_path]\n    \n    if len(file_name) > 0:\n        pose_file = file_name[0]\n        file_exists = True\n    else:\n        file_exists = False\n    \n    if file_exists:\n        try: \n            with open(pose_file) as json_file:\n                data = json.load(json_file)\n                try:\n                    is_valid_file = True\n                    is_operation_valid = True\n\n                    if not data.get('gt_interface_version'):\n                        is_valid_file = False\n                        cmds.warning('Imported file doesn\\'t seem to be compatible or is missing data.')\n                    else:                       \n                        import_version = float(re.sub(\"[^0-9]\", \"\", str(data.get('gt_interface_version'))))\n                \n                    if data.get('gt_export_method'):\n                      import_method = data.get('gt_export_method')\n                \n                    if len(available_ctrls) == 0:\n                        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n                        is_operation_valid = False\n                        \n                    if is_operation_valid:\n                        # Object-Space\n                        for ctrl in data:\n                            if ctrl != 'gt_interface_version' and ctrl != 'gt_export_method':\n                                curent_object = data.get(ctrl) # Name, T, R, S\n                                if cmds.objExists(namespace + curent_object[0]):\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])\n                        \n                        unique_message = '<' + str(random.random()) + '>'\n                        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose imported from </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(pose_file) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n                        sys.stdout.write('Pose imported from the file \"' + pose_file + '\".')\n                    \n                except Exception as e:\n                    print(e)\n                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid POSE file.')\n        except:\n            file_exists = False\n            cmds.warning('Couldn\\'t read the file. Please make sure the selected file is accessible.')\n\n\n\ndef gt_rig_pose_flip(namespace =''):\n    ''' \n    Flips the current pose (Essentially like a mirror in both sides at te same time)\n    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls (used to store a pose)\n    \n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        pose_dict = {}\n        for obj in available_ctrls:\n            # Get Pose\n            translate = cmds.getAttr(obj + '.translate')[0]\n            rotate = cmds.getAttr(obj + '.rotate')[0]\n            scale = cmds.getAttr(obj + '.scale')[0]\n            to_save = [obj, translate, rotate, scale]\n            pose_dict[obj] = to_save\n            \n            # Reset Current Pose ?\n            # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)\n        \n            \n            # TODO\n            # Set Pose\n            # for ctrl in pose_dict:\n            #     curent_object = pose_dict.get(ctrl) # Name, T, R, S\n            #     if cmds.objExists(namespace + curent_object[0]):\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])\n            \n\n\ndef gt_rig_anim_reset(namespace=''):\n    '''\n    Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)\n    \n            Parameters:\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    \n    '''   \n    function_name = 'GT Reset Rig Animation'\n    cmds.undoInfo(openChunk=True, chunkName=function_name)\n    try:\n        keys_ta = cmds.ls(type='animCurveTA')\n        keys_tl = cmds.ls(type='animCurveTL')\n        keys_tt = cmds.ls(type='animCurveTT')\n        keys_tu = cmds.ls(type='animCurveTU')\n        deleted_counter = 0\n        all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu\n        for key in all_keyframes:\n            try:\n                key_target_namespace = cmds.listConnections(key, destination=True)[0].split(':')[0]\n                if key_target_namespace == namespace.replace(':', '') or len(cmds.listConnections(key, destination=True)[0].split(':')) == 1:\n                    cmds.delete(key)\n                    deleted_counter += 1\n            except:\n                pass   \n        message = '<span style=\\\"color:#FF0000;text-decoration:underline;\\\">' +  str(deleted_counter) + ' </span>'\n        is_plural = 'keyframe nodes were'\n        if deleted_counter == 1:\n            is_plural = 'keyframe node was'\n        message += is_plural + ' deleted.'\n        \n        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)\n        \n        # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace) # Add as an option?\n        \n    except Exception as e:\n        cmds.warning(str(e))\n    finally:\n        cmds.undoInfo(closeChunk=True, chunkName=function_name)\n        \n        \ndef gt_rig_anim_mirror(gt_ab_ctrls, source_side, namespace=''):\n    '''\n    Mirrors the character animation from one side to the other\n\n        Parameters:\n                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. \"_wrist_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    \n    def invert_float_list_values(float_list):\n        '''\n        Returns a list where all the float values are inverted. For example, if the value is 5, it will then become -5.\n\n            Parameters:\n                    float_list (list) : A list of floats.\n                    \n            Returns:\n                    inverted_float_list (list): A list of floats with their values inverted\n    \n        '''\n\n        inverted_values = []\n        for val in float_list:\n            inverted_values.append(val* -1)\n        return inverted_values\n\n    \n    # Merge Dictionaries\n    gt_ab_ctrls_dict = {}\n    for ctrl_dict in gt_ab_ctrls:\n        gt_ab_ctrls_dict.update(ctrl_dict)\n   \n    # Find available Ctrls\n    available_ctrls = []\n    for obj in gt_ab_ctrls_dict:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    # Start Mirroring\n    if len(available_ctrls) != 0:\n     \n        errors = []\n            \n        right_side_objects = []\n        left_side_objects = []\n\n        for obj in available_ctrls:  \n            if right_prefix in obj:\n                right_side_objects.append(obj)\n                \n        for obj in available_ctrls:  \n            if left_prefix in obj:\n                left_side_objects.append(obj)\n                \n        for left_obj in left_side_objects:\n            for right_obj in right_side_objects:\n                remove_side_tag_left = left_obj.replace(left_prefix,'')\n                remove_side_tag_right = right_obj.replace(right_prefix,'')\n                if remove_side_tag_left == remove_side_tag_right:\n                    # print(right_obj + ' was paired with ' + left_obj)\n                    \n                    key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]\n                    transforms = []\n\n                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.\n                    transforms.append([True, key[0][0], 'tx']) \n                    transforms.append([True, key[0][1], 'ty'])\n                    transforms.append([True, key[0][2], 'tz'])\n                    transforms.append([True, key[1][0], 'rx'])\n                    transforms.append([True, key[1][1], 'ry'])\n                    transforms.append([True, key[1][2], 'rz'])\n                    \n                    if len(key) > 2: # Mirroring Scale?\n                        transforms.append([True, False, 'sx'])\n                        transforms.append([True, False, 'sy'])\n                        transforms.append([True, False, 'sz'])\n                    \n                    # Transfer Right to Left \n                    if source_side is 'right':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform? Inverted? Name of the Attr\n                                try:\n                                    attr = transform[2]\n                                    \n                                    # Get Values\n                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=attr)\n                                    values = cmds.keyframe(namespace + right_obj, q=1, at=attr, valueChange=True)\n                                    \n                                    in_angle_tangent = cmds.keyTangent(namespace + right_obj, at=attr, inAngle=True, query=True)\n                                    out_angle_tanget = cmds.keyTangent(namespace + right_obj, at=attr, outAngle=True, query=True)\n                                    is_locked = cmds.keyTangent(namespace + right_obj, at=attr, weightLock=True, query=True)\n                                    in_weight = cmds.keyTangent(namespace + right_obj, at=attr, inWeight=True, query=True)\n                                    out_weight = cmds.keyTangent(namespace + right_obj, at=attr, outWeight=True, query=True)\n                                    in_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, inTangentType=True, query=True)\n                                    out_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, outTangentType=True, query=True)\n                                    \n                                    if transform[1]: # Inverted?\n                                        values = invert_float_list_values(values)\n                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)\n                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)\n                                        in_weight = invert_float_list_values(in_weight)\n                                        out_weight = invert_float_list_values(out_weight)\n\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        time = frames[index]\n                                        cmds.setKeyframe(namespace + left_obj, time=time, attribute=attr, value=values[index])\n                                        # Set Tangents\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)\n                                except:\n                                    pass # 0 keyframes\n\n                        # Other Attributes\n                        attributes = cmds.listAnimatable(namespace + right_obj)\n                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']\n                        for attr in attributes:\n                            try:\n                                short_attr = attr.split('.')[-1]\n                                if short_attr not in default_channels:\n                                     # Get Keys/Values\n                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=short_attr)\n                                    values = cmds.keyframe(namespace + right_obj, q=1, at=short_attr, valueChange=True)\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=short_attr, value=values[index])\n                            except:\n                                pass # 0 keyframes\n                    \n                    # Transfer Left to Right\n                    if source_side is 'left':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform? Inverted? Name of the Attr\n                                try:\n                                    attr = transform[2]\n                                    \n                                    # Get Values\n                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=attr)\n                                    values = cmds.keyframe(namespace + left_obj, q=1, at=attr, valueChange=True)\n                                    \n                                    in_angle_tangent = cmds.keyTangent(namespace + left_obj, at=attr, inAngle=True, query=True)\n                                    out_angle_tanget = cmds.keyTangent(namespace + left_obj, at=attr, outAngle=True, query=True)\n                                    is_locked = cmds.keyTangent(namespace + left_obj, at=attr, weightLock=True, query=True)\n                                    in_weight = cmds.keyTangent(namespace + left_obj, at=attr, inWeight=True, query=True)\n                                    out_weight = cmds.keyTangent(namespace + left_obj, at=attr, outWeight=True, query=True)\n                                    in_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, inTangentType=True, query=True)\n                                    out_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, outTangentType=True, query=True)\n                                    \n                                    if transform[1]: # Inverted?\n                                        values = invert_float_list_values(values)\n                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)\n                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)\n                                        in_weight = invert_float_list_values(in_weight)\n                                        out_weight = invert_float_list_values(out_weight)\n\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        time = frames[index]\n                                        cmds.setKeyframe(namespace + right_obj, time=time, attribute=attr, value=values[index])\n                                        # Set Tangents\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)\n                                except:\n                                    pass # 0 keyframes\n\n                        # Other Attributes\n                        attributes = cmds.listAnimatable(namespace + left_obj)\n                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']\n                        for attr in attributes:\n                            try:\n                                short_attr = attr.split('.')[-1]\n                                if short_attr not in default_channels:\n                                     # Get Keys/Values\n                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=short_attr)\n                                    values = cmds.keyframe(namespace + left_obj, q=1, at=short_attr, valueChange=True)\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        cmds.setKeyframe(namespace + right_obj, time=frames[index], attribute=short_attr, value=values[index])\n                            except:\n                                pass # 0 keyframes\n\n        # Print Feedback\n        unique_message = '<' + str(random.random()) + '>'\n        source_message = '(Left to Right)'\n        if source_side == 'right':\n            source_message = '(Right to Left)'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Animation </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)\n                           \n        if len(errors) != 0:\n            unique_message = '<' + str(random.random()) + '>'\n            if len(errors) == 1:\n                is_plural = ' error '\n            else:\n                is_plural = ' errors '\n            for error in errors:\n                print(str(error))\n            sys.stdout.write(str(len(errors)) + is_plural + 'occurred. (Open Script Editor to see a list)\\n')\n    else:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    cmds.setFocus(\"MayaWindow\")\n\n\n\ndef gt_rig_anim_export(namespace =''):\n    ''' \n    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe (animation) data from the rig controls.\n\n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n    successfully_created_file = False\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - ANIM File (*.anim)\", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Animation for \"' + script_name + '\"') or []\n        if len(file_name) > 0:\n            pose_file = file_name[0]\n            successfully_created_file = True\n            \n\n    if successfully_created_file and is_valid:\n        export_dict = {'gt_interface_version' : script_version, 'gt_export_method' : 'object-space'}\n                \n        # Extract Keyframes:\n        for obj in available_ctrls:\n            attributes = cmds.listAnimatable(namespace + obj)\n            for attr in attributes:\n                try:\n                    short_attr = attr.split('.')[-1]\n                    frames = cmds.keyframe(namespace + obj, q=1, at=short_attr)\n                    values = cmds.keyframe(namespace + obj, q=1, at=short_attr, valueChange=True)\n                    in_angle_tangent = cmds.keyTangent(namespace + obj, at=short_attr, inAngle=True, query=True)\n                    out_angle_tanget = cmds.keyTangent(namespace + obj, at=short_attr, outAngle=True, query=True)\n                    is_locked = cmds.keyTangent(namespace + obj, at=short_attr, weightLock=True, query=True)\n                    in_weight = cmds.keyTangent(namespace + obj, at=short_attr, inWeight=True, query=True)\n                    out_weight = cmds.keyTangent(namespace + obj, at=short_attr, outWeight=True, query=True)\n                    in_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, inTangentType=True, query=True)\n                    out_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, outTangentType=True, query=True)\n                    export_dict['{}.{}'.format(obj, short_attr)] = zip(frames, values, in_angle_tangent, out_angle_tanget, is_locked, in_weight, out_weight, in_tangent_type, out_tangent_type)\n                except:\n                    pass # 0 keyframes\n\n\n        try: \n            with open(pose_file, 'w') as outfile:\n                json.dump(export_dict, outfile, indent=4)\n      \n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Current Animation exported to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(file_name[0]) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n            sys.stdout.write('Animation exported to the file \"' + pose_file + '\".')\n        except Exception as e:\n            print (e)\n            successfully_created_file = False\n            cmds.warning('Couldn\\'t write to file. Please make sure the exporting directory is accessible.')\n\n\ndef gt_rig_anim_import(debugging=False, debugging_path='', namespace=''):\n    ''' \n    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the \"gt_rig_anim_export\" function)\n    Uses the imported data to set the translate, rotate and scale position of every control curve\n    \n            Parameters:\n                debugging (bool): If debugging, the function will attempt to auto load the file provided in the \"debugging_path\" parameter\n                debugging_path (string): Debugging path for the import function\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    \n    ''' \n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # Track Current State\n    import_version = 0.0\n    import_method = 'object-space'\n    \n    if not debugging:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - ANIM File (*.anim)\", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for \"' + script_name + '\"') or []\n    else:\n        file_name = [debugging_path]\n    \n    if len(file_name) > 0:\n        anim_file = file_name[0]\n        file_exists = True\n    else:\n        file_exists = False\n    \n    if file_exists:\n        try: \n            with open(anim_file) as json_file:\n                data = json.load(json_file)\n                try:\n                    is_valid_file = True\n                    is_operation_valid = True\n\n                    if not data.get('gt_interface_version'):\n                        is_valid_file = False\n                        cmds.warning('Imported file doesn\\'t seem to be compatible or is missing data.')\n                    else:                       \n                        import_version = float(re.sub(\"[^0-9]\", \"\", str(data.get('gt_interface_version'))))\n                \n                    if data.get('gt_export_method'):\n                      import_method = data.get('gt_export_method')\n                \n                    if len(available_ctrls) == 0:\n                        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n                        is_operation_valid = False\n                        \n                    if is_operation_valid:\n                        # Object-Space\n                        for key, dict_value in data.iteritems():\n                            if key != 'gt_interface_version' and key != 'gt_export_method':\n                                for key_data in dict_value:\n                                    # Unpack Data\n                                    time = key_data[0]\n                                    value = key_data[1]\n                                    in_angle_tangent = key_data[2]\n                                    out_angle_tanget = key_data[3] \n                                    is_locked = key_data[4]\n                                    in_weight = key_data[5]\n                                    out_weight = key_data[6] \n                                    in_tangent_type = key_data[7] \n                                    out_tangent_type = key_data[8] \n                                    \n                                    try:\n                                        obj, attr = key.split('.')\n                                        cmds.setKeyframe(namespace + obj, time=time, attribute=attr, value=value)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), lock=is_locked, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inAngle=in_angle_tangent, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outAngle=out_angle_tanget, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inWeight=in_weight, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outWeight=out_weight, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inTangentType=in_tangent_type, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outTangentType=out_tangent_type, e=True)\n                                    except:\n                                        pass\n\n                        unique_message = '<' + str(random.random()) + '>'\n                        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Animation imported from </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(anim_file) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n                        sys.stdout.write('Animation imported from the file \"' + anim_file + '\".')\n                            \n                except Exception as e:\n                    print(e)\n                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')\n        except:\n            file_exists = False\n            cmds.warning('Couldn\\'t read the file. Please make sure the selected file is accessible.')\n         \n            \n#Build UI\nif __name__ == '__main__':\n    build_gui_custom_rig_interface()" ,
+    create_shelf_button("\"\"\"\n Custom Rig Interface for GT Auto Biped Rigger.\n github.com/TrevisanGMW/gt-tools - 2021-01-05\n \n 1.0 - 2021-01-05\n Initial Release\n\n 1.1 - 2021-05-11\n Made script compatible with Python 3.0 (Maya 2022)\n\n 1.2 - 2021-10-28\n Added mirror IK functions\n Added reset pose function\n Changed it to accept namespaces with or without \":\"\n  \n 1.3 - 2021-10-29\n Changed the name from \"Seamless IK/FK Switch\" to \"Custom Rig Interface\"\n Added functions to mirror and reset FK controls\n Added center controls to reset pose function\n Added custom rig name (if not empty, it will display a message describing unique rig target)\n Added system to get and set persistent settings to store the namespace input\n Added warning message reminding user to check their namespace in case elements are not found\n \n 1.3.1 - 2021-11-01\n Changed versioning system to semantic to account for patches\n Fixed some typos in the \"locked\" message for when trying to mirror\n Added scale mirroring functions (fixes finger abduction pose)\n Included curl controls in the mirroring list\n \n 1.3.2 - 2021-11-03\n Added IK fingers to mirroring functions\n \n 1.3.3 - 2021-11-04\n Added animation import/export functions. (\".anim\" with \".json\" data)\n Changed the pose file extension to \".pose\" instead of \".json\" to avoid confusion\n Added animation mirroring functions\n \n 1.3.4 - 2021-11-08\n Add settings menu\n Made UI aware of FK/IK state\n Recreated part of the UI to use Tabs\n Improved switch functions with a mechanism to auto create keyframes (sparse or bake)\n Added inView feedback explaining switch information\n Fixed issue where the arm pole vector wouldn't mirror properly\n Added option to reset persistent settings\n \n 1.3.5 - 2021-11-10\n Added animation and pose reset\n Updates animation functions to account for tangents and other key properties\n \n 1.3.6 - 2021-11-12\n Allowed for multiple instances (in case animating multiple characters)\n Changed icons and assigned an alternative one for extra instances\n Added a missing import for \"sys\"\n \n 1.3.7 - 2021-11-23\n Updated switcher to be compatible with new offset controls\n Added inView message for when auto clavicle is active so the user doesn't thing the control is popping\n \n 1.3.8 - 2021-11-23\n Included a few missing controls to the pose and animation management control lists\n\n \n TODO:\n    Created flip pose function\n    Convert GUI to QT\n    Add Flip options\n    Overwrite keys for animation functions\n    Add Namespace picker (button to the right of the namespace textfield)\n    Option to save pose thumbnail when exporting it \n    Add option to open multiple instances\n    \n\"\"\"\ntry:\n    from shiboken2 import wrapInstance\nexcept ImportError:\n    from shiboken import wrapInstance\n    \ntry:\n    from PySide2.QtGui import QIcon\n    from PySide2.QtWidgets import QWidget\nexcept ImportError:\n    from PySide.QtGui import QIcon, QWidget\n\nfrom maya import OpenMayaUI as omui\nimport maya.cmds as cmds\nimport random\nimport json\nimport copy\nimport sys\nimport os\n\n\n# Script Name\nscript_name = 'GT Custom Rig Interface'\nunique_rig = '' # If provided, it will be used in the window title\n\n# Version:\nscript_version = \"1.3.8\"\n\n# Python Version\npython_version = sys.version_info.major\n\n# FK/IK Swticher Elements\nleft_arm_seamless_dict = { 'switch_ctrl' : 'left_arm_switch_ctrl', # Switch Ctrl\n                           'end_ik_ctrl' : 'left_wrist_ik_offsetCtrl', # IK Elements\n                           'pvec_ik_ctrl' : 'left_elbow_ik_ctrl',\n                           'base_ik_jnt' :  'left_shoulder_ik_jnt',\n                           'mid_ik_jnt' : 'left_elbow_ik_jnt',\n                           'end_ik_jnt' : 'left_wrist_ik_jnt',\n                           'base_fk_ctrl' : 'left_shoulder_ctrl', # FK Elements\n                           'mid_fk_ctrl' : 'left_elbow_ctrl',\n                           'end_fk_ctrl' : 'left_wrist_ctrl' ,\n                           'base_fk_jnt' :  'left_shoulder_fk_jnt',\n                           'mid_fk_jnt' : 'left_elbow_fk_jnt',\n                           'end_fk_jnt' : 'left_wrist_fk_jnt',\n                           'mid_ik_reference' : 'left_elbowSwitch_loc',\n                           'end_ik_reference' : '',\n                           'incompatible_attr_holder' : 'left_wrist_ik_ctrl', # Auto Clavicle\n                         }\n\nright_arm_seamless_dict = { 'switch_ctrl' : 'right_arm_switch_ctrl', # Switch Ctrl\n                            'end_ik_ctrl' : 'right_wrist_ik_offsetCtrl', # IK Elements\n                            'pvec_ik_ctrl' : 'right_elbow_ik_ctrl',\n                            'base_ik_jnt' :  'right_shoulder_ik_jnt',\n                            'mid_ik_jnt' : 'right_elbow_ik_jnt',\n                            'end_ik_jnt' : 'right_wrist_ik_jnt',\n                            'base_fk_ctrl' : 'right_shoulder_ctrl', # FK Elements\n                            'mid_fk_ctrl' : 'right_elbow_ctrl',\n                            'end_fk_ctrl' : 'right_wrist_ctrl' ,\n                            'base_fk_jnt' :  'right_shoulder_fk_jnt',\n                            'mid_fk_jnt' : 'right_elbow_fk_jnt',\n                            'end_fk_jnt' : 'right_wrist_fk_jnt',\n                            'mid_ik_reference' : 'right_elbowSwitch_loc',\n                            'end_ik_reference' : '',\n                            'incompatible_attr_holder' : 'right_wrist_ik_ctrl', # Auto Clavicle\n                           }\n                            \nleft_leg_seamless_dict = { 'switch_ctrl' : 'left_leg_switch_ctrl', # Switch Ctrl\n                           'end_ik_ctrl' : 'left_foot_ik_offsetCtrl', # IK Elements\n                           'pvec_ik_ctrl' : 'left_knee_ik_ctrl',\n                           'base_ik_jnt' :  'left_hip_ik_jnt',\n                           'mid_ik_jnt' : 'left_knee_ik_jnt',\n                           'end_ik_jnt' : 'left_ankle_ik_jnt',\n                           'base_fk_ctrl' : 'left_hip_ctrl', # FK Elements\n                           'mid_fk_ctrl' : 'left_knee_ctrl',\n                           'end_fk_ctrl' : 'left_ankle_ctrl' , \n                           'base_fk_jnt' :  'left_hip_fk_jnt',\n                           'mid_fk_jnt' : 'left_knee_fk_jnt',\n                           'end_fk_jnt' : 'left_ankle_fk_jnt',\n                           'mid_ik_reference' : 'left_kneeSwitch_loc',\n                           'end_ik_reference' : 'left_ankleSwitch_loc', #left_ankleSwitch_loc\n                           'incompatible_attr_holder' : '',\n                          }\n                           \nright_leg_seamless_dict = { 'switch_ctrl' : 'right_leg_switch_ctrl', # Switch Ctrl\n                            'end_ik_ctrl' : 'right_foot_ik_offsetCtrl', # IK Elements\n                            'pvec_ik_ctrl' : 'right_knee_ik_ctrl',\n                            'base_ik_jnt' :  'right_hip_ik_jnt',\n                            'mid_ik_jnt' : 'right_knee_ik_jnt',\n                            'end_ik_jnt' : 'right_ankle_ik_jnt',\n                            'base_fk_ctrl' : 'right_hip_ctrl', # FK Elements\n                            'mid_fk_ctrl' : 'right_knee_ctrl',\n                            'end_fk_ctrl' : 'right_ankle_ctrl' ,\n                            'base_fk_jnt' :  'right_hip_fk_jnt',\n                            'mid_fk_jnt' : 'right_knee_fk_jnt',\n                            'end_fk_jnt' : 'right_ankle_fk_jnt',\n                            'mid_ik_reference' : 'right_kneeSwitch_loc',\n                            'end_ik_reference' : 'right_ankleSwitch_loc',\n                            'incompatible_attr_holder' : '',\n                          }\n                          \n# Mirror Elements\nnamespace_separator = ':'\nleft_prefix = 'left'\nright_prefix = 'right'\nnot_inverted = (False, False, False)\ninvert_x = (True, False, False)\ninvert_y = (False, True, False)\ninvert_z = (False, False, True)\ninvert_yz = (False, True, True)\ninvert_all = (True, True, True)\n\n# Dictionary Pattern:\n# Key: Control name (if not in the center, remove prefix)\n# Value: A list with two tuples. [(Is Translate XYZ inverted?), (Is Rotate XYZ inverted?), Is mirroring scale?]\n# Value Example: '_fingers_ctrl': [not_inverted, not_inverted, True] = Not inverting Translate XYZ. Not inverting Rotate XYZ. Yes, mirroring scale.\ngt_ab_general_ctrls = {# Fingers Automation\n                   '_fingers_ctrl': [not_inverted, not_inverted, True],\n                   '_thumbCurl_ctrl': [not_inverted, not_inverted],\n                   '_indexCurl_ctrl': [not_inverted, not_inverted],\n                   '_middleCurl_ctrl': [not_inverted, not_inverted],\n                   '_ringCurl_ctrl': [not_inverted, not_inverted],\n                   '_pinkyCurl_ctrl': [not_inverted, not_inverted],\n                   \n                   # Fingers FK\n                   '_thumb03_ctrl': [not_inverted, not_inverted],\n                   '_thumb02_ctrl': [not_inverted, not_inverted],\n                   '_thumb01_ctrl': [not_inverted, not_inverted],\n                   '_index01_ctrl': [not_inverted, not_inverted],\n                   '_middle02_ctrl': [not_inverted, not_inverted],\n                   '_middle01_ctrl': [not_inverted, not_inverted],\n                   '_index03_ctrl': [not_inverted, not_inverted],\n                   '_index02_ctrl': [not_inverted, not_inverted],\n                   '_ring03_ctrl': [not_inverted, not_inverted],\n                   '_ring02_ctrl': [not_inverted, not_inverted],\n                   '_ring01_ctrl': [not_inverted, not_inverted],\n                   '_middle03_ctrl': [not_inverted, not_inverted],\n                   '_pinky03_ctrl': [not_inverted, not_inverted],\n                   '_pinky02_ctrl': [not_inverted, not_inverted],\n                   '_pinky01_ctrl': [not_inverted, not_inverted],\n                   \n                   # Finger IK\n                   '_thumb_ik_ctrl': [invert_z, invert_x],\n                   '_index_ik_ctrl': [invert_z, invert_x],\n                   '_middle_ik_ctrl': [invert_z, invert_x],\n                   '_ring_ik_ctrl': [invert_z, invert_x],\n                   '_pinky_ik_ctrl': [invert_z, invert_x],\n                   # Clavicle\n                   '_clavicle_ctrl': [not_inverted, not_inverted],\n                   # Eyes\n                   '_eye_ctrl': [invert_x, not_inverted],\n                 }   \n\ngt_ab_ik_ctrls = { # Arm\n                   '_elbow_ik_ctrl': [invert_x, not_inverted], \n                   '_wrist_ik_ctrl': [invert_all, not_inverted],\n                   '_wrist_ik_offsetCtrl': [invert_all, not_inverted],\n                   # Leg\n                   '_heelRoll_ctrl': [invert_x, not_inverted],\n                   '_ballRoll_ctrl': [invert_x, not_inverted],\n                   '_toeRoll_ctrl': [invert_x, not_inverted],\n                   '_toe_upDown_ctrl': [invert_x, not_inverted],\n                   '_foot_ik_ctrl': [invert_x, invert_yz],\n                   '_foot_ik_offsetCtrl': [invert_x, invert_yz],\n                   '_knee_ik_ctrl': [invert_x, not_inverted],\n                 }\n                   \ngt_ab_fk_ctrls = {# Arm\n                   '_shoulder_ctrl': [invert_all, not_inverted],\n                   '_elbow_ctrl': [invert_all, not_inverted],\n                   '_wrist_ctrl': [invert_all, not_inverted],\n                  # Leg\n                   '_hip_ctrl': [invert_x, invert_yz],\n                   '_knee_ctrl': [invert_all, not_inverted],\n                   '_ankle_ctrl': [invert_all, not_inverted],\n                   '_ball_ctrl': [invert_all, not_inverted],\n                 }\n                       \ngt_ab_center_ctrls = ['cog_ctrl', \n                      'cog_offsetCtrl', \n                      'hip_ctrl', \n                      'hip_offsetCtrl', \n                      'spine01_ctrl', \n                      'spine02_ctrl', \n                      'spine03_ctrl', \n                      'spine04_ctrl', \n                      'cog_ribbon_ctrl', \n                      'chest_ribbon_offsetCtrl', \n                      'spine_ribbon_ctrl', \n                      'chest_ribbon_ctrl',\n                      'neckBase_ctrl',\n                      'neckMid_ctrl',\n                      'head_ctrl',\n                      'jaw_ctrl',\n                      'main_eye_ctrl',\n                      'left_eye_ctrl',\n                      'right_eye_ctrl',\n                      ]            \n\ngt_custom_rig_interface_settings = {\n                                    'namespace' : '',\n                                    'auto_key_switch' : True,\n                                    'auto_key_method_bake' : True,\n                                    'auto_key_start_frame' : 1,\n                                    'auto_key_end_frame' : 10,\n                                    'pose_export_thumbnail' : False,\n                                    'allow_multiple_instances' : False,\n                                   }\n                           \ngt_custom_rig_interface_settings_default = copy.deepcopy(gt_custom_rig_interface_settings)\n\n\n# Manage Persistent Settings\ndef get_persistent_settings_rig_interface():\n    ''' \n    Checks if persistant settings for GT Auto Biped Rig Interface exists and loads it if this is the case.\n    It assumes that persistent settings were stored using the cmds.optionVar function.\n    '''\n    # Check if there is anything stored\n    stored_setup_exists = cmds.optionVar(exists=(\"gt_auto_biped_rig_interface_setup\"))\n  \n    if stored_setup_exists:\n        stored_settings = {}\n        try:\n            stored_settings = eval(str(cmds.optionVar(q=(\"gt_auto_biped_rig_interface_setup\"))))\n            for stored_item in stored_settings:\n                for item in gt_custom_rig_interface_settings:\n                    if stored_item == item:\n                        gt_custom_rig_interface_settings[item] = stored_settings.get(stored_item)\n        except:\n            print('Couldn\\'t load persistent settings, try resetting it in the help menu.')\n\n\ndef set_persistent_settings_rig_interface():\n    ''' \n    Stores persistant settings for GT Auto Biped Rig Interface.\n    It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)\n    It assumes that persistent settings were stored using the cmds.optionVar function.\n    '''\n    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings)))\n\n\ndef reset_persistent_settings_rig_interface():\n    ''' Resets persistant settings for GT Auto Biped Rig Interface '''\n    cmds.optionVar( remove='gt_auto_biped_rig_interface_setup' )\n    gt_custom_rig_interface_settings =  gt_custom_rig_interface_settings_default\n    cmds.optionVar( sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings_default)))\n    cmds.warning('Persistent settings for ' + script_name + ' were cleared.')\n    try:\n        cmds.evalDeferred('build_gui_custom_rig_interface()')\n    except:\n        try:\n            build_gui_custom_rig_interface()\n        except:\n            try:\n                cmds.evalDeferred('gt_biped_rig_interface.build_gui_custom_rig_interface()')\n            except:\n                pass\n\n             \n# Main Window ============================================================================\ndef build_gui_custom_rig_interface():\n    \n    # Retrieve Persistent Settings\n    get_persistent_settings_rig_interface()\n    \n    rig_interface_window_name = 'build_gui_custom_rig_interface'\n    is_secondary_instance = False\n    if cmds.window(rig_interface_window_name, exists=True) and not gt_custom_rig_interface_settings.get('allow_multiple_instances'):\n        cmds.deleteUI(rig_interface_window_name)  \n    # In case it's a secondary instance \n    if gt_custom_rig_interface_settings.get('allow_multiple_instances'):\n        if cmds.window(rig_interface_window_name, exists=True):\n            rig_interface_window_name = rig_interface_window_name + '_' + str(random.random()).replace('.','')\n            is_secondary_instance = True\n            \n            gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)\n   \n            # print(gt_custom_rig_interface_settings_instanced)\n            \n            # gt_custom_rig_interface_settings = {}\n            # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_instanced\n\n    # Main GUI Start Here =================================================================================\n    def update_fk_ik_buttons():\n        '''\n        Updates the background color of the FK/IK buttons according to the value of the current influenceSwitch attribute.\n        This attempts to make the UI \"aware\" of the current state of the controls.\n        '''\n        active_color = (.6,.6,.6)\n        inactive_color = (.36,.36,.36)\n        ctrl_btn_lists = [\n                          [right_arm_seamless_dict, right_arm_fk_btn, right_arm_ik_btn],\n                          [left_arm_seamless_dict, left_arm_fk_btn, left_arm_ik_btn],\n                          [right_leg_seamless_dict, right_leg_fk_btn, right_leg_ik_btn],\n                          [left_leg_seamless_dict, left_leg_fk_btn, left_leg_ik_btn]\n                         ]\n        for ctrl_btns in ctrl_btn_lists:\n            if cmds.objExists(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl')):\n                try:\n                    current_system = cmds.getAttr(gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get('switch_ctrl') + '.influenceSwitch')\n                    if current_system < 0.5:\n                        cmds.button(ctrl_btns[1], e=True, bgc=active_color) # FK Button\n                        cmds.button(ctrl_btns[2], e=True, bgc=inactive_color) # IK Button\n                    else:\n                        cmds.button(ctrl_btns[2], e=True, bgc=active_color) # FK Button\n                        cmds.button(ctrl_btns[1], e=True, bgc=inactive_color) # IK Button\n                except:\n                    pass\n            else:\n                cmds.button(ctrl_btns[2], e=True, bgc=inactive_color) # FK Button\n                cmds.button(ctrl_btns[1], e=True, bgc=inactive_color) # IK Button\n    \n\n    def update_stored_settings(is_instance=False):\n        '''\n        Extracts the namespace used and stores it as a persistent variable\n        This function also calls \"update_fk_ik_buttons()\" so it updates the UI\n        \n                    Parameters:\n                        is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not\n                                                      This is used for secondary instances (multiple windows)\n                                              \n        '''\n        gt_custom_rig_interface_settings['namespace'] = cmds.textField(namespace_txt, q=True, text=True)\n        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)\n        gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)\n        gt_custom_rig_interface_settings['auto_key_method_bake'] = cmds.radioButton(auto_key_method_rb1, query=True, select=True)\n        gt_custom_rig_interface_settings['auto_key_start_frame'] = cmds.intField(auto_key_start_int_field, q=True, value=0)\n        gt_custom_rig_interface_settings['auto_key_end_frame'] = cmds.intField(auto_key_end_int_field, q=True, value=0)\n\n\n        if gt_custom_rig_interface_settings.get('auto_key_switch'):\n            cmds.radioButton(auto_key_method_rb1, e=True, en=True)\n            cmds.radioButton(auto_key_method_rb2, e=True, en=True)\n            cmds.rowColumnLayout(switch_range_column, e=True, en=True)\n        else:\n            cmds.radioButton(auto_key_method_rb1, e=True, en=False)\n            cmds.radioButton(auto_key_method_rb2, e=True, en=False)\n            cmds.rowColumnLayout(switch_range_column, e=True, en=False)\n        \n        if not is_instance: # Doesn't update persistent settings for secondary instances\n            set_persistent_settings_rig_interface()\n        update_fk_ik_buttons()\n\n\n    def update_switch(ik_fk_dict, direction='ik_to_fk', is_auto_switch=False):\n        '''\n        Runs the switch function using the parameters provided in the UI\n        Also updates the UI to keep track of the FK/IK state.\n        \n                Parameters:\n                     ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch\n                     direction (optinal, string): Either \"fk_to_ik\" or \"ik_to_fk\". It determines what is the source and what is the target.\n        '''\n        method = 'bake' if gt_custom_rig_interface_settings.get('auto_key_method_bake') else 'sparse' \n        \n        if is_auto_switch:\n            gt_rig_fk_ik_switch_auto(ik_fk_dict, \n                                             namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,\n                                             keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),\n                                             start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), \n                                             end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), \n                                             method=method\n                                             )\n\n        else:\n            gt_rig_fk_ik_switch(ik_fk_dict, \n                                        direction, \n                                        namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator,\n                                        keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),\n                                        start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), \n                                        end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')), \n                                        method=method\n                                        )\n\n        update_fk_ik_buttons()\n\n    def invert_stored_setting(key_string):\n        '''\n        Used for boolean values, it inverts the value, so if True it becomes False and vice-versa.\n        It also stores the new values after they are changed so future instances remember it.\n        \n                Parameters:\n                    key_string (string) : Key name, used to determine what bool value to flip\n        '''\n        gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)\n        set_persistent_settings_rig_interface()\n                       \n    def get_auto_key_current_frame(target_integer_field='start', is_instance=False):\n        '''\n        Gets the current frame and auto fills an integer field.\n        \n                Parameters:\n                    target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the start or end integer field.\n                                                              Can only be \"start\" or \"end\". Anything else will be understood as \"end\".\n                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not\n                                                      This is used for secondary instances (multiple windows)\n        \n        '''\n        current_time = cmds.currentTime(q=True)\n        if target_integer_field == 'start':\n            cmds.intField(auto_key_start_int_field, e=True, value=current_time)\n        else:\n            cmds.intField(auto_key_end_int_field, e=True, value=current_time)\n\n        update_stored_settings(is_instance)\n    \n    \n    def mirror_fk_ik_pose(source_side='right'):\n        '''\n        Runs a full pose mirror function.\n        \n                Parameters:\n                     source_side (optinal, string): Either \"right\" or \"left\". It determines what is the source and what is the target of the mirror.\n        '''\n        \n        gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n        \n        \n    def reset_animation_and_pose():\n        '''\n        Deletes Keyframes and Resets pose back to default\n        '''\n        gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n        gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator)\n    \n\n    def build_custom_help_window(input_text, help_title=''):\n        ''' \n        Creates a help window to display the provided text\n\n                Parameters:\n                    input_text (string): Text used as help, this is displayed in a scroll fields.\n                    help_title (optinal, string)\n        '''\n        window_name = help_title.replace(\" \",\"_\").replace(\"-\",\"_\").lower().strip() + \"_help_window\"\n        if cmds.window(window_name, exists=True):\n            cmds.deleteUI(window_name, window=True)\n\n        cmds.window(window_name, title= help_title + \" Help\", mnb=False, mxb=False, s=True)\n        cmds.window(window_name, e=True, s=True, wh=[1,1])\n\n        main_column = cmds.columnLayout(p= window_name)\n       \n        # Title Text\n        cmds.separator(h=12, style='none') # Empty Space\n        cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column) # Window Size Adjustment\n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column) # Title Column\n        cmds.text(help_title + ' Help', bgc=(.4, .4, .4),  fn='boldLabelFont', align='center')\n        cmds.separator(h=10, style='none', p=main_column) # Empty Space\n\n        # Body ====================       \n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)\n        \n        help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')\n     \n        cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)\n        cmds.scrollField(help_scroll_field, e=True, ip=1, it='') # Bring Back to the Top\n        \n        # Close Button \n        cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)\n        cmds.separator(h=10, style='none')\n        cmds.button(l='OK', h=30, c=lambda args: close_help_gui())\n        cmds.separator(h=8, style='none')\n        \n        # Show and Lock Window\n        cmds.showWindow(window_name)\n        cmds.window(window_name, e=True, s=False)\n        \n        # Set Window Icon\n        qw = omui.MQtUtil.findWindow(window_name)\n        if python_version == 3:\n            widget = wrapInstance(int(qw), QWidget)\n        else:\n            widget = wrapInstance(long(qw), QWidget)\n        icon = QIcon(':/question.png')\n        widget.setWindowIcon(icon)\n        \n        def close_help_gui():\n            ''' Closes help windows '''\n            if cmds.window(window_name, exists=True):\n                cmds.deleteUI(window_name, window=True)\n        # Custom Help Dialog Ends Here =================================================================================\n        \n    # Build UI.\n    script_title = script_name\n    if unique_rig != '':\n        script_title = 'GT - Rig Interface for ' + unique_rig\n      \n    if is_secondary_instance:\n      script_version_title = '  (Extra Instance)'\n    else:\n      script_version_title = '  (v' + script_version + ')'\n      \n    build_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + script_version_title,\\\n                          titleBar=True, mnb=False, mxb=False, sizeable =True)\n\n    cmds.window(rig_interface_window_name, e=True, s=True, wh=[1,1])\n\n    content_main = cmds.columnLayout(adj = True)\n\n    # Title Text\n    title_bgc_color = (.4, .4, .4)\n    cmds.separator(h=10, style='none') # Empty Space\n    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment\n    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column\n    cmds.text(\" \", bgc=title_bgc_color) # Tiny Empty Green Space\n    cmds.text(script_title, bgc=title_bgc_color,  fn=\"boldLabelFont\", align=\"left\")\n    cmds.button( l =\"Help\", bgc=title_bgc_color, c=lambda x:open_gt_tools_documentation())\n    cmds.separator(h=5, style='none') # Empty Space\n        \n    # Body ====================\n    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)\n    \n    cmds.text('Namespace:')\n    namespace_txt = cmds.textField(text=gt_custom_rig_interface_settings.get('namespace'), pht='Namespace:: (Optional)', cc=lambda x:update_stored_settings(is_secondary_instance))\n    \n    cmds.separator(h=10, style='none') # Empty Space\n    \n    form = cmds.formLayout()\n    tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5)\n    cmds.formLayout(form, edit=True, attachForm=((tabs, 'top', 0), (tabs, 'left', 0), (tabs, 'bottom', 0), (tabs, 'right', 0)) )\n\n    ############# FK/IK Switch Tab #############\n    btn_margin = 5\n    fk_ik_switch_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n\n    fk_ik_btn_width = 59\n    cw_fk_ik_states = [(1, fk_ik_btn_width),(2, fk_ik_btn_width),(3, fk_ik_btn_width),(4, fk_ik_btn_width)]\n    cs_fk_ik_states = [(1,2), (2,2), (3,3), (4,2)]\n    \n    switch_btn_width = 120\n    cw_fk_ik_switches = [(1, switch_btn_width),(2, switch_btn_width)]\n    cs_fk_ik_switches = [(1,2), (2,3)]\n    \n    arms_text = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.separator(h=2, style='none') # Empty Space\n    cmds.separator(h=2, style='none') # Empty Space\n    cmds.text('Right Arm:', p=arms_text) #R\n    cmds.text('Left Arm:', p=arms_text) #L\n    \n    arms_switch_state_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=fk_ik_switch_tab)\n    right_arm_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(right_arm_seamless_dict, 'ik_to_fk'), p=arms_switch_state_column) #R\n    right_arm_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(right_arm_seamless_dict, 'fk_to_ik'), p=arms_switch_state_column) #L\n    left_arm_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(left_arm_seamless_dict, 'ik_to_fk'), p=arms_switch_state_column) #R\n    left_arm_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(left_arm_seamless_dict, 'fk_to_ik'), p=arms_switch_state_column) #L\n    \n    arms_switch_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(right_arm_seamless_dict, is_auto_switch=True), p=arms_switch_column) #R\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(left_arm_seamless_dict, is_auto_switch=True), p=arms_switch_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.text('Right Leg:', p=arms_switch_column) #R\n    cmds.text('Left Leg:', p=arms_switch_column) #L\n\n    legs_switch_state_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=fk_ik_switch_tab)\n    right_leg_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(right_leg_seamless_dict, 'ik_to_fk'), p=legs_switch_state_column) #R\n    right_leg_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(right_leg_seamless_dict, 'fk_to_ik'), p=legs_switch_state_column) #L\n    left_leg_fk_btn = cmds.button(l =\"FK\", c=lambda x:update_switch(left_arm_seamless_dict, 'ik_to_fk'), p=legs_switch_state_column) #R\n    left_leg_ik_btn = cmds.button(l =\"IK\", c=lambda x:update_switch(left_arm_seamless_dict, 'fk_to_ik'), p=legs_switch_state_column) #L\n    \n    legs_switch_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=fk_ik_switch_tab)\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(right_leg_seamless_dict, is_auto_switch=True), p=legs_switch_column) #R\n    cmds.button(l =\"Switch\", c=lambda x:update_switch(left_leg_seamless_dict, is_auto_switch=True), p=legs_switch_column) #L\n    \n    # Auto Key Settings (Switch Settings)\n    switch_settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=[(1, 6)], p=fk_ik_switch_tab)\n    cmds.separator(h=15) # Empty Space\n    switch_auto_key_column = cmds.rowColumnLayout(nc=3, cw=[(1, 80),(2, 130),(3, 60)], cs=[(1, 25)], p=fk_ik_switch_tab)\n    auto_key_switch_chk = cmds.checkBox( label='Auto Key',  value=gt_custom_rig_interface_settings.get('auto_key_switch'), cc=lambda x:update_stored_settings(is_secondary_instance))\n    \n    method_container = cmds.rowColumnLayout( p=switch_auto_key_column, numberOfRows=1)\n    auto_key_method_rc = cmds.radioCollection()\n    auto_key_method_rb1 = cmds.radioButton( p=method_container, label=' Bake  ', sl=gt_custom_rig_interface_settings.get('auto_key_method_bake'), cc=lambda x:update_stored_settings(is_secondary_instance))\n    auto_key_method_rb2 = cmds.radioButton( p=method_container,  label=' Sparse ', sl=(not gt_custom_rig_interface_settings.get('auto_key_method_bake')), cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.separator(h=5, style='none', p=fk_ik_switch_tab) # Empty Space\n    \n    switch_range_column = cmds.rowColumnLayout(nc=6, cw=[(1, 40),(2, 40),(3, 30),(4, 30),(5, 40),(6, 30)], cs=[(1, 10), (4, 10)], p=fk_ik_switch_tab)\n    cmds.text('Start:', p=switch_range_column)\n    auto_key_start_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')), p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.button(l =\"Get\", c=lambda x:get_auto_key_current_frame(), p=switch_range_column, h=5) #L\n    cmds.text('End:', p=switch_range_column)\n    auto_key_end_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),p=switch_range_column, cc=lambda x:update_stored_settings(is_secondary_instance))\n    cmds.button(l =\"Get\", c=lambda x:get_auto_key_current_frame('end'), p=switch_range_column, h=5) #L\n    cmds.separator(h=10, style='none', p=fk_ik_switch_tab) # Empty Space\n    \n\n    ############# Pose Management Tab #############\n    pose_management_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n\n    btn_margin = 2\n    \n    cmds.separator(h=5, style='none') # Empty Space\n    pose_title_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.text('Mirror Pose:', p=pose_title_column)\n    cmds.separator(h=5, style='none', p=pose_title_column) # Empty Space\n    \n    \n    mirror_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.text('Right to Left:', p=mirror_pose_column) #R\n    cmds.text('Left to Right:', p=mirror_pose_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.button(l =\"Mirror ->\", c=lambda x:mirror_fk_ik_pose('right'), p=mirror_pose_column) #R\n    cmds.button(l =\"<- Mirror\", c=lambda x:mirror_fk_ik_pose('left'), p=mirror_pose_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    pose_mirror_ik_fk_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=pose_management_tab)\n    \n    # IK Pose Mirror\n    cmds.button(l =\"IK Only >\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R\n    cmds.button(l =\"FK Only >\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #R\n    \n    \n    # FK Pose Mirror\n    cmds.button(l =\"< IK Only\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L\n    cmds.button(l =\"< FK Only\", c=lambda x:gt_rig_pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_mirror_ik_fk_column) #L\n    \n\n    # Reset Pose\n    pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.separator(h=15, style='none', p=pose_management_column) # Empty Space\n    cmds.text('Reset Pose:', p=pose_management_column) #R\n    cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space\n    cmds.button(l =\"Reset Back to Default Pose\", c=lambda x:gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=pose_management_column)\n\n    # Export Import Pose\n    cmds.separator(h=btn_margin, style='none', p=pose_management_column) # Empty Space\n    cmds.separator(h=15, style='none', p=pose_management_column) # Empty Space\n    cmds.text('Import/Export Poses:', p=pose_management_column) \n    \n    import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.button(l =\"Import Current Pose\", c=lambda x:gt_rig_pose_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)\n    cmds.button(l =\"Export Current Pose\", c=lambda x:gt_rig_pose_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) \n\n\n    ############# Animation Management Tab #############\n    \n    anim_management_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1,0)], p=tabs)\n    \n    cmds.separator(h=5, style='none') # Empty Space\n    anim_title_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.text('Mirror Animation:', p=anim_title_column)\n    cmds.separator(h=5, style='none', p=anim_title_column) # Empty Space\n    \n    mirror_anim_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=anim_management_tab)\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.text('Right to Left:', p=mirror_anim_column) #R\n    cmds.text('Left to Right:', p=mirror_anim_column) #L\n    \n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    \n    cmds.button(l =\"Mirror ->\", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'right', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #R\n    cmds.button(l =\"<- Mirror\", c=lambda x:gt_rig_anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], 'left', namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=mirror_anim_column) #L\n    \n    # Reset Animation\n    anim_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.separator(h=15, style='none', p=anim_management_column) # Empty Space\n    cmds.text('Reset Animation:', p=anim_management_column) #R\n    cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space\n    cmds.button(l =\"Reset Animation (Delete Keyframes)\", c=lambda x:gt_rig_anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=anim_management_column)\n    cmds.separator(h=btn_margin, style='none', p=anim_management_column) # Empty Space\n    cmds.button(l =\"Reset Animation and Pose\", c=lambda x:reset_animation_and_pose(), p=anim_management_column)\n    \n    # Export Import Pose\n    cmds.separator(h=17, style='none', p=anim_management_column) # Empty Space\n    cmds.text('Import/Export Animation:', p=anim_management_column) \n\n    import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=anim_management_tab)\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.separator(h=btn_margin, style='none') # Empty Space\n    cmds.button(l =\"Import Animation\", c=lambda x:gt_rig_anim_import(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column)\n    cmds.button(l =\"Export Animation\", c=lambda x:gt_rig_anim_export(namespace=cmds.textField(namespace_txt, q=True, text=True)+namespace_separator), p=import_export_pose_column) \n    \n    ############# Settings Tab #############\n    settings_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,0)], p=tabs)\n    \n    if not is_secondary_instance:\n        # General Settings\n        enabled_bgc_color = (.4, .4, .4)\n        disabled_bgc_color = (.3,.3,.3)\n        cmds.separator(h=5, style='none') # Empty Space\n        cmds.text('General Settings:', font='boldLabelFont')\n        cmds.separator(h=5, style='none') # Empty Space\n        cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 20)], cs=[(1,10)]) \n        \n        # Allow Multiple Instances\n        is_option_enabled = True\n        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac\n        cmds.checkBox( label='  Allow Multiple Instances', value=gt_custom_rig_interface_settings.get('allow_multiple_instances'), ebg=True, cc=lambda x:invert_stored_setting('allow_multiple_instances'), en=is_option_enabled) \n\n        multiple_instances_help_message = 'This option will allow you to open multiple instances of this script. (multiple windows)\\nThis can be helpful in case you are animating more than one character at the same time.\\n\\nThe extra instance will not be allowed to change settings or to set persistent options, so make sure to change these in your main (primary) instance of the script.'\n        multiple_instances_help_title = 'Allow Multiple Instances'\n        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))\n        \n        # Export Thumbnail With Pose\n        is_option_enabled = False\n        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac\n        cmds.checkBox( label='  Export Thumbnail with Pose', value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True, cc=lambda x:invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled) \n\n        export_pose_thumbnail_help_message = 'This option will be included in future versions, thank you for your patience.\\n\\nExports a thumbnail \".jpg\" file together with your \".pose\" file.\\nThis extra thumbnail file can be used to quickly undestand what you pose looks like before importing it.\\n\\nThe thumbnail is a screenshot of you active viewport at the moment of exporting the pose. If necessary, export it again to generate another thumbnail.'\n        export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'\n        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(export_pose_thumbnail_help_message, export_pose_thumbnail_help_title))\n       \n        # Reset Persistent Settings\n        cmds.separator(h=btn_margin, style='none', p=settings_tab) # Empty Space\n        settings_buttons_column = cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1,10)], p=settings_tab) \n        cmds.button(l =\"Reset Persistent Settings\", c=lambda x:reset_persistent_settings_rig_interface(), p=settings_buttons_column)\n    else:\n        # Secondary Instance Can't change settings\n        cmds.rowColumnLayout(settings_tab, e=True, cw=[(1, 250)], cs=[(1,0)])\n        cmds.separator(h=100, style='none') # Empty Space\n        cmds.text('Use main instance for settings', font='boldLabelFont', en=False)\n\n  \n    ################# END TABS #################\n    cmds.tabLayout( tabs, edit=True, tabLabel=((fk_ik_switch_tab, ' FK/IK '), (pose_management_tab, ' Pose '), (anim_management_tab, 'Animation'), (settings_tab, ' Settings ')))\n\n    # Outside Margin\n    cmds.separator(h=10, style='none', p=content_main) # Empty Space\n \n    # Show and Lock Window\n    cmds.showWindow(build_gui_custom_rig_interface)\n    cmds.window(rig_interface_window_name, e=True, s=False)\n    \n    # Set Window Icon\n    qw = omui.MQtUtil.findWindow(rig_interface_window_name)\n    if python_version == 3:\n        widget = wrapInstance(int(qw), QWidget)\n    else:\n        widget = wrapInstance(long(qw), QWidget)\n    icon = QIcon(':/out_timeEditorAnimSource.png')\n    if is_secondary_instance:\n        icon = QIcon(':/animateSnapshot.png')\n    widget.setWindowIcon(icon)\n\n    # Update FK/IK States and Settings for the first run time\n    update_fk_ik_buttons()\n    update_stored_settings(is_secondary_instance)\n\n    # Remove the focus from the textfield and give it to the window\n    cmds.setFocus(rig_interface_window_name)\n\n    # Main GUI Ends Here =================================================================================\n    \n\ndef open_gt_tools_documentation():\n    ''' Opens a web browser with the the auto rigger docs  '''\n    cmds.showHelp ('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True) \n\ndef gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):\n    '''\n    Transfer the position of the FK to IK or IK to FK systems in a seamless way, so the animator can easily switch between one and the other\n    \n            Parameters:\n                ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch\n                direction (optinal, string): Either \"fk_to_ik\" or \"ik_to_fk\". It determines what is the source and what is the target.\n                namespace (optinal, string): In case the rig has a namespace, it will be used to properly select the controls.\n                \n                \n                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the\n                start_time (optinal, int): Where to create the first keyframe\n                end_time (optinal, int): Where to create the last keyframe\n                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.\n    '''\n    def switch(match_only=False):\n        '''\n        Performs the switch operation.\n        Commands were wrapped into a function to be used during the bake operation.\n        \n                Parameters:\n                    match_only (optional, bool) If active (True) it will only match the pose, but not switch\n        \n                Returns:\n                    attr_value (float): Value which the influence attribute was set to. Either 1 (fk_to_ik) or 0 (ik_to_fk).\n                                        This value is returned only if \"match_only\" is False. Otherwise, expect None.\n        '''\n        try:\n            ik_fk_ns_dict = {}\n            for obj in ik_fk_dict:\n                ik_fk_ns_dict[obj] = namespace + ik_fk_dict.get(obj)\n            \n            fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],\n                        [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],\n                        [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]            \n                        \n            if direction == 'fk_to_ik':\n                if ik_fk_dict.get('end_ik_reference') != '':\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_ik_reference'), pos=1, rot=1)\n                else:\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_fk_jnt'), pos=1, rot=1)\n                \n                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1) #@@@\n                pass\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)\n                return 1\n            if direction == 'ik_to_fk':\n                for pair in fk_pairs:\n                    cmds.matchTransform(pair[1], pair[0], pos=1, rot=1)\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)\n                return 0\n        except Exception as e:\n            cmds.warning('An error occurred. Please check if a namespace is necessary or if a control was deleted.     Error: ' + str(e))\n    \n    \n    def print_inview_feedback():\n        '''\n        Prints feedback using inView messages so the user knows what operation was executed.\n        '''\n                \n        is_valid_message = True\n        message_target = 'IK' if direction == 'fk_to_ik' else 'FK'\n        \n        # Try to figure it out system:\n        message_direction = ''\n        pvec_ik_ctrl = ik_fk_dict.get(next(iter(ik_fk_dict)))\n        if pvec_ik_ctrl.startswith('right_'):\n            message_direction = 'right'\n        elif pvec_ik_ctrl.startswith('left_'):\n            message_direction = 'left'\n        else:\n            is_valid_message = False\n        \n        message_limb = ''\n        if 'knee' in pvec_ik_ctrl:\n            message_limb = 'leg'\n        elif 'elbow' in pvec_ik_ctrl:\n            message_limb = 'arm'\n        else:\n            is_valid_message = False\n        \n        message_range = ''\n        if keyframe:\n            message_range = '(Start: <span style=\\\"color:#FFFFFF;\\\">' + str(start_time) + '</span> End: <span style=\\\"color:#FFFFFF;\\\">' + str(end_time) + '</span> Method: <span style=\\\"color:#FFFFFF;\\\">' + method.capitalize() + '</span> )'\n        \n\n        if is_valid_message:\n            # Print Feedback\n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Switched ' + message_direction + ' ' + message_limb + ' to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + message_target +'</span>  ' + message_range, pos='botLeft', fade=True, alpha=.9)\n    \n\n\n    # Find Available Controls\n    available_ctrls = []\n\n    for key in ik_fk_dict:\n        if cmds.objExists(namespace + ik_fk_dict.get(key)):\n            available_ctrls.append(ik_fk_dict.get(key))\n        if cmds.objExists(namespace + key):\n            available_ctrls.append(key)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n    else:\n        if ik_fk_dict.get('incompatible_attr_holder'):\n            auto_clavicle_value = cmds.getAttr(ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence')\n            cmds.setAttr(ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence', 0)\n\n        if keyframe:\n            if method.lower() == 'sparse': # Only Influence Switch\n                original_time = cmds.currentTime(q=True)\n                cmds.currentTime(start_time)\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=start_time, attribute='influenceSwitch')\n                cmds.currentTime(end_time)\n                switch()\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=end_time, attribute='influenceSwitch')\n                cmds.currentTime(original_time)\n                print_inview_feedback()\n            elif method.lower() == 'bake':\n                if start_time >= end_time:\n                    cmds.warning('Invalid range. Please review the stard and end frame and try again.')\n                else:\n                    original_time = cmds.currentTime(q=True)\n                    cmds.currentTime(start_time)\n                    current_time = cmds.currentTime(q=True)\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # Start Switch\n                    for index in range(end_time - start_time):\n                        cmds.currentTime(current_time)\n                        switch(match_only=True)\n                        if direction == 'fk_to_ik':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_ik_ctrl'), time=current_time, attribute=channel+dimension) # Wrist IK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time, attribute=channel+dimension) # PVec Elbow IK Ctrl\n\n                        if direction == 'ik_to_fk':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('base_fk_ctrl'), time=current_time, attribute=channel+dimension) # Shoulder FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_fk_ctrl'), time=current_time, attribute=channel+dimension) # Wrist FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time, attribute=channel+dimension) # Elbow FK Ctrl\n                        current_time += 1\n                    switch()\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # End Switch\n                    cmds.currentTime(original_time)\n                    print_inview_feedback()\n            else:\n                cmds.warning('Invalid method was provided. Must be either \"sparse\" or \"bake\", but got ' + method)\n        else:\n            switch()\n            print_inview_feedback()\n            \n        if ik_fk_dict.get('incompatible_attr_holder'):\n            cmds.setAttr(ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence', auto_clavicle_value)\n            if auto_clavicle_value != 0:\n                # Print Feedback\n                cmds.inViewMessage(amg='</span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">Warning:</span><span style=\\\"color:#FFFFFF;\\\"> Auto clavicle was activated, any unexpected pose offset is likely coming from this automation.', pos='botLeft', fade=True, alpha=.9, fadeStayTime=2000)\n    \n            \n\ndef gt_rig_fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):\n    ''' \n    Calls gt_rig_fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. \n    It automatically checks the influenceSwitch value attribute and determines what direction to take it. \"0-0.5\":IK and \"0.5-1\":FK\n    \n            Parameters:\n                ik_fk_dict (dictionary): A dicitionary containg the elements that are part of the system you want to switch\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n                \n                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the\n                start_time (optinal, int): Where to create the first keyframe\n                end_time (optinal, int): Where to create the last keyframe\n                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.    \n    '''\n    try:\n        if cmds.objExists(namespace + ik_fk_dict.get('switch_ctrl')):\n            current_system = cmds.getAttr(namespace + ik_fk_dict.get('switch_ctrl') + '.influenceSwitch')\n            if current_system < 0.5:\n                gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)\n            else:\n                gt_rig_fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe, start_time=start_time, end_time=end_time, method=method)\n        else:\n            cmds.warning('Switch control was not found. Please check if a namespace is necessary.')\n    except Exception as e:\n        cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))\n\n\n\n\ndef gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''):\n    '''\n    Reset transforms list of controls back to 0 Transalte and Rotate values. \n\n        Parameters:\n                gt_ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. \"_wrist_ctrl\")\n                gt_ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. \"_wrist_ctrl\")\n                gt_ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. \"spine01_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    if len(available_ctrls) == 0:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    else:\n        unique_message = '<' + str(random.random()) + '>'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> Reset!</span>', pos='botLeft', fade=True, alpha=.9)\n    \n    for ctrl in available_ctrls:\n        dimensions = ['x','y','z']\n        transforms = ['t', 'r', 's']\n        for transform in transforms:\n            for dimension in dimensions:\n                try:\n                    if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:\n                        cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)\n                except:\n                    pass\n    \n    # Special Cases\n    special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']\n    for ctrl in special_case_ctrls:\n        if cmds.objExists(namespace + ctrl):\n            if cmds.getAttr(namespace + ctrl + '.' + 'sz', lock=True) is False:\n                    cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)\n                    \ndef gt_rig_pose_mirror(gt_ab_ctrls, source_side, namespace=''):\n    '''\n    Mirrors the character pose from one side to the other\n\n        Parameters:\n                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. \"_wrist_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    # Merge Dictionaries\n    gt_ab_ctrls_dict = {}\n    for ctrl_dict in gt_ab_ctrls:\n        gt_ab_ctrls_dict.update(ctrl_dict)\n   \n    # Find available Ctrls\n    available_ctrls = []\n    for obj in gt_ab_ctrls_dict:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    # Start Mirroring\n    if len(available_ctrls) != 0:\n     \n        errors = []\n            \n        right_side_objects = []\n        left_side_objects = []\n\n        for obj in available_ctrls:  \n            if right_prefix in obj:\n                right_side_objects.append(obj)\n                \n        for obj in available_ctrls:  \n            if left_prefix in obj:\n                left_side_objects.append(obj)\n                \n        for left_obj in left_side_objects:\n            for right_obj in right_side_objects:\n                remove_side_tag_left = left_obj.replace(left_prefix,'')\n                remove_side_tag_right = right_obj.replace(right_prefix,'')\n                if remove_side_tag_left == remove_side_tag_right:\n                    # print(right_obj + ' was paired with ' + left_obj)\n                    \n                    key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]\n                    transforms = []\n\n                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.\n                    transforms.append([True, key[0][0], 'tx']) \n                    transforms.append([True, key[0][1], 'ty'])\n                    transforms.append([True, key[0][2], 'tz'])\n                    transforms.append([True, key[1][0], 'rx'])\n                    transforms.append([True, key[1][1], 'ry'])\n                    transforms.append([True, key[1][2], 'rz'])\n                    \n                    if len(key) > 2: # Mirroring Scale?\n                        transforms.append([True, False, 'sx'])\n                        transforms.append([True, False, 'sy'])\n                        transforms.append([True, False, 'sz'])\n                    \n                    # Transfer Right to Left\n                    if source_side is 'right':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform?\n                                if transform[1]: # Inverted?\n                                    source_transform = (cmds.getAttr(namespace + right_obj + '.' + transform[2]) * -1)\n                                else:\n                                    source_transform = cmds.getAttr(namespace + right_obj + '.' + transform[2])\n\n                                if not cmds.getAttr(namespace + left_obj + '.' + transform[2], lock=True):\n                                    cmds.setAttr(namespace + left_obj + '.' + transform[2], source_transform)\n                                else:\n                                    errors.append(namespace + left_obj + ' \"' + transform[2]+'\" is locked.' )\n                                \n                    # Transfer Left to Right\n                    if source_side is 'left':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform?\n                                if transform[1]: # Inverted?\n                                    source_transform = (cmds.getAttr(namespace + left_obj + '.' + transform[2]) * -1)\n                                else:\n                                    source_transform = cmds.getAttr(namespace + left_obj + '.' + transform[2])\n                                \n                                if not cmds.getAttr(namespace + right_obj + '.' + transform[2], lock=True):\n                                    cmds.setAttr(namespace + right_obj + '.' + transform[2], source_transform)\n                                else:\n                                    errors.append(namespace + right_obj + ' \"' + transform[2]+'\" is locked.' )\n                    \n        # Print Feedback\n        unique_message = '<' + str(random.random()) + '>'\n        source_message = '(Left to Right)'\n        if source_side == 'right':\n            source_message = '(Right to Left)'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)\n                        \n        if len(errors) != 0:\n            unique_message = '<' + str(random.random()) + '>'\n            if len(errors) == 1:\n                is_plural = 'attribute was'\n            else:\n                is_plural = 'attributes were'\n            for error in errors:\n                print(str(error))\n            sys.stdout.write(str(len(errors)) + ' locked '+ is_plural + ' ignored. (Open Script Editor to see a list)\\n')\n    else:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    cmds.setFocus(\"MayaWindow\")\n    \n    \ndef gt_rig_pose_export(namespace =''):\n    ''' \n    Exports a Pose (JSON) file containing the translate, rotate and scale data from the rig controls (used to export a pose)\n    Added a variable called \"gt_auto_biped_export_method\" after v1.3, so the extraction method can be stored.\n    \n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n    successfully_created_file = False\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - POSE File (*.pose)\", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Pose for \"' + script_name + '\"') or []\n        if len(file_name) > 0:\n            pose_file = file_name[0]\n            successfully_created_file = True\n            \n\n    if successfully_created_file and is_valid:\n        export_dict = {'gt_interface_version' : script_version, 'gt_export_method' : 'object-space'}\n        for obj in available_ctrls:\n            translate = cmds.getAttr(obj + '.translate')[0]\n            rotate = cmds.getAttr(obj + '.rotate')[0]\n            scale = cmds.getAttr(obj + '.scale')[0]\n            to_save = [obj, translate, rotate, scale]\n            export_dict[obj] = to_save\n    \n        try: \n            with open(pose_file, 'w') as outfile:\n                json.dump(export_dict, outfile, indent=4)\n\n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Current Pose exported to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(file_name[0]) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n            sys.stdout.write('Pose exported to the file \"' + pose_file + '\".')\n        except Exception as e:\n            print (e)\n            successfully_created_file = False\n            cmds.warning('Couldn\\'t write to file. Please make sure the exporting directory is accessible.')\n\n\n\n\ndef gt_rig_pose_import(debugging=False, debugging_path='', namespace=''):\n    ''' \n    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the \"gt_rig_pose_export\" function)\n    Uses the imported data to set the translate, rotate and scale position of every control curve\n    \n            Parameters:\n                debugging (bool): If debugging, the function will attempt to auto load the file provided in the \"debugging_path\" parameter\n                debugging_path (string): Debugging path for the import function\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    TODO\n        Check import method to use the proper method when setting attributes.\n        Exporting using the export button uses \"setAttr\", extract functions will use \"xform\" instead.\n    \n    ''' \n    def set_unlocked_os_attr(target, attr, value):\n        ''' \n        Sets an attribute to the provided value in case it's not locked (Uses \"cmds.setAttr\" function so object space)\n        \n                Parameters:\n                    target (string): Name of the target object (object that will receive transforms)\n                    attr (string): Name of the attribute to apply (no need to add \".\", e.g. \"rx\" would be enough)\n                    value (float): Value used to set attribute. e.g. 1.5, 2, 5...\n        \n        '''\n        try:\n            if not cmds.getAttr(target + '.' + attr, lock=True):\n                cmds.setAttr(target + '.' + attr, value)\n        except:\n            pass\n            \n    def set_unlocked_ws_attr(target, attr, value_tuple):\n        ''' \n        Sets an attribute to the provided value in case it's not locked (Uses \"cmds.xform\" function with world space)\n        \n                Parameters:\n                    target (string): Name of the target object (object that will receive transforms)\n                    attr (string): Name of the attribute to apply (no need to add \".\", e.g. \"rx\" would be enough)\n                    value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)\n        \n        '''\n        try:\n            if attr == 'translate':\n                cmds.xform(target, ws=True, t=value_tuple)\n            if attr == 'rotate':\n                cmds.xform(target, ws=True, ro=value_tuple)\n            if attr == 'scale':\n                cmds.xform(target, ws=True, s=value_tuple)\n        except:\n            pass\n     \n     \n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # Track Current State\n    import_version = 0.0\n    import_method = 'object-space'\n    \n    if not debugging:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - POSE File (*.pose)\", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for \"' + script_name + '\"') or []\n    else:\n        file_name = [debugging_path]\n    \n    if len(file_name) > 0:\n        pose_file = file_name[0]\n        file_exists = True\n    else:\n        file_exists = False\n    \n    if file_exists:\n        try: \n            with open(pose_file) as json_file:\n                data = json.load(json_file)\n                try:\n                    is_valid_file = True\n                    is_operation_valid = True\n\n                    if not data.get('gt_interface_version'):\n                        is_valid_file = False\n                        cmds.warning('Imported file doesn\\'t seem to be compatible or is missing data.')\n                    else:                       \n                        import_version = float(re.sub(\"[^0-9]\", \"\", str(data.get('gt_interface_version'))))\n                \n                    if data.get('gt_export_method'):\n                      import_method = data.get('gt_export_method')\n                \n                    if len(available_ctrls) == 0:\n                        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n                        is_operation_valid = False\n                        \n                    if is_operation_valid:\n                        # Object-Space\n                        for ctrl in data:\n                            if ctrl != 'gt_interface_version' and ctrl != 'gt_export_method':\n                                curent_object = data.get(ctrl) # Name, T, R, S\n                                if cmds.objExists(namespace + curent_object[0]):\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])\n                                    set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])\n                        \n                        unique_message = '<' + str(random.random()) + '>'\n                        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Pose imported from </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(pose_file) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n                        sys.stdout.write('Pose imported from the file \"' + pose_file + '\".')\n                    \n                except Exception as e:\n                    print(e)\n                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid POSE file.')\n        except:\n            file_exists = False\n            cmds.warning('Couldn\\'t read the file. Please make sure the selected file is accessible.')\n\n\n\ndef gt_rig_pose_flip(namespace =''):\n    ''' \n    Flips the current pose (Essentially like a mirror in both sides at te same time)\n    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls (used to store a pose)\n    \n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        pose_dict = {}\n        for obj in available_ctrls:\n            # Get Pose\n            translate = cmds.getAttr(obj + '.translate')[0]\n            rotate = cmds.getAttr(obj + '.rotate')[0]\n            scale = cmds.getAttr(obj + '.scale')[0]\n            to_save = [obj, translate, rotate, scale]\n            pose_dict[obj] = to_save\n            \n            # Reset Current Pose ?\n            # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)\n        \n            \n            # TODO\n            # Set Pose\n            # for ctrl in pose_dict:\n            #     curent_object = pose_dict.get(ctrl) # Name, T, R, S\n            #     if cmds.objExists(namespace + curent_object[0]):\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])\n            #         set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])\n            \n\n\ndef gt_rig_anim_reset(namespace=''):\n    '''\n    Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)\n    \n            Parameters:\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    \n    '''   \n    function_name = 'GT Reset Rig Animation'\n    cmds.undoInfo(openChunk=True, chunkName=function_name)\n    try:\n        keys_ta = cmds.ls(type='animCurveTA')\n        keys_tl = cmds.ls(type='animCurveTL')\n        keys_tt = cmds.ls(type='animCurveTT')\n        keys_tu = cmds.ls(type='animCurveTU')\n        deleted_counter = 0\n        all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu\n        for key in all_keyframes:\n            try:\n                key_target_namespace = cmds.listConnections(key, destination=True)[0].split(':')[0]\n                if key_target_namespace == namespace.replace(':', '') or len(cmds.listConnections(key, destination=True)[0].split(':')) == 1:\n                    cmds.delete(key)\n                    deleted_counter += 1\n            except:\n                pass   \n        message = '<span style=\\\"color:#FF0000;text-decoration:underline;\\\">' +  str(deleted_counter) + ' </span>'\n        is_plural = 'keyframe nodes were'\n        if deleted_counter == 1:\n            is_plural = 'keyframe node was'\n        message += is_plural + ' deleted.'\n        \n        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)\n        \n        # gt_rig_pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace) # Add as an option?\n        \n    except Exception as e:\n        cmds.warning(str(e))\n    finally:\n        cmds.undoInfo(closeChunk=True, chunkName=function_name)\n        \n        \ndef gt_rig_anim_mirror(gt_ab_ctrls, source_side, namespace=''):\n    '''\n    Mirrors the character animation from one side to the other\n\n        Parameters:\n                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. \"_wrist_ctrl\")\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    '''\n    \n    def invert_float_list_values(float_list):\n        '''\n        Returns a list where all the float values are inverted. For example, if the value is 5, it will then become -5.\n\n            Parameters:\n                    float_list (list) : A list of floats.\n                    \n            Returns:\n                    inverted_float_list (list): A list of floats with their values inverted\n    \n        '''\n\n        inverted_values = []\n        for val in float_list:\n            inverted_values.append(val* -1)\n        return inverted_values\n\n    \n    # Merge Dictionaries\n    gt_ab_ctrls_dict = {}\n    for ctrl_dict in gt_ab_ctrls:\n        gt_ab_ctrls_dict.update(ctrl_dict)\n   \n    # Find available Ctrls\n    available_ctrls = []\n    for obj in gt_ab_ctrls_dict:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    # Start Mirroring\n    if len(available_ctrls) != 0:\n     \n        errors = []\n            \n        right_side_objects = []\n        left_side_objects = []\n\n        for obj in available_ctrls:  \n            if right_prefix in obj:\n                right_side_objects.append(obj)\n                \n        for obj in available_ctrls:  \n            if left_prefix in obj:\n                left_side_objects.append(obj)\n                \n        for left_obj in left_side_objects:\n            for right_obj in right_side_objects:\n                remove_side_tag_left = left_obj.replace(left_prefix,'')\n                remove_side_tag_right = right_obj.replace(right_prefix,'')\n                if remove_side_tag_left == remove_side_tag_right:\n                    # print(right_obj + ' was paired with ' + left_obj)\n                    \n                    key = gt_ab_ctrls_dict.get(remove_side_tag_right) # TR = [(ivnerted?,ivnerted?,ivnerted?),(ivnerted?,ivnerted?,ivnerted?)]\n                    transforms = []\n\n                    # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.\n                    transforms.append([True, key[0][0], 'tx']) \n                    transforms.append([True, key[0][1], 'ty'])\n                    transforms.append([True, key[0][2], 'tz'])\n                    transforms.append([True, key[1][0], 'rx'])\n                    transforms.append([True, key[1][1], 'ry'])\n                    transforms.append([True, key[1][2], 'rz'])\n                    \n                    if len(key) > 2: # Mirroring Scale?\n                        transforms.append([True, False, 'sx'])\n                        transforms.append([True, False, 'sy'])\n                        transforms.append([True, False, 'sz'])\n                    \n                    # Transfer Right to Left \n                    if source_side is 'right':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform? Inverted? Name of the Attr\n                                try:\n                                    attr = transform[2]\n                                    \n                                    # Get Values\n                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=attr)\n                                    values = cmds.keyframe(namespace + right_obj, q=1, at=attr, valueChange=True)\n                                    \n                                    in_angle_tangent = cmds.keyTangent(namespace + right_obj, at=attr, inAngle=True, query=True)\n                                    out_angle_tanget = cmds.keyTangent(namespace + right_obj, at=attr, outAngle=True, query=True)\n                                    is_locked = cmds.keyTangent(namespace + right_obj, at=attr, weightLock=True, query=True)\n                                    in_weight = cmds.keyTangent(namespace + right_obj, at=attr, inWeight=True, query=True)\n                                    out_weight = cmds.keyTangent(namespace + right_obj, at=attr, outWeight=True, query=True)\n                                    in_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, inTangentType=True, query=True)\n                                    out_tangent_type = cmds.keyTangent(namespace + right_obj, at=attr, outTangentType=True, query=True)\n                                    \n                                    if transform[1]: # Inverted?\n                                        values = invert_float_list_values(values)\n                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)\n                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)\n                                        in_weight = invert_float_list_values(in_weight)\n                                        out_weight = invert_float_list_values(out_weight)\n\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        time = frames[index]\n                                        cmds.setKeyframe(namespace + left_obj, time=time, attribute=attr, value=values[index])\n                                        # Set Tangents\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)\n                                        cmds.keyTangent(namespace + left_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)\n                                except:\n                                    pass # 0 keyframes\n\n                        # Other Attributes\n                        attributes = cmds.listAnimatable(namespace + right_obj)\n                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']\n                        for attr in attributes:\n                            try:\n                                short_attr = attr.split('.')[-1]\n                                if short_attr not in default_channels:\n                                     # Get Keys/Values\n                                    frames = cmds.keyframe(namespace + right_obj, q=1, at=short_attr)\n                                    values = cmds.keyframe(namespace + right_obj, q=1, at=short_attr, valueChange=True)\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=short_attr, value=values[index])\n                            except:\n                                pass # 0 keyframes\n                    \n                    # Transfer Left to Right\n                    if source_side is 'left':\n                        for transform in transforms:\n                            if transform[0]: # Using Transform? Inverted? Name of the Attr\n                                try:\n                                    attr = transform[2]\n                                    \n                                    # Get Values\n                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=attr)\n                                    values = cmds.keyframe(namespace + left_obj, q=1, at=attr, valueChange=True)\n                                    \n                                    in_angle_tangent = cmds.keyTangent(namespace + left_obj, at=attr, inAngle=True, query=True)\n                                    out_angle_tanget = cmds.keyTangent(namespace + left_obj, at=attr, outAngle=True, query=True)\n                                    is_locked = cmds.keyTangent(namespace + left_obj, at=attr, weightLock=True, query=True)\n                                    in_weight = cmds.keyTangent(namespace + left_obj, at=attr, inWeight=True, query=True)\n                                    out_weight = cmds.keyTangent(namespace + left_obj, at=attr, outWeight=True, query=True)\n                                    in_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, inTangentType=True, query=True)\n                                    out_tangent_type = cmds.keyTangent(namespace + left_obj, at=attr, outTangentType=True, query=True)\n                                    \n                                    if transform[1]: # Inverted?\n                                        values = invert_float_list_values(values)\n                                        in_angle_tangent = invert_float_list_values(in_angle_tangent)\n                                        out_angle_tanget = invert_float_list_values(out_angle_tanget)\n                                        in_weight = invert_float_list_values(in_weight)\n                                        out_weight = invert_float_list_values(out_weight)\n\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        time = frames[index]\n                                        cmds.setKeyframe(namespace + right_obj, time=time, attribute=attr, value=values[index])\n                                        # Set Tangents\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), lock=is_locked[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inAngle=in_angle_tangent[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outAngle=out_angle_tanget[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inWeight=in_weight[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outWeight=out_weight[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), inTangentType=in_tangent_type[index], e=True)\n                                        cmds.keyTangent(namespace + right_obj, at=attr, time=(time,time), outTangentType=out_tangent_type[index], e=True)\n                                except:\n                                    pass # 0 keyframes\n\n                        # Other Attributes\n                        attributes = cmds.listAnimatable(namespace + left_obj)\n                        default_channels = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']\n                        for attr in attributes:\n                            try:\n                                short_attr = attr.split('.')[-1]\n                                if short_attr not in default_channels:\n                                     # Get Keys/Values\n                                    frames = cmds.keyframe(namespace + left_obj, q=1, at=short_attr)\n                                    values = cmds.keyframe(namespace + left_obj, q=1, at=short_attr, valueChange=True)\n\n                                    # Set Keys/Values\n                                    for index in range(len(values)):\n                                        cmds.setKeyframe(namespace + right_obj, time=frames[index], attribute=short_attr, value=values[index])\n                            except:\n                                pass # 0 keyframes\n\n        # Print Feedback\n        unique_message = '<' + str(random.random()) + '>'\n        source_message = '(Left to Right)'\n        if source_side == 'right':\n            source_message = '(Right to Left)'\n        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Animation </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\"> mirrored!</span> ' + source_message, pos='botLeft', fade=True, alpha=.9)\n                           \n        if len(errors) != 0:\n            unique_message = '<' + str(random.random()) + '>'\n            if len(errors) == 1:\n                is_plural = ' error '\n            else:\n                is_plural = ' errors '\n            for error in errors:\n                print(str(error))\n            sys.stdout.write(str(len(errors)) + is_plural + 'occurred. (Open Script Editor to see a list)\\n')\n    else:\n        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n    cmds.setFocus(\"MayaWindow\")\n\n\n\ndef gt_rig_anim_export(namespace =''):\n    ''' \n    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe (animation) data from the rig controls.\n\n        Parameters:\n            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.\n    \n    ''' \n    # Validate Operation and Write file\n    is_valid = True\n    successfully_created_file = False\n\n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n\n    if is_valid:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - ANIM File (*.anim)\", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Rig Animation for \"' + script_name + '\"') or []\n        if len(file_name) > 0:\n            pose_file = file_name[0]\n            successfully_created_file = True\n            \n\n    if successfully_created_file and is_valid:\n        export_dict = {'gt_interface_version' : script_version, 'gt_export_method' : 'object-space'}\n                \n        # Extract Keyframes:\n        for obj in available_ctrls:\n            attributes = cmds.listAnimatable(namespace + obj)\n            for attr in attributes:\n                try:\n                    short_attr = attr.split('.')[-1]\n                    frames = cmds.keyframe(namespace + obj, q=1, at=short_attr)\n                    values = cmds.keyframe(namespace + obj, q=1, at=short_attr, valueChange=True)\n                    in_angle_tangent = cmds.keyTangent(namespace + obj, at=short_attr, inAngle=True, query=True)\n                    out_angle_tanget = cmds.keyTangent(namespace + obj, at=short_attr, outAngle=True, query=True)\n                    is_locked = cmds.keyTangent(namespace + obj, at=short_attr, weightLock=True, query=True)\n                    in_weight = cmds.keyTangent(namespace + obj, at=short_attr, inWeight=True, query=True)\n                    out_weight = cmds.keyTangent(namespace + obj, at=short_attr, outWeight=True, query=True)\n                    in_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, inTangentType=True, query=True)\n                    out_tangent_type = cmds.keyTangent(namespace + obj, at=short_attr, outTangentType=True, query=True)\n                    export_dict['{}.{}'.format(obj, short_attr)] = zip(frames, values, in_angle_tangent, out_angle_tanget, is_locked, in_weight, out_weight, in_tangent_type, out_tangent_type)\n                except:\n                    pass # 0 keyframes\n\n\n        try: \n            with open(pose_file, 'w') as outfile:\n                json.dump(export_dict, outfile, indent=4)\n      \n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Current Animation exported to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(file_name[0]) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n            sys.stdout.write('Animation exported to the file \"' + pose_file + '\".')\n        except Exception as e:\n            print (e)\n            successfully_created_file = False\n            cmds.warning('Couldn\\'t write to file. Please make sure the exporting directory is accessible.')\n\n\ndef gt_rig_anim_import(debugging=False, debugging_path='', namespace=''):\n    ''' \n    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the \"gt_rig_anim_export\" function)\n    Uses the imported data to set the translate, rotate and scale position of every control curve\n    \n            Parameters:\n                debugging (bool): If debugging, the function will attempt to auto load the file provided in the \"debugging_path\" parameter\n                debugging_path (string): Debugging path for the import function\n                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    \n    ''' \n    # Find Available Controls\n    available_ctrls = []\n    for obj in gt_ab_ik_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_fk_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_general_ctrls:\n        if cmds.objExists(namespace + left_prefix + obj):\n            available_ctrls.append(left_prefix + obj)\n        if cmds.objExists(namespace + right_prefix + obj):\n            available_ctrls.append(right_prefix + obj)\n            \n    for obj in gt_ab_center_ctrls:\n        if cmds.objExists(namespace + obj):\n            available_ctrls.append(obj)\n    \n    # Track Current State\n    import_version = 0.0\n    import_method = 'object-space'\n    \n    if not debugging:\n        file_name = cmds.fileDialog2(fileFilter=script_name + \" - ANIM File (*.anim)\", dialogStyle=2, fileMode= 1, okCaption= 'Import', caption= 'Importing Proxy Pose for \"' + script_name + '\"') or []\n    else:\n        file_name = [debugging_path]\n    \n    if len(file_name) > 0:\n        anim_file = file_name[0]\n        file_exists = True\n    else:\n        file_exists = False\n    \n    if file_exists:\n        try: \n            with open(anim_file) as json_file:\n                data = json.load(json_file)\n                try:\n                    is_valid_file = True\n                    is_operation_valid = True\n\n                    if not data.get('gt_interface_version'):\n                        is_valid_file = False\n                        cmds.warning('Imported file doesn\\'t seem to be compatible or is missing data.')\n                    else:                       \n                        import_version = float(re.sub(\"[^0-9]\", \"\", str(data.get('gt_interface_version'))))\n                \n                    if data.get('gt_export_method'):\n                      import_method = data.get('gt_export_method')\n                \n                    if len(available_ctrls) == 0:\n                        cmds.warning('No controls were found. Please check if a namespace is necessary.')\n                        is_operation_valid = False\n                        \n                    if is_operation_valid:\n                        # Object-Space\n                        for key, dict_value in data.iteritems():\n                            if key != 'gt_interface_version' and key != 'gt_export_method':\n                                for key_data in dict_value:\n                                    # Unpack Data\n                                    time = key_data[0]\n                                    value = key_data[1]\n                                    in_angle_tangent = key_data[2]\n                                    out_angle_tanget = key_data[3] \n                                    is_locked = key_data[4]\n                                    in_weight = key_data[5]\n                                    out_weight = key_data[6] \n                                    in_tangent_type = key_data[7] \n                                    out_tangent_type = key_data[8] \n                                    \n                                    try:\n                                        obj, attr = key.split('.')\n                                        cmds.setKeyframe(namespace + obj, time=time, attribute=attr, value=value)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), lock=is_locked, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inAngle=in_angle_tangent, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outAngle=out_angle_tanget, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inWeight=in_weight, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outWeight=out_weight, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), inTangentType=in_tangent_type, e=True)\n                                        cmds.keyTangent(namespace + obj, at=attr, time=(time,time), outTangentType=out_tangent_type, e=True)\n                                    except:\n                                        pass\n\n                        unique_message = '<' + str(random.random()) + '>'\n                        cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Animation imported from </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + os.path.basename(anim_file) +'</span><span style=\\\"color:#FFFFFF;\\\">.</span>', pos='botLeft', fade=True, alpha=.9)\n                        sys.stdout.write('Animation imported from the file \"' + anim_file + '\".')\n                            \n                except Exception as e:\n                    print(e)\n                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')\n        except:\n            file_exists = False\n            cmds.warning('Couldn\\'t read the file. Please make sure the selected file is accessible.')\n\n\ndef gt_rig_ik_parent_switch(ik_fk_dict, target='world', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):\n    '''\n    Transfer the position of the FK to IK or IK to FK systems in a seamless way, so the animator can easily switch between one and the other\n    \n            Parameters:\n                ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch\n                direction (optinal, string): Either \"fk_to_ik\" or \"ik_to_fk\". It determines what is the source and what is the target.\n                namespace (optinal, string): In case the rig has a namespace, it will be used to properly select the controls.\n                \n                \n                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the\n                start_time (optinal, int): Where to create the first keyframe\n                end_time (optinal, int): Where to create the last keyframe\n                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.\n    '''\n    def switch(match_only=False):\n        '''\n        Performs the switch operation.\n        Commands were wrapped into a function to be used during the bake operation.\n        \n                Parameters:\n                    match_only (optional, bool) If active (True) it will only match the pose, but not switch\n        \n                Returns:\n                    attr_value (float): Value which the influence attribute was set to. Either 1 (fk_to_ik) or 0 (ik_to_fk).\n                                        This value is returned only if \"match_only\" is False. Otherwise, expect None.\n        '''\n        try:\n            ik_fk_ns_dict = {}\n            for obj in ik_fk_dict:\n                ik_fk_ns_dict[obj] = namespace + ik_fk_dict.get(obj)\n            \n            fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],\n                        [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],\n                        [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]            \n                        \n            if direction == 'fk_to_ik':\n                if ik_fk_dict.get('end_ik_reference') != '':\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_ik_reference'), pos=1, rot=1)\n                else:\n                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_fk_jnt'), pos=1, rot=1)\n                \n                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1)\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)\n                return 1\n            if direction == 'ik_to_fk':\n                for pair in fk_pairs:\n                    cmds.matchTransform(pair[1], pair[0], pos=1, rot=1)\n                if not match_only:\n                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)\n                return 0\n        except Exception as e:\n            cmds.warning('An error occurred. Please check if a namespace is necessary or if a control was deleted.     Error: ' + str(e))\n    \n    \n    def print_inview_feedback():\n        '''\n        Prints feedback using inView messages so the user knows what operation was executed.\n        '''\n        \n\n        # namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'\n        \n        is_valid_message = True\n        message_target = 'IK' if direction == 'fk_to_ik' else 'FK'\n        \n        # Try to figure it out system:\n        message_direction = ''\n        pvec_ik_ctrl = ik_fk_dict.get(next(iter(ik_fk_dict)))\n        if pvec_ik_ctrl.startswith('right_'):\n            message_direction = 'right'\n        elif pvec_ik_ctrl.startswith('left_'):\n            message_direction = 'left'\n        else:\n            is_valid_message = False\n        \n        message_limb = ''\n        if 'knee' in pvec_ik_ctrl:\n            message_limb = 'leg'\n        elif 'elbow' in pvec_ik_ctrl:\n            message_limb = 'arm'\n        else:\n            is_valid_message = False\n        \n        message_range = ''\n        if keyframe:\n            message_range = '(Start: <span style=\\\"color:#FFFFFF;\\\">' + str(start_time) + '</span> End: <span style=\\\"color:#FFFFFF;\\\">' + str(end_time) + '</span> Method: <span style=\\\"color:#FFFFFF;\\\">' + method.capitalize() + '</span> )'\n        \n\n        if is_valid_message:\n            # Print Feedback\n            unique_message = '<' + str(random.random()) + '>'\n            cmds.inViewMessage(amg=unique_message + '<span style=\\\"color:#FFFFFF;\\\">Switched ' + message_direction + ' ' + message_limb + ' to </span><span style=\\\"color:#FF0000;text-decoration:underline;\\\">' + message_target +'</span>  ' + message_range, pos='botLeft', fade=True, alpha=.9)\n    \n\n\n    # Find Available Controls\n    available_ctrls = []\n\n    for key in ik_fk_dict:\n        if cmds.objExists(namespace + ik_fk_dict.get(key)):\n            available_ctrls.append(ik_fk_dict.get(key))\n        if cmds.objExists(namespace + key):\n            available_ctrls.append(key)\n    \n    # No Controls were found\n    if len(available_ctrls) == 0:\n        is_valid=False\n        cmds.warning('No controls were found. Make sure you are using the correct namespace.')\n\n    else:\n        if keyframe:\n            if method.lower() == 'sparse': # Only Influence Switch\n                original_time = cmds.currentTime(q=True)\n                cmds.currentTime(start_time)\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=start_time, attribute='influenceSwitch')\n                cmds.currentTime(end_time)\n                switch()\n                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=end_time, attribute='influenceSwitch')\n                cmds.currentTime(original_time)\n                print_inview_feedback()\n            elif method.lower() == 'bake':\n                if start_time >= end_time:\n                    cmds.warning('Invalid range. Please review the stard and end frame and try again.')\n                else:\n                    original_time = cmds.currentTime(q=True)\n                    cmds.currentTime(start_time)\n                    current_time = cmds.currentTime(q=True)\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # Start Switch\n                    for index in range(end_time - start_time):\n                        cmds.currentTime(current_time)\n                        switch(match_only=True)\n                        if direction == 'fk_to_ik':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_ik_ctrl'), time=current_time, attribute=channel+dimension) # Wrist IK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time, attribute=channel+dimension) # PVec Elbow IK Ctrl\n\n                        if direction == 'ik_to_fk':\n                            for channel in ['t','r']:\n                                for dimension in ['x', 'y', 'z']:\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('base_fk_ctrl'), time=current_time, attribute=channel+dimension) # Shoulder FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_fk_ctrl'), time=current_time, attribute=channel+dimension) # Wrist FK Ctrl\n                                    cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time, attribute=channel+dimension) # Elbow FK Ctrl\n                        current_time += 1\n                    switch()\n                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # End Switch\n                    cmds.currentTime(original_time)\n                    print_inview_feedback()\n            else:\n                cmds.warning('Invalid method was provided. Must be either \"sparse\" or \"bake\", but got ' + method)\n        else:\n            switch()\n            print_inview_feedback()\n\n\n#Build UI\nif __name__ == '__main__':\n    build_gui_custom_rig_interface()" ,
                label='GTRig', tooltip='This button opens the Custom Rig Interface for GT Auto Biped Rigger.', image='out_timeEditorAnimSource.png', label_color=(1, 0.45, 0))
     cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">Custom Rig Interface</span> button was added to your current shelf.', pos='botLeft', fade=True, alpha=.9)
         
@@ -9844,7 +10333,7 @@ def extract_proxy_pose():
     
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
+        file_name = cmds.fileDialog2(fileFilter=script_name + ' - PPOSE File (*.ppose);;' + script_name + ' - JSON File (*.json)', dialogStyle=2, okCaption= 'Export', caption= 'Exporting Proxy Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -9914,6 +10403,15 @@ def extract_proxy_pose():
                 if jnt_key.replace('_' + jnt_suffix, '_proxy_crv') == proxy_key:
                     export_dict[proxy_key] = values_to_store
         
+        # Heel Pivot Extraction 
+        for pivot in ['left_heel_pivotGrp', 'right_heel_pivotGrp']:
+            if cmds.objExists(pivot):
+                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
+                cmds.delete(cmds.parentConstraint(pivot, temp_grp))
+                pivot_pos = extract_transform_joint_to_proxy(temp_grp, ignore_translate=False, ignore_rotate=True, ignore_scale=True)
+                cmds.delete(temp_grp)
+                export_dict[pivot.replace('_pivotGrp', '_proxy_pivot')] = (pivot.replace('_pivotGrp', '_pivot_proxy'), pivot_pos[1], pivot_pos[2], pivot_pos[3])
+ 
         try: 
             with open(pose_file, 'w') as outfile:
                 json.dump(export_dict, outfile, indent=4)
@@ -9926,10 +10424,15 @@ def extract_proxy_pose():
             successfully_created_file = False
             cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
 
-def toggle_rigging_attr():
+def toggle_rigging_attr(force_hidden=False):
     '''
     Toggles the visibility of custom attributes that are usually used only during the creation of a rig.
     For example, the limit attributes for the fingers or the option to automate the FK/IK swithc visibility.
+    
+            Parameters:
+                force_hidden (optional, bool): Forced is to hide rigging attributes independently to their current state
+                
+                TODO: force_hidden
     '''
     controls_fingers = ['left_fingers_ctrl','right_fingers_ctrl']
     attributes_fingers = ['fingersAutomation',

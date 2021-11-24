@@ -40,6 +40,9 @@
  Made script compatible with Python 3 (Maya 2022+)
  Removed a few old unecessary lines
  
+ 1.6.1 - 2021-11-23
+ Fixed a typo in the status bar
+ 
  Todo:
     Improve embeds for discord image uploader - Add colors, emojis and more
     Add option to deactive threading. (This should affect all send functions)
@@ -390,7 +393,7 @@ def build_gui_maya_to_discord():
     cmds.separator(h=5)
     cmds.separator(h=7, style='none') # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 100),(2, 143),(4, 37)], cs=[(1, 18),(2, 0),(3, 0),(4, 0)], p=content_main)
-    cmds.text(l='Webhoook Name:', align="center", fn="boldLabelFont")
+    cmds.text(l='Webhook Name:  ', align="center", fn="boldLabelFont")
     webhook_name_text = cmds.text(l='...', align="center", fn="tinyBoldLabelFont")
     cmds.separator(h=7, style='none') # Empty Space
     
