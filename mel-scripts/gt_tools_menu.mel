@@ -147,6 +147,9 @@
 //   1.7.10
 //   Added optionVar "gt_check_for_updates_interval_days" and set it to 15 in case it doesn't exist (default value)
 //
+//   1.7.21
+//   Added World Space Baker
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -226,6 +229,12 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -c ("python(\"import gt_transfer_transforms\\nif python_version==3:\\n\\timportlib.reload(gt_transfer_transforms)\\nelse:\\n\\treload(gt_transfer_transforms)\\ngt_transfer_transforms.build_gui_transfer_transforms()\");") 
     -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
     -image "transform.svg" ;
+    
+    menuItem 
+    -l ("World Space Baker") 
+    -c ("python(\"import gt_world_space_baker\\nif python_version==3:\\n\\timportlib.reload(gt_world_space_baker)\\nelse:\\n\\treload(gt_world_space_baker)\\ngt_world_space_baker.build_gui_world_space_baker()\");") 
+    -ann ("Script for getting and setting translate and rotate world space data.") 
+    -image "buttonManip.svg" ;
     
     menuItem 
     -l ("Render Checklist") 
