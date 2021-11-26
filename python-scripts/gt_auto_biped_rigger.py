@@ -197,8 +197,9 @@
  Updated stretchy system to accept different joint scale channels
  Removed tagged version of the rotation order enum
  
- 1.8.7 - 2021-11-24
+ 1.8.7 - 2021-11-25
  Changed the general scale calculation sligtly
+ Fixed issue where spine04_ctrl curve would be rotated incorrectly when using uniform orients 
 
  TODO:
     Head as IK? Rotate the neck without rotating the head.
@@ -267,7 +268,7 @@ debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
-debugging_display_lra = True # Display LRA for all joints after generating
+debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.ppose' # Path to auto impor
@@ -4460,7 +4461,7 @@ def create_controls():
     spine04_ctrl = cmds.curve(name=gt_ab_joints.get('spine04_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.103, -0.881, -0.16], [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16], [-0.023, -0.918, 0.0], [-0.103, -0.881, 0.16], [0.0, -0.881, 0.16], [0.103, -0.881, 0.16], [0.023, -0.918, 0.0], [0.103, -0.881, -0.16], [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
     
     if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
-        orient_offset(spine03_ctrl, (90,0,-90))
+        orient_offset(spine04_ctrl, (90,0,-90))
     
     cmds.setAttr(spine04_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine04_ctrl + '.scaleY', general_scale_offset)
