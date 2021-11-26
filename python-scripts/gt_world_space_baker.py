@@ -5,9 +5,12 @@
  1. This script stores animation according to the provided time line range for the selected controls
  2. Then forces the control back into that position by baking world space coordinates
  
+ 1.0.1 - 2021-11-26
+ Deactivated viewport refresh when extracting/baking keys to speed up process
+ Created undo chunk to bake operation
+ 
  TODO:
-    Add sparse version (original keys are already being stored in the "gt_world_space_baker_anim_storage" dictionary.
-
+    Add sparse key option
 
 """
 try:
@@ -32,7 +35,7 @@ import sys
 script_name = "GT - World Space Baker"
 
 # Version:
-script_version = "1.0"
+script_version = "1.0.1"
 
 #Python Version
 python_version = sys.version_info.major
@@ -273,14 +276,14 @@ def build_gui_help_world_space_baker():
     cmds.window(window_name, title= script_name + " Help", mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1,1])
 
-    cmds.columnLayout("main_column", p= window_name)
+    cmds.columnLayout("main_column", p=window_name)
    
     # Title Text
-    cmds.separator(h=12, style='none') # Empty Space
+    cmds.separator(h=10, style='none') # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
     cmds.text(script_name + " Help", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
-    cmds.separator(h=10, style='none', p="main_column") # Empty Space
+    cmds.separator(h=15, style='none', p="main_column") # Empty Space
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 210)], cs=[(1,55)], p="main_column")
@@ -373,70 +376,77 @@ def extract_world_space_data():
         
     # Extract Keyframes:
     if is_valid:
-        for obj in available_ctrls:
-            attributes = cmds.listAnimatable(obj)
-            needs_ws_transforms = True
-            frame_translate_values = []
-            frame_rotate_values = []
-            for attr in attributes:
-                
-                try:
-                    # short_attr = attr.split('.')[-1]
-                    # frames = cmds.keyframe(obj, q=1, at=short_attr)
-                    # values = cmds.keyframe(obj, q=1, at=short_attr, valueChange=True)
-                    # in_angle_tangent = cmds.keyTangent(obj, at=short_attr, inAngle=True, query=True)
-                    # out_angle_tanget = cmds.keyTangent(obj, at=short_attr, outAngle=True, query=True)
-                    # is_locked = cmds.keyTangent(obj, at=short_attr, weightLock=True, query=True)
-                    # in_weight = cmds.keyTangent(obj, at=short_attr, inWeight=True, query=True)
-                    # out_weight = cmds.keyTangent(obj, at=short_attr, outWeight=True, query=True)
-                    # in_tangent_type = cmds.keyTangent(obj, at=short_attr, inTangentType=True, query=True)
-                    # out_tangent_type = cmds.keyTangent(obj, at=short_attr, outTangentType=True, query=True)
-                    # gt_world_space_baker_anim_storage['{}.{}'.format(obj, short_attr)] = zip(frames, values, in_angle_tangent, out_angle_tanget, is_locked, in_weight, out_weight, in_tangent_type, out_tangent_type)
+        try:
+            cmds.refresh(suspend=True)
+            for obj in available_ctrls:
+                attributes = cmds.listAnimatable(obj)
+                needs_ws_transforms = True
+                frame_translate_values = []
+                frame_rotate_values = []
+                for attr in attributes:
                     
-                    # WS Values # Translate and Rotate for the desired frame range
-                    if 'translate' in attr or 'rotate' in attr:  
-                        if needs_ws_transforms:
-                            cmds.currentTime(gt_world_space_baker_settings.get('start_time_range'))
-                            
-                            for index in range(gt_world_space_baker_settings.get('end_time_range') - gt_world_space_baker_settings.get('start_time_range')+1):
-                                frame_translate_values.append([cmds.currentTime(q=True), cmds.xform(obj, ws=True, q=True, t=True)])
-                                frame_rotate_values.append([cmds.currentTime(q=True), cmds.xform(obj, ws=True, q=True, ro=True)])
-                                cmds.currentTime(cmds.currentTime(q=True)+1)
-                            needs_ws_transforms = False
-                            
+                    try:
+                        # short_attr = attr.split('.')[-1]
+                        # frames = cmds.keyframe(obj, q=1, at=short_attr)
+                        # values = cmds.keyframe(obj, q=1, at=short_attr, valueChange=True)
+                        # in_angle_tangent = cmds.keyTangent(obj, at=short_attr, inAngle=True, query=True)
+                        # out_angle_tanget = cmds.keyTangent(obj, at=short_attr, outAngle=True, query=True)
+                        # is_locked = cmds.keyTangent(obj, at=short_attr, weightLock=True, query=True)
+                        # in_weight = cmds.keyTangent(obj, at=short_attr, inWeight=True, query=True)
+                        # out_weight = cmds.keyTangent(obj, at=short_attr, outWeight=True, query=True)
+                        # in_tangent_type = cmds.keyTangent(obj, at=short_attr, inTangentType=True, query=True)
+                        # out_tangent_type = cmds.keyTangent(obj, at=short_attr, outTangentType=True, query=True)
+                        # gt_world_space_baker_anim_storage['{}.{}'.format(obj, short_attr)] = zip(frames, values, in_angle_tangent, out_angle_tanget, is_locked, in_weight, out_weight, in_tangent_type, out_tangent_type)
                         
-                        if attr.split('.')[-1].startswith('translate'):
-                            gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'translate')] = frame_translate_values
+                        # WS Values # Translate and Rotate for the desired frame range
+                        if 'translate' in attr or 'rotate' in attr:  
+                            if needs_ws_transforms:
+                                cmds.currentTime(gt_world_space_baker_settings.get('start_time_range'))
+                                
+                                for index in range(gt_world_space_baker_settings.get('end_time_range') - gt_world_space_baker_settings.get('start_time_range')+1):
+                                    frame_translate_values.append([cmds.currentTime(q=True), cmds.xform(obj, ws=True, q=True, t=True)])
+                                    frame_rotate_values.append([cmds.currentTime(q=True), cmds.xform(obj, ws=True, q=True, ro=True)])
+                                    cmds.currentTime(cmds.currentTime(q=True)+1)
+                                needs_ws_transforms = False
+                                
                             
-                        if attr.split('.')[-1].startswith('rotate'):
-                            gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'rotate')] = frame_rotate_values
-                    
-                    
-                        # if attr.endswith('X'):
-                        #     channel_index = 0
-                        #     channel_str = 'X'
-                        # elif attr.endswith('Y'):
-                        #     channel_index = 1
-                        #     channel_str = 'Y'
-                        # elif attr.endswith('Z'):
-                        #     channel_index = 2
-                        #     channel_str = 'Z'
+                            if attr.split('.')[-1].startswith('translate'):
+                                gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'translate')] = frame_translate_values
+                                
+                            if attr.split('.')[-1].startswith('rotate'):
+                                gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'rotate')] = frame_rotate_values
                         
+                        
+                            # if attr.endswith('X'):
+                            #     channel_index = 0
+                            #     channel_str = 'X'
+                            # elif attr.endswith('Y'):
+                            #     channel_index = 1
+                            #     channel_str = 'Y'
+                            # elif attr.endswith('Z'):
+                            #     channel_index = 2
+                            #     channel_str = 'Z'
+                            
 
-                        # if attr.split('.')[-1].startswith('translate'):
-                        #     desired_data = []
-                        #     for frame_translate in frame_translate_values:
-                        #         desired_data.append([frame_translate[0], frame_translate[1][channel_index]])
-                        #     gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'translate' + channel_str)] = desired_data
-                      
+                            # if attr.split('.')[-1].startswith('translate'):
+                            #     desired_data = []
+                            #     for frame_translate in frame_translate_values:
+                            #         desired_data.append([frame_translate[0], frame_translate[1][channel_index]])
+                            #     gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'translate' + channel_str)] = desired_data
+                          
 
-                        # if attr.split('.')[-1].startswith('rotate'):
-                        #     desired_data = []
-                        #     for frame_translate in frame_translate_values:
-                        #         desired_data.append([frame_translate[0], frame_translate[1][channel_index]])
-                        #     gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'rotate' + channel_str)] = desired_data
-                except:
-                    pass # 0 keyframes
+                            # if attr.split('.')[-1].startswith('rotate'):
+                            #     desired_data = []
+                            #     for frame_translate in frame_translate_values:
+                            #         desired_data.append([frame_translate[0], frame_translate[1][channel_index]])
+                            #     gt_world_space_baker_anim_storage['{}.{}'.format(obj, 'rotate' + channel_str)] = desired_data
+                    except:
+                        pass # 0 keyframes
+        except:
+            pass
+        finally:
+            cmds.refresh(suspend=False)
+            
             
     cmds.currentTime(original_time)
     return True
@@ -457,8 +467,10 @@ def bake_world_space_data():
         
     # Bake Keyframes:
     if is_valid:
-         for key, dict_value in gt_world_space_baker_anim_storage.iteritems():
-
+        try:
+            cmds.refresh(suspend=True)
+            cmds.undoInfo(openChunk=True, chunkName='GT World Space Bake')
+            for key, dict_value in gt_world_space_baker_anim_storage.iteritems():
                 for key_data in dict_value:
                     try:
                         obj, attr = key.split('.')
@@ -477,6 +489,12 @@ def bake_world_space_data():
                             cmds.setKeyframe(obj, time=time, attribute='rz')
                     except:
                         pass
+        except:
+            pass
+        finally:
+            cmds.undoInfo(closeChunk=True, chunkName='GT World Space Bake')
+            cmds.refresh(suspend=False)
+            
                         
     # Reset to Original Time
     cmds.currentTime(original_time)
