@@ -205,6 +205,9 @@
  Updated the distance calculation method for legs and arms
  Created an option to output world-space IK controls instead of inheriting from the joints
  Changed rotation source for auto clavicle to account for world-space ik controls
+ Recreated the IK Spine to support stretchy system and limit positioning while attached to the ribbon setup
+ Added world-space IK support to IK spine
+ Added refresh suspend function before operations to speedup rig creation
 
  TODO:
     Head as IK? Rotate the neck without rotating the head.
@@ -269,7 +272,7 @@ rotate_order_enum = 'xyz:yzx:zxy:xzy:yxz:zyx'
 custom_attr_separator = 'controlBehaviour'
 
 # Debugging Vars
-debugging = True # Activates Debugging Mode
+debugging = False # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
@@ -277,7 +280,6 @@ debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.ppose' # Path to auto impor
-debugging_import_path = 'D:\\PlasticSCM\\WideAwake-SourceAssets\\sandbox\\guilherme\\biped_female_rave_character\\assets\\gt_auto_rigger_assets\\proxy_pose_08.ppose' # Path to auto impor @@@
 debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
@@ -531,7 +533,7 @@ def build_gui_auto_biped_rig():
     uniform_orients_custom_help_title = 'Uniform Control Orientation'
     cmds.button(l ='?', bgc=settings_bgc_color, c=lambda x:build_custom_help_window(uniform_orients_custom_help_message, uniform_orients_custom_help_title))
     
-    # Force Uniform Control Orientation
+    # Force World-Space IK Orientation
     cmds.text(' ', bgc=settings_bgc_color, h=20) # Tiny Empty Space   
     cmds.checkBox( label='  World-Space IK Orientation', value=gt_ab_settings.get('worldspace_ik_orient'), ebg=True, cc=lambda x:invert_stored_setting('worldspace_ik_orient')) 
     
@@ -2035,12 +2037,14 @@ def validate_operation(operation, debugging=False):
         if is_valid:
             function_name = 'GT Auto Biped - Create Proxy'
             cmds.undoInfo(openChunk=True, chunkName=function_name)
+            cmds.refresh(suspend=True)
             try:
                 create_proxy()
             except Exception as e:
                 cmds.warning(str(e))
             finally:
                 cmds.undoInfo(closeChunk=True, chunkName=function_name)
+                cmds.refresh(suspend=False)
                 
         # Debugging (Auto imports proxy)
         if debugging and debugging_import_proxy and os.path.exists(debugging_import_path):
@@ -2096,12 +2100,14 @@ def validate_operation(operation, debugging=False):
                 create_controls()
             else:
                 cmds.undoInfo(openChunk=True, chunkName=function_name)
+                cmds.refresh(suspend=True)
                 try:
                     create_controls()
                 except Exception as e:
                     raise e
                 finally:
                     cmds.undoInfo(closeChunk=True, chunkName=function_name)
+                    cmds.refresh(suspend=False)
             
             # Debugging (Shows LRA for All Joints)
             if debugging and debugging_display_lra:
@@ -4831,19 +4837,11 @@ def create_controls():
     
     ################# Right Leg FK #################
     
-    # # Calculate Scale Offset @@@
-    # right_leg_scale_offset = 0
-    # right_leg_scale_offset += dist_center_to_center(gt_ab_joints.get('right_knee_jnt'), gt_ab_joints.get('right_ankle_jnt'))
-    # right_leg_scale_offset += dist_center_to_center(gt_ab_joints.get('right_hip_jnt'), gt_ab_joints.get('right_knee_jnt'))
-
-    right_leg_scale_axis = 0
-    if gt_ab_settings.get('uniform_ctrl_orient'):
-        right_leg_scale_axis = 1
-    
+    # Calculate Scale Offset
     right_leg_scale_offset = 0
-    right_leg_scale_offset += cmds.xform(gt_ab_joints.get('right_ankle_jnt'), q=True, t=True)[right_leg_scale_axis]
-    right_leg_scale_offset += cmds.xform(gt_ab_joints.get('right_knee_jnt'), q=True, t=True)[right_leg_scale_axis]
-    right_leg_scale_offset = right_leg_scale_offset
+    right_leg_scale_offset -= dist_center_to_center(gt_ab_joints.get('right_knee_jnt'), gt_ab_joints.get('right_ankle_jnt'))
+    right_leg_scale_offset -= dist_center_to_center(gt_ab_joints.get('right_hip_jnt'), gt_ab_joints.get('right_knee_jnt'))
+   
      
     # Right Hip FK
     right_hip_ctrl = cmds.curve(name=gt_ab_joints.get('right_hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098], [0.0, 0.139, -0.0], [0.0, 0.098, 0.098], [-0.0, 0.0, 0.139], [-0.0, -0.098, 0.098], [-0.0, -0.139, 0.0], [-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
@@ -6133,8 +6131,8 @@ def create_controls():
     ################# Center FK #################
     cmds.parentConstraint(main_ctrl, gt_ab_joints.get('main_jnt'))
     
-    
     ############## IK Spine (Ribbon) ##############
+    spine_automation_grp = cmds.group(name='spineAutomation_' + grp_suffix, empty=True, world=True)
     spine_ik_grp = cmds.group(name='spineRibbon_grp', empty=True)
     cmds.setAttr(spine_ik_grp + '.inheritsTransform', 0)
     cog_ws_pos = cmds.xform(gt_ab_joints.get('cog_jnt'),q=1,ws=1,rp=1)
@@ -6186,12 +6184,57 @@ def create_controls():
     change_viewport_color(ik_spine02_jnt[0], ik_jnt_color)
     change_viewport_color(ik_spine03_jnt[0], ik_jnt_color)
     change_viewport_color(ik_spine04_jnt[0], ik_jnt_color)
-    
     cmds.parent(ik_cog_jnt, world=True)
     cmds.parent(ik_spine01_jnt, ik_cog_jnt)
     cmds.parent(ik_spine02_jnt, ik_spine01_jnt)
     cmds.parent(ik_spine03_jnt, ik_spine02_jnt)
     cmds.parent(ik_spine04_jnt, ik_spine03_jnt)
+    ik_spine_joints = []
+    ik_spine_joints.append(ik_cog_jnt[0])
+    ik_spine_joints.append(ik_spine01_jnt[0])
+    ik_spine_joints.append(ik_spine02_jnt[0])
+    ik_spine_joints.append(ik_spine03_jnt[0])
+    ik_spine_joints.append(ik_spine04_jnt[0])
+    
+    # Create Limit Jnt Chain
+    cmds.duplicate(ik_cog_jnt, rc=True)
+    ik_spine_constraint_joints = []
+    for jnt in ik_spine_joints:
+        ik_spine_constraint_joints.append(cmds.rename(jnt + '1', jnt.replace(jnt_suffix, 'limit' + jnt_suffix.capitalize())))
+        
+    ik_spine_constraint_handle = cmds.ikHandle( n='spineConstraint_SC_ikHandle', sj=ik_spine_constraint_joints[0], ee=ik_spine_constraint_joints[-1], sol='ikSCsolver')
+    
+    cmds.addAttr(cog_ctrl, ln="squashStretch", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(cog_ctrl + '.squashStretch', lock=True)
+    
+    if not gt_ab_settings.get('uniform_ctrl_orient'):
+        spine_stretchy_elements = make_stretchy_ik(ik_spine_constraint_handle[0], 'spine', cog_ctrl)
+    else:
+        spine_stretchy_elements = make_stretchy_ik(ik_spine_constraint_handle[0], 'spine', cog_ctrl, jnt_scale_channel='Y')
+    
+    cmds.parent(ik_spine_constraint_joints[0], skeleton_grp)
+    cmds.parentConstraint(gt_ab_joints.get('cog_jnt'), ik_spine_constraint_joints[0])
+    
+    # Change Stretchy System to be compatible with other controls
+    for child in cmds.listRelatives(spine_stretchy_elements[0], children=True) or []:
+        if 'Constraint' in child:
+            cmds.delete(child)
+
+    chest_pivot_grp = cmds.group(name='chest_pivot' + grp_suffix.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(ik_spine_constraint_joints[-1], chest_pivot_grp))
+    
+    cmds.parentConstraint(chest_pivot_grp, spine_stretchy_elements[0])
+    cmds.parent(ik_spine_constraint_handle[0], chest_pivot_grp)
+    
+    chest_pivot_parent_grp = cmds.duplicate(chest_pivot_grp, name='chest_pivotParent' + grp_suffix.capitalize(), po=True)[0]
+    chest_pivot_data_grp = cmds.duplicate(chest_pivot_grp, name='chest_data', po=True)[0]
+    cmds.parent(chest_pivot_grp, chest_pivot_parent_grp)
+    cmds.pointConstraint(ik_spine_constraint_joints[-1], chest_pivot_data_grp)
+    
+    cmds.parent(chest_pivot_parent_grp, spine_automation_grp)
+    cmds.parent(spine_stretchy_elements[1], spine_automation_grp)
+
+
     
     cmds.parentConstraint(list(spine_follicles)[2], ik_spine01_jnt, mo=True) 
     cmds.parentConstraint(list(spine_follicles)[1], ik_spine02_jnt, mo=True) 
@@ -6261,7 +6304,14 @@ def create_controls():
     setup_shape_switch(chest_ribbon_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
     
     cmds.parent(chest_ribbon_ctrl, chest_ribbon_ctrl_grp)
-    cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
+
+    if gt_ab_settings.get('worldspace_ik_orient'):
+        cmds.delete(cmds.orientConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl))
+        cmds.makeIdentity(chest_ribbon_ctrl, apply=True, rotate=True)
+        cmds.delete(cmds.pointConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
+    else:
+        cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
+    
     change_viewport_color(chest_ribbon_ctrl, (1,1,0))
     
     # Chest In-Between Offset
@@ -6321,10 +6371,17 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_adjustment_ctrl_grp))
     cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0])
     change_viewport_color(chest_ribbon_adjustment_ctrl, adj_ctrl_color)
-    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_offset_ctrl_grp) # Make Chest Control the main driver
-    cmds.connectAttr(chest_ribbon_offset_ctrl + '.translate', chest_ribbon_adjustment_ctrl_grp + '.translate', f=True)
-    cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotate', chest_ribbon_adjustment_ctrl_grp + '.rotate', f=True)
+    cmds.parent(chest_ribbon_adjustment_ctrl_grp, chest_ribbon_offset_ctrl_grp) # Make Chest Control the main driver    
+    cmds.parent(chest_pivot_data_grp, chest_pivot_parent_grp)
     
+    cmds.parentConstraint(chest_pivot_data_grp, chest_ribbon_adjustment_ctrl_grp, mo=True)
+    
+    chest_pivot_input_grp = cmds.duplicate(chest_pivot_data_grp, po=True, name='chest_dataInput' + grp_suffix.capitalize())
+    cmds.parentConstraint(chest_ribbon_offset_ctrl, chest_pivot_input_grp, mo=True)
+    cmds.pointConstraint(chest_pivot_input_grp, chest_pivot_grp, mo=True)
+    cmds.orientConstraint(chest_pivot_input_grp, chest_pivot_data_grp, mo=True)
+
+
     # Spine Ctrl
     spine_ribbon_ctrl = cmds.curve(name=ribbon_spine02_jnt[0].replace(jnt_suffix, '') + ctrl_suffix, p=[[0.0, 0.0, 0.0], [0.0, -1.794, 0.0], [0.067, -1.803, 0.0], [0.128, -1.829, 0.0], [0.181, -1.869, 0.0], [0.222, -1.922, 0.0], [0.247, -1.984, 0.0], [0.256, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -1.794, 0.0], [-0.067, -1.803, 0.0], [-0.129, -1.829, 0.0], [-0.181, -1.869, 0.0], [-0.222, -1.923, 0.0], [-0.247, -1.984, 0.0], [-0.257, -2.05, 0.0], [-0.248, -2.117, 0.0], [-0.222, -2.178, 0.0], [-0.181, -2.231, 0.0], [-0.128, -2.272, 0.0], [-0.067, -2.297, 0.0], [0.0, -2.307, 0.0], [0.066, -2.298, 0.0], [0.128, -2.272, 0.0], [0.181, -2.232, 0.0], [0.221, -2.179, 0.0], [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0], [0.0, -2.051, 0.0], [0.0, -2.307, 0.0]], d=1)
     
@@ -6549,14 +6606,15 @@ def create_controls():
     cmds.parent(neck_base_offset_group, main_ctrl)
     
     # Keep Line of Sight
-    head_ik_fk_constraint = cmds.parentConstraint([chest_ribbon_offset_ctrl, spine04_ctrl], neck_base_offset_group)
+    head_ik_fk_constraint = cmds.parentConstraint([chest_pivot_data_grp, spine04_ctrl], neck_base_offset_group) 
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', head_ik_fk_constraint[0] + '.w0', f=True)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', head_ik_fk_constraint[0] + '.w1', f=True)
-    spine_switcher_constraint = cmds.parentConstraint([chest_ribbon_adjustment_ctrl, spine04_ctrl], spine04_offset_group)
+    spine_switcher_constraint = cmds.parentConstraint([gt_ab_joints.get('spine04_jnt'), spine04_ctrl], spine04_offset_group) 
+
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', spine_switcher_constraint[0] + '.w1', f=True)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', spine_switcher_constraint[0] + '.w0', f=True)
     
-    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_ribbon_offset_ctrl, cog_ctrl], spine_ribbon_ctrl_grp, mo=True)
+    inbetween_cog_spine_constraint = cmds.parentConstraint([cog_ribbon_ctrl, chest_pivot_data_grp, cog_ctrl], spine_ribbon_ctrl_grp, mo=True) 
     
     cmds.parent(spine_ik_grp, general_automation_grp)
     
@@ -6620,7 +6678,6 @@ def create_controls():
         cmds.connectAttr(neck_base_ctrl + '.neckMidVisibility', shape + '.visibility', f=True)
     
     # Neck Mid Shape Driver (Keep Position when Automated)
-    spine_automation_grp = cmds.group(name='spineAutomation_' + grp_suffix, empty=True, world=True)
     neck_mid_cvs = cmds.getAttr(neck_mid_ctrl + '.cp', s=1)
 
     neck_mid_shape_driver_grp = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrp', empty=True, world=True)
@@ -7933,6 +7990,7 @@ def create_controls():
         left_leg_stretchy_elements = make_stretchy_ik(left_leg_rp_ik_handle[0], 'left_leg', left_leg_switch)
     else:
         left_leg_stretchy_elements = make_stretchy_ik(left_leg_rp_ik_handle[0], 'left_leg', left_leg_switch, jnt_scale_channel='Y')
+    
     # Change Stretchy System to be compatible with roll controls
     for child in cmds.listRelatives(left_leg_stretchy_elements[0], children=True) or []:
         if 'Constraint' in child:
