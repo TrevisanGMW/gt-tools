@@ -55,13 +55,20 @@
  
  1.3.7 - 2021-11-23
  Updated switcher to be compatible with new offset controls
- Added inView message for when auto clavicle is active so the user doesn't thing the control is popping
+ Added inView message for when auto clavicle is active so the user doesn't think the control is popping
  
  1.3.8 - 2021-11-23
  Included a few missing controls to the pose and animation management control lists
-
+  
+ 1.3.9 - 2021-11-30
+ Updated the script so it works with the new offset controls
+ Accounted for new wrist reference control
+ 
+ 1.3.10 - 2021-12-01
+ Added option to define whether or not to transfer data to offset control or control
  
  TODO:
+    Include function to extract character's metadata
     Created flip pose function
     Convert GUI to QT
     Add Flip options
@@ -96,12 +103,12 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = '' # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.8"
+script_version = "1.3.10"
 
 # Python Version
 python_version = sys.version_info.major
 
-# FK/IK Swticher Elements
+# FK/IK Swticher Elements                    
 left_arm_seamless_dict = { 'switch_ctrl' : 'left_arm_switch_ctrl', # Switch Ctrl
                            'end_ik_ctrl' : 'left_wrist_ik_offsetCtrl', # IK Elements
                            'pvec_ik_ctrl' : 'left_elbow_ik_ctrl',
@@ -115,7 +122,7 @@ left_arm_seamless_dict = { 'switch_ctrl' : 'left_arm_switch_ctrl', # Switch Ctrl
                            'mid_fk_jnt' : 'left_elbow_fk_jnt',
                            'end_fk_jnt' : 'left_wrist_fk_jnt',
                            'mid_ik_reference' : 'left_elbowSwitch_loc',
-                           'end_ik_reference' : '',
+                           'end_ik_reference' : 'left_wristSwitch_loc',
                            'incompatible_attr_holder' : 'left_wrist_ik_ctrl', # Auto Clavicle
                          }
 
@@ -132,7 +139,7 @@ right_arm_seamless_dict = { 'switch_ctrl' : 'right_arm_switch_ctrl', # Switch Ct
                             'mid_fk_jnt' : 'right_elbow_fk_jnt',
                             'end_fk_jnt' : 'right_wrist_fk_jnt',
                             'mid_ik_reference' : 'right_elbowSwitch_loc',
-                            'end_ik_reference' : '',
+                            'end_ik_reference' : 'right_wristSwitch_loc',
                             'incompatible_attr_holder' : 'right_wrist_ik_ctrl', # Auto Clavicle
                            }
                             
@@ -170,6 +177,8 @@ right_leg_seamless_dict = { 'switch_ctrl' : 'right_leg_switch_ctrl', # Switch Ct
                             'incompatible_attr_holder' : '',
                           }
                           
+seamless_elements_dictionaries = [right_arm_seamless_dict, left_arm_seamless_dict, left_leg_seamless_dict, right_leg_seamless_dict]
+
 # Mirror Elements
 namespace_separator = ':'
 left_prefix = 'left'
@@ -180,6 +189,7 @@ invert_y = (False, True, False)
 invert_z = (False, False, True)
 invert_yz = (False, True, True)
 invert_all = (True, True, True)
+
 
 # Dictionary Pattern:
 # Key: Control name (if not in the center, remove prefix)
@@ -276,8 +286,9 @@ gt_custom_rig_interface_settings = {
                                     'auto_key_end_frame' : 10,
                                     'pose_export_thumbnail' : False,
                                     'allow_multiple_instances' : False,
+                                    'offset_target' : True,
                                    }
-                           
+                   
 gt_custom_rig_interface_settings_default = copy.deepcopy(gt_custom_rig_interface_settings)
 
 
@@ -347,10 +358,7 @@ def build_gui_custom_rig_interface():
             
             gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)
    
-            # print(gt_custom_rig_interface_settings_instanced)
-            
-            # gt_custom_rig_interface_settings = {}
-            # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_instanced
+
 
     # Main GUI Start Here =================================================================================
     def update_fk_ik_buttons():
@@ -399,7 +407,13 @@ def build_gui_custom_rig_interface():
         gt_custom_rig_interface_settings['auto_key_method_bake'] = cmds.radioButton(auto_key_method_rb1, query=True, select=True)
         gt_custom_rig_interface_settings['auto_key_start_frame'] = cmds.intField(auto_key_start_int_field, q=True, value=0)
         gt_custom_rig_interface_settings['auto_key_end_frame'] = cmds.intField(auto_key_end_int_field, q=True, value=0)
-
+        
+        if not gt_custom_rig_interface_settings.get('offset_target'):
+            for data in seamless_elements_dictionaries:
+                data['end_ik_ctrl'] = data.get('end_ik_ctrl').replace('offsetCtrl','ctrl')
+        else:
+            for data in seamless_elements_dictionaries:
+                data['end_ik_ctrl'] = data.get('end_ik_ctrl').replace('ctrl','offsetCtrl')
 
         if gt_custom_rig_interface_settings.get('auto_key_switch'):
             cmds.radioButton(auto_key_method_rb1, e=True, en=True)
@@ -457,6 +471,7 @@ def build_gui_custom_rig_interface():
         '''
         gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)
         set_persistent_settings_rig_interface()
+        update_stored_settings()
                        
     def get_auto_key_current_frame(target_integer_field='start', is_instance=False):
         '''
@@ -780,6 +795,15 @@ def build_gui_custom_rig_interface():
         multiple_instances_help_title = 'Allow Multiple Instances'
         cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(multiple_instances_help_message, multiple_instances_help_title))
         
+        # Transfer Data to Offset Control
+        is_option_enabled = True
+        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
+        cmds.checkBox( label='  Transfer Data to Offset Control', value=gt_custom_rig_interface_settings.get('offset_target'), ebg=True, cc=lambda x:invert_stored_setting('offset_target'), en=is_option_enabled) 
+        ''' TODO, create better description '''
+        offset_target_thumbnail_help_message = 'Use this option to transfer the data to the IK offset control instead of transfering it directly to the IK control.'
+        offset_target_thumbnail_help_title = 'Transfer Data to Offset Control'
+        cmds.button(l ='?', bgc=enabled_bgc_color, c=lambda x:build_custom_help_window(offset_target_thumbnail_help_message, offset_target_thumbnail_help_title))
+        
         # Export Thumbnail With Pose
         is_option_enabled = False
         cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20) # Tiny Empty Spac
@@ -870,21 +894,21 @@ def gt_rig_fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe
             fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],
                         [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],
                         [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]            
-                        
+                                    
             if direction == 'fk_to_ik':
                 if ik_fk_dict.get('end_ik_reference') != '':
                     cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_ik_reference'), pos=1, rot=1)
                 else:
                     cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_fk_jnt'), pos=1, rot=1)
-                
-                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1) #@@@
-                pass
+                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1)
+
                 if not match_only:
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)
                 return 1
             if direction == 'ik_to_fk':
                 for pair in fk_pairs:
                     cmds.matchTransform(pair[1], pair[0], pos=1, rot=1)
+                    pass
                 if not match_only:
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)
                 return 0
@@ -1941,162 +1965,6 @@ def gt_rig_anim_import(debugging=False, debugging_path='', namespace=''):
             file_exists = False
             cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
 
-
-def gt_rig_ik_parent_switch(ik_fk_dict, target='world', namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
-    '''
-    Transfer the position of the FK to IK or IK to FK systems in a seamless way, so the animator can easily switch between one and the other
-    
-            Parameters:
-                ik_fk_dict (dict): A dicitionary containg the elements that are part of the system you want to switch
-                direction (optinal, string): Either "fk_to_ik" or "ik_to_fk". It determines what is the source and what is the target.
-                namespace (optinal, string): In case the rig has a namespace, it will be used to properly select the controls.
-                
-                
-                keyframe (optinal, bool): If active it will created a keyframe at the current frame, move to the
-                start_time (optinal, int): Where to create the first keyframe
-                end_time (optinal, int): Where to create the last keyframe
-                method (optinal, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.
-    '''
-    def switch(match_only=False):
-        '''
-        Performs the switch operation.
-        Commands were wrapped into a function to be used during the bake operation.
-        
-                Parameters:
-                    match_only (optional, bool) If active (True) it will only match the pose, but not switch
-        
-                Returns:
-                    attr_value (float): Value which the influence attribute was set to. Either 1 (fk_to_ik) or 0 (ik_to_fk).
-                                        This value is returned only if "match_only" is False. Otherwise, expect None.
-        '''
-        try:
-            ik_fk_ns_dict = {}
-            for obj in ik_fk_dict:
-                ik_fk_ns_dict[obj] = namespace + ik_fk_dict.get(obj)
-            
-            fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],
-                        [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],
-                        [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]            
-                        
-            if direction == 'fk_to_ik':
-                if ik_fk_dict.get('end_ik_reference') != '':
-                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_ik_reference'), pos=1, rot=1)
-                else:
-                    cmds.matchTransform(ik_fk_ns_dict.get('end_ik_ctrl'), ik_fk_ns_dict.get('end_fk_jnt'), pos=1, rot=1)
-                
-                cmds.matchTransform(ik_fk_ns_dict.get('pvec_ik_ctrl'), ik_fk_ns_dict.get('mid_ik_reference'), pos=1, rot=1)
-                if not match_only:
-                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)
-                return 1
-            if direction == 'ik_to_fk':
-                for pair in fk_pairs:
-                    cmds.matchTransform(pair[1], pair[0], pos=1, rot=1)
-                if not match_only:
-                    cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)
-                return 0
-        except Exception as e:
-            cmds.warning('An error occurred. Please check if a namespace is necessary or if a control was deleted.     Error: ' + str(e))
-    
-    
-    def print_inview_feedback():
-        '''
-        Prints feedback using inView messages so the user knows what operation was executed.
-        '''
-        
-
-        # namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'
-        
-        is_valid_message = True
-        message_target = 'IK' if direction == 'fk_to_ik' else 'FK'
-        
-        # Try to figure it out system:
-        message_direction = ''
-        pvec_ik_ctrl = ik_fk_dict.get(next(iter(ik_fk_dict)))
-        if pvec_ik_ctrl.startswith('right_'):
-            message_direction = 'right'
-        elif pvec_ik_ctrl.startswith('left_'):
-            message_direction = 'left'
-        else:
-            is_valid_message = False
-        
-        message_limb = ''
-        if 'knee' in pvec_ik_ctrl:
-            message_limb = 'leg'
-        elif 'elbow' in pvec_ik_ctrl:
-            message_limb = 'arm'
-        else:
-            is_valid_message = False
-        
-        message_range = ''
-        if keyframe:
-            message_range = '(Start: <span style=\"color:#FFFFFF;\">' + str(start_time) + '</span> End: <span style=\"color:#FFFFFF;\">' + str(end_time) + '</span> Method: <span style=\"color:#FFFFFF;\">' + method.capitalize() + '</span> )'
-        
-
-        if is_valid_message:
-            # Print Feedback
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FFFFFF;\">Switched ' + message_direction + ' ' + message_limb + ' to </span><span style=\"color:#FF0000;text-decoration:underline;\">' + message_target +'</span>  ' + message_range, pos='botLeft', fade=True, alpha=.9)
-    
-
-
-    # Find Available Controls
-    available_ctrls = []
-
-    for key in ik_fk_dict:
-        if cmds.objExists(namespace + ik_fk_dict.get(key)):
-            available_ctrls.append(ik_fk_dict.get(key))
-        if cmds.objExists(namespace + key):
-            available_ctrls.append(key)
-    
-    # No Controls were found
-    if len(available_ctrls) == 0:
-        is_valid=False
-        cmds.warning('No controls were found. Make sure you are using the correct namespace.')
-
-    else:
-        if keyframe:
-            if method.lower() == 'sparse': # Only Influence Switch
-                original_time = cmds.currentTime(q=True)
-                cmds.currentTime(start_time)
-                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=start_time, attribute='influenceSwitch')
-                cmds.currentTime(end_time)
-                switch()
-                cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=end_time, attribute='influenceSwitch')
-                cmds.currentTime(original_time)
-                print_inview_feedback()
-            elif method.lower() == 'bake':
-                if start_time >= end_time:
-                    cmds.warning('Invalid range. Please review the stard and end frame and try again.')
-                else:
-                    original_time = cmds.currentTime(q=True)
-                    cmds.currentTime(start_time)
-                    current_time = cmds.currentTime(q=True)
-                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # Start Switch
-                    for index in range(end_time - start_time):
-                        cmds.currentTime(current_time)
-                        switch(match_only=True)
-                        if direction == 'fk_to_ik':
-                            for channel in ['t','r']:
-                                for dimension in ['x', 'y', 'z']:
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_ik_ctrl'), time=current_time, attribute=channel+dimension) # Wrist IK Ctrl
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time, attribute=channel+dimension) # PVec Elbow IK Ctrl
-
-                        if direction == 'ik_to_fk':
-                            for channel in ['t','r']:
-                                for dimension in ['x', 'y', 'z']:
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('base_fk_ctrl'), time=current_time, attribute=channel+dimension) # Shoulder FK Ctrl
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('end_fk_ctrl'), time=current_time, attribute=channel+dimension) # Wrist FK Ctrl
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time, attribute=channel+dimension) # Elbow FK Ctrl
-                        current_time += 1
-                    switch()
-                    cmds.setKeyframe(namespace + ik_fk_dict.get('switch_ctrl'), time=current_time, attribute='influenceSwitch') # End Switch
-                    cmds.currentTime(original_time)
-                    print_inview_feedback()
-            else:
-                cmds.warning('Invalid method was provided. Must be either "sparse" or "bake", but got ' + method)
-        else:
-            switch()
-            print_inview_feedback()
 
 
 #Build UI
