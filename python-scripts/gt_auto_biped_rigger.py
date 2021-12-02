@@ -208,8 +208,14 @@
  Recreated the IK Spine to support stretchy system and limit positioning while attached to the ribbon setup
  Added world-space IK support to IK spine
  Added refresh suspend function before operations to speedup rig creation
+ Added metadata in form of an attribute (type string) attached to the main control (dictionary/json format)
+ Added new FK/IK switching references to account for new wrist orientations
+ 
+ 1.8.9 - 2021-12-01
+ Re-create the uniform orientation option to keep the orientation of the joints intact (use offset instead)
 
  TODO:
+    Transfer scale information from ik spine limit spien to spines
     Head as IK? Rotate the neck without rotating the head.
     Attempt to make the control orientation uniform (Same as main control, world)
     Add logging for debugging
@@ -251,7 +257,7 @@ import re
 script_name = 'GT Auto Biped Rigger'
 
 # Version:
-script_version = '1.8.8'
+script_version = '1.8.10'
 
 # Python Version
 python_version = sys.version_info.major
@@ -272,7 +278,7 @@ rotate_order_enum = 'xyz:yzx:zxy:xzy:yxz:zyx'
 custom_attr_separator = 'controlBehaviour'
 
 # Debugging Vars
-debugging = False # Activates Debugging Mode
+debugging = True # Activates Debugging Mode
 debugging_auto_recreate = True # Auto deletes proxy/rig before creating
 debugging_force_new_scene = True # Forces new instance every time
 debugging_keep_cam_transforms = True # Keeps camera position
@@ -280,22 +286,23 @@ debugging_display_lra = False # Display LRA for all joints after generating
 debugging_auto_breathing = False # Auto activates breathing Time
 debugging_import_proxy = True # Auto Imports Proxy
 debugging_import_path = 'C:\\template.ppose' # Path to auto impor
+
 debugging_bind_rig = False # Auto Binds Rig
 debugging_bind_geo = 'body_geo' # Name of the geo to bind
 debugging_bind_heatmap = False #If not using heatmap, then closest distance
-debugging_post_code = False # Runs code found at the end of the create controls command
+debugging_post_code = True # Runs code found at the end of the create controls command
 
 
 # General Settings
-gt_ab_settings = { 
-    'is_settings_visible' : False,
-    'body_column_height' : 0, # determined during settings GUI creation
-    'using_no_ssc_skeleton' : False,
-    'proxy_limits' : False,
-    'offer_heel_roll_positioning' : True,
-    'uniform_ctrl_orient' : False,
-    'worldspace_ik_orient' : False,
-}
+gt_ab_settings = {'is_settings_visible' : False,
+                  'body_column_height' : 0, # determined during settings GUI creation @@@
+                'using_no_ssc_skeleton' : False,
+                'proxy_limits' : False,
+                'offer_heel_roll_positioning' : True,
+                'uniform_ctrl_orient' : False,
+                'worldspace_ik_orient' : False,
+                'worldspace_ctrl_orient' : True,
+                }
 
 
 # Loaded Elements Dictionary
@@ -362,6 +369,8 @@ gt_ab_elements = { # General Settings
                    'left_ankle_ik_reference' : 'ankleSwitch_loc',
                    'left_knee_ik_reference' : 'kneeSwitch_loc',
                    'left_elbow_ik_reference' : 'elbowSwitch_loc',
+                   'left_wrist_ik_reference' : 'wristSwitch_loc',
+                   'left_shoulder_ik_reference' : 'shoulderSwitch_loc',
                  }
 
 # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
@@ -3569,7 +3578,7 @@ def create_controls():
     # Store selection and symmetry states
     cmds.select(d=True) # Clear Selection
     cmds.symmetricModelling(e=True, symmetry=False) # Turn off symmetry
-
+    # gt_ab_settings['worldspace_ctrl_orient'] = False
     # Create Joints
     gt_ab_joints = {}
     for obj in gt_ab_elements:
@@ -3674,7 +3683,7 @@ def create_controls():
         orient_to_target(gt_ab_joints.get('head_jnt'), gt_ab_joints.get('head_end_jnt'), orient_offset=(0, 90, 90), aim_vec=(0,1,0), up_vec=(0,1,0))
         orient_to_target(gt_ab_joints.get('jaw_jnt'), gt_ab_joints.get('jaw_end_jnt'), orient_offset=(0, 0, 180), aim_vec=(0,1,0), up_vec=(0,-1,0))
         
-        # # Set Uniform Arm Orientation 
+        # # Set Uniform Arm Orientation @@@
         orient_to_target(gt_ab_joints.get('left_clavicle_jnt'), gt_ab_joints.get('left_shoulder_jnt'), (0,0,90), gt_ab_elements.get('left_clavicle_proxy_crv'))
         orient_to_target(gt_ab_joints.get('left_shoulder_jnt'), gt_ab_joints.get('left_elbow_jnt'), (90,0,-90))
         orient_to_target(gt_ab_joints.get('left_elbow_jnt'), gt_ab_joints.get('left_wrist_jnt'), (90,0,-90), gt_ab_elements.get('left_elbow_proxy_crv'))
@@ -3683,9 +3692,6 @@ def create_controls():
         orient_to_target(gt_ab_joints.get('right_shoulder_jnt'), gt_ab_joints.get('right_elbow_jnt'), (90,0,-90), aim_vec=(1,0,0))
         orient_to_target(gt_ab_joints.get('right_elbow_jnt'), gt_ab_joints.get('right_wrist_jnt'), (90,0,90), gt_ab_elements.get('right_elbow_proxy_crv'), aim_vec=(1,0,0))
       
-        
-        
-     
         # Set Uniform Leg and Foot Orientation
         orient_offset(gt_ab_joints.get('left_hip_jnt'), (-90,-90,0))
         orient_offset(gt_ab_joints.get('left_knee_jnt'), (-90,-90,0))
@@ -3699,10 +3705,6 @@ def create_controls():
         orient_offset(gt_ab_joints.get('right_ball_jnt'), (-90,-90,0))
         orient_offset(gt_ab_joints.get('right_toe_jnt'), (-90,-90,0))
         
-
-
-
-    # errorhere
 
     
     # Center Parenting
@@ -3916,8 +3918,21 @@ def create_controls():
         cmds.setAttr(gt_ab_joints.get('hip_jnt') + '.rz', hip_orients[0])
         cmds.makeIdentity(gt_ab_joints.get('hip_jnt'), apply=True, rotate=True)
     
-
-
+    # Enforce Correct Joint Orientation @@@ right_wrist_ik_jnt
+    if gt_ab_settings.get('uniform_ctrl_orient'):
+        cmds.joint(gt_ab_joints.get('left_clavicle_jnt'), e=True, oj='xyz', secondaryAxisOrient='yup', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('left_clavicle_jnt'), e=True, oj='xyz', secondaryAxisOrient='ydown', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('left_shoulder_jnt'), e=True, oj='xyz', secondaryAxisOrient='yup', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('left_elbow_jnt'), e=True, oj='xyz', secondaryAxisOrient='yup', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('left_wrist_jnt'), e=True, oj='none', ch=False, zso=True)
+        # cmds.joint(gt_ab_joints.get('right_clavicle_jnt'), e=True, oj='xyz', secondaryAxisOrient='ydown', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('right_clavicle_jnt'), e=True, oj='xyz', secondaryAxisOrient='yup', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('right_shoulder_jnt'), e=True, oj='xyz', secondaryAxisOrient='ydown', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('right_elbow_jnt'), e=True, oj='xyz', secondaryAxisOrient='ydown', ch=False, zso=True)
+        cmds.joint(gt_ab_joints.get('right_wrist_jnt'), e=True, oj='none', ch=False, zso=True)
+        
+        
+    
     # Right Leg Parenting
     cmds.parent(gt_ab_joints.get('right_knee_jnt'), gt_ab_joints.get('right_hip_jnt'))
     cmds.parent(gt_ab_joints.get('right_ankle_jnt'), gt_ab_joints.get('right_knee_jnt'))
@@ -4026,6 +4041,10 @@ def create_controls():
     left_elbow_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_elbow_jnt'), name=gt_ab_joints.get('left_elbow_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     left_wrist_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_wrist_jnt'), name=gt_ab_joints.get('left_wrist_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     
+    cmds.connectAttr(gt_ab_joints.get('left_shoulder_jnt') + '.rotateOrder', left_shoulder_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_elbow_jnt') + '.rotateOrder', left_elbow_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_wrist_jnt') + '.rotateOrder', left_wrist_ik_jnt + '.rotateOrder', f=True)
+    
     cmds.setAttr(left_shoulder_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(left_elbow_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(left_wrist_ik_jnt + '.radius', ik_jnt_scale)
@@ -4044,6 +4063,10 @@ def create_controls():
     left_shoulder_fk_jnt = cmds.duplicate(gt_ab_joints.get('left_shoulder_jnt'), name=gt_ab_joints.get('left_shoulder_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     left_elbow_fk_jnt = cmds.duplicate(gt_ab_joints.get('left_elbow_jnt'), name=gt_ab_joints.get('left_elbow_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     left_wrist_fk_jnt = cmds.duplicate(gt_ab_joints.get('left_wrist_jnt'), name=gt_ab_joints.get('left_wrist_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
+    
+    cmds.connectAttr(gt_ab_joints.get('left_shoulder_jnt') + '.rotateOrder', left_shoulder_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_elbow_jnt') + '.rotateOrder', left_elbow_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_wrist_jnt') + '.rotateOrder', left_wrist_fk_jnt + '.rotateOrder', f=True)
     
     cmds.setAttr(left_shoulder_fk_jnt + '.radius', fk_jnt_scale)
     cmds.setAttr(left_elbow_fk_jnt + '.radius', fk_jnt_scale)
@@ -4073,6 +4096,10 @@ def create_controls():
     right_elbow_ik_jnt = cmds.duplicate(gt_ab_joints.get('right_elbow_jnt'), name=gt_ab_joints.get('right_elbow_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     right_wrist_ik_jnt = cmds.duplicate(gt_ab_joints.get('right_wrist_jnt'), name=gt_ab_joints.get('right_wrist_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     
+    cmds.connectAttr(gt_ab_joints.get('right_shoulder_jnt') + '.rotateOrder', right_shoulder_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_elbow_jnt') + '.rotateOrder', right_elbow_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_wrist_jnt') + '.rotateOrder', right_wrist_ik_jnt + '.rotateOrder', f=True)
+    
     cmds.setAttr(right_shoulder_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(right_elbow_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(right_wrist_ik_jnt + '.radius', ik_jnt_scale)
@@ -4091,6 +4118,10 @@ def create_controls():
     right_shoulder_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_shoulder_jnt'), name=gt_ab_joints.get('right_shoulder_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     right_elbow_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_elbow_jnt'), name=gt_ab_joints.get('right_elbow_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     right_wrist_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_wrist_jnt'), name=gt_ab_joints.get('right_wrist_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
+    
+    cmds.connectAttr(gt_ab_joints.get('right_shoulder_jnt') + '.rotateOrder', right_shoulder_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_elbow_jnt') + '.rotateOrder', right_elbow_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_wrist_jnt') + '.rotateOrder', right_wrist_fk_jnt + '.rotateOrder', f=True)
     
     cmds.setAttr(right_shoulder_fk_jnt + '.radius', fk_jnt_scale)
     cmds.setAttr(right_elbow_fk_jnt + '.radius', fk_jnt_scale)
@@ -4121,6 +4152,12 @@ def create_controls():
     left_ankle_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_ankle_jnt'), name=gt_ab_joints.get('left_ankle_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     left_ball_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_ball_jnt'), name=gt_ab_joints.get('left_ball_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     left_toe_ik_jnt = cmds.duplicate(gt_ab_joints.get('left_toe_jnt'), name=gt_ab_joints.get('left_toe_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
+    
+    cmds.connectAttr(gt_ab_joints.get('left_hip_jnt') + '.rotateOrder', left_hip_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_knee_jnt') + '.rotateOrder', left_knee_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_ankle_jnt') + '.rotateOrder', left_ankle_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_ball_jnt') + '.rotateOrder', left_ball_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_toe_jnt') + '.rotateOrder', left_toe_ik_jnt + '.rotateOrder', f=True)
         
     cmds.setAttr(left_hip_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(left_knee_ik_jnt + '.radius', ik_jnt_scale)
@@ -4153,6 +4190,12 @@ def create_controls():
     left_ball_fk_jnt = cmds.duplicate(gt_ab_joints.get('left_ball_jnt'), name=gt_ab_joints.get('left_ball_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     left_toe_fk_jnt = cmds.duplicate(gt_ab_joints.get('left_toe_jnt'), name=gt_ab_joints.get('left_toe_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     
+    cmds.connectAttr(gt_ab_joints.get('left_hip_jnt') + '.rotateOrder', left_hip_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_knee_jnt') + '.rotateOrder', left_knee_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_ankle_jnt') + '.rotateOrder', left_ankle_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_ball_jnt') + '.rotateOrder', left_ball_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('left_toe_jnt') + '.rotateOrder', left_toe_fk_jnt + '.rotateOrder', f=True)
+    
     cmds.setAttr(left_hip_fk_jnt + '.radius', fk_jnt_scale)
     cmds.setAttr(left_knee_fk_jnt + '.radius', fk_jnt_scale)
     cmds.setAttr(left_ankle_fk_jnt + '.radius', fk_jnt_scale)
@@ -4184,6 +4227,12 @@ def create_controls():
     right_ball_ik_jnt = cmds.duplicate(gt_ab_joints.get('right_ball_jnt'), name=gt_ab_joints.get('right_ball_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     right_toe_ik_jnt = cmds.duplicate(gt_ab_joints.get('right_toe_jnt'), name=gt_ab_joints.get('right_toe_jnt').replace(jnt_suffix, 'ik_' + jnt_suffix), parentOnly=True)[0]
     
+    cmds.connectAttr(gt_ab_joints.get('right_hip_jnt') + '.rotateOrder', right_hip_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_knee_jnt') + '.rotateOrder', right_knee_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_ankle_jnt') + '.rotateOrder', right_ankle_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_ball_jnt') + '.rotateOrder', right_ball_ik_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_toe_jnt') + '.rotateOrder', right_toe_ik_jnt + '.rotateOrder', f=True)
+    
     cmds.setAttr(right_hip_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(right_knee_ik_jnt + '.radius', ik_jnt_scale)
     cmds.setAttr(right_ankle_ik_jnt + '.radius', ik_jnt_scale)
@@ -4214,6 +4263,12 @@ def create_controls():
     right_ankle_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_ankle_jnt'), name=gt_ab_joints.get('right_ankle_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     right_ball_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_ball_jnt'), name=gt_ab_joints.get('right_ball_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
     right_toe_fk_jnt = cmds.duplicate(gt_ab_joints.get('right_toe_jnt'), name=gt_ab_joints.get('right_toe_jnt').replace(jnt_suffix, 'fk_' + jnt_suffix), parentOnly=True)[0]
+    
+    cmds.connectAttr(gt_ab_joints.get('right_hip_jnt') + '.rotateOrder', right_hip_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_knee_jnt') + '.rotateOrder', right_knee_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_ankle_jnt') + '.rotateOrder', right_ankle_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_ball_jnt') + '.rotateOrder', right_ball_fk_jnt + '.rotateOrder', f=True)
+    cmds.connectAttr(gt_ab_joints.get('right_toe_jnt') + '.rotateOrder', right_toe_fk_jnt + '.rotateOrder', f=True)
     
     cmds.setAttr(right_hip_fk_jnt + '.radius', fk_jnt_scale)
     cmds.setAttr(right_knee_fk_jnt + '.radius', fk_jnt_scale)
@@ -4281,7 +4336,7 @@ def create_controls():
     cog_ctrl_a = cmds.circle(name=gt_ab_joints.get('cog_jnt').replace(jnt_suffix, '') + ctrl_suffix, nr=(1,0,0), ch=False, radius=general_scale_offset)[0]
     cog_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -18.225, 0.0], [0.681, -18.317, 0.0], [1.301, -18.581, 0.0], [1.838, -18.988, 0.0], [2.254, -19.526, 0.0], [2.509, -20.155, 0.0], [2.6, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -18.225, 0.0], [-0.681, -18.317, 0.0], [-1.311, -18.581, 0.0], [-1.838, -18.988, 0.0], [-2.254, -19.536, 0.0], [-2.509, -20.155, 0.0], [-2.61, -20.825, 0.0], [-2.519, -21.507, 0.0], [-2.254, -22.126, 0.0], [-1.838, -22.665, 0.0], [-1.301, -23.082, 0.0], [-0.681, -23.336, 0.0], [0.0, -23.437, 0.0], [0.67, -23.346, 0.0], [1.301, -23.082, 0.0], [1.838, -22.675, 0.0], [2.244, -22.136, 0.0], [2.509, -21.496, 0.0], [2.6, -20.825, 0.0], [-2.61, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -23.437, 0.0]], d=1)
 
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'): 
         orient_offset(cog_ctrl_a, (90,0,-90))
         orient_offset(cog_ctrl_b, (90,0,-90))
         
@@ -4295,7 +4350,11 @@ def create_controls():
     cmds.makeIdentity(cog_ctrl, apply=True, scale=True)
     cog_ctrl_grp = cmds.group(name=cog_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(cog_ctrl, cog_ctrl_grp)
+    
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('cog_jnt'), cog_ctrl_grp))
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, cog_ctrl_grp, os=True, relative=True)
+
     cmds.parent(cog_ctrl_grp, direction_ctrl)
     
     # Add Separator
@@ -4349,9 +4408,9 @@ def create_controls():
     hip_ctrl_a = cmds.curve(name=gt_ab_joints.get('hip_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185], [-0.05, 0.592, 0.366], [0.037, 0.515, 0.493], [0.12, 0.406, 0.632], [-0.062, -0.0, 0.818], [0.12, -0.406, 0.632], [0.037, -0.515, 0.493], [-0.05, -0.592, 0.366], [-0.159, -0.65, 0.185], [-0.183, -0.671, -0.001], [-0.159, -0.65, -0.185], [-0.05, -0.592, -0.366], [0.037, -0.515, -0.493], [0.12, -0.406, -0.632], [-0.062, 0.0, -0.818], [0.12, 0.406, -0.632], [0.037, 0.515, -0.493], [-0.05, 0.606, -0.366], [-0.159, 0.671, -0.185], [-0.185, 0.674, -0.001], [-0.159, 0.65, 0.185]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
     hip_ctrl_b = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, -0.754, 0.0], [0.03, -0.761, 0.0], [0.054, -0.769, 0.0], [0.077, -0.787, 0.0], [0.095, -0.808, 0.0], [0.104, -0.834, 0.0], [0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.754, 0.0], [-0.03, -0.761, 0.0], [-0.054, -0.769, 0.0], [-0.077, -0.787, 0.0], [-0.095, -0.811, 0.0], [-0.104, -0.834, 0.0], [-0.109, -0.864, 0.0], [-0.104, -0.891, 0.0], [-0.095, -0.917, 0.0], [-0.077, -0.941, 0.0], [-0.054, -0.955, 0.0], [-0.03, -0.967, 0.0], [0.0, -0.971, 0.0], [0.026, -0.967, 0.0], [0.054, -0.955, 0.0], [0.077, -0.941, 0.0], [0.092, -0.917, 0.0], [0.104, -0.891, 0.0], [0.109, -0.864, 0.0], [-0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.971, 0.0]], d=1)
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
-        orient_offset(hip_ctrl_a, (90,0,-90))
-        orient_offset(hip_ctrl_b, (90,0,-90))
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
+        orient_offset(hip_ctrl_a, (90,0,90))
+        orient_offset(hip_ctrl_b, (90,0,90))
         
     hip_ctrl = gtu_combine_curves_list([hip_ctrl_a, hip_ctrl_b])
     
@@ -4368,6 +4427,9 @@ def create_controls():
     hip_ctrl_grp = cmds.group(name=hip_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(hip_ctrl, hip_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('hip_jnt'), hip_ctrl_grp))
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, hip_ctrl_grp, os=True, relative=True)
+    
     cmds.parent(hip_ctrl_grp, cog_offset_data_grp)
     
     # Add Separator
@@ -4421,7 +4483,7 @@ def create_controls():
     spine01_ctrl_a = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299], [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13], [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299], [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126], [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
     spine01_ctrl_b = cmds.curve(name=gt_ab_joints.get('spine01_jnt').replace(jnt_suffix, '') + 'dot', p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
         orient_offset(spine01_ctrl_a, (90,0,-90))
         orient_offset(spine01_ctrl_b, (90,0,-90))
     
@@ -4438,12 +4500,14 @@ def create_controls():
     cmds.parent(spine01_ctrl, spine01_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine01_jnt'), spine01_ctrl_grp))
     cmds.parent(spine01_ctrl_grp, cog_offset_data_grp)
-
     
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, spine01_ctrl_grp, os=True, relative=True)
+
     # Spine02 Control
     spine02_ctrl = cmds.curve(name=gt_ab_joints.get('spine02_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261], [-0.053, -0.9, -0.105], [-0.061, -0.909, -0.001], [-0.053, -0.899, 0.109], [-0.114, -0.849, 0.261], [0.0, -0.849, 0.261], [0.114, -0.849, 0.261], [0.053, -0.899, 0.109], [0.061, -0.909, -0.001], [0.053, -0.9, -0.105], [0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
         orient_offset(spine02_ctrl, (90,0,-90))
     
     cmds.setAttr(spine02_ctrl + '.scaleX', general_scale_offset)
@@ -4458,11 +4522,14 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine02_jnt'), spine02_ctrl_grp))
     cmds.parent(spine02_ctrl_grp, spine01_ctrl)
     
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, spine02_ctrl_grp, os=True, relative=True)
+    
     # Spine03 Control
     spine03_ctrl_a = cmds.curve(name=gt_ab_joints.get('spine03_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2], [-0.058, -0.901, -0.092], [-0.053, -0.908, -0.001], [-0.058, -0.901, 0.094], [-0.089, -0.869, 0.2], [-0.0, -0.869, 0.2], [0.089, -0.869, 0.2], [0.058, -0.901, 0.094], [0.053, -0.908, -0.001], [0.058, -0.901, -0.092], [0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
     spine03_ctrl_b = cmds.curve(name=gt_ab_joints.get('spine03_jnt').replace(jnt_suffix, '') + 'dot', p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
         orient_offset(spine03_ctrl_a, (90,0,-90))
         orient_offset(spine03_ctrl_b, (90,0,-90))
     
@@ -4480,10 +4547,13 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine03_jnt'), spine03_ctrl_grp))
     cmds.parent(spine03_ctrl_grp, spine02_ctrl)
     
-    # Spine04 Control
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, spine03_ctrl_grp, os=True, relative=True)
+    
+    # Spine04 Control $$$
     spine04_ctrl = cmds.curve(name=gt_ab_joints.get('spine04_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.103, -0.881, -0.16], [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16], [-0.023, -0.918, 0.0], [-0.103, -0.881, 0.16], [0.0, -0.881, 0.16], [0.103, -0.881, 0.16], [0.023, -0.918, 0.0], [0.103, -0.881, -0.16], [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
         orient_offset(spine04_ctrl, (90,0,-90))
     
     cmds.setAttr(spine04_ctrl + '.scaleX', general_scale_offset)
@@ -4499,10 +4569,13 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('spine04_jnt'), spine04_ctrl_grp))
     cmds.parent(spine04_ctrl_grp, spine03_ctrl)
     
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, spine04_ctrl_grp, os=True, relative=True)
+    
     # Neck Base Control
     neck_base_ctrl = cmds.curve(name=gt_ab_joints.get('neck_base_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.064, -0.894, -0.111], [-0.0, -0.894, -0.111], [-0.064, -0.894, -0.111], [-0.05, -0.904, -0.052], [-0.032, -0.907, 0.0], [-0.05, -0.904, 0.052], [-0.064, -0.894, 0.111], [0.0, -0.894, 0.111], [0.064, -0.894, 0.111], [0.05, -0.904, 0.052], [0.032, -0.907, 0.0], [0.05, -0.904, -0.052], [0.064, -0.894, -0.111], [-0.0, -0.894, -0.111], [-0.064, -0.894, -0.111]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
         orient_offset(neck_base_ctrl, (90,0,-90))
     
     cmds.setAttr(neck_base_ctrl + '.scaleX', general_scale_offset)
@@ -4517,10 +4590,13 @@ def create_controls():
     cmds.parent(neck_base_ctrl, neck_base_ctrl_grp)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('neck_base_jnt'), neck_base_ctrl_grp))
     
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, neck_base_ctrl_grp, os=True, relative=True)
+    
     # Neck Mid Control
     neck_mid_ctrl = cmds.curve(name=gt_ab_joints.get('neck_mid_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.039, -0.899, -0.084], [0.0, -0.899, -0.084], [-0.039, -0.899, -0.084], [-0.024, -0.905, -0.039], [-0.017, -0.907, 0.0], [-0.024, -0.905, 0.039], [-0.039, -0.899, 0.084], [0.0, -0.899, 0.084], [0.039, -0.899, 0.084], [0.024, -0.905, 0.039], [0.017, -0.907, 0.0], [0.024, -0.905, -0.039], [0.039, -0.899, -0.084], [0.0, -0.899, -0.084], [-0.039, -0.899, -0.084]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0])
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
         orient_offset(neck_mid_ctrl, (90,0,-90))
     
     cmds.setAttr(neck_mid_ctrl + '.scaleX', general_scale_offset)
@@ -4533,18 +4609,21 @@ def create_controls():
     neck_mid_ctrl_grp = cmds.group(name=neck_mid_ctrl + grp_suffix.capitalize(), empty=True, world=True)
     cmds.parent(neck_mid_ctrl, neck_mid_ctrl_grp)
     cmds.parent(neck_mid_ctrl_grp, neck_base_ctrl)
+    
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('neck_mid_jnt'), neck_mid_ctrl_grp))
-    desired_pivot = cmds.xform(neck_mid_ctrl, q=True, ws=True, t=True)
-    cmds.delete(cmds.parentConstraint(gt_ab_joints.get('neck_base_jnt'), neck_mid_ctrl))
-    cmds.xform(neck_mid_ctrl, piv=desired_pivot, ws=True)
-    cmds.makeIdentity(neck_mid_ctrl, apply=True, scale=True, rotate=True, translate=True)
-
+    # desired_pivot = cmds.xform(neck_mid_ctrl, q=True, ws=True, t=True)
+    # cmds.delete(cmds.parentConstraint(gt_ab_joints.get('neck_base_jnt'), neck_mid_ctrl))
+    # cmds.xform(neck_mid_ctrl, piv=desired_pivot, ws=True)
+    # cmds.makeIdentity(neck_mid_ctrl, apply=True, scale=True, rotate=True, translate=True)
+    
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, neck_mid_ctrl_grp, os=True, relative=True)
     
     # Head Control
     head_ctrl = cmds.curve(name=gt_ab_joints.get('head_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.141, 0.529, -0.529], [0.141, 0.0, -0.748], [0.141, -0.529, -0.529], [0.141, -0.748, -0.0], [0.141, -0.529, 0.529], [0.141, -0.0, 0.748], [0.141, 0.529, 0.529], [0.141, 0.748, 0.0], [0.141, 0.529, -0.529], [0.141, 0.0, -0.748], [0.141, -0.529, -0.529]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
     
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
-        orient_offset(head_ctrl, (0,0,90))
+    if gt_ab_settings.get('worldspace_ctrl_orient'): # Uniform Orients
+        orient_offset(head_ctrl, (90,0,0))
     
     cmds.setAttr(head_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(head_ctrl + '.scaleY', general_scale_offset)
@@ -4557,18 +4636,18 @@ def create_controls():
     cmds.parent(head_ctrl, head_ctrl_grp)
     cmds.parent(head_ctrl_grp, neck_mid_ctrl)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('head_jnt'), head_ctrl_grp))
+    
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(-90,-90,0, head_ctrl_grp, os=True, relative=True)
+    
     desired_pivot = cmds.xform(head_ctrl, q=True, ws=True, t=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('head_end_jnt'), head_ctrl))
     cmds.xform(head_ctrl, piv=desired_pivot, ws=True)
     cmds.makeIdentity(head_ctrl, apply=True, scale=True, rotate=True, translate=True)
 
-
     # Jaw Control
     jaw_ctrl = cmds.curve(name=gt_ab_joints.get('jaw_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.013, 0.088, -0.088], [0.013, 0.016, -0.125], [0.013, 0.042, -0.088], [0.013, 0.078, -0.0], [0.013, 0.042, 0.088], [0.013, 0.016, 0.125], [0.013, 0.088, 0.088], [0.013, 0.125, 0.0], [0.013, 0.088, -0.088], [0.013, 0.016, -0.125], [0.013, 0.042, -0.088]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
 
-    if gt_ab_settings.get('uniform_ctrl_orient'): # Uniform Orients
-        orient_offset(jaw_ctrl, (0,90,180))
-        
     cmds.setAttr(jaw_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(jaw_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(jaw_ctrl + '.scaleZ', general_scale_offset)
@@ -4580,11 +4659,14 @@ def create_controls():
     cmds.parent(jaw_ctrl, jaw_ctrl_grp)
     cmds.parent(jaw_ctrl_grp, head_ctrl)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('jaw_jnt'), jaw_ctrl_grp))
+    
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        cmds.rotate(0,90,0, jaw_ctrl_grp, os=True, relative=True)
+    
     desired_pivot = cmds.xform(jaw_ctrl, q=True, ws=True, t=True)
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('jaw_end_jnt'), jaw_ctrl))
     cmds.xform(jaw_ctrl, piv=desired_pivot, ws=True)
     cmds.makeIdentity(jaw_ctrl, apply=True, scale=True, rotate=True, translate=True)
-
 
     # Eye Controls
     left_eye_ctrl = cmds.curve(name=gt_ab_joints.get('left_eye_jnt').replace(jnt_suffix, '') + ctrl_suffix, p=[[0.098, -0.098, -0.0], [0.139, -0.0, -0.0], [0.098, 0.098, 0.0], [0.0, 0.139, 0.0], [-0.098, 0.098, 0.0], [-0.139, 0.0, 0.0], [-0.098, -0.098, -0.0], [-0.0, -0.139, -0.0], [0.098, -0.098, -0.0], [0.139, -0.0, -0.0], [0.098, 0.098, 0.0]], d=3, per=True, k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
@@ -5055,6 +5137,10 @@ def create_controls():
     cmds.parent(left_clavicle_ctrl, left_clavicle_ctrl_grp)
     cmds.makeIdentity(left_clavicle_ctrl, apply=True, rotate=True)
     
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        orient_offset(left_clavicle_ctrl, (-90,0,0))
+        cmds.rotate(90,0,0, left_clavicle_ctrl_grp, os=True, relative=True)
+
     # Left Clavicle General Adjustments
     change_viewport_color(left_clavicle_ctrl, left_ctrl_color)
     
@@ -5246,7 +5332,7 @@ def create_controls():
     else:
         cmds.delete(cmds.parentConstraint(gt_ab_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
     
-    
+
     change_viewport_color(left_wrist_ik_ctrl, left_ctrl_color)
     cmds.parent(left_wrist_ik_ctrl_grp, direction_ctrl)
     
@@ -5330,6 +5416,10 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(gt_ab_joints.get('right_clavicle_jnt'), right_clavicle_ctrl))
     cmds.parent(right_clavicle_ctrl, right_clavicle_ctrl_grp)
     cmds.makeIdentity(right_clavicle_ctrl, apply=True, rotate=True)
+    
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        orient_offset(right_clavicle_ctrl, (-90,0,0))
+        cmds.rotate(90,0,0, right_clavicle_ctrl_grp, os=True, relative=True)
     
     # Right Clavicle General Adjustments
     change_viewport_color(right_clavicle_ctrl, right_ctrl_color)
@@ -6162,6 +6252,7 @@ def create_controls():
         cmds.setAttr(follicle + '.parameterV', spine_follicles.get(follicle_data)) 
         
         follicle_transform = cmds.listRelatives(follicle, allParents=True)[0]
+        cmds.connectAttr (main_ctrl + '.scale', follicle_transform + '.scale')  # Inherit Scale from Main Ctrl
         cmds.connectAttr (ribbon_sur + '.local', follicle + '.inputSurface')  # Connect the nurbs object on the follicle (so it knows what to use)
         cmds.connectAttr (ribbon_sur + '.worldMatrix', follicle + '.inputWorldMatrix',force=True) # Connect transforms to follicle (so it knows where it is)
         cmds.connectAttr (follicle + '.outTranslate', follicle_transform + '.translate',force=True) # Connects follicleShape position to its transform (default behaviour)
@@ -6202,6 +6293,7 @@ def create_controls():
     for jnt in ik_spine_joints:
         ik_spine_constraint_joints.append(cmds.rename(jnt + '1', jnt.replace(jnt_suffix, 'limit' + jnt_suffix.capitalize())))
         
+    cmds.setAttr(ik_spine_constraint_joints[0] + '.v', 0)
     ik_spine_constraint_handle = cmds.ikHandle( n='spineConstraint_SC_ikHandle', sj=ik_spine_constraint_joints[0], ee=ik_spine_constraint_joints[-1], sol='ikSCsolver')
     
     cmds.addAttr(cog_ctrl, ln="squashStretch", at='enum', en='-------------:', keyable=True)
@@ -6305,12 +6397,10 @@ def create_controls():
     
     cmds.parent(chest_ribbon_ctrl, chest_ribbon_ctrl_grp)
 
-    if gt_ab_settings.get('worldspace_ik_orient'):
-        cmds.delete(cmds.orientConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl))
-        cmds.makeIdentity(chest_ribbon_ctrl, apply=True, rotate=True)
-        cmds.delete(cmds.pointConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
-    else:
-        cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
+    cmds.delete(cmds.orientConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl))
+    cmds.makeIdentity(chest_ribbon_ctrl, apply=True, rotate=True)
+    cmds.delete(cmds.pointConstraint(ribbon_spine04_jnt[0], chest_ribbon_ctrl_grp))
+    # cmds.xform(chest_ribbon_ctrl, ws=True, piv=cmds.xform(gt_ab_joints.get('spine03_jnt'), q=True, ws=True, t=True)) #@@@
     
     change_viewport_color(chest_ribbon_ctrl, (1,1,0))
     
@@ -6445,7 +6535,7 @@ def create_controls():
     
 
     # FK Spine 01
-    cmds.parentConstraint(spine01_ctrl, fk_spine01_jnt) # Automated
+    cmds.parentConstraint(spine01_ctrl, fk_spine01_jnt, mo=True) # Automated
     offset_group = cmds.group(name=spine01_ctrl + 'OffsetGrp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(spine01_ctrl_grp, offset_group))
     cmds.parent(offset_group, spine01_ctrl_grp)
@@ -6477,10 +6567,10 @@ def create_controls():
     cmds.setAttr(shapes[1] + '.overrideDisplayType', 2)
     
     # FK Spine 02
-    cmds.parentConstraint(spine02_ctrl, fk_spine02_jnt) 
+    cmds.parentConstraint(spine02_ctrl, fk_spine02_jnt, mo=True) 
     
     # FK Spine 03
-    cmds.parentConstraint(spine03_ctrl, fk_spine03_jnt) # Automated
+    cmds.parentConstraint(spine03_ctrl, fk_spine03_jnt, mo=True) # Automated
     offset_group = cmds.group(name=spine03_ctrl + 'OffsetGrp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(spine03_ctrl_grp, offset_group))
     cmds.parent(offset_group, spine03_ctrl_grp)
@@ -6513,7 +6603,7 @@ def create_controls():
     
     
     # FK Spine 04
-    cmds.parentConstraint(spine04_ctrl, fk_spine04_jnt) # Automated
+    cmds.parentConstraint(spine04_ctrl, fk_spine04_jnt, mo=True) # Automated
     
     
     # FK IK Spine Switcher
@@ -6563,7 +6653,7 @@ def create_controls():
 
 
     #### FK IK Constraints ####
-    cmds.parentConstraint(cog_offset_data_grp, fk_cog_jnt[0]) 
+    cmds.parentConstraint(cog_offset_data_grp, fk_cog_jnt[0], mo=True) 
     cog_constraint = cmds.parentConstraint([fk_cog_jnt[0], ik_cog_jnt[0]], gt_ab_joints.get('cog_jnt'))
     spine01_constraint = cmds.parentConstraint([fk_spine01_jnt[0], ik_spine01_jnt[0]], gt_ab_joints.get('spine01_jnt'))
     spine02_constraint = cmds.parentConstraint([fk_spine02_jnt[0], ik_spine02_jnt[0]], gt_ab_joints.get('spine02_jnt'))
@@ -6606,10 +6696,10 @@ def create_controls():
     cmds.parent(neck_base_offset_group, main_ctrl)
     
     # Keep Line of Sight
-    head_ik_fk_constraint = cmds.parentConstraint([chest_pivot_data_grp, spine04_ctrl], neck_base_offset_group) 
+    head_ik_fk_constraint = cmds.parentConstraint([chest_pivot_data_grp, spine04_ctrl], neck_base_offset_group, mo=True) 
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', head_ik_fk_constraint[0] + '.w0', f=True)
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', head_ik_fk_constraint[0] + '.w1', f=True)
-    spine_switcher_constraint = cmds.parentConstraint([gt_ab_joints.get('spine04_jnt'), spine04_ctrl], spine04_offset_group) 
+    spine_switcher_constraint = cmds.parentConstraint([gt_ab_joints.get('spine04_jnt'), spine04_ctrl], spine04_offset_group, mo=True) 
 
     cmds.connectAttr(spine_switch_reverse_node + '.outputX', spine_switcher_constraint[0] + '.w1', f=True)
     cmds.connectAttr(cog_ctrl + '.spineInfluenceSwitch', spine_switcher_constraint[0] + '.w0', f=True)
@@ -6638,83 +6728,82 @@ def create_controls():
     cmds.connectAttr(spine_ribbon_ctrl + '.followChestAndHip', inbetween_cog_spine_constraint[0] + '.w1', f=True)
     cmds.connectAttr(spine_follow_reverse_node + '.outputX', inbetween_cog_spine_constraint[0] + '.w2', f=True)
     
-
     ############## End Spine Ribbon FK IK Switcher ############## 
 
     # Neck Base
-    cmds.parentConstraint(neck_base_ctrl, gt_ab_joints.get('neck_base_jnt')) 
+    cmds.parentConstraint(neck_base_ctrl, gt_ab_joints.get('neck_base_jnt'), mo=True) 
 
     # Neck Mid
-    cmds.parentConstraint(neck_mid_ctrl, gt_ab_joints.get('neck_mid_jnt')) # Automated
+    cmds.parentConstraint(neck_mid_ctrl, gt_ab_joints.get('neck_mid_jnt'), mo=True) # Automated
     offset_group = cmds.group(name=neck_mid_ctrl + 'OffsetGrp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(neck_mid_ctrl_grp, offset_group))
     cmds.parent(offset_group, neck_mid_ctrl_grp)
     cmds.parent(neck_mid_ctrl, offset_group)
     
-    neck_mid_condition_node = cmds.createNode('condition', name=neck_mid_ctrl.replace(ctrl_suffix, '') + automation_suffix)
-    cmds.connectAttr(neck_base_ctrl + '.rotate', neck_mid_condition_node + '.colorIfTrue', f=True)
-    cmds.connectAttr(neck_mid_condition_node + '.outColor', offset_group + '.rotate', f=True)
-    cmds.setAttr(neck_mid_condition_node + '.secondTerm', 1)
-    cmds.setAttr(neck_mid_condition_node + '.colorIfFalseR', 0)
-    cmds.setAttr(neck_mid_condition_node + '.colorIfFalseG', 0)
-    cmds.setAttr(neck_mid_condition_node + '.colorIfFalseB', 0)
+    # neck_mid_condition_node = cmds.createNode('condition', name=neck_mid_ctrl.replace(ctrl_suffix, '') + automation_suffix)
+    # cmds.connectAttr(neck_base_ctrl + '.rotate', neck_mid_condition_node + '.colorIfTrue', f=True)
+    # cmds.connectAttr(neck_mid_condition_node + '.outColor', offset_group + '.rotate', f=True)
+    # cmds.setAttr(neck_mid_condition_node + '.secondTerm', 1)
+    # cmds.setAttr(neck_mid_condition_node + '.colorIfFalseR', 0)
+    # cmds.setAttr(neck_mid_condition_node + '.colorIfFalseG', 0)
+    # cmds.setAttr(neck_mid_condition_node + '.colorIfFalseB', 0)
     
-    cmds.addAttr(neck_base_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(neck_base_ctrl + '.' + custom_attr_separator, lock=True)
+    # cmds.addAttr(neck_base_ctrl, ln=custom_attr_separator, at='enum', en='-------------:', keyable=True)
+    # cmds.setAttr(neck_base_ctrl + '.' + custom_attr_separator, lock=True)
     
-    cmds.addAttr(neck_base_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
-    cmds.connectAttr(neck_base_ctrl + '.rotationOrder', neck_base_ctrl + '.rotateOrder', f=True)
+    # cmds.addAttr(neck_base_ctrl, ln='rotationOrder', at='enum', en=rotate_order_enum, keyable=True, niceName='Rotate Order')
+    # cmds.connectAttr(neck_base_ctrl + '.rotationOrder', neck_base_ctrl + '.rotateOrder', f=True)
     
-    cmds.addAttr(neck_base_ctrl, ln="neckMidAutoRotate", at='bool', k=True, niceName='Auto Rotate Neck Mid')
-    cmds.setAttr(neck_base_ctrl + '.neckMidAutoRotate', 1)
-    cmds.connectAttr(neck_base_ctrl + '.neckMidAutoRotate', neck_mid_condition_node + '.firstTerm', f=True)
+    # cmds.addAttr(neck_base_ctrl, ln="neckMidAutoRotate", at='bool', k=True, niceName='Auto Rotate Neck Mid')
+    # cmds.setAttr(neck_base_ctrl + '.neckMidAutoRotate', 1)
+    # cmds.connectAttr(neck_base_ctrl + '.neckMidAutoRotate', neck_mid_condition_node + '.firstTerm', f=True)
     
     cmds.addAttr(neck_base_ctrl, ln="neckMidVisibility", at='bool', k=True, niceName='Visibility Neck Mid')
     
-    cmds.addAttr(neck_base_ctrl, ln="neckMidShapeBehavior", at='enum', k=True, niceName='Shape Behavior Neck Mid', en='Free:Follow:')
-    cmds.setAttr(neck_base_ctrl + '.neckMidShapeBehavior', 1)
+    # cmds.addAttr(neck_base_ctrl, ln="neckMidShapeBehavior", at='enum', k=True, niceName='Shape Behavior Neck Mid', en='Free:Follow:')
+    # cmds.setAttr(neck_base_ctrl + '.neckMidShapeBehavior', 1)
     
     for shape in cmds.listRelatives(neck_mid_ctrl, s=True, f=True) or []:
         cmds.connectAttr(neck_base_ctrl + '.neckMidVisibility', shape + '.visibility', f=True)
     
-    # Neck Mid Shape Driver (Keep Position when Automated)
-    neck_mid_cvs = cmds.getAttr(neck_mid_ctrl + '.cp', s=1)
+    # # Neck Mid Shape Driver (Keep Position when Automated)
+    # neck_mid_cvs = cmds.getAttr(neck_mid_ctrl + '.cp', s=1)
 
-    neck_mid_shape_driver_grp = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrp', empty=True, world=True)
-    neck_mid_shape_driver_grp_offset = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrpOffset', empty=True, world=True)
-    cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp))
-    cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp_offset))
-    cmds.parent(neck_mid_shape_driver_grp_offset, neck_mid_shape_driver_grp)
+    # neck_mid_shape_driver_grp = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrp', empty=True, world=True)
+    # neck_mid_shape_driver_grp_offset = cmds.group(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'shapeDriverGrpOffset', empty=True, world=True)
+    # cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp))
+    # cmds.delete(cmds.parentConstraint(neck_mid_ctrl, neck_mid_shape_driver_grp_offset))
+    # cmds.parent(neck_mid_shape_driver_grp_offset, neck_mid_shape_driver_grp)
     
-    cmds.select(d=True)
-    for i in range(neck_mid_cvs):
-        cmds.select(neck_mid_ctrl + '.cv[' + str(i) + ']', add=True)
+    # cmds.select(d=True)
+    # for i in range(neck_mid_cvs):
+    #     cmds.select(neck_mid_ctrl + '.cv[' + str(i) + ']', add=True)
  
-    neck_mid_ctrl_cluster = cmds.cluster(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'cluster', bs=1)
-    cmds.parent(neck_mid_ctrl_cluster[1], neck_mid_shape_driver_grp_offset)
+    # neck_mid_ctrl_cluster = cmds.cluster(name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'cluster', bs=1)
+    # cmds.parent(neck_mid_ctrl_cluster[1], neck_mid_shape_driver_grp_offset)
     
-    cmds.setAttr(neck_mid_ctrl_cluster[1] + '.v', 0)
-    neck_mid_rotation_inverter_node = cmds.createNode('decomposeMatrix', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'inverseRotation')
-    cmds.connectAttr(neck_base_ctrl + '.inverseMatrix', neck_mid_rotation_inverter_node + '.inputMatrix', f=True)
-    cmds.connectAttr(neck_mid_rotation_inverter_node + '.outputRotate', neck_mid_shape_driver_grp_offset + '.rotate', f=True)
+    # cmds.setAttr(neck_mid_ctrl_cluster[1] + '.v', 0)
+    # neck_mid_rotation_inverter_node = cmds.createNode('decomposeMatrix', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'inverseRotation')
+    # cmds.connectAttr(neck_base_ctrl + '.inverseMatrix', neck_mid_rotation_inverter_node + '.inputMatrix', f=True)
+    # cmds.connectAttr(neck_mid_rotation_inverter_node + '.outputRotate', neck_mid_shape_driver_grp_offset + '.rotate', f=True)
     
-    cmds.parent(neck_mid_shape_driver_grp, spine_automation_grp)
+    # cmds.parent(neck_mid_shape_driver_grp, spine_automation_grp)
     
-    neck_mid_multiply_envelope_node = cmds.createNode('multiplyDivide', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'multiplyCluster')
-    cmds.connectAttr(neck_base_ctrl + '.neckMidAutoRotate', neck_mid_multiply_envelope_node + '.input1X', f=True)
-    cmds.connectAttr(neck_mid_multiply_envelope_node + '.outputX', neck_mid_ctrl_cluster[0] + '.envelope', f=True)
-    cmds.connectAttr(neck_base_ctrl + '.neckMidShapeBehavior', neck_mid_multiply_envelope_node + '.input2X', f=True)
+    # neck_mid_multiply_envelope_node = cmds.createNode('multiplyDivide', name=neck_mid_ctrl.replace(ctrl_suffix, '') + 'multiplyCluster')
+    # cmds.connectAttr(neck_base_ctrl + '.neckMidAutoRotate', neck_mid_multiply_envelope_node + '.input1X', f=True)
+    # cmds.connectAttr(neck_mid_multiply_envelope_node + '.outputX', neck_mid_ctrl_cluster[0] + '.envelope', f=True)
+    # cmds.connectAttr(neck_base_ctrl + '.neckMidShapeBehavior', neck_mid_multiply_envelope_node + '.input2X', f=True)
 
-    cmds.setAttr(neck_mid_shape_driver_grp + '.inheritsTransform', 0)
+    # cmds.setAttr(neck_mid_shape_driver_grp + '.inheritsTransform', 0)
     
     # Head Ctrl
-    cmds.parentConstraint(head_ctrl, gt_ab_joints.get('head_jnt'))
+    cmds.parentConstraint(head_ctrl, gt_ab_joints.get('head_jnt'), mo=True)
     
     # Jaw Ctrl
-    cmds.parentConstraint(jaw_ctrl, gt_ab_joints.get('jaw_jnt')) 
+    cmds.parentConstraint(jaw_ctrl, gt_ab_joints.get('jaw_jnt'), mo=True) 
     
     # Hip Ctrl
-    cmds.parentConstraint(hip_offset_data_grp, gt_ab_joints.get('hip_jnt')) 
+    cmds.parentConstraint(hip_offset_data_grp, gt_ab_joints.get('hip_jnt'), mo=True) 
     
     ################# Left FK Controls #################
     # Left Leg
@@ -8286,7 +8375,7 @@ def create_controls():
         if 'Constraint' in child:
             cmds.delete(child)
     cmds.parentConstraint(right_ball_pivot_grp, right_leg_stretchy_elements[0], mo=True)
-     
+    
     # Transfer Data to Base Skeleton
     right_hip_scale_blend = cmds.createNode('blendColors', name='right_hip_switchScale_blend')
     right_knee_scale_blend = cmds.createNode('blendColors', name='right_knee_switchScale_blend')
@@ -8341,12 +8430,12 @@ def create_controls():
     cmds.poleVectorConstraint(left_elbow_ik_ctrl, left_arm_rp_ik_handle[0])
     cmds.parent(left_arm_rp_ik_handle[0], ik_solvers_grp)
     cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_arm_rp_ik_handle[0])
-
+    
     cmds.select(d=True)
     cmds.select(left_wrist_ik_jnt)
     left_wrist_ik_dir_jnt = cmds.duplicate(name=left_wrist_ik_jnt.replace('ik', 'ikDir'))
     cmds.parent(left_wrist_ik_dir_jnt, world=True)
-
+     
     # Left Arm Switch
     cmds.addAttr(left_arm_switch, ln='switchAttributes', at='enum', en='-------------:', keyable=True)
     cmds.addAttr(left_arm_switch, ln='influenceSwitch', at='double', k=True, maxValue=1, minValue=0)
@@ -8403,12 +8492,11 @@ def create_controls():
     for shape in cmds.listRelatives(left_arm_switch, s=True, f=True) or []:
         if 'fk' in shape:
             cmds.connectAttr(left_v_reverse_node + '.outputX', shape + '.v', f=True)
-            
-    # FK IK Constraints
-    left_clavicle_constraint = cmds.parentConstraint(left_clavicle_ctrl, gt_ab_joints.get('left_clavicle_jnt'))
-    left_shoulder_constraint = cmds.parentConstraint([left_shoulder_fk_jnt, left_shoulder_ik_jnt], gt_ab_joints.get('left_shoulder_jnt'))
-    left_elbow_constraint = cmds.parentConstraint([left_elbow_fk_jnt, left_elbow_ik_jnt], gt_ab_joints.get('left_elbow_jnt'))
-    left_wrist_constraint = cmds.pointConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'))
+       
+    # FK IK Constraints @@@
+    left_shoulder_constraint = cmds.parentConstraint([left_shoulder_fk_jnt, left_shoulder_ik_jnt], gt_ab_joints.get('left_shoulder_jnt'), mo=True, dr=False)
+    left_elbow_constraint = cmds.parentConstraint([left_elbow_fk_jnt, left_elbow_ik_jnt], gt_ab_joints.get('left_elbow_jnt'), mo=True)
+    left_wrist_constraint = cmds.pointConstraint([left_wrist_fk_jnt, left_wrist_ik_jnt], gt_ab_joints.get('left_wrist_jnt'), mo=True)
     left_switch_constraint = cmds.parentConstraint([left_wrist_offset_ik_ctrl, left_wrist_ctrl], left_arm_switch_grp, mo=True)
     
     left_switch_reverse_node = cmds.createNode('reverse', name='left_arm_switch_reverse')
@@ -8498,7 +8586,6 @@ def create_controls():
         cmds.connectAttr(left_wrist_ik_ctrl + '.pVecFollowsWrist', multiply_node + '.input2Y', f=True)
         cmds.connectAttr(left_wrist_ik_ctrl + '.pVecFollowsWrist', multiply_node + '.input2Z', f=True)
     
-    
     # Left Leg Stretchy System
     cmds.addAttr(left_arm_switch, ln="squashStretch", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(left_arm_switch + '.squashStretch', lock=True)
@@ -8541,8 +8628,7 @@ def create_controls():
     # Left Finger Ctrl Visibility (Connections)
     for finger_parent in [left_thumb01_ctrl_list[1], left_index01_ctrl_list[1], left_middle01_ctrl_list[1], left_ring01_ctrl_list[1], left_pinky01_ctrl_list[1]]:
         cmds.connectAttr(left_fingers_ctrl + '.showFkFingerCtrls', finger_parent + '.v', f=True)
-
-
+    
     # Left Forearm Rotation & Scale
     left_forearm_grp = cmds.group(name=left_forearm_jnt + grp_suffix.capitalize(), empty=True, world=True)
     left_forearm_loc = cmds.spaceLocator( name=left_forearm_jnt.replace(jnt_suffix, 'posLoc') )[0]
@@ -8618,7 +8704,6 @@ def create_controls():
     cmds.poleVectorConstraint(right_elbow_ik_ctrl, right_arm_rp_ik_handle[0])
     cmds.parent(right_arm_rp_ik_handle[0], ik_solvers_grp)
     cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_arm_rp_ik_handle[0])
-    #cmds.orientConstraint(right_wrist_offset_ik_ctrl, right_wrist_ik_jnt)
     
     cmds.select(d=True)
     cmds.select(right_wrist_ik_jnt)
@@ -8681,15 +8766,14 @@ def create_controls():
     for shape in cmds.listRelatives(right_arm_switch, s=True, f=True) or []:
         if 'fk' in shape:
             cmds.connectAttr(right_v_reverse_node + '.outputX', shape + '.v', f=True)
-            
-    # FK IK Constraints
-    right_clavicle_constraint = cmds.parentConstraint(right_clavicle_ctrl, gt_ab_joints.get('right_clavicle_jnt'))
-    right_shoulder_constraint = cmds.parentConstraint([right_shoulder_fk_jnt, right_shoulder_ik_jnt], gt_ab_joints.get('right_shoulder_jnt'))
-    right_elbow_constraint = cmds.parentConstraint([right_elbow_fk_jnt, right_elbow_ik_jnt], gt_ab_joints.get('right_elbow_jnt'))
-    right_wrist_constraint = cmds.pointConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'))
+    
+    # FK IK Constraints @@@
+    right_shoulder_constraint = cmds.parentConstraint([right_shoulder_fk_jnt, right_shoulder_ik_jnt], gt_ab_joints.get('right_shoulder_jnt'), mo=True)
+    right_elbow_constraint = cmds.parentConstraint([right_elbow_fk_jnt, right_elbow_ik_jnt], gt_ab_joints.get('right_elbow_jnt'), mo=True)
+    right_wrist_constraint = cmds.pointConstraint([right_wrist_fk_jnt, right_wrist_ik_jnt], gt_ab_joints.get('right_wrist_jnt'), mo=True)
     right_switch_constraint = cmds.parentConstraint([right_wrist_offset_ik_ctrl, right_wrist_ctrl], right_arm_switch_grp, mo=True)
-
-
+    
+    
     right_switch_reverse_node = cmds.createNode('reverse', name='right_arm_switch_reverse')
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_switch_reverse_node + '.inputX', f=True)
     
@@ -8714,7 +8798,7 @@ def create_controls():
     
     # Arm Automation Visibility
     cmds.connectAttr(right_arm_switch + '.ctrlVisibility', right_fingers_ctrl_grp + '.v', f=True)
-
+    
     # Right IK Wrist Automation
     right_elbow_ik_offset_grp = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_offset') + grp_suffix.capitalize(), empty=True, world=True)
     right_shoulder_ik_offset_reference = cmds.group(name=right_elbow_ik_ctrl.replace('_ctrl','_offsetReference'), empty=True, world=True)
@@ -8786,7 +8870,7 @@ def create_controls():
     
 
 
-
+    
     # Right Leg Stretchy System
     cmds.addAttr(right_arm_switch, ln="squashStretch", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_arm_switch + '.squashStretch', lock=True)
@@ -8902,7 +8986,7 @@ def create_controls():
     cmds.connectAttr(right_switch_world_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w0', f=True)
     cmds.connectAttr(right_switch_clavicle_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w1', f=True)
     cmds.connectAttr(right_switch_chest_condition_node + '.outColorR', right_clavicle_wrist_constraint[0] + '.w2', f=True)
-
+    
     ################# Lock Parameters for FK Controls #################
     
     lock_attr = 'lockXY'
@@ -8938,7 +9022,7 @@ def create_controls():
                 cmds.connectAttr(obj + '.rotationOrder', obj + '.rotateOrder', f=True)
 
         create_limit_lock_attributes(obj, ignore_rot=True)
-      
+    
     # Eyes
     cmds.parent(main_eye_ctrl_grp, direction_ctrl)
     main_eye_constraint = cmds.parentConstraint([head_ctrl, direction_ctrl], main_eye_ctrl_grp, mo=True)
@@ -8994,7 +9078,7 @@ def create_controls():
     cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
     change_outliner_color(finger_automation_grp, (1, .65, .45))
     cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
-    
+
     # Spine Automation System Hierarchy
     change_outliner_color(spine_automation_grp, (1, .65, .45))
     
@@ -9018,12 +9102,12 @@ def create_controls():
     cmds.parent(finger_automation_grp, rig_setup_grp)
     cmds.parent(spine_automation_grp, rig_setup_grp)
     cmds.parent(foot_automation_grp, rig_setup_grp)
-
+    
     # Scale Constraints
     main_skeleton_constraint = cmds.scaleConstraint(main_ctrl, skeleton_grp)
     cmds.setAttr(main_skeleton_constraint[0] + '.v', 0)
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
-     
+    
     # Hierarchy Adjustments and Color
     cmds.setAttr(rig_setup_grp + '.v', 0)
     cmds.setAttr(left_clavicle_switch_jnt + '.v', 0)
@@ -9054,9 +9138,10 @@ def create_controls():
     cmds.connectAttr(main_ctrl + '.controlsVisibility', left_leg_switch_grp + '.v', f=True)
     cmds.connectAttr(main_ctrl + '.controlsVisibility', right_leg_switch_grp + '.v', f=True)
     
-    # Moved the parenting of these systems after IK creation to solve pose issues
+    # Moved the parenting of these systems after IK creation to solve pose issues @@@
     cmds.parent(right_shoulder_ik_jnt, right_clavicle_switch_jnt)
     cmds.parent(left_shoulder_ik_jnt, left_clavicle_switch_jnt)
+
     
     ################# Joint Inflation System #################
     
@@ -9144,7 +9229,7 @@ def create_controls():
         [right_pinky02_ctrl_list[0], right_pinky02_ctrl_list[1], gt_ab_joints.get('right_pinky02_jnt')],
         [right_pinky03_ctrl_list[0], right_pinky03_ctrl_list[1], gt_ab_joints.get('right_pinky03_jnt')],
     ]
-
+    
     # Joint Inflation Basic Setup
     jnt_scale_ctrl_scale = general_scale_offset*0.05
     for ctrl_grps in inflation_system_groups: # Ctrl, CtrlGrp, Joint, CreateOffset?
@@ -9299,10 +9384,7 @@ def create_controls():
     cmds.setAttr(main_ctrl + '.breathingTime', 1)
     cmds.setAttr(main_ctrl + '.breathingFrequency', 6)
     
-    # Create Alternative Setup for Clavicles
-    cmds.delete(left_clavicle_constraint)
-    cmds.delete(right_clavicle_constraint)
-    
+    # Create Alternative Setup for Clavicles    
     left_clavicle_pos_loc = cmds.spaceLocator( name=left_clavicle_ctrl.replace(ctrl_suffix, 'posLoc') )[0]
     right_clavicle_pos_loc = cmds.spaceLocator( name=right_clavicle_ctrl.replace(ctrl_suffix, 'posLoc') )[0]
     
@@ -9358,7 +9440,15 @@ def create_controls():
     
     left_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
     
-    cmds.connectAttr(left_clavicle_ctrl + '.rotate', left_clavicle_offset_plus_node + '.input3D[0]')
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        rot_offset_node = cmds.createNode('multiplyDivide', name='left_clavicle_rotOffset')
+        cmds.setAttr(rot_offset_node + '.input2Z', -1)
+        cmds.connectAttr(left_clavicle_ctrl + '.rz', rot_offset_node + '.input1Z', f=True)
+        cmds.connectAttr(rot_offset_node + '.outputZ', left_clavicle_offset_plus_node + '.input3D[0].input3Dy')
+        cmds.connectAttr(left_clavicle_ctrl + '.rx', left_clavicle_offset_plus_node + '.input3D[0].input3Dx')
+        cmds.connectAttr(left_clavicle_ctrl + '.ry', left_clavicle_offset_plus_node + '.input3D[0].input3Dz')
+    else:
+        cmds.connectAttr(left_clavicle_ctrl + '.rotate', left_clavicle_offset_plus_node + '.input3D[0]')
     cmds.connectAttr(left_clavicle_auto_jnt + '.rotate', left_clavicle_offset_plus_node + '.input3D[1]')
     cmds.connectAttr(left_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('left_clavicle_jnt') + '.rotate', force=True)
     
@@ -9391,8 +9481,15 @@ def create_controls():
     cmds.delete(cmds.parentConstraint(gt_ab_joints.get('right_wrist_jnt'), right_auto_clavicle_rot_grp))
     cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_rot)
     cmds.parent(right_auto_clavicle_rot_grp, right_wrist_ik_ctrl_grp)
+
+    # Right Side Inverse Orientation Multiply
+    inverse_orient_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleInverse_" + multiply_suffix)
+    cmds.connectAttr(right_auto_clavicle_rot + '.translate', inverse_orient_multiply_node + '.input1', force=True) 
+    cmds.connectAttr(inverse_orient_multiply_node + '.output', offset_influnce_multiply_node + '.input1', force=True) 
     
-    cmds.connectAttr(right_auto_clavicle_rot + '.translate', offset_influnce_multiply_node + '.input1', force=True)
+    if gt_ab_settings.get('uniform_ctrl_orient'):
+        cmds.setAttr(inverse_orient_multiply_node + '.input2Z', -1)
+    
     cmds.connectAttr(offset_influnce_multiply_node + '.output', right_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
     
     change_viewport_color(right_clavicle_auto_jnt, automation_jnt_color)
@@ -9402,7 +9499,15 @@ def create_controls():
     
     right_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage', name=ctrl_name + "_autoClavicleRotate_" + automation_suffix)
     
-    cmds.connectAttr(right_clavicle_ctrl + '.rotate', right_clavicle_offset_plus_node + '.input3D[0]')
+    if gt_ab_settings.get('worldspace_ctrl_orient'):
+        rot_offset_node = cmds.createNode('multiplyDivide', name='right_clavicle_rotOffset')
+        cmds.setAttr(rot_offset_node + '.input2Z', -1)
+        cmds.connectAttr(right_clavicle_ctrl + '.rz', rot_offset_node + '.input1Z', f=True)
+        cmds.connectAttr(rot_offset_node + '.outputZ', right_clavicle_offset_plus_node + '.input3D[0].input3Dy')
+        cmds.connectAttr(right_clavicle_ctrl + '.rx', right_clavicle_offset_plus_node + '.input3D[0].input3Dx')
+        cmds.connectAttr(right_clavicle_ctrl + '.ry', right_clavicle_offset_plus_node + '.input3D[0].input3Dz')
+    else:
+        cmds.connectAttr(right_clavicle_ctrl + '.rotate', right_clavicle_offset_plus_node + '.input3D[0]')
     cmds.connectAttr(right_clavicle_auto_jnt + '.rotate', right_clavicle_offset_plus_node + '.input3D[1]')
     cmds.connectAttr(right_clavicle_offset_plus_node + '.output3D', gt_ab_joints.get('right_clavicle_jnt') + '.rotate', force=True)
     
@@ -9523,7 +9628,10 @@ def create_controls():
     cmds.setAttr(left_hand_sc_ik_handle[0] + '.v', 0)
     
     cmds.parent(right_wrist_ik_dir_jnt, right_wrist_ik_jnt)
-    cmds.move(right_wrist_scale_offset*-1, right_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True)
+    if not gt_ab_settings.get('uniform_ctrl_orient'):
+        cmds.move(right_wrist_scale_offset*-1, right_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True) #@@@
+    else:
+        cmds.move(right_wrist_scale_offset, right_wrist_ik_dir_jnt, x=True, relative=True, objectSpace=True) #@@@
     right_hand_sc_ik_handle = cmds.ikHandle( n='right_hand_SC_ikHandle', sj=right_wrist_ik_jnt, ee=right_wrist_ik_dir_jnt[0], sol='ikSCsolver')
     cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl)
     cmds.setAttr(right_hand_sc_ik_handle[0] + '.v', 0)
@@ -9651,7 +9759,8 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(left_elbow_ik_ctrl, left_elbow_ref_loc))
     cmds.parent(left_elbow_ref_loc, left_elbow_fk_jnt)
     cmds.setAttr(left_elbow_ref_loc + '.v', 0)
-  
+
+
     right_ankle_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_ankle_ik_reference') )[0]
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_ankle_ref_loc))
     cmds.parent(right_ankle_ref_loc, right_ankle_fk_jnt)
@@ -9666,7 +9775,25 @@ def create_controls():
     cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
     cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
     cmds.setAttr(right_elbow_ref_loc + '.v', 0)
-
+    
+    # Wrist Reference
+    right_wrist_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('right_wrist_ik_reference') )[0]
+    if gt_ab_settings.get('uniform_ctrl_orient'):
+        cmds.delete(cmds.pointConstraint(right_wrist_ik_ctrl, right_wrist_ref_loc))
+    else:
+        cmds.delete(cmds.parentConstraint(right_wrist_ik_ctrl, right_wrist_ref_loc))
+    cmds.parent(right_wrist_ref_loc, right_wrist_fk_jnt) 
+    cmds.setAttr(right_wrist_ref_loc + '.v', 0)
+    
+    left_wrist_ref_loc = cmds.spaceLocator( name=gt_ab_elements_default.get('left_wrist_ik_reference') )[0]
+    if gt_ab_settings.get('uniform_ctrl_orient'):
+        cmds.delete(cmds.pointConstraint(left_wrist_ik_ctrl, left_wrist_ref_loc))
+    else:
+        cmds.delete(cmds.parentConstraint(left_wrist_ik_ctrl, left_wrist_ref_loc))
+    cmds.parent(left_wrist_ref_loc, left_wrist_fk_jnt) 
+    cmds.setAttr(left_wrist_ref_loc + '.v', 0)
+    
+    
     # Enforce footToe ikHandle position
     cmds.matchTransform(right_leg_toe_ik_handle[0], right_toe_fk_jnt, pos=1, rot=1)
     cmds.matchTransform(left_leg_toe_ik_handle[0], left_toe_fk_jnt, pos=1, rot=1)
@@ -9917,7 +10044,6 @@ def create_controls():
                         (gt_ab_joints_default.get('right_ankle_jnt'), 1),
                         (gt_ab_joints_default.get('left_ball_jnt'), 1),
                         (gt_ab_joints_default.get('right_ball_jnt'), 1),
-
                         ]:
 
             connection = cmds.listConnections(jnt_rot[0] + '.rotateOrder', d=0) or []
@@ -9926,8 +10052,6 @@ def create_controls():
             else:
                 cmds.setAttr(connection[0] + '.rotationOrder', jnt_rot[1])
            
-   
- 
     
     # Creates game skeleton (No Segment Scale Compensate)
     if gt_ab_settings.get('using_no_ssc_skeleton'):
@@ -9942,6 +10066,16 @@ def create_controls():
 
     for obj in gt_ab_joints:
         gt_ab_joints_default[obj] = gt_ab_joints.get(obj)
+    
+    
+    ################# Attach Metadata to Main Control #################
+    cmds.addAttr(main_ctrl, ln='metadata', dataType='string')
+    metadata_dict = { 'worldspace_ik_orient' : gt_ab_settings.get('worldspace_ik_orient'),
+                      'uniform_ctrl_orient' : gt_ab_settings.get('uniform_ctrl_orient'),
+                      'using_no_ssc_skeleton' : gt_ab_settings.get('using_no_ssc_skeleton'),
+                      'skeleton_root' : str(gt_ab_joints_default.get('main_jnt')),
+                    }
+    cmds.setAttr(main_ctrl + '.metadata', json.dumps(metadata_dict, indent=4), typ='string')
     
 
     ################# Clean Selection & Print Feedback #################
@@ -9967,20 +10101,22 @@ def create_controls():
         cmds.setAttr(right_wrist_ik_ctrl + '.showOffsetCtrl', 1)
 
         
-        # Annotate Debugging Elements:
+        # Annotate  Debugging Elements:
+        
         annotate_objs = [right_elbow_ik_ctrl, 
                          left_elbow_ik_ctrl, 
                          gt_ab_joints.get('right_elbow_jnt'),
                          gt_ab_joints.get('left_elbow_jnt'),
                         ]
-                        
+        
+        # Original WS_POS            
         for obj in annotate_objs:
             obj_pos = cmds.xform(obj, q=True, ws=True, t=True)
             ws_x_pos_text = 'WS-X: {:.2f}'.format(round(obj_pos[0], 2))
             ws_y_pos_text = 'WS-Y: {:.2f}'.format(round(obj_pos[1], 2))
             ws_z_pos_text = 'WS-Z: {:.2f}'.format(round(obj_pos[2], 2))
             
-            # Original WS_POS
+            
             ann_holder = cmds.spaceLocator(name=obj + '_ann_loc')
             cmds.xform(ann_holder[0], ws=True, t=obj_pos)
             annotate = cmds.annotate(ann_holder, tx=obj, p=(obj_pos[0], obj_pos[1] + 5, obj_pos[2]))
@@ -10006,6 +10142,46 @@ def create_controls():
             cmds.parent(annotate_z, ann_holder, s=True)
             for empty_trans in annotation_transforms:
                 cmds.delete(empty_trans)
+        
+        # Original OS Rot
+        annotate_objs = [gt_ab_joints.get('left_shoulder_jnt'),
+                         gt_ab_joints.get('right_shoulder_jnt')]
+                  
+        for obj in annotate_objs:
+            obj_rot = cmds.xform(obj, q=True, os=True, ro=True)
+            obj_pos = cmds.xform(obj, q=True, ws=True, t=True)
+            ws_x_rot_text = 'OS-R-X: {:.2f}'.format(round(obj_rot[0], 2))
+            ws_y_rot_text = 'OS-R-Y: {:.2f}'.format(round(obj_rot[1], 2))
+            ws_z_rot_text = 'OS-R-Z: {:.2f}'.format(round(obj_rot[2], 2))
+            
+
+            ann_holder = cmds.spaceLocator(name=obj + '_ann_loc')
+            cmds.xform(ann_holder[0], ws=True, t=obj_pos)
+            annotate = cmds.annotate(ann_holder, tx=obj, p=(obj_pos[0], obj_pos[1] + 5, obj_pos[2]))
+            annotate_x = cmds.annotate(ann_holder, tx=ws_x_rot_text, p=(obj_pos[0], obj_pos[1] + 4, obj_pos[2]))
+            annotate_y = cmds.annotate(ann_holder, tx=ws_y_rot_text, p=(obj_pos[0], obj_pos[1] + 3, obj_pos[2]))
+            annotate_z = cmds.annotate(ann_holder, tx=ws_z_rot_text, p=(obj_pos[0], obj_pos[1] + 2, obj_pos[2]))
+            cmds.setAttr(annotate + '.displayArrow', 0)
+            cmds.setAttr(annotate_x + '.displayArrow', 0)
+            cmds.setAttr(annotate_y + '.displayArrow', 0)
+            change_viewport_color(annotate, (1,0,1))
+            change_viewport_color(annotate_x, (1,0,0))
+            change_viewport_color(annotate_y, (0,1,0))
+            change_viewport_color(annotate_z, (0,0,1))
+            annotation_transforms = []
+            annotation_transforms.append(cmds.listRelatives(annotate, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_x, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_y, parent=True))
+            annotation_transforms.append(cmds.listRelatives(annotate_z, parent=True))
+            cmds.parent(ann_holder, obj)
+            cmds.parent(annotate, ann_holder, s=True)
+            cmds.parent(annotate_x, ann_holder, s=True)
+            cmds.parent(annotate_y, ann_holder, s=True)
+            cmds.parent(annotate_z, ann_holder, s=True)
+            for empty_trans in annotation_transforms:
+                cmds.delete(empty_trans)
+            print(ann_holder)
+            
             
             
     ################# End of Extra Debugging Commands #################
