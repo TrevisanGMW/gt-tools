@@ -1367,32 +1367,33 @@ def create_controls(biped_data):
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
 
-    def orient_to_target(obj, target, orient_offset=(0, 0, 0), proxy_obj=None, aim_vec=(1, 0, 0), up_vec=(0, -1, 0),
+    def orient_to_target(obj_name, target, orient_offset=(0, 0, 0), proxy_obj=None, aim_vec=(1, 0, 0), up_vec=(0, -1, 0),
                          brute_force=False):
         """
         Orients an object based on a target object
 
                 Parameters:
-                    obj (string): Name of the object to orient (usually a joint)
+                    obj_name (string): Name of the object to orient (usually a joint)
                     target (string): Name of the target object (usually the element that will be the child of "obj")
-                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change the result orientation
+                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change the
+                                          result orientation.
                     proxy_obj (string): The name of the proxy element (used as extra rotation input)
-                    aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint - default value: (1,0,0)
-                    up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint - default value: (0,-1,0)
-                    brute_force (bool): Auto creates up and and dir points to determine orientation (Requires proxy object to work)
+                    aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint. Default: (1, 0, 0)
+                    up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint. Default: (0, -1, 0)
+                    brute_force (bool): Creates up and and dir points to determine orientation (Uses proxy object)
         """
         if proxy_obj:
-            cmds.delete(cmds.orientConstraint(proxy_obj, obj, offset=(0, 0, 0)))
-            cmds.makeIdentity(obj, apply=True, rotate=True)
+            cmds.delete(cmds.orientConstraint(proxy_obj, obj_name, offset=(0, 0, 0)))
+            cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-        cmds.setAttr(obj + '.rotateX', orient_offset[0])
-        cmds.setAttr(obj + '.rotateY', orient_offset[1])
-        cmds.setAttr(obj + '.rotateZ', orient_offset[2])
-        cmds.makeIdentity(obj, apply=True, rotate=True)
+        cmds.setAttr(obj_name + '.rotateX', orient_offset[0])
+        cmds.setAttr(obj_name + '.rotateY', orient_offset[1])
+        cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
+        cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
         cmds.delete(
-            cmds.aimConstraint(target, obj, offset=(0, 0, 0), aimVector=aim_vec, upVector=up_vec, worldUpType='vector',
-                               worldUpVector=(0, 1, 0), skip='x'))
+            cmds.aimConstraint(target, obj_name, offset=(0, 0, 0), aimVector=aim_vec, upVector=up_vec,
+                               worldUpType='vector', worldUpVector=(0, 1, 0), skip='x'))
 
         if proxy_obj and brute_force:
             temp_grp_up = cmds.group(name='temp_up_' + str(random.random()), world=True, empty=True)
@@ -1400,29 +1401,32 @@ def create_controls(biped_data):
             cmds.delete(cmds.parentConstraint(proxy_obj, temp_grp_up))
             cmds.move(1, temp_grp_up, y=True, relative=True, objectSpace=True)
             temp_grp_dir = cmds.group(name='temp_dir_' + str(random.random()), world=True, empty=True)
-            cmds.delete(cmds.parentConstraint(obj, temp_grp_dir))
+            cmds.delete(cmds.parentConstraint(obj_name, temp_grp_dir))
             # cmds.setAttr(temp_grp_dir + ".displayLocalAxis", 1) # Show LRA Debugging
             cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
             cmds.delete(
-                cmds.aimConstraint(temp_grp_dir, obj, aimVector=(1, 0, 0), upVector=(0, 1, 0), worldUpType="object",
-                                   worldUpObject=temp_grp_up, worldUpVector=(0, 1, 0)))
+                cmds.aimConstraint(temp_grp_dir, obj_name, aimVector=(1, 0, 0), upVector=(0, 1, 0),
+                                   worldUpType="object", worldUpObject=temp_grp_up, worldUpVector=(0, 1, 0)))
             cmds.delete(temp_grp_up)
             cmds.delete(temp_grp_dir)
 
-        cmds.makeIdentity(obj, apply=True, rotate=True)
+        cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-    def orient_offset(obj, orient_offset=(0, 0, 0)):
+    def orient_offset(obj_name, orient_offset=(0, 0, 0), apply=True):
         """
         Rotates the target then freezes its transformation (used to quickly re-orient an object)
 
-                Parameters:
-                    obj (string): Name of the object to orient (usually a joint)
-                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change the result orientation
+        Args:
+            obj_name (string): Name of the object to orient (usually a joint)
+            orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change
+                                  the result orientation.
+            apply (optional, bool): Whether or not to execute the function
         """
-        cmds.setAttr(obj + '.rotateX', orient_offset[0])
-        cmds.setAttr(obj + '.rotateY', orient_offset[1])
-        cmds.setAttr(obj + '.rotateZ', orient_offset[2])
-        cmds.makeIdentity(obj, apply=True, rotate=True)
+        if apply:
+            cmds.setAttr(obj_name + '.rotateX', orient_offset[0])
+            cmds.setAttr(obj_name + '.rotateY', orient_offset[1])
+            cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
+            cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
     def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
         """
@@ -1467,7 +1471,7 @@ def create_controls(biped_data):
             change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
 
         for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
-            shape = cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
+            cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
 
         return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
@@ -1480,10 +1484,8 @@ def create_controls(biped_data):
 
                 Returns:
                     string (string): output string without numbers (digits)
-
-
         """
-        return (''.join([i for i in string if not i.isdigit()]))
+        return ''.join([i for i in string if not i.isdigit()])
 
     # Extract Biped Data
     biped_data.elements_default = biped_data.elements_default
@@ -1583,11 +1585,14 @@ def create_controls(biped_data):
                      brute_force=True)
 
     orient_to_target(rig_joints.get('right_ring01_jnt'), rig_joints.get('right_ring02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0), brute_force=True)
+                     biped_data.elements.get('right_ring01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     brute_force=True)
     orient_to_target(rig_joints.get('right_ring02_jnt'), rig_joints.get('right_ring03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0), brute_force=True)
+                     biped_data.elements.get('right_ring02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     brute_force=True)
     orient_to_target(rig_joints.get('right_ring03_jnt'), rig_joints.get('right_ring04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0), brute_force=True)
+                     biped_data.elements.get('right_ring03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     brute_force=True)
 
     orient_to_target(rig_joints.get('right_pinky01_jnt'), rig_joints.get('right_pinky02_jnt'), (0, 180, 0),
                      biped_data.elements.get('right_pinky01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
@@ -1614,13 +1619,12 @@ def create_controls(biped_data):
                      biped_data.elements.get('right_elbow_proxy_crv'), aim_vec=(-1, 0, 0))
 
     # Set Leg Orientation
-    orient_to_target(rig_joints.get('left_hip_jnt'), rig_joints.get('left_knee_jnt'), (90, 0, -90),
-                     biped_data.elements.get('left_knee_proxy_crv'))
+    orient_to_target(rig_joints.get('left_hip_jnt'), rig_joints.get('left_knee_jnt'), (90, 0, -90))
     orient_to_target(rig_joints.get('left_knee_jnt'), rig_joints.get('left_ankle_jnt'), (90, 0, -90),
                      biped_data.elements.get('left_knee_proxy_crv'))
 
     orient_to_target(rig_joints.get('right_hip_jnt'), rig_joints.get('right_knee_jnt'), (90, 0, -90),
-                     biped_data.elements.get('right_knee_proxy_crv'), (-1, 0, 0))
+                     aim_vec=(-1, 0, 0))
     orient_to_target(rig_joints.get('right_knee_jnt'), rig_joints.get('right_ankle_jnt'), (90, 0, -90),
                      biped_data.elements.get('right_knee_proxy_crv'), (-1, 0, 0))
 
@@ -1634,6 +1638,9 @@ def create_controls(biped_data):
                      biped_data.elements.get('right_ankle_proxy_crv'), (-1, 0, 0))
     orient_to_target(rig_joints.get('right_ball_jnt'), rig_joints.get('right_toe_jnt'), (90, 0, -90),
                      biped_data.elements.get('right_ball_proxy_crv'), (-1, 0, 0))
+
+    # # Enforce Right Hip Orientation
+    # cmds.joint(rig_joints.get('cog_jnt'), e=True, oj='none', zso=True)  # ch
 
     # Center Parenting
     cmds.parent(rig_joints.get('spine01_jnt'), rig_joints.get('cog_jnt'))
@@ -2311,7 +2318,7 @@ def create_controls(biped_data):
     # Direction Control
     direction_ctrl = cmds.circle(name='direction_' + CTRL_SUFFIX, nr=(0, 1, 0), ch=False, radius=44.5)[0]
     for shape in cmds.listRelatives(direction_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(direction_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(direction_ctrl))
     change_viewport_color(direction_ctrl, (1, 1, 0))
     cmds.delete(cmds.scaleConstraint(biped_data.elements.get('main_crv'), direction_ctrl))
     cmds.makeIdentity(direction_ctrl, apply=True, scale=True)
@@ -2321,9 +2328,8 @@ def create_controls(biped_data):
     cmds.rebuildCurve(direction_ctrl, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
 
     # COG Control
-    cog_ctrl_a = \
-    cmds.circle(name=rig_joints.get('cog_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX, nr=(1, 0, 0), ch=False,
-                radius=general_scale_offset)[0]
+    cog_ctrl_a = cmds.circle(name=rig_joints.get('cog_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX, nr=(1, 0, 0),
+                             ch=False, radius=general_scale_offset)[0]
     cog_ctrl_b = cmds.curve(
         p=[[0.0, 0.0, 0.0], [0.0, -18.225, 0.0], [0.681, -18.317, 0.0], [1.301, -18.581, 0.0], [1.838, -18.988, 0.0],
            [2.254, -19.526, 0.0], [2.509, -20.155, 0.0], [2.6, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -18.225, 0.0],
@@ -2334,12 +2340,10 @@ def create_controls(biped_data):
            [2.509, -21.496, 0.0], [2.6, -20.825, 0.0], [-2.61, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -23.437, 0.0]],
         d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(cog_ctrl_a, (90, 0, -90))
-        orient_offset(cog_ctrl_b, (90, 0, -90))
+    orient_offset(cog_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(cog_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
-    cog_ctrl = \
-        combine_curves_list([cog_ctrl_a, cog_ctrl_b])
+    cog_ctrl = combine_curves_list([cog_ctrl_a, cog_ctrl_b])
 
     shapes = cmds.listRelatives(cog_ctrl, s=True, f=True) or []
     cmds.rename(shapes[0], '{0}Shape'.format(cog_ctrl.replace(CTRL_SUFFIX, 'circle')))
@@ -2427,9 +2431,8 @@ def create_controls(biped_data):
            [0.054, -0.955, 0.0], [0.077, -0.941, 0.0], [0.092, -0.917, 0.0], [0.104, -0.891, 0.0], [0.109, -0.864, 0.0],
            [-0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.971, 0.0]], d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(hip_ctrl_a, (90, 0, 90))
-        orient_offset(hip_ctrl_b, (90, 0, 90))
+    orient_offset(hip_ctrl_a, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(hip_ctrl_b, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
 
     hip_ctrl = combine_curves_list([hip_ctrl_a, hip_ctrl_b])
 
@@ -2515,9 +2518,8 @@ def create_controls(biped_data):
     spine01_ctrl_b = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + 'dot',
                                 p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(spine01_ctrl_a, (90, 0, -90))
-        orient_offset(spine01_ctrl_b, (90, 0, -90))
+    orient_offset(spine01_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine01_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine01_ctrl = combine_curves_list([spine01_ctrl_a, spine01_ctrl_b])
 
@@ -2526,7 +2528,7 @@ def create_controls(biped_data):
     cmds.setAttr(spine01_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine01_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(spine01_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(spine01_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(spine01_ctrl))
     change_viewport_color(spine01_ctrl, AUTO_CTRL_COLOR)
     spine01_ctrl_grp = cmds.group(name=spine01_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine01_ctrl, spine01_ctrl_grp)
@@ -2547,15 +2549,14 @@ def create_controls(biped_data):
                               k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
                                  14.0])
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(spine02_ctrl, (90, 0, -90))
+    orient_offset(spine02_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cmds.setAttr(spine02_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine02_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(spine02_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(spine02_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(spine02_ctrl))
     change_viewport_color(spine02_ctrl, (.8, .8, 0))
     spine02_ctrl_grp = cmds.group(name=spine02_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine02_ctrl, spine02_ctrl_grp)
@@ -2577,9 +2578,8 @@ def create_controls(biped_data):
     spine03_ctrl_b = cmds.curve(name=rig_joints.get('spine03_jnt').replace(JNT_SUFFIX, '') + 'dot',
                                 p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(spine03_ctrl_a, (90, 0, -90))
-        orient_offset(spine03_ctrl_b, (90, 0, -90))
+    orient_offset(spine03_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine03_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine03_ctrl = combine_curves_list([spine03_ctrl_a, spine03_ctrl_b])
 
@@ -2588,7 +2588,7 @@ def create_controls(biped_data):
     cmds.setAttr(spine03_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine03_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(spine03_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(spine03_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(spine03_ctrl))
     change_viewport_color(spine03_ctrl, AUTO_CTRL_COLOR)
     spine03_ctrl_grp = cmds.group(name=spine03_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine03_ctrl, spine03_ctrl_grp)
@@ -2605,15 +2605,14 @@ def create_controls(biped_data):
                                  [0.103, -0.881, 0.16], [0.023, -0.918, 0.0], [0.103, -0.881, -0.16],
                                  [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16]], d=3, per=True,
                               k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(spine04_ctrl, (90, 0, -90))
+    orient_offset(spine04_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     cmds.setAttr(spine04_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine04_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine04_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine04_ctrl, apply=True, scale=True)
 
     for shape in cmds.listRelatives(spine04_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(spine04_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(spine04_ctrl))
     change_viewport_color(spine04_ctrl, (.8, .8, 0))
     spine04_ctrl_grp = cmds.group(name=spine04_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine04_ctrl, spine04_ctrl_grp)
@@ -2636,8 +2635,7 @@ def create_controls(biped_data):
                                    [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0], [0.0, -2.051, 0.0],
                                    [0.0, -2.307, 0.0]], d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(neck_base_ctrl, (90, 0, -90))
+    orient_offset(neck_base_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cmds.setAttr(neck_base_ctrl + '.scaleX', general_scale_offset * .5)
     cmds.setAttr(neck_base_ctrl + '.scaleY', general_scale_offset * .5)
@@ -2645,7 +2643,7 @@ def create_controls(biped_data):
     cmds.makeIdentity(neck_base_ctrl, apply=True, scale=True)
 
     for shape in cmds.listRelatives(neck_base_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(neck_base_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(neck_base_ctrl))
     change_viewport_color(neck_base_ctrl, (.8, .8, 0))
     neck_base_ctrl_grp = cmds.group(name=neck_base_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(neck_base_ctrl, neck_base_ctrl_grp)
@@ -2666,15 +2664,14 @@ def create_controls(biped_data):
                                   [0.221, -2.179, 0.0], [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0],
                                   [0.0, -2.051, 0.0], [0.0, -2.307, 0.0]], d=1)
 
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(neck_mid_ctrl, (90, 0, -90))
+    orient_offset(neck_mid_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cmds.setAttr(neck_mid_ctrl + '.scaleX', general_scale_offset * .3)
     cmds.setAttr(neck_mid_ctrl + '.scaleY', general_scale_offset * .3)
     cmds.setAttr(neck_mid_ctrl + '.scaleZ', general_scale_offset * .3)
     cmds.makeIdentity(neck_mid_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(neck_mid_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(neck_mid_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(neck_mid_ctrl))
     change_viewport_color(neck_mid_ctrl, AUTO_CTRL_COLOR)
     neck_mid_ctrl_grp = cmds.group(name=neck_mid_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(neck_mid_ctrl, neck_mid_ctrl_grp)
@@ -2691,14 +2688,13 @@ def create_controls(biped_data):
                               [0.0, -0.529, 0.529], [0.0, 0.0, 0.748], [0.0, 0.529, 0.529], [0.0, 0.748, 0.0],
                               [0.0, 0.529, -0.529], [0.0, 0.0, -0.748], [0.0, -0.529, -0.529]], d=3, per=True,
                            k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-    if settings.get('uniform_ctrl_orient'):
-        orient_offset(head_ctrl, (90, 0, 0))
+    orient_offset(head_ctrl, (90, 0, 0), apply=settings.get('uniform_ctrl_orient'))
     cmds.setAttr(head_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(head_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(head_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(head_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(head_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(head_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(head_ctrl))
     change_viewport_color(head_ctrl, (.8, .8, 0))
     head_ctrl_grp = cmds.group(name=head_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(head_ctrl, head_ctrl_grp)
@@ -2806,7 +2802,7 @@ def create_controls(biped_data):
     cmds.setAttr(jaw_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(jaw_ctrl, apply=True, scale=True)
     for shape in cmds.listRelatives(jaw_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(jaw_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(jaw_ctrl))
     change_viewport_color(jaw_ctrl, (.8, .8, 0))
     jaw_ctrl_grp = cmds.group(name=jaw_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(jaw_ctrl, jaw_ctrl_grp)
@@ -2843,11 +2839,11 @@ def create_controls(biped_data):
 
     # Rename Shapes
     for shape in cmds.listRelatives(left_eye_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_eye_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_eye_ctrl))
     for shape in cmds.listRelatives(right_eye_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_eye_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_eye_ctrl))
     for shape in cmds.listRelatives(main_eye_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(main_eye_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(main_eye_ctrl))
 
     # Create Control Groups
     left_eye_ctrl_grp = cmds.group(name=left_eye_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
@@ -2903,10 +2899,11 @@ def create_controls(biped_data):
                                   [-0.0, -0.098, -0.098], [0.0, -0.0, -0.139], [0.0, 0.098, -0.098]], d=3, per=True,
                                k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
     left_hip_ctrl_grp = cmds.group(name=left_hip_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+
     cmds.parent(left_hip_ctrl, left_hip_ctrl_grp)
 
     for shape in cmds.listRelatives(left_hip_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_hip_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_hip_ctrl))
 
     cmds.setAttr(left_hip_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_hip_ctrl + '.scaleY', left_leg_scale_offset)
@@ -2914,6 +2911,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_hip_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_hip_jnt'), left_hip_ctrl_grp))
+
+    orient_offset(left_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_hip_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_hip_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_hip_ctrl_grp, hip_offset_data_grp)
 
@@ -2931,7 +2933,7 @@ def create_controls(biped_data):
     cmds.parent(left_knee_ctrl, left_knee_ctrl_grp)
 
     for shape in cmds.listRelatives(left_knee_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_knee_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_knee_ctrl))
 
     cmds.setAttr(left_knee_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_knee_ctrl + '.scaleY', left_leg_scale_offset)
@@ -2939,6 +2941,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_knee_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_knee_jnt'), left_knee_ctrl_grp))
+
+    orient_offset(left_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_knee_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_knee_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_knee_ctrl_grp, left_hip_ctrl)
 
@@ -2953,7 +2960,7 @@ def create_controls(biped_data):
     cmds.parent(left_ankle_ctrl, left_ankle_ctrl_grp)
 
     for shape in cmds.listRelatives(left_ankle_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_ankle_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_ankle_ctrl))
 
     cmds.setAttr(left_ankle_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_ankle_ctrl + '.scaleY', left_leg_scale_offset)
@@ -2962,6 +2969,10 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_ankle_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_ankle_jnt'), left_ankle_ctrl_grp))
+
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_ankle_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_ankle_ctrl, LEFT_CTRL_COLOR)
 
     temp_transform = cmds.group(name=left_ankle_ctrl + '_rotExtraction', empty=True, world=True)
@@ -2985,7 +2996,7 @@ def create_controls(biped_data):
     cmds.parent(left_ball_ctrl, left_ball_ctrl_grp)
 
     for shape in cmds.listRelatives(left_ball_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_ball_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_ball_ctrl))
 
     cmds.setAttr(left_ball_ctrl + '.scaleX', left_leg_scale_offset)
     cmds.setAttr(left_ball_ctrl + '.scaleY', left_leg_scale_offset)
@@ -2993,6 +3004,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_ball_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_ball_jnt'), left_ball_ctrl_grp))
+
+    orient_offset(left_ball_ctrl, (0, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(-90, -90, 0, left_ball_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_ball_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_ball_ctrl_grp, left_ankle_ctrl)
 
@@ -3010,7 +3026,7 @@ def create_controls(biped_data):
     cmds.parent(left_knee_ik_ctrl, left_knee_ik_ctrl_grp)
 
     for shape in cmds.listRelatives(left_knee_ik_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_knee_ik_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_knee_ik_ctrl))
 
     # Left Knee Find Position
     temp_transform = cmds.group(name=left_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
@@ -3139,7 +3155,7 @@ def create_controls(biped_data):
     cmds.parent(right_hip_ctrl, right_hip_ctrl_grp)
 
     for shape in cmds.listRelatives(right_hip_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_hip_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_hip_ctrl))
 
     cmds.setAttr(right_hip_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_hip_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3147,6 +3163,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_hip_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_hip_jnt'), right_hip_ctrl_grp))
+
+    orient_offset(right_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_hip_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_hip_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_hip_ctrl_grp, hip_offset_data_grp)
 
@@ -3164,7 +3185,7 @@ def create_controls(biped_data):
     cmds.parent(right_knee_ctrl, right_knee_ctrl_grp)
 
     for shape in cmds.listRelatives(right_knee_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_knee_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_knee_ctrl))
 
     cmds.setAttr(right_knee_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_knee_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3172,6 +3193,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_knee_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_knee_jnt'), right_knee_ctrl_grp))
+
+    orient_offset(right_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_knee_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_knee_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_knee_ctrl_grp, right_hip_ctrl)
 
@@ -3186,7 +3212,7 @@ def create_controls(biped_data):
     cmds.parent(right_ankle_ctrl, right_ankle_ctrl_grp)
 
     for shape in cmds.listRelatives(right_ankle_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_ankle_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_ankle_ctrl))
 
     cmds.setAttr(right_ankle_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_ankle_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3195,6 +3221,10 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_ankle_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_ankle_jnt'), right_ankle_ctrl_grp))
+
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_ankle_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_ankle_ctrl, RIGHT_CTRL_COLOR)
 
     temp_transform = cmds.group(name=right_ankle_ctrl + '_rotExtraction', empty=True, world=True)
@@ -3218,7 +3248,7 @@ def create_controls(biped_data):
     cmds.parent(right_ball_ctrl, right_ball_ctrl_grp)
 
     for shape in cmds.listRelatives(right_ball_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_ball_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_ball_ctrl))
 
     cmds.setAttr(right_ball_ctrl + '.scaleX', right_leg_scale_offset)
     cmds.setAttr(right_ball_ctrl + '.scaleY', right_leg_scale_offset)
@@ -3226,6 +3256,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_ball_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_ball_jnt'), right_ball_ctrl_grp))
+
+    orient_offset(right_ball_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_ball_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_ball_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_ball_ctrl_grp, right_ankle_ctrl)
 
@@ -3246,7 +3281,7 @@ def create_controls(biped_data):
     cmds.parent(right_knee_ik_ctrl, right_knee_ik_ctrl_grp)
 
     for shape in cmds.listRelatives(right_knee_ik_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_knee_ik_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_knee_ik_ctrl))
 
     # Right Knee Find Position
     temp_transform = cmds.group(name=right_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
@@ -3375,7 +3410,7 @@ def create_controls(biped_data):
     left_clavicle_ctrl_grp = cmds.group(name=left_clavicle_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
 
     for shape in cmds.listRelatives(left_clavicle_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_clavicle_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_clavicle_ctrl))
 
     # Left Clavicle Scale
     cmds.setAttr(left_clavicle_ctrl + '.scaleX', general_scale_offset * .25)
@@ -3416,7 +3451,7 @@ def create_controls(biped_data):
     cmds.parent(left_shoulder_ctrl, left_shoulder_ctrl_grp)
 
     for shape in cmds.listRelatives(left_shoulder_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_shoulder_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_shoulder_ctrl))
 
     left_shoulder_scale_offset = cmds.xform(rig_joints.get('left_shoulder_jnt'), q=True, t=True)[0] * 6.5
 
@@ -3426,6 +3461,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_shoulder_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_shoulder_jnt'), left_shoulder_ctrl_grp))
+
+    orient_offset(left_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_shoulder_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_shoulder_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_shoulder_ctrl_grp, left_clavicle_ctrl)
 
@@ -3440,7 +3480,7 @@ def create_controls(biped_data):
     cmds.parent(left_elbow_ctrl, left_elbow_ctrl_grp)
 
     for shape in cmds.listRelatives(left_elbow_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_elbow_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_elbow_ctrl))
 
     left_arm_scale_offset = dist_center_to_center(rig_joints.get('left_shoulder_jnt'), rig_joints.get('left_elbow_jnt'))
     left_arm_scale_offset += dist_center_to_center(rig_joints.get('left_elbow_jnt'), rig_joints.get('left_wrist_jnt'))
@@ -3452,6 +3492,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_elbow_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_elbow_ctrl_grp))
+
+    orient_offset(left_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_elbow_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_elbow_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_elbow_ctrl_grp, left_shoulder_ctrl)
 
@@ -3467,7 +3512,7 @@ def create_controls(biped_data):
     cmds.parent(left_wrist_ctrl, left_wrist_ctrl_grp)
 
     for shape in cmds.listRelatives(left_wrist_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_wrist_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_wrist_ctrl))
 
     left_arm_scale_offset = left_arm_scale_offset * .9
 
@@ -3477,6 +3522,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_wrist_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ctrl_grp))
+
+    orient_offset(left_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, left_wrist_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(left_wrist_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_wrist_ctrl_grp, left_elbow_ctrl)
 
@@ -3603,7 +3653,7 @@ def create_controls(biped_data):
     cmds.setAttr(left_wrist_ik_ctrl + '.scaleZ', left_wrist_scale_offset * .5)
     cmds.makeIdentity(left_wrist_ik_ctrl, apply=True, scale=True)
 
-    if settings.get('worldspace_ik_orient'):  # @@@
+    if settings.get('worldspace_ik_orient'):
         cmds.delete(cmds.orientConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl))
         cmds.makeIdentity(left_wrist_ik_ctrl, apply=True, rotate=True)
         cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
@@ -3665,7 +3715,7 @@ def create_controls(biped_data):
     cmds.parent(left_elbow_ik_ctrl, left_elbow_ik_ctrl_grp)
 
     for shape in cmds.listRelatives(left_elbow_ik_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_elbow_ik_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_elbow_ik_ctrl))
 
     # Left Elbow Find Position
     left_arm_scale_offset = left_arm_scale_offset * .5
@@ -3702,7 +3752,7 @@ def create_controls(biped_data):
     right_clavicle_ctrl_grp = cmds.group(name=right_clavicle_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
 
     for shape in cmds.listRelatives(right_clavicle_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_clavicle_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_clavicle_ctrl))
 
     # Right Clavicle Scale
     cmds.setAttr(right_clavicle_ctrl + '.scaleX', (general_scale_offset * .25) * -1)
@@ -3743,7 +3793,7 @@ def create_controls(biped_data):
     cmds.parent(right_shoulder_ctrl, right_shoulder_ctrl_grp)
 
     for shape in cmds.listRelatives(right_shoulder_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_shoulder_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_shoulder_ctrl))
 
     right_shoulder_scale_offset = cmds.xform(rig_joints.get('right_shoulder_jnt'), q=True, t=True)[0] * 6.5
 
@@ -3753,6 +3803,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_shoulder_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_shoulder_jnt'), right_shoulder_ctrl_grp))
+
+    orient_offset(right_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_shoulder_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_shoulder_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_shoulder_ctrl_grp, right_clavicle_ctrl)
 
@@ -3767,7 +3822,7 @@ def create_controls(biped_data):
     cmds.parent(right_elbow_ctrl, right_elbow_ctrl_grp)
 
     for shape in cmds.listRelatives(right_elbow_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_elbow_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_elbow_ctrl))
 
     right_arm_scale_offset = dist_center_to_center(rig_joints.get('right_shoulder_jnt'),
                                                    rig_joints.get('right_elbow_jnt'))
@@ -3781,6 +3836,11 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_elbow_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_elbow_jnt'), right_elbow_ctrl_grp))
+
+    orient_offset(right_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_elbow_ctrl_grp, os=True, relative=True)
+
     change_viewport_color(right_elbow_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_elbow_ctrl_grp, right_shoulder_ctrl)
 
@@ -3795,7 +3855,7 @@ def create_controls(biped_data):
     cmds.parent(right_wrist_ctrl, right_wrist_ctrl_grp)
 
     for shape in cmds.listRelatives(right_wrist_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_wrist_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_wrist_ctrl))
 
     right_arm_scale_offset = right_arm_scale_offset * .9
 
@@ -3805,6 +3865,10 @@ def create_controls(biped_data):
     cmds.makeIdentity(right_wrist_ctrl, apply=True, scale=True)
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ctrl_grp))
+
+    orient_offset(right_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, right_wrist_ctrl_grp, os=True, relative=True)
 
     change_viewport_color(right_wrist_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_wrist_ctrl_grp, right_elbow_ctrl)
@@ -3996,7 +4060,7 @@ def create_controls(biped_data):
     cmds.parent(right_elbow_ik_ctrl, right_elbow_ik_ctrl_grp)
 
     for shape in cmds.listRelatives(right_elbow_ik_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_elbow_ik_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_elbow_ik_ctrl))
 
     # Right Elbow Find Position
     right_arm_scale_offset = abs(right_arm_scale_offset) * .5
@@ -4305,7 +4369,7 @@ def create_controls(biped_data):
                                           [0.0, 0.21, 0.14], [0.0, 0.351, 0.0]], d=1)
 
     for shape in cmds.listRelatives(left_toe_up_down_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(left_toe_up_down_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(left_toe_up_down_ctrl))
 
     left_toe_up_down_ctrl_grp = cmds.group(name=left_toe_up_down_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
     cmds.parent(left_toe_up_down_ctrl, left_toe_up_down_ctrl_grp)
@@ -4504,7 +4568,7 @@ def create_controls(biped_data):
                                            [0.0, 0.21, 0.14], [0.0, 0.351, 0.0]], d=1)
 
     for shape in cmds.listRelatives(right_toe_up_down_ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(right_toe_up_down_ctrl))
+        cmds.rename(shape, '{0}Shape'.format(right_toe_up_down_ctrl))
 
     right_toe_up_down_ctrl_grp = cmds.group(name=right_toe_up_down_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
     cmds.parent(right_toe_up_down_ctrl, right_toe_up_down_ctrl_grp)
@@ -5617,15 +5681,15 @@ def create_controls(biped_data):
 
     # ################# Left FK Controls #################
     # Left Leg
-    cmds.parentConstraint(left_hip_ctrl, left_hip_fk_jnt)
-    cmds.parentConstraint(left_knee_ctrl, left_knee_fk_jnt)
-    cmds.parentConstraint(left_ankle_ctrl, left_ankle_fk_jnt)
-    cmds.parentConstraint(left_ball_ctrl, left_ball_fk_jnt)
+    cmds.parentConstraint(left_hip_ctrl, left_hip_fk_jnt, mo=True)
+    cmds.parentConstraint(left_knee_ctrl, left_knee_fk_jnt, mo=True)
+    cmds.parentConstraint(left_ankle_ctrl, left_ankle_fk_jnt, mo=True)
+    cmds.parentConstraint(left_ball_ctrl, left_ball_fk_jnt, mo=True)
 
     # Left Arm
-    cmds.parentConstraint(left_shoulder_ctrl, left_shoulder_fk_jnt)
-    cmds.parentConstraint(left_elbow_ctrl, left_elbow_fk_jnt)
-    cmds.parentConstraint(left_wrist_ctrl, left_wrist_fk_jnt)
+    cmds.parentConstraint(left_shoulder_ctrl, left_shoulder_fk_jnt, mo=True)
+    cmds.parentConstraint(left_elbow_ctrl, left_elbow_fk_jnt, mo=True)
+    cmds.parentConstraint(left_wrist_ctrl, left_wrist_fk_jnt, mo=True)
 
     # Left Fingers
     cmds.parentConstraint(left_thumb01_ctrl_list[0], rig_joints.get('left_thumb01_jnt'))
@@ -6139,15 +6203,15 @@ def create_controls(biped_data):
 
     ################# Right FK Controls #################
     # Right Leg
-    cmds.parentConstraint(right_hip_ctrl, right_hip_fk_jnt)
-    cmds.parentConstraint(right_knee_ctrl, right_knee_fk_jnt)
-    cmds.parentConstraint(right_ankle_ctrl, right_ankle_fk_jnt)
-    cmds.parentConstraint(right_ball_ctrl, right_ball_fk_jnt)
+    cmds.parentConstraint(right_hip_ctrl, right_hip_fk_jnt, mo=True)
+    cmds.parentConstraint(right_knee_ctrl, right_knee_fk_jnt, mo=True)
+    cmds.parentConstraint(right_ankle_ctrl, right_ankle_fk_jnt, mo=True)
+    cmds.parentConstraint(right_ball_ctrl, right_ball_fk_jnt, mo=True)
 
     # Right Arm
-    cmds.parentConstraint(right_shoulder_ctrl, right_shoulder_fk_jnt)
-    cmds.parentConstraint(right_elbow_ctrl, right_elbow_fk_jnt)
-    cmds.parentConstraint(right_wrist_ctrl, right_wrist_fk_jnt)
+    cmds.parentConstraint(right_shoulder_ctrl, right_shoulder_fk_jnt, mo=True)
+    cmds.parentConstraint(right_elbow_ctrl, right_elbow_fk_jnt, mo=True)
+    cmds.parentConstraint(right_wrist_ctrl, right_wrist_fk_jnt, mo=True)
 
     # Right Fingers
     cmds.parentConstraint(right_thumb01_ctrl_list[0], rig_joints.get('right_thumb01_jnt'))
@@ -7967,6 +8031,10 @@ def create_controls(biped_data):
     primary_rotation_channel = 'Z'
     alternative_prim_rot_list = []
 
+    if settings.get('uniform_ctrl_orient'):
+        lock_attr = 'lockYZ'
+        primary_rotation_channel = 'X'
+
     for obj in [left_elbow_ctrl, right_elbow_ctrl, left_knee_ctrl, right_knee_ctrl]:
         cmds.addAttr(obj, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
         cmds.setAttr(obj + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
@@ -9038,11 +9106,12 @@ def create_controls(biped_data):
     if biped_data.debugging and biped_data.debugging_post_code:
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
-        debugging_display_lra = False
+        debugging_display_lra = True
         debugging_ikfk_jnts_visible = False
         debugging_offset_ctrls_visible = True
         debugging_annotate = False
         debugging_show_fk_fingers = True
+        debugging_show_fk_controls = True
 
         if debugging_ikfk_jnts_visible:
             make_visible_obj = [hip_switch_jnt,  # Makes Hip IK/FK joints visible
@@ -9159,9 +9228,15 @@ def create_controls(biped_data):
             cmds.setAttr(left_fingers_ctrl + '.showFkFingerCtrls', 1)
             cmds.setAttr(right_fingers_ctrl + '.showFkFingerCtrls', 1)
 
+        if debugging_show_fk_controls:
+            cmds.setAttr(left_leg_switch + '.influenceSwitch', 0)
+            cmds.setAttr(right_leg_switch + '.influenceSwitch', 0)
+            cmds.setAttr(left_arm_switch + '.influenceSwitch', 0)
+            cmds.setAttr(right_arm_switch + '.influenceSwitch', 0)
     # ################# End of Extra Debugging Commands #################
 
     # End of Create Base Rig Controls
+
 
 def build_biped_rig(create_rig_ctrls=True):
     """
@@ -9195,6 +9270,12 @@ def build_biped_rig(create_rig_ctrls=True):
 
     # Create Proxy
     create_proxy(biped_obj)
+
+    # Use Proxy Template
+    biped_obj.debugging_import_proxy = True
+    import gt_rigger_biped_gui
+    gt_rigger_biped_gui.import_proxy_pose(debugging=biped_obj.debugging_import_proxy,
+                                          debugging_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
