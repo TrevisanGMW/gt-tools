@@ -2,9 +2,6 @@
  GT Facial Rigger
  github.com/TrevisanGMW - 2021-12-06
 
- TODO:
-    Auto calculate outer eyebrow gradient
-
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -15,7 +12,7 @@ import random
 script_name = 'GT Auto Facial Rigger'
 
 # Version:
-script_version = '0.3'
+script_version = '0.4'
 
 find_pre_existing_elements = True
 
@@ -63,7 +60,17 @@ for item in list(_facial_proxy_dict):
 
 
 def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp=False):
-    """ TODO """
+    """
+    Creates a control that arches according to its position. Helpful to follow the curavture of the head.
+    Args:
+        end_joint: Name of the end joint for the system (two joints are necessary, base and end)
+        ctrl_name: Name of the control to be generated
+        radius: Radius of the new control
+        create_offset_grp: Whether or not to create an offset group between the control and its offset group
+
+    Returns: A tuple with ("ctrl", "ctrl_grp", "trans_loc", "trans_loc_grp", "end_joint", "offset_grp")
+
+    """
 
     # Validate necessary elements
     end_joint_parent = cmds.listRelatives(end_joint, parent=True)[0] or []
@@ -921,11 +928,11 @@ def create_face_controls():
         left_eyebrow_driver_joints.append(driver_jnt)
         left_eyebrow_root_joints.append(new_joint)
 
-    eyebrow_controls = []
+    left_eyebrow_controls = []
     for jnt in left_eyebrow_driver_joints:
         ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), 'ctrl'),
-                                          radius=left_eyebrow_scale * .05)
-        eyebrow_controls.append(ctrl_objs)
+                                          radius=left_eyebrow_scale * .05, create_offset_grp=True)
+        left_eyebrow_controls.append(ctrl_objs)
 
     # Control Holder
     left_eyebrow_ctrls_grp = cmds.group(name='left_eyebrow_' + CTRL_SUFFIX + GRP_SUFFIX.capitalize(), empty=True,
@@ -938,7 +945,7 @@ def create_face_controls():
     cmds.parent(left_eyebrow_ctrls_grp, head_ctrl)
     cmds.parent(left_eyebrow_data_grp, head_ctrl)
 
-    for ctrl_data in eyebrow_controls:
+    for ctrl_data in left_eyebrow_controls:
         # Unpack Data
         ctrl = ctrl_data[0]
         ctrl_grp = ctrl_data[1]
@@ -1029,11 +1036,11 @@ def create_face_controls():
         right_eyebrow_driver_joints.append(driver_jnt)
         right_eyebrow_root_joints.append(new_joint)
 
-    eyebrow_controls = []
+    right_eyebrow_controls = []
     for jnt in right_eyebrow_driver_joints:
         ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), 'ctrl'),
                                           radius=right_eyebrow_scale * .05, create_offset_grp=True)
-        eyebrow_controls.append(ctrl_objs)
+        right_eyebrow_controls.append(ctrl_objs)
 
     # Control Holder
     right_eyebrow_ctrls_grp = cmds.group(name='right_eyebrow_' + CTRL_SUFFIX + GRP_SUFFIX.capitalize(), empty=True,
@@ -1046,7 +1053,7 @@ def create_face_controls():
     cmds.parent(right_eyebrow_ctrls_grp, head_ctrl)
     cmds.parent(right_eyebrow_data_grp, head_ctrl)
 
-    for ctrl_data in eyebrow_controls:
+    for ctrl_data in right_eyebrow_controls:
         # Unpack Data
         ctrl = ctrl_data[0]
         ctrl_grp = ctrl_data[1]
@@ -1175,6 +1182,17 @@ def create_face_controls():
                             right_corner_ctrl: [right_corner_offset_ctrl, '2d'],
                             }
 
+    eyebrow_ctrls = right_eyebrow_controls + left_eyebrow_controls
+    for obj in eyebrow_ctrls:
+        print(obj)
+        # ctrl = obj[0]
+        # offset_ctrl = obj[5]
+        # offset_ctrl = cmds.rename(offset_ctrl, offset_ctrl.replace('Offset', 'Driven'))
+        # if 'inner' in ctrl:
+        #     _setup_offset_target[ctrl] = [offset_ctrl, '2d']
+        # else:
+        #     _setup_offset_target[ctrl] = [offset_ctrl, '1d']
+
     _offset_target_reposition = {}
 
     for ctrl_name, data in _setup_offset_target.items():
@@ -1286,9 +1304,22 @@ def create_face_controls():
             cmds.setAttr(range_node + '.minX', -1)
             _offset_target_reposition[ctrl_loc] = mouth_scale * 0.3
 
+    # Find main control and check if it needs to set rot differently
+    is_uniform = False
+    main_rig_ctrl = find_transform('main_ctrl', item_type='transform', log_fail=False)
+    if main_rig_ctrl:
+        metadata = get_metadata(main_rig_ctrl)
+        if metadata:
+            if "uniform_ctrl_orient" in metadata:
+                is_uniform = metadata.get("uniform_ctrl_orient")
+
+    # Set locator initial values
     for ctrl_loc, float_value in _offset_target_reposition.items():
         if 'jaw_ctrlOffsetYLoc' in ctrl_loc:
             cmds.rotate(float_value * -15, ctrl_loc, rotateZ=True, relative=True)
+            if is_uniform:
+                cmds.setAttr(ctrl_loc + '.rz', 0)
+                cmds.rotate(float_value * 15, ctrl_loc, rotateX=True, relative=True)
         elif 'jaw_ctrlOffsetXLoc' in ctrl_loc:
             cmds.rotate(float_value * -15, ctrl_loc, rotateY=True, relative=True)
         elif '_cornerLip_ctrlOffsetXLoc' in ctrl_loc:
@@ -1318,8 +1349,8 @@ def create_face_controls():
 
 if __name__ == '__main__':
     if debugging:
-        import gt_maya_utilities
-        gt_maya_utilities.gtu_reload_file()
-        # cmds.file(new=True, force=True)
+        # import gt_maya_utilities
+        # gt_maya_utilities.gtu_reload_file()
+        cmds.file(new=True, force=True)
     create_face_proxy()
     create_face_controls()
