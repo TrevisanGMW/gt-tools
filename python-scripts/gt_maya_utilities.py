@@ -106,41 +106,44 @@ try:
     from PySide2.QtWidgets import QWidget
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
-    
+
 # Script Version
 gtu_script_version = '2.5'
 
-#Python Version
+# Python Version
 python_version = sys.version_info.major
-    
+
 ''' ____________________________ General Functions ____________________________'''
 
+
 def gtu_reload_file():
-    ''' Reopens the opened file (to revert back any changes done to the file) '''        
-    if cmds.file(query=True, exists=True): # Check to see if it was ever saved
-                file_path = cmds.file(query=True, expandName=True)
-                if file_path is not None:
-                    cmds.file(file_path, open=True, force=True)
+    """ Reopens the opened file (to revert back any changes done to the file) """
+    if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
+        file_path = cmds.file(query=True, expandName=True)
+        if file_path is not None:
+            cmds.file(file_path, open=True, force=True)
     else:
         cmds.warning('File was never saved.')
-        
+
+
 def gtu_open_resource_browser():
-    ''' Opens Maya's Resource Browser '''        
+    """ Opens Maya's Resource Browser """
     try:
         import maya.app.general.resourceBrowser as resourceBrowser
 
         resourceBrowser.resourceBrowser().run()
     except:
         pass
-        
+
+
 def gtu_unlock_default_channels():
-    ''' Unlocks Translate, Rotate, Scale for the selected objects '''  
+    """ Unlocks Translate, Rotate, Scale for the selected objects """
     function_name = 'GTU Unlock Default Channels'
     errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
-    selection = cmds.ls(selection=True, long=True) 
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
     unlocked_counter = 0
-    try:   
+    try:
         for obj in selection:
             try:
                 cmds.setAttr(obj + '.translateX', lock=False)
@@ -157,30 +160,31 @@ def gtu_unlock_default_channels():
             except Exception as e:
                 errors += str(e) + '\n'
         if errors != '':
-                print('#### Errors: ####')
-                print(errors)
-                cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
     except:
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    
-    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(unlocked_counter) + ' </span>'
+
+    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
     message += is_plural + ' default channels unlocked.'
-    
+
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-    
+
+
 def gtu_unhide_default_channels():
-    ''' Unhides Translate, Rotate, Scale for the selected objects '''  
+    """ Unhides Translate, Rotate, Scale for the selected objects """
     function_name = 'GTU Unhide Default Channels'
     errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
-    selection = cmds.ls(selection=True, long=True) 
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
     unlocked_counter = 0
-    try:   
+    try:
         for obj in selection:
             try:
                 cmds.setAttr(obj + '.translateX', keyable=True)
@@ -197,38 +201,38 @@ def gtu_unhide_default_channels():
             except Exception as e:
                 errors += str(e) + '\n'
         if errors != '':
-                print('#### Errors: ####')
-                print(errors)
-                cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
     except:
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    
-    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(unlocked_counter) + ' </span>'
+
+    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
     message += is_plural + ' default channels made visible.'
-    
+
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
 def gtu_uniform_lra_toggle():
-    ''' 
+    """
     Makes the visibility of the Local Rotation Axis uniform among 
     the selected objects according to the current state of the majority of them.  
-    '''
+    """
 
     function_name = 'GTU Uniform LRA Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
         errors = ''
         selection = cmds.ls(selection=True)
-        
+
         inactive_lra = []
         active_lra = []
-        
+
         for obj in selection:
             try:
                 current_lra_state = cmds.getAttr(obj + '.displayLocalAxis')
@@ -238,7 +242,7 @@ def gtu_uniform_lra_toggle():
                     inactive_lra.append(obj)
             except Exception as e:
                 errors += str(e) + '\n'
-           
+
         if len(active_lra) == 0:
             for obj in inactive_lra:
                 try:
@@ -263,7 +267,6 @@ def gtu_uniform_lra_toggle():
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
                 except Exception as e:
                     errors += str(e) + '\n'
-        
 
         if errors != '':
             print('#### Errors: ####')
@@ -274,20 +277,21 @@ def gtu_uniform_lra_toggle():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
+
 def gtu_uniform_jnt_label_toggle():
-    ''' 
+    """
     Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.  
-    '''
+    """
 
     function_name = 'GTU Uniform Joint Label Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
         errors = ''
         joints = cmds.ls(type='joint', long=True)
-        
+
         inactive_label = []
         active_label = []
-        
+
         for obj in joints:
             try:
                 current_label_state = cmds.getAttr(obj + '.drawLabel')
@@ -297,7 +301,7 @@ def gtu_uniform_jnt_label_toggle():
                     inactive_label.append(obj)
             except Exception as e:
                 errors += str(e) + '\n'
-           
+
         if len(active_label) == 0:
             for obj in inactive_label:
                 try:
@@ -322,56 +326,58 @@ def gtu_uniform_jnt_label_toggle():
                     cmds.setAttr(obj + '.drawLabel', 0)
                 except Exception as e:
                     errors += str(e) + '\n'
-        
 
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning('The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
+            cmds.warning(
+                'The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
     except:
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
+
 def gtu_select_non_unique_objects():
-    ''' Selects all non-unique objects (objects with the same short name) '''  
-    
+    """ Selects all non-unique objects (objects with the same short name) """
+
     def get_short_name(obj):
-            '''
+        """
             Get the name of the objects without its path (Maya returns full path if name is not unique)
 
                     Parameters:
                             obj (string) - object to extract short name
-            '''
-            if obj == '':
-                return ''
-            split_path = obj.split('|')
-            if len(split_path) >= 1:
-                short_name = split_path[len(split_path)-1]
-            return short_name
+            """
+        if obj == '':
+            return ''
+        split_path = obj.split('|')
+        if len(split_path) >= 1:
+            short_name = split_path[len(split_path) - 1]
+        return short_name
 
-    all_transforms = cmds.ls(type = 'transform')
+    all_transforms = cmds.ls(type='transform')
     short_names = []
     non_unique_transforms = []
-    for obj in all_transforms: # Get all Short Names
+    for obj in all_transforms:  # Get all Short Names
         short_names.append(get_short_name(obj))
-        
+
     for obj in all_transforms:
-        short_name = get_short_name(obj)        
+        short_name = get_short_name(obj)
         if short_names.count(short_name) > 1:
             non_unique_transforms.append(obj)
 
     cmds.select(non_unique_transforms, r=True)
-    
+
     if len(non_unique_transforms) > 0:
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(len(non_unique_transforms)) + '</span> non-unique objects were selected.'
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
+            len(non_unique_transforms)) + '</span> non-unique objects were selected.'
     else:
         message = 'All objects seem to have unique names in this scene.'
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-        
+
 
 def gtu_import_references():
-    ''' Imports all references ''' 
+    """ Imports all references """
     try:
         errors = ''
         refs = cmds.ls(rf=True)
@@ -388,10 +394,10 @@ def gtu_import_references():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
-        
+
 
 def gtu_remove_references():
-    ''' Removes all references ''' 
+    """ Removes all references """
     try:
         errors = ''
         refs = cmds.ls(rf=True)
@@ -410,82 +416,88 @@ def gtu_remove_references():
         print('#' * 50)
 
 
+""" ____________________________ Material Functions ____________________________"""
 
-''' ____________________________ Material Functions ____________________________'''
 
 def gtu_copy_material():
-    ''' Copies selected material to clipboard ''' 
+    """ Copies selected material to clipboard """
     selection = cmds.ls(selection=True)
     try:
         mel.eval('ConvertSelectionToFaces;')
-        cmds.polyClipboard( copy=True, shader=True )
-        cmds.inViewMessage( amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True )
+        cmds.polyClipboard(copy=True, shader=True)
+        cmds.inViewMessage(amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True)
     except:
         cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
     cmds.select(selection)
-    
+
+
 def gtu_paste_material():
-    ''' Copies selected material to clipboard ''' 
+    """ Copies selected material to clipboard """
     try:
-        cmds.polyClipboard( paste=True, shader=True )
+        cmds.polyClipboard(paste=True, shader=True)
     except:
-        cmds.warning('Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
+        cmds.warning(
+            'Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
 
 
+""" ____________________________ Layout Functions ____________________________"""
 
-''' ____________________________ Layout Functions ____________________________'''
 
 def gtu_move_pivot_to_top():
-    ''' Moves pivot point to the top of the boundary box '''     
-    selection = cmds.ls(selection=True) 
+    """ Moves pivot point to the top of the boundary box """
+    selection = cmds.ls(selection=True)
 
     for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
-        top = [(bbox[0] + bbox[3])/2, bbox[4], (bbox[2] + bbox[5])/2] # find top
-        cmds.xform(obj, piv=top, ws=True) 
-        
+        bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
+        top = [(bbox[0] + bbox[3]) / 2, bbox[4], (bbox[2] + bbox[5]) / 2]  # find top
+        cmds.xform(obj, piv=top, ws=True)
+
+
 def gtu_move_pivot_to_base():
-    ''' Moves pivot point to the base of the boundary box '''     
-    selection = cmds.ls(selection=True) 
+    """ Moves pivot point to the base of the boundary box """
+    selection = cmds.ls(selection=True)
 
     for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj) # extracts bounding box
-        bottom = [(bbox[0] + bbox[3])/2, bbox[1], (bbox[2] + bbox[5])/2] # find bottom
-        cmds.xform(obj, piv=bottom, ws=True) # sends pivot to bottom
-        
+        bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
+        bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]  # find bottom
+        cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
+
+
 def gtu_move_to_origin():
-    ''' Moves selected objects back to origin '''  
+    """ Moves selected objects back to origin """
     function_name = 'GTU Move to Origin'
     errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
-    selection = cmds.ls(selection=True) 
-    try:   
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    selection = cmds.ls(selection=True)
+    try:
         for obj in selection:
             try:
-                cmds.move(0, 0, 0, obj, a=True,rpr=True) #rpr flag moves it according to the pivot
+                cmds.move(0, 0, 0, obj, a=True, rpr=True)  # rpr flag moves it according to the pivot
             except Exception as e:
                 errors += str(e) + '\n'
         if errors != '':
-                print('#### Errors: ####')
-                print(errors)
-                cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
     except:
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-        
-''' ____________________________ Reset Functions ____________________________'''
+
+
+""" ____________________________ Reset Functions ____________________________"""
+
 
 def gtu_reset_transforms():
-    '''
+    """
     Reset transforms. 
     It checks for incomming connections, then set the attribute to 0 if there are none
     It resets transforms, but ignores translate for joints.
-    '''
+    """
     function_name = 'GTU Reset Transforms'
     errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name) # Start undo chunk
-    
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+
     selection = cmds.ls(selection=True)
 
     def reset_transforms():
@@ -494,79 +506,80 @@ def gtu_reset_transforms():
                 type_check = cmds.listRelatives(obj, children=True) or []
 
                 if len(type_check) > 0 and cmds.objectType(type_check) != 'joint':
-                    obj_connection_tx = cmds.listConnections( obj + '.tx', d=False, s=True ) or []
+                    obj_connection_tx = cmds.listConnections(obj + '.tx', d=False, s=True) or []
                     if not len(obj_connection_tx) > 0:
                         if cmds.getAttr(obj + '.tx', lock=True) is False:
                             cmds.setAttr(obj + '.tx', 0)
-                    obj_connection_ty = cmds.listConnections( obj + '.ty', d=False, s=True ) or []
+                    obj_connection_ty = cmds.listConnections(obj + '.ty', d=False, s=True) or []
                     if not len(obj_connection_ty) > 0:
                         if cmds.getAttr(obj + '.ty', lock=True) is False:
                             cmds.setAttr(obj + '.ty', 0)
-                    obj_connection_tz = cmds.listConnections( obj + '.tz', d=False, s=True ) or []
+                    obj_connection_tz = cmds.listConnections(obj + '.tz', d=False, s=True) or []
                     if not len(obj_connection_tz) > 0:
                         if cmds.getAttr(obj + '.tz', lock=True) is False:
                             cmds.setAttr(obj + '.tz', 0)
-                
-                obj_connection_rx = cmds.listConnections( obj + '.rotateX', d=False, s=True ) or []
+
+                obj_connection_rx = cmds.listConnections(obj + '.rotateX', d=False, s=True) or []
                 if not len(obj_connection_rx) > 0:
                     if cmds.getAttr(obj + '.rotateX', lock=True) is False:
                         cmds.setAttr(obj + '.rotateX', 0)
-                obj_connection_ry = cmds.listConnections( obj + '.rotateY', d=False, s=True ) or []
+                obj_connection_ry = cmds.listConnections(obj + '.rotateY', d=False, s=True) or []
                 if not len(obj_connection_ry) > 0:
                     if cmds.getAttr(obj + '.rotateY', lock=True) is False:
                         cmds.setAttr(obj + '.rotateY', 0)
-                obj_connection_rz = cmds.listConnections( obj + '.rotateZ', d=False, s=True ) or []
+                obj_connection_rz = cmds.listConnections(obj + '.rotateZ', d=False, s=True) or []
                 if not len(obj_connection_rz) > 0:
                     if cmds.getAttr(obj + '.rotateZ', lock=True) is False:
                         cmds.setAttr(obj + '.rotateZ', 0)
 
-                obj_connection_sx = cmds.listConnections( obj + '.scaleX', d=False, s=True ) or []
+                obj_connection_sx = cmds.listConnections(obj + '.scaleX', d=False, s=True) or []
                 if not len(obj_connection_sx) > 0:
                     if cmds.getAttr(obj + '.scaleX', lock=True) is False:
                         cmds.setAttr(obj + '.scaleX', 1)
-                obj_connection_sy = cmds.listConnections( obj + '.scaleY', d=False, s=True ) or []
+                obj_connection_sy = cmds.listConnections(obj + '.scaleY', d=False, s=True) or []
                 if not len(obj_connection_sy) > 0:
                     if cmds.getAttr(obj + '.scaleY', lock=True) is False:
                         cmds.setAttr(obj + '.scaleY', 1)
-                obj_connection_sz = cmds.listConnections( obj + '.scaleZ', d=False, s=True ) or []
+                obj_connection_sz = cmds.listConnections(obj + '.scaleZ', d=False, s=True) or []
                 if not len(obj_connection_sz) > 0:
                     if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
                         cmds.setAttr(obj + '.scaleZ', 1)
             except Exception as e:
                 errors = errors + str(e + '\n')
-        
+
     try:
         reset_transforms()
     except Exception as e:
         pass
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-        
+
     if errors != '':
         cmds.warning('Some objects couldn\'t be reset. Open the script editor for a list of errors.')
 
 
 def gtu_reset_joint_sizes():
-    ''' Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one '''
+    """ Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one """
     try:
         desired_size = 1
         all_joints = cmds.ls(type='joint')
         for obj in all_joints:
             if cmds.objExists(obj):
-                if cmds.getAttr(obj + ".radius" ,lock=True) is False:
+                if cmds.getAttr(obj + ".radius", lock=True) is False:
                     cmds.setAttr(obj + '.radius', 1)
-                    
-                if cmds.getAttr(obj + ".v" ,lock=True) is False:
-                    cmds.setAttr(obj + '.v', 1)   
+
+                if cmds.getAttr(obj + ".v", lock=True) is False:
+                    cmds.setAttr(obj + '.v', 1)
         cmds.jointDisplayScale(1)
 
     except Exception as exception:
         raise exception
-        
+
+
 def gtu_reset_persp_shape_attributes():
-    '''
+    """
     If persp shape exists (default camera), reset its attributes
-    '''
+    """
     if cmds.objExists('perspShape'):
         try:
             cmds.setAttr('perspShape' + ".focalLength", 35)
@@ -585,24 +598,27 @@ def gtu_reset_persp_shape_attributes():
             cmds.setAttr('perspShape' + ".depthOfField", 0)
         except:
             pass
-            
-''' ____________________________ Delete Functions ____________________________'''   
+
+
+""" ____________________________ Delete Functions ____________________________"""
+
 
 def gtu_delete_namespaces():
-    '''Deletes all namespaces in the scene'''
+    """Deletes all namespaces in the scene"""
     function_name = 'GTU Delete All Namespaces'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
         default_namespaces = ['UI', 'shared']
 
         def num_children(namespace):
-            '''Used as a sort key, this will sort namespaces by how many children they have.'''
+            """Used as a sort key, this will sort namespaces by how many children they have."""
             return namespace.count(':')
 
-        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces]
+        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if
+                      namespace not in default_namespaces]
 
         # Reverse List
-        namespaces.sort(key=num_children, reverse=True) # So it does the children first
+        namespaces.sort(key=num_children, reverse=True)  # So it does the children first
 
         print(namespaces)
 
@@ -613,32 +629,34 @@ def gtu_delete_namespaces():
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-        
+
+
 def gtu_delete_display_layers():
-    ''' Deletes all display layers '''
+    """ Deletes all display layers """
     function_name = 'GTU Delete All Display Layers'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
-        display_layers = cmds.ls(type = 'displayLayer')
+        display_layers = cmds.ls(type='displayLayer')
         deleted_counter = 0
         for layer in display_layers:
             if layer != 'defaultLayer':
                 cmds.delete(layer)
                 deleted_counter += 1
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'layers were'
         if deleted_counter == 1:
             is_plural = 'layer was'
         message += is_plural + ' deleted.'
-        
+
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
     except Exception as e:
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-            
+
+
 def gtu_delete_keyframes():
-    '''Deletes all keyframes. (Doesn't include Set Driven Keys)'''       
+    """Deletes all keyframes. (Doesn't include Set Driven Keys)"""
     function_name = 'GTU Delete All Keyframes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
@@ -646,10 +664,10 @@ def gtu_delete_keyframes():
         keys_tl = cmds.ls(type='animCurveTL')
         keys_tt = cmds.ls(type='animCurveTT')
         keys_tu = cmds.ls(type='animCurveTU')
-        #keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
-        #keys_ua = cmds.ls(type='animCurveUA')
-        #keys_ut = cmds.ls(type='animCurveUT')
-        #keys_uu = cmds.ls(type='animCurveUU')
+        # keys_ul = cmds.ls(type='animCurveUL') # Use optionVar to determine if driven keys should be deleted
+        # keys_ua = cmds.ls(type='animCurveUA')
+        # keys_ut = cmds.ls(type='animCurveUT')
+        # keys_uu = cmds.ls(type='animCurveUU')
         deleted_counter = 0
         all_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
         for obj in all_keyframes:
@@ -657,35 +675,35 @@ def gtu_delete_keyframes():
                 cmds.delete(obj)
                 deleted_counter += 1
             except:
-                pass   
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+                pass
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'keyframe nodes were'
         if deleted_counter == 1:
             is_plural = 'keyframe node was'
         message += is_plural + ' deleted.'
-        
+
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
     except Exception as e:
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-        
-                    
+
+
 def gtu_delete_nucleus_nodes():
-    ''' Deletes all elements related to particles '''   
-    errors= '' 
+    """ Deletes all elements related to particles """
+    errors = ''
     try:
         function_name = 'GTU Delete Nucleus Nodes'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        
+
         # Without Transform
         emitters = cmds.ls(typ='pointEmitter')
         instancers = cmds.ls(typ='instancer')
         solvers = cmds.ls(typ='nucleus')
         instancers = cmds.ls(typ='instancer')
-        
+
         no_transforms = emitters + instancers + solvers + instancers
-        
+
         # With Transform
         nparticle_nodes = cmds.ls(typ='nParticle')
         spring_nodes = cmds.ls(typ='spring')
@@ -695,9 +713,9 @@ def gtu_delete_nucleus_nodes():
         pfxhair_nodes = cmds.ls(typ='pfxHair')
         hair_nodes = cmds.ls(typ='hairSystem')
         nconstraint_nodes = cmds.ls(typ='dynamicConstraint')
-        
+
         transforms = nparticle_nodes + spring_nodes + particle_nodes + nrigid_nodes + ncloth_nodes + pfxhair_nodes + hair_nodes + nconstraint_nodes
-        
+
         # Fields/Solvers Types
         # airField
         # dragField
@@ -722,15 +740,15 @@ def gtu_delete_nucleus_nodes():
                 deleted_counter += 1
             except:
                 pass
-                
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'objects were'
         if deleted_counter == 1:
             is_plural = 'object was'
         message += is_plural + ' deleted.'
-        
+
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-         
+
     except Exception as e:
         errors += str(e) + '\n'
         cmds.warning('An error occured. Open the script editor for more information.')
@@ -740,23 +758,58 @@ def gtu_delete_nucleus_nodes():
         print('######## Errors: ########')
         print(errors)
 
-            
-''' ____________________________ External Functions ____________________________'''   
+
+def gtu_delete_user_defined_attributes():
+    """ Deletes all User defined attributes for the selected objects. """
+    function_name = 'GTU Delete User Defined Attributes'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+
+    selection = cmds.ls(selection=True)
+    if selection == 0:
+        cmds.warning('Select at least one target object to delete custom attributes')
+        return
+
+    try:
+        custom_attributes = []
+        for sel in selection:
+            attributes = cmds.listAttr(sel, userDefined=True) or []
+            for attr in attributes:
+                custom_attributes.append(sel + '.' + attr)
+
+        deleted_counter = 0
+        for obj in custom_attributes:
+            try:
+                cmds.deleteAttr(obj)
+                deleted_counter += 1
+            except:
+                pass
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
+        is_plural = 'user defined attributes were'
+        if deleted_counter == 1:
+            is_plural = 'user defined attribute was'
+        message += is_plural + ' deleted.'
+
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+""" ____________________________ External Functions ____________________________"""
 
 
 def gtu_combine_curves():
-    ''' 
-    Moves the shape objects of all selected curves under a single group (combining them) 
-    '''
+    """ Moves the shape objects of all selected curves under a single group (combining them) """
     errors = ''
     try:
         function_name = 'GTU Combine Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        selection = cmds.ls(sl = True, absoluteName=True)
+        selection = cmds.ls(sl=True, absoluteName=True)
         valid_selection = True
-        acceptable_types = ['nurbsCurve','bezierCurve']
+        acceptable_types = ['nurbsCurve', 'bezierCurve']
         bezier_in_selection = []
-    
+
         for obj in selection:
             shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
             for shape in shapes:
@@ -765,92 +818,93 @@ def gtu_combine_curves():
                 if cmds.objectType(shape) not in acceptable_types:
                     valid_selection = False
                     cmds.warning('Make sure you selected only curves.')
-            
+
         if valid_selection and len(selection) < 2:
             cmds.warning('You need to select at least two curves.')
             valid_selection = False
-              
+
         if len(bezier_in_selection) > 0 and valid_selection:
-            user_input = cmds.confirmDialog( title='Bezier curve detected!',\
-                                message='A bezier curve was found in your selection.\nWould you like to convert Bezier to NURBS before combining?',\
-                                button=['Yes','No'],\
-                                defaultButton='Yes',\
-                                cancelButton='No',\
-                                dismissString='No',\
-                                icon="warning" )
+            user_input = cmds.confirmDialog(title='Bezier curve detected!',
+                                            message='A bezier curve was found in your selection.\n'
+                                                    'Would you like to convert Bezier to NURBS before combining?',
+                                            button=['Yes', 'No'],
+                                            defaultButton='Yes',
+                                            cancelButton='No',
+                                            dismissString='No',
+                                            icon="warning")
             if user_input == 'Yes':
-                    for obj in bezier_in_selection:
-                            cmds.bezierCurveToNurbs()
-   
+                for obj in bezier_in_selection:
+                    cmds.bezierCurveToNurbs()
 
         if valid_selection:
             shapes = cmds.listRelatives(shapes=True, fullPath=True)
             for obj in range(len(selection)):
                 cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
- 
+
             group = cmds.group(empty=True, world=True, name=selection[0])
             cmds.refresh()
             cmds.select(shapes[0])
             for obj in range(1, (len(shapes))):
                 cmds.select(shapes[obj], add=True)
-            
-            cmds.select(group, add=True) 
+
+            cmds.select(group, add=True)
             cmds.parent(relative=True, shape=True)
-            cmds.delete(selection)   
-     
-            
+            cmds.delete(selection)
+
+
 
     except Exception as e:
         errors += str(e) + '\n'
         cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
     finally:
-        
+
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
         print('######## Errors: ########')
         print(errors)
-    
+
 
 def gtu_separate_curves():
-    ''' 
+    """
     Moves the shapes instead of a curve to individual transforms (separating curves) 
-    '''
+    """
     errors = ''
-    acceptable_types = ['nurbsCurve','bezierCurve']
+    acceptable_types = ['nurbsCurve', 'bezierCurve']
+
     def get_short_name(obj):
-        '''
+        """
         Get the name of the objects without its path (Maya returns full path if name is not unique)
 
                 Parameters:
                         obj (string) - object to extract short name
-        '''
+        """
         if obj == '':
             return ''
         split_path = obj.split('|')
         if len(split_path) >= 1:
-            short_name = split_path[len(split_path)-1]
+            short_name = split_path[len(split_path) - 1]
         return short_name
-        
+
     try:
         function_name = 'GTU Separate Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        selection = cmds.ls(sl = True)
+        selection = cmds.ls(sl=True)
         valid_selection = True
-        
+
         curve_shapes = []
         parent_transforms = []
-        
+
         if len(selection) < 1:
             valid_selection = False
             cmds.warning('You need to select at least one curve.')
-            
+
         if valid_selection:
             for obj in selection:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 for shape in shapes:
                     if cmds.objectType(shape) in acceptable_types:
                         curve_shapes.append(shape)
-            
+
             if len(curve_shapes) == 0:
                 cmds.warning('You need to select at least one curve.')
             elif len(curve_shapes) > 1:
@@ -860,11 +914,11 @@ def gtu_separate_curves():
                         if par not in parent_transforms:
                             parent_transforms.append(par)
                         cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
-                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape',''))
+                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape', ''))
                     cmds.parent(obj, group, relative=True, shape=True)
             else:
                 cmds.warning('The selected curve contains only one shape.')
-                
+
             for obj in parent_transforms:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
@@ -882,9 +936,9 @@ def gtu_separate_curves():
 
 
 def gtu_convert_bif_to_mesh():
-    ''' 
+    """
     Converts Bifrost geometry to Maya geometry
-    '''
+    """
     errors = ''
     try:
         function_name = 'GTU Convert Bif to Mesh'
@@ -898,7 +952,7 @@ def gtu_convert_bif_to_mesh():
         if len(selection) < 1:
             valid_selection = False
             cmds.warning('You need to select at least one bif object.')
-            
+
         if valid_selection:
             for obj in selection:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
@@ -914,38 +968,38 @@ def gtu_convert_bif_to_mesh():
                     source_mesh = cmds.listConnections(par + '.inputSurface', source=True, plugs=True) or []
                     for sm in source_mesh:
                         conversion_node = cmds.createNode("bifrostGeoToMaya")
-                        cmds.connectAttr(sm, conversion_node + '.bifrostGeo' )
+                        cmds.connectAttr(sm, conversion_node + '.bifrostGeo')
                         mesh_node = cmds.createNode("mesh")
                         mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
-                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
+                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh')
                         cmds.rename(mesh_transform[0], 'bifToGeo1')
-                        try:
-                            cmds.hyperShade( assign='lambert1')
-                        except:
-                            pass
-                            
-            for bif in bif_graph_objects:
-                    bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
-                    for output in bifrost_attributes:
-                        conversion_node = cmds.createNode("bifrostGeoToMaya")
-                        cmds.connectAttr(bif + '.' + output, conversion_node + '.bifrostGeo' )
-                        mesh_node = cmds.createNode("mesh")
-                        mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
-                        cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh' )
-                        bif_mesh = cmds.rename(mesh_transform[0], 'bifToGeo1')
                         try:
                             cmds.hyperShade(assign='lambert1')
                         except:
                             pass
-                       
-                        vtx = cmds.ls(bif_mesh+'.vtx[*]', fl=True) or []
-                        if len(vtx) == 0:
-                            try:
-                                cmds.delete(bif_mesh)
-                                # cmds.delete(conversion_node)
-                                # cmds.delete(mesh_node)
-                            except:
-                                pass
+
+            for bif in bif_graph_objects:
+                bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
+                for output in bifrost_attributes:
+                    conversion_node = cmds.createNode("bifrostGeoToMaya")
+                    cmds.connectAttr(bif + '.' + output, conversion_node + '.bifrostGeo')
+                    mesh_node = cmds.createNode("mesh")
+                    mesh_transform = cmds.listRelatives(mesh_node, parent=True) or []
+                    cmds.connectAttr(conversion_node + '.mayaMesh[0]', mesh_node + '.inMesh')
+                    bif_mesh = cmds.rename(mesh_transform[0], 'bifToGeo1')
+                    try:
+                        cmds.hyperShade(assign='lambert1')
+                    except:
+                        pass
+
+                    vtx = cmds.ls(bif_mesh + '.vtx[*]', fl=True) or []
+                    if len(vtx) == 0:
+                        try:
+                            cmds.delete(bif_mesh)
+                            # cmds.delete(conversion_node)
+                            # cmds.delete(mesh_node)
+                        except:
+                            pass
     except Exception as e:
         errors += str(e) + '\n'
     finally:
@@ -956,13 +1010,12 @@ def gtu_convert_bif_to_mesh():
         print(errors)
 
 
+""" ____________________________ About Window ____________________________"""
 
-
-''' ____________________________ About Window ____________________________''' 
 
 def gtu_build_gui_about_gt_tools():
-    ''' Creates "About" window for the GT Tools menu ''' 
-     
+    """ Creates "About" window for the GT Tools menu """
+
     stored_gt_tools_version_exists = cmds.optionVar(exists=("gt_tools_version"))
 
     # Define Version
@@ -970,58 +1023,66 @@ def gtu_build_gui_about_gt_tools():
         gt_version = cmds.optionVar(q=("gt_tools_version"))
     else:
         gt_version = '?'
-     
+
     window_name = "gtu_build_gui_about_gt_tools"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
     cmds.window(window_name, title="About - GT Tools", mnb=False, mxb=False, s=True)
-    cmds.window(window_name, e=True, s=True, wh=[1,1])
+    cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
-    cmds.columnLayout("main_column", p= window_name)
-   
+    cmds.columnLayout("main_column", p=window_name)
+
     # Title Text
-    cmds.separator(h=12, style='none') # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column") # Window Size Adjustment
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column") # Title Column
-    cmds.text("GT Tools", bgc=[.4,.4,.4],  fn="boldLabelFont", align="center")
-    cmds.separator(h=10, style='none', p="main_column") # Empty Space
-        
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.separator(h=12, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column")  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")  # Title Column
+    cmds.text("GT Tools", bgc=[.4, .4, .4], fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style='none', p="main_column")  # Empty Space
+
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
     cmds.text(l='Version Installed: ' + gt_version, align="center", fn="boldLabelFont")
-    cmds.separator(h=5, style='none') # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
     cmds.text(l='GT Tools is a free collection of Maya scripts', align="center")
-    
-    cmds.separator(h=15, style='none') # Empty Space
+
+    cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='About:', align="center", fn="boldLabelFont")
-    cmds.text(l='This is my collection of scripts for Autodesk Maya.\nThese scripts were created with the aim of automating,\n enhancing or simply filling the missing details of what\n I find lacking in Maya.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
-    cmds.text(l='When installed you can find a pull-down menu that\n provides easy access to a variety of related tools.', align="center")
-    cmds.separator(h=5, style='none') # Empty Space
-    cmds.text(l='This menu contains sub-menus that have been\n organized to contain related tools.\n For example: modeling, rigging, utilities, etc...', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
-    cmds.text(l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\nUse at your own risk.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
+    cmds.text(
+        l='This is my collection of scripts for Autodesk Maya.\nThese scripts were created with the aim of automating,\n enhancing or simply filling the missing details of what\n I find lacking in Maya.',
+        align="center")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(
+        l='When installed you can find a pull-down menu that\n provides easy access to a variety of related tools.',
+        align="center")
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.text(
+        l='This menu contains sub-menus that have been\n organized to contain related tools.\n For example: modeling, rigging, utilities, etc...',
+        align="center")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(
+        l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\nUse at your own risk.',
+        align="center")
+    cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Hopefully these scripts are helpful to you\nas they are to me.', align="center")
-    cmds.separator(h=15, style='none') # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
-    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p="main_column")
-    cmds.separator(h=15, style='none') # Empty Space
-    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
-    cmds.separator(h=7, style='none') # Empty Space
-    
+    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
+    cmds.separator(h=7, style='none')  # Empty Space
+
     # Close Button 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p="main_column")
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
     cmds.separator(h=10, style='none')
     cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
     cmds.separator(h=8, style='none')
-    
+
     # Show and Lock Window
     cmds.showWindow(window_name)
     cmds.window(window_name, e=True, s=False)
-    
+
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
     if python_version == 3:
@@ -1030,23 +1091,21 @@ def gtu_build_gui_about_gt_tools():
         widget = wrapInstance(long(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
-    
+
     def close_help_gui():
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
-            
-            
+
+
 def gtu_delete_all_locators():
-    ''' Deletes all locators '''   
-    errors= '' 
+    """ Deletes all locators """
+    errors = ''
     try:
         function_name = 'GTU Delete All Locators'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        
 
         # With Transform
         locators = cmds.ls(typ='locator')
-   
 
         deleted_counter = 0
         for obj in locators:
@@ -1056,15 +1115,15 @@ def gtu_delete_all_locators():
                 deleted_counter += 1
             except:
                 pass
-                  
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' +  str(deleted_counter) + ' </span>'
+
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'locators were'
         if deleted_counter == 1:
             is_plural = 'locator was'
         message += is_plural + ' deleted.'
-        
+
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-         
+
     except Exception as e:
         errors += str(e) + '\n'
         cmds.warning('An error occured when deleting locators. Open the script editor for more information.')
@@ -1073,13 +1132,13 @@ def gtu_delete_all_locators():
     if errors != '':
         print('######## Errors: ########')
         print(errors)
-        
-        
+
+
 def gtu_full_hud_toggle():
-    ''' Toggles common HUD options so all the common ones are either active or inactive  '''
-    
+    """ Toggles common HUD options so all the common ones are either active or inactive  """
+
     hud_current_state = {}
-    
+
     # 1 - Animation Details
     hud_current_state['animationDetailsVisibility'] = int(mel.eval('optionVar -q animationDetailsVisibility;'))
     # 2 - Cache
@@ -1105,11 +1164,12 @@ def gtu_full_hud_toggle():
     # 10 - HumanIK Details
     hud_current_state['hikDetailsVisibility'] = int(mel.eval('optionVar -q hikDetailsVisibility;'))
     # 11 - Material Loading Details
-    hud_current_state['materialLoadingDetailsVisibility'] = int(mel.eval('optionVar -q materialLoadingDetailsVisibility;'))
+    hud_current_state['materialLoadingDetailsVisibility'] = int(
+        mel.eval('optionVar -q materialLoadingDetailsVisibility;'))
     # 12 - Object Details
     hud_current_state['objectDetailsVisibility'] = int(mel.eval('optionVar -q objectDetailsVisibility;'))
     # 13 - Origin Axis - Ignored as non-hud element
-    #hud_current_state['originAxesMenuUpdate'] = mel.eval('optionVar -q originAxesMenuUpdate;')
+    # hud_current_state['originAxesMenuUpdate'] = mel.eval('optionVar -q originAxesMenuUpdate;')
     # 14 - Particle Count
     hud_current_state['particleCountVisibility'] = int(mel.eval('optionVar -q particleCountVisibility;'))
     # 15 - Poly Count
@@ -1131,15 +1191,15 @@ def gtu_full_hud_toggle():
     hud_current_state['inViewEditorVisible'] = int(mel.eval('optionVar -q inViewEditorVisible;'))
     # Conditional - XGen Info
     hud_current_state['xgenHUDVisibility'] = int(mel.eval('optionVar -q xgenHUDVisibility;'))
-    
+
     # Check if toggle ON or OFF
     toggle = True
     count = 0
     for item_state in hud_current_state:
         if hud_current_state.get(item_state):
-            count +=1
+            count += 1
     # More than half is on, so OFF else ON (Default)
-    if count > len(hud_current_state)/2:
+    if count > len(hud_current_state) / 2:
         toggle = False
 
     # Toggles non-standard hud elements
@@ -1170,12 +1230,12 @@ def gtu_full_hud_toggle():
         mel.eval('setViewAxisVisibility(true)')
         mel.eval('setViewportRendererVisibility(true)')
         mel.eval('catchQuiet(setXGenHUDVisibility(true));')
-        
+
         if not hud_current_state.get('inViewMessageEnable'):
             cmds.ToggleInViewMessage()
         if not hud_current_state.get('inViewEditorVisible'):
             cmds.ToggleInViewEditor()
-    else: 
+    else:
         mel.eval('setAnimationDetailsVisibility(false)')
         try:
             from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
@@ -1199,43 +1259,106 @@ def gtu_full_hud_toggle():
         mel.eval('setSelectDetailsVisibility(false)')
         mel.eval('setViewportRendererVisibility(false)')
         mel.eval('catchQuiet(setXGenHUDVisibility(false));')
-	# Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
+    # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
 
-            
-''' ____________________________ Functions ____________________________'''   
-#gtu_reload_file()
-#gtu_open_resource_browser()
-#gtu_unlock_default_channels()
-#gtu_unhide_default_channels()
-#gtu_import_references()
-#gtu_remove_references()
-#gtu_uniform_lra_toggle()
-#gtu_uniform_jnt_label_toggle()
-#gtu_select_non_unique_objects()
 
-#gtu_copy_material()
-#gtu_paste_material()
+def gtu_convert_joints_to_mesh(combine_mesh=True):
+    """
+    Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
+    Args:
+        combine_mesh: Combines generated meshes into one
 
-#gtu_move_pivot_to_top()
-#gtu_move_pivot_to_base()
-#gtu_move_to_origin()
+    Returns:
+        A list of generated meshes
+    """
+    selection = cmds.ls(selection=True, type='joint')
+    if len(selection) != 1:
+        cmds.warning('Please selection only the root joint and try again.')
+        return
+    cmds.select(selection[0], replace=True)
+    cmds.select(hierarchy=True)
+    joints = cmds.ls(selection=True, type='joint')
 
-#gtu_reset_joint_sizes()
-#gtu_reset_transforms()
-#gtu_reset_persp_shape_attributes()  
+    generated_mesh = []
+    for obj in reversed(joints):
+        if cmds.objExists(obj):
+            joint_name = obj.split('|')[-1]
+            radius = cmds.getAttr(obj + '.radius')
+            joint_sphere = cmds.polySphere(radius=radius * .5,
+                                           subdivisionsAxis=8,
+                                           subdivisionsHeight=8,
+                                           axis=[1, 0, 0],
+                                           name=joint_name + 'JointMesh',
+                                           ch=False)
+            generated_mesh.append(joint_sphere[0])
+            cmds.delete(cmds.parentConstraint(obj, joint_sphere))
+            joint_parent = cmds.listRelatives(obj, parent=True) or []
+            if joint_parent:
+                joint_cone = cmds.polyCone(radius=radius * .5,
+                                           subdivisionsAxis=4,
+                                           name=joint_name + 'BoneMesh',
+                                           ch=False)
+                generated_mesh.append(joint_cone[0])
+                bbox = cmds.exactWorldBoundingBox(joint_cone)
+                bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]
+                cmds.xform(joint_cone, piv=bottom, ws=True)
+                cmds.move(1, joint_cone, moveY=True)
+                cmds.rotate(90, joint_cone, rotateX=True)
+                cmds.rotate(90, joint_cone, rotateY=True)
+                cmds.makeIdentity(joint_cone, rotate=True, apply=True)
 
-#gtu_delete_namespaces()
-#gtu_delete_display_layers()
-#gtu_delete_keyframes()
-#gtu_delete_nucleus_nodes()
+                cmds.delete(cmds.parentConstraint(joint_parent, joint_cone))
+                cmds.delete(cmds.aimConstraint(obj, joint_cone))
+
+                child_pos = cmds.xform(obj, t=True, ws=True, query=True)
+                cmds.xform(joint_cone[0] + '.vtx[4]', t=child_pos, ws=True)
+    if combine_mesh:
+        cmds.select(generated_mesh, replace=True)
+        mesh = cmds.polyUnite()
+        cmds.select(clear=True)
+        cmds.delete(mesh, constructionHistory=True)
+        mesh = cmds.rename(mesh[0], selection[0] + 'AsMesh')
+        return [mesh]
+    else:
+        return generated_mesh
+
+
+""" ____________________________ Functions ____________________________"""
+# gtu_reload_file()
+# gtu_open_resource_browser()
+# gtu_unlock_default_channels()
+# gtu_unhide_default_channels()
+# gtu_import_references()
+# gtu_remove_references()
+# gtu_uniform_lra_toggle()
+# gtu_uniform_jnt_label_toggle()
+# gtu_select_non_unique_objects()
+
+# gtu_copy_material()
+# gtu_paste_material()
+
+# gtu_move_pivot_to_top()
+# gtu_move_pivot_to_base()
+# gtu_move_to_origin()
+
+# gtu_reset_joint_sizes()
+# gtu_reset_transforms()
+# gtu_reset_persp_shape_attributes()
+
+# gtu_delete_namespaces()
+# gtu_delete_display_layers()
+# gtu_delete_keyframes()
+# gtu_delete_nucleus_nodes()
+# gtu_delete_user_defined_attributes()
 
 # --- Outside Utilities ---
-#gtu_combine_curves()
-#gtu_separate_curves()
-#gtu_convert_bif_to_mesh()
+# gtu_combine_curves()
+# gtu_separate_curves()
+# gtu_convert_bif_to_mesh()
 
-#gtu_build_gui_about_gt_tools()
+# gtu_build_gui_about_gt_tools()
 
 # --- Other Functions ---
-#gtu_delete_all_locators()
-#gtu_full_hud_toggle()
+# gtu_delete_all_locators()
+# gtu_full_hud_toggle()
+# gtu_convert_joints_to_mesh()
