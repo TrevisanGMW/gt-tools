@@ -417,6 +417,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
     -image "QR_xRay.png";
     
+    	menuItem 
+    -l ("Convert Joints to Mesh")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_convert_joints_to_mesh')\");")
+    -ann ("Converts joints to mesh. (Helpful when sending references to other applications)") 
+    -image "HIKCharacterToolSkeleton.png";
+    
+    
 	menuItem 
     -l ("Select Non-Unique Objects")
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_select_non_unique_objects')\");")
