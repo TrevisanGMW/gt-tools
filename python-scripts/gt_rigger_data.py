@@ -1,7 +1,7 @@
-'''
+"""
 GT Rigger Data - Settings and naming conventions for auto rigger scripts
 github.com/TrevisanGMW - 2021-12-10
-'''
+"""
 import maya.cmds as cmds
 import copy
 
@@ -34,7 +34,7 @@ class GTBipedRiggerData:
     script_name = 'GT Auto Biped Rigger'
 
     # Version:
-    script_version = '1.8.14'
+    script_version = '1.9.4'
 
     # Permanent Settings
     option_var = 'gt_auto_biped_rigger_setup'
@@ -123,7 +123,7 @@ class GTBipedRiggerData:
                          'using_no_ssc_skeleton': False,
                          'proxy_limits': False,
                          'offer_heel_roll_positioning': True,
-                         'uniform_ctrl_orient': False,
+                         'uniform_ctrl_orient': True,
                          'worldspace_ik_orient': False,
                          'simplify_spine': True,
                          }

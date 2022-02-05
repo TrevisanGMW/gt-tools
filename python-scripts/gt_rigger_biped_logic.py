@@ -1,6 +1,40 @@
 """
  GT Biped Rigger Logic
  github.com/TrevisanGMW - 2020-12-08
+
+ v1.0.0 - 2021-12-08
+ Separated scripts into logic, gui and data modules
+
+ v1.1.0 - 2022-01-06
+ Added option to make FK controls uniform
+ Added reference locators with offset data to drive the FK/IK switch system
+ Fixed junk data left in the chest offset control
+ Ribbon controls are now affected by the uniform orientation option
+ Updated auto clavicle system to use point constraints and not account for orientation
+
+ v1.1.1 - 2022-01-07
+ Changed the default value of the neck to head influence to zero
+
+ v1.1.2 - 2022-01-13
+ Commented out joint labelling section
+
+ v1.1.3 - 2022-01-17
+ Fixed an issue where the ball ik handles for the feet would be inverted
+
+ v1.1.4 - 2022-01-28
+ Created a more robust system for the forearm twist (aimLoc)
+ Fixed an issue where the simplification of the spine would cause a rotation offset to happen to the upper body joints
+ Changed output hierarchy so pelvis (hip) goes under the root joint for more retargeting compatibility
+
+ v1.1.5 - 2022-01-31
+ Added Distal Multiplier to automatic finger rotation system
+
+ v1.1.6 - 2022-02-01
+ Added manual compression controls to the fingers
+
+ v1.1.7 - 2022-02-02
+ Changed orientation of the right wrist to be uniform with left side (inverted scale)
+
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -1367,8 +1401,8 @@ def create_controls(biped_data):
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
 
-    def orient_to_target(obj_name, target, orient_offset=(0, 0, 0), proxy_obj=None, aim_vec=(1, 0, 0), up_vec=(0, -1, 0),
-                         brute_force=False):
+    def orient_to_target(obj_name, target, orient_offset=(0, 0, 0), proxy_obj=None,
+                         aim_vec=(1, 0, 0), up_vec=(0, -1, 0), brute_force=False):
         """
         Orients an object based on a target object
 
@@ -1915,7 +1949,7 @@ def create_controls(biped_data):
     # orient_to_target(rig_joints.get('right_eye_jnt'), temp_transform, (0,0,0), biped_data.elements.get('right_eye_proxy_crv'))#, (-1,0,0))
     # cmds.delete(temp_transform)
 
-    ###### Create Organization Groups ######
+    # ###### Create Organization Groups ######
     # Create Skeleton Group
     skeleton_grp = cmds.group(name=('skeleton_' + GRP_SUFFIX), empty=True, world=True)
     change_outliner_color(skeleton_grp, (.75, .45, .95))  # Purple (Like a joint)
@@ -2289,7 +2323,7 @@ def create_controls(biped_data):
     cmds.parent(right_ball_fk_jnt, right_ankle_fk_jnt)
     cmds.parent(right_toe_fk_jnt, right_ball_fk_jnt)
 
-    ########################## Start Creating Controls ##########################
+    # ########################## Start Creating Controls ##########################
 
     # General Automation Hierarchy - Used for misc systems such as auto breathing and aim lines
     general_automation_grp = cmds.group(name='generalAutomation_grp', world=True, empty=True)
@@ -2297,6 +2331,9 @@ def create_controls(biped_data):
 
     controls_grp = cmds.group(name='controls_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(controls_grp, (1, 0.47, 0.18))
+
+    arms_automation_grp = cmds.group(name='armsAutomation_' + GRP_SUFFIX, empty=True, world=True)
+    change_outliner_color(arms_automation_grp, (1, .65, .45))
 
     # Main Ctrl
     main_ctrl = create_main_control(name='main_' + CTRL_SUFFIX)
@@ -3680,9 +3717,8 @@ def create_controls(biped_data):
     setup_shape_switch(left_wrist_ik_ctrl)
 
     # Left Wrist In-Between Offset
-    left_wrist_offset_ik_ctrl = cmds.duplicate(left_wrist_ik_ctrl, name=left_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX,
-                                                                                                   '_offset' + CTRL_SUFFIX.capitalize()))[
-        0]
+    left_wrist_offset_ik_ctrl = left_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize())
+    left_wrist_offset_ik_ctrl = cmds.duplicate(left_wrist_ik_ctrl, name=left_wrist_offset_ik_ctrl)[0]
     cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleY', .9)
     cmds.setAttr(left_wrist_offset_ik_ctrl + '.scaleZ', .9)
@@ -3705,7 +3741,7 @@ def create_controls(biped_data):
 
     cmds.addAttr(left_wrist_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(left_wrist_ik_ctrl + '.showOffsetCtrl', left_wrist_offset_ik_ctrl_grp + '.v', f=True)
-    #### End Wrist In-Between Offset
+    # #### End Wrist In-Between Offset
 
     # Left Elbow IK Pole Vector Ctrl
     left_elbow_ik_ctrl = cmds.curve(name=rig_joints.get('left_elbow_jnt').replace(JNT_SUFFIX, 'ik_') + CTRL_SUFFIX,
@@ -3736,7 +3772,7 @@ def create_controls(biped_data):
     change_viewport_color(left_elbow_ik_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_elbow_ik_ctrl_grp, direction_ctrl)
 
-    ################# Right Arm #################
+    # ################# Right Arm #################
     # Right Clavicle FK
     right_clavicle_ctrl = cmds.curve(name=rig_joints.get('right_clavicle_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
                                      p=[[0.0, 0.0, 0.0], [0.897, 1.554, 0.0], [0.959, 1.528, 0.0], [1.025, 1.52, 0.0],
@@ -3992,7 +4028,10 @@ def create_controls(biped_data):
     right_wrist_scale_offset += abs(cmds.xform(rig_joints.get('right_middle04_jnt'), q=True, t=True)[0])
     right_wrist_scale_offset = right_wrist_scale_offset / 2
 
-    cmds.setAttr(right_wrist_ik_ctrl + '.scaleX', right_wrist_scale_offset * -1)
+    if settings.get('uniform_ctrl_orient') and not settings.get('worldspace_ik_orient'):
+        cmds.setAttr(right_wrist_ik_ctrl + '.scaleX', right_wrist_scale_offset * 1)
+    else:
+        cmds.setAttr(right_wrist_ik_ctrl + '.scaleX', right_wrist_scale_offset * -1)
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleY', right_wrist_scale_offset * -1)
     cmds.setAttr(right_wrist_ik_ctrl + '.scaleZ', (right_wrist_scale_offset * -1) * .5)
     cmds.makeIdentity(right_wrist_ik_ctrl, apply=True, scale=True)
@@ -4004,7 +4043,8 @@ def create_controls(biped_data):
     elif settings.get('uniform_ctrl_orient'):
         orient_offset(right_wrist_ik_ctrl, (-90, 0, 0))
         cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
-        cmds.rotate(90, 0, 0, right_wrist_ik_ctrl_grp, os=True, relative=True)
+        cmds.rotate(270, 0, 0, right_wrist_ik_ctrl_grp, os=True, relative=True)
+        cmds.setAttr(right_wrist_ik_ctrl_grp + '.sx', -1)
     else:
         cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
 
@@ -4024,9 +4064,8 @@ def create_controls(biped_data):
     setup_shape_switch(right_wrist_ik_ctrl)
 
     # Right Wrist In-Between Offset
-    right_wrist_offset_ik_ctrl = cmds.duplicate(right_wrist_ik_ctrl, name=right_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX,
-                                                                                                      '_offset' + CTRL_SUFFIX.capitalize()))[
-        0]
+    right_wrist_offset_ik_ctrl = right_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX,'_offset' + CTRL_SUFFIX.capitalize())
+    right_wrist_offset_ik_ctrl = cmds.duplicate(right_wrist_ik_ctrl, name=right_wrist_offset_ik_ctrl)[0]
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleY', .9)
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleZ', .9)
@@ -4043,13 +4082,23 @@ def create_controls(biped_data):
     cmds.delete(cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_wrist_offset_ik_ctrl_grp))
     cmds.parent(right_wrist_offset_ik_ctrl, right_wrist_offset_ik_ctrl_grp)
     cmds.parent(right_wrist_offset_ik_ctrl_grp, right_wrist_ik_ctrl)
-
     # Show Scale Ctrl
     cmds.addAttr(right_wrist_ik_ctrl, ln='showScaleCtrl', at='bool', keyable=True)
 
     cmds.addAttr(right_wrist_ik_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(right_wrist_ik_ctrl + '.showOffsetCtrl', right_wrist_offset_ik_ctrl_grp + '.v', f=True)
-    #### End Wrist In-Between Offset
+    # Account for Inverted Scale
+    cmds.setAttr(right_wrist_offset_ik_ctrl_grp + '.sz', 1)
+    cmds.setAttr(right_wrist_offset_ik_ctrl + '.rz', 0)
+    cmds.setAttr(right_wrist_offset_ik_ctrl_grp + '.rz', 0)
+
+    right_wrist_offset_ik_ctrl_data = right_wrist_offset_ik_ctrl
+    if settings.get('uniform_ctrl_orient') and not settings.get('worldspace_ik_orient'):
+        right_wrist_offset_ik_ctrl_data = cmds.group(name=right_wrist_offset_ik_ctrl + 'Data', world=True, empty=True)
+        cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_wrist_offset_ik_ctrl_data)
+        cmds.parent(right_wrist_offset_ik_ctrl_data, direction_ctrl)
+
+    # #### End Wrist In-Between Offset
 
     # Right Elbow IK Pole Vector Ctrl
     right_elbow_ik_ctrl = cmds.curve(name=rig_joints.get('right_elbow_jnt').replace(JNT_SUFFIX, 'ik_') + CTRL_SUFFIX,
@@ -5017,16 +5066,16 @@ def create_controls(biped_data):
     change_viewport_color(right_fingers_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_fingers_ctrl_grp, right_hand_grp)
 
-    ################# ======= Rig Mechanics ======= #################
+    # ################ ======= Rig Mechanics ======= #################
 
     # Main Scale
     cmds.connectAttr(main_ctrl + '.sy', main_ctrl + '.sx', f=True)
     cmds.connectAttr(main_ctrl + '.sy', main_ctrl + '.sz', f=True)
 
-    ################# Center FK #################
+    # ################ Center FK #################
     cmds.parentConstraint(main_ctrl, rig_joints.get('main_jnt'))
 
-    ############## IK Spine (Ribbon) ##############
+    # ############# IK Spine (Ribbon) ##############
     spine_automation_grp = cmds.group(name='spineAutomation_' + GRP_SUFFIX, empty=True, world=True)
     spine_ik_grp = cmds.group(name='spineRibbon_grp', empty=True)
     cmds.setAttr(spine_ik_grp + '.inheritsTransform', 0)
@@ -5060,7 +5109,7 @@ def create_controls(biped_data):
         follicle_transform = cmds.listRelatives(follicle, allParents=True)[0]
         cmds.connectAttr(main_ctrl + '.scale', follicle_transform + '.scale')  # Inherit Scale from Main Ctrl
         cmds.connectAttr(ribbon_sur + '.local',
-                         follicle + '.inputSurface')  # Connect the nurbs object on the follicle (so it knows what to use)
+                         follicle + '.inputSurface')  # Connect the nurbs object on the follicle
         cmds.connectAttr(ribbon_sur + '.worldMatrix', follicle + '.inputWorldMatrix',
                          force=True)  # Connect transforms to follicle (so it knows where it is)
         cmds.connectAttr(follicle + '.outTranslate', follicle_transform + '.translate',
@@ -5236,11 +5285,6 @@ def create_controls(biped_data):
     lock_hide_default_attr(chest_ribbon_offset_ctrl, translate=False, rotate=False, visibility=False)
     cmds.setAttr(chest_ribbon_offset_ctrl + '.v', k=False, channelBox=False)
 
-    # Set New Pivot
-    desired_pivot = cmds.xform(rig_joints.get('spine02_jnt'), q=True, ws=True, t=True)
-    cmds.xform(chest_ribbon_ctrl, piv=desired_pivot, ws=True)
-    cmds.xform(chest_ribbon_offset_ctrl, piv=desired_pivot, ws=True)
-
     # Recreate Connections
     cmds.connectAttr(chest_ribbon_offset_ctrl + '.rotationOrder', chest_ribbon_offset_ctrl + '.rotateOrder', f=True)
     setup_shape_switch(chest_ribbon_offset_ctrl, attr='controlShape', shape_names=['box', 'pin'],
@@ -5255,6 +5299,11 @@ def create_controls(biped_data):
 
     cmds.addAttr(chest_ribbon_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(chest_ribbon_ctrl + '.showOffsetCtrl', chest_ribbon_offset_ctrl + '.v', f=True)
+
+    # Set New Pivot
+    desired_pivot = cmds.xform(rig_joints.get('spine03_jnt'), q=True, ws=True, t=True)
+    cmds.xform(chest_ribbon_ctrl, piv=desired_pivot, ws=True)
+    cmds.xform(chest_ribbon_offset_ctrl, piv=desired_pivot, ws=True)
 
     # ### End Chest In-Between Offset
 
@@ -5301,7 +5350,12 @@ def create_controls(biped_data):
 
     cmds.parent(chest_ribbon_adjustment_ctrl, chest_ribbon_adjustment_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_adjustment_ctrl_grp))
-    cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0])
+
+    orient_offset(chest_ribbon_adjustment_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, chest_ribbon_adjustment_ctrl_grp, os=True, relative=True)
+
+    cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0], mo=True)
     change_viewport_color(chest_ribbon_adjustment_ctrl, adj_ctrl_color)
     cmds.parent(chest_ribbon_adjustment_ctrl_grp,
                 chest_ribbon_offset_ctrl_grp)  # Make Chest Control the main driver
@@ -5335,7 +5389,12 @@ def create_controls(biped_data):
     cmds.makeIdentity(spine_ribbon_ctrl, apply=True, scale=True, rotate=True)
     cmds.parent(spine_ribbon_ctrl, spine_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine02_jnt[0], spine_ribbon_ctrl_grp))
-    cmds.parentConstraint(spine_ribbon_ctrl, ribbon_spine02_jnt[0])
+
+    orient_offset(spine_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, spine_ribbon_ctrl_grp, os=True, relative=True)
+
+    cmds.parentConstraint(spine_ribbon_ctrl, ribbon_spine02_jnt[0], mo=True)
     change_viewport_color(spine_ribbon_ctrl, adj_ctrl_color)
 
     # Cog Ctrl
@@ -5358,7 +5417,12 @@ def create_controls(biped_data):
     cmds.makeIdentity(cog_ribbon_ctrl, apply=True, scale=True, rotate=True)
     cmds.parent(cog_ribbon_ctrl, cog_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_cog_jnt[0], cog_ribbon_ctrl_grp))
-    cmds.parentConstraint(cog_ribbon_ctrl, ribbon_cog_jnt[0])
+
+    orient_offset(cog_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    if settings.get('uniform_ctrl_orient'):
+        cmds.rotate(0, -90, -90, cog_ribbon_ctrl_grp, os=True, relative=True)
+
+    cmds.parentConstraint(cog_ribbon_ctrl, ribbon_cog_jnt[0], mo=True)
     change_viewport_color(cog_ribbon_ctrl, adj_ctrl_color)
 
     # Chest Ribbon Controls Visibility of Cog and Spine Curves
@@ -5664,7 +5728,7 @@ def create_controls(biped_data):
     cmds.addAttr(neck_base_ctrl, ln='neckMidInfluence', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(neck_base_ctrl, ln='headInfluence', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(neck_base_ctrl + '.neckMidInfluence', 1)
-    cmds.setAttr(neck_base_ctrl + '.headInfluence', 1)
+    # cmds.setAttr(neck_base_ctrl + '.headInfluence', 1)
 
     for attr in ['X', 'Y', 'Z']:
         cmds.connectAttr(head_ctrl + '.neckBaseInfluence', head_to_base_multiply_node + '.input2' + attr, f=True)
@@ -5899,6 +5963,18 @@ def create_controls(biped_data):
             cmds.connectAttr(active_condition_node + '.outColorR', finger[2] + '.rotateX', f=True)
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
 
+            # Add Extra Distal Multiply
+            if '03' in finger[0]:
+                attr_name = 'distalMultiplier'
+                attr_name += finger_name.replace('left_', '').replace('right_', '').replace('_', '').capitalize()
+                cmds.addAttr(left_fingers_ctrl, ln=attr_name, at='double', k=True)
+
+                end_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'endMultiply')
+                cmds.connectAttr(limit_condition_node + '.outColorB', end_multiply_node + '.input1Z')
+                cmds.connectAttr(end_multiply_node + '.outputZ', finger[2] + '.rotateZ', f=True)
+                cmds.connectAttr(left_fingers_ctrl + '.' + attr_name, end_multiply_node + '.input2Z', f=True)
+                cmds.setAttr(left_fingers_ctrl + '.' + attr_name, 1)
+
     # Left Finger Abduction Automation
     left_fingers_minz_scale = 1
     left_fingers_maxz_scale = 5
@@ -5993,6 +6069,7 @@ def create_controls(biped_data):
     # Left Auto Knuckle Compression System (Translation Z Offset)
     cmds.addAttr(left_fingers_ctrl, ln='knucklesAutomation', at='enum', k=True, en='-------------:')
     cmds.setAttr(left_fingers_ctrl + '.knucklesAutomation', lock=True)
+    cmds.addAttr(left_fingers_ctrl, ln='showCompressionCtrls', at='bool', k=True, maxValue=1, minValue=0)
     cmds.addAttr(left_fingers_ctrl, ln='autoCompression', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(left_fingers_ctrl + '.autoCompression', 1)
     cmds.addAttr(left_fingers_ctrl, ln='transCompression', at='double', k=True, minValue=0)
@@ -6023,6 +6100,42 @@ def create_controls(biped_data):
     cmds.setAttr(left_knuckle_rot_range_node + '.maxZ', 1)
     cmds.connectAttr(left_knuckle_rot_range_node + '.outValueZ', left_knuckle_rot_blend_node + '.attributesBlender')
 
+    # Left Manual Compression Controls
+    left_compression_ctrl_output = []
+    left_compression_joints = [rig_joints.get('left_index01_jnt'),
+                               rig_joints.get('left_middle01_jnt'),
+                               rig_joints.get('left_ring01_jnt'),
+                               rig_joints.get('left_pinky01_jnt')]
+    for joint in left_compression_joints:
+        name = joint.replace(JNT_SUFFIX, '')
+        left_compression_ctrl = cmds.curve(name=name + 'compression_ctrl',
+                                           p=[[0.0, 0.28, 0.0], [-0.28, 0.001, 0.0], [0.0, 0.0, 0.28],
+                                              [0.0, 0.28, 0.0], [0.28, 0.001, 0.0], [0.0, 0.0, 0.28],
+                                              [0.28, 0.001, 0.0], [0.0, 0.0, -0.28], [0.0, 0.28, 0.0],
+                                              [0.0, 0.0, -0.28], [-0.28, 0.001, 0.0], [0.0, -0.28, 0.0],
+                                              [0.0, 0.0, -0.28], [0.28, 0.001, 0.0], [0.0, -0.28, 0.0],
+                                              [0.0, 0.0, 0.28]], d=1)
+        left_compression_ctrl_grp = cmds.group(name=left_compression_ctrl + GRP_SUFFIX.capitalize(),
+                                               empty=True, world=True)
+        cmds.parent(left_compression_ctrl, left_compression_ctrl_grp)
+        rescale(left_compression_ctrl, left_wrist_scale_offset*.3)
+        cmds.delete(cmds.parentConstraint(left_fingers_ctrl, left_compression_ctrl_grp))
+        cmds.delete(cmds.pointConstraint(joint, left_compression_ctrl_grp))
+        cmds.move(left_wrist_scale_offset*.3, left_compression_ctrl_grp, moveY=True, relative=True, objectSpace=True)
+        cmds.move(-left_wrist_scale_offset*.2, left_compression_ctrl_grp, moveX=True, relative=True, objectSpace=True)
+        lock_hide_default_attr(left_compression_ctrl, rotate=False)
+        cmds.setAttr(left_compression_ctrl + '.rx', lock=True, keyable=False)
+        cmds.setAttr(left_compression_ctrl + '.ry', lock=True, keyable=False)
+        change_viewport_color(left_compression_ctrl, LEFT_CTRL_COLOR)
+        manual_multiply_node = cmds.createNode('multiplyDivide', name=name + 'compressionInfluence')
+        cmds.addAttr(left_compression_ctrl, ln='influence', at='double', k=True)
+        cmds.setAttr(left_compression_ctrl + '.influence', .1)
+        cmds.connectAttr(left_compression_ctrl + '.rz', manual_multiply_node + '.input1Z')
+        cmds.connectAttr(left_compression_ctrl + '.influence', manual_multiply_node + '.input2Z')
+        cmds.connectAttr(left_fingers_ctrl + '.showCompressionCtrls', left_compression_ctrl_grp + '.v')
+        cmds.parent(left_compression_ctrl_grp, left_fingers_ctrl_grp)
+        left_compression_ctrl_output.append(manual_multiply_node)
+
     # Knuckle Compression
     for obj in left_fingers_list:
         # Unpack Elements
@@ -6032,10 +6145,14 @@ def create_controls(biped_data):
         # Knuckle Compression System
         knuckle_multiply_node = ''
         knuckle_rot_multiply_node = ''
+        knuckle_sum_node = ''
         if 'thumb' not in ctrl_offset:
             knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            knuckle_sum_node = cmds.createNode('plusMinusAverage', name=finger_name + 'compression_sum')
             cmds.connectAttr(left_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
-            cmds.connectAttr(knuckle_multiply_node + '.outputZ', ctrl_offset + '.tz')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', knuckle_sum_node + '.input1D[0]')
+            cmds.connectAttr(knuckle_sum_node + '.output1D', ctrl_offset + '.tz')
+
             # Rot System
             knuckle_rot_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'rotCompression_multiply')
             cmds.connectAttr(left_knuckle_rot_blend_node + '.output', knuckle_rot_multiply_node + '.input2Y')
@@ -6048,6 +6165,7 @@ def create_controls(biped_data):
             cmds.addAttr(left_fingers_ctrl, ln='transMultiplierIndex', at='double', k=True)
             cmds.setAttr(left_fingers_ctrl + '.transMultiplierIndex', -1.5)
             cmds.connectAttr(left_fingers_ctrl + '.transMultiplierIndex', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(left_compression_ctrl_output[0] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Index'
             nice_name_x = 'Rot X Multiplier Index'
@@ -6062,6 +6180,7 @@ def create_controls(biped_data):
             cmds.addAttr(left_fingers_ctrl, ln='transMultiplierMiddle', at='double', k=True)
             cmds.setAttr(left_fingers_ctrl + '.transMultiplierMiddle', -.5)
             cmds.connectAttr(left_fingers_ctrl + '.transMultiplierMiddle', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(left_compression_ctrl_output[1] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Middle'
             nice_name_x = 'Rot X Multiplier Middle'
@@ -6076,6 +6195,7 @@ def create_controls(biped_data):
             cmds.addAttr(left_fingers_ctrl, ln='transMultiplierRing', at='double', k=True)
             cmds.setAttr(left_fingers_ctrl + '.transMultiplierRing', .5)
             cmds.connectAttr(left_fingers_ctrl + '.transMultiplierRing', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(left_compression_ctrl_output[2] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Ring'
             nice_name_x = 'Rot X Multiplier Ring'
@@ -6090,6 +6210,7 @@ def create_controls(biped_data):
             cmds.addAttr(left_fingers_ctrl, ln='transMultiplierPinky', at='double', k=True)
             cmds.setAttr(left_fingers_ctrl + '.transMultiplierPinky', 1.5)
             cmds.connectAttr(left_fingers_ctrl + '.transMultiplierPinky', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(left_compression_ctrl_output[3] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Pinky'
             nice_name_x = 'Rot X Multiplier Pinky'
@@ -6201,7 +6322,7 @@ def create_controls(biped_data):
         cmds.connectAttr(ctrl + '.forceWorldParenting', override_reverse_node + '.inputX', f=True)
         cmds.connectAttr(override_reverse_node + '.outputX', parent_override_constraint[0] + '.w0', f=True)
 
-    ################# Right FK Controls #################
+    # ################# Right FK Controls #################
     # Right Leg
     cmds.parentConstraint(right_hip_ctrl, right_hip_fk_jnt, mo=True)
     cmds.parentConstraint(right_knee_ctrl, right_knee_fk_jnt, mo=True)
@@ -6423,6 +6544,18 @@ def create_controls(biped_data):
             # cmds.connectAttr(active_condition_node + '.outColorG', finger[2] + '.rotateY', f=True)
             cmds.connectAttr(limit_condition_node + '.outColorB', finger[2] + '.rotateZ', f=True)
 
+            # Add Extra Distal Multiply
+            if '03' in finger[0]:
+                attr_name = 'distalMultiplier'
+                attr_name += finger_name.replace('right_', '').replace('right_', '').replace('_', '').capitalize()
+                cmds.addAttr(right_fingers_ctrl, ln=attr_name, at='double', k=True)
+
+                end_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'endMultiply')
+                cmds.connectAttr(limit_condition_node + '.outColorB', end_multiply_node + '.input1Z')
+                cmds.connectAttr(end_multiply_node + '.outputZ', finger[2] + '.rotateZ', f=True)
+                cmds.connectAttr(right_fingers_ctrl + '.' + attr_name, end_multiply_node + '.input2Z', f=True)
+                cmds.setAttr(right_fingers_ctrl + '.' + attr_name, 1)
+
     # Right Finger Abduction Automation
     right_fingers_minz_scale = 1
     right_fingers_maxz_scale = 5
@@ -6524,6 +6657,7 @@ def create_controls(biped_data):
     # Right Auto Knuckle Compression System (Translation Z Offset)
     cmds.addAttr(right_fingers_ctrl, ln='knucklesAutomation', at='enum', k=True, en='-------------:')
     cmds.setAttr(right_fingers_ctrl + '.knucklesAutomation', lock=True)
+    cmds.addAttr(right_fingers_ctrl, ln='showCompressionCtrls', at='bool', k=True, maxValue=1, minValue=0)
     cmds.addAttr(right_fingers_ctrl, ln='autoCompression', at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(right_fingers_ctrl + '.autoCompression', 1)
     cmds.addAttr(right_fingers_ctrl, ln='transCompression', at='double', k=True, minValue=0)
@@ -6555,6 +6689,44 @@ def create_controls(biped_data):
     cmds.connectAttr(right_knuckle_rot_range_node + '.outValueZ',
                      right_knuckle_rot_blend_node + '.attributesBlender')
 
+    # Right Manual Compression Controls
+    right_compression_ctrl_output = []
+    right_compression_joints = [rig_joints.get('right_index01_jnt'),
+                                rig_joints.get('right_middle01_jnt'),
+                                rig_joints.get('right_ring01_jnt'),
+                                rig_joints.get('right_pinky01_jnt')]
+    for joint in right_compression_joints:
+        name = joint.replace(JNT_SUFFIX, '')
+        right_compression_ctrl = cmds.curve(name=name + 'compression_ctrl',
+                                            p=[[0.0, 0.28, 0.0], [-0.28, 0.001, 0.0], [0.0, 0.0, 0.28],
+                                               [0.0, 0.28, 0.0], [0.28, 0.001, 0.0], [0.0, 0.0, 0.28],
+                                               [0.28, 0.001, 0.0], [0.0, 0.0, -0.28], [0.0, 0.28, 0.0],
+                                               [0.0, 0.0, -0.28], [-0.28, 0.001, 0.0], [0.0, -0.28, 0.0],
+                                               [0.0, 0.0, -0.28], [0.28, 0.001, 0.0], [0.0, -0.28, 0.0],
+                                               [0.0, 0.0, 0.28]], d=1)
+        right_compression_ctrl_grp = cmds.group(name=right_compression_ctrl + GRP_SUFFIX.capitalize(),
+                                                empty=True, world=True)
+        cmds.parent(right_compression_ctrl, right_compression_ctrl_grp)
+        rescale(right_compression_ctrl, right_wrist_scale_offset * .3)
+        cmds.delete(cmds.parentConstraint(right_fingers_ctrl, right_compression_ctrl_grp))
+        cmds.delete(cmds.pointConstraint(joint, right_compression_ctrl_grp))
+        cmds.move(-right_wrist_scale_offset * .3, right_compression_ctrl_grp, moveY=True, relative=True,
+                  objectSpace=True)
+        cmds.move(right_wrist_scale_offset * .2, right_compression_ctrl_grp, moveX=True, relative=True,
+                  objectSpace=True)
+        lock_hide_default_attr(right_compression_ctrl, rotate=False)
+        cmds.setAttr(right_compression_ctrl + '.rx', lock=True, keyable=False)
+        cmds.setAttr(right_compression_ctrl + '.ry', lock=True, keyable=False)
+        change_viewport_color(right_compression_ctrl, RIGHT_CTRL_COLOR)
+        manual_multiply_node = cmds.createNode('multiplyDivide', name=name + 'compressionInfluence')
+        cmds.addAttr(right_compression_ctrl, ln='influence', at='double', k=True)
+        cmds.setAttr(right_compression_ctrl + '.influence', -.1)
+        cmds.connectAttr(right_compression_ctrl + '.rz', manual_multiply_node + '.input1Z')
+        cmds.connectAttr(right_compression_ctrl + '.influence', manual_multiply_node + '.input2Z')
+        cmds.connectAttr(right_fingers_ctrl + '.showCompressionCtrls', right_compression_ctrl_grp + '.v')
+        cmds.parent(right_compression_ctrl_grp, right_fingers_ctrl_grp)
+        right_compression_ctrl_output.append(manual_multiply_node)
+
     # Knuckle Compression
     for obj in right_fingers_list:
         # Unpack Elements
@@ -6566,8 +6738,11 @@ def create_controls(biped_data):
         knuckle_rot_multiply_node = ''
         if 'thumb' not in ctrl_offset:
             knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
+            knuckle_sum_node = cmds.createNode('plusMinusAverage', name=finger_name + 'compression_sum')
             cmds.connectAttr(right_knuckle_blend_node + '.output', knuckle_multiply_node + '.input1Z')
-            cmds.connectAttr(knuckle_multiply_node + '.outputZ', ctrl_offset + '.tz')
+            cmds.connectAttr(knuckle_multiply_node + '.outputZ', knuckle_sum_node + '.input1D[0]')
+            cmds.connectAttr(knuckle_sum_node + '.output1D', ctrl_offset + '.tz')
+
             # Rot System
             knuckle_rot_multiply_node = cmds.createNode('multiplyDivide',
                                                         name=finger_name + 'rotCompression_multiply')
@@ -6581,6 +6756,7 @@ def create_controls(biped_data):
             cmds.addAttr(right_fingers_ctrl, ln='transMultiplierIndex', at='double', k=True)
             cmds.setAttr(right_fingers_ctrl + '.transMultiplierIndex', 1.5)
             cmds.connectAttr(right_fingers_ctrl + '.transMultiplierIndex', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(right_compression_ctrl_output[0] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Index'
             nice_name_x = 'Rot X Multiplier Index'
@@ -6599,6 +6775,7 @@ def create_controls(biped_data):
             cmds.addAttr(right_fingers_ctrl, ln='transMultiplierMiddle', at='double', k=True)
             cmds.setAttr(right_fingers_ctrl + '.transMultiplierMiddle', .5)
             cmds.connectAttr(right_fingers_ctrl + '.transMultiplierMiddle', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(right_compression_ctrl_output[1] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Middle'
             nice_name_x = 'Rot X Multiplier Middle'
@@ -6617,6 +6794,7 @@ def create_controls(biped_data):
             cmds.addAttr(right_fingers_ctrl, ln='transMultiplierRing', at='double', k=True)
             cmds.setAttr(right_fingers_ctrl + '.transMultiplierRing', -.5)
             cmds.connectAttr(right_fingers_ctrl + '.transMultiplierRing', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(right_compression_ctrl_output[2] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Ring'
             nice_name_x = 'Rot X Multiplier Ring'
@@ -6631,6 +6809,7 @@ def create_controls(biped_data):
             cmds.addAttr(right_fingers_ctrl, ln='transMultiplierPinky', at='double', k=True)
             cmds.setAttr(right_fingers_ctrl + '.transMultiplierPinky', -1.5)
             cmds.connectAttr(right_fingers_ctrl + '.transMultiplierPinky', knuckle_multiply_node + '.input2Z')
+            cmds.connectAttr(right_compression_ctrl_output[3] + '.outputZ', knuckle_sum_node + '.input1D[1]')
             # Rot
             nice_name_y = 'Rot Y Multiplier Pinky'
             nice_name_x = 'Rot X Multiplier Pinky'
@@ -6803,6 +6982,39 @@ def create_controls(biped_data):
 
     # ################# IK Controls #################
     # ################# Left Leg IK Controls ################
+
+    # - WIP - @@@ # - WIP - ########################################################################
+    # Left Leg IK
+
+    # left_leg_rp_ik_handle = cmds.ikHandle(n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt,
+    #                                       sol='ikRPsolver')
+    # cmds.poleVectorConstraint(left_knee_ik_ctrl, left_leg_rp_ik_handle[0])
+    #
+    # # Force IK offset not to pop when FK - TODO Experiment with forced offset
+    # # cmds.matchTransform(rig_joints.get('left_hip_jnt'), left_hip_ik_jnt, pos=1, rot=1)
+    # # cmds.matchTransform(rig_joints.get('left_knee_jnt'), left_hip_ik_jnt, pos=1, rot=1)
+    # cmds.parent(left_ankle_ctrl_grp, world=True)
+    # cmds.parent(left_ball_ctrl_grp, world=True)
+    # cmds.matchTransform(left_hip_ctrl_grp, left_hip_ik_jnt, pos=1, rot=1)
+    # if settings.get('uniform_ctrl_orient'):
+    #     cmds.rotate(-90, -90, 0, left_hip_ctrl_grp, os=True, relative=True)
+    # cmds.matchTransform(left_knee_ctrl_grp, left_knee_ik_jnt, pos=1, rot=1)
+    # if settings.get('uniform_ctrl_orient'):
+    #     cmds.rotate(0, -90, -90, left_knee_ctrl_grp, os=True, relative=True)
+    # cmds.matchTransform(left_ankle_ctrl_grp, left_ankle_ik_jnt, pos=1, rot=1)
+    # if settings.get('uniform_ctrl_orient'):
+    #     cmds.rotate(0, -90, -90, left_ankle_ctrl_grp, os=True, relative=True)
+    # cmds.parent(left_ankle_ctrl_grp, left_knee_ctrl)
+    # cmds.parent(left_ball_ctrl_grp, left_ankle_ctrl)
+    #
+    # cmds.matchTransform(left_ball_ik_jnt, left_ball_fk_jnt, pos=1, rot=1)
+    # cmds.matchTransform(left_toe_ik_jnt, left_toe_fk_jnt, pos=1, rot=1)
+    #
+    # left_leg_ball_ik_handle = cmds.ikHandle(n='left_footBall_SC_ikHandle', sj=left_ankle_ik_jnt, ee=left_ball_ik_jnt,
+    #                                         sol='ikSCsolver')
+    # left_leg_toe_ik_handle = cmds.ikHandle(n='left_footToe_SC_ikHandle', sj=left_ball_ik_jnt, ee=left_toe_ik_jnt,
+    #                                        sol='ikSCsolver')
+    # - WIP - ########################################################################
 
     # Left Leg IK
     left_leg_rp_ik_handle = cmds.ikHandle(n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt,
@@ -7652,13 +7864,12 @@ def create_controls(biped_data):
 
     cmds.parent(left_forearm_grp, skeleton_grp)
     cmds.pointConstraint([rig_joints.get('left_elbow_jnt'), rig_joints.get('left_wrist_jnt')], left_forearm_grp)
-    cmds.orientConstraint(rig_joints.get('left_elbow_jnt'), left_forearm_grp)
     cmds.setAttr(left_forearm_jnt + '.tx', 0)
     cmds.setAttr(left_forearm_jnt + '.ty', 0)
     cmds.setAttr(left_forearm_jnt + '.tz', 0)
 
     cmds.addAttr(left_arm_switch, ln='forearmRotation', at='double', k=True, maxValue=1, minValue=0)
-    cmds.setAttr(left_arm_switch + '.forearmRotation', 1)
+    cmds.setAttr(left_arm_switch + '.forearmRotation', .5)
 
     cmds.addAttr(left_arm_switch, ln='forearmScale', at='double', k=True, minValue=0.01)
     cmds.setAttr(left_arm_switch + '.forearmScale', 1)
@@ -7675,10 +7886,48 @@ def create_controls(biped_data):
     cmds.connectAttr(left_arm_switch + '.forearmRotation', left_forearm_multiply_node + '.input2X', f=True)
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_forearm_blend_node + '.attributesBlender', f=True)
 
-    cmds.connectAttr(rig_joints.get('left_wrist_jnt') + '.rotateX', left_forearm_multiply_node + '.input1X', f=True)
+    # cmds.connectAttr(rig_joints.get('left_wrist_jnt') + '.rotateX', left_forearm_multiply_node + '.input1X', f=True)
     cmds.connectAttr(left_forearm_multiply_node + '.outputX', left_forearm_jnt + '.rotateX', f=True)
 
     cmds.pointConstraint(left_forearm_loc, left_forearm_jnt)  # Receive Position from Mechanics
+
+    # Clean Twist System (Aim) ############### ###############
+    left_elbow_twist_sample_jnt = rig_joints.get('left_elbow_jnt')
+    left_elbow_twist_sample_jnt = left_elbow_twist_sample_jnt.replace(JNT_SUFFIX, 'aim' + JNT_SUFFIX.capitalize())
+    left_elbow_twist_sample_jnt = cmds.duplicate(rig_joints.get('left_elbow_jnt'),
+                                                 name=left_elbow_twist_sample_jnt,
+                                                 parentOnly=True)[0]
+    change_viewport_color(left_elbow_twist_sample_jnt, (1, 0, 1))
+
+    left_wrist_twist_sample_jnt = rig_joints.get('left_wrist_jnt')
+    left_wrist_twist_sample_jnt = left_wrist_twist_sample_jnt.replace(JNT_SUFFIX, 'aim' + JNT_SUFFIX.capitalize())
+    left_wrist_twist_sample_jnt = cmds.duplicate(left_elbow_twist_sample_jnt,
+                                                 name=left_wrist_twist_sample_jnt,
+                                                 parentOnly=True)[0]
+
+    cmds.setAttr(left_wrist_twist_sample_jnt + '.rotateOrder', 1)
+    cmds.parent(left_wrist_twist_sample_jnt, left_elbow_twist_sample_jnt)
+    cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_twist_sample_jnt)
+    cmds.parent(left_elbow_twist_sample_jnt, skeleton_grp)
+    cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_elbow_twist_sample_jnt)
+    left_wrist_aim_loc = cmds.spaceLocator(name=rig_joints.get('left_wrist_jnt').replace(JNT_SUFFIX, 'twistLoc'))[0]
+    cmds.delete(cmds.parentConstraint(left_wrist_twist_sample_jnt, left_wrist_aim_loc))
+    cmds.move(general_scale_offset*.4, left_wrist_aim_loc, moveY=True, relative=True, objectSpace=True)
+    change_viewport_color(left_wrist_aim_loc, (1, 0, 1))
+    cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_aim_loc, mo=True)
+    cmds.aimConstraint(left_elbow_twist_sample_jnt, left_wrist_twist_sample_jnt,
+                       aimVector=(-1, 0, 0),
+                       upVector=(0, 1, 0),
+                       worldUpType="object",
+                       worldUpObject=left_wrist_aim_loc)
+    cmds.connectAttr(left_wrist_twist_sample_jnt + '.rotateX', left_forearm_multiply_node + '.input1X', f=True)
+    cmds.parent(left_wrist_aim_loc, arms_automation_grp)
+    cmds.setAttr(left_elbow_twist_sample_jnt + '.v', 0)
+    new_radius = cmds.getAttr(left_elbow_twist_sample_jnt + '.radius') * 0.5
+    cmds.setAttr(left_elbow_twist_sample_jnt + '.radius', new_radius)
+    cmds.setAttr(left_wrist_twist_sample_jnt + '.radius', new_radius)
+
+    # ############## ############## ############## #############
 
     # Left IK Switcher Parent System
     left_clavicle_wrist_constraint = cmds.parentConstraint(
@@ -7965,7 +8214,7 @@ def create_controls(biped_data):
     cmds.setAttr(right_forearm_jnt + '.tz', 0)
 
     cmds.addAttr(right_arm_switch, ln='forearmRotation', at='double', k=True, maxValue=1, minValue=0)
-    cmds.setAttr(right_arm_switch + '.forearmRotation', 1)
+    cmds.setAttr(right_arm_switch + '.forearmRotation', .5)
 
     cmds.addAttr(right_arm_switch, ln='forearmScale', at='double', k=True, minValue=0.01)
     cmds.setAttr(right_arm_switch + '.forearmScale', 1)
@@ -7982,7 +8231,7 @@ def create_controls(biped_data):
     cmds.connectAttr(right_arm_switch + '.forearmRotation', right_forearm_multiply_node + '.input2X', f=True)
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_forearm_blend_node + '.attributesBlender', f=True)
 
-    cmds.connectAttr(rig_joints.get('right_wrist_jnt') + '.rotateX', right_forearm_multiply_node + '.input1X', f=True)
+    # cmds.connectAttr(rig_joints.get('right_wrist_jnt') + '.rotateX', right_forearm_multiply_node + '.input1X', f=True)
 
     # right_forearm_reverse_node = cmds.createNode('reverse', name='right_forearm_reverse')
     # cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_reverse_node + '.inputX', f=True)
@@ -7990,6 +8239,42 @@ def create_controls(biped_data):
     cmds.connectAttr(right_forearm_multiply_node + '.outputX', right_forearm_jnt + '.rx', f=True)
 
     cmds.pointConstraint(right_forearm_loc, right_forearm_jnt)  # Receive Position from Mechanics
+
+    # Clean Twist System (Aim) ############### ###############
+    right_elbow_twist_sample_jnt = rig_joints.get('right_elbow_jnt')
+    right_elbow_twist_sample_jnt = right_elbow_twist_sample_jnt.replace(JNT_SUFFIX, 'aim' + JNT_SUFFIX.capitalize())
+    right_elbow_twist_sample_jnt = cmds.duplicate(rig_joints.get('right_elbow_jnt'),
+                                                  name=right_elbow_twist_sample_jnt,
+                                                  parentOnly=True)[0]
+    change_viewport_color(right_elbow_twist_sample_jnt, (1, 0, 1))
+
+    right_wrist_twist_sample_jnt = rig_joints.get('right_wrist_jnt')
+    right_wrist_twist_sample_jnt = right_wrist_twist_sample_jnt.replace(JNT_SUFFIX, 'aim' + JNT_SUFFIX.capitalize())
+    right_wrist_twist_sample_jnt = cmds.duplicate(right_elbow_twist_sample_jnt,
+                                                  name=right_wrist_twist_sample_jnt,
+                                                  parentOnly=True)[0]
+
+    cmds.setAttr(right_wrist_twist_sample_jnt + '.rotateOrder', 1)
+    cmds.parent(right_wrist_twist_sample_jnt, right_elbow_twist_sample_jnt)
+    cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_twist_sample_jnt)
+    cmds.parent(right_elbow_twist_sample_jnt, skeleton_grp)
+    cmds.parentConstraint(rig_joints.get('right_elbow_jnt'), right_elbow_twist_sample_jnt)
+    right_wrist_aim_loc = cmds.spaceLocator(name=rig_joints.get('right_wrist_jnt').replace(JNT_SUFFIX, 'twistLoc'))[0]
+    cmds.delete(cmds.parentConstraint(right_wrist_twist_sample_jnt, right_wrist_aim_loc))
+    cmds.move(-general_scale_offset * .4, right_wrist_aim_loc, moveY=True, relative=True, objectSpace=True)
+    change_viewport_color(right_wrist_aim_loc, (1, 0, 1))
+    cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_aim_loc, mo=True)
+    cmds.aimConstraint(right_elbow_twist_sample_jnt, right_wrist_twist_sample_jnt,
+                       aimVector=(1, 0, 0),
+                       upVector=(0, -1, 0),
+                       worldUpType="object",
+                       worldUpObject=right_wrist_aim_loc)
+    cmds.connectAttr(right_wrist_twist_sample_jnt + '.rotateX', right_forearm_multiply_node + '.input1X', f=True)
+    cmds.parent(right_wrist_aim_loc, arms_automation_grp)
+    cmds.setAttr(right_elbow_twist_sample_jnt + '.v', 0)
+    new_radius = cmds.getAttr(right_elbow_twist_sample_jnt + '.radius') * 0.5
+    cmds.setAttr(right_elbow_twist_sample_jnt + '.radius', new_radius)
+    cmds.setAttr(right_wrist_twist_sample_jnt + '.radius', new_radius)
 
     # Right IK Switcher Parent System
     right_clavicle_wrist_constraint = cmds.parentConstraint(
@@ -8102,7 +8387,7 @@ def create_controls(biped_data):
     cmds.aimConstraint(right_eye_ctrl, rig_joints.get('right_eye_jnt'), mo=True, upVector=(0, 1, 0),
                        worldUpType="object", worldUpObject=right_eye_up_vec)
 
-    ################# Organize Stretchy System Elements #################
+    # ################ Organize Stretchy System Elements #################
     stretchy_system_grp = cmds.group(name='stretchySystem_' + GRP_SUFFIX, empty=True, world=True)
     foot_automation_grp = cmds.group(name='footAutomation_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(stretchy_system_grp, (.5, 1, .85))
@@ -8125,12 +8410,10 @@ def create_controls(biped_data):
     change_outliner_color(spine_automation_grp, (1, .65, .45))
 
     # Arms Automation System Hierarchy
-    arms_automation_grp = cmds.group(name='armsAutomation_' + GRP_SUFFIX, empty=True, world=True)
-    change_outliner_color(arms_automation_grp, (1, .65, .45))
     cmds.parent(left_forearm_grp, arms_automation_grp)
     cmds.parent(right_forearm_grp, arms_automation_grp)
 
-    ###### Main Hierarchy for Top Parent Groups ######
+    # ###### Main Hierarchy for Top Parent Groups ######
     if cmds.objExists('geometry_grp'):
         geometry_grp = 'geometry_grp'
     else:
@@ -8184,7 +8467,7 @@ def create_controls(biped_data):
     cmds.parent(right_shoulder_ik_jnt, right_clavicle_switch_jnt)
     cmds.parent(left_shoulder_ik_jnt, left_clavicle_switch_jnt)
 
-    ################# Joint Inflation System #################
+    # ################# Joint Inflation System #################
 
     # Elements to Inflate/Deflate - Ctrl, CtrlGrp, Joint, CreateOffset?
     create_offset = True
@@ -8328,6 +8611,7 @@ def create_controls(biped_data):
     cmds.connectAttr(left_wrist_scale_blend + '.output', rig_joints.get('left_wrist_jnt') + '.scale')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_wrist_scale_blend + '.blender')
 
+    cmds.setAttr(right_wrist_ik_ctrl.replace(CTRL_SUFFIX, 'scaleCtrl') + '.sz', 1) # Account for inverted scale
     right_wrist_scale_blend = cmds.createNode('blendColors', name='right_wrist_switchScale_blend')
     cmds.connectAttr(right_wrist_ik_ctrl.replace(CTRL_SUFFIX, 'scaleCtrl') + '.scale',
                      right_wrist_scale_blend + '.color1')
@@ -8468,7 +8752,7 @@ def create_controls(biped_data):
     left_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=left_auto_clavicle_sc_ik_handle[0] + 'Offset',
                                                             empty=True, world=True)
     cmds.parent(left_auto_clavicle_sc_ik_handle_offset_grp, left_auto_clavicle_sc_ik_handle_grp)
-    cmds.delete(cmds.parentConstraint(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_grp))
+    cmds.delete(cmds.pointConstraint(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_grp))
     cmds.parent(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_offset_grp)
 
     cmds.addAttr(left_wrist_ik_ctrl, ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
@@ -8495,8 +8779,8 @@ def create_controls(biped_data):
     left_auto_clavicle_rot_grp = cmds.group(name='left_auto_clavicle_rot' + GRP_SUFFIX.capitalize(), empty=True,
                                             world=True)
     cmds.parent(left_auto_clavicle_rot, left_auto_clavicle_rot_grp)
-    cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_auto_clavicle_rot_grp))
-    cmds.parentConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_rot)
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_auto_clavicle_rot_grp))
+    cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_rot)
     cmds.parent(left_auto_clavicle_rot_grp, left_wrist_ik_ctrl_grp)
 
     cmds.connectAttr(left_auto_clavicle_rot + '.translate', offset_influence_multiply_node + '.input1', force=True)
@@ -8543,7 +8827,7 @@ def create_controls(biped_data):
     right_auto_clavicle_sc_ik_handle_offset_grp = cmds.group(name=right_auto_clavicle_sc_ik_handle[0] + 'Offset',
                                                              empty=True, world=True)
     cmds.parent(right_auto_clavicle_sc_ik_handle_offset_grp, right_auto_clavicle_sc_ik_handle_grp)
-    cmds.delete(cmds.parentConstraint(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_grp))
+    cmds.delete(cmds.pointConstraint(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_grp))
     cmds.parent(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_offset_grp)
 
     cmds.addAttr(right_wrist_ik_ctrl, ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
@@ -8570,8 +8854,8 @@ def create_controls(biped_data):
     right_auto_clavicle_rot_grp = cmds.group(name='right_auto_clavicle_rot' + GRP_SUFFIX.capitalize(), empty=True,
                                              world=True)
     cmds.parent(right_auto_clavicle_rot, right_auto_clavicle_rot_grp)
-    cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_auto_clavicle_rot_grp))
-    cmds.parentConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_rot)
+    cmds.delete(cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_auto_clavicle_rot_grp))
+    cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_rot)
     cmds.parent(right_auto_clavicle_rot_grp, right_wrist_ik_ctrl_grp)
 
     # Right Side Inverse Orientation Multiply
@@ -8728,7 +9012,8 @@ def create_controls(biped_data):
 
     right_hand_sc_ik_handle = cmds.ikHandle(n='right_hand_SC_ikHandle', sj=right_wrist_ik_jnt,
                                             ee=right_wrist_ik_dir_jnt[0], sol='ikSCsolver')
-    cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl)
+    # cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl)
+    cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl_data)
     cmds.setAttr(right_hand_sc_ik_handle[0] + '.v', 0)
 
     # ################# Bulletproof Controls #################
@@ -8880,30 +9165,118 @@ def create_controls(biped_data):
     cmds.parent(left_wrist_ref_loc, left_wrist_fk_jnt)
     cmds.setAttr(left_wrist_ref_loc + '.v', 0)
 
+    # Uniform FK Offset Reference
+    switch_ref_locators = []
+    # Left Arm
+    left_shoulder_fk_ref_loc = cmds.spaceLocator(name='left_fkShoulderOffsetRef_loc')[0]  # TODO
+    cmds.delete(cmds.parentConstraint(left_shoulder_ik_jnt, left_shoulder_fk_ref_loc))
+    cmds.parent(left_shoulder_fk_ref_loc, left_shoulder_ik_jnt)
+    cmds.setAttr(left_shoulder_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_shoulder_fk_ref_loc)
+
+    left_elbow_fk_ref_loc = cmds.spaceLocator(name='left_fkElbowOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(left_elbow_ik_jnt, left_elbow_fk_ref_loc))
+    cmds.parent(left_elbow_fk_ref_loc, left_elbow_ik_jnt)
+    cmds.setAttr(left_elbow_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_elbow_fk_ref_loc)
+
+    left_wrist_fk_ref_loc = cmds.spaceLocator(name='left_fkWristOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(left_wrist_ik_jnt, left_wrist_fk_ref_loc))
+    cmds.parent(left_wrist_fk_ref_loc, left_wrist_ik_jnt)
+    cmds.setAttr(left_wrist_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_wrist_fk_ref_loc)
+
+    # Right Arm
+    right_shoulder_fk_ref_loc = cmds.spaceLocator(name='right_fkShoulderOffsetRef_loc')[0]  # TODO
+    cmds.delete(cmds.parentConstraint(right_shoulder_ik_jnt, right_shoulder_fk_ref_loc))
+    cmds.parent(right_shoulder_fk_ref_loc, right_shoulder_ik_jnt)
+    cmds.setAttr(right_shoulder_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_shoulder_fk_ref_loc)
+
+    right_elbow_fk_ref_loc = cmds.spaceLocator(name='right_fkElbowOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(right_elbow_ik_jnt, right_elbow_fk_ref_loc))
+    cmds.parent(right_elbow_fk_ref_loc, right_elbow_ik_jnt)
+    cmds.setAttr(right_elbow_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_elbow_fk_ref_loc)
+
+    right_wrist_fk_ref_loc = cmds.spaceLocator(name='right_fkWristOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(right_wrist_ik_jnt, right_wrist_fk_ref_loc))
+    cmds.parent(right_wrist_fk_ref_loc, right_wrist_ik_jnt)
+    cmds.setAttr(right_wrist_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_wrist_fk_ref_loc)
+
+    # Left Leg
+    left_hip_fk_ref_loc = cmds.spaceLocator(name='left_fkHipOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(left_hip_ik_jnt, left_hip_fk_ref_loc))
+    cmds.parent(left_hip_fk_ref_loc, left_hip_ik_jnt)
+    cmds.setAttr(left_hip_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_hip_fk_ref_loc)
+
+    left_knee_fk_ref_loc = cmds.spaceLocator(name='left_fkKneeOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(left_knee_ik_jnt, left_knee_fk_ref_loc))
+    cmds.parent(left_knee_fk_ref_loc, left_knee_ik_jnt)
+    cmds.setAttr(left_knee_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_knee_fk_ref_loc)
+
+    left_ankle_fk_ref_loc = cmds.spaceLocator(name='left_fkAnkleOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(left_ankle_ik_jnt, left_ankle_fk_ref_loc))
+    cmds.parent(left_ankle_fk_ref_loc, left_ankle_ik_jnt)
+    cmds.setAttr(left_ankle_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(left_ankle_fk_ref_loc)
+
+    # Right Leg
+    right_hip_fk_ref_loc = cmds.spaceLocator(name='right_fkHipOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(right_hip_ik_jnt, right_hip_fk_ref_loc))
+    cmds.parent(right_hip_fk_ref_loc, right_hip_ik_jnt)
+    cmds.setAttr(right_hip_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_hip_fk_ref_loc)
+
+    right_knee_fk_ref_loc = cmds.spaceLocator(name='right_fkKneeOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(right_knee_ik_jnt, right_knee_fk_ref_loc))
+    cmds.parent(right_knee_fk_ref_loc, right_knee_ik_jnt)
+    cmds.setAttr(right_knee_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_knee_fk_ref_loc)
+
+    right_ankle_fk_ref_loc = cmds.spaceLocator(name='right_fkAnkleOffsetRef_loc')[0]
+    cmds.delete(cmds.parentConstraint(right_ankle_ik_jnt, right_ankle_fk_ref_loc))
+    cmds.parent(right_ankle_fk_ref_loc, right_ankle_ik_jnt)
+    cmds.setAttr(right_ankle_fk_ref_loc + '.v', 0)
+    switch_ref_locators.append(right_ankle_fk_ref_loc)
+
+    if settings.get('uniform_ctrl_orient'):
+        for loc in switch_ref_locators:
+            cmds.rotate(0, -90, -90, loc, os=True, relative=True)
+
     # Simplify Spine (Reduce number of joints from 5 to 3)
     if settings.get('simplify_spine'):
         for jnt in ['spine01_jnt', 'spine02_jnt', 'spine03_jnt']:
             cmds.setAttr(rig_joints.get(jnt) + '.v', 0)
 
-        new_spine_name = re.sub(r'[0-9]+', '', rig_joints.get('spine02_jnt')) # Remove Numbers
+        new_spine_name = re.sub(r'[0-9]+', '', rig_joints.get('spine02_jnt'))  # Remove Numbers
         new_spine_02_jnt = cmds.duplicate(rig_joints.get('spine02_jnt'), name=new_spine_name, po=True)[0]
         cmds.setAttr(new_spine_02_jnt + '.v', 1)
         cmds.parent(new_spine_02_jnt, world=True)
+
         cmds.delete(cmds.parentConstraint([rig_joints.get('spine01_jnt'),
                                            rig_joints.get('spine02_jnt'),
                                            rig_joints.get('spine03_jnt'),
                                            ], new_spine_02_jnt))
+
         cmds.parent(rig_joints.get('spine01_jnt'), skeleton_grp)
         cmds.parent(rig_joints.get('spine02_jnt'), skeleton_grp)
         cmds.parent(rig_joints.get('spine03_jnt'), skeleton_grp)
         cmds.parent(new_spine_02_jnt, rig_joints.get('cog_jnt'))
         cmds.parent(rig_joints.get('spine04_jnt'), new_spine_02_jnt)
-        cmds.parentConstraint(rig_joints.get('spine02_jnt'), new_spine_02_jnt)
+        cmds.parentConstraint(rig_joints.get('spine02_jnt'), new_spine_02_jnt, mo=True)
         rig_joints['spine02_jnt'] = new_spine_02_jnt
 
     # Enforce footToe ikHandle position
     cmds.matchTransform(right_leg_toe_ik_handle[0], right_toe_fk_jnt, pos=1, rot=1)
     cmds.matchTransform(left_leg_toe_ik_handle[0], left_toe_fk_jnt, pos=1, rot=1)
+
+    # Move Pelvis under Root
+    cmds.parent(rig_joints.get('hip_jnt'), rig_joints.get('main_jnt'))
+    cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
 
     # Delete Proxy
     cmds.delete(biped_data.elements.get('main_proxy_grp'))
@@ -8988,6 +9361,7 @@ def create_controls(biped_data):
             for ctrl in ctrl_tuple:
                 cmds.setAttr(ctrl + '.showManipDefault', 2)  # Rotate
 
+    """
     # ################# Joint Labelling #################
     # Joint Side
     for obj in rig_joints:
@@ -8997,7 +9371,7 @@ def create_controls(biped_data):
             cmds.setAttr(rig_joints.get(obj) + '.side', 2)  # 2 Right
         else:
             cmds.setAttr(rig_joints.get(obj) + '.side', 0)  # 0 Center
-
+    
     # Joint Label
     cmds.setAttr(rig_joints.get('main_jnt') + '.type', 18)  # Other
     cmds.setAttr(rig_joints.get('main_jnt') + '.otherType', 'Origin', type='string')  # Other
@@ -9068,6 +9442,7 @@ def create_controls(biped_data):
     cmds.setAttr(rig_joints.get('right_pinky01_jnt') + '.type', 22)  # Pinky Finger
     cmds.setAttr(rig_joints.get('right_pinky02_jnt') + '.type', 22)  # Pinky Finger
     cmds.setAttr(rig_joints.get('right_pinky03_jnt') + '.type', 22)  # Pinky Finger
+    """
 
     # Creates game skeleton (No Segment Scale Compensate)
     if settings.get('using_no_ssc_skeleton'):
@@ -9078,14 +9453,14 @@ def create_controls(biped_data):
                                                       rig_joints_default.get('main_jnt'), main_ctrl,
                                                       new_skeleton_suffix)
 
-    ################# Store Created Joints #################
+    # ################ Store Created Joints #################
     rig_joints_default['left_forearm_jnt'] = left_forearm_jnt
     rig_joints_default['right_forearm_jnt'] = right_forearm_jnt
 
     for obj in rig_joints:
         rig_joints_default[obj] = rig_joints.get(obj)
 
-    ################# Attach Metadata to Main Control #################
+    # ################ Attach Metadata to Main Control #################
     cmds.addAttr(main_ctrl, ln='metadata', dataType='string')
     metadata_dict = {'worldspace_ik_orient': settings.get('worldspace_ik_orient'),
                      'uniform_ctrl_orient': settings.get('uniform_ctrl_orient'),
@@ -9106,12 +9481,12 @@ def create_controls(biped_data):
     if biped_data.debugging and biped_data.debugging_post_code:
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
-        debugging_display_lra = True
+        debugging_display_lra = False
         debugging_ikfk_jnts_visible = False
-        debugging_offset_ctrls_visible = True
+        debugging_offset_ctrls_visible = False
         debugging_annotate = False
-        debugging_show_fk_fingers = True
-        debugging_show_fk_controls = True
+        debugging_show_fk_fingers = False
+        debugging_show_fk_controls = False
 
         if debugging_ikfk_jnts_visible:
             make_visible_obj = [hip_switch_jnt,  # Makes Hip IK/FK joints visible
@@ -9252,7 +9627,7 @@ def build_biped_rig(create_rig_ctrls=True):
     # biped_data.settings['using_no_ssc_skeleton'] = False
     biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
-    biped_obj.settings['worldspace_ik_orient'] = True
+    biped_obj.settings['worldspace_ik_orient'] = False
 
     # Get/Set Camera Pos/Rot
     if biped_obj.debugging and biped_obj.debugging_force_new_scene:
@@ -9285,3 +9660,5 @@ def build_biped_rig(create_rig_ctrls=True):
 # Test it
 if __name__ == '__main__':
     build_biped_rig()
+    cmds.setAttr('pelvis_switch_jnt.v', 1)
+
