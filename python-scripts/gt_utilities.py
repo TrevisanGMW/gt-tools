@@ -4,7 +4,7 @@
 
 """
 
-def _make_flat_list(*args):
+def make_flat_list(*args):
     """
     Return a single list of all the items, essentially merging lists and single object into one list.
     Args:
@@ -19,7 +19,21 @@ def _make_flat_list(*args):
             _flat.append(_arg)
         elif hasattr(_arg, '__iter__'):
             for _item in _arg:
-                _flat.extend(_make_flat_list(_item))
+                _flat.extend(make_flat_list(_item))
         else:
             _flat.append(_arg)
     return _flat
+
+
+def remove_numbers(string):
+    """
+    Removes all numbers (digits) from the provided string
+
+            Parameters:
+                string (string): input string (numbers will be removed from it)
+
+            Returns:
+                string (string): output string without numbers (digits)
+
+    """
+    return ''.join([i for i in string if not i.isdigit()])
