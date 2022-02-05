@@ -9,10 +9,10 @@ import maya.cmds as cmds
 import random
 
 # Script Name
-script_name = 'GT Auto Facial Rigger'
+script_name = 'GT Facial Rigger'
 
 # Version:
-script_version = '0.4'
+script_version = '0.5'
 
 find_pre_existing_elements = True
 
@@ -28,6 +28,10 @@ _facial_proxy_dict = {  # Pre Existing Elements
     'head_crv': 'headRoot' + '_' + PROXY_SUFFIX,
     'jaw_crv': 'jawRoot' + '_' + PROXY_SUFFIX,
     'left_eye_crv': 'eyeRoot_' + PROXY_SUFFIX,
+
+    # Eyelids
+    'left_upper_eyelid_crv': 'upperEyelid_' + PROXY_SUFFIX,
+    'left_lower_eyelid_crv': 'lowerEyelid_' + PROXY_SUFFIX,
 
     # Eyebrows
     'left_inner_brow_crv': 'innerBrow_' + PROXY_SUFFIX,
@@ -214,6 +218,28 @@ def create_face_proxy():
     cmds.parent(left_eye_proxy_grp, head_proxy_crv)
     change_viewport_color(left_eye_proxy_crv, LEFT_PROXY_COLOR)
 
+    # Left Upper Eyelid
+    left_upper_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_upper_eyelid_crv'), .1)
+    cmds.rotate(90, left_upper_eyelid_proxy_crv, rotateX=True)
+    cmds.makeIdentity(left_upper_eyelid_proxy_crv, apply=True, rotate=True)
+    left_upper_eyelid_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=left_upper_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_upper_eyelid_proxy_crv, left_upper_eyelid_proxy_grp)
+    cmds.move(3.5, 152, 13, left_upper_eyelid_proxy_grp)
+    cmds.parent(left_upper_eyelid_proxy_grp, head_proxy_crv)
+    change_viewport_color(left_upper_eyelid_proxy_crv, (0.4, 0.7, 1))
+
+    # Left Lower Eyelid
+    left_lower_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_lower_eyelid_crv'), .1)
+    cmds.rotate(90, left_lower_eyelid_proxy_crv, rotateX=True)
+    cmds.makeIdentity(left_lower_eyelid_proxy_crv, apply=True, rotate=True)
+    left_lower_eyelid_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=left_lower_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_lower_eyelid_proxy_crv, left_lower_eyelid_proxy_grp)
+    cmds.move(3.5, 150, 13, left_lower_eyelid_proxy_grp)
+    cmds.parent(left_lower_eyelid_proxy_grp, head_proxy_crv)
+    change_viewport_color(left_lower_eyelid_proxy_crv, (0.4, 0.7, 1))
+
     # Right Eye
     right_eye_proxy_crv = create_joint_curve(_facial_proxy_dict.get('right_eye_crv'), .5)
     cmds.rotate(90, right_eye_proxy_crv, rotateX=True)
@@ -223,6 +249,28 @@ def create_face_proxy():
     cmds.move(-3.5, 151.2, 8.7, right_eye_proxy_grp)
     cmds.parent(right_eye_proxy_grp, head_proxy_crv)
     change_viewport_color(right_eye_proxy_crv, RIGHT_PROXY_COLOR)
+
+    # Right Upper Eyelid
+    right_upper_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_upper_eyelid_crv'), .1)
+    cmds.rotate(90, right_upper_eyelid_proxy_crv, rotateX=True)
+    cmds.makeIdentity(right_upper_eyelid_proxy_crv, apply=True, rotate=True)
+    right_upper_eyelid_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=right_upper_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_upper_eyelid_proxy_crv, right_upper_eyelid_proxy_grp)
+    cmds.move(-3.5, 152, 13, right_upper_eyelid_proxy_grp)
+    cmds.parent(right_upper_eyelid_proxy_grp, head_proxy_crv)
+    change_viewport_color(right_upper_eyelid_proxy_crv, (1, 0.7, 0.7))
+
+    # Right Lower Eyelid
+    right_lower_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_lower_eyelid_crv'), .1)
+    cmds.rotate(90, right_lower_eyelid_proxy_crv, rotateX=True)
+    cmds.makeIdentity(right_lower_eyelid_proxy_crv, apply=True, rotate=True)
+    right_lower_eyelid_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=right_lower_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_lower_eyelid_proxy_crv, right_lower_eyelid_proxy_grp)
+    cmds.move(-3.5, 150, 13, right_lower_eyelid_proxy_grp)
+    cmds.parent(right_lower_eyelid_proxy_grp, head_proxy_crv)
+    change_viewport_color(right_lower_eyelid_proxy_crv, (1, 0.7, 0.7))
 
     # ################ Eyebrows ################
     # Left Eyebrow Proxy
@@ -478,12 +526,12 @@ def create_face_controls():
     mouth_scale += dist_center_to_center(_facial_proxy_dict.get('mid_upper_lip_crv'),
                                          _facial_proxy_dict.get('right_corner_lip_crv'))
 
-    ####################################### Create Joints #######################################
+    # ###################################### Create Joints #######################################
     _facial_joints_dict = {}
     ignore_crv_list = ['left_corner_lip_crv', 'right_corner_lip_crv']
 
     # Find existing elements
-    for obj in _preexisting_dict:
+    for obj in _preexisting_dict: # @@@
         if 'ctrl' not in obj and 'neck' not in obj and cmds.objExists(_preexisting_dict.get(obj)):
             ignore_crv_list.append(obj.replace('jnt', 'crv'))
             _facial_joints_dict[obj] = obj
@@ -502,6 +550,14 @@ def create_face_controls():
             cmds.rotate(0, rotate_y, 0, joint)
             cmds.makeIdentity(joint, apply=True, rotate=True)
             _facial_joints_dict[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = joint
+
+    # Re-parent Generated Eyes
+    generated_eyes = [_facial_proxy_dict.get('left_eye_crv'), _facial_proxy_dict.get('right_eye_crv')]
+    for eye in generated_eyes:
+        generated_eye = eye.replace(PROXY_SUFFIX, JNT_SUFFIX)
+        if cmds.objExists(generated_eye):
+            cmds.parent(generated_eye, _facial_joints_dict.get('head_jnt'))
+            cmds.setAttr(generated_eye + '.radius', mouth_scale*.3)
 
     # If jaw joint wasn't found, orient the created one
     jaw_ctrl = 'jaw_ctrl'
@@ -587,7 +643,7 @@ def create_face_controls():
         head_ctrl = _preexisting_dict.get('head_ctrl')
         head_ctrl_grp = _preexisting_dict.get('head_ctrl') + CTRL_SUFFIX.capitalize()
 
-    ######## Special Joint Cases ########
+    # ####### Special Joint Cases ########
     # Mouth Corners
     for obj in ['left_corner_lip_crv', 'right_corner_lip_crv']:
         for case in ['upper', 'lower']:
@@ -662,20 +718,20 @@ def create_face_controls():
     mouth_root_joints = []
     for jnt in mouth_joints:
         cmds.select(clear=True)
-        new_joint = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
+        new_base_jnt = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
         # Use different pivot?
         # cmds.delete(cmds.pointConstraint([jnt, _facial_joints_dict.get('jaw_jnt')], new_joint, skip=('x')))
         # cmds.delete(cmds.pointConstraint(jnt, new_joint, skip=('x', 'z')))
-        cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('jaw_jnt'), new_joint))
+        cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('jaw_jnt'), new_base_jnt))
         driver_jnt = cmds.duplicate(jnt, name=jnt.replace(JNT_SUFFIX, 'driver' + JNT_SUFFIX.capitalize()), po=True)[0]
-        cmds.parent(driver_jnt, new_joint)
-        cmds.joint(new_joint, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
-        cmds.parent(new_joint, mouth_pivot_jnt)
+        cmds.parent(driver_jnt, new_base_jnt)
+        cmds.joint(new_base_jnt, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
+        cmds.parent(new_base_jnt, mouth_pivot_jnt)
         cmds.parentConstraint(driver_jnt, jnt)
         mouth_driver_joints.append(driver_jnt)
-        mouth_root_joints.append(new_joint)
+        mouth_root_joints.append(new_base_jnt)
 
-    ####################################### Mouth #######################################
+    # ####################################### Mouth #######################################
 
     mouth_controls = []
     for jnt in mouth_driver_joints:
@@ -843,13 +899,16 @@ def create_face_controls():
                                   k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
                                   name='left_cornerLip_ctrl')
 
-    right_corner_ctrl = cmds.curve(p=[[-0.0, 0.0, -0.0], [0.0, -0.0, -0.0], [-0.784, -0.784, 0.0], [-1.108, 0.0, 0.0],
-                                      [-0.784, 0.784, 0.0], [-0.0, 0.0, 0.0], [-0.0, -0.0, 0.0], [0.0, 0.0, -0.0],
-                                      [-0.0, 0.0, -0.0], [0.0, -0.0, -0.0], [-0.784, -0.784, 0.0]], d=3, per=True,
+    right_corner_ctrl = cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.784, -0.784, -0.0], [1.108, 0.0, -0.0],
+                                     [0.784, 0.784, -0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0],
+                                     [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.784, -0.784, -0.0]], d=3, per=True,
                                    k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
                                    name='right_cornerLip_ctrl')
+
     rescale(left_corner_ctrl, mouth_scale*.2)
     rescale(right_corner_ctrl, mouth_scale*.2)
+
+
     change_viewport_color(left_corner_ctrl, LEFT_CTRL_COLOR)
     change_viewport_color(right_corner_ctrl, RIGHT_CTRL_COLOR)
 
@@ -916,17 +975,17 @@ def create_face_controls():
     for jnt in [_facial_joints_dict.get('left_inner_brow_jnt'), _facial_joints_dict.get('left_mid_brow_jnt'),
                 _facial_joints_dict.get('left_outer_brow_jnt')]:
         cmds.select(clear=True)
-        new_joint = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
+        new_base_jnt = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
 
-        cmds.delete(cmds.pointConstraint(left_eyebrow_pivot_jnt, new_joint))
+        cmds.delete(cmds.pointConstraint(left_eyebrow_pivot_jnt, new_base_jnt))
 
         driver_jnt = cmds.duplicate(jnt, name=jnt.replace(JNT_SUFFIX, 'driver' + JNT_SUFFIX.capitalize()), po=True)[0]
-        cmds.parent(driver_jnt, new_joint)
-        cmds.joint(new_joint, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
-        cmds.parent(new_joint, left_eyebrow_pivot_jnt)
+        cmds.parent(driver_jnt, new_base_jnt)
+        cmds.joint(new_base_jnt, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
+        cmds.parent(new_base_jnt, left_eyebrow_pivot_jnt)
         cmds.parentConstraint(driver_jnt, jnt)
         left_eyebrow_driver_joints.append(driver_jnt)
-        left_eyebrow_root_joints.append(new_joint)
+        left_eyebrow_root_joints.append(new_base_jnt)
 
     left_eyebrow_controls = []
     for jnt in left_eyebrow_driver_joints:
@@ -1024,17 +1083,17 @@ def create_face_controls():
     for jnt in [_facial_joints_dict.get('right_inner_brow_jnt'), _facial_joints_dict.get('right_mid_brow_jnt'),
                 _facial_joints_dict.get('right_outer_brow_jnt')]:
         cmds.select(clear=True)
-        new_joint = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
+        new_base_jnt = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
 
-        cmds.delete(cmds.pointConstraint(right_eyebrow_pivot_jnt, new_joint))
+        cmds.delete(cmds.pointConstraint(right_eyebrow_pivot_jnt, new_base_jnt))
 
         driver_jnt = cmds.duplicate(jnt, name=jnt.replace(JNT_SUFFIX, 'driver' + JNT_SUFFIX.capitalize()), po=True)[0]
-        cmds.parent(driver_jnt, new_joint)
-        cmds.joint(new_joint, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
-        cmds.parent(new_joint, right_eyebrow_pivot_jnt)
+        cmds.parent(driver_jnt, new_base_jnt)
+        cmds.joint(new_base_jnt, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
+        cmds.parent(new_base_jnt, right_eyebrow_pivot_jnt)
         cmds.parentConstraint(driver_jnt, jnt)
         right_eyebrow_driver_joints.append(driver_jnt)
-        right_eyebrow_root_joints.append(new_joint)
+        right_eyebrow_root_joints.append(new_base_jnt)
 
     right_eyebrow_controls = []
     for jnt in right_eyebrow_driver_joints:
@@ -1104,7 +1163,161 @@ def create_face_controls():
     cmds.parentConstraint(right_eyebrow_ctrl, right_eyebrow_ctrls_grp, mo=True)
     change_viewport_color(right_eyebrow_ctrl, (1, .2, 1))
 
-    # Color Joints
+    # ####################################### Eyelids #######################################
+
+    # ## Left Eyelids ##
+    left_eyelids_scale = 0
+    left_eyelids_scale += dist_center_to_center(_facial_joints_dict.get('left_upper_eyelid_jnt'),
+                                                _facial_joints_dict.get('left_lower_eyelid_jnt'))*5
+
+    cmds.select(clear=True)
+    left_eyelid_pivot_jnt = cmds.joint(name='left_eyelid_pivot' + JNT_SUFFIX.capitalize(), radius=.5)
+    cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('left_eye_jnt'), left_eyelid_pivot_jnt))
+    cmds.parent(left_eyelid_pivot_jnt, skeleton_grp)
+    cmds.parentConstraint(_facial_joints_dict.get('head_jnt'), left_eyelid_pivot_jnt, mo=True)
+
+    # Create Controls
+    left_eyelid_driver_joints = []
+    left_eyelid_root_joints = []
+    for jnt in [_facial_joints_dict.get('left_upper_eyelid_jnt'), _facial_joints_dict.get('left_lower_eyelid_jnt')]:
+        cmds.select(clear=True)
+        new_base_jnt = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
+
+        cmds.delete(cmds.pointConstraint(left_eyelid_pivot_jnt, new_base_jnt))
+
+        driver_jnt = cmds.duplicate(jnt, name=jnt.replace(JNT_SUFFIX, 'driver' + JNT_SUFFIX.capitalize()), po=True)[0]
+        cmds.parent(driver_jnt, new_base_jnt)
+        cmds.joint(new_base_jnt, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
+        cmds.parent(new_base_jnt, left_eyelid_pivot_jnt)
+        cmds.parentConstraint(driver_jnt, jnt)
+        left_eyelid_driver_joints.append(driver_jnt)
+        left_eyelid_root_joints.append(new_base_jnt)
+
+    left_eyelid_controls = []
+    for jnt in left_eyelid_driver_joints:
+        ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), 'ctrl'),
+                                          radius=left_eyelids_scale * .05, create_offset_grp=True)
+        left_eyelid_controls.append(ctrl_objs)
+
+    # Control Holder
+    left_eyelids_ctrls_grp = cmds.group(name='left_eyelids_' + CTRL_SUFFIX + GRP_SUFFIX.capitalize(), empty=True,
+                                        world=True)
+    left_eyelids_data_grp = cmds.group(name='left_eyelids_data' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+
+    cmds.delete(cmds.parentConstraint(left_eyelid_pivot_jnt, left_eyelids_ctrls_grp))
+    cmds.delete(cmds.parentConstraint(left_eyelid_pivot_jnt, left_eyelids_data_grp))
+
+    cmds.parent(left_eyelids_ctrls_grp, head_ctrl)
+    cmds.parent(left_eyelids_data_grp, head_ctrl)
+
+    for ctrl_data in left_eyelid_controls:
+        # Unpack Data
+        ctrl = ctrl_data[0]
+        ctrl_grp = ctrl_data[1]
+        trans_loc = ctrl_data[2]
+        trans_loc_grp = ctrl_data[3]
+        end_joint = ctrl_data[4]
+
+        # # Organize Hierarchy
+        cmds.parent(ctrl_grp, left_eyelids_ctrls_grp)
+        cmds.parent(trans_loc_grp, left_eyelids_data_grp)
+
+        # Adjust Controls
+        cmds.setAttr(ctrl + '.movement', left_eyelids_scale*1.4)
+        cmds.setAttr(trans_loc + '.v', 0)
+
+        cmds.setAttr(ctrl + '.zOffsetInfluence', k=False)
+        cmds.setAttr(ctrl + '.extraOffset', k=False)
+
+        # Find Skinned Joint And Delete it
+        skinned_jnt_parent_constraint = \
+            cmds.listConnections(end_joint + '.translate', destination=True, type='parentConstraint')[0]
+        skinned_jnt = cmds.listConnections(skinned_jnt_parent_constraint + '.constraintRotateX', type='joint')[0]
+        cmds.delete(skinned_jnt)
+
+        change_viewport_color(ctrl, LEFT_CTRL_COLOR)
+
+    # ## Right Eyelids ##
+    right_eyelids_scale = 0
+    right_eyelids_scale += dist_center_to_center(_facial_joints_dict.get('right_upper_eyelid_jnt'),
+                                                 _facial_joints_dict.get('right_lower_eyelid_jnt'))*5
+
+    cmds.select(clear=True)
+    right_eyelid_pivot_jnt = cmds.joint(name='right_eyelid_pivot' + JNT_SUFFIX.capitalize(), radius=.5)
+    cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('right_eye_jnt'), right_eyelid_pivot_jnt))
+    cmds.parent(right_eyelid_pivot_jnt, skeleton_grp)
+    cmds.parentConstraint(_facial_joints_dict.get('head_jnt'), right_eyelid_pivot_jnt, mo=True)
+
+    # Create Controls
+    right_eyelid_driver_joints = []
+    right_eyelid_root_joints = []
+    for jnt in [_facial_joints_dict.get('right_upper_eyelid_jnt'),
+                _facial_joints_dict.get('right_lower_eyelid_jnt')]:
+        cmds.select(clear=True)
+        new_base_jnt = cmds.joint(name=jnt.replace(JNT_SUFFIX, 'root' + JNT_SUFFIX.capitalize()), radius=.5)
+
+        cmds.delete(cmds.pointConstraint(right_eyelid_pivot_jnt, new_base_jnt))
+
+        driver_jnt = cmds.duplicate(jnt, name=jnt.replace(JNT_SUFFIX, 'driver' + JNT_SUFFIX.capitalize()), po=True)[0]
+        cmds.parent(driver_jnt, new_base_jnt)
+        cmds.joint(new_base_jnt, e=True, oj='xyz', secondaryAxisOrient='yup', zso=True, ch=True)
+        cmds.parent(new_base_jnt, right_eyelid_pivot_jnt)
+        cmds.parentConstraint(driver_jnt, jnt)
+        right_eyelid_driver_joints.append(driver_jnt)
+        right_eyelid_root_joints.append(new_base_jnt)
+
+    right_eyelid_controls = []
+    for jnt in right_eyelid_driver_joints:
+        ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), 'ctrl'),
+                                          radius=right_eyelids_scale * .05, create_offset_grp=True)
+        right_eyelid_controls.append(ctrl_objs)
+
+    # Control Holder
+    right_eyelids_ctrls_grp = cmds.group(name='right_eyelids_' + CTRL_SUFFIX + GRP_SUFFIX.capitalize(), empty=True,
+                                         world=True)
+    right_eyelids_data_grp = cmds.group(name='right_eyelids_data' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+
+    cmds.delete(cmds.parentConstraint(right_eyelid_pivot_jnt, right_eyelids_ctrls_grp))
+    cmds.delete(cmds.parentConstraint(right_eyelid_pivot_jnt, right_eyelids_data_grp))
+
+    cmds.parent(right_eyelids_ctrls_grp, head_ctrl)
+    cmds.parent(right_eyelids_data_grp, head_ctrl)
+
+    for ctrl_data in right_eyelid_controls:
+        # Unpack Data
+        ctrl = ctrl_data[0]
+        ctrl_grp = ctrl_data[1]
+        trans_loc = ctrl_data[2]
+        trans_loc_grp = ctrl_data[3]
+        end_joint = ctrl_data[4]
+
+        # # Organize Hierarchy
+        cmds.parent(ctrl_grp, right_eyelids_ctrls_grp)
+        cmds.parent(trans_loc_grp, right_eyelids_data_grp)
+
+        # Adjust Controls
+        cmds.setAttr(ctrl + '.movement', right_eyelids_scale*1.4)
+        cmds.setAttr(trans_loc + '.v', 0)
+
+        cmds.setAttr(ctrl + '.zOffsetInfluence', k=False)
+        cmds.setAttr(ctrl + '.extraOffset', k=False)
+
+        # Find Skinned Joint And Delete it
+        skinned_jnt_parent_constraint = \
+            cmds.listConnections(end_joint + '.translate', destination=True, type='parentConstraint')[0]
+        skinned_jnt = cmds.listConnections(skinned_jnt_parent_constraint + '.constraintRotateX', type='joint')[0]
+        cmds.delete(skinned_jnt)
+
+        change_viewport_color(ctrl, RIGHT_CTRL_COLOR)
+
+    # Create Skinned Joints
+    eyelid_root_joints = right_eyelid_root_joints + left_eyelid_root_joints
+    for jnt in eyelid_root_joints:
+        skinned_jnt = cmds.duplicate(jnt, name=jnt.replace('rootJnt', JNT_SUFFIX), parentOnly=True)[0]
+        cmds.parent(skinned_jnt, _facial_joints_dict.get('head_jnt'))
+        cmds.parentConstraint(jnt, skinned_jnt)
+
+    # #### Color Joints ####
     to_color = []
     for obj in _facial_joints_dict:
         to_color.append(_facial_joints_dict.get(obj))
@@ -1113,6 +1326,10 @@ def create_face_controls():
     for obj in left_eyebrow_root_joints:
         to_color.append(obj)
     for obj in right_eyebrow_root_joints:
+        to_color.append(obj)
+    for obj in left_eyelid_root_joints:
+        to_color.append(obj)
+    for obj in right_eyelid_root_joints:
         to_color.append(obj)
     for jnt in to_color:
         if jnt not in ignore_crv_list:
@@ -1133,12 +1350,13 @@ def create_face_controls():
     cmds.parent(facial_gui_grp, head_ctrl)
     cmds.move(general_head_scale * 2, facial_gui_grp, moveX=True, relative=True)
     rescale(facial_gui_grp, general_head_scale * .02, freeze=False)
-    mouth_offset_locators = []
+    offset_locators = []
     for ctrl_data in mouth_controls:
         ctrl_name = ctrl_data[0]
         ctrl_grp = ctrl_data[1]
         ctrl_offset = ctrl_data[5]
         ctrl_loc = cmds.spaceLocator(name=ctrl_name + 'OffsetLoc')[0]
+        offset_locators.append(ctrl_loc)
         cmds.delete(cmds.parentConstraint(ctrl_name, ctrl_loc))
         cmds.parent(ctrl_loc, ctrl_grp)
 
@@ -1170,7 +1388,6 @@ def create_face_controls():
             cmds.setAttr(range_node + '.minY', 1)
             cmds.move(mouth_scale * -0.3, ctrl_loc, moveY=True, relative=True)
         rescale(ctrl_loc, mouth_scale * 0.05, freeze=False)
-        mouth_offset_locators.append(ctrl_loc)
 
     # Setup Other Controls
     jaw_offset_grp = create_inbetween(jaw_ctrl, 'Driven')
@@ -1184,14 +1401,20 @@ def create_face_controls():
 
     eyebrow_ctrls = right_eyebrow_controls + left_eyebrow_controls
     for obj in eyebrow_ctrls:
-        print(obj)
-        # ctrl = obj[0]
-        # offset_ctrl = obj[5]
-        # offset_ctrl = cmds.rename(offset_ctrl, offset_ctrl.replace('Offset', 'Driven'))
-        # if 'inner' in ctrl:
-        #     _setup_offset_target[ctrl] = [offset_ctrl, '2d']
-        # else:
-        #     _setup_offset_target[ctrl] = [offset_ctrl, '1d']
+        ctrl = obj[0]
+        offset_ctrl = obj[5]
+        offset_ctrl = cmds.rename(offset_ctrl, offset_ctrl.replace('Offset', 'Driven'))
+        if 'inner' in ctrl:
+            _setup_offset_target[ctrl] = [offset_ctrl, '2d']
+        else:
+            _setup_offset_target[ctrl] = [offset_ctrl, '1d']
+
+    eyelid_controls = left_eyelid_controls + right_eyelid_controls
+    for obj in eyelid_controls:
+        ctrl = obj[0]
+        offset_ctrl = obj[5]
+        offset_ctrl = cmds.rename(offset_ctrl, offset_ctrl.replace('Offset', 'Driven'))
+        _setup_offset_target[ctrl] = [offset_ctrl, '1d']
 
     _offset_target_reposition = {}
 
@@ -1200,6 +1423,7 @@ def create_face_controls():
         ctrl_type = data[1]
         ctrl_grp = ctrl_name + GRP_SUFFIX.capitalize()
         ctrl_loc = cmds.spaceLocator(name=ctrl_name + 'OffsetLoc')[0]
+        offset_locators.append(ctrl_loc)
         cmds.delete(cmds.parentConstraint(ctrl_name, ctrl_loc))
         cmds.parent(ctrl_loc, ctrl_grp)
 
@@ -1226,9 +1450,11 @@ def create_face_controls():
 
         if ctrl_type == '2d':
             ctrl_loc = cmds.rename(ctrl_loc, ctrl_loc.replace('Offset', 'OffsetY'))
+            offset_locators.append(ctrl_loc)
             trans_multiply_node = cmds.rename(trans_multiply_node, trans_multiply_node.replace('multiply', 'multiplyY'))
             rot_multiply_node = cmds.rename(rot_multiply_node, rot_multiply_node.replace('multiply', 'multiplyY'))
             ctrl_loc_x = cmds.spaceLocator(name=ctrl_name + 'OffsetXLoc')[0]
+            offset_locators.append(ctrl_loc_x)
             trans_multiply_node_x = cmds.createNode('multiplyDivide', name=ctrl_name + 'trans_multiplyX')
             rot_multiply_node_x = cmds.createNode('multiplyDivide', name=ctrl_name + 'rot_multiplyX')
             cmds.connectAttr(ctrl_loc_x + '.translate', trans_multiply_node_x + '.input1')
@@ -1324,9 +1550,81 @@ def create_face_controls():
             cmds.rotate(float_value * -15, ctrl_loc, rotateY=True, relative=True)
         elif '_cornerLip_ctrlOffsetXLoc' in ctrl_loc:
             cmds.move(float_value, ctrl_loc, moveX=True, relative=True)
+        elif '_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
+            cmds.setAttr(ctrl_loc + '.ty', 0)
+            cmds.move(float_value*1.2, ctrl_loc, moveX=True, relative=True)
+        elif 'Eyelid_ctrlOffsetLoc' in ctrl_loc:
+            side = 'left'
+            if 'right' in ctrl_loc:
+                side = 'right'
+            cmds.delete(cmds.pointConstraint(_facial_joints_dict.get(side + '_eye_jnt'), ctrl_loc, skip=('x', 'z')))
         else:
             cmds.move(float_value, ctrl_loc, moveY=True, relative=True)
         rescale(ctrl_loc, mouth_scale * 0.05, freeze=False)
+
+    # Eyelids Changes
+    for obj in eyelid_controls:
+        ctrl = obj[0]
+        offset_ctrl = obj[5]
+        offset_ctrl = offset_ctrl.replace('Offset', 'Driven')
+        multiply_node = cmds.listConnections(offset_ctrl + '.translate', source=True)[0]
+        range_node = cmds.listConnections(multiply_node + '.input2X', source=True)[0]
+        offset_ctrl = cmds.listConnections(range_node + '.valueY', source=True)[0]
+
+        invert_node = cmds.createNode('multiplyDivide', name=ctrl.replace(CTRL_SUFFIX, 'invertedRange'))
+        sum_node = cmds.createNode('plusMinusAverage', name=ctrl.replace(CTRL_SUFFIX, 'blinkSum'))
+        cmds.connectAttr(offset_ctrl + '.ty', sum_node + '.input1D[0]', force=True)
+        cmds.connectAttr(invert_node + '.outputY', range_node + '.valueY', force=True)
+        cmds.setAttr(invert_node + '.input2X', -.5)
+        cmds.setAttr(invert_node + '.input2Y', -.5)
+        cmds.setAttr(invert_node + '.input2Z', -.5)
+        cmds.connectAttr(sum_node + '.output1D', invert_node + '.input1Y', force=True)
+
+        blink_offset_ctrl = 'left_blinkEyelid_ctrl'
+        if ctrl.startswith('right'):
+            blink_offset_ctrl = 'right_blinkEyelid_ctrl'
+
+        if 'upper' in ctrl:
+            cmds.connectAttr(blink_offset_ctrl + '.ty', sum_node + '.input1D[1]', force=True)
+        else:
+            extra_invert_node = cmds.createNode('multiplyDivide', name=ctrl.replace(CTRL_SUFFIX, 'invertedOutput'))
+            cmds.connectAttr(blink_offset_ctrl + '.ty', extra_invert_node + '.input1Y', force=True)
+            cmds.setAttr(extra_invert_node + '.input2X', -1)
+            cmds.setAttr(extra_invert_node + '.input2Y', -1)
+            cmds.setAttr(extra_invert_node + '.input2Z', -1)
+            cmds.connectAttr(extra_invert_node + '.outputY', sum_node + '.input1D[1]', force=True)
+
+    # Hide Pivot Joints
+    all_joints = cmds.ls(type='joint')
+    for jnt in all_joints:
+        if jnt.endswith('pivotJnt'):
+            cmds.setAttr(jnt + '.v', 0)
+
+    # Create Hide Attribute
+    cmds.addAttr(head_ctrl, ln='sideGUICtrlVisibility', at='bool', keyable=True, niceName='Facial Side GUI Visibility')
+    cmds.setAttr(head_ctrl + '.sideGUICtrlVisibility', 1)
+    cmds.connectAttr(head_ctrl + '.sideGUICtrlVisibility', facial_gui_grp + '.v')
+    cmds.addAttr(head_ctrl, ln='facialCtrlsVisibility', at='bool', keyable=True, niceName='Facial Ctrls Visibility')
+    cmds.setAttr(head_ctrl + '.facialCtrlsVisibility', 1)
+    cmds.addAttr(head_ctrl, ln='facialOffsetVisibility', at='bool', keyable=True, niceName='Offset Locators Visibility')
+    cmds.setAttr(head_ctrl + '.facialOffsetVisibility', 0)
+
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_eyebrow_ctrl_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', right_eyebrow_ctrl_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_eyebrow_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', right_eyebrow_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_eyelids_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', right_eyelids_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', mouth_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', jaw_ctrls_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', main_mouth_ctrl_grp + '.v')
+
+    for obj in offset_locators:
+        if cmds.objExists(obj):
+            cmds.connectAttr(head_ctrl + '.facialOffsetVisibility', obj + '.v')
+
+    # Behavior Adjustment
+    cmds.setAttr(right_corner_ctrl + '.sx', -1)
 
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
@@ -1337,20 +1635,47 @@ def create_face_controls():
         try:
             cmds.viewFit(head_ctrl)
 
-            # Only if preexisting
-            head_loc = cmds.spaceLocator(name='head_debuggingLoc')
-            cmds.parentConstraint(_facial_joints_dict.get('head_jnt'), head_loc[0])
-            cmds.parent(head_loc, _facial_joints_dict.get('head_jnt'))
-            cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
+            # # Only if preexisting
+            # head_loc = cmds.spaceLocator(name='head_debuggingLoc')
+            # cmds.parentConstraint(_facial_joints_dict.get('head_jnt'), head_loc[0])
+            # cmds.parent(head_loc, _facial_joints_dict.get('head_jnt'))
+            # cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
 
         except Exception as e:
             print(e)
 
 
+def merge_facial_elements():
+    necessary_elements = []
+    facial_rig_grp = 'facial_rig_grp'
+    skeleton_grp = 'skeleton_grp'
+    rig_setup_grp = 'rig_setup_grp'
+    necessary_elements.append(facial_rig_grp)
+    necessary_elements.append(skeleton_grp)
+    necessary_elements.append(rig_setup_grp)
+    for obj in necessary_elements:
+        if not cmds.objExists(obj):
+            cmds.warning(f'Missing a require element. "{obj}"')
+            return
+
+    corrective_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
+    rig_setup_grps = cmds.listRelatives('facial_rig_setup_grp', children=True)
+
+    for jnt in corrective_joints:
+        cmds.parent(jnt, skeleton_grp)
+    for grp in rig_setup_grps:
+        cmds.parent(grp, rig_setup_grp)
+
+    cmds.delete(facial_rig_grp)
+
+
 if __name__ == '__main__':
+    debugging = True
     if debugging:
         # import gt_maya_utilities
         # gt_maya_utilities.gtu_reload_file()
         cmds.file(new=True, force=True)
+
     create_face_proxy()
     create_face_controls()
+    # merge_facial_elements()
