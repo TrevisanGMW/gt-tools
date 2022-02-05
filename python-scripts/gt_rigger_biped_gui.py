@@ -240,9 +240,15 @@
  1.8.14 - 2021-12-22
  Fixed an issue where the finger compression system would pop when adjusted
 
-
- 1.9.0 - 2021-XX-XX
+ 1.9.0 - 2022-01-15
  Dropped Python 2 support
+
+ 1.9.1 - 2022-01-15
+ Commented out joint labelling section
+ Fixed an issue where the ball ik handles for the feet would be inverted
+ Created a more robust system for the forearm twist (aimLoc)
+ Fixed an issue where the simplification of the spine would cause a rotation offset to happen to the upper body joints
+ Changed output hierarchy so pelvis (hip) goes under the root joint for more retargeting compatibility
 
  TODO:
     Transfer scale information from ik spine limit spine to spines
@@ -253,7 +259,6 @@
     Make scale system and breathing system optional
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
-    Create exporter with options to auto generate selection sets based on LOD names.
     
 """
 from shiboken2 import wrapInstance
@@ -757,15 +762,13 @@ def validate_operation(operation, debugging=False):
                 cmds.setAttr('persp.rx', persp_rot[0])
                 cmds.setAttr('persp.ry', persp_rot[1])
                 cmds.setAttr('persp.rz', persp_rot[2])
-            
-        
+
         # Debugging (Auto deletes generated proxy)
         if biped_data.debugging and biped_data.debugging_auto_recreate:
             try:
                 cmds.delete(biped_data.elements_default.get('main_proxy_grp'))
             except:
                 pass
-
 
         # Check if proxy exists in the scene
         proxy_elements = [biped_data.elements_default.get('main_proxy_grp')]
@@ -775,7 +778,8 @@ def validate_operation(operation, debugging=False):
         for obj in proxy_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. Delete current proxy or generate a rig before creating a new one.')
+                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
+                                         'Delete current proxy or generate a rig before creating a new one.')
                 
         # Check for existing rig or conflicting names
         undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
@@ -784,7 +788,9 @@ def validate_operation(operation, debugging=False):
         for obj in undesired_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" found in the scene. This means that you either already created a rig or you have conflicting names on your objects. (Click on "Help" for more details)')
+                cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
+                                         ' rig or you have conflicting names on your objects. '
+                                         '(Click on "Help" for more details)')
 
         # If valid, create proxy
         if is_valid:
