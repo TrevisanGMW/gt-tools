@@ -11,7 +11,7 @@ import maya.mel as mel
 import logging
 import sys
 
-from gt_rigger_utilities import find_joint, find_transform, get_metadata, selectItems, getChildren
+from gt_rigger_utilities import find_joint, find_transform, get_metadata, select_items, get_children
 from functools import partial
 from collections import namedtuple
 from gt_tools.gt_utilities import make_flat_list
@@ -123,9 +123,9 @@ def _export_fbx(file_path, export_baked_animation=True):
     configureFBX()
     if export_baked_animation:
         exportBakedAnimation()
-        selectItems(prerolldata.root)
+        select_items(prerolldata.root)
     else:
-        selectItems(prerolldata.geo, prerolldata.root)
+        select_items(prerolldata.geo, prerolldata.root)
 
     # Handle Namespaces in References
     namespace = _get_object_namespaces(prerolldata.root)
