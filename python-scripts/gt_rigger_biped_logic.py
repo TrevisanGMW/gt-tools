@@ -35,6 +35,13 @@
  v1.1.7 - 2022-02-02
  Changed orientation of the right wrist to be uniform with left side (inverted scale)
 
+ v1.1.8 - 2022-02-22
+ Added new toe_ik_ctrl to IK feet
+ Fixed issue where right automation controls wouldn't follow the offset control
+
+ v1.1.9 - 2022-03-08
+ Added inherit head roll and converge optiosn to the eyes
+
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -1462,52 +1469,52 @@ def create_controls(biped_data):
             cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
             cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-    def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
-        """
-        Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
-
-                Parameters:
-                    jnt_name (string): Name of the joint that will be controlled
-                    scale_offset (float): The scale offset applied to the control before freezing it
-                    create_offset_grp (bool): Whether or not an offset group will be created
-                Returns:
-                    control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
-
-        """
-        fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-                             p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
-                                [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
-                                [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
-                                [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
-                                [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
-                                [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
-                                [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
-                                [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
-        fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
-
-        fk_ctrl_offset_grp = ''
-        if create_offset_grp:
-            fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-            cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
-            cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
-        else:
-            cmds.parent(fk_ctrl, fk_ctrl_grp)
-
-        cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
-        cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
-        cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
-        cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
-
-        cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
-        if 'left_' in jnt_name:
-            change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
-        elif 'right_' in jnt_name:
-            change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
-
-        for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
-            cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
-
-        return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
+    # def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
+    #     """
+    #     Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
+    #
+    #             Parameters:
+    #                 jnt_name (string): Name of the joint that will be controlled
+    #                 scale_offset (float): The scale offset applied to the control before freezing it
+    #                 create_offset_grp (bool): Whether or not an offset group will be created
+    #             Returns:
+    #                 control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
+    #
+    #     """
+    #     fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+    #                          p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
+    #                             [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
+    #                             [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
+    #                             [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
+    #                             [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
+    #                             [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
+    #                             [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
+    #                             [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
+    #     fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    #
+    #     fk_ctrl_offset_grp = ''
+    #     if create_offset_grp:
+    #         fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    #         cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
+    #         cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
+    #     else:
+    #         cmds.parent(fk_ctrl, fk_ctrl_grp)
+    #
+    #     cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
+    #     cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
+    #     cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
+    #     cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
+    #
+    #     cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
+    #     if 'left_' in jnt_name:
+    #         change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
+    #     elif 'right_' in jnt_name:
+    #         change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
+    #
+    #     for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
+    #         cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
+    #
+    #     return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
     def remove_numbers(string):
         """
@@ -2883,16 +2890,22 @@ def create_controls(biped_data):
         cmds.rename(shape, '{0}Shape'.format(main_eye_ctrl))
 
     # Create Control Groups
+    main_eye_ctrl_grp = cmds.group(name=main_eye_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
+    main_eye_ctrl_offset_grp = cmds.group(name=main_eye_ctrl + '_dataOffset', empty=True, world=True)
     left_eye_ctrl_grp = cmds.group(name=left_eye_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
     right_eye_ctrl_grp = cmds.group(name=right_eye_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
-    main_eye_ctrl_grp = cmds.group(name=main_eye_ctrl + '_' + GRP_SUFFIX, empty=True, world=True)
+    left_eye_ctrl_offset_grp = cmds.group(name=left_eye_ctrl + '_' + GRP_SUFFIX + 'Offset', empty=True, world=True)
+    right_eye_ctrl_offset_grp = cmds.group(name=right_eye_ctrl + '_' + GRP_SUFFIX + 'Offset', empty=True, world=True)
 
     # Assemble Hierarchy
-    cmds.parent(left_eye_ctrl, left_eye_ctrl_grp)
-    cmds.parent(right_eye_ctrl, right_eye_ctrl_grp)
+    cmds.parent(left_eye_ctrl, left_eye_ctrl_offset_grp)
+    cmds.parent(left_eye_ctrl_offset_grp, left_eye_ctrl_grp)
+    cmds.parent(right_eye_ctrl, right_eye_ctrl_offset_grp)
+    cmds.parent(right_eye_ctrl_offset_grp, right_eye_ctrl_grp)
     cmds.parent(main_eye_ctrl, main_eye_ctrl_grp)
-    cmds.parent(left_eye_ctrl_grp, main_eye_ctrl)
-    cmds.parent(right_eye_ctrl_grp, main_eye_ctrl)
+    cmds.parent(main_eye_ctrl_offset_grp, main_eye_ctrl)
+    cmds.parent(left_eye_ctrl_grp, main_eye_ctrl_offset_grp)
+    cmds.parent(right_eye_ctrl_grp, main_eye_ctrl_offset_grp)
 
     # Position Elements
     cmds.move(.2, 0, 0, left_eye_ctrl_grp)
@@ -2922,8 +2935,7 @@ def create_controls(biped_data):
 
     cmds.parent(main_eye_ctrl_grp, head_ctrl)
 
-    ################# Left Leg FK #################
-
+    # ################# Left Leg FK #################
     # Calculate Scale Offset
     left_leg_scale_offset = 0
     left_leg_scale_offset += dist_center_to_center(rig_joints.get('left_knee_jnt'), rig_joints.get('left_ankle_jnt'))
@@ -3579,9 +3591,9 @@ def create_controls(biped_data):
     index_scale_offset += cmds.xform(rig_joints.get('left_index04_jnt'), q=True, t=True)[0]
     index_scale_offset = index_scale_offset / 3
 
-    left_index01_ctrl_list = create_simple_fk_control(rig_joints.get('left_index01_jnt'), index_scale_offset)
-    left_index02_ctrl_list = create_simple_fk_control(rig_joints.get('left_index02_jnt'), index_scale_offset)
-    left_index03_ctrl_list = create_simple_fk_control(rig_joints.get('left_index03_jnt'), index_scale_offset)
+    left_index01_ctrl_list = create_pin_control(rig_joints.get('left_index01_jnt'), index_scale_offset)
+    left_index02_ctrl_list = create_pin_control(rig_joints.get('left_index02_jnt'), index_scale_offset)
+    left_index03_ctrl_list = create_pin_control(rig_joints.get('left_index03_jnt'), index_scale_offset)
 
     cmds.parent(left_index01_ctrl_list[1], left_hand_grp)
     cmds.parent(left_index02_ctrl_list[1], left_index01_ctrl_list[0])
@@ -3593,9 +3605,9 @@ def create_controls(biped_data):
     middle_scale_offset += cmds.xform(rig_joints.get('left_middle04_jnt'), q=True, t=True)[0]
     middle_scale_offset = middle_scale_offset / 3
 
-    left_middle01_ctrl_list = create_simple_fk_control(rig_joints.get('left_middle01_jnt'), middle_scale_offset)
-    left_middle02_ctrl_list = create_simple_fk_control(rig_joints.get('left_middle02_jnt'), middle_scale_offset)
-    left_middle03_ctrl_list = create_simple_fk_control(rig_joints.get('left_middle03_jnt'), middle_scale_offset)
+    left_middle01_ctrl_list = create_pin_control(rig_joints.get('left_middle01_jnt'), middle_scale_offset)
+    left_middle02_ctrl_list = create_pin_control(rig_joints.get('left_middle02_jnt'), middle_scale_offset)
+    left_middle03_ctrl_list = create_pin_control(rig_joints.get('left_middle03_jnt'), middle_scale_offset)
 
     cmds.parent(left_middle01_ctrl_list[1], left_hand_grp)
     cmds.parent(left_middle02_ctrl_list[1], left_middle01_ctrl_list[0])
@@ -3607,9 +3619,9 @@ def create_controls(biped_data):
     ring_scale_offset += cmds.xform(rig_joints.get('left_ring04_jnt'), q=True, t=True)[0]
     ring_scale_offset = ring_scale_offset / 3
 
-    left_ring01_ctrl_list = create_simple_fk_control(rig_joints.get('left_ring01_jnt'), ring_scale_offset)
-    left_ring02_ctrl_list = create_simple_fk_control(rig_joints.get('left_ring02_jnt'), ring_scale_offset)
-    left_ring03_ctrl_list = create_simple_fk_control(rig_joints.get('left_ring03_jnt'), ring_scale_offset)
+    left_ring01_ctrl_list = create_pin_control(rig_joints.get('left_ring01_jnt'), ring_scale_offset)
+    left_ring02_ctrl_list = create_pin_control(rig_joints.get('left_ring02_jnt'), ring_scale_offset)
+    left_ring03_ctrl_list = create_pin_control(rig_joints.get('left_ring03_jnt'), ring_scale_offset)
 
     cmds.parent(left_ring01_ctrl_list[1], left_hand_grp)
     cmds.parent(left_ring02_ctrl_list[1], left_ring01_ctrl_list[0])
@@ -3621,9 +3633,9 @@ def create_controls(biped_data):
     pinky_scale_offset += cmds.xform(rig_joints.get('left_pinky04_jnt'), q=True, t=True)[0]
     pinky_scale_offset = pinky_scale_offset / 3
 
-    left_pinky01_ctrl_list = create_simple_fk_control(rig_joints.get('left_pinky01_jnt'), pinky_scale_offset)
-    left_pinky02_ctrl_list = create_simple_fk_control(rig_joints.get('left_pinky02_jnt'), pinky_scale_offset)
-    left_pinky03_ctrl_list = create_simple_fk_control(rig_joints.get('left_pinky03_jnt'), pinky_scale_offset)
+    left_pinky01_ctrl_list = create_pin_control(rig_joints.get('left_pinky01_jnt'), pinky_scale_offset)
+    left_pinky02_ctrl_list = create_pin_control(rig_joints.get('left_pinky02_jnt'), pinky_scale_offset)
+    left_pinky03_ctrl_list = create_pin_control(rig_joints.get('left_pinky03_jnt'), pinky_scale_offset)
 
     cmds.parent(left_pinky01_ctrl_list[1], left_hand_grp)
     cmds.parent(left_pinky02_ctrl_list[1], left_pinky01_ctrl_list[0])
@@ -3635,9 +3647,9 @@ def create_controls(biped_data):
     thumb_scale_offset += cmds.xform(rig_joints.get('left_thumb04_jnt'), q=True, t=True)[0]
     thumb_scale_offset = thumb_scale_offset / 3
 
-    left_thumb01_ctrl_list = create_simple_fk_control(rig_joints.get('left_thumb01_jnt'), thumb_scale_offset)
-    left_thumb02_ctrl_list = create_simple_fk_control(rig_joints.get('left_thumb02_jnt'), thumb_scale_offset)
-    left_thumb03_ctrl_list = create_simple_fk_control(rig_joints.get('left_thumb03_jnt'), thumb_scale_offset)
+    left_thumb01_ctrl_list = create_pin_control(rig_joints.get('left_thumb01_jnt'), thumb_scale_offset)
+    left_thumb02_ctrl_list = create_pin_control(rig_joints.get('left_thumb02_jnt'), thumb_scale_offset)
+    left_thumb03_ctrl_list = create_pin_control(rig_joints.get('left_thumb03_jnt'), thumb_scale_offset)
 
     cmds.parent(left_thumb01_ctrl_list[1], left_hand_grp)
     cmds.parent(left_thumb02_ctrl_list[1], left_thumb01_ctrl_list[0])
@@ -3921,9 +3933,9 @@ def create_controls(biped_data):
     index_scale_offset += cmds.xform(rig_joints.get('right_index04_jnt'), q=True, t=True)[0]
     index_scale_offset = index_scale_offset / 3
 
-    right_index01_ctrl_list = create_simple_fk_control(rig_joints.get('right_index01_jnt'), index_scale_offset)
-    right_index02_ctrl_list = create_simple_fk_control(rig_joints.get('right_index02_jnt'), index_scale_offset)
-    right_index03_ctrl_list = create_simple_fk_control(rig_joints.get('right_index03_jnt'), index_scale_offset)
+    right_index01_ctrl_list = create_pin_control(rig_joints.get('right_index01_jnt'), index_scale_offset)
+    right_index02_ctrl_list = create_pin_control(rig_joints.get('right_index02_jnt'), index_scale_offset)
+    right_index03_ctrl_list = create_pin_control(rig_joints.get('right_index03_jnt'), index_scale_offset)
 
     cmds.parent(right_index01_ctrl_list[1], right_hand_grp)
     cmds.parent(right_index02_ctrl_list[1], right_index01_ctrl_list[0])
@@ -3935,9 +3947,9 @@ def create_controls(biped_data):
     middle_scale_offset += cmds.xform(rig_joints.get('right_middle04_jnt'), q=True, t=True)[0]
     middle_scale_offset = middle_scale_offset / 3
 
-    right_middle01_ctrl_list = create_simple_fk_control(rig_joints.get('right_middle01_jnt'), middle_scale_offset)
-    right_middle02_ctrl_list = create_simple_fk_control(rig_joints.get('right_middle02_jnt'), middle_scale_offset)
-    right_middle03_ctrl_list = create_simple_fk_control(rig_joints.get('right_middle03_jnt'), middle_scale_offset)
+    right_middle01_ctrl_list = create_pin_control(rig_joints.get('right_middle01_jnt'), middle_scale_offset)
+    right_middle02_ctrl_list = create_pin_control(rig_joints.get('right_middle02_jnt'), middle_scale_offset)
+    right_middle03_ctrl_list = create_pin_control(rig_joints.get('right_middle03_jnt'), middle_scale_offset)
 
     cmds.parent(right_middle01_ctrl_list[1], right_hand_grp)
     cmds.parent(right_middle02_ctrl_list[1], right_middle01_ctrl_list[0])
@@ -3949,9 +3961,9 @@ def create_controls(biped_data):
     ring_scale_offset += cmds.xform(rig_joints.get('right_ring04_jnt'), q=True, t=True)[0]
     ring_scale_offset = ring_scale_offset / 3
 
-    right_ring01_ctrl_list = create_simple_fk_control(rig_joints.get('right_ring01_jnt'), ring_scale_offset)
-    right_ring02_ctrl_list = create_simple_fk_control(rig_joints.get('right_ring02_jnt'), ring_scale_offset)
-    right_ring03_ctrl_list = create_simple_fk_control(rig_joints.get('right_ring03_jnt'), ring_scale_offset)
+    right_ring01_ctrl_list = create_pin_control(rig_joints.get('right_ring01_jnt'), ring_scale_offset)
+    right_ring02_ctrl_list = create_pin_control(rig_joints.get('right_ring02_jnt'), ring_scale_offset)
+    right_ring03_ctrl_list = create_pin_control(rig_joints.get('right_ring03_jnt'), ring_scale_offset)
 
     cmds.parent(right_ring01_ctrl_list[1], right_hand_grp)
     cmds.parent(right_ring02_ctrl_list[1], right_ring01_ctrl_list[0])
@@ -3963,9 +3975,9 @@ def create_controls(biped_data):
     pinky_scale_offset += cmds.xform(rig_joints.get('right_pinky04_jnt'), q=True, t=True)[0]
     pinky_scale_offset = pinky_scale_offset / 3
 
-    right_pinky01_ctrl_list = create_simple_fk_control(rig_joints.get('right_pinky01_jnt'), pinky_scale_offset)
-    right_pinky02_ctrl_list = create_simple_fk_control(rig_joints.get('right_pinky02_jnt'), pinky_scale_offset)
-    right_pinky03_ctrl_list = create_simple_fk_control(rig_joints.get('right_pinky03_jnt'), pinky_scale_offset)
+    right_pinky01_ctrl_list = create_pin_control(rig_joints.get('right_pinky01_jnt'), pinky_scale_offset)
+    right_pinky02_ctrl_list = create_pin_control(rig_joints.get('right_pinky02_jnt'), pinky_scale_offset)
+    right_pinky03_ctrl_list = create_pin_control(rig_joints.get('right_pinky03_jnt'), pinky_scale_offset)
 
     cmds.parent(right_pinky01_ctrl_list[1], right_hand_grp)
     cmds.parent(right_pinky02_ctrl_list[1], right_pinky01_ctrl_list[0])
@@ -3977,9 +3989,9 @@ def create_controls(biped_data):
     thumb_scale_offset += cmds.xform(rig_joints.get('right_thumb04_jnt'), q=True, t=True)[0]
     thumb_scale_offset = thumb_scale_offset / 3
 
-    right_thumb01_ctrl_list = create_simple_fk_control(rig_joints.get('right_thumb01_jnt'), thumb_scale_offset)
-    right_thumb02_ctrl_list = create_simple_fk_control(rig_joints.get('right_thumb02_jnt'), thumb_scale_offset)
-    right_thumb03_ctrl_list = create_simple_fk_control(rig_joints.get('right_thumb03_jnt'), thumb_scale_offset)
+    right_thumb01_ctrl_list = create_pin_control(rig_joints.get('right_thumb01_jnt'), thumb_scale_offset)
+    right_thumb02_ctrl_list = create_pin_control(rig_joints.get('right_thumb02_jnt'), thumb_scale_offset)
+    right_thumb03_ctrl_list = create_pin_control(rig_joints.get('right_thumb03_jnt'), thumb_scale_offset)
 
     cmds.parent(right_thumb01_ctrl_list[1], right_hand_grp)
     cmds.parent(right_thumb02_ctrl_list[1], right_thumb01_ctrl_list[0])
@@ -4607,7 +4619,7 @@ def create_controls(biped_data):
     cmds.move(-right_foot_scale_offset / 4, right_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_toe_roll_ctrl, RIGHT_CTRL_COLOR)
-    cmds.parent(right_toe_roll_ctrl_grp, right_foot_ik_ctrl)
+    cmds.parent(right_toe_roll_ctrl_grp, right_foot_offset_data_grp)
 
     # Right Toe Up/Down
     right_toe_up_down_ctrl = cmds.curve(name='right_toe_upDown_' + CTRL_SUFFIX,
@@ -4636,7 +4648,7 @@ def create_controls(biped_data):
     cmds.move(-right_foot_scale_offset / 2.6, right_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_toe_up_down_ctrl, RIGHT_CTRL_COLOR)
-    cmds.parent(right_toe_up_down_ctrl_grp, right_foot_ik_ctrl)
+    cmds.parent(right_toe_up_down_ctrl_grp, right_foot_offset_data_grp)
 
     # Right Ball Roll
     right_ball_roll_ctrl_a = cmds.curve(name='right_ballRoll_' + CTRL_SUFFIX,
@@ -4695,7 +4707,7 @@ def create_controls(biped_data):
     cmds.move(right_foot_scale_offset / 3, right_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_ball_roll_ctrl, RIGHT_CTRL_COLOR)
-    cmds.parent(right_ball_roll_ctrl_grp, right_foot_ik_ctrl)
+    cmds.parent(right_ball_roll_ctrl_grp, right_foot_offset_data_grp)
 
     # Right Heel Roll
     right_heel_roll_ctrl_a = cmds.curve(name='right_heelRoll_' + CTRL_SUFFIX,
@@ -4754,7 +4766,7 @@ def create_controls(biped_data):
     cmds.move(-right_foot_scale_offset / 3.5 * -1, right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_heel_roll_ctrl, RIGHT_CTRL_COLOR)
-    cmds.parent(right_heel_roll_ctrl_grp, right_foot_ik_ctrl)
+    cmds.parent(right_heel_roll_ctrl_grp, right_foot_offset_data_grp)
 
     ####### Left Finger Automation Controls #######
     # Left Fingers
@@ -7031,7 +7043,14 @@ def create_controls(biped_data):
     left_ball_pivot_grp = cmds.group(name='left_ball_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
     left_toe_pivot_grp = cmds.group(name='left_toe_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
     left_toe_pos_pivot_grp = cmds.group(name='left_toeUpDown_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-    cmds.parent(left_toe_pos_pivot_grp, left_toe_pivot_grp)
+    # FK Toe Influence
+    left_toe_fk_pivot_grp = cmds.group(name='left_toe_fk_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    left_toe_fk_pivot_zero_grp = cmds.group(name='left_toe_fk_zero' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    left_toe_pos_zero_grp = cmds.group(name='left_toeUpDown_zero' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.parent(left_toe_pos_pivot_grp, left_toe_pos_zero_grp)
+    cmds.parent(left_toe_pos_zero_grp, left_toe_pivot_grp)
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_toe_fk_pivot_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_toe_fk_pivot_zero_grp))
 
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_foot_pivot_grp))
     cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_ball_pivot_grp'), left_heel_pivot_grp))
@@ -7052,6 +7071,29 @@ def create_controls(biped_data):
     cmds.parent(left_toe_pivot_grp, left_heel_pivot_grp)
     cmds.parent(left_ball_pivot_grp, left_toe_pivot_grp)
 
+    # Toe IK toe ctrl setup
+    cmds.parent(left_toe_fk_pivot_grp, left_toe_fk_pivot_zero_grp)
+    cmds.parent(left_toe_fk_pivot_zero_grp, left_toe_pivot_grp)
+    cmds.parent(left_toe_pos_zero_grp, left_toe_fk_pivot_grp)
+    left_toe_full_ctrl = cmds.curve(name='left_toe_ik_' + CTRL_SUFFIX,
+                         p=[[0.0, 0.0, 0.0], [0.0, 0.398, 0.229], [0.0, 0.409, 0.217], [0.0, 0.423, 0.206],
+                            [0.0, 0.439, 0.2], [0.0, 0.456, 0.197], [0.0, 0.473, 0.2], [0.0, 0.488, 0.206],
+                            [0.0, 0.456, 0.264], [0.0, 0.398, 0.229], [0.0, 0.392, 0.246], [0.0, 0.389, 0.264],
+                            [0.0, 0.392, 0.281], [0.0, 0.398, 0.296], [0.0, 0.409, 0.31], [0.0, 0.423, 0.319],
+                            [0.0, 0.439, 0.327], [0.0, 0.456, 0.329], [0.0, 0.473, 0.327], [0.0, 0.488, 0.319],
+                            [0.0, 0.502, 0.31], [0.0, 0.513, 0.296], [0.0, 0.519, 0.281], [0.0, 0.521, 0.264],
+                            [0.0, 0.519, 0.246], [0.0, 0.513, 0.229], [0.0, 0.502, 0.215], [0.0, 0.488, 0.206],
+                            [0.0, 0.423, 0.319], [0.0, 0.456, 0.264], [0.0, 0.513, 0.296]], d=1)
+    rescale(left_toe_full_ctrl, left_foot_scale_offset, True)
+    change_viewport_color(left_toe_full_ctrl, LEFT_CTRL_COLOR)
+    lock_hide_default_attr(left_toe_full_ctrl, translate=False, rotate=False)
+    left_toe_full_ctrl_grp = cmds.group(name=left_toe_full_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.parent(left_toe_full_ctrl, left_toe_full_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(left_toe_fk_pivot_grp, left_toe_full_ctrl_grp))
+    cmds.parent(left_toe_full_ctrl_grp, left_foot_offset_data_grp)
+    cmds.connectAttr(left_toe_full_ctrl + '.translate', left_toe_fk_pivot_grp + '.translate')
+    cmds.connectAttr(left_toe_full_ctrl + '.rotate', left_toe_fk_pivot_grp + '.rotate')
+
     cmds.parent(left_leg_toe_ik_handle[0], left_toe_pos_pivot_grp)
     cmds.parent(left_leg_ball_ik_handle[0], left_ball_pivot_grp)
     cmds.parent(left_leg_rp_ik_handle[0], left_ball_pivot_grp)
@@ -7068,8 +7110,9 @@ def create_controls(biped_data):
     cmds.addAttr(left_leg_switch, ln='autoVisibility', at='bool', k=True)
     cmds.addAttr(left_leg_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(left_leg_switch, ln="footAutomation", at='enum', en='-------------:', keyable=True)
-    cmds.addAttr(left_leg_switch, ln='ctrlVisibility', at='bool', k=True)
-    cmds.setAttr(left_leg_switch + '.ctrlVisibility', 1)
+    cmds.addAttr(left_leg_switch, ln='generalCtrlVisibility', at='bool', k=True)
+    cmds.addAttr(left_leg_switch, ln='fullToeCtrlVisibility', at='bool', k=True)
+    cmds.setAttr(left_leg_switch + '.generalCtrlVisibility', 1)
     cmds.setAttr(left_leg_switch + '.footAutomation', lock=True)
     cmds.setAttr(left_leg_switch + '.switchAttributes', lock=True)
     cmds.setAttr(left_leg_switch + '.autoVisibility', 1)
@@ -7146,10 +7189,11 @@ def create_controls(biped_data):
     cmds.connectAttr(left_leg_switch + '.influenceSwitch', left_switch_constraint[0] + '.w0', f=True)
 
     # Foot Automation Visibility
-    cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_heel_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_ball_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(left_leg_switch + '.ctrlVisibility', left_toe_up_down_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(left_leg_switch + '.generalCtrlVisibility', left_heel_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(left_leg_switch + '.generalCtrlVisibility', left_ball_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(left_leg_switch + '.generalCtrlVisibility', left_toe_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(left_leg_switch + '.generalCtrlVisibility', left_toe_up_down_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(left_leg_switch + '.fullToeCtrlVisibility', left_toe_full_ctrl_grp + '.v', f=True)
 
     # Setup Shape Switch
     setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'],
@@ -7335,7 +7379,16 @@ def create_controls(biped_data):
     right_ball_pivot_grp = cmds.group(name='right_ball_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
     right_toe_pivot_grp = cmds.group(name='right_toe_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
     right_toe_pos_pivot_grp = cmds.group(name='right_toeUpDown_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-    cmds.parent(right_toe_pos_pivot_grp, right_toe_pivot_grp)
+    # cmds.parent(right_toe_pos_pivot_grp, right_toe_pivot_grp)
+
+    # FK Toe Influence
+    right_toe_fk_pivot_grp = cmds.group(name='right_toe_fk_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    right_toe_fk_pivot_zero_grp = cmds.group(name='right_toe_fk_zero' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    right_toe_pos_zero_grp = cmds.group(name='right_toeUpDown_zero' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.parent(right_toe_pos_pivot_grp, right_toe_pos_zero_grp)
+    cmds.parent(right_toe_pos_zero_grp, right_toe_pivot_grp)
+    cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_toe_fk_pivot_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_toe_fk_pivot_zero_grp))
 
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_foot_pivot_grp))
     cmds.delete(cmds.pointConstraint(biped_data.elements.get('right_ball_pivot_grp'), right_heel_pivot_grp))
@@ -7356,6 +7409,32 @@ def create_controls(biped_data):
     cmds.parent(right_toe_pivot_grp, right_heel_pivot_grp)
     cmds.parent(right_ball_pivot_grp, right_toe_pivot_grp)
 
+    cmds.parent(right_toe_fk_pivot_grp, right_toe_fk_pivot_zero_grp)
+    cmds.parent(right_toe_fk_pivot_zero_grp, right_toe_pivot_grp)
+    cmds.parent(right_toe_pos_zero_grp, right_toe_fk_pivot_grp)
+
+    right_toe_full_ctrl = cmds.curve(name='right_toe_ik_' + CTRL_SUFFIX,
+                                     p=[[0.0, 0.0, 0.0], [0.0, -0.398, -0.229], [0.0, -0.409, -0.217],
+                                        [0.0, -0.423, -0.206], [0.0, -0.439, -0.2], [0.0, -0.456, -0.197],
+                                        [0.0, -0.473, -0.2], [0.0, -0.488, -0.206], [0.0, -0.456, -0.264],
+                                        [0.0, -0.398, -0.229], [0.0, -0.392, -0.246], [0.0, -0.389, -0.264],
+                                        [0.0, -0.392, -0.281], [0.0, -0.398, -0.296], [0.0, -0.409, -0.31],
+                                        [0.0, -0.423, -0.319], [0.0, -0.439, -0.327], [0.0, -0.456, -0.329],
+                                        [0.0, -0.473, -0.327], [0.0, -0.488, -0.319], [0.0, -0.502, -0.31],
+                                        [0.0, -0.513, -0.296], [0.0, -0.519, -0.281], [0.0, -0.521, -0.264],
+                                        [0.0, -0.519, -0.246], [0.0, -0.513, -0.229], [0.0, -0.502, -0.215],
+                                        [0.0, -0.488, -0.206], [0.0, -0.423, -0.319], [0.0, -0.456, -0.264],
+                                        [0.0, -0.513, -0.296]], d=1)
+    rescale(right_toe_full_ctrl, right_foot_scale_offset, True)
+    change_viewport_color(right_toe_full_ctrl, RIGHT_CTRL_COLOR)
+    lock_hide_default_attr(right_toe_full_ctrl, translate=False, rotate=False)
+    right_toe_full_ctrl_grp = cmds.group(name=right_toe_full_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.parent(right_toe_full_ctrl, right_toe_full_ctrl_grp)
+    cmds.delete(cmds.parentConstraint(right_toe_fk_pivot_grp, right_toe_full_ctrl_grp))
+    cmds.parent(right_toe_full_ctrl_grp, right_foot_offset_data_grp)
+    cmds.connectAttr(right_toe_full_ctrl + '.translate', right_toe_fk_pivot_grp + '.translate')
+    cmds.connectAttr(right_toe_full_ctrl + '.rotate', right_toe_fk_pivot_grp + '.rotate')
+
     cmds.parent(right_leg_toe_ik_handle[0], right_toe_pos_pivot_grp)
     cmds.parent(right_leg_ball_ik_handle[0], right_ball_pivot_grp)
     cmds.parent(right_leg_rp_ik_handle[0], right_ball_pivot_grp)
@@ -7372,8 +7451,10 @@ def create_controls(biped_data):
     cmds.addAttr(right_leg_switch, ln='autoVisibility', at='bool', k=True)
     cmds.addAttr(right_leg_switch, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
     cmds.addAttr(right_leg_switch, ln="footAutomation", at='enum', en='-------------:', keyable=True)
-    cmds.addAttr(right_leg_switch, ln='ctrlVisibility', at='bool', k=True)
-    cmds.setAttr(right_leg_switch + '.ctrlVisibility', 1)
+    cmds.addAttr(right_leg_switch, ln='generalCtrlVisibility', at='bool', k=True)
+    cmds.addAttr(right_leg_switch, ln='fullToeCtrlVisibility', at='bool', k=True)
+
+    cmds.setAttr(right_leg_switch + '.generalCtrlVisibility', 1)
     cmds.setAttr(right_leg_switch + '.footAutomation', lock=True)
     cmds.setAttr(right_leg_switch + '.switchAttributes', lock=True)
     cmds.setAttr(right_leg_switch + '.autoVisibility', 1)
@@ -7453,10 +7534,11 @@ def create_controls(biped_data):
     cmds.connectAttr(right_leg_switch + '.influenceSwitch', right_switch_constraint[0] + '.w0', f=True)
 
     # Foot Automation Visibility
-    cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_heel_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_ball_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_roll_ctrl_grp + '.v', f=True)
-    cmds.connectAttr(right_leg_switch + '.ctrlVisibility', right_toe_up_down_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(right_leg_switch + '.generalCtrlVisibility', right_heel_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(right_leg_switch + '.generalCtrlVisibility', right_ball_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(right_leg_switch + '.generalCtrlVisibility', right_toe_roll_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(right_leg_switch + '.generalCtrlVisibility', right_toe_up_down_ctrl_grp + '.v', f=True)
+    cmds.connectAttr(right_leg_switch + '.fullToeCtrlVisibility', right_toe_full_ctrl_grp + '.v', f=True)
 
     # Setup Shape Switch
     setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'],
@@ -8352,6 +8434,8 @@ def create_controls(biped_data):
     cmds.parent(main_eye_ctrl_grp, direction_ctrl)
     main_eye_constraint = cmds.parentConstraint([head_offset_ctrl, direction_ctrl], main_eye_ctrl_grp, mo=True)
     cmds.addAttr(main_eye_ctrl, ln='followHead', at='double', k=True, minValue=0, maxValue=1)
+    cmds.addAttr(main_eye_ctrl, ln='inheritHeadRoll', at='double', k=True, minValue=0, maxValue=1)
+    cmds.addAttr(main_eye_ctrl, ln='converge', at='double', k=True)
     cmds.setAttr(main_eye_ctrl + '.followHead', 1)
 
     eye_follow_head_reverse_node = cmds.createNode('reverse', name='eyes_followHead_reverse')
@@ -8386,6 +8470,34 @@ def create_controls(biped_data):
 
     cmds.aimConstraint(right_eye_ctrl, rig_joints.get('right_eye_jnt'), mo=True, upVector=(0, 1, 0),
                        worldUpType="object", worldUpObject=right_eye_up_vec)
+
+    # Extra Eye Automation - Inherit Head Roll and Converge
+    # Inherit Head Roll
+    head_up_vec_loc = cmds.duplicate(left_eye_up_vec, name="head_upVec")[0]
+    change_viewport_color(head_up_vec_loc, (0, 1, 0))
+    cmds.delete(cmds.pointConstraint([left_eye_up_vec, right_eye_up_vec], head_up_vec_loc))
+    main_eye_data_offset_loc = cmds.spaceLocator(name=main_eye_ctrl_offset_grp + 'Loc')[0]
+    cmds.delete(cmds.parentConstraint(main_eye_ctrl_offset_grp, main_eye_data_offset_loc))
+    cmds.parent(main_eye_data_offset_loc, main_eye_ctrl)
+    cmds.setAttr(main_eye_data_offset_loc + '.v', 0)
+    for dimension in ['X', 'Y', 'Z']:
+        cmds.setAttr(main_eye_data_offset_loc + '.localScale' + dimension, general_scale_offset*.5)
+
+    cmds.aimConstraint(head_offset_ctrl, main_eye_data_offset_loc, aimVector=(0, 0, -1), upVector=(0, 1, 0),
+                       worldUpType='object', worldUpObject=head_up_vec_loc, mo=True)
+
+    head_roll_multiply = cmds.createNode('multiplyDivide', name=head_ctrl + "_" + MULTIPLY_SUFFIX)
+    cmds.connectAttr(main_eye_ctrl + '.inheritHeadRoll', head_roll_multiply + '.input2X')
+    cmds.connectAttr(main_eye_ctrl + '.inheritHeadRoll', head_roll_multiply + '.input2Y')
+    cmds.connectAttr(main_eye_ctrl + '.inheritHeadRoll', head_roll_multiply + '.input2Z')
+    cmds.connectAttr(head_roll_multiply + '.output', main_eye_ctrl_offset_grp + '.rotate')
+    cmds.connectAttr(main_eye_data_offset_loc + '.rotate', head_roll_multiply + '.input1')
+    # Converge
+    eye_converge_reverse_multiply = cmds.createNode('multiplyDivide', name='temp' + "_" + MULTIPLY_SUFFIX)
+    cmds.connectAttr(main_eye_ctrl + '.converge', right_eye_ctrl_offset_grp + '.tx')
+    cmds.connectAttr(main_eye_ctrl + '.converge', eye_converge_reverse_multiply + '.input1X')
+    cmds.setAttr(eye_converge_reverse_multiply + '.input2X', -1)
+    cmds.connectAttr(eye_converge_reverse_multiply + '.outputX', left_eye_ctrl_offset_grp + '.tx')
 
     # ################ Organize Stretchy System Elements #################
     stretchy_system_grp = cmds.group(name='stretchySystem_' + GRP_SUFFIX, empty=True, world=True)
@@ -9103,7 +9215,7 @@ def create_controls(biped_data):
     lock_hide_default_attr(right_leg_switch)
 
     # Eye Controls
-    lock_hide_default_attr(main_eye_ctrl, translate=False)
+    lock_hide_default_attr(main_eye_ctrl, translate=False, rotate=False)
     lock_hide_default_attr(left_eye_ctrl, translate=False)
     lock_hide_default_attr(right_eye_ctrl, translate=False)
 
