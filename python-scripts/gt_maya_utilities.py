@@ -1326,7 +1326,7 @@ def gtu_convert_joints_to_mesh(combine_mesh=True):
         return generated_mesh
 
 
-def generate_udim_previews():
+def gtu_generate_udim_previews():
     """ Generates UDIM previews for all file nodes """
     all_file_nodes = cmds.ls(type='file')
     for file_node in all_file_nodes:
