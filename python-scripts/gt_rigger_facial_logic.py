@@ -2,6 +2,26 @@
  GT Facial Rigger
  github.com/TrevisanGMW - 2021-12-06
 
+ 0.1 - 2021-12-10
+ Created Facial Controls
+
+ 0.2 - 2021-12-15
+ Created Side GUI
+
+ 0.3 - 2021-12-20
+ Created all side GUI connections
+
+ 0.4 - 2022-02-06
+ Inverted orientation of the right side controls so it's easy to mirror movements
+
+ 0.5 - 2022-02-07
+ Create tongue joints, ctrls and side GUI connections
+
+ 0.6 - 2022-03-09
+ Minor fixes to proxy generation
+ Added fleshy eyes (eye rotation influence over eyelids)
+
+
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -12,12 +32,12 @@ import random
 script_name = 'GT Facial Rigger'
 
 # Version:
-script_version = '0.5'
+script_version = '0.6'
 
 find_pre_existing_elements = True
 
 # Debugging Vars
-debugging = True
+debugging = False
 
 # Loaded Elements Dictionary
 _facial_proxy_dict = {  # Pre Existing Elements
@@ -44,6 +64,11 @@ _facial_proxy_dict = {  # Pre Existing Elements
     'left_upper_outer_lip_crv': 'upperOuterLip_' + PROXY_SUFFIX,
     'left_lower_outer_lip_crv': 'lowerOuterLip_' + PROXY_SUFFIX,
     'left_corner_lip_crv': 'cornerLip_' + PROXY_SUFFIX,
+
+    # Tongue
+    'base_tongue_crv': 'baseTongue_' + PROXY_SUFFIX,
+    'mid_tongue_crv': 'midTongue_' + PROXY_SUFFIX,
+    'tip_tongue_crv': 'tipTongue_' + PROXY_SUFFIX,
 }
 
 _preexisting_dict = {'neck_base_jnt': 'neckBase_jnt',
@@ -63,14 +88,15 @@ for item in list(_facial_proxy_dict):
                                                                                                    'right_')
 
 
-def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp=False):
+def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp=False, invert_orientation=False):
     """
-    Creates a control that arches according to its position. Helpful to follow the curavture of the head.
+    Creates a control that arches according to its position. Helpful to follow the curvature of the head.
     Args:
         end_joint: Name of the end joint for the system (two joints are necessary, base and end)
         ctrl_name: Name of the control to be generated
         radius: Radius of the new control
         create_offset_grp: Whether or not to create an offset group between the control and its offset group
+        invert_orientation: Inverts the orientation of the control (helpful for when creating the right side ctrl)
 
     Returns: A tuple with ("ctrl", "ctrl_grp", "trans_loc", "trans_loc_grp", "end_joint", "offset_grp")
 
@@ -104,6 +130,25 @@ def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp
     cmds.delete(cmds.orientConstraint(end_joint, ctrl))
     cmds.makeIdentity(ctrl, apply=True, scale=True, rotate=True, translate=True)
 
+    offset_grp = ''
+    if create_offset_grp:
+        offset_grp = cmds.group(name=ctrl_name + 'OffsetGrp', world=True, empty=True)
+        cmds.delete(cmds.parentConstraint(ctrl, offset_grp))
+        cmds.parent(offset_grp, ctrl_grp)
+        cmds.parent(ctrl, offset_grp)
+
+    if invert_orientation:
+        invert_grp = cmds.group(name=ctrl_name + '_invertOrient' + GRP_SUFFIX.capitalize(), world=True, empty=True)
+        cmds.delete(cmds.parentConstraint(ctrl, invert_grp))
+        ctrl_parent = cmds.listRelatives(ctrl, parent=True)[0]
+        cmds.parent(ctrl, invert_grp)
+        cmds.rotate(-180, invert_grp, rotateX=True)
+        cmds.rotate(-180, ctrl, rotateX=True)
+        for dimension in ['x', 'y', 'z']:
+            cmds.setAttr(ctrl + '.s' + dimension, -1)
+        cmds.makeIdentity(ctrl, rotate=True, scale=True, apply=True)
+        cmds.parent(invert_grp, ctrl_parent)
+
     # Create motion locator
     trans_loc = cmds.spaceLocator(name=end_joint + '_transLoc')[0]
     trans_loc_grp = cmds.group(name=trans_loc + GRP_SUFFIX, world=True, empty=True)
@@ -127,28 +172,37 @@ def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp
     cmds.setAttr(ctrl + '.zOffsetInfluence', 0)
 
     # Multiply Movement (Base Rot)
-    base_rot_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + 'baseRot_multiplyXY')
+    base_rot_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_baseRot_multiplyXY')
     cmds.connectAttr(trans_loc + '.tx', base_rot_multiply_node + '.input1X')
     cmds.connectAttr(trans_loc + '.ty', base_rot_multiply_node + '.input1Y')
-    cmds.connectAttr(base_rot_multiply_node + '.outputX', end_joint_parent + '.ry')
-    cmds.connectAttr(base_rot_multiply_node + '.outputY', end_joint_parent + '.rz')
+    if invert_orientation:
+        invert_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_redirectInvertXY')
+        cmds.connectAttr(base_rot_multiply_node + '.outputX', invert_multiply_node + '.input1Y')
+        cmds.connectAttr(base_rot_multiply_node + '.outputY', invert_multiply_node + '.input1Z')
+        cmds.setAttr(invert_multiply_node + '.input2Z', -1)
+        cmds.connectAttr(invert_multiply_node + '.outputY', end_joint_parent + '.ry')
+        cmds.connectAttr(invert_multiply_node + '.outputZ', end_joint_parent + '.rz')
+    else:
+        cmds.connectAttr(base_rot_multiply_node + '.outputX', end_joint_parent + '.ry')
+        cmds.connectAttr(base_rot_multiply_node + '.outputY', end_joint_parent + '.rz')
+
     cmds.connectAttr(ctrl + '.movement', base_rot_multiply_node + '.input2X')
     cmds.connectAttr(ctrl + '.movement', base_rot_multiply_node + '.input2Y')
-
+    #
     # Multiply Gradient (Arch)
-    gradient_inverse_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + 'influenceGradient_inverse')
+    gradient_inverse_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_influenceGradient_inverse')
     cmds.connectAttr(ctrl + '.gradient', gradient_inverse_multiply_node + '.input1X')
     cmds.setAttr(gradient_inverse_multiply_node + '.input2X', -.5)
 
-    gradient_influence_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + 'influenceGradient_multiply')
+    gradient_influence_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_influenceGradient_multiply')
     cmds.connectAttr(trans_loc + '.tx', gradient_influence_multiply_node + '.input1X')
     cmds.connectAttr(gradient_inverse_multiply_node + '.outputX', gradient_influence_multiply_node + '.input2X')
 
-    end_gradient_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + 'endGradient_multiplyX')
+    end_gradient_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_endGradient_multiplyX')
     cmds.connectAttr(trans_loc + '.tx', end_gradient_multiply_node + '.input1X')
     cmds.connectAttr(gradient_influence_multiply_node + '.outputX', end_gradient_multiply_node + '.input2X')
 
-    gradient_sum_node = cmds.createNode('plusMinusAverage', name=ctrl_name + 'gradient_sum')
+    gradient_sum_node = cmds.createNode('plusMinusAverage', name=ctrl_name + '_gradient_sum')
     cmds.connectAttr(end_joint + '.tx', gradient_sum_node + '.input1D[0]')
     cmds.disconnectAttr(end_joint + '.tx', gradient_sum_node + '.input1D[0]')  # Keep data as offset
     cmds.connectAttr(end_gradient_multiply_node + '.outputX', gradient_sum_node + '.input1D[1]')
@@ -156,26 +210,26 @@ def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp
 
     cmds.connectAttr(ctrl + '.extraOffset', gradient_sum_node + '.input1D[2]')
 
-    z_offset_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + 'zOffset_multiply')
+    z_offset_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_zOffset_multiply')
 
     cmds.connectAttr(trans_loc + '.tz', z_offset_multiply_node + '.input1Z')
     cmds.connectAttr(ctrl + '.zOffsetInfluence', z_offset_multiply_node + '.input2Z')
+    if invert_orientation:
+        invert_multiply_node = cmds.createNode('multiplyDivide', name=ctrl_name + '_redirectInvertZ')
+        cmds.connectAttr(ctrl + '.zOffsetInfluence', invert_multiply_node + '.input1Z')
+        cmds.setAttr(invert_multiply_node + '.input2Z', -1)
+
     cmds.connectAttr(z_offset_multiply_node + '.outputZ', gradient_sum_node + '.input1D[3]')
 
     cmds.orientConstraint(trans_loc, end_joint, mo=True)
-
-    offset_grp = ''
-    if create_offset_grp:
-        offset_grp = cmds.group(name=ctrl_name + 'OffsetGrp', world=True, empty=True)
-        cmds.delete(cmds.parentConstraint(ctrl, offset_grp))
-        cmds.parent(offset_grp, ctrl_grp)
-        cmds.parent(ctrl, offset_grp)
 
     return ctrl, ctrl_grp, trans_loc, trans_loc_grp, end_joint, offset_grp
 
 
 def create_face_proxy():
     """ Creates a proxy (guide) skeleton used to later generate entire rig """
+
+    proxy_curves = []
 
     # Main
     main_grp = cmds.group(empty=True, world=True, name=_facial_proxy_dict.get('main_proxy_grp'))
@@ -196,6 +250,7 @@ def create_face_proxy():
     cmds.rotate(90, 0, 90, head_proxy_grp)
     cmds.parent(head_proxy_grp, main_root)
     change_viewport_color(head_proxy_crv, CENTER_PROXY_COLOR)
+    proxy_curves.append(head_proxy_crv)
 
     # Jaw
     jaw_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('jaw_crv'), .20)
@@ -207,6 +262,7 @@ def create_face_proxy():
     cmds.rotate(-270, 240, 90, jaw_proxy_grp)
     cmds.parent(jaw_proxy_grp, head_proxy_crv)
     change_viewport_color(jaw_proxy_crv, CENTER_PROXY_COLOR)
+    proxy_curves.append(jaw_proxy_crv)
 
     # Left Eye
     left_eye_proxy_crv = create_joint_curve(_facial_proxy_dict.get('left_eye_crv'), .5)
@@ -217,6 +273,7 @@ def create_face_proxy():
     cmds.move(3.5, 151.2, 8.7, left_eye_proxy_grp)
     cmds.parent(left_eye_proxy_grp, head_proxy_crv)
     change_viewport_color(left_eye_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_eye_proxy_crv)
 
     # Left Upper Eyelid
     left_upper_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_upper_eyelid_crv'), .1)
@@ -226,8 +283,9 @@ def create_face_proxy():
                                              name=left_upper_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_upper_eyelid_proxy_crv, left_upper_eyelid_proxy_grp)
     cmds.move(3.5, 152, 13, left_upper_eyelid_proxy_grp)
-    cmds.parent(left_upper_eyelid_proxy_grp, head_proxy_crv)
+    cmds.parent(left_upper_eyelid_proxy_grp, left_eye_proxy_crv)
     change_viewport_color(left_upper_eyelid_proxy_crv, (0.4, 0.7, 1))
+    proxy_curves.append(left_upper_eyelid_proxy_crv)
 
     # Left Lower Eyelid
     left_lower_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_lower_eyelid_crv'), .1)
@@ -237,8 +295,9 @@ def create_face_proxy():
                                              name=left_lower_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_lower_eyelid_proxy_crv, left_lower_eyelid_proxy_grp)
     cmds.move(3.5, 150, 13, left_lower_eyelid_proxy_grp)
-    cmds.parent(left_lower_eyelid_proxy_grp, head_proxy_crv)
+    cmds.parent(left_lower_eyelid_proxy_grp, left_eye_proxy_crv)
     change_viewport_color(left_lower_eyelid_proxy_crv, (0.4, 0.7, 1))
+    proxy_curves.append(left_lower_eyelid_proxy_crv)
 
     # Right Eye
     right_eye_proxy_crv = create_joint_curve(_facial_proxy_dict.get('right_eye_crv'), .5)
@@ -249,6 +308,7 @@ def create_face_proxy():
     cmds.move(-3.5, 151.2, 8.7, right_eye_proxy_grp)
     cmds.parent(right_eye_proxy_grp, head_proxy_crv)
     change_viewport_color(right_eye_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_eye_proxy_crv)
 
     # Right Upper Eyelid
     right_upper_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_upper_eyelid_crv'), .1)
@@ -258,8 +318,9 @@ def create_face_proxy():
                                               name=right_upper_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_upper_eyelid_proxy_crv, right_upper_eyelid_proxy_grp)
     cmds.move(-3.5, 152, 13, right_upper_eyelid_proxy_grp)
-    cmds.parent(right_upper_eyelid_proxy_grp, head_proxy_crv)
+    cmds.parent(right_upper_eyelid_proxy_grp, right_eye_proxy_crv)
     change_viewport_color(right_upper_eyelid_proxy_crv, (1, 0.7, 0.7))
+    proxy_curves.append(right_upper_eyelid_proxy_crv)
 
     # Right Lower Eyelid
     right_lower_eyelid_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_lower_eyelid_crv'), .1)
@@ -269,8 +330,9 @@ def create_face_proxy():
                                               name=right_lower_eyelid_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_lower_eyelid_proxy_crv, right_lower_eyelid_proxy_grp)
     cmds.move(-3.5, 150, 13, right_lower_eyelid_proxy_grp)
-    cmds.parent(right_lower_eyelid_proxy_grp, head_proxy_crv)
+    cmds.parent(right_lower_eyelid_proxy_grp, right_eye_proxy_crv)
     change_viewport_color(right_lower_eyelid_proxy_crv, (1, 0.7, 0.7))
+    proxy_curves.append(right_lower_eyelid_proxy_crv)
 
     # ################ Eyebrows ################
     # Left Eyebrow Proxy
@@ -283,6 +345,7 @@ def create_face_proxy():
     cmds.move(1.2, 153.2, 13, left_inner_brow_proxy_grp)
     cmds.parent(left_inner_brow_proxy_grp, left_eye_proxy_crv)
     change_viewport_color(left_inner_brow_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_inner_brow_proxy_crv)
 
     left_mid_brow_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_mid_brow_crv'), .2)
     cmds.rotate(90, left_mid_brow_proxy_crv, rotateX=True)
@@ -292,6 +355,7 @@ def create_face_proxy():
     cmds.move(3.5, 154.2, 13, left_mid_brow_proxy_grp)
     cmds.parent(left_mid_brow_proxy_grp, left_eye_proxy_crv)
     change_viewport_color(left_mid_brow_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_mid_brow_proxy_crv)
 
     left_outer_brow_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_outer_brow_crv'), .2)
     cmds.rotate(90, left_outer_brow_proxy_crv, rotateX=True)
@@ -302,6 +366,7 @@ def create_face_proxy():
     cmds.move(5.8, 153.2, 13, left_outer_brow_proxy_grp)
     cmds.parent(left_outer_brow_proxy_grp, left_eye_proxy_crv)
     change_viewport_color(left_outer_brow_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_outer_brow_proxy_crv)
 
     # Right Eyebrow Proxy
     right_inner_brow_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_inner_brow_crv'), .2)
@@ -313,6 +378,7 @@ def create_face_proxy():
     cmds.move(-1.2, 153.2, 13, right_inner_brow_proxy_grp)
     cmds.parent(right_inner_brow_proxy_grp, right_eye_proxy_crv)
     change_viewport_color(right_inner_brow_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_inner_brow_proxy_crv)
 
     right_mid_brow_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_mid_brow_crv'), .2)
     cmds.rotate(90, right_mid_brow_proxy_crv, rotateX=True)
@@ -323,6 +389,7 @@ def create_face_proxy():
     cmds.move(-3.5, 154.2, 13, right_mid_brow_proxy_grp)
     cmds.parent(right_mid_brow_proxy_grp, right_eye_proxy_crv)
     change_viewport_color(right_mid_brow_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_mid_brow_proxy_crv)
 
     right_outer_brow_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_outer_brow_crv'), .2)
     cmds.rotate(90, right_outer_brow_proxy_crv, rotateX=True)
@@ -333,8 +400,9 @@ def create_face_proxy():
     cmds.move(-5.8, 153.2, 13, right_outer_brow_proxy_grp)
     cmds.parent(right_outer_brow_proxy_grp, right_eye_proxy_crv)
     change_viewport_color(right_outer_brow_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_outer_brow_proxy_crv)
 
-    ################ Mouth ################
+    # ################ Mouth ################
     # MID
     mid_upper_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('mid_upper_lip_crv'), .1)
     cmds.rotate(90, mid_upper_lip_proxy_crv, rotateX=True)
@@ -344,6 +412,7 @@ def create_face_proxy():
     cmds.move(0.0, 144.8, 13.3, mid_upper_lip_proxy_grp)
     cmds.parent(mid_upper_lip_proxy_grp, main_root)
     change_viewport_color(mid_upper_lip_proxy_crv, CENTER_PROXY_COLOR)
+    proxy_curves.append(mid_upper_lip_proxy_crv)
 
     mid_lower_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('mid_lower_lip_crv'), .1)
     cmds.rotate(90, mid_lower_lip_proxy_crv, rotateX=True)
@@ -353,8 +422,9 @@ def create_face_proxy():
     cmds.move(0.0, 143.8, 13.3, mid_lower_lip_proxy_grp)
     cmds.parent(mid_lower_lip_proxy_grp, main_root)
     change_viewport_color(mid_lower_lip_proxy_crv, CENTER_PROXY_COLOR)
+    proxy_curves.append(mid_lower_lip_proxy_crv)
 
-    # LEFT OUTER
+    # Left Outer
     left_upper_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_upper_outer_lip_crv'), .07)
     cmds.rotate(90, left_upper_lip_proxy_crv, rotateX=True)
     cmds.makeIdentity(left_upper_lip_proxy_crv, apply=True, rotate=True)
@@ -367,6 +437,7 @@ def create_face_proxy():
     cmds.move(1.45, 144.7, 12.7, left_upper_lip_proxy_grp)
     cmds.parent(left_upper_lip_proxy_grp, main_root)
     change_viewport_color(left_upper_lip_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_upper_lip_proxy_crv)
 
     left_lower_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_lower_outer_lip_crv'), .07)
     cmds.rotate(90, left_lower_lip_proxy_crv, rotateX=True)
@@ -380,8 +451,9 @@ def create_face_proxy():
     cmds.move(1.45, 144, 12.7, left_lower_lip_proxy_grp)
     cmds.parent(left_lower_lip_proxy_grp, main_root)
     change_viewport_color(left_lower_lip_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_lower_lip_proxy_crv)
 
-    # LEFT CORNER
+    # Left Corner
     left_corner_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_corner_lip_crv'), .05)
     cmds.rotate(90, left_corner_lip_proxy_crv, rotateX=True)
     cmds.makeIdentity(left_corner_lip_proxy_crv, apply=True, rotate=True)
@@ -392,6 +464,7 @@ def create_face_proxy():
     cmds.rotate(0, 30, 0, left_corner_lip_proxy_crv)
     cmds.parent(left_upper_corner_lip_proxy_grp, main_root)
     change_viewport_color(left_corner_lip_proxy_crv, LEFT_PROXY_COLOR)
+    proxy_curves.append(left_corner_lip_proxy_crv)
 
     # Auto Orient Outer Controls
     left_outer_rot_multiply_node = cmds.createNode('multiplyDivide', name='left_upperOuter_autoRot_multiply')
@@ -400,7 +473,7 @@ def create_face_proxy():
     cmds.connectAttr(left_outer_rot_multiply_node + '.outputY', left_lower_lip_proxy_offset_grp + '.ry')
     cmds.setAttr(left_outer_rot_multiply_node + '.input2Y', 0.5)
 
-    # RIGHT OUTER
+    # Right Outer
     right_upper_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_upper_outer_lip_crv'), .07)
     cmds.rotate(90, right_upper_lip_proxy_crv, rotateX=True)
     cmds.makeIdentity(right_upper_lip_proxy_crv, apply=True, rotate=True)
@@ -413,6 +486,7 @@ def create_face_proxy():
     cmds.move(-1.45, 144.7, 12.7, right_upper_lip_proxy_grp)
     cmds.parent(right_upper_lip_proxy_grp, main_root)
     change_viewport_color(right_upper_lip_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_upper_lip_proxy_crv)
 
     right_lower_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_lower_outer_lip_crv'), .07)
     cmds.rotate(90, right_lower_lip_proxy_crv, rotateX=True)
@@ -426,8 +500,9 @@ def create_face_proxy():
     cmds.move(-1.45, 144, 12.7, right_lower_lip_proxy_grp)
     cmds.parent(right_lower_lip_proxy_grp, main_root)
     change_viewport_color(right_lower_lip_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_lower_lip_proxy_crv)
 
-    # RIGHT CORNER
+    # Right Corner
     right_corner_lip_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_corner_lip_crv'), .05)
     cmds.rotate(90, right_corner_lip_proxy_crv, rotateX=True)
     cmds.makeIdentity(right_corner_lip_proxy_crv, apply=True, rotate=True)
@@ -438,6 +513,37 @@ def create_face_proxy():
     cmds.rotate(0, -30, 0, right_corner_lip_proxy_crv)
     cmds.parent(right_upper_corner_lip_proxy_grp, main_root)
     change_viewport_color(right_corner_lip_proxy_crv, RIGHT_PROXY_COLOR)
+    proxy_curves.append(right_corner_lip_proxy_crv)
+
+    # Base Tongue
+    base_tongue_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('base_tongue_crv'), .06)
+    cmds.makeIdentity(base_tongue_proxy_crv, apply=True, rotate=True)
+    base_tongue_proxy_grp = cmds.group(empty=True, world=True, name=base_tongue_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(base_tongue_proxy_crv, base_tongue_proxy_grp)
+    cmds.move(0.0, 143.8, 7, base_tongue_proxy_grp)
+    cmds.parent(base_tongue_proxy_grp, main_root)
+    change_viewport_color(base_tongue_proxy_crv, (.6, .3, .6))
+    proxy_curves.append(base_tongue_proxy_crv)
+
+    # Tip Tongue
+    tongue_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('mid_tongue_crv'), .06)
+    cmds.makeIdentity(tongue_proxy_crv, apply=True, rotate=True)
+    tongue_proxy_grp = cmds.group(empty=True, world=True, name=tongue_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(tongue_proxy_crv, tongue_proxy_grp)
+    cmds.move(0.0, 143.8, 8.5, tongue_proxy_grp)
+    cmds.parent(tongue_proxy_grp, base_tongue_proxy_crv)
+    change_viewport_color(tongue_proxy_crv, (.6, .3, .6))
+    proxy_curves.append(tongue_proxy_crv)
+
+    # End Tongue
+    tip_tongue_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('tip_tongue_crv'), .03)
+    cmds.makeIdentity(tip_tongue_proxy_crv, apply=True, rotate=True)
+    tip_tongue_proxy_grp = cmds.group(empty=True, world=True, name=tip_tongue_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(tip_tongue_proxy_crv, tip_tongue_proxy_grp)
+    cmds.move(0.0, 143.8, 10, tip_tongue_proxy_grp)
+    cmds.parent(tip_tongue_proxy_grp, tongue_proxy_crv)
+    change_viewport_color(tip_tongue_proxy_crv, (.7, .3, .7))
+    proxy_curves.append(tip_tongue_proxy_crv)
 
     # Auto Orient Outer Controls
     right_outer_rot_multiply_node = cmds.createNode('multiplyDivide', name='right_upperOuter_autoRot_multiply')
@@ -469,13 +575,68 @@ def create_face_proxy():
     to_re_parent = [left_inner_brow_proxy_grp,
                     left_mid_brow_proxy_grp,
                     left_outer_brow_proxy_grp,
+                    right_inner_brow_proxy_grp,
+                    right_mid_brow_proxy_grp,
+                    right_outer_brow_proxy_grp,
                     jaw_proxy_grp,
                     left_eye_proxy_grp,
                     right_eye_proxy_grp,
+                    left_upper_eyelid_proxy_grp,
+                    right_upper_eyelid_proxy_grp,
+                    left_lower_eyelid_proxy_grp,
+                    right_lower_eyelid_proxy_grp,
                     ]
     for obj in to_re_parent:
         cmds.parent(obj, main_root)
 
+    to_follow_eyes = [left_inner_brow_proxy_grp,
+                      left_mid_brow_proxy_grp,
+                      left_outer_brow_proxy_grp,
+                      right_inner_brow_proxy_grp,
+                      right_mid_brow_proxy_grp,
+                      right_outer_brow_proxy_grp,
+                      left_upper_eyelid_proxy_grp,
+                      right_upper_eyelid_proxy_grp,
+                      left_lower_eyelid_proxy_grp,
+                      right_lower_eyelid_proxy_grp,
+                      ]
+
+    for obj in to_follow_eyes:
+        ctrl = cmds.listRelatives(obj, children=True)[0]
+        if obj.startswith('right'):
+            constraint = cmds.parentConstraint(right_eye_proxy_crv, obj, mo=True)[0]
+        else:
+            constraint = cmds.parentConstraint(left_eye_proxy_crv, obj, mo=True)[0]
+        cmds.addAttr(ctrl, ln='controlBehaviour', at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(ctrl + '.' + 'controlBehaviour', lock=True)
+        cmds.addAttr(ctrl, ln='followEye', at='bool', keyable=True)
+        cmds.setAttr(ctrl + '.followEye', 1)
+        cmds.connectAttr(ctrl + '.followEye', constraint + '.w0')
+
+    # Mouth Main Control
+    main_mouth_proxy_crv = cmds.curve(name="main_mouth_proxy_crv", p=[[1.5, 0.0, 1.5], [0.0, 0.0, 3.0],
+                                                                      [-1.5, 0.0, 1.5], [-0.9, 0.0, 1.5],
+                                                                      [0.0, 0.0, 2.4], [0.9, 0.0, 1.5],
+                                                                      [1.5, 0.0, 1.5]], d=1)
+    change_viewport_color(main_mouth_proxy_crv, (1, 0, 1))
+    main_mouth_proxy_grp = cmds.group(name=main_mouth_proxy_crv + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    proxy_curves.append(main_mouth_proxy_crv)
+    cmds.parent(main_mouth_proxy_crv, main_mouth_proxy_grp)
+    cmds.delete(cmds.pointConstraint([mid_upper_lip_proxy_crv, mid_lower_lip_proxy_crv], main_mouth_proxy_grp))
+    cmds.parent(main_mouth_proxy_grp, main_root)
+    cmds.parent(base_tongue_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(mid_upper_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(mid_lower_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(right_upper_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(right_lower_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(right_upper_corner_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(left_upper_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(left_lower_lip_proxy_grp, main_mouth_proxy_crv)
+    cmds.parent(left_upper_corner_lip_proxy_grp, main_mouth_proxy_crv)
+
+    # Clean Unnecessary Channels
+    for crv in proxy_curves:
+        lock_hide_default_attr(crv, translate=False, rotate=False)
 
 def create_face_controls():
     """ Creates Facial Rig Controls """
@@ -531,7 +692,7 @@ def create_face_controls():
     ignore_crv_list = ['left_corner_lip_crv', 'right_corner_lip_crv']
 
     # Find existing elements
-    for obj in _preexisting_dict: # @@@
+    for obj in _preexisting_dict:
         if 'ctrl' not in obj and 'neck' not in obj and cmds.objExists(_preexisting_dict.get(obj)):
             ignore_crv_list.append(obj.replace('jnt', 'crv'))
             _facial_joints_dict[obj] = obj
@@ -735,8 +896,13 @@ def create_face_controls():
 
     mouth_controls = []
     for jnt in mouth_driver_joints:
-        ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), CTRL_SUFFIX),
-                                          radius=mouth_scale * .05, create_offset_grp=True)
+        ctrl_name = jnt.replace('driver' + JNT_SUFFIX.capitalize(), CTRL_SUFFIX)
+        if 'right' in jnt:
+            ctrl_objs = create_arched_control(jnt, ctrl_name=ctrl_name, radius=mouth_scale * .05,
+                                              create_offset_grp=True, invert_orientation=True)
+        else:
+            ctrl_objs = create_arched_control(jnt, ctrl_name=ctrl_name, radius=mouth_scale * .05,
+                                              create_offset_grp=True)
         mouth_controls.append(ctrl_objs)
 
     # Jaw Pivot (For lower mouth controls)
@@ -769,6 +935,7 @@ def create_face_controls():
                                         'right_lowerOuterLip_ctrl': []
                                         }
     _corner_ctrls = []
+    _right_ctrls = []
 
     for ctrl_data in mouth_controls:
         # Unpack Data
@@ -840,26 +1007,14 @@ def create_face_controls():
         if 'Corner' in ctrl:
             _corner_ctrls.append(ctrl)
 
-        # Color Controls
+        # Color Controls (And invert right side scales)
         if 'left_' in ctrl:
             change_viewport_color(ctrl, LEFT_CTRL_COLOR)
         elif 'right_' in ctrl:
             change_viewport_color(ctrl, RIGHT_CTRL_COLOR)
+            _right_ctrls.append(ctrl)
         else:
             change_viewport_color(ctrl, CENTER_CTRL_COLOR)
-
-    # Create Mid Corner Constraint
-    for ctrl in _mouth_outer_automation_elements:
-        abc_joints = _mouth_outer_automation_elements.get(ctrl)
-        constraint = cmds.parentConstraint([abc_joints[0], abc_joints[2], mouth_automation_grp], abc_joints[1], mo=True)
-        cmds.addAttr(ctrl, ln='midCornerInfluence', at='double', k=True, maxValue=1, minValue=0)
-        cmds.setAttr(ctrl + '.midCornerInfluence', 1)
-        switch_reverse_node = cmds.createNode('reverse', name=ctrl.replace(CTRL_SUFFIX, 'reverseSwitch'))
-        cmds.connectAttr(ctrl + '.midCornerInfluence', switch_reverse_node + '.inputX', f=True)
-
-        cmds.connectAttr(ctrl + '.midCornerInfluence', constraint[0] + '.w0', f=True)
-        cmds.connectAttr(ctrl + '.midCornerInfluence', constraint[0] + '.w1', f=True)
-        cmds.connectAttr(switch_reverse_node + '.outputX', constraint[0] + '.w2', f=True)
 
     main_mouth_ctrl = cmds.curve(name='mainMouth_' + CTRL_SUFFIX,
                                  p=[[0.075, -0.075, -0.0], [0.226, -0.075, -0.0], [0.226, -0.151, -0.0],
@@ -908,7 +1063,6 @@ def create_face_controls():
     rescale(left_corner_ctrl, mouth_scale*.2)
     rescale(right_corner_ctrl, mouth_scale*.2)
 
-
     change_viewport_color(left_corner_ctrl, LEFT_CTRL_COLOR)
     change_viewport_color(right_corner_ctrl, RIGHT_CTRL_COLOR)
 
@@ -944,6 +1098,31 @@ def create_face_controls():
 
     cmds.parent(left_corner_ctrl_grp, main_mouth_ctrl)
     cmds.parent(right_corner_ctrl_grp, main_mouth_ctrl)
+
+    # Reinforce right mouth corner Inverted Rotation
+    if cmds.getAttr(right_corner_ctrl_grp + '.rx') == 0:
+        cmds.setAttr(right_corner_ctrl_grp + '.rx', 180)
+
+    # Post Mouth Adjustments
+    for r_ctrl in _right_ctrls:
+        cmds.setAttr(r_ctrl + '.sx', -1)
+        cmds.setAttr(r_ctrl + '.sy', -1)
+        cmds.setAttr(r_ctrl + '.sz', -1)
+
+    # Create Mid Corner Constraint
+    for ctrl in _mouth_outer_automation_elements:
+        abc_joints = _mouth_outer_automation_elements.get(ctrl)
+        constraint = cmds.parentConstraint([abc_joints[0], abc_joints[2], mouth_automation_grp], abc_joints[1],
+                                           mo=True)
+        cmds.setAttr(constraint[0] + '.interpType', 2)
+        cmds.addAttr(ctrl, ln='midCornerInfluence', at='double', k=True, maxValue=1, minValue=0)
+        cmds.setAttr(ctrl + '.midCornerInfluence', 1)
+        switch_reverse_node = cmds.createNode('reverse', name=ctrl.replace(CTRL_SUFFIX, 'reverseSwitch'))
+        cmds.connectAttr(ctrl + '.midCornerInfluence', switch_reverse_node + '.inputX', f=True)
+
+        cmds.connectAttr(ctrl + '.midCornerInfluence', constraint[0] + '.w0', f=True)
+        cmds.connectAttr(ctrl + '.midCornerInfluence', constraint[0] + '.w1', f=True)
+        cmds.connectAttr(switch_reverse_node + '.outputX', constraint[0] + '.w2', f=True)
 
     # ####################################### Eyebrows #######################################
 
@@ -1098,7 +1277,11 @@ def create_face_controls():
     right_eyebrow_controls = []
     for jnt in right_eyebrow_driver_joints:
         ctrl_objs = create_arched_control(jnt, ctrl_name=jnt.replace('driver' + JNT_SUFFIX.capitalize(), 'ctrl'),
-                                          radius=right_eyebrow_scale * .05, create_offset_grp=True)
+                                          radius=right_eyebrow_scale * .05, create_offset_grp=True,
+                                          invert_orientation=True)
+        for dimension in ['x', 'y', 'z']:
+            cmds.setAttr(ctrl_objs[0] + '.s' + dimension, -1)
+
         right_eyebrow_controls.append(ctrl_objs)
 
     # Control Holder
@@ -1160,6 +1343,10 @@ def create_face_controls():
         right_eyebrow_ctrl_grp))
     cmds.move(right_eyebrow_scale * -.7, right_eyebrow_ctrl_grp, moveX=True, relative=True)
     cmds.parent(right_eyebrow_ctrl_grp, head_ctrl)
+    # Right Side Invert
+    cmds.rotate(-180, right_eyebrow_ctrl_grp, rotateX=True)
+    for dimension in ['x', 'y', 'z']:
+        cmds.setAttr(right_eyebrow_ctrl + '.s' + dimension, -1)
     cmds.parentConstraint(right_eyebrow_ctrl, right_eyebrow_ctrls_grp, mo=True)
     change_viewport_color(right_eyebrow_ctrl, (1, .2, 1))
 
@@ -1545,14 +1732,19 @@ def create_face_controls():
             cmds.rotate(float_value * -15, ctrl_loc, rotateZ=True, relative=True)
             if is_uniform:
                 cmds.setAttr(ctrl_loc + '.rz', 0)
-                cmds.rotate(float_value * 15, ctrl_loc, rotateX=True, relative=True)
+                cmds.rotate(float_value * 15, ctrl_loc, rotateX=True, relative=True, objectSpace=True)
         elif 'jaw_ctrlOffsetXLoc' in ctrl_loc:
             cmds.rotate(float_value * -15, ctrl_loc, rotateY=True, relative=True)
-        elif '_cornerLip_ctrlOffsetXLoc' in ctrl_loc:
+        elif 'left_cornerLip_ctrlOffsetXLoc' in ctrl_loc:
             cmds.move(float_value, ctrl_loc, moveX=True, relative=True)
-        elif '_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
+        elif 'right_cornerLip_ctrlOffsetXLoc' in ctrl_loc:
+            cmds.move(-float_value, ctrl_loc, moveX=True, relative=True)
+        elif 'left_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
             cmds.setAttr(ctrl_loc + '.ty', 0)
             cmds.move(float_value*1.2, ctrl_loc, moveX=True, relative=True)
+        elif 'right_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
+            cmds.setAttr(ctrl_loc + '.ty', 0)
+            cmds.move(-float_value*1.2, ctrl_loc, moveX=True, relative=True)
         elif 'Eyelid_ctrlOffsetLoc' in ctrl_loc:
             side = 'left'
             if 'right' in ctrl_loc:
@@ -1594,6 +1786,16 @@ def create_face_controls():
             cmds.setAttr(extra_invert_node + '.input2Z', -1)
             cmds.connectAttr(extra_invert_node + '.outputY', sum_node + '.input1D[1]', force=True)
 
+    # Invert Right Orientation
+    for ctrl in eyelid_controls:
+        ctrl = ctrl[0]
+        if 'right' in ctrl:
+            offset_grp = create_inbetween(ctrl)
+            cmds.rotate(-180, offset_grp, rotateX=True)
+            cmds.rotate(-180, offset_grp, rotateZ=True)
+            cmds.setAttr(ctrl + '.sz', -1)
+            cmds.rename(offset_grp, ctrl + 'Offset' + GRP_SUFFIX.capitalize())
+
     # Hide Pivot Joints
     all_joints = cmds.ls(type='joint')
     for jnt in all_joints:
@@ -1619,18 +1821,277 @@ def create_face_controls():
     cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', jaw_ctrls_grp + '.v')
     cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', main_mouth_ctrl_grp + '.v')
 
+    # Behavior Adjustment
+    cmds.setAttr(right_corner_ctrl + '.sx', -1)
+    cmds.setAttr(right_corner_ctrl + '.sy', -1)
+    cmds.setAttr(right_corner_ctrl + '.sz', -1)
+
+    # Tongue Ctrl
+    tongue_scale = dist_center_to_center(_facial_joints_dict.get('tip_tongue_jnt'),
+                                         _facial_joints_dict.get('mid_tongue_jnt'))
+    tongue_scale += dist_center_to_center(_facial_joints_dict.get('mid_tongue_jnt'),
+                                         _facial_joints_dict.get('base_tongue_jnt'))
+
+    cmds.parent(_facial_joints_dict.get('tip_tongue_jnt'), _facial_joints_dict.get('mid_tongue_jnt'))
+    cmds.parent(_facial_joints_dict.get('mid_tongue_jnt'), _facial_joints_dict.get('base_tongue_jnt'))
+    cmds.parent(_facial_joints_dict.get('base_tongue_jnt'), _facial_joints_dict.get('jaw_jnt'))
+
+    cmds.joint(_facial_joints_dict.get('base_tongue_jnt'), e=True, oj='xyz',
+               secondaryAxisOrient='yup', ch=True, zso=True)
+    cmds.joint(_facial_joints_dict.get('tip_tongue_jnt'), e=True, oj='none', ch=True, zso=True)
+
+    tongue_jnt_color = (.3, 0, 0)
+    change_viewport_color(_facial_joints_dict.get('base_tongue_jnt'), tongue_jnt_color)
+    change_viewport_color(_facial_joints_dict.get('mid_tongue_jnt'), tongue_jnt_color)
+    change_viewport_color(_facial_joints_dict.get('tip_tongue_jnt'), tongue_jnt_color)
+    cmds.setAttr(_facial_joints_dict.get('base_tongue_jnt') + '.radius', .7)
+    cmds.setAttr(_facial_joints_dict.get('mid_tongue_jnt') + '.radius', .5)
+    cmds.setAttr(_facial_joints_dict.get('tip_tongue_jnt') + '.radius', .3)
+
+    tongue_joints = [_facial_joints_dict.get('base_tongue_jnt'),
+                     _facial_joints_dict.get('mid_tongue_jnt'),
+                     _facial_joints_dict.get('tip_tongue_jnt') ]
+    tongue_ctrl_objects = []
+    for jnt in tongue_joints:
+        ctrl = create_pin_control(jnt, 1)
+        parent_jnt = cmds.listRelatives(jnt, parent=True)[0]
+
+        if cmds.objExists(parent_jnt.replace(JNT_SUFFIX, CTRL_SUFFIX)):
+            cmds.parent(ctrl[1], parent_jnt.replace(JNT_SUFFIX, CTRL_SUFFIX))
+        else:
+            cmds.parent(ctrl[1], jaw_ctrl)
+        cmds.parentConstraint(ctrl[0], jnt)
+        change_viewport_color(ctrl[0], (1, 0, 1))
+        tongue_ctrl_objects.append(ctrl)
+
+    # Side GUI Tongue Connection
+    in_out_base_loc = cmds.spaceLocator(name='inOutTongueBase_targetLoc')[0]
+    in_out_mid_loc = cmds.spaceLocator(name='inOutTongueMid_targetLoc')[0]
+    change_viewport_color(in_out_base_loc, (0, 1, 0))
+    change_viewport_color(in_out_mid_loc, (0, 1, 0))
+    rescale(in_out_base_loc, .5, freeze=False)
+    rescale(in_out_mid_loc, .5, freeze=False)
+    cmds.delete(cmds.parentConstraint(_facial_joints_dict.get('base_tongue_jnt'), in_out_base_loc))
+    cmds.delete(cmds.parentConstraint(_facial_joints_dict.get('mid_tongue_jnt'), in_out_mid_loc))
+
+    # Unpack
+    base_tongue_ctrl = tongue_ctrl_objects[0][0]
+    mid_tongue_ctrl = tongue_ctrl_objects[1][0]
+    tip_tongue_ctrl = tongue_ctrl_objects[2][0]
+    base_tongue_ctrl_offset = tongue_ctrl_objects[0][2]
+    base_tongue_ctrl_grp = tongue_ctrl_objects[0][1]
+    mid_tongue_ctrl_grp = tongue_ctrl_objects[1][1]
+    mid_tongue_ctrl_offset = tongue_ctrl_objects[1][2]
+    tip_tongue_ctrl_offset = tongue_ctrl_objects[2][2]
+
+    base_tongue_extra_offset = create_inbetween(base_tongue_ctrl, offset_suffix='Rot')
+    mid_tongue_extra_offset = create_inbetween(mid_tongue_ctrl, offset_suffix='Rot')
+
+    cmds.move(tongue_scale*1.5, in_out_base_loc, moveZ=True, relative=True)
+    cmds.move(tongue_scale*.2, in_out_base_loc, moveY=True, relative=True)
+    cmds.parent(in_out_base_loc, base_tongue_ctrl_grp)
+
+    cmds.move(tongue_scale*1.5, in_out_mid_loc, moveZ=True, relative=True)
+    cmds.move(tongue_scale*.2, in_out_mid_loc, moveY=True, relative=True)
+    cmds.parent(in_out_mid_loc, mid_tongue_ctrl_grp)
+
+    # Setup Blends
+    pos_blend = cmds.createNode('blendColors', name=base_tongue_ctrl.replace(CTRL_SUFFIX, '') + 'posBlend')
+    rot_blend = cmds.createNode('blendColors', name=base_tongue_ctrl.replace(CTRL_SUFFIX, '') + 'rotBlend')
+    range_node = cmds.createNode('remapColor', name=base_tongue_ctrl.replace(CTRL_SUFFIX, '') + 'range')
+
+    for node in [pos_blend, rot_blend]:
+        cmds.setAttr(node + '.color2R', 0)
+        cmds.setAttr(node + '.color2G', 0)
+        cmds.setAttr(node + '.color2B', 0)
+
+    # Setup Conditions
+    condition_rot = cmds.createNode('condition', name='tongue_rotOffsetCondition')
+    condition_pos = cmds.createNode('condition', name='tongue_posOffsetCondition')
+    base_condition_rot = cmds.createNode('condition', name='base_tongue_rotOffsetCondition')
+    base_condition_pos = cmds.createNode('condition', name='base_tongue_posOffsetCondition')
+    mid_condition_rot = cmds.createNode('condition', name='mid_tongue_rotOffsetCondition')
+    mid_condition_pos = cmds.createNode('condition', name='mid_tongue_posOffsetCondition')
+
+    condition_nodes = [base_condition_pos, base_condition_rot, mid_condition_rot, mid_condition_pos]
+    for condition in condition_nodes:
+        cmds.setAttr(condition + '.colorIfFalseR', 0)
+        cmds.setAttr(condition + '.colorIfFalseG', 0)
+        cmds.setAttr(condition + '.colorIfFalseB', 0)
+    cmds.setAttr(base_condition_pos + '.secondTerm', 1)
+    cmds.setAttr(base_condition_pos + '.secondTerm', 1)
+
+    # Create Connections
+    in_out_tongue_offset_ctrl = 'inOutTongue_offset_ctrl'
+    cmds.addAttr(in_out_tongue_offset_ctrl, ln='controlBehaviour', at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(in_out_tongue_offset_ctrl + '.' + 'controlBehaviour', lock=True)
+    cmds.addAttr(in_out_tongue_offset_ctrl, ln='offsetTarget', at='enum',en='Base Tongue:Mid Tongue', k=True)
+    cmds.setAttr(in_out_tongue_offset_ctrl + '.offsetTarget', 1)
+
+    cmds.connectAttr(in_out_base_loc + '.translate', condition_pos + '.colorIfTrue')
+    cmds.connectAttr(in_out_base_loc + '.rotate', condition_rot + '.colorIfTrue')
+    cmds.connectAttr(in_out_mid_loc + '.translate', condition_pos + '.colorIfFalse')
+    cmds.connectAttr(in_out_mid_loc + '.rotate', condition_rot + '.colorIfFalse')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', condition_rot + '.firstTerm')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', condition_pos + '.firstTerm')
+    cmds.connectAttr(condition_pos + '.outColor', pos_blend + '.color1')
+    cmds.connectAttr(condition_rot + '.outColor', rot_blend + '.color1')
+
+    cmds.connectAttr('inOutTongue_offset_ctrl' + '.ty', range_node + '.colorG')
+    cmds.setAttr(range_node + '.inputMax', 0)
+    cmds.setAttr(range_node + '.inputMin', -10)
+    cmds.setAttr(range_node + '.outputMin', 1)
+    cmds.setAttr(range_node + '.outputMax', 0)
+    cmds.connectAttr(range_node + '.outColorG', pos_blend + '.blender')
+    cmds.connectAttr(range_node + '.outColorG', rot_blend + '.blender')
+
+    cmds.connectAttr(rot_blend + '.output', base_condition_rot + '.colorIfTrue')
+    cmds.connectAttr(rot_blend + '.output', mid_condition_rot + '.colorIfTrue')
+    cmds.connectAttr(pos_blend + '.output', base_condition_pos + '.colorIfTrue')
+    cmds.connectAttr(pos_blend + '.output', mid_condition_pos + '.colorIfTrue')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', base_condition_rot + '.firstTerm')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', mid_condition_rot + '.firstTerm')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', base_condition_pos + '.firstTerm')
+    cmds.connectAttr(in_out_tongue_offset_ctrl + '.offsetTarget', mid_condition_pos + '.firstTerm')
+    cmds.setAttr(mid_condition_rot + '.secondTerm', 1)
+    cmds.setAttr(mid_condition_pos + '.secondTerm', 1)
+    cmds.setAttr(base_condition_rot + '.secondTerm', 0)
+    cmds.setAttr(base_condition_pos + '.secondTerm', 0)
+    cmds.connectAttr(base_condition_rot + '.outColor', base_tongue_ctrl_offset + '.rotate')
+    cmds.connectAttr(mid_condition_rot + '.outColor', mid_tongue_ctrl_offset + '.rotate')
+    cmds.connectAttr(base_condition_pos + '.outColor', base_tongue_ctrl_offset + '.translate')
+    cmds.connectAttr(mid_condition_pos + '.outColor', mid_tongue_ctrl_offset + '.translate')
+
+    tongue_offset_ctrl = 'tongue_offset_ctrl'
+    cmds.addAttr(tongue_offset_ctrl, ln='controlBehaviour', at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(tongue_offset_ctrl + '.' + 'controlBehaviour', lock=True)
+    cmds.addAttr(tongue_offset_ctrl, ln='rotationAmount', at='double', k=True, min=0)
+    cmds.setAttr(tongue_offset_ctrl + '.rotationAmount', 10)
+    cmds.addAttr(tongue_offset_ctrl, ln='baseInfluence', at='double', k=True, min=0, max=1)
+    cmds.setAttr(tongue_offset_ctrl + '.baseInfluence', 0)
+
+    rot_influence = cmds.createNode('multiplyDivide', name='tongue_rotInfluence')
+    cmds.connectAttr(tongue_offset_ctrl + '.rotationAmount', rot_influence + '.input1X')
+    cmds.connectAttr(tongue_offset_ctrl + '.rotationAmount', rot_influence + '.input1Y')
+    cmds.connectAttr(tongue_offset_ctrl + '.rotationAmount', rot_influence + '.input1Z')
+    cmds.setAttr(rot_influence + '.input2X', 0)
+    cmds.connectAttr(tongue_offset_ctrl + '.ty', rot_influence + '.input2Z')
+    cmds.connectAttr(tongue_offset_ctrl + '.tx', rot_influence + '.input2Y')
+    cmds.connectAttr(rot_influence + '.output', mid_tongue_extra_offset + '.rotate')
+    cmds.connectAttr(rot_influence + '.output', tip_tongue_ctrl_offset + '.rotate')
+
+    base_rot_influence = cmds.createNode('multiplyDivide', name='tongue_rotBaseInfluence')
+    cmds.connectAttr(rot_influence + '.output', base_rot_influence + '.input1')
+    cmds.connectAttr(tongue_offset_ctrl + '.baseInfluence', base_rot_influence + '.input2X')
+    cmds.connectAttr(tongue_offset_ctrl + '.baseInfluence', base_rot_influence + '.input2Y')
+    cmds.connectAttr(tongue_offset_ctrl + '.baseInfluence', base_rot_influence + '.input2Z')
+    cmds.connectAttr(base_rot_influence + '.output', base_tongue_extra_offset + '.rotate')
+
+    # Set Offset Locator Visibility
+    offset_locators.append(in_out_base_loc)
+    offset_locators.append(in_out_mid_loc)
     for obj in offset_locators:
         if cmds.objExists(obj):
             cmds.connectAttr(head_ctrl + '.facialOffsetVisibility', obj + '.v')
+            if 'jaw' not in obj:
+                cmds.setAttr(obj + '.rx', 0)
 
-    # Behavior Adjustment
-    cmds.setAttr(right_corner_ctrl + '.sx', -1)
+    # Bullet Proof Controls
+    tongue_controls = [base_tongue_ctrl, mid_tongue_ctrl, tip_tongue_ctrl]
+    main_facial_ctrls = [main_mouth_ctrl, left_eyebrow_ctrl, right_eyebrow_ctrl]
+    mouth_corner_ctrls = [left_corner_ctrl, right_corner_ctrl]
+    lock_scale_list = mouth_controls + eyebrow_ctrls + eyelid_controls + \
+                      mouth_corner_ctrls + main_facial_ctrls + tongue_controls
+    for ctrl in lock_scale_list:
+        if isinstance(ctrl, tuple):
+            ctrl = ctrl[0]
+        lock_hide_default_attr(ctrl, translate=False, rotate=False)
+
+    # -------------- Fleshy Eyes --------------
+    parent_to_head = []
+    left_eye_rotation_dir_loc = cmds.spaceLocator(name='left_eyeRotation_dirLoc')[0]
+    change_viewport_color(left_eye_rotation_dir_loc, (0, 1, 0))
+    cmds.setAttr(left_eye_rotation_dir_loc + '.localScaleX', .5)
+    cmds.setAttr(left_eye_rotation_dir_loc + '.localScaleY', .5)
+    cmds.setAttr(left_eye_rotation_dir_loc + '.localScaleZ', .5)
+    cmds.setAttr(left_eye_rotation_dir_loc + '.v', 0)
+    right_eye_rotation_dir_loc = cmds.duplicate(left_eye_rotation_dir_loc, name='right_eyeRotation_dirLoc')[0]
+    left_eye_rotation_up_down_loc = cmds.duplicate(left_eye_rotation_dir_loc, name='left_eyeRotation_upDownLoc')[0]
+    right_eye_rotation_up_down_loc = cmds.duplicate(left_eye_rotation_dir_loc, name='right_eyeRotation_upDownLoc')[0]
+    parent_to_head.append(left_eye_rotation_dir_loc)
+    parent_to_head.append(right_eye_rotation_dir_loc)
+    left_upper_eyelid_ctrl = left_eyelid_controls[0][0]
+    left_lower_eyelid_ctrl = left_eyelid_controls[1][0]
+    right_upper_eyelid_ctrl = right_eyelid_controls[0][0]
+    right_lower_eyelid_ctrl = right_eyelid_controls[1][0]
+    cmds.delete(cmds.pointConstraint([left_upper_eyelid_ctrl, left_lower_eyelid_ctrl], left_eye_rotation_dir_loc))
+    cmds.delete(cmds.pointConstraint([right_upper_eyelid_ctrl, right_lower_eyelid_ctrl], right_eye_rotation_dir_loc))
+    cmds.parentConstraint([_facial_joints_dict.get('left_eye_jnt')], left_eye_rotation_dir_loc, mo=True)
+    cmds.parentConstraint([_facial_joints_dict.get('right_eye_jnt')], right_eye_rotation_dir_loc, mo=True)
+    # Up and Down Locs
+    left_eye_rotation_up_down_grp = cmds.group(name='left_eyeRotation_upDownGrp', world=True, empty=True)
+    right_eye_rotation_up_down_grp = cmds.group(name='right_eyeRotation_upDownGrp', world=True, empty=True)
+    cmds.parent(left_eye_rotation_up_down_loc, left_eye_rotation_up_down_grp)
+    cmds.parent(right_eye_rotation_up_down_loc, right_eye_rotation_up_down_grp)
+    cmds.delete(cmds.pointConstraint(left_eye_rotation_dir_loc, left_eye_rotation_up_down_grp))
+    cmds.delete(cmds.pointConstraint(right_eye_rotation_dir_loc, right_eye_rotation_up_down_grp))
+    parent_to_head.append(left_eye_rotation_up_down_grp)
+    parent_to_head.append(right_eye_rotation_up_down_grp)
+    cmds.pointConstraint(left_eye_rotation_dir_loc, left_eye_rotation_up_down_loc, skip="z")
+    cmds.pointConstraint(right_eye_rotation_dir_loc, right_eye_rotation_up_down_loc, skip="z")
+
+    # Connections --- Controller: Source Locator
+    create_inbetween_sum = {left_upper_eyelid_ctrl: left_eye_rotation_up_down_loc,
+                            left_lower_eyelid_ctrl: left_eye_rotation_up_down_loc,
+                            right_upper_eyelid_ctrl: right_eye_rotation_up_down_loc,
+                            right_lower_eyelid_ctrl: right_eye_rotation_up_down_loc,
+                            }
+    main_eye_ctrl = 'main_eye_ctrl'
+    fleshy_eyes_attr = 'fleshyEyesInfluence'
+    if cmds.objExists(main_eye_ctrl):
+        cmds.addAttr(main_eye_ctrl, ln=fleshy_eyes_attr, at='double', k=True, min=0, max=1)
+        cmds.setAttr(main_eye_ctrl + '.' + fleshy_eyes_attr, 1)
+    for ctrl, source_loc in create_inbetween_sum.items():
+        ctrl_driven_grp = cmds.listRelatives(ctrl, parent=True)[0]
+        if 'right' in ctrl:
+            ctrl_driven_grp = cmds.listRelatives(ctrl_driven_grp, parent=True)[0]
+        source_connection = cmds.listConnections(ctrl_driven_grp + '.translate', destination=False, plugs=True)[0]
+        general_influence_multiply_node = cmds.createNode('multiplyDivide', name='eyelid_fleshyEyesGeneralInfluence')
+        ctrl_influence_multiply_node = cmds.createNode('multiplyDivide', name=ctrl + '_fleshEyesCtrlInfluence')
+        ctrl_influence_sum_node = cmds.createNode('plusMinusAverage', name=ctrl + '_incomingDrivenSum')
+        cmds.disconnectAttr(source_connection, ctrl_driven_grp + '.translate')
+        cmds.connectAttr(source_connection, ctrl_influence_sum_node + '.input3D[0]')
+        cmds.connectAttr(ctrl_influence_sum_node + '.output3D', ctrl_driven_grp + '.translate')
+        cmds.connectAttr(ctrl_influence_multiply_node + '.output', general_influence_multiply_node + '.input1')
+        cmds.connectAttr(general_influence_multiply_node + '.output', ctrl_influence_sum_node + '.input3D[1]')
+        cmds.connectAttr(source_loc + '.translate', ctrl_influence_multiply_node + '.input1')
+        for dimension in ['X', 'Y', 'Z']:
+            if cmds.objExists(main_eye_ctrl):
+                cmds.connectAttr(main_eye_ctrl + '.' + fleshy_eyes_attr,
+                                 general_influence_multiply_node + '.input2' + dimension)
+
+        cmds.addAttr(ctrl, ln='inheritEyeMovement', at='double', k=True, min=0, max=1)
+        cmds.setAttr(ctrl + '.inheritEyeMovement', .5)
+        cmds.connectAttr(ctrl + '.inheritEyeMovement', ctrl_influence_multiply_node + '.input2X')
+        cmds.connectAttr(ctrl + '.inheritEyeMovement', ctrl_influence_multiply_node + '.input2Y')
+        cmds.connectAttr(ctrl + '.inheritEyeMovement', ctrl_influence_multiply_node + '.input2Z')
+
+    # Visibility Adjustments
+    cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
+
+    # Flesh Eyes Hierarchy
+    if cmds.objExists('head_offsetCtrl'):
+        for obj in parent_to_head:
+            cmds.parent(obj, 'head_offsetCtrl')
+    else:
+        for obj in parent_to_head:
+            cmds.parent(obj, head_ctrl)
 
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_facial_proxy_dict.get('main_proxy_grp'))
 
-    # ###################################### Debugging #######################################
+    # ------------------------------------- Debugging -------------------------------------
     if debugging:
         try:
             cmds.viewFit(head_ctrl)
@@ -1639,7 +2100,7 @@ def create_face_controls():
             # head_loc = cmds.spaceLocator(name='head_debuggingLoc')
             # cmds.parentConstraint(_facial_joints_dict.get('head_jnt'), head_loc[0])
             # cmds.parent(head_loc, _facial_joints_dict.get('head_jnt'))
-            # cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
+            # cmds.setAttr("head_ctrl.showOffsetCtrl", 1)
 
         except Exception as e:
             print(e)
@@ -1672,10 +2133,10 @@ def merge_facial_elements():
 if __name__ == '__main__':
     debugging = True
     if debugging:
-        # import gt_maya_utilities
-        # gt_maya_utilities.gtu_reload_file()
-        cmds.file(new=True, force=True)
+        import gt_maya_utilities
+        gt_maya_utilities.gtu_reload_file()
+        # cmds.file(new=True, force=True)
 
     create_face_proxy()
     create_face_controls()
-    # merge_facial_elements()
+    merge_facial_elements()
