@@ -145,8 +145,9 @@ def change_outliner_color(obj, rgb_color=(1, 1, 1)):
     """
     Sets the outliner color for the selected object 
     
-            Parameters:
-                obj (str): Name (path) of the object to change.
+    Args:
+        obj (str): Name (path) of the object to change.
+        rgb_color (tuple) : A tuple of 3 floats, RGB values. e.g. Red = (1, 0, 0)
     
     """
     if cmds.objExists(obj) and cmds.getAttr(obj + '.useOutlinerColor', lock=True) is False:
@@ -158,12 +159,12 @@ def change_outliner_color(obj, rgb_color=(1, 1, 1)):
 
 def change_viewport_color(obj, rgb_color=(1, 1, 1)):
     """
-    Changes the color of an object by changing the drawing override settings
-            
-            Parameters:
-                    obj (string): Name of the object to change color
-                    rgb_color (tuple): RGB color 
-                        
+    Sets the outliner color for the selected object
+
+    Args:
+        obj (str): Name (path) of the object to change.
+        rgb_color (tuple) : A tuple of 3 floats, RGB values. e.g. Red = (1, 0, 0)
+
     """
     if cmds.objExists(obj) and cmds.getAttr(obj + '.overrideEnabled', lock=True) is False:
         cmds.setAttr(obj + '.overrideEnabled', 1)
@@ -172,11 +173,12 @@ def change_viewport_color(obj, rgb_color=(1, 1, 1)):
 
 
 def add_node_note(obj, note_string):
-    """ Addes a note to the provided node (It can be seen at the bottom of the attribute editor)
+    """
+    Adds a note to the provided node (It can be seen at the bottom of the attribute editor)
     
-            Parameters:
-                obj (string): Name of the object.
-                note_string (string): A string to be used as the note.
+    Args:
+        obj (string): Name of the object.
+        note_string (string): A string to be used as the note.
     
     """
     if not cmds.attributeQuery('notes', n=obj, ex=True):
@@ -1920,6 +1922,7 @@ def create_mouth_controls():
     right_upper_corner_lip_ctrl = create_slider_control('right_upperCornerLip_offset_ctrl')
     right_lower_corner_lip_ctrl = create_slider_control('right_lowerCornerLip_offset_ctrl')
     main_mouth_offset_ctrl = create_slider_control('mainMouth_offset_ctrl')
+    in_out_tongue_ctrl = create_slider_control('inOutTongue_offset_ctrl', initial_position='top')
 
     # TY
     cmds.setAttr(mid_upper_lip_ctrl[1] + '.ty', 6)
@@ -1934,9 +1937,7 @@ def create_mouth_controls():
     cmds.setAttr(right_lower_corner_lip_ctrl[1] + '.ty', -3)
     cmds.setAttr(main_mouth_offset_ctrl[1] + '.tx', 13)
     cmds.setAttr(main_mouth_offset_ctrl[1] + '.ty', -13.8)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sx', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sy', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sz', 0.8)
+    cmds.setAttr(in_out_tongue_ctrl[1] + '.ty', -9.5)
 
     # TX
     cmds.setAttr(left_upper_outer_lip_ctrl[1] + '.tx', 2)
@@ -1947,10 +1948,19 @@ def create_mouth_controls():
     cmds.setAttr(right_lower_outer_lip_ctrl[1] + '.tx', -2)
     cmds.setAttr(right_upper_corner_lip_ctrl[1] + '.tx', -4)
     cmds.setAttr(right_lower_corner_lip_ctrl[1] + '.tx', -4)
+    cmds.setAttr(in_out_tongue_ctrl[1] + '.tx', -13)
+
+    # Misc
+    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sx', 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sy', 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sz', 0.8)
+    cmds.setAttr(in_out_tongue_ctrl[1] + '.rz', 90)
+
 
     half_size_ctrls = [left_upper_outer_lip_ctrl, left_lower_outer_lip_ctrl, left_upper_corner_lip_ctrl,
                        left_lower_corner_lip_ctrl, right_upper_outer_lip_ctrl, right_lower_outer_lip_ctrl,
-                       right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl, mid_lower_lip_ctrl]
+                       right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl, mid_lower_lip_ctrl,
+                       in_out_tongue_ctrl]
 
     for ctrl in half_size_ctrls:
         cmds.setAttr(ctrl[1] + '.sx', 0.5)
@@ -1963,6 +1973,9 @@ def create_mouth_controls():
     jaw_ctrl = create_2d_slider_control('jaw_offset_ctrl')
     tongue_ctrl = create_2d_slider_control('tongue_offset_ctrl')
 
+    # Inverted Right Controls
+    cmds.setAttr(right_corner_lip_ctrl[1] + '.ry', 180)
+
     cmds.setAttr(left_corner_lip_ctrl[1] + '.tx', 12)
     cmds.setAttr(right_corner_lip_ctrl[1] + '.tx', -12)
     cmds.setAttr(jaw_ctrl[1] + '.ty', -15)
@@ -1970,7 +1983,7 @@ def create_mouth_controls():
     cmds.setAttr(tongue_ctrl[1] + '.ty', -15)
     cmds.setAttr(tongue_ctrl[1] + '.tx', -13)
 
-    # Determine Grp Order
+    # Determine Grp Order @@@
     controls.append(left_corner_lip_ctrl)
     controls.append(left_upper_outer_lip_ctrl)
     controls.append(left_lower_outer_lip_ctrl)
@@ -1986,6 +1999,7 @@ def create_mouth_controls():
     controls.append(mid_lower_lip_ctrl)
     controls.append(jaw_ctrl)
     controls.append(tongue_ctrl)
+    controls.append(in_out_tongue_ctrl)
 
     # Jaw Label
     jaw_crv = create_text('JAW')
@@ -2072,6 +2086,7 @@ def create_mouth_controls():
     # Final Color Adjustments
     change_viewport_color(main_mouth_offset_ctrl[0], (1, 0.35, 0.55))
     change_viewport_color(tongue_ctrl[0], (1, 0.35, 0.55))
+    change_viewport_color(in_out_tongue_ctrl[0], (1, 0.35, 0.55))
 
     return (gui_grp, controls)
 
@@ -2117,8 +2132,11 @@ def create_eyebrow_controls():
     cmds.setAttr(right_outer_brow_ctrl[1] + '.tx', -15)
 
     left_inner_brow_ctrl = create_2d_slider_control('left_innerBrow_offset_ctrl', ignore_range='right')
-    right_inner_brow_ctrl = create_2d_slider_control('right_innerBrow_offset_ctrl', ignore_range='left')
-    #
+    right_inner_brow_ctrl = create_2d_slider_control('right_innerBrow_offset_ctrl', ignore_range='right')
+
+    # Invert Right Side
+    cmds.setAttr(right_inner_brow_ctrl[1] + '.ry', 180)
+
     cmds.setAttr(left_inner_brow_ctrl[1] + '.tx', 7)
     cmds.setAttr(right_inner_brow_ctrl[1] + '.tx', -7)
 
@@ -2444,51 +2462,61 @@ def get_plus_minus_average_available_slot(node, input_type='input3D'):
     return len(used_slots)
 
 
-def selectItems(*args):
+def select_items(*args):
     to_select = make_flat_list(args)
     cmds.select(to_select)
 
 
-def getChildren(root):
+def get_children(root):
     return cmds.listRelatives(root, children=True)
 
 
-def getNamedAttr(object_name, attribute_name):
-    """
-    return the attribute if it exists
-    Args:
-        object_name: <str>
-        attribute_name: <str>
+def create_pin_control(jnt_name, scale_offset, create_offset_grp=True):
+        """
+        Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
 
-    Returns:
+        Arg:
+            jnt_name (string): Name of the joint that will be controlled
+            scale_offset (float): The scale offset applied to the control before freezing it
+            create_offset_grp (bool): Whether or not an offset group will be created
+        Returns:
+            control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
 
-    """
-    if not cmds.objExists(f"{object_name}.{attribute_name}"):
-        logger.warning(f"Couldn't find {object_name}.{attribute_name} in the scene")
-        return
-    return cmds.getAttr(f"{object_name}.{attribute_name}")
+        """
+        fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+                             p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
+                                [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
+                                [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
+                                [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
+                                [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
+                                [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
+                                [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
+                                [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
+        fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
 
+        fk_ctrl_offset_grp = ''
+        if create_offset_grp:
+            fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+            cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
+            cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
+        else:
+            cmds.parent(fk_ctrl, fk_ctrl_grp)
 
-# def _find_item(name, item_type, logFail=True):
-#     """
-#     Find object according to name and type
-#     Args:
-#         name: Name of the object to search for
-#         item_type: Type of the object (to narrow search)
-#         logFail: Whether or not it should log a fail message
-#
-#     Returns: Object name (if found) or NOne if it doesn't exist
-#
-#     """
-#     all_of_type = cmds.ls(type=item_type) or []
-#     for obj in all_of_type:
-#         if obj.split(':')[-1] == name:
-#             return obj
-#     if logFail:
-#         logger.warning("Couldn't find {item} of type {typ}".format(item=name, typ=item_type))
-#
-# find_transform = partial(_find_item, item_type='transform')
-# find_joint = partial(_find_item, item_type='joint')
+        cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
+        cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
+        cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
+        cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
+
+        cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
+        if 'left_' in jnt_name:
+            change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
+        elif 'right_' in jnt_name:
+            change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
+
+        for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
+            cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
+
+        return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
 
 def _get_object_namespaces(objectName):
@@ -2583,4 +2611,6 @@ if __name__ == '__main__':
     #                                   ignore_range='top')
     # create_facial_controls()
     # print(output)
-    toggle_rigging_attr()
+    # toggle_rigging_attr()
+    # create_facial_controls()
+    pass
