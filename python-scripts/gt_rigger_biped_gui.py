@@ -1316,10 +1316,13 @@ def gt_ab_define_humanik(character_name):
     # Check for existing rig
     exceptions = [biped_data.joints_default.get('spine01_jnt'),
                   biped_data.joints_default.get('spine02_jnt'),
-                  biped_data.joints_default.get('spine03_jnt')]
+                  biped_data.joints_default.get('spine03_jnt'),
+                  # biped_data.joints_default.get('spine03_jnt'),
+                  ]
     desired_elements = []
     for jnt in biped_data.joints_default:
-        desired_elements.append(biped_data.joints_default.get(jnt))
+        if not biped_data.joints_default.get(jnt).endswith('endJnt'):
+            desired_elements.append(biped_data.joints_default.get(jnt))
     for obj in exceptions:
         desired_elements.remove(obj)
     for obj in desired_elements:
