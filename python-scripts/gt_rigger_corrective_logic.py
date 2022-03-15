@@ -3,11 +3,13 @@
  Creates joints for the knees, wrists and shoulders to be used as correctives
  github.com/TrevisanGMW - 2022-01-10
 
+ TODO
+    A
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
 from gt_rigger_data import *
-from gt_plane_angle_calculator import *
 import maya.cmds as cmds
 import random
 
@@ -26,11 +28,6 @@ PROXY_DRIVEN_COLOR = (1, .5, 1)
 _corrective_proxy_dict = {  # Pre Existing Elements
     'main_proxy_grp': 'auto_corrective_proxy' + '_' + GRP_SUFFIX,
     'main_root': 'auto_corrective_proxy' + '_' + PROXY_SUFFIX,
-    #
-    # # Center Elements
-    # 'head_crv': 'headRoot' + '_' + PROXY_SUFFIX,
-    # 'jaw_crv': 'jawRoot' + '_' + PROXY_SUFFIX,
-    # 'left_eye_crv': 'eyeRoot_' + PROXY_SUFFIX,
 
     # Wrists
     'left_main_wrist_crv': 'mainWrist_' + PROXY_SUFFIX,
@@ -42,17 +39,6 @@ _corrective_proxy_dict = {  # Pre Existing Elements
     'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
     'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
 
-    # # Eyebrows
-    # 'left_inner_brow_crv': 'innerBrow_' + PROXY_SUFFIX,
-    # 'left_mid_brow_crv': 'midBrow_' + PROXY_SUFFIX,
-    # 'left_outer_brow_crv': 'outerBrow_' + PROXY_SUFFIX,
-    #
-    # # Mouth
-    # 'mid_upper_lip_crv': 'mid_upperLip_' + PROXY_SUFFIX,
-    # 'mid_lower_lip_crv': 'mid_lowerLip_' + PROXY_SUFFIX,
-    # 'left_upper_outer_lip_crv': 'upperOuterLip_' + PROXY_SUFFIX,
-    # 'left_lower_outer_lip_crv': 'lowerOuterLip_' + PROXY_SUFFIX,
-    # 'left_corner_lip_crv': 'cornerLip_' + PROXY_SUFFIX,
 }
 
 _preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
@@ -375,7 +361,7 @@ def create_corrective_setup():
     cmds.parent(left_wrist_main_outfit_jnt, skeleton_grp)
     cmds.parent(right_wrist_main_outfit_jnt, skeleton_grp)
 
-    # Left Wrist Setup
+    # Pose Object Setup
     Pose = namedtuple('Pose', ['name',
                                'driver',
                                'driver_bound',
