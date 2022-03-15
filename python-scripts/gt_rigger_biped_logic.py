@@ -40,7 +40,11 @@
  Fixed issue where right automation controls wouldn't follow the offset control
 
  v1.1.9 - 2022-03-08
- Added inherit head roll and converge optiosn to the eyes
+ Added inherit head roll and converge options to the eyes
+
+ v1.1.10 - 2022-03-14
+ Changed the shape of the spine controls
+ Changed the auto rotate spine attribute names to be the same
 
 """
 from gt_rigger_utilities import *
@@ -2546,11 +2550,17 @@ def create_controls(biped_data):
 
     cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(hip_ctrl + '.showOffsetCtrl', hip_offset_ctrl + '.v', f=True)
+    # #### End Chest In-Between Offset
 
-    #### End Chest In-Between Offset
-
-    # Spine01 Control
+    # Spine01 Control @@@
     spine01_ctrl_a = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+                                p=[[-0.087, 0.604, 0.768], [0.087, 0.604, 0.768], [0.087, 0.604, -0.768],
+                                   [-0.087, 0.604, -0.768], [-0.087, 0.604, 0.768], [-0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, -0.768], [0.087, -0.604, -0.768], [0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, 0.768], [0.087, -0.604, 0.768], [0.087, 0.604, 0.768],
+                                   [0.087, 0.604, -0.768], [0.087, -0.604, -0.768], [-0.087, -0.604, -0.768],
+                                   [-0.087, 0.604, -0.768]], d=1)
+    spine01_ctrl_b = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + 'flat',
                                 p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299],
                                    [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13],
                                    [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299],
@@ -2559,20 +2569,34 @@ def create_controls(biped_data):
                                 per=True,
                                 k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
                                    14.0])
-    spine01_ctrl_b = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + 'dot',
-                                p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
+    spine01_ctrl_c = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + 'pin',
+                                p=[[0.0, 0.0, 0.0], [0.0, -1.003, 0.0], [0.037, -1.007, 0.0], [0.072, -1.022, 0.0],
+                                   [0.101, -1.046, 0.0], [0.124, -1.075, 0.0], [0.138, -1.109, 0.0],
+                                   [0.143, -1.146, 0.0], [0.0, -1.146, 0.0], [0.0, -1.003, 0.0],
+                                   [-0.037, -1.007, 0.0], [-0.072, -1.022, 0.0], [-0.101, -1.046, 0.0],
+                                   [-0.124, -1.075, 0.0], [-0.138, -1.109, 0.0], [-0.144, -1.146, 0.0],
+                                   [-0.138, -1.184, 0.0], [-0.124, -1.218, 0.0], [-0.101, -1.247, 0.0],
+                                   [-0.072, -1.271, 0.0], [-0.037, -1.284, 0.0], [0.0, -1.29, 0.0],
+                                   [0.037, -1.284, 0.0], [0.072, -1.271, 0.0], [0.101, -1.248, 0.0],
+                                   [0.123, -1.218, 0.0], [0.138, -1.184, 0.0], [0.143, -1.146, 0.0],
+                                   [-0.144, -1.146, 0.0], [0.0, -1.146, 0.0], [0.0, -1.29, 0.0]], d=1)
 
     orient_offset(spine01_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     orient_offset(spine01_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine01_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
-    spine01_ctrl = combine_curves_list([spine01_ctrl_a, spine01_ctrl_b])
+    spine01_ctrl = combine_curves_list([spine01_ctrl_a, spine01_ctrl_b, spine01_ctrl_c])
 
     cmds.setAttr(spine01_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine01_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine01_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine01_ctrl, apply=True, scale=True)
-    for shape in cmds.listRelatives(spine01_ctrl, s=True, f=True) or []:
-        cmds.rename(shape, '{0}Shape'.format(spine01_ctrl))
+
+    shapes = cmds.listRelatives(spine01_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(spine01_ctrl.replace(CTRL_SUFFIX, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(spine01_ctrl.replace(CTRL_SUFFIX, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(spine01_ctrl.replace(CTRL_SUFFIX, 'pin')))
+
     change_viewport_color(spine01_ctrl, AUTO_CTRL_COLOR)
     spine01_ctrl_grp = cmds.group(name=spine01_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine01_ctrl, spine01_ctrl_grp)
@@ -2583,24 +2607,50 @@ def create_controls(biped_data):
         cmds.rotate(-90, -90, 0, spine01_ctrl_grp, os=True, relative=True)
 
     # Spine02 Control
-    spine02_ctrl = cmds.curve(name=rig_joints.get('spine02_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-                              p=[[0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261],
-                                 [-0.053, -0.9, -0.105], [-0.061, -0.909, -0.001], [-0.053, -0.899, 0.109],
-                                 [-0.114, -0.849, 0.261], [0.0, -0.849, 0.261], [0.114, -0.849, 0.261],
-                                 [0.053, -0.899, 0.109], [0.061, -0.909, -0.001], [0.053, -0.9, -0.105],
-                                 [0.114, -0.849, -0.261], [0.0, -0.849, -0.261], [-0.114, -0.849, -0.261]], d=3,
-                              per=True,
-                              k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
-                                 14.0])
+    spine02_ctrl_a = cmds.curve(name=rig_joints.get('spine02_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+                                p=[[-0.087, 0.604, 0.768], [0.087, 0.604, 0.768], [0.087, 0.604, -0.768],
+                                   [-0.087, 0.604, -0.768], [-0.087, 0.604, 0.768], [-0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, -0.768], [0.087, -0.604, -0.768], [0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, 0.768], [0.087, -0.604, 0.768], [0.087, 0.604, 0.768],
+                                   [0.087, 0.604, -0.768], [0.087, -0.604, -0.768], [-0.087, -0.604, -0.768],
+                                   [-0.087, 0.604, -0.768]], d=1)
+    spine02_ctrl_b = cmds.curve(name=rig_joints.get('spine02_jnt').replace(JNT_SUFFIX, '') + 'flat',
+                                p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299],
+                                   [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13],
+                                   [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299],
+                                   [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126],
+                                   [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3,
+                                per=True,
+                                k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+                                   14.0])
+    spine02_ctrl_c = cmds.curve(name=rig_joints.get('spine02_jnt').replace(JNT_SUFFIX, '') + 'pin',
+                                p=[[0.0, 0.0, 0.0], [0.0, -1.315, 0.0], [0.049, -1.321, 0.0], [0.095, -1.34, 0.0],
+                                   [0.132, -1.371, 0.0], [0.162, -1.409, 0.0], [0.181, -1.454, 0.0],
+                                   [0.187, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.315, 0.0],
+                                   [-0.049, -1.321, 0.0], [-0.095, -1.34, 0.0], [-0.132, -1.371, 0.0],
+                                   [-0.162, -1.41, 0.0], [-0.181, -1.454, 0.0], [-0.189, -1.503, 0.0],
+                                   [-0.181, -1.552, 0.0], [-0.162, -1.597, 0.0], [-0.132, -1.635, 0.0],
+                                   [-0.095, -1.666, 0.0], [-0.049, -1.684, 0.0], [0.0, -1.691, 0.0],
+                                   [0.048, -1.684, 0.0], [0.095, -1.666, 0.0], [0.132, -1.636, 0.0],
+                                   [0.161, -1.597, 0.0], [0.181, -1.552, 0.0], [0.187, -1.503, 0.0],
+                                   [-0.189, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.691, 0.0]], d=1)
 
-    orient_offset(spine02_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine02_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine02_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine02_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+
+    spine02_ctrl = combine_curves_list([spine02_ctrl_a, spine02_ctrl_b, spine02_ctrl_c])
 
     cmds.setAttr(spine02_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine02_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine02_ctrl, apply=True, scale=True)
-    for shape in cmds.listRelatives(spine02_ctrl, s=True, f=True) or []:
-        cmds.rename(shape, '{0}Shape'.format(spine02_ctrl))
+
+    shapes = cmds.listRelatives(spine02_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(spine02_ctrl.replace(CTRL_SUFFIX, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(spine02_ctrl.replace(CTRL_SUFFIX, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(spine02_ctrl.replace(CTRL_SUFFIX, 'pin')))
+
     change_viewport_color(spine02_ctrl, (.8, .8, 0))
     spine02_ctrl_grp = cmds.group(name=spine02_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine02_ctrl, spine02_ctrl_grp)
@@ -2612,27 +2662,48 @@ def create_controls(biped_data):
 
     # Spine03 Control
     spine03_ctrl_a = cmds.curve(name=rig_joints.get('spine03_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-                                p=[[0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2],
-                                   [-0.058, -0.901, -0.092], [-0.053, -0.908, -0.001], [-0.058, -0.901, 0.094],
-                                   [-0.089, -0.869, 0.2], [-0.0, -0.869, 0.2], [0.089, -0.869, 0.2],
-                                   [0.058, -0.901, 0.094], [0.053, -0.908, -0.001], [0.058, -0.901, -0.092],
-                                   [0.089, -0.869, -0.2], [-0.0, -0.869, -0.2], [-0.089, -0.869, -0.2]], d=3, per=True,
+                                p=[[-0.087, 0.604, 0.768], [0.087, 0.604, 0.768], [0.087, 0.604, -0.768],
+                                   [-0.087, 0.604, -0.768], [-0.087, 0.604, 0.768], [-0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, -0.768], [0.087, -0.604, -0.768], [0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, 0.768], [0.087, -0.604, 0.768], [0.087, 0.604, 0.768],
+                                   [0.087, 0.604, -0.768], [0.087, -0.604, -0.768], [-0.087, -0.604, -0.768],
+                                   [-0.087, 0.604, -0.768]], d=1)
+    spine03_ctrl_b = cmds.curve(name=rig_joints.get('spine03_jnt').replace(JNT_SUFFIX, '') + 'flat',
+                                p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299],
+                                   [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13],
+                                   [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299],
+                                   [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126],
+                                   [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3,
+                                per=True,
                                 k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
                                    14.0])
-    spine03_ctrl_b = cmds.curve(name=rig_joints.get('spine03_jnt').replace(JNT_SUFFIX, '') + 'dot',
-                                p=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], d=1)
+    spine03_ctrl_c = cmds.curve(name=rig_joints.get('spine03_jnt').replace(JNT_SUFFIX, '') + 'pin',
+                                p=[[0.0, 0.0, 0.0], [0.0, -1.003, 0.0], [0.037, -1.007, 0.0], [0.072, -1.022, 0.0],
+                                   [0.101, -1.046, 0.0], [0.124, -1.075, 0.0], [0.138, -1.109, 0.0],
+                                   [0.143, -1.146, 0.0], [0.0, -1.146, 0.0], [0.0, -1.003, 0.0], [-0.037, -1.007, 0.0],
+                                   [-0.072, -1.022, 0.0], [-0.101, -1.046, 0.0], [-0.124, -1.075, 0.0],
+                                   [-0.138, -1.109, 0.0], [-0.144, -1.146, 0.0], [-0.138, -1.184, 0.0],
+                                   [-0.124, -1.218, 0.0], [-0.101, -1.247, 0.0], [-0.072, -1.271, 0.0],
+                                   [-0.037, -1.284, 0.0], [0.0, -1.29, 0.0], [0.037, -1.284, 0.0],
+                                   [0.072, -1.271, 0.0], [0.101, -1.248, 0.0], [0.123, -1.218, 0.0],
+                                   [0.138, -1.184, 0.0], [0.143, -1.146, 0.0], [-0.144, -1.146, 0.0],
+                                   [0.0, -1.146, 0.0], [0.0, -1.29, 0.0]], d=1)
 
     orient_offset(spine03_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     orient_offset(spine03_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine03_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
-    spine03_ctrl = combine_curves_list([spine03_ctrl_a, spine03_ctrl_b])
+    spine03_ctrl = combine_curves_list([spine03_ctrl_a, spine03_ctrl_b, spine03_ctrl_c])
 
     cmds.setAttr(spine03_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine03_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine03_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine03_ctrl, apply=True, scale=True)
-    for shape in cmds.listRelatives(spine03_ctrl, s=True, f=True) or []:
-        cmds.rename(shape, '{0}Shape'.format(spine03_ctrl))
+    shapes = cmds.listRelatives(spine03_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(spine03_ctrl.replace(CTRL_SUFFIX, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(spine03_ctrl.replace(CTRL_SUFFIX, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(spine03_ctrl.replace(CTRL_SUFFIX, 'pin')))
+
     change_viewport_color(spine03_ctrl, AUTO_CTRL_COLOR)
     spine03_ctrl_grp = cmds.group(name=spine03_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine03_ctrl, spine03_ctrl_grp)
@@ -2643,20 +2714,48 @@ def create_controls(biped_data):
         cmds.rotate(-90, -90, 0, spine03_ctrl_grp, os=True, relative=True)
 
     # Spine04 Control
-    spine04_ctrl = cmds.curve(name=rig_joints.get('spine04_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-                              p=[[0.103, -0.881, -0.16], [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16],
-                                 [-0.023, -0.918, 0.0], [-0.103, -0.881, 0.16], [0.0, -0.881, 0.16],
-                                 [0.103, -0.881, 0.16], [0.023, -0.918, 0.0], [0.103, -0.881, -0.16],
-                                 [0.0, -0.881, -0.16], [-0.103, -0.881, -0.16]], d=3, per=True,
-                              k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-    orient_offset(spine04_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    spine04_ctrl_a = cmds.curve(name=rig_joints.get('spine04_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+                                p=[[-0.087, 0.604, 0.768], [0.087, 0.604, 0.768], [0.087, 0.604, -0.768],
+                                   [-0.087, 0.604, -0.768], [-0.087, 0.604, 0.768], [-0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, -0.768], [0.087, -0.604, -0.768], [0.087, -0.604, 0.768],
+                                   [-0.087, -0.604, 0.768], [0.087, -0.604, 0.768], [0.087, 0.604, 0.768],
+                                   [0.087, 0.604, -0.768], [0.087, -0.604, -0.768], [-0.087, -0.604, -0.768],
+                                   [-0.087, 0.604, -0.768]], d=1)
+    spine04_ctrl_b = cmds.curve(name=rig_joints.get('spine04_jnt').replace(JNT_SUFFIX, '') + 'flat',
+                                p=[[0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299],
+                                   [-0.061, -0.895, -0.126], [-0.061, -0.912, -0.002], [-0.061, -0.894, 0.13],
+                                   [-0.121, -0.836, 0.299], [0.0, -0.836, 0.299], [0.121, -0.836, 0.299],
+                                   [0.061, -0.894, 0.13], [0.061, -0.912, -0.002], [0.061, -0.895, -0.126],
+                                   [0.121, -0.836, -0.299], [0.0, -0.836, -0.299], [-0.121, -0.836, -0.299]], d=3,
+                                per=True,
+                                k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+                                   14.0])
+    spine04_ctrl_c = cmds.curve(name=rig_joints.get('spine04_jnt').replace(JNT_SUFFIX, '') + 'pin',
+                                p=[[0.0, 0.0, 0.0], [0.0, -1.315, 0.0], [0.049, -1.321, 0.0], [0.095, -1.34, 0.0],
+                                   [0.132, -1.371, 0.0], [0.162, -1.409, 0.0], [0.181, -1.454, 0.0],
+                                   [0.187, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.315, 0.0],
+                                   [-0.049, -1.321, 0.0], [-0.095, -1.34, 0.0], [-0.132, -1.371, 0.0],
+                                   [-0.162, -1.41, 0.0], [-0.181, -1.454, 0.0], [-0.189, -1.503, 0.0],
+                                   [-0.181, -1.552, 0.0], [-0.162, -1.597, 0.0], [-0.132, -1.635, 0.0],
+                                   [-0.095, -1.666, 0.0], [-0.049, -1.684, 0.0], [0.0, -1.691, 0.0],
+                                   [0.048, -1.684, 0.0], [0.095, -1.666, 0.0], [0.132, -1.636, 0.0],
+                                   [0.161, -1.597, 0.0], [0.181, -1.552, 0.0], [0.187, -1.503, 0.0],
+                                   [-0.189, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.691, 0.0]], d=1)
+
+    orient_offset(spine04_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine04_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    orient_offset(spine04_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+
+    spine04_ctrl = combine_curves_list([spine04_ctrl_a, spine04_ctrl_b, spine04_ctrl_c])
+
     cmds.setAttr(spine04_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(spine04_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(spine04_ctrl + '.scaleZ', general_scale_offset)
     cmds.makeIdentity(spine04_ctrl, apply=True, scale=True)
-
-    for shape in cmds.listRelatives(spine04_ctrl, s=True, f=True) or []:
-        cmds.rename(shape, '{0}Shape'.format(spine04_ctrl))
+    shapes = cmds.listRelatives(spine04_ctrl, s=True, f=True) or []
+    cmds.rename(shapes[0], '{0}Shape'.format(spine04_ctrl.replace(CTRL_SUFFIX, 'box')))
+    cmds.rename(shapes[1], '{0}Shape'.format(spine04_ctrl.replace(CTRL_SUFFIX, 'flat')))
+    cmds.rename(shapes[2], '{0}Shape'.format(spine04_ctrl.replace(CTRL_SUFFIX, 'pin')))
     change_viewport_color(spine04_ctrl, (.8, .8, 0))
     spine04_ctrl_grp = cmds.group(name=spine04_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(spine04_ctrl, spine04_ctrl_grp)
@@ -3142,9 +3241,8 @@ def create_controls(biped_data):
     cmds.makeIdentity(left_foot_ik_ctrl, apply=True, scale=True)
 
     # Left Foot Position
-    cmds.delete(
-        cmds.pointConstraint([rig_joints.get('left_ankle_jnt'), rig_joints.get('left_toe_jnt')], left_foot_ik_ctrl_grp,
-                             skip='y'))
+    cmds.delete(cmds.pointConstraint([rig_joints.get('left_ankle_jnt'),
+                                      rig_joints.get('left_toe_jnt')], left_foot_ik_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     if settings.get('worldspace_ik_orient'):
@@ -3313,8 +3411,7 @@ def create_controls(biped_data):
     change_viewport_color(right_ball_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_ball_ctrl_grp, right_ankle_ctrl)
 
-    ################# Right Leg IK Control #################
-
+    # ################# Right Leg IK Control #################
     # Calculate Scale Offset
     right_knee_scale_offset = 0
     right_knee_scale_offset += dist_center_to_center(rig_joints.get('right_knee_jnt'),
@@ -3350,7 +3447,7 @@ def create_controls(biped_data):
     change_viewport_color(right_knee_ik_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_knee_ik_ctrl_grp, direction_ctrl)
 
-    ################# Right Foot IK Control #################
+    # ################# Right Foot IK Control #################
     right_foot_ik_ctrl_a = cmds.curve(name='right_foot_ik_' + CTRL_SUFFIX,
                                       p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671],
                                          [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, -0.321, -0.641],
@@ -3443,7 +3540,7 @@ def create_controls(biped_data):
                  niceName='Rotate Order')
     cmds.connectAttr(right_foot_ik_ctrl + '.rotationOrder', right_foot_ik_ctrl + '.rotateOrder', f=True)
 
-    ################# Left Arm #################
+    # ################# Left Arm #################
     # Left Clavicle FK
     left_clavicle_ctrl = cmds.curve(name=rig_joints.get('left_clavicle_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
                                     p=[[0.0, 0.0, 0.0], [0.897, 1.554, 0.0], [0.959, 1.528, 0.0], [1.025, 1.52, 0.0],
@@ -5473,6 +5570,11 @@ def create_controls(biped_data):
     cmds.setAttr(fk_spine04_jnt[0] + '.radius', (cmds.getAttr(fk_spine04_jnt[0] + '.radius') * .4))
 
     # FK Spine 01
+    cmds.addAttr(spine01_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(spine01_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+
+    setup_shape_switch(spine01_ctrl, shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+
     cmds.parentConstraint(spine01_ctrl, fk_spine01_jnt, mo=True)  # Automated
     offset_group = cmds.group(name=spine01_ctrl + 'OffsetGrp', empty=True, world=True)
     cmds.delete(cmds.parentConstraint(spine01_ctrl_grp, offset_group))
@@ -5490,20 +5592,24 @@ def create_controls(biped_data):
     cmds.addAttr(spine02_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(spine02_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
 
+    setup_shape_switch(spine02_ctrl, shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+
     cmds.addAttr(spine02_ctrl, ln='rotationOrder', at='enum', en=ROTATE_ORDER_ENUM, keyable=True,
                  niceName='Rotate Order')
     cmds.connectAttr(spine02_ctrl + '.rotationOrder', spine02_ctrl + '.rotateOrder', f=True)
 
-    cmds.addAttr(spine02_ctrl, ln='spine01AutoRotate', at='bool', k=True, niceName='Auto Rotate Spine 01')
-    cmds.setAttr(spine02_ctrl + '.spine01AutoRotate', 1)
-    cmds.connectAttr(spine02_ctrl + '.spine01AutoRotate', spine01_condition_node + '.firstTerm', f=True)
+    cmds.addAttr(spine02_ctrl, ln='parentInheritRotate', at='bool', k=True, niceName='Auto Rotate Spine 01')
+    cmds.setAttr(spine02_ctrl + '.parentInheritRotate', 1)
+    cmds.connectAttr(spine02_ctrl + '.parentInheritRotate', spine01_condition_node + '.firstTerm', f=True)
 
     cmds.addAttr(spine02_ctrl, ln='spine01Visibility', at='bool', k=True, niceName='Visibility Spine 01')
 
     shapes = cmds.listRelatives(spine01_ctrl, s=True, f=True) or []
-    cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shapes[0] + '.v', f=True)
-    cmds.setAttr(shapes[1] + '.overrideEnabled', 1)
-    cmds.setAttr(shapes[1] + '.overrideDisplayType', 2)
+    for shape in shapes:
+        cmds.setAttr(shape + '.overrideEnabled', 1)
+        cmds.setAttr(shape + '.overrideRGBColors', 1)
+        cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
+        cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shape + '.overrideVisibility', f=True)
 
     # FK Spine 02
     cmds.parentConstraint(spine02_ctrl, fk_spine02_jnt, mo=True)
@@ -5514,6 +5620,11 @@ def create_controls(biped_data):
     cmds.delete(cmds.parentConstraint(spine03_ctrl_grp, offset_group))
     cmds.parent(offset_group, spine03_ctrl_grp)
     cmds.parent(spine03_ctrl, offset_group)
+
+    cmds.addAttr(spine03_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(spine03_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+
+    setup_shape_switch(spine03_ctrl, shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
 
     spine03_condition_node = cmds.createNode('condition', name=spine03_ctrl.replace(CTRL_SUFFIX, '') + AUTO_SUFFIX)
     cmds.connectAttr(spine04_ctrl + '.rotate', spine03_condition_node + '.colorIfTrue', f=True)
@@ -5526,20 +5637,24 @@ def create_controls(biped_data):
     cmds.addAttr(spine04_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(spine04_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
 
+    setup_shape_switch(spine04_ctrl, shape_names=['box', 'flat', 'pin'], shape_enum=['Box', 'Flat', 'Pin'])
+
     cmds.addAttr(spine04_ctrl, ln='rotationOrder', at='enum', en=ROTATE_ORDER_ENUM, keyable=True,
                  niceName='Rotate Order')
     cmds.connectAttr(spine04_ctrl + '.rotationOrder', spine04_ctrl + '.rotateOrder', f=True)
 
-    cmds.addAttr(spine04_ctrl, ln='spine03AutoRotate', at='bool', k=True, niceName='Auto Rotate Spine 03')
-    cmds.setAttr(spine04_ctrl + '.spine03AutoRotate', 1)
-    cmds.connectAttr(spine04_ctrl + '.spine03AutoRotate', spine03_condition_node + '.firstTerm', f=True)
+    cmds.addAttr(spine04_ctrl, ln='parentInheritRotate', at='bool', k=True, niceName='Auto Rotate Spine 03')
+    cmds.setAttr(spine04_ctrl + '.parentInheritRotate', 1)
+    cmds.connectAttr(spine04_ctrl + '.parentInheritRotate', spine03_condition_node + '.firstTerm', f=True)
 
     cmds.addAttr(spine04_ctrl, ln='spine03Visibility', at='bool', k=True, niceName='Visibility Spine 03')
 
     shapes = cmds.listRelatives(spine03_ctrl, s=True, f=True) or []
-    cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shapes[0] + '.v', f=True)
-    cmds.setAttr(shapes[1] + '.overrideEnabled', 1)
-    cmds.setAttr(shapes[1] + '.overrideDisplayType', 2)
+    for shape in shapes:
+        cmds.setAttr(shape + '.overrideEnabled', 1)
+        cmds.setAttr(shape + '.overrideRGBColors', 1)
+        cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
+        cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shape + '.overrideVisibility', f=True)
 
     # FK Spine 04
     cmds.parentConstraint(spine04_ctrl, fk_spine04_jnt, mo=True)  # Automated
@@ -9594,11 +9709,17 @@ def create_controls(biped_data):
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
         debugging_display_lra = False
-        debugging_ikfk_jnts_visible = False
+        debugging_ikfk_jnts_visible = True
         debugging_offset_ctrls_visible = False
         debugging_annotate = False
         debugging_show_fk_fingers = False
         debugging_show_fk_controls = False
+        debugging_show_fk_spine = False
+
+        if debugging_show_fk_spine:
+            cmds.setAttr(cog_ctrl + '.spineInfluenceSwitch', 0)
+            cmds.setAttr(spine02_ctrl + '.spine01Visibility', 1)
+            cmds.setAttr(spine04_ctrl + '.spine03Visibility', 1)
 
         if debugging_ikfk_jnts_visible:
             make_visible_obj = [hip_switch_jnt,  # Makes Hip IK/FK joints visible
@@ -9720,6 +9841,7 @@ def create_controls(biped_data):
             cmds.setAttr(right_leg_switch + '.influenceSwitch', 0)
             cmds.setAttr(left_arm_switch + '.influenceSwitch', 0)
             cmds.setAttr(right_arm_switch + '.influenceSwitch', 0)
+
     # ################# End of Extra Debugging Commands #################
 
     # End of Create Base Rig Controls
@@ -9772,5 +9894,5 @@ def build_biped_rig(create_rig_ctrls=True):
 # Test it
 if __name__ == '__main__':
     build_biped_rig()
-    cmds.setAttr('pelvis_switch_jnt.v', 1)
+
 
