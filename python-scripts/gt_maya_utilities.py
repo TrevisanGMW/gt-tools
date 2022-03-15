@@ -67,6 +67,9 @@
   
  2.5 - 2022-01-04
  Renamed script to "gt_maya_utilities"
+  
+ 2.6 - 2022-01-04
+ Renamed script to "gt_maya_utilities"
 
  
  To Do:
@@ -108,7 +111,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
 # Script Version
-gtu_script_version = '2.5'
+gtu_script_version = '2.6'
 
 # Python Version
 python_version = sys.version_info.major
@@ -1321,6 +1324,16 @@ def gtu_convert_joints_to_mesh(combine_mesh=True):
         return [mesh]
     else:
         return generated_mesh
+
+
+def generate_udim_previews():
+    """ Generates UDIM previews for all file nodes """
+    all_file_nodes = cmds.ls(type='file')
+    for file_node in all_file_nodes:
+        try:
+            mel.eval('generateUvTilePreview ' + file_node + ';')
+        except Exception as e:
+            print(e)
 
 
 """ ____________________________ Functions ____________________________"""
