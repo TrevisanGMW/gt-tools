@@ -87,6 +87,15 @@
  1.3.16 - 2022-02-02
  Changed mirror option to make it compatible with right wrist orientation
 
+ 1.3.17 - 2022-02-07
+ Updated "Get Selection Range" function to add one to the end value so it bakes the entire selection
+
+ 1.3.18 - 2022-02-07
+ Updated "Get Timeline Range" function to add one to the end value so it bakes the entire selection
+
+ 1.3.19 - 2022-02-07
+ Changed the default dictionaries so they don't use offset controls by default
+
  TODO:
     Created flip pose function
     Convert GUI to QT
@@ -115,11 +124,11 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.16"
+script_version = "1.3.19"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
-                          'end_ik_ctrl': 'left_wrist_ik_offsetCtrl',  # IK Elements
+                          'end_ik_ctrl': 'left_wrist_ik_ctrl',  # IK Elements
                           'pvec_ik_ctrl': 'left_elbow_ik_ctrl',
                           'base_ik_jnt': 'left_fkShoulderOffsetRef_loc',
                           'mid_ik_jnt': 'left_fkElbowOffsetRef_loc',
@@ -136,7 +145,7 @@ left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
                           }
 
 right_arm_seamless_dict = {'switch_ctrl': 'right_arm_switch_ctrl',  # Switch Ctrl
-                           'end_ik_ctrl': 'right_wrist_ik_offsetCtrl',  # IK Elements
+                           'end_ik_ctrl': 'right_wrist_ik_ctrl',  # IK Elements
                            'pvec_ik_ctrl': 'right_elbow_ik_ctrl',
                            'base_ik_jnt': 'right_fkShoulderOffsetRef_loc',
                            'mid_ik_jnt': 'right_fkElbowOffsetRef_loc',
@@ -153,7 +162,7 @@ right_arm_seamless_dict = {'switch_ctrl': 'right_arm_switch_ctrl',  # Switch Ctr
                            }
 
 left_leg_seamless_dict = {'switch_ctrl': 'left_leg_switch_ctrl',  # Switch Ctrl
-                          'end_ik_ctrl': 'left_foot_ik_offsetCtrl',  # IK Elements
+                          'end_ik_ctrl': 'left_foot_ik_ctrl',  # IK Elements
                           'pvec_ik_ctrl': 'left_knee_ik_ctrl',
                           'base_ik_jnt': 'left_fkHipOffsetRef_loc',
                           'mid_ik_jnt': 'left_fkKneeOffsetRef_loc',
@@ -170,7 +179,7 @@ left_leg_seamless_dict = {'switch_ctrl': 'left_leg_switch_ctrl',  # Switch Ctrl
                           }
 
 right_leg_seamless_dict = {'switch_ctrl': 'right_leg_switch_ctrl',  # Switch Ctrl
-                           'end_ik_ctrl': 'right_foot_ik_offsetCtrl',  # IK Elements
+                           'end_ik_ctrl': 'right_foot_ik_ctrl',  # IK Elements
                            'pvec_ik_ctrl': 'right_knee_ik_ctrl',
                            'base_ik_jnt': 'right_fkHipOffsetRef_loc',
                            'mid_ik_jnt': 'right_fkKneeOffsetRef_loc',
@@ -261,15 +270,15 @@ gt_ab_ik_ctrls = {  # Arm
 gt_ab_ik_ctrls_default = copy.deepcopy(gt_ab_ik_ctrls)
 
 gt_ab_fk_ctrls = {  # Arm
-    '_shoulder_ctrl': [invert_all, not_inverted],
-    '_elbow_ctrl': [invert_all, not_inverted],
-    '_wrist_ctrl': [invert_all, not_inverted],
-    # Leg
-    '_hip_ctrl': [invert_x, invert_yz],
-    '_knee_ctrl': [invert_all, not_inverted],
-    '_ankle_ctrl': [invert_all, not_inverted],
-    '_ball_ctrl': [invert_all, not_inverted],
-}
+                   '_shoulder_ctrl': [invert_all, not_inverted],
+                   '_elbow_ctrl': [invert_all, not_inverted],
+                   '_wrist_ctrl': [invert_all, not_inverted],
+                    # Leg
+                   '_hip_ctrl': [invert_x, invert_yz],
+                   '_knee_ctrl': [invert_all, not_inverted],
+                   '_ankle_ctrl': [invert_all, not_inverted],
+                   '_ball_ctrl': [invert_all, not_inverted],
+                 }
 
 gt_ab_center_ctrls = ['cog_ctrl',
                       'cog_offsetCtrl',
@@ -592,7 +601,8 @@ def build_gui_custom_rig_interface():
         """
         time_slider = mel.eval('$tmpVar=$gPlayBackSlider')
         timeRange = cmds.timeControl(time_slider, q=True, rangeArray=True)
-
+        if (timeRange[1] - timeRange[0] != 1):
+            timeRange = [timeRange[0], timeRange[1]+1]
         cmds.intField(auto_key_start_int_field, e=True, value=timeRange[0])
         cmds.intField(auto_key_end_int_field, e=True, value=timeRange[1])
 
@@ -610,8 +620,11 @@ def build_gui_custom_rig_interface():
 
         start = cmds.playbackOptions(q=True, min=True)
         end = cmds.playbackOptions(q=True, max=True)
+
         cmds.intField(auto_key_start_int_field, e=True, value=start)
-        cmds.intField(auto_key_end_int_field, e=True, value=end)
+        cmds.intField(auto_key_end_int_field, e=True, value=end+1)
+
+
 
         update_stored_settings(is_instance)
 
