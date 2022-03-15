@@ -1,4 +1,11 @@
 @echo off
+
+REM v1.0.0 - 2020-11-08 - Initial Release
+REM v1.0.1 - 2020-12-03 - Added exist checks
+REM v1.0.2 - 2021-01-28 - Updated uninstaller with new scripts
+REM v1.1.0 - 2021-05-18 - Added support for paths with spaces
+REM v1.2.0 - 2022-03-14 - Changed python target to scripts\gt_tools (No more entries to uninstall function)
+
 @title =  Auto Installer for GT Tools
 SET CopyDirDestination=%UserProfile%\Documents\maya
 SET CopyDirSource=%~dp0
@@ -78,7 +85,7 @@ EXIT /B 0
 
 :copy_files
 SET RobocopyError=0
-ROBOCOPY "%CopyDirSource% " "%~1 " /Z /IF "*.py" /njh /njs /ndl /nc /ns
+ROBOCOPY "%CopyDirSource% " "%~1\gt_tools" /Z /IF "*.py" /njh /njs /ndl /nc /ns
 IF %ERRORLEVEL%==16 SET RobocopyError=1
 ROBOCOPY "%CopyDirSource% " "%~1 "  /Z /IF "*.mel" /njh /njs /ndl /nc /ns
 IF %ERRORLEVEL%==16 SET RobocopyError=1
@@ -87,7 +94,7 @@ IF EXIST "%CopyDirSourceMel% " (
 	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
 IF EXIST "%CopyDirSourcePy% " (
-	ROBOCOPY "%CopyDirSourcePy%" "%~1 "  /Z /IF "*.py" /njh /njs /ndl /nc /ns
+	ROBOCOPY "%CopyDirSourcePy%" "%~1\gt_tools"  /Z /IF "*.py" /njh /njs /ndl /nc /ns
 	IF %ERRORLEVEL%==16 SET RobocopyError=1
 ) 
 EXIT /B 0
@@ -231,7 +238,8 @@ del %~1\gt_make_ik_stretchy.pyc
 del %~1\gt_add_sine_attributes.py
 del %~1\gt_add_sine_attributes.pyc
 del %~1\gt_create_testing_keys.py
-del %~1\gt_create_testing_keys.pyc
+del %~1\gt_tools /Q /S
+rmdir %~1\gt_tools /Q /S
 EXIT /B 0
 
 
