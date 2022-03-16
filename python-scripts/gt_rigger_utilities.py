@@ -1651,7 +1651,7 @@ def setup_shape_switch(control, attr='controlShape', shape_names=['box', 'semiCi
     available_shapes = cmds.listRelatives(control, s=True, f=True) or []
     for shape in available_shapes:
         for condition_pair in condition_pairs:
-            if condition_pair[1] in shape:
+            if condition_pair[1] + 'Shape' in shape:
                 cmds.connectAttr(condition_pair[0] + '.outColorR', shape + '.v', f=True)
 
 
