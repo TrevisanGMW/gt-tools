@@ -110,7 +110,7 @@ copy_delete_files_to_maya_version() {
 		rm "$install_dir/gt_create_testing_keys.pyc"
 		rm -r "$install_dir/gt_tools"
   	else
-	  	mkdir "$install_dir/gt_tools"
+	  	mkdir -p "$install_dir/gt_tools"
   		for f in "$PYTHONDIR/"*.py; do cp "$f" "$install_dir/gt_tools"; done
 		for f in "$MELDIR/"*.mel; do cp "$f" "$install_dir"; done
 	fi
