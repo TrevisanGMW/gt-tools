@@ -15,7 +15,7 @@
 #######################################
 
 # Set Variables
-BASEDIR=$(dirname "$0")
+BASEDIR=${PWD}
 PYTHONDIR="$BASEDIR/python-scripts"
 MELDIR="$BASEDIR/mel-scripts"
 LIBRARYDIR=~/Library
