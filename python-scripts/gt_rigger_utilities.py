@@ -5,6 +5,8 @@
  2022-01-31
  Added distalMultiplier attributes to toggle attribute
 
+ 2022-03-22
+ Added "enforce_parent" function
 
 """
 from gt_utilities import make_flat_list
@@ -1983,7 +1985,7 @@ def create_mouth_controls():
     cmds.setAttr(tongue_ctrl[1] + '.ty', -15)
     cmds.setAttr(tongue_ctrl[1] + '.tx', -13)
 
-    # Determine Grp Order @@@
+    # Determine Grp Order
     controls.append(left_corner_lip_ctrl)
     controls.append(left_upper_outer_lip_ctrl)
     controls.append(left_lower_outer_lip_ctrl)
@@ -2241,24 +2243,40 @@ def create_eye_controls():
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_upper_eyelid_ctrl = create_slider_control('left_upperEyelid_offset_ctrl', initial_position='top')
-    left_lower_eyelid_ctrl = create_slider_control('left_lowerEyelid_offset_ctrl', initial_position='bottom')
-    left_blink_eyelid_ctrl = create_slider_control('left_blinkEyelid_ctrl', initial_position='top')
-    right_upper_eyelid_ctrl = create_slider_control('right_upperEyelid_offset_ctrl', initial_position='top')
-    right_lower_eyelid_ctrl = create_slider_control('right_lowerEyelid_offset_ctrl', initial_position='bottom')
-    right_blink_eyelid_ctrl = create_slider_control('right_blinkEyelid_ctrl', initial_position='top')
+    left_upper_eyelid_ctrl = create_slider_control('left_upperEyelid_offset_ctrl')
+    left_lower_eyelid_ctrl = create_slider_control('left_lowerEyelid_offset_ctrl')
+    left_blink_eyelid_ctrl = create_slider_control('left_blinkEyelid_ctrl')
+    right_upper_eyelid_ctrl = create_slider_control('right_upperEyelid_offset_ctrl')
+    right_lower_eyelid_ctrl = create_slider_control('right_lowerEyelid_offset_ctrl')
+    right_blink_eyelid_ctrl = create_slider_control('right_blinkEyelid_ctrl')
+
+    offset_slider_range(left_upper_eyelid_ctrl, offset_thickness=1)
+    offset_slider_range(left_lower_eyelid_ctrl, offset_thickness=1)
+    offset_slider_range(left_blink_eyelid_ctrl, offset_thickness=1)
+    #
+    offset_slider_range(right_upper_eyelid_ctrl, offset_thickness=1)
+    offset_slider_range(right_lower_eyelid_ctrl, offset_thickness=1)
+    offset_slider_range(right_blink_eyelid_ctrl, offset_thickness=1)
+
+    # to_scale_down = [left_upper_eyelid_ctrl, left_lower_eyelid_ctrl, left_blink_eyelid_ctrl,
+    #                  right_upper_eyelid_ctrl, right_lower_eyelid_ctrl, right_blink_eyelid_ctrl]
+    to_scale_down = [left_blink_eyelid_ctrl, right_blink_eyelid_ctrl]
+    for ctrl in to_scale_down:
+        cmds.setAttr(ctrl[1] + '.sx', 0.5)
+        cmds.setAttr(ctrl[1] + '.sy', 0.5)
+        cmds.setAttr(ctrl[1] + '.sz', 0.5)
 
     # TY
-    rescale(left_upper_eyelid_ctrl[1], 0.5, freeze=False)
-    rescale(left_lower_eyelid_ctrl[1], 0.5, freeze=False)
+    rescale(left_upper_eyelid_ctrl[1], 0.25, freeze=False)
+    rescale(left_lower_eyelid_ctrl[1], 0.25, freeze=False)
     cmds.setAttr(left_upper_eyelid_ctrl[1] + '.tx', 15)
     cmds.setAttr(left_lower_eyelid_ctrl[1] + '.tx', 15)
     cmds.setAttr(left_upper_eyelid_ctrl[1] + '.ty', 3)
     cmds.setAttr(left_lower_eyelid_ctrl[1] + '.ty', -4)
     cmds.setAttr(left_blink_eyelid_ctrl[1] + '.tx', 5)
 
-    rescale(right_upper_eyelid_ctrl[1], 0.5, freeze=False)
-    rescale(right_lower_eyelid_ctrl[1], 0.5, freeze=False)
+    rescale(right_upper_eyelid_ctrl[1], 0.25, freeze=False)
+    rescale(right_lower_eyelid_ctrl[1], 0.25, freeze=False)
     cmds.setAttr(right_upper_eyelid_ctrl[1] + '.tx', -15)
     cmds.setAttr(right_lower_eyelid_ctrl[1] + '.tx', -15)
     cmds.setAttr(right_upper_eyelid_ctrl[1] + '.ty', 3)
@@ -2361,6 +2379,54 @@ def create_facial_controls():
     cmds.parent(eye_ctrls[0], parent_grp)
     cmds.parent(mouth_ctrls[0], parent_grp)
     return parent_grp
+
+
+def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
+    """
+    Offsets the slider range updating its limits and shapes to conform to the new values
+    Args:
+        create_slider_output (tuple): The tuple output returned from the function "create_slider_control"
+        offset_by: How much to offset, use positive numbers to make it bigger or negative to make it smaller
+        offset_thickness: Amount to updates the shape curves so it continue to look proportional after the offset.
+
+    """
+    ctrl = create_slider_output[0]
+    ctrl_grp = create_slider_output[1]
+
+    current_min_trans_y_limit = cmds.getAttr(ctrl + '.minTransYLimit')
+    current_max_trans_y_limit = cmds.getAttr(ctrl + '.maxTransYLimit')
+
+    cmds.setAttr(ctrl + '.minTransYLimit', current_min_trans_y_limit - offset_by)
+    cmds.setAttr(ctrl + '.maxTransYLimit', current_max_trans_y_limit + offset_by)
+
+    children = cmds.listRelatives(ctrl_grp, children=True) or []
+    for child in children:
+        if '_bg_crv' in child:
+            # Top
+            cmds.move(offset_by, child + '.cv[1]', moveY=True, relative=True)
+            cmds.move(offset_by, child + '.cv[2]', moveY=True, relative=True)
+            # Bottom
+            cmds.move(-offset_by, child + '.cv[3]', moveY=True, relative=True)
+            cmds.move(-offset_by, child + '.cv[4]', moveY=True, relative=True)
+            cmds.move(-offset_by, child + '.cv[0]', moveY=True, relative=True)
+
+    if offset_thickness:
+        for child in children:
+            # Left
+            cmds.move(-offset_thickness, child + '.cv[1]', moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[4]', moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[0]', moveX=True, relative=True)
+            # Right
+            cmds.move(offset_thickness, child + '.cv[2]', moveX=True, relative=True)
+            cmds.move(offset_thickness, child + '.cv[3]', moveX=True, relative=True)
+
+            # Top
+            cmds.move(offset_thickness, child + '.cv[1]', moveY=True, relative=True)
+            cmds.move(offset_thickness, child + '.cv[2]', moveY=True, relative=True)
+            # Bottom
+            cmds.move(-offset_thickness, child + '.cv[3]', moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[4]', moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[0]', moveY=True, relative=True)
 
 
 def create_inbetween(obj, offset_suffix='Offset'):
@@ -2599,8 +2665,29 @@ class StripNamespace(object):
             api_node.setName(original_name)
 
 
+def enforce_parent(obj_name, desired_parent):
+    """
+    Makes sure that the provided object is really parented under the desired parent element.
+    Args:
+        obj_name (string): Name of the source object enforce parenting (e.g. "pSphere1")
+        desired_parent (string): Name of the desired parent element. You would expect to find obj_name inside it.
+
+    Returns: True if re-parented, false if not re-parented or not found
+    """
+    if not cmds.objExists(obj_name):
+        return False  # Source Object doesn't exist
+    current_parent = cmds.listRelatives(obj_name, parent=True) or []
+    if current_parent:
+        current_parent = current_parent[0]
+        if current_parent != desired_parent:
+            cmds.parent(obj_name, desired_parent)
+    else:
+        cmds.parent(obj_name, desired_parent)
+
+
 # Tests
 if __name__ == '__main__':
+    # enforce_parent('pSphere1', 'head_offsetCtrl')
     output = ''
     # if cmds.objExists('slider_2dGrp'):
     #     cmds.delete('slider_2dGrp')
