@@ -3,21 +3,28 @@
  Creates joints for the knees, wrists and shoulders to be used as correctives
  github.com/TrevisanGMW - 2022-01-10
 
- TODO
-    A
+ 0.0.1 - 2021-12-10
+ Created initial setup
+ Added wrist upper/lower joints
+
+ 0.0.2 - 2021-12-15
+ Added outfit corrective joints
+ Added knee front/back joints
+
+ 0.0.3 - 2022-03-23 XX
+ Added hip joints
 
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
 from gt_rigger_data import *
 import maya.cmds as cmds
-import random
 
 # Script Name
 script_name = 'GT Corrective Rigger'
 
 # Version:
-script_version = '0.2'
+script_version = '0.0.3'
 
 # General Vars
 debugging = True
@@ -39,7 +46,14 @@ _corrective_proxy_dict = {  # Pre Existing Elements
     'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
     'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
 
+    # Hips
+    'left_main_hip_crv': 'mainHip_' + PROXY_SUFFIX,
+    'left_back_hip_crv': 'backHip_' + PROXY_SUFFIX,
+    'left_extension_hip_crv': 'frontHip_' + PROXY_SUFFIX,
+    'left_outer_hip_crv': 'outerHip_' + PROXY_SUFFIX,
+    # 'left_inner_hip_crv': 'innerHip_' + PROXY_SUFFIX,
 }
+
 
 _preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
                      'right_wrist_jnt': 'right_wrist_jnt',
@@ -48,7 +62,9 @@ _preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
                      'left_forearm_jnt': 'left_forearm_jnt',
                      'right_forearm_jnt': 'right_forearm_jnt',
                      'left_wrist_aimJnt': 'left_wrist_aimJnt',
-                     'right_wrist_aimJnt': 'right_wrist_aimJnt'
+                     'right_wrist_aimJnt': 'right_wrist_aimJnt',
+                     'left_hip_jnt': 'left_hip_jnt',
+                     'right_hip_jnt': 'right_hip_jnt',
                      }
 
 # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
@@ -216,6 +232,111 @@ def create_corrective_proxy():
     cmds.parent(right_front_knee_proxy_grp, right_main_knee_proxy_crv)
     change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
+    # ################ Hips ################
+    # Left Main hip
+    left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
+    left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_hip_proxy_crv, left_main_hip_proxy_grp)
+    cmds.move(10.2, 84.5, 0, left_main_hip_proxy_grp)
+    cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
+    cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
+    cmds.parent(left_main_hip_proxy_grp, main_root)
+    change_viewport_color(left_main_hip_proxy_crv, PROXY_COLOR)
+    main_proxies.append(left_main_hip_proxy_crv)
+
+    # Left Back hip
+    left_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_hip_crv'), .2)
+    left_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_back_hip_proxy_crv, left_back_hip_proxy_grp)
+    cmds.move(10.2, 84.5, -4, left_back_hip_proxy_grp)
+    cmds.rotate(-90, left_back_hip_proxy_grp, rotateX=True)
+    cmds.parent(left_back_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # Left Front hip
+    left_extension_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_extension_hip_crv'), .2)
+    left_extension_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=left_extension_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_extension_hip_proxy_crv, left_extension_hip_proxy_grp)
+    cmds.move(10.2, 84.5, 4, left_extension_hip_proxy_grp)
+    cmds.rotate(90, left_extension_hip_proxy_grp, rotateX=True)
+    cmds.parent(left_extension_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_extension_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # Left Outer hip
+    left_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_outer_hip_crv'), .2)
+    left_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=left_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_outer_hip_proxy_crv, left_outer_hip_proxy_grp)
+    cmds.move(14.2, 84.5, 0, left_outer_hip_proxy_grp)
+    cmds.rotate(-90, left_outer_hip_proxy_grp, rotateZ=True)
+    cmds.parent(left_outer_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # # Left Inner hip
+    # left_inner_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_inner_hip_crv'), .2)
+    # left_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+    #                                        name=left_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(left_inner_hip_proxy_crv, left_inner_hip_proxy_grp)
+    # cmds.move(6.2, 84.5, 0, left_inner_hip_proxy_grp)
+    # cmds.rotate(90, left_inner_hip_proxy_grp, rotateZ=True)
+    # cmds.parent(left_inner_hip_proxy_grp, left_main_hip_proxy_crv)
+    # change_viewport_color(left_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # Right Main hip
+    right_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_hip_crv'), .2)
+    right_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=right_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_hip_proxy_crv, right_main_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, 0, right_main_hip_proxy_grp)
+    cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
+    cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
+    cmds.parent(right_main_hip_proxy_grp, main_root)
+    change_viewport_color(right_main_hip_proxy_crv, PROXY_COLOR)
+    main_proxies.append(right_main_hip_proxy_crv)
+
+    # Right Back hip
+    right_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_back_hip_crv'), .2)
+    right_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=right_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_back_hip_proxy_crv, right_back_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, -4, right_back_hip_proxy_grp)
+    cmds.rotate(-90, right_back_hip_proxy_grp, rotateX=True)
+    cmds.parent(right_back_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # Right Front hip
+    right_extension_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_extension_hip_crv'), .2)
+    right_extension_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_extension_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_extension_hip_proxy_crv, right_extension_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, 4, right_extension_hip_proxy_grp)
+    cmds.rotate(90, right_extension_hip_proxy_grp, rotateX=True)
+    cmds.parent(right_extension_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_extension_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # Right Outer hip
+    right_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_outer_hip_crv'), .2)
+    right_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_outer_hip_proxy_crv, right_outer_hip_proxy_grp)
+    cmds.move(-14.2, 84.5, 0, right_outer_hip_proxy_grp)
+    cmds.rotate(90, right_outer_hip_proxy_grp, rotateZ=True)
+    cmds.parent(right_outer_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # # Right Inner hip
+    # right_inner_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_inner_hip_crv'), .2)
+    # right_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+    #                                        name=right_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(right_inner_hip_proxy_crv, right_inner_hip_proxy_grp)
+    # cmds.move(-6.2, 84.5, 0, right_inner_hip_proxy_grp)
+    # cmds.rotate(-90, right_inner_hip_proxy_grp, rotateZ=True)
+    # cmds.parent(right_inner_hip_proxy_grp, right_main_hip_proxy_crv)
+    # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
     for key, data in _preexisting_dict.items():
         if cmds.objExists(data):
             side = 'left'
@@ -227,6 +348,9 @@ def create_corrective_proxy():
 
             if 'knee' in data:
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_knee_crv')))
+
+            if 'hip' in data:
+                cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_hip_crv')))
 
     # Improve Main Proxy Visibility
     for proxy in main_proxies:
@@ -329,13 +453,31 @@ def create_corrective_setup():
     cmds.parent(_cor_joints_dict.get('right_front_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
     cmds.parentConstraint(_preexisting_dict.get('right_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
 
+    # Hips
+    pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
+    pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
+    cmds.parent(pelvis_driver_jnt, world=True)
+    cmds.parent(pelvis_driver_jnt, skeleton_grp)
+    # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('right_main_hip_jnt'))
+    cmds.parentConstraint(pelvis_jnt, pelvis_driver_jnt)
+    cmds.parent(_cor_joints_dict.get('right_back_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('right_extension_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('right_outer_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+    # cmds.parent(_cor_joints_dict.get('right_inner_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('right_main_hip_jnt'), pelvis_driver_jnt)
 
+    # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('left_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('left_back_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('left_extension_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('left_outer_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+    # cmds.parent(_cor_joints_dict.get('left_inner_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+    cmds.parent(_cor_joints_dict.get('left_main_hip_jnt'), pelvis_driver_jnt)
 
     # Wrist Accessories
     left_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('left_forearm_jnt'),
-                                     name='left_wrist_mainOutfit_driverJnt', po=True)[0]
+                                                name='left_wrist_mainOutfit_driverJnt', po=True)[0]
     right_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('right_forearm_jnt'),
-                                      name='right_wrist_mainOutfit_driverJnt', po=True)[0]
+                                                 name='right_wrist_mainOutfit_driverJnt', po=True)[0]
     cmds.parent(left_wrist_main_outfit_jnt, world=True)
     cmds.parent(right_wrist_main_outfit_jnt, world=True)
     cmds.delete(cmds.pointConstraint(_preexisting_dict.get('left_wrist_jnt'), left_wrist_main_outfit_jnt))
@@ -347,9 +489,9 @@ def create_corrective_setup():
     cmds.setAttr(right_wrist_main_outfit_jnt + '.radius', 0.5)
 
     left_wrist_outfit_jnt = cmds.duplicate(left_wrist_main_outfit_jnt,
-                                                name='left_wrist_outfit_driverJnt', po=True)[0]
+                                           name='left_wrist_outfit_driverJnt', po=True)[0]
     right_wrist_outfit_jnt = cmds.duplicate(right_wrist_main_outfit_jnt,
-                                                 name='right_wrist_outfit_driverJnt', po=True)[0]
+                                            name='right_wrist_outfit_driverJnt', po=True)[0]
     cmds.parent(left_wrist_outfit_jnt, left_wrist_main_outfit_jnt)
     cmds.parent(right_wrist_outfit_jnt, right_wrist_main_outfit_jnt)
 
@@ -370,7 +512,7 @@ def create_corrective_setup():
                                'driven_offset',
                                'setup'])
     poses = [
-            # Wrist Left
+            # Wrist Left ---------------------------------------------
             Pose(name='upperWristExtension',
                  driver='left_mainWrist_driverJnt',
                  driver_bound='left_wrist_jnt',
@@ -403,7 +545,7 @@ def create_corrective_setup():
                  driven_offset=[-0.2, 0.2, 0.21, 0.0, 122.72, 0.0, 1.0, 1.0, 1.0],
                  setup='lower_wrist'),
 
-            # Wrist Right
+            # Wrist Right ------------------------------------------
             Pose(name='upperWristExtension',
                  driver='right_mainWrist_driverJnt',
                  driver_bound='right_wrist_jnt',
@@ -436,22 +578,13 @@ def create_corrective_setup():
                  driven_offset=[0.2, -0.2, -0.21, 0.0, 122.72, 0.0, 1.0, 1.0, 1.0],
                  setup='lower_wrist'),
 
-            # Knee Left ------------------
+            # Knees Left ------------------------------------------
             Pose(name='kneeFlexion',
                  driver='left_mainKnee_driverJnt',
                  driver_bound='left_knee_jnt',
                  driver_range=[0, -93],
                  driven='left_backKnee_driverJnt',
                  driven_offset=[9.469, -15.484, 0, 0, 0, 40, 0.005, 1, 1],
-                 setup='back_knee'),
-
-            # Knee Right
-            Pose(name='kneeFlexion',
-                 driver='right_mainKnee_driverJnt',
-                 driver_bound='right_knee_jnt',
-                 driver_range=[0, -93],
-                 driven='right_backKnee_driverJnt',
-                 driven_offset=[-9.469, 15.484, 0, 0, 0, 40, 0.005, 1, 1],
                  setup='back_knee'),
 
             Pose(name='kneeFlexion',
@@ -462,7 +595,15 @@ def create_corrective_setup():
                  driven_offset=[0, 4, 0],
                  setup='back_knee'),
 
-            # Knee Right
+            # Knees Right ------------------------------------------
+            Pose(name='kneeFlexion',
+                 driver='right_mainKnee_driverJnt',
+                 driver_bound='right_knee_jnt',
+                 driver_range=[0, -93],
+                 driven='right_backKnee_driverJnt',
+                 driven_offset=[-9.469, 15.484, 0, 0, 0, 40, 0.005, 1, 1],
+                 setup='back_knee'),
+
             Pose(name='kneeFlexion',
                  driver='right_mainKnee_driverJnt',
                  driver_bound='right_knee_jnt',
@@ -471,7 +612,8 @@ def create_corrective_setup():
                  driven_offset=[0, -4, 0],
                  setup='back_knee'),
 
-            # Outfit Correctives ------------------
+
+            # Outfit Correctives ------------------------------------
             Pose(name='outfitExtension',
                  driver='left_wrist_mainOutfit_driverJnt',
                  driver_bound='left_wrist_jnt',
@@ -504,6 +646,156 @@ def create_corrective_setup():
                  driven_offset=[0.98, -0.0, 0.01, 0.0, 18.5, 0.0, 1.0, 1.0, 1.0],
                  setup='outfit_wrist'),
 
+            # Back Hip Left ---------------------------------------------
+            Pose(name='hipExtension',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backHip_driverJnt',
+                 driven_offset=[6.17, -8.1, 0.15, 0.0, 0.0, 86.0, 1.0, 1.0, 1.1],
+                 setup='extension_hip'),
+
+            Pose(name='hipFlexion',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backHip_driverJnt',
+                 driven_offset=[-12.16, -5.34, 0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
+                 setup='flexion_hip'),  # Move/Kick forward
+
+            Pose(name='hipAbduction',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backHip_driverJnt',
+                 driven_offset=[-0.18, -1.09, -2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Open legs to side
+
+            # Front Hip Left ----------------------------------------------
+            Pose(name='hipExtension',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontHip_driverJnt',
+                 driven_offset=[-24.0, 11.0, -2.6, 0.0, 0.0, 80.0, 1.0, 0.6, 1.0],
+                 setup='extension_hip'),  # Move Backwards
+
+            Pose(name='hipFlexion',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontHip_driverJnt',
+                 driven_offset=[3.58, 8.3, -0.0, 0.0, 0.0, -15.0, 1.0, 1.0, 1.0],
+                 setup='flexion_hip'),  # Move/Kick forward
+
+            Pose(name='hipAbduction',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontHip_driverJnt',
+                 driven_offset=[-0.0, 7.37, 1.0, 0.0, 65.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Move/Kick forward
+
+            # Side Hip Left ----------------------------------------------
+            Pose(name='hipExtension',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_outerHip_driverJnt',
+                 driven_offset=[0.0, 0.0, -9.0, 0.0, 0.0, 45.0, 1.0, 1.0, 1.0],
+                 setup='extension_hip'),
+
+            Pose(name='hipFlexion',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_outerHip_driverJnt',
+                 driven_offset=[0.0, -0.0, -9.0, 0.0, 0.0, -45.0, 1.0, 1.0, 1.0],
+                 setup='flexion_hip'),
+
+            Pose(name='hipAbduction',
+                 driver='left_mainHip_driverJnt',
+                 driver_bound='left_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='left_outerHip_driverJnt',
+                 driven_offset=[-24.97, -3.0, -14.32, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Open legs to side
+
+            # Back Hip Right ---------------------------------------------
+            Pose(name='hipExtension',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backHip_driverJnt',
+                 driven_offset=[-6.17, 8.1, -0.15, 0.0, 0.0, 86.0, 1.0, 1.0, 1.1],
+                 setup='extension_hip'),
+
+            Pose(name='hipFlexion',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backHip_driverJnt',
+                 driven_offset=[12.16, 5.34, -0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
+                 setup='flexion_hip'),  # Move/Kick forward
+
+            Pose(name='hipAbduction',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backHip_driverJnt',
+                 driven_offset=[0.18, 1.09, 2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Open legs to side
+
+            # Front Hip Right ----------------------------------------------
+            Pose(name='hipExtension',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontHip_driverJnt',
+                 driven_offset=[24.0, -11.0, 2.6, 0.0, 0.0, 80.0, 1.0, 0.6, 1.0],
+                 setup='extension_hip'),  # Move Backwards
+
+            Pose(name='hipFlexion',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontHip_driverJnt',
+                 driven_offset=[-3.58, -8.3, 0.0, 0.0, 0.0, -15.0, 1.0, 1.0, 1.0],
+                 setup='flexion_hip'),  # Move/Kick forward
+
+            Pose(name='hipAbduction',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontHip_driverJnt',
+                 driven_offset=[0.0, -7.37, -1.0, 0.0, 65.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Move/Kick forward
+
+            # Side Hip Right ----------------------------------------------
+            Pose(name='hipExtension',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_outerHip_driverJnt',
+                 driven_offset=[0.0, 0.0, 9.0, 0.0, 0.0, 45.0, 1.0, 1.0, 1.0],
+                 setup='extension_hip'),
+
+            Pose(name='hipFlexion',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_outerHip_driverJnt',
+                 driven_offset=[0.0, 0.0, 9.0, 0.0, 0.0, -45.0, 1.0, 1.0, 1.0],
+                 setup='flexion_hip'),
+
+            Pose(name='hipAbduction',
+                 driver='right_mainHip_driverJnt',
+                 driver_bound='right_hip_jnt',
+                 driver_range=[0, 1],
+                 driven='right_outerHip_driverJnt',
+                 driven_offset=[24.97, 3.0, 14.32, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_hip'),  # Open legs to side
+
     ]
 
     corrective_ctrls = []
@@ -522,15 +814,69 @@ def create_corrective_setup():
         side = 'left'
         if driver.startswith('right'):
             side = 'right'
+        # Determine Side Direction
+        dir_value = 1
+        if side == 'right':
+            dir_value = -1
 
-        # Clean Rot Setup
+        # # Clean Rot Setup (Hip)
+        # twist_locker_base_jnt = driver_bound.replace('_' + JNT_SUFFIX, '_twistLockerBase' + JNT_SUFFIX.capitalize())
+        # no_twist_loc = driver_bound.replace(JNT_SUFFIX, 'twistLockerLoc')
+        # if setup.endswith('_hip'):
+        #     if not cmds.objExists(twist_locker_base_jnt):
+        #         pelvis_switch_jnt = 'pelvis_switch_jnt'
+        #         system_color = (0, 1, 1)
+        #         knee_jnt = side + '_knee_jnt'
+        #         cmds.duplicate(driver_bound, name=twist_locker_base_jnt, parentOnly=True)
+        #         # cmds.parent(twist_locker_base_jnt, pelvis_switch_jnt)
+        #         base_ref = twist_locker_base_jnt.replace('LockerBase', 'LockerBaseRef')
+        #         end_ref = twist_locker_base_jnt.replace('LockerBase', 'LockerEndRef')
+        #         cmds.duplicate(driver_bound, name=base_ref, parentOnly=True)
+        #         # cmds.parent(base_ref, pelvis_switch_jnt)
+        #         cmds.move(-1, base_ref, moveY=True, relative=True, objectSpace=True)
+        #         cmds.duplicate(base_ref, name=end_ref, parentOnly=True)
+        #         cmds.move(1, end_ref, moveX=True, relative=True, objectSpace=True)
+        #         cmds.parent(end_ref, base_ref)
+        #         cmds.setAttr(base_ref + '.radius', 1)
+        #         cmds.setAttr(end_ref + '.radius', .5)
+        #
+        #         ik_handle = cmds.ikHandle(name=driver_bound + '_twistLocker_ikHandle',
+        #                                   startJoint=base_ref,
+        #                                   endEffector=end_ref,
+        #                                   setupForRPsolver=True)[0]
+        #         ik_handle_grp = cmds.group(name=ik_handle+ 'Grp', world=True, empty=True)
+        #         cmds.parent(ik_handle, ik_handle_grp)
+        #         cmds.setAttr(ik_handle + '.tx', 0)
+        #         cmds.setAttr(ik_handle + '.ty', 0)
+        #         cmds.setAttr(ik_handle + '.tz', 0)
+        #         cmds.pointConstraint(knee_jnt, ik_handle_grp)
+        #         cmds.setAttr(ik_handle + '.poleVectorX', 0)
+        #         cmds.setAttr(ik_handle + '.poleVectorY', 0)
+        #         cmds.setAttr(ik_handle + '.poleVectorZ', 0)
+        #         cmds.setAttr(twist_locker_base_jnt + '.radius', 1.5)
+        #
+        #         # Setup No Twist Locator
+        #         cmds.spaceLocator(name=no_twist_loc)
+        #         leg_scale = dist_center_to_center(driver_bound, knee_jnt)
+        #         cmds.delete(cmds.parentConstraint(driver_bound, no_twist_loc))
+        #         cmds.move(-leg_scale*2, no_twist_loc, moveY=True, relative=True, objectSpace=True)
+        #         cmds.parent(no_twist_loc, base_ref)
+        #
+        #         change_viewport_color(twist_locker_base_jnt, system_color)
+        #         change_viewport_color(base_ref, system_color)
+        #         change_viewport_color(end_ref, system_color)
+        #
+        #         cmds.aimConstraint(knee_jnt, twist_locker_base_jnt,
+        #                            aimVector=(dir_value, 0, 0),
+        #                            upVector=(0, dir_value * -1, 0),
+        #                            worldUpType="object",
+        #                            worldUpObject=no_twist_loc)
+
         rot_angle_parent = driver_bound.replace('_' + JNT_SUFFIX, '_upAim' + JNT_SUFFIX.capitalize())
         rot_angle_child = rot_angle_parent.replace('upAim', 'dirAim')
+
         if not cmds.objExists(rot_angle_parent):
-            dir_value = 1
-            if side == 'right':
-                dir_value = -1
-            if setup.endswith('wrist'):
+            if setup.endswith('wrist'):  # Wrist Setup ---------------------------------------------
                 twist_aim_jnt = side + '_wrist_aimJnt'
                 cmds.duplicate(twist_aim_jnt, name=rot_angle_parent, parentOnly=True)
                 cmds.delete(cmds.pointConstraint(twist_aim_jnt, rot_angle_parent))
@@ -559,7 +905,8 @@ def create_corrective_setup():
                 cmds.setAttr(rot_angle_parent + '.radius', new_radius)
                 cmds.setAttr(dir_jnt + '.radius', new_radius * .5)
                 cmds.parent(dir_loc, automation_grp)
-            if setup.endswith('knee'):
+
+            if setup.endswith('knee'):  # Knee Setup ---------------------------------------------
                 twist_aim_jnt = side + '_knee_jnt'
                 cmds.duplicate(twist_aim_jnt, name=rot_angle_parent, parentOnly=True)
                 cmds.delete(cmds.pointConstraint(twist_aim_jnt, rot_angle_parent))
@@ -592,6 +939,172 @@ def create_corrective_setup():
                 cmds.parent(dir_loc, automation_grp)
                 cmds.parent(rot_angle_parent, skeleton_grp)
                 cmds.parentConstraint(side + '_hip_' + JNT_SUFFIX, rot_angle_parent, mo=True)
+
+        dist_setup_loc = side + '_' + setup + '_distanceBaseLoc'
+        if setup.endswith('hip'):
+            if not cmds.objExists(dist_setup_loc):
+                # if setup == 'extension_hip':  # Front/Back Hip Setup ---------------------------------------------
+
+                loc_base = cmds.spaceLocator(name=dist_setup_loc)[0]
+                rand_pos_start = random.random()*10
+                rand_pos_end = rand_pos_start + 1
+                distance_node = cmds.distanceDimension(endPoint=(rand_pos_end, rand_pos_end, rand_pos_end),
+                                                       startPoint=(rand_pos_start, rand_pos_start, rand_pos_start))
+                loc_start = cmds.listConnections(distance_node + '.startPoint')
+                loc_end = cmds.listConnections(distance_node + '.endPoint')
+                distance_none = cmds.rename(distance_node, side + '_' + setup + '_distanceNode')
+                loc_start = cmds.rename(loc_start, dist_setup_loc.replace('Base', 'Start'))
+                loc_end = cmds.rename(loc_end, dist_setup_loc.replace('Base', 'End'))
+
+                pelvis_jnt = cmds.listRelatives(driver_bound, parent=True)[0]
+                hip_knee_scale = dist_center_to_center(pelvis_jnt, driver_bound)
+
+                cmds.delete(cmds.parentConstraint(driver_bound, loc_base))
+                cmds.delete(cmds.parentConstraint(driver_bound, loc_start))
+                cmds.delete(cmds.parentConstraint(driver_bound, loc_end))
+                cmds.parent(loc_end, loc_base)
+                if setup == 'extension_hip':
+                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+                if setup == 'flexion_hip':
+                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+
+                if setup == 'abduction_hip':
+                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(90, loc_base, rotateY=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(-90, loc_base, rotateY=True, relative=True, objectSpace=True)
+
+                cmds.parent(loc_end, loc_base)
+                cmds.parent(loc_start, loc_base)
+                cmds.parentConstraint(driver_bound, loc_start, mo=True)
+                cmds.pointConstraint(driver_bound, loc_base, mo=True)
+
+                cmds.addAttr(loc_base, ln='normalizedDistance', at='double', k=True)
+                distance_range_node = cmds.createNode('remapValue', name=side + '_' + setup + '_range')
+                cmds.connectAttr(distance_none + '.distance', distance_range_node + '.inputValue')
+                cmds.setAttr(distance_range_node + '.inputMax', cmds.getAttr(distance_none + '.distance'))
+                cmds.setAttr(distance_range_node + '.outputMin', 1)
+                cmds.setAttr(distance_range_node + '.outputMax', 0)
+                cmds.connectAttr(distance_range_node + '.outValue', loc_base + '.normalizedDistance')
+
+
+        #     if setup == 'extension_hip':  # Front/Back Hip Setup ---------------------------------------------
+        #         # twist_aim_jnt = side + '_hip_jnt'
+        #         cmds.duplicate(twist_locker_base_jnt, name=rot_angle_parent, parentOnly=True)
+        #         cmds.delete(cmds.pointConstraint(twist_locker_base_jnt, rot_angle_parent))
+        #         dir_jnt = cmds.duplicate(rot_angle_parent,
+        #                                  name=rot_angle_child,
+        #                                  parentOnly=True)[0]
+        #         for dimension in ['x', 'y', 'z']:
+        #             cmds.setAttr(rot_angle_parent + '.r' + dimension, 0)
+        #             cmds.setAttr(dir_jnt + '.r' + dimension, 0)
+        #         cmds.parent(dir_jnt, rot_angle_parent)
+        #         cmds.parent(rot_angle_parent, twist_locker_base_jnt)
+        #         cmds.setAttr(dir_jnt + '.tz', dir_value * .5)
+        #         dir_loc_name = rot_angle_parent.replace(JNT_SUFFIX.capitalize(), '')
+        #         dir_loc = cmds.spaceLocator(name=dir_loc_name + 'Loc')[0]
+        #         dir_loc_no_z = cmds.spaceLocator(name=dir_loc_name + 'NoZLoc')[0]
+        #         dir_loc_base = cmds.spaceLocator(name=dir_loc_name + 'BaseLoc')[0]
+        #         dir_loc_no_z_ref = cmds.spaceLocator(name=dir_loc_name + 'NoZRefLoc')[0]
+        #         dir_loc_base_no_z_ref = cmds.spaceLocator(name=dir_loc_name + 'NoZRefBaseLoc')[0]
+        #         change_viewport_color(dir_loc, (1, 0, 1))
+        #         change_viewport_color(rot_angle_parent, (1, 1, 1))
+        #         change_viewport_color(dir_jnt, (1, 1, 1))
+        #
+        #         cmds.delete(cmds.parentConstraint(dir_jnt, dir_loc))
+        #         cmds.delete(cmds.pointConstraint(driver_bound, dir_loc_base))
+        #         cmds.move(-dir_value, dir_loc, moveY=True, relative=True, objectSpace=True)
+        #         cmds.parent(dir_loc_no_z, dir_loc_base)
+        #         cmds.delete(cmds.pointConstraint(dir_loc, dir_loc_no_z))
+        #         cmds.setAttr(dir_loc_no_z + '.tx', 0)
+        #         cmds.parent(dir_loc, dir_loc_no_z)
+        #
+        #         # cmds.parentConstraint(driver_bound, dir_loc_base, mo=True)
+        #         cmds.parent(dir_loc_base, twist_locker_base_jnt)
+        #         cmds.aimConstraint(rot_angle_parent, dir_jnt,
+        #                            aimVector=(0, 0, dir_value * -1),
+        #                            upVector=(0, dir_value * -1, 0),
+        #                            worldUpType="object",
+        #                            worldUpObject=dir_loc)
+        #         new_radius = cmds.getAttr(rot_angle_parent + '.radius') * .5
+        #         cmds.setAttr(rot_angle_parent + '.radius', new_radius)
+        #         cmds.setAttr(dir_jnt + '.radius', new_radius * .5)
+        #         # cmds.parent(dir_loc_base, automation_grp)
+        #         cmds.parent(rot_angle_parent, skeleton_grp)
+        #         pelvis_jnt = 'pelvis_' + JNT_SUFFIX
+        #         cmds.parentConstraint(pelvis_jnt, rot_angle_parent, mo=True)
+        #         # Setup No Z Reference
+        #         cmds.delete(cmds.pointConstraint(dir_loc_no_z, dir_loc_no_z_ref))
+        #         cmds.parentConstraint(pelvis_jnt, dir_loc_base_no_z_ref)
+        #         cmds.parent(dir_loc_no_z_ref, dir_loc_base_no_z_ref)
+        #         cmds.orientConstraint(dir_loc_no_z_ref, dir_loc_no_z)#, skip=('x', 'y'))
+        #         cmds.parent(dir_loc_base_no_z_ref, automation_grp)
+        #
+        # side_suffix = 'Abduction'
+        # if setup == 'side_hip':
+        #     rot_angle_parent = rot_angle_parent + side_suffix
+        #     rot_angle_child = rot_angle_parent.replace('upAim', 'dirAim')
+        #     if not cmds.objExists(rot_angle_parent):
+        #         # Outer/Inner Hip Setup ---------------------------------------------
+        #         cmds.duplicate(twist_locker_base_jnt, name=rot_angle_parent, parentOnly=True)
+        #         cmds.delete(cmds.pointConstraint(twist_locker_base_jnt, rot_angle_parent))
+        #         dir_jnt = cmds.duplicate(rot_angle_parent,
+        #                                  name=rot_angle_child,
+        #                                  parentOnly=True)[0]
+        #         for dimension in ['x', 'y', 'z']:
+        #             cmds.setAttr(rot_angle_parent + '.r' + dimension, 0)
+        #             cmds.setAttr(dir_jnt + '.r' + dimension, 0)
+        #         cmds.parent(dir_jnt, rot_angle_parent)
+        #         cmds.parent(rot_angle_parent, twist_locker_base_jnt)
+        #         cmds.setAttr(dir_jnt + '.ty', dir_value * .5)
+        #         dir_loc_name = rot_angle_parent.replace(JNT_SUFFIX.capitalize(), '')
+        #         dir_loc = cmds.spaceLocator(name=dir_loc_name + 'Loc')[0]
+        #         dir_loc_no_z = cmds.spaceLocator(name=dir_loc_name + 'NoZLoc')[0]
+        #         dir_loc_base = cmds.spaceLocator(name=dir_loc_name + 'BaseLoc')[0]
+        #         dir_loc_no_z_ref = cmds.spaceLocator(name=dir_loc_name + 'NoZRefLoc')[0]
+        #         dir_loc_base_no_z_ref = cmds.spaceLocator(name=dir_loc_name + 'NoZRefBaseLoc')[0]
+        #         change_viewport_color(dir_loc, (1, 0, 1))
+        #         change_viewport_color(rot_angle_parent, (1, 1, 1))
+        #         change_viewport_color(dir_jnt, (1, 1, 1))
+        #
+        #         cmds.delete(cmds.parentConstraint(dir_jnt, dir_loc))
+        #         cmds.delete(cmds.pointConstraint(driver_bound, dir_loc_base))
+        #         cmds.move(-dir_value, dir_loc, moveZ=True, relative=True, objectSpace=True)
+        #         cmds.parent(dir_loc_no_z, dir_loc_base)
+        #         cmds.delete(cmds.pointConstraint(dir_loc, dir_loc_no_z))
+        #         cmds.setAttr(dir_loc_no_z + '.tz', 0)
+        #         cmds.parent(dir_loc, dir_loc_no_z)
+        #
+        #         # cmds.parentConstraint(driver_bound, dir_loc_base, mo=True)
+        #         cmds.parent(dir_loc_base, twist_locker_base_jnt)
+        #         cmds.aimConstraint(rot_angle_parent, dir_jnt,
+        #                            aimVector=(0, dir_value * -1, 0),
+        #                            upVector=(0, 0, dir_value * -1),
+        #                            worldUpType="object",
+        #                            worldUpObject=dir_loc)
+        #         new_radius = cmds.getAttr(rot_angle_parent + '.radius') * .5
+        #         cmds.setAttr(rot_angle_parent + '.radius', new_radius)
+        #         cmds.setAttr(dir_jnt + '.radius', new_radius * .5)
+        #         print(dir_jnt)
+        #         # cmds.parent(dir_loc_base, automation_grp)
+        #         cmds.parent(rot_angle_parent, skeleton_grp)
+        #         pelvis_jnt = 'pelvis_' + JNT_SUFFIX
+        #         cmds.parentConstraint(pelvis_jnt, rot_angle_parent, mo=True)
+        #         # Setup No Z Reference
+        #         cmds.delete(cmds.pointConstraint(dir_loc_no_z, dir_loc_no_z_ref))
+        #         cmds.parentConstraint(pelvis_jnt, dir_loc_base_no_z_ref)
+        #         cmds.parent(dir_loc_no_z_ref, dir_loc_base_no_z_ref)
+        #         cmds.orientConstraint(dir_loc_no_z_ref, dir_loc_no_z)  # , skip=('x', 'y'))
+        #         cmds.parent(dir_loc_base_no_z_ref, automation_grp)
 
         # Visibility Setup
         cmds.setAttr(driver + '.drawStyle', 2)
@@ -698,11 +1211,16 @@ def create_corrective_setup():
         cmds.setAttr(subtract_rot_node + '.operation', 2)  # Subtract
         cmds.setAttr(subtract_sca_node + '.operation', 2)  # Subtract
 
-        # Create Basic Connections
+        # Create Basic Connections -----------------------------------------------------------------------
         if setup.endswith('wrist'):
             cmds.connectAttr(rot_angle_child + '.ry', range_node + '.inputValue')
         if setup.endswith('knee'):
             cmds.connectAttr(rot_angle_child + '.rz', range_node + '.inputValue')
+        if setup.endswith('hip'):
+            cmds.connectAttr(dist_setup_loc + '.normalizedDistance', range_node + '.inputValue')
+
+        # if setup == 'side_hip':
+        #     cmds.connectAttr(rot_angle_child + '.ry', range_node + '.inputValue')
 
         cmds.connectAttr(pose_loc + '.translate', subtract_pos_node + '.input3D[0]')
         cmds.connectAttr(pose_loc + '.rotate', subtract_rot_node + '.input3D[0]')
@@ -770,13 +1288,41 @@ def create_corrective_setup():
             cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
             cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1Z', force=True)
 
+        if setup.endswith('hip'):  # HIP Adjustments -------------------------
+            if 'frontHip_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2X', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                    cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Z', force=True)
+            if 'outerHip_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Y', 1)
+                    cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1Y', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Z', force=True)
+            if 'backHip_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                cmds.setAttr(reverse_rot_output + '.input2X', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Y', 1)
+                    cmds.setAttr(reverse_rot_output + '.input2Z', 1)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Z', force=True)
+
         cmds.connectAttr(reverse_rot_output + '.output', sum_rot_node + '.input3D[' + str(rot_next_slot) + ']')
         # Translate to Sum
         cmds.connectAttr(blend_pos_node + '.output', sum_pos_node + '.input3D[' + str(pos_next_slot) + ']')
         # Scale to Sum
         reverse_sca_output = driven_prefix.replace('driver' + JNT_SUFFIX.capitalize(), '') + name + '_scaleInbetween'
         reverse_sca_output = cmds.createNode('multiplyDivide', name=reverse_sca_output)
-        if setup == 'back_knee':
+        if setup == 'back_knee' or 'backHip_' in driven or 'frontHip_' in driven:
             cmds.connectAttr(blend_sca_node + '.outputB', reverse_sca_output + '.input1X', force=True)
             cmds.connectAttr(blend_sca_node + '.outputG', reverse_sca_output + '.input1Y', force=True)
             cmds.connectAttr(blend_sca_node + '.outputR', reverse_sca_output + '.input1Z', force=True)
@@ -883,19 +1429,32 @@ def merge_corrective_elements():
     cmds.delete(corrective_rig_grp)
 
 
+# Test it
 if __name__ == '__main__':
-    debugging = False
-    # debugging = True
-    # if debugging:
-    #     import gt_maya_utilities
-    #     gt_maya_utilities.gtu_reload_file()
-    #     # cmds.file(new=True, force=True)
+    debugging = True
+    if debugging:
+        # Get/Set Camera Pos/Rot
+        persp_pos = cmds.getAttr('persp.translate')[0]
+        persp_rot = cmds.getAttr('persp.rotate')[0]
+        import gt_maya_utilities
+        gt_maya_utilities.gtu_reload_file()
+        cmds.viewFit(all=True)
+        cmds.setAttr('persp.tx', persp_pos[0])
+        cmds.setAttr('persp.ty', persp_pos[1])
+        cmds.setAttr('persp.tz', persp_pos[2])
+        cmds.setAttr('persp.rx', persp_rot[0])
+        cmds.setAttr('persp.ry', persp_rot[1])
+        cmds.setAttr('persp.rz', persp_rot[2])
 
     create_corrective_proxy()
     create_corrective_setup()
     merge_corrective_elements()
 
-    # cmds.setAttr('main_ctrl.correctiveVisibility', 1)
-    # cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
-    #
+    if debugging:
+        cmds.setAttr('main_ctrl.correctiveVisibility', 1)
+        cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
+        cmds.setAttr('rig_setup_grp.v', 1)
+        # cmds.setAttr("left_hip_ctrl.rotateX", -90)
+        # cmds.setAttr("right_hip_ctrl.rotateX", -90)
+
 
