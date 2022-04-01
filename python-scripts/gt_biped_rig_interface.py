@@ -96,6 +96,10 @@
  1.3.19 - 2022-02-07
  Changed the default dictionaries so they don't use offset controls by default
 
+ 1.3.20 - 2022-03-17
+ Fixed a few PEP8 warnings (long lines)
+
+
  TODO:
     Created flip pose function
     Convert GUI to QT
@@ -124,7 +128,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.19"
+script_version = "1.3.20"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -270,15 +274,15 @@ gt_ab_ik_ctrls = {  # Arm
 gt_ab_ik_ctrls_default = copy.deepcopy(gt_ab_ik_ctrls)
 
 gt_ab_fk_ctrls = {  # Arm
-                   '_shoulder_ctrl': [invert_all, not_inverted],
-                   '_elbow_ctrl': [invert_all, not_inverted],
-                   '_wrist_ctrl': [invert_all, not_inverted],
-                    # Leg
-                   '_hip_ctrl': [invert_x, invert_yz],
-                   '_knee_ctrl': [invert_all, not_inverted],
-                   '_ankle_ctrl': [invert_all, not_inverted],
-                   '_ball_ctrl': [invert_all, not_inverted],
-                 }
+    '_shoulder_ctrl': [invert_all, not_inverted],
+    '_elbow_ctrl': [invert_all, not_inverted],
+    '_wrist_ctrl': [invert_all, not_inverted],
+    # Leg
+    '_hip_ctrl': [invert_x, invert_yz],
+    '_knee_ctrl': [invert_all, not_inverted],
+    '_ankle_ctrl': [invert_all, not_inverted],
+    '_ball_ctrl': [invert_all, not_inverted],
+}
 
 gt_ab_center_ctrls = ['cog_ctrl',
                       'cog_offsetCtrl',
@@ -338,7 +342,7 @@ def _get_persistent_settings_rig_interface():
                 for item in gt_custom_rig_interface_settings:
                     if stored_item == item:
                         gt_custom_rig_interface_settings[item] = stored_settings.get(stored_item)
-        except:
+        except Exception as e:
             print("Couldn't load persistent settings, try resetting it in the help menu.")
 
 
@@ -447,8 +451,8 @@ def build_gui_custom_rig_interface():
 
     def update_fk_ik_buttons():
         """
-        Updates the background color of the FK/IK buttons according to the value of the current influenceSwitch attribute.
-        This attempts to make the UI "aware" of the current state of the controls.
+        Updates the background color of the FK/IK buttons according to the value of the current influenceSwitch
+        attribute. This attempts to make the UI "aware" of the current state of the controls.
         """
         active_color = (.6, .6, .6)
         inactive_color = (.36, .36, .36)
@@ -576,10 +580,10 @@ def build_gui_custom_rig_interface():
         Gets the current frame and auto fills an integer field.
         
                 Parameters:
-                    target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the start or end integer field.
-                                                              Can only be "start" or "end". Anything else will be understood as "end".
-                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be stored or not
-                                                      This is used for secondary instances (multiple windows)
+                    target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the
+                    start or end integer field. Can only be "start" or "end". Anything else will be understood as "end".
+                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to
+                    be stored or not . This is used for secondary instances (multiple windows)
         
         """
         current_time = cmds.currentTime(q=True)
@@ -602,7 +606,7 @@ def build_gui_custom_rig_interface():
         time_slider = mel.eval('$tmpVar=$gPlayBackSlider')
         timeRange = cmds.timeControl(time_slider, q=True, rangeArray=True)
         if (timeRange[1] - timeRange[0] != 1):
-            timeRange = [timeRange[0], timeRange[1]+1]
+            timeRange = [timeRange[0], timeRange[1] + 1]
         cmds.intField(auto_key_start_int_field, e=True, value=timeRange[0])
         cmds.intField(auto_key_end_int_field, e=True, value=timeRange[1])
 
@@ -622,9 +626,7 @@ def build_gui_custom_rig_interface():
         end = cmds.playbackOptions(q=True, max=True)
 
         cmds.intField(auto_key_start_int_field, e=True, value=start)
-        cmds.intField(auto_key_end_int_field, e=True, value=end+1)
-
-
+        cmds.intField(auto_key_end_int_field, e=True, value=end + 1)
 
         update_stored_settings(is_instance)
 
@@ -712,7 +714,7 @@ def build_gui_custom_rig_interface():
             """ Closes help windows """
             if cmds.window(window_name, exists=True):
                 cmds.deleteUI(window_name, window=True)
-        # Custom Help Dialog Ends Here =================================================================================
+        # Custom Help Dialog Ends Here ================================================================================
 
     # Build UI.
     script_title = script_name
@@ -1217,7 +1219,8 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
 
     else:
         if ik_fk_dict.get('incompatible_attr_holder'):
-            auto_clavicle_value = cmds.getAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence')
+            auto_clavicle_value = cmds.getAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') +
+                                               '.autoClavicleInfluence')
             cmds.setAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence', 0)
 
         if keyframe:
@@ -1278,11 +1281,14 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
             print_inview_feedback()
 
         if ik_fk_dict.get('incompatible_attr_holder'):
-            cmds.setAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence', auto_clavicle_value)
+            cmds.setAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence',
+                         auto_clavicle_value)
             if auto_clavicle_value != 0:
                 # Print Feedback
                 cmds.inViewMessage(
-                    amg='</span><span style=\"color:#FF0000;text-decoration:underline;\">Warning:</span><span style=\"color:#FFFFFF;\"> Auto clavicle was activated, any unexpected pose offset is likely coming from this automation.',
+                    amg='</span><span style=\"color:#FF0000;text-decoration:underline;\">Warning:</span>'
+                        '<span style=\"color:#FFFFFF;\"> Auto clavicle was activated, any unexpected pose offset is '
+                        'likely coming from this automation.',
                     pos='botLeft', fade=True, alpha=.9, fadeStayTime=2000)
 
 
@@ -1355,7 +1361,8 @@ def _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''
     else:
         unique_message = '<' + str(random.random()) + '>'
         cmds.inViewMessage(
-            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span><span style=\"color:#FF0000;text-decoration:underline;\"> Reset!</span>',
+            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span>'
+                                 '<span style=\"color:#FF0000;text-decoration:underline;\"> Reset!</span>',
             pos='botLeft', fade=True, alpha=.9)
 
     for ctrl in available_ctrls:
@@ -1473,7 +1480,9 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
         if source_side == 'right':
             source_message = '(Right to Left)'
         cmds.inViewMessage(
-            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span><span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' + source_message,
+            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose </span>'
+                                 '<span style=\"color:#FF0000;text-decoration:underline;\"> '
+                                 'mirrored!</span> ' + source_message,
             pos='botLeft', fade=True, alpha=.9)
 
         if len(errors) != 0:
@@ -1556,8 +1565,10 @@ def _pose_export(namespace=''):
 
             unique_message = '<' + str(random.random()) + '>'
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Pose exported to </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(
-                    file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True,
+                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Pose exported to </span>'
+                                     '<span style=\"color:#FF0000;text-decoration:underline;\">' +
+                    os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>',
+                pos='botLeft', fade=True,
                 alpha=.9)
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
         except Exception as e:
@@ -1568,11 +1579,13 @@ def _pose_export(namespace=''):
 
 def _pose_import(debugging=False, debugging_path='', namespace=''):
     """
-    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls (exported using the "_pose_export" function)
+    Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls
+    (exported using the "_pose_export" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
     
     Args:
-        debugging (bool): If debugging, the function will attempt to auto load the file provided in the "debugging_path" parameter
+        debugging (bool): If debugging, the function will attempt to auto load the file provided in the
+                          "debugging_path" parameter
         debugging_path (string): Debugging path for the import function
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
@@ -1697,9 +1710,11 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
 
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(
-                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose imported from </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(
-                                pose_file) + '</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True,
-                            alpha=.9)
+                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose imported from </span>'
+                                                 '<span style=\"color:#FF0000;text-decoration:underline;\">' +
+                                os.path.basename(
+                                    pose_file) + '</span><span style=\"color:#FFFFFF;\">.</span>',
+                            pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Pose imported from the file "' + pose_file + '".')
 
                 except Exception as e:
@@ -1713,7 +1728,8 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
 def _pose_flip(namespace=''):
     """
     Flips the current pose (Essentially like a mirror in both sides at te same time)
-    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls (used to store a pose)
+    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls
+    (used to store a pose)
     
         Parameters:
             namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
@@ -2055,7 +2071,9 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
         if source_side == 'right':
             source_message = '(Right to Left)'
         cmds.inViewMessage(
-            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation </span><span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' + source_message,
+            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation </span>'
+                                 '<span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' +
+                source_message,
             pos='botLeft', fade=True, alpha=.9)
 
         if len(errors) != 0:
@@ -2074,7 +2092,7 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
 
 def _anim_export(namespace=''):
     """
-    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe (animation) data from the rig controls.
+    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe data from the rig controls.
 
         Parameters:
             namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
@@ -2151,8 +2169,10 @@ def _anim_export(namespace=''):
 
             unique_message = '<' + str(random.random()) + '>'
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Animation exported to </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(
-                    file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True,
+                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Animation exported to </span>'
+                                     '<span style=\"color:#FF0000;text-decoration:underline;\">' +
+                    os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>',
+                pos='botLeft', fade=True,
                 alpha=.9)
             sys.stdout.write('Animation exported to the file "' + pose_file + '".')
         except Exception as e:
@@ -2270,9 +2290,10 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
 
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(
-                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation imported from </span><span style=\"color:#FF0000;text-decoration:underline;\">' + os.path.basename(
-                                anim_file) + '</span><span style=\"color:#FFFFFF;\">.</span>', pos='botLeft', fade=True,
-                            alpha=.9)
+                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation imported from </span>'
+                                                 '<span style=\"color:#FF0000;text-decoration:underline;\">' +
+                                os.path.basename(anim_file) + '</span><span style=\"color:#FFFFFF;\">.</span>',
+                            pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Animation imported from the file "' + anim_file + '".')
 
                 except Exception as e:
@@ -2280,7 +2301,8 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
                     cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')
         except:
             file_exists = False
-            cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
+            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
+
 
 # Build UI
 if __name__ == '__main__':
