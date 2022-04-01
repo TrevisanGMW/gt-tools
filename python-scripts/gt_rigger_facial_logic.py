@@ -12,7 +12,7 @@
  Created all side GUI connections
 
  0.4 - 2022-02-06
- Inverted orientation of the right side controls so it's easy to mirror movements
+ Inverted orientation of the right side controls, so it's easy to mirror movements
 
  0.5 - 2022-02-07
  Create tongue joints, ctrls and side GUI connections
@@ -21,6 +21,11 @@
  Minor fixes to proxy generation
  Added fleshy eyes (eye rotation influence over eyelids)
 
+ 0.7 - 2022-03-17
+ Added a bigger range to eye controls (so you can open them wide now)
+
+ 0.8 - 2022-03-22
+ Fixed issue where the head_offset control wouldn't properly influence the facial controls
 
 """
 from gt_rigger_utilities import *
@@ -32,7 +37,7 @@ import random
 script_name = 'GT Facial Rigger'
 
 # Version:
-script_version = '0.6'
+script_version = '0.8'
 
 find_pre_existing_elements = True
 
@@ -95,7 +100,7 @@ def create_arched_control(end_joint, ctrl_name='', radius=0.5, create_offset_grp
         end_joint: Name of the end joint for the system (two joints are necessary, base and end)
         ctrl_name: Name of the control to be generated
         radius: Radius of the new control
-        create_offset_grp: Whether or not to create an offset group between the control and its offset group
+        create_offset_grp: Whether to create an offset group between the control and its offset group
         invert_orientation: Inverts the orientation of the control (helpful for when creating the right side ctrl)
 
     Returns: A tuple with ("ctrl", "ctrl_grp", "trans_loc", "trans_loc_grp", "end_joint", "offset_grp")
@@ -2080,12 +2085,35 @@ def create_face_controls():
     cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
 
     # Flesh Eyes Hierarchy
-    if cmds.objExists('head_offsetCtrl'):
+    head_offset_ctrl = 'head_offsetCtrl'
+    if cmds.objExists(head_offset_ctrl):
         for obj in parent_to_head:
-            cmds.parent(obj, 'head_offsetCtrl')
+            enforce_parent(obj, head_offset_ctrl)
     else:
         for obj in parent_to_head:
-            cmds.parent(obj, head_ctrl)
+            enforce_parent(obj, head_ctrl)
+
+    parent_to_head_offset = [mouth_ctrls_grp,
+                             mouth_data_grp,
+                             jaw_ctrls_grp,
+                             main_mouth_ctrl_grp,
+                             left_eyebrow_ctrls_grp,
+                             left_eyebrow_data_grp,
+                             left_eyebrow_ctrl_grp,
+                             right_eyebrow_ctrls_grp,
+                             right_eyebrow_data_grp,
+                             right_eyebrow_ctrl_grp,
+                             left_eyelids_ctrls_grp,
+                             left_eyelids_data_grp,
+                             right_eyelids_ctrls_grp,
+                             right_eyelids_data_grp,
+                             facial_gui_grp]
+
+    # Check if Head offset control is available for re-parenting
+    head_offset_ctrl_data = 'head_offsetDataGrp'
+    if cmds.objExists(head_offset_ctrl_data):
+        for obj in parent_to_head_offset:
+            enforce_parent(obj, head_offset_ctrl_data)
 
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
@@ -2140,3 +2168,5 @@ if __name__ == '__main__':
     create_face_proxy()
     create_face_controls()
     merge_facial_elements()
+
+    cmds.setAttr('head_ctrl.showOffsetCtrl', 1)
