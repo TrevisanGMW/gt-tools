@@ -34,7 +34,7 @@ class GTBipedRiggerData:
     script_name = 'GT Auto Biped Rigger'
 
     # Version:
-    script_version = '1.9.7'
+    script_version = '1.9.8'
 
     # Permanent Settings
     option_var = 'gt_auto_biped_rigger_setup'
