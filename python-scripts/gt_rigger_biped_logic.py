@@ -42,13 +42,17 @@
  v1.1.9 - 2022-03-08
  Added inherit head roll and converge options to the eyes
 
- v1.1.10 - 2022-03-14
+ v1.1.10 - 2022-03-15
  Changed the shape of the spine controls
  Changed the auto rotate spine attribute names to be the same
+ Added shape switching system to FK spine controls
+ Updated automated generated chest IK control for a better position prediction
+ Changed the proxy skeleton (moved clavicles closer to one another and spine closer to hip)
 
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
+from gt_shape_offset import offset_curve_shape
 import maya.cmds as cmds
 import random
 import json
@@ -93,19 +97,19 @@ def create_proxy(biped_data):
     spine02_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine02_proxy_crv'), 0.5)
     spine02_proxy_grp = cmds.group(empty=True, world=True, name=spine02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine02_proxy_crv, spine02_proxy_grp)
-    cmds.move(0, 108.2, 0, spine02_proxy_grp)
+    cmds.move(0, 104.5, 0, spine02_proxy_grp)
 
     # Spine 3
     spine03_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine03_proxy_crv'), 0.5)
     spine03_proxy_grp = cmds.group(empty=True, world=True, name=spine03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine03_proxy_crv, spine03_proxy_grp)
-    cmds.move(0, 117.8, 0, spine03_proxy_grp)
+    cmds.move(0, 109.5, 0, spine03_proxy_grp)
 
     # Spine 4
     spine04_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine04_proxy_crv'), 1)
     spine04_proxy_grp = cmds.group(empty=True, world=True, name=spine04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine04_proxy_crv, spine04_proxy_grp)
-    cmds.move(0, 127.5, 0, spine04_proxy_grp)
+    cmds.move(0, 114.5, 0, spine04_proxy_grp)
 
     # Neck Base
     neck_base_proxy_crv = create_joint_curve(biped_data.elements_default.get('neck_base_proxy_crv'), .5)
@@ -161,7 +165,7 @@ def create_proxy(biped_data):
                                                              .5)
     left_clavicle_proxy_grp = cmds.group(empty=True, world=True, name=left_clavicle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_clavicle_proxy_crv, left_clavicle_proxy_grp)
-    cmds.move(7.3, 130.4, 0, left_clavicle_proxy_grp)
+    cmds.move(3, 130.4, 0, left_clavicle_proxy_grp)
 
     # Left Shoulder
     left_shoulder_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_shoulder_proxy_crv'), .5)
@@ -312,7 +316,7 @@ def create_proxy(biped_data):
     right_clavicle_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_clavicle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_clavicle_proxy_crv, right_clavicle_proxy_grp)
-    cmds.move(-7.3, 130.4, 0, right_clavicle_proxy_grp)
+    cmds.move(-3, 130.4, 0, right_clavicle_proxy_grp)
 
     # Right Shoulder
     right_shoulder_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_shoulder_proxy_crv'), .5)
@@ -2424,7 +2428,7 @@ def create_controls(biped_data):
 
     # Cog In-Between Offset
     cog_offset_ctrl = \
-    cmds.duplicate(cog_ctrl, name=cog_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize()))[0]
+        cmds.duplicate(cog_ctrl, name=cog_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize()))[0]
     cmds.deleteAttr(cog_offset_ctrl, at='showScaleCtrl')
     cmds.setAttr(cog_offset_ctrl + '.scaleX', .9)
     cmds.setAttr(cog_offset_ctrl + '.scaleY', .9)
@@ -2456,7 +2460,7 @@ def create_controls(biped_data):
     cmds.addAttr(cog_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(cog_ctrl + '.showOffsetCtrl', cog_offset_ctrl + '.v', f=True)
 
-    #### End Cog In-Between Offset
+    # #### End Cog In-Between Offset
 
     # Hip Control
     hip_ctrl_a = cmds.curve(name=rig_joints.get('hip_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
@@ -2552,7 +2556,7 @@ def create_controls(biped_data):
     cmds.connectAttr(hip_ctrl + '.showOffsetCtrl', hip_offset_ctrl + '.v', f=True)
     # #### End Chest In-Between Offset
 
-    # Spine01 Control @@@
+    # Spine01 Control
     spine01_ctrl_a = cmds.curve(name=rig_joints.get('spine01_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
                                 p=[[-0.087, 0.604, 0.768], [0.087, 0.604, 0.768], [0.087, 0.604, -0.768],
                                    [-0.087, 0.604, -0.768], [-0.087, 0.604, 0.768], [-0.087, -0.604, 0.768],
@@ -4173,7 +4177,7 @@ def create_controls(biped_data):
     setup_shape_switch(right_wrist_ik_ctrl)
 
     # Right Wrist In-Between Offset
-    right_wrist_offset_ik_ctrl = right_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX,'_offset' + CTRL_SUFFIX.capitalize())
+    right_wrist_offset_ik_ctrl = right_wrist_ik_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize())
     right_wrist_offset_ik_ctrl = cmds.duplicate(right_wrist_ik_ctrl, name=right_wrist_offset_ik_ctrl)[0]
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(right_wrist_offset_ik_ctrl + '.scaleY', .9)
@@ -5382,6 +5386,9 @@ def create_controls(biped_data):
 
     change_viewport_color(chest_ribbon_ctrl, (1, 1, 0))
 
+    # Create Duplicate for FK Global Control
+    chest_global_fk_ctrl = cmds.duplicate(chest_ribbon_ctrl, name='chest_global_fk_' + CTRL_SUFFIX)[0]
+
     # Chest In-Between Offset
     chest_ribbon_offset_ctrl = cmds.duplicate(chest_ribbon_ctrl,
                                               name=chest_ribbon_ctrl.replace('_' + CTRL_SUFFIX, '_offset' +
@@ -5417,7 +5424,6 @@ def create_controls(biped_data):
     # ### End Chest In-Between Offset
 
     # Chest Adjustment Ctrl
-    adj_ctrl_color = (.52, .1, .78)
     chest_ribbon_adjustment_ctrl_a = cmds.curve(name=chest_ribbon_ctrl.replace('_ribbon_', '_ribbon_adjustment_'),
                                                 p=[[0.0, 0.0, 0.0], [0.0, -1.794, 0.0], [0.067, -1.803, 0.0],
                                                    [0.128, -1.829, 0.0], [0.181, -1.869, 0.0], [0.222, -1.922, 0.0],
@@ -5465,7 +5471,7 @@ def create_controls(biped_data):
         cmds.rotate(0, -90, -90, chest_ribbon_adjustment_ctrl_grp, os=True, relative=True)
 
     cmds.parentConstraint(chest_ribbon_adjustment_ctrl, ribbon_spine04_jnt[0], mo=True)
-    change_viewport_color(chest_ribbon_adjustment_ctrl, adj_ctrl_color)
+    change_viewport_color(chest_ribbon_adjustment_ctrl, AUTO_CTRL_COLOR)
     cmds.parent(chest_ribbon_adjustment_ctrl_grp,
                 chest_ribbon_offset_ctrl_grp)  # Make Chest Control the main driver
     cmds.parent(chest_pivot_data_grp, chest_pivot_parent_grp)
@@ -5477,6 +5483,27 @@ def create_controls(biped_data):
     cmds.parentConstraint(chest_ribbon_offset_ctrl, chest_pivot_input_grp, mo=True)
     cmds.pointConstraint(chest_pivot_input_grp, chest_pivot_grp, mo=True)
     cmds.orientConstraint(chest_pivot_input_grp, chest_pivot_data_grp, mo=True)
+
+    # Chest Curve Shape Reposition
+    # Y Offset
+    temp_clavicle_average_grp = cmds.group(name='temp_dir_' + str(random.random()), world=True, empty=True)
+    cmds.delete(cmds.pointConstraint([rig_joints.get('right_clavicle_jnt'), rig_joints.get('left_clavicle_jnt')],
+                                     temp_clavicle_average_grp))
+    chest_ctrl_y_offset = dist_center_to_center(temp_clavicle_average_grp, rig_joints.get('spine04_jnt'))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('spine04_jnt'), temp_clavicle_average_grp, skip=['x', 'z']))
+    cv_pos_bottom = cmds.getAttr(chest_ribbon_ctrl + '.cv[0]')[1]
+    cv_pos_top = cmds.getAttr(chest_ribbon_ctrl + '.cv[1]')[1]
+    chest_ctrl_y_offset = chest_ctrl_y_offset - (cv_pos_bottom[1] + cv_pos_top[1])*1.3
+
+    # Z Offset
+    chest_ctrl_z_offset = dist_center_to_center(temp_clavicle_average_grp, rig_joints.get('spine04_jnt'))
+    z_original_difference = cmds.xform(chest_ribbon_ctrl, q=True, ws=True, t=True)
+    z_offset_difference = cmds.xform(temp_clavicle_average_grp, q=True, ws=True, t=True)
+    if z_offset_difference[2] < z_original_difference[2]:
+        chest_ctrl_z_offset = -chest_ctrl_z_offset
+    offset_curve_shape([chest_ribbon_ctrl, chest_ribbon_offset_ctrl, chest_global_fk_ctrl],
+                       [0, chest_ctrl_y_offset, chest_ctrl_z_offset*.5])
+    cmds.delete(temp_clavicle_average_grp)
 
     # Spine Ctrl
     spine_ribbon_ctrl = cmds.curve(name=ribbon_spine02_jnt[0].replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
@@ -5504,7 +5531,7 @@ def create_controls(biped_data):
         cmds.rotate(0, -90, -90, spine_ribbon_ctrl_grp, os=True, relative=True)
 
     cmds.parentConstraint(spine_ribbon_ctrl, ribbon_spine02_jnt[0], mo=True)
-    change_viewport_color(spine_ribbon_ctrl, adj_ctrl_color)
+    change_viewport_color(spine_ribbon_ctrl, AUTO_CTRL_COLOR)
 
     # Cog Ctrl
     cog_ribbon_ctrl = cmds.curve(name=ribbon_cog_jnt[0].replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
@@ -5532,7 +5559,7 @@ def create_controls(biped_data):
         cmds.rotate(0, -90, -90, cog_ribbon_ctrl_grp, os=True, relative=True)
 
     cmds.parentConstraint(cog_ribbon_ctrl, ribbon_cog_jnt[0], mo=True)
-    change_viewport_color(cog_ribbon_ctrl, adj_ctrl_color)
+    change_viewport_color(cog_ribbon_ctrl, AUTO_CTRL_COLOR)
 
     # Chest Ribbon Controls Visibility of Cog and Spine Curves
     cmds.addAttr(chest_ribbon_ctrl, ln='showAdjustmentControls', at='bool', k=True)
@@ -5598,19 +5625,6 @@ def create_controls(biped_data):
                  niceName='Rotate Order')
     cmds.connectAttr(spine02_ctrl + '.rotationOrder', spine02_ctrl + '.rotateOrder', f=True)
 
-    cmds.addAttr(spine02_ctrl, ln='parentInheritRotate', at='bool', k=True, niceName='Auto Rotate Spine 01')
-    cmds.setAttr(spine02_ctrl + '.parentInheritRotate', 1)
-    cmds.connectAttr(spine02_ctrl + '.parentInheritRotate', spine01_condition_node + '.firstTerm', f=True)
-
-    cmds.addAttr(spine02_ctrl, ln='spine01Visibility', at='bool', k=True, niceName='Visibility Spine 01')
-
-    shapes = cmds.listRelatives(spine01_ctrl, s=True, f=True) or []
-    for shape in shapes:
-        cmds.setAttr(shape + '.overrideEnabled', 1)
-        cmds.setAttr(shape + '.overrideRGBColors', 1)
-        cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
-        cmds.connectAttr(spine02_ctrl + '.spine01Visibility', shape + '.overrideVisibility', f=True)
-
     # FK Spine 02
     cmds.parentConstraint(spine02_ctrl, fk_spine02_jnt, mo=True)
 
@@ -5643,21 +5657,31 @@ def create_controls(biped_data):
                  niceName='Rotate Order')
     cmds.connectAttr(spine04_ctrl + '.rotationOrder', spine04_ctrl + '.rotateOrder', f=True)
 
-    cmds.addAttr(spine04_ctrl, ln='parentInheritRotate', at='bool', k=True, niceName='Auto Rotate Spine 03')
-    cmds.setAttr(spine04_ctrl + '.parentInheritRotate', 1)
-    cmds.connectAttr(spine04_ctrl + '.parentInheritRotate', spine03_condition_node + '.firstTerm', f=True)
-
-    cmds.addAttr(spine04_ctrl, ln='spine03Visibility', at='bool', k=True, niceName='Visibility Spine 03')
-
-    shapes = cmds.listRelatives(spine03_ctrl, s=True, f=True) or []
-    for shape in shapes:
-        cmds.setAttr(shape + '.overrideEnabled', 1)
-        cmds.setAttr(shape + '.overrideRGBColors', 1)
-        cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
-        cmds.connectAttr(spine04_ctrl + '.spine03Visibility', shape + '.overrideVisibility', f=True)
-
     # FK Spine 04
     cmds.parentConstraint(spine04_ctrl, fk_spine04_jnt, mo=True)  # Automated
+
+    # FK Global Chest Ctrl Setup
+    change_viewport_color(chest_global_fk_ctrl, AUTO_CTRL_COLOR)
+    chest_global_fk_ctrl_grp = cmds.group(name=chest_global_fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(chest_global_fk_ctrl, chest_global_fk_ctrl_grp))
+    cmds.parent(chest_global_fk_ctrl, chest_global_fk_ctrl_grp)
+    cmds.parent(chest_global_fk_ctrl_grp, spine04_ctrl)
+    chest_offset_groups = []
+    chest_offset_tag = 'Chest'
+    spine01_ctrl_offset_grp = create_inbetween(spine01_ctrl, offset_suffix=chest_offset_tag)
+    spine02_ctrl_offset_grp = create_inbetween(spine02_ctrl, offset_suffix='Offset' + chest_offset_tag)
+    spine03_ctrl_offset_grp = create_inbetween(spine03_ctrl, offset_suffix=chest_offset_tag)
+    spine04_ctrl_offset_grp = create_inbetween(spine04_ctrl, offset_suffix='Offset' + chest_offset_tag)
+    chest_offset_groups.append(spine01_ctrl_offset_grp)
+    chest_offset_groups.append(spine02_ctrl_offset_grp)
+    chest_offset_groups.append(spine03_ctrl_offset_grp)
+    chest_offset_groups.append(spine04_ctrl_offset_grp)
+    for grp in chest_offset_groups:
+        cmds.connectAttr(chest_global_fk_ctrl + '.rotate', grp + '.rotate')
+        cmds.connectAttr(chest_global_fk_ctrl + '.translate', grp + '.translate')
+        change_outliner_color(grp, AUTO_CTRL_COLOR)
+    setup_shape_switch(chest_global_fk_ctrl, attr='controlShape', shape_names=['box', 'pin'], shape_enum=['Box', 'Pin'])
+    lock_hide_default_attr(chest_global_fk_ctrl, rotate=False, translate=False)
 
     # FK IK Spine Switcher
     cmds.addAttr(cog_ctrl, ln='switchAttributes', at='enum', en='-------------:', keyable=True)
@@ -5665,9 +5689,45 @@ def create_controls(biped_data):
     cmds.addAttr(cog_ctrl, ln='spineInfluenceSwitch', at='double', k=True, maxValue=1, minValue=0)
     cmds.addAttr(cog_ctrl, ln='autoVisibility', at='bool', k=True)
     cmds.addAttr(cog_ctrl, ln='systemVisibility', at='enum', k=True, en="FK:IK:")
+    cmds.addAttr(cog_ctrl, ln='baseFKCtrlsVisibility', at='bool', k=True,
+                 niceName='Base FK Visibility')
+    cmds.addAttr(cog_ctrl, ln='additionalFKCtrlsVisibility', at='bool', k=True,
+                 niceName='Additional FK Visibility')
+    cmds.addAttr(cog_ctrl, ln='additionalFKCtrlsAutoRotate', at='bool', k=True,
+                 niceName='Additional Auto Rotate')
+    cmds.addAttr(cog_ctrl, ln='globalFKCtrlVisibility', at='bool', k=True,
+                 niceName='Global FK Ctrl Visibility')
     cmds.setAttr(cog_ctrl + '.autoVisibility', 1)
     cmds.setAttr(cog_ctrl + '.systemVisibility', 1)
     cmds.setAttr(cog_ctrl + '.spineInfluenceSwitch', 1)  # Start as IK
+    cmds.setAttr(cog_ctrl + '.baseFKCtrlsVisibility', 1)
+    # cmds.setAttr(cog_ctrl + '.additionalFKCtrlsVisibility', 1) # Start With Additional Visible
+    # cmds.setAttr(cog_ctrl + '.globalFKCtrlVisibility', 1) # Start with Global Visible
+    cmds.setAttr(cog_ctrl + '.additionalFKCtrlsAutoRotate', 1)
+    cmds.connectAttr(cog_ctrl + '.additionalFKCtrlsAutoRotate', spine01_condition_node + '.firstTerm', f=True)
+    cmds.connectAttr(cog_ctrl + '.additionalFKCtrlsAutoRotate', spine03_condition_node + '.firstTerm', f=True)
+
+    # Setup Base Ctrls Visibility
+    shapes_spine_02 = cmds.listRelatives(spine02_ctrl, s=True, f=True) or []
+    shapes_spine_04 = cmds.listRelatives(spine04_ctrl, s=True, f=True) or []
+    shapes = shapes_spine_02 + shapes_spine_04
+    for shape in shapes:
+        cmds.setAttr(shape + '.overrideEnabled', 1)
+        cmds.setAttr(shape + '.overrideRGBColors', 1)
+        cmds.setAttr(shape + '.overrideColorRGB', CENTER_CTRL_COLOR[0], CENTER_CTRL_COLOR[1], CENTER_CTRL_COLOR[2])
+        cmds.connectAttr(cog_ctrl + '.baseFKCtrlsVisibility', shape + '.overrideVisibility', f=True)
+    # Setup In-Between and Global Ctrls Visibility
+    shapes_spine_03 = cmds.listRelatives(spine03_ctrl, s=True, f=True) or []
+    shapes_spine_01 = cmds.listRelatives(spine01_ctrl, s=True, f=True) or []
+    shapes = shapes_spine_03 + shapes_spine_01
+    for shape in shapes:
+        cmds.setAttr(shape + '.overrideEnabled', 1)
+        cmds.setAttr(shape + '.overrideRGBColors', 1)
+        cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
+        cmds.connectAttr(cog_ctrl + '.additionalFKCtrlsVisibility', shape + '.overrideVisibility', f=True)
+    cmds.connectAttr(cog_ctrl + '.globalFKCtrlVisibility', chest_global_fk_ctrl_grp + '.v', f=True)
+
+
 
     spine_switch_condition_node = cmds.createNode('condition', name='spine_switchVisibility_' + AUTO_SUFFIX)
     spine_visibility_condition_node = cmds.createNode('condition', name='spine_autoVisibility_' + AUTO_SUFFIX)
@@ -6863,6 +6923,7 @@ def create_controls(biped_data):
         # Knuckle Compression System
         knuckle_multiply_node = ''
         knuckle_rot_multiply_node = ''
+        knuckle_sum_node = ''
         if 'thumb' not in ctrl_offset:
             knuckle_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'compression_multiply')
             knuckle_sum_node = cmds.createNode('plusMinusAverage', name=finger_name + 'compression_sum')
@@ -8531,7 +8592,7 @@ def create_controls(biped_data):
     for obj in [left_hip_ctrl, left_ankle_ctrl, left_ball_ctrl, left_clavicle_ctrl, left_shoulder_ctrl, left_wrist_ctrl,
                 right_hip_ctrl, right_ankle_ctrl, right_ball_ctrl, right_clavicle_ctrl, right_shoulder_ctrl,
                 right_wrist_ctrl, spine01_ctrl, spine02_ctrl, spine03_ctrl, spine04_ctrl, neck_base_ctrl,
-                neck_mid_ctrl, hip_ctrl, jaw_ctrl, head_ctrl]:
+                neck_mid_ctrl, hip_ctrl, jaw_ctrl, head_ctrl, chest_global_fk_ctrl]:
 
         if not obj.startswith('spine02') and not obj.startswith('spine04') and not obj.startswith('neckBase'):
             if not cmds.attributeQuery(CUSTOM_ATTR_SEPARATOR, node=obj, exists=True):
@@ -9676,9 +9737,9 @@ def create_controls(biped_data):
         new_skeleton_suffix = 'game'
         duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix,
                                                                     rig_joints_default.get('main_jnt'))
-        sorted_no_ssc_joints = attach_no_ssc_skeleton(duplicated_joints, game_root_jnt,
-                                                      rig_joints_default.get('main_jnt'), main_ctrl,
-                                                      new_skeleton_suffix)
+        attach_no_ssc_skeleton(duplicated_joints, game_root_jnt,
+                               rig_joints_default.get('main_jnt'),
+                               main_ctrl, new_skeleton_suffix)
 
     # ################ Store Created Joints #################
     rig_joints_default['left_forearm_jnt'] = left_forearm_jnt
@@ -9709,7 +9770,7 @@ def create_controls(biped_data):
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
         debugging_display_lra = False
-        debugging_ikfk_jnts_visible = True
+        debugging_ikfk_jnts_visible = False
         debugging_offset_ctrls_visible = False
         debugging_annotate = False
         debugging_show_fk_fingers = False
@@ -9718,8 +9779,6 @@ def create_controls(biped_data):
 
         if debugging_show_fk_spine:
             cmds.setAttr(cog_ctrl + '.spineInfluenceSwitch', 0)
-            cmds.setAttr(spine02_ctrl + '.spine01Visibility', 1)
-            cmds.setAttr(spine04_ctrl + '.spine03Visibility', 1)
 
         if debugging_ikfk_jnts_visible:
             make_visible_obj = [hip_switch_jnt,  # Makes Hip IK/FK joints visible
@@ -9862,6 +9921,7 @@ def build_biped_rig(create_rig_ctrls=True):
     biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
     biped_obj.settings['worldspace_ik_orient'] = False
+    biped_obj.settings['simplify_spine'] = False
 
     # Get/Set Camera Pos/Rot
     if biped_obj.debugging and biped_obj.debugging_force_new_scene:
@@ -9883,8 +9943,9 @@ def build_biped_rig(create_rig_ctrls=True):
     # Use Proxy Template
     biped_obj.debugging_import_proxy = True
     import gt_rigger_biped_gui
-    gt_rigger_biped_gui.import_proxy_pose(debugging=biped_obj.debugging_import_proxy,
-                                          debugging_path=biped_obj.debugging_import_path)
+    if biped_obj.debugging_import_proxy:
+        gt_rigger_biped_gui.import_proxy_pose(debugging=biped_obj.debugging_import_proxy,
+                                              debugging_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
@@ -9894,5 +9955,3 @@ def build_biped_rig(create_rig_ctrls=True):
 # Test it
 if __name__ == '__main__':
     build_biped_rig()
-
-
