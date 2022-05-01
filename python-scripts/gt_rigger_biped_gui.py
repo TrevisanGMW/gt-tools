@@ -21,7 +21,7 @@
  1.2 - 2021-01-04
  Changed stretchy system so it doesn't use floatConstant nodes
  Updated the import proxy function so it doesn't give an error when importing a different scale
- Added utility to automatically create and define a humanik character from the rig
+ Added utility to automatically create and define a HumanIK character from the rig
  Added utility to toggle the visibility of all joint labels
  Created utility to add a seamless FK/IK switch script to the current shelf
  "followHip" (ankle proxies) attribute is not longer activated by default
@@ -30,19 +30,19 @@
  1.3 - 2021-01-19
  Updated help window to better accommodate a high volume of text
  Added new utility to extract proxy pose from generated rig
- Updated export/import functions to be compatible with worldspace
+ Updated export/import functions to be compatible with world-space
  Added version check to importer for backwards compatibility
  Added auto load for HumanIK plugin in case it's not loaded when attaching rig
  Patched a few small bugs, added colors to a few controls and updated the help text
  Changed forearm joints hierarchy so the rig can be easily exported in to game engines
  Moved the mechanics of the roll joints into the rig setup folder
  Updated the order of the groups inside the rig setup folder
- Addded joint inflation/deflation system
- Switch the order and name of a few custom attributes (none of the keyable ones)
+ Added joint inflation/deflation system
+ Switch the order and name of a few custom attributes (none of the keyable ones
  Switch the order of a few custom attributes (influenceSwitch was moved up)
  Added activation attribute to the main control for the joint inflation/deflation system
  Added counter rotation system to neckMid control so the shape stays in place when automated
- Fixed an issue where the right thumb wouldn't orient corrently
+ Fixed an issue where the right thumb wouldn't orient correctly
  Added finger abduction/adduction control and updated the name of a few attributes
     
  1.4 - 2021-01-25
@@ -93,7 +93,7 @@
  1.7.4 - 2021-10-10
  Fixed an issue where the rig would start flickering when following motion capture using a custom rig setup (HumanIK)
  Modified inflation/deflation system to use controls instead of inverseMatrix nodes (less convenient, but more robust)
- Removed extraction of hip rotation from the "Extra Proxy Pose From Generated Rig" to fix an issue where it would sometimes be flipped
+ Removed extraction of hip rotation from the "Extra Proxy Pose From Generated Rig" to fix flipped issue
  Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
  Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
  
@@ -171,7 +171,7 @@
  
  1.8.1 - 2021-11-16
  Brought back the follow wrist option for the elbow pole vector controls
- Fixed an issue where the elbow controls (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
+ Fixed elbow control issue (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
  Slightly changed the shape of the IK spine control for a better starting point
  Moved the pole vector controls little bit further away during creation
  Created pole vector twist and parenting system for legs
@@ -198,7 +198,7 @@
  Removed tagged version of the rotation order enum
  
  1.8.7 - 2021-11-25
- Changed the general scale calculation sligtly
+ Changed the general scale calculation slightly
  Fixed issue where spine04_ctrl curve would be rotated incorrectly when using uniform orients 
  
  1.8.8 - 2021-11-29
