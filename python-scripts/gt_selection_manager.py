@@ -14,7 +14,7 @@
  Added window icon
  
  1.2.1 - 2020-06-25
- Fixed minor issue with nonunique names when listing shapes
+ Fixed minor issue with non-unique names when listing shapes
  
  1.3 - 20202-10-25
  Added more documentation
