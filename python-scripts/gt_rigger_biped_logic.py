@@ -49,6 +49,9 @@
  Updated automated generated chest IK control for a better position prediction
  Changed the proxy skeleton (moved clavicles closer to one another and spine closer to hip)
 
+ v1.1.11 - 2022-04-20
+ Added Z limit to auto clavicle system
+ Added ramp-up system to auto clavicle system
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -312,7 +315,8 @@ def create_proxy(biped_data):
 
     # ################# Right Arm #################
     # Right Clavicle
-    right_clavicle_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_clavicle_proxy_crv'), .5)
+    right_clavicle_proxy_crv = create_directional_joint_curve(
+        biped_data.elements_default.get('right_clavicle_proxy_crv'), .5)
     right_clavicle_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_clavicle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_clavicle_proxy_crv, right_clavicle_proxy_grp)
@@ -388,29 +392,33 @@ def create_proxy(biped_data):
     cmds.move(-77.5, 130.4, 3.5, right_index04_proxy_grp)
 
     # Right Middle
-    right_middle01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_middle01_proxy_crv'),
-                                                              proxy_finger_scale)
+    right_middle01_proxy_crv = create_directional_joint_curve(
+        biped_data.elements_default.get('right_middle01_proxy_crv'),
+        proxy_finger_scale)
     right_middle01_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_middle01_proxy_crv, right_middle01_proxy_grp)
     cmds.move(-66.9, 130.4, 1.1, right_middle01_proxy_grp)
 
-    right_middle02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_middle02_proxy_crv'),
-                                                              proxy_finger_scale)
+    right_middle02_proxy_crv = create_directional_joint_curve(
+        biped_data.elements_default.get('right_middle02_proxy_crv'),
+        proxy_finger_scale)
     right_middle02_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_middle02_proxy_crv, right_middle02_proxy_grp)
     cmds.move(-70.7, 130.4, 1.1, right_middle02_proxy_grp)
 
-    right_middle03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_middle03_proxy_crv'),
-                                                              proxy_finger_scale)
+    right_middle03_proxy_crv = create_directional_joint_curve(
+        biped_data.elements_default.get('right_middle03_proxy_crv'),
+        proxy_finger_scale)
     right_middle03_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_middle03_proxy_crv, right_middle03_proxy_grp)
     cmds.move(-74.4, 130.4, 1.1, right_middle03_proxy_grp)
 
-    right_middle04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_middle04_proxy_crv'),
-                                                              proxy_end_joint_scale)
+    right_middle04_proxy_crv = create_directional_joint_curve(
+        biped_data.elements_default.get('right_middle04_proxy_crv'),
+        proxy_end_joint_scale)
     right_middle04_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_middle04_proxy_crv, right_middle04_proxy_grp)
@@ -716,7 +724,8 @@ def create_proxy(biped_data):
 
     cmds.pointConstraint(left_shoulder_proxy_crv, left_elbow_upvec_loc_grp, skip=['x', 'z'])
 
-    left_elbow_divide_node = cmds.createNode('multiplyDivide', name=biped_data.elements_default.get('left_elbow_divide_node'))
+    left_elbow_divide_node = cmds.createNode('multiplyDivide',
+                                             name=biped_data.elements_default.get('left_elbow_divide_node'))
 
     cmds.setAttr(left_elbow_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(left_elbow_divide_node + '.input2X', -2)
@@ -799,7 +808,8 @@ def create_proxy(biped_data):
     cmds.parent(left_knee_dir_loc[0], main_crv)
     cmds.parent(left_knee_aim_loc[0], left_knee_dir_loc[0])
 
-    left_knee_divide_node = cmds.createNode('multiplyDivide', name=biped_data.elements_default.get('left_knee_divide_node'))
+    left_knee_divide_node = cmds.createNode('multiplyDivide',
+                                            name=biped_data.elements_default.get('left_knee_divide_node'))
     cmds.setAttr(left_knee_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(left_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(left_ankle_proxy_crv + '.tx', left_knee_divide_node + '.input1X')
@@ -828,7 +838,8 @@ def create_proxy(biped_data):
     cmds.parent(right_knee_dir_loc[0], main_crv)
     cmds.parent(right_knee_aim_loc[0], right_knee_dir_loc[0])
 
-    right_knee_divide_node = cmds.createNode('multiplyDivide', name=biped_data.elements_default.get('right_knee_divide_node'))
+    right_knee_divide_node = cmds.createNode('multiplyDivide',
+                                             name=biped_data.elements_default.get('right_knee_divide_node'))
     cmds.setAttr(right_knee_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(right_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(right_ankle_proxy_crv + '.tx', right_knee_divide_node + '.input1X')
@@ -847,7 +858,8 @@ def create_proxy(biped_data):
                        worldUpType='none', skip=['x', 'z'])  # Possible Issue
 
     # Left Rolls
-    left_ball_pivot_grp = cmds.group(empty=True, world=True, name=biped_data.elements_default.get('left_ball_pivot_grp'))
+    left_ball_pivot_grp = cmds.group(empty=True, world=True,
+                                     name=biped_data.elements_default.get('left_ball_pivot_grp'))
     cmds.parent(left_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(left_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], left_ball_pivot_grp, moveX=True)
@@ -858,7 +870,8 @@ def create_proxy(biped_data):
     cmds.parent(left_ball_proxy_grp, left_ball_pivot_grp)
 
     # Right Rolls
-    right_ball_pivot_grp = cmds.group(empty=True, world=True, name=biped_data.elements_default.get('right_ball_pivot_grp'))
+    right_ball_pivot_grp = cmds.group(empty=True, world=True,
+                                      name=biped_data.elements_default.get('right_ball_pivot_grp'))
     cmds.parent(right_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(right_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], right_ball_pivot_grp, moveX=True)
@@ -1222,49 +1235,69 @@ def create_proxy(biped_data):
     line_list = [
         create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('hip_proxy_crv')),
     ]
-    line_list.append(create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('spine01_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine01_proxy_crv'), biped_data.elements.get('spine02_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('cog_proxy_crv'),
+                                  biped_data.elements.get('spine01_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine02_proxy_crv'), biped_data.elements.get('spine03_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('spine01_proxy_crv'),
+                                  biped_data.elements.get('spine02_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine03_proxy_crv'), biped_data.elements.get('spine04_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('spine02_proxy_crv'),
+                                  biped_data.elements.get('spine03_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'), biped_data.elements.get('neck_base_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('spine03_proxy_crv'),
+                                  biped_data.elements.get('spine04_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('neck_base_proxy_crv'), biped_data.elements.get('neck_mid_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
+                                  biped_data.elements.get('neck_base_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('neck_mid_proxy_crv'), biped_data.elements.get('head_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('neck_base_proxy_crv'),
+                                  biped_data.elements.get('neck_mid_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('head_end_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('jaw_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('neck_mid_proxy_crv'),
+                                  biped_data.elements.get('head_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('jaw_proxy_crv'), biped_data.elements.get('jaw_end_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
+                                  biped_data.elements.get('head_end_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('left_eye_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('jaw_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('right_eye_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('jaw_proxy_crv'),
+                                  biped_data.elements.get('jaw_end_proxy_crv')))
+    line_list.append(
+        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
+                                  biped_data.elements.get('left_eye_proxy_crv')))
+    line_list.append(
+        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
+                                  biped_data.elements.get('right_eye_proxy_crv')))
     # Left Side
     line_list.append(
-        create_visualization_line(biped_data.elements.get('hip_proxy_crv'), biped_data.elements.get('left_hip_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('hip_proxy_crv'),
+                                  biped_data.elements.get('left_hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_hip_proxy_crv'), biped_data.elements.get('left_knee_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('left_hip_proxy_crv'),
+                                  biped_data.elements.get('left_knee_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_knee_proxy_crv'), biped_data.elements.get('left_ankle_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('left_knee_proxy_crv'),
+                                  biped_data.elements.get('left_ankle_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_ankle_proxy_crv'), biped_data.elements.get('left_ball_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('left_ankle_proxy_crv'),
+                                  biped_data.elements.get('left_ball_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_ball_proxy_crv'), biped_data.elements.get('left_toe_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('left_ball_proxy_crv'),
+                                  biped_data.elements.get('left_toe_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'), biped_data.elements.get('left_clavicle_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
+                                  biped_data.elements.get('left_clavicle_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('left_clavicle_proxy_crv'),
                                                biped_data.elements.get('left_shoulder_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('left_shoulder_proxy_crv'),
                                                biped_data.elements.get('left_elbow_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_elbow_proxy_crv'), biped_data.elements.get('left_wrist_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('left_elbow_proxy_crv'),
+                                  biped_data.elements.get('left_wrist_proxy_crv')))
     # Left Fingers
     line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
                                                biped_data.elements.get('left_thumb01_proxy_crv')))
@@ -1308,15 +1341,18 @@ def create_proxy(biped_data):
                                                biped_data.elements.get('left_pinky04_proxy_crv')))
     # Right Side
     line_list.append(
-        create_visualization_line(biped_data.elements.get('hip_proxy_crv'), biped_data.elements.get('right_hip_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('hip_proxy_crv'),
+                                  biped_data.elements.get('right_hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('right_hip_proxy_crv'), biped_data.elements.get('right_knee_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('right_hip_proxy_crv'),
+                                  biped_data.elements.get('right_knee_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('right_knee_proxy_crv'),
                                                biped_data.elements.get('right_ankle_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('right_ankle_proxy_crv'),
                                                biped_data.elements.get('right_ball_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('right_ball_proxy_crv'), biped_data.elements.get('right_toe_proxy_crv')))
+        create_visualization_line(biped_data.elements.get('right_ball_proxy_crv'),
+                                  biped_data.elements.get('right_toe_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
                                                biped_data.elements.get('right_clavicle_proxy_crv')))
     line_list.append(create_visualization_line(biped_data.elements.get('right_clavicle_proxy_crv'),
@@ -1469,7 +1505,7 @@ def create_controls(biped_data):
             obj_name (string): Name of the object to orient (usually a joint)
             orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change
                                   the result orientation.
-            apply (optional, bool): Whether or not to execute the function
+            apply (optional, bool): Whether to execute the function
         """
         if apply:
             cmds.setAttr(obj_name + '.rotateX', orient_offset[0])
@@ -2522,7 +2558,7 @@ def create_controls(biped_data):
 
     # Hip In-Between Offset
     hip_offset_ctrl = \
-    cmds.duplicate(hip_ctrl, name=hip_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize()))[0]
+        cmds.duplicate(hip_ctrl, name=hip_ctrl.replace('_' + CTRL_SUFFIX, '_offset' + CTRL_SUFFIX.capitalize()))[0]
     cmds.deleteAttr(hip_offset_ctrl, at='showScaleCtrl')
     cmds.setAttr(hip_offset_ctrl + '.scaleX', .9)
     cmds.setAttr(hip_offset_ctrl + '.scaleY', .9)
@@ -2934,7 +2970,7 @@ def create_controls(biped_data):
     cmds.addAttr(head_ctrl, ln='showOffsetCtrl', at='bool', k=True)
     cmds.connectAttr(head_ctrl + '.showOffsetCtrl', head_offset_ctrl + '.v', f=True)
 
-    #### End Head In-Between Offset
+    # #### End Head In-Between Offset
 
     # Jaw Control
     jaw_ctrl = cmds.curve(name=rig_joints.get('jaw_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
@@ -3164,7 +3200,7 @@ def create_controls(biped_data):
     change_viewport_color(left_ball_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_ball_ctrl_grp, left_ankle_ctrl)
 
-    ################# Left Leg IK Control #################
+    # ################# Left Leg IK Control #################
     left_knee_scale_offset = 0
     left_knee_scale_offset += dist_center_to_center(rig_joints.get('left_knee_jnt'), rig_joints.get('left_ankle_jnt'))
     left_knee_scale_offset += dist_center_to_center(rig_joints.get('left_hip_jnt'), rig_joints.get('left_knee_jnt'))
@@ -3184,7 +3220,8 @@ def create_controls(biped_data):
     temp_transform = cmds.group(name=left_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
     cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_knee_proxy_crv'), temp_transform))
     cmds.delete(
-        cmds.aimConstraint(biped_data.elements.get('left_knee_pv_dir'), temp_transform, offset=(0, 0, 0), aimVector=(1, 0, 0),
+        cmds.aimConstraint(biped_data.elements.get('left_knee_pv_dir'), temp_transform, offset=(0, 0, 0),
+                           aimVector=(1, 0, 0),
                            upVector=(0, -1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))
     cmds.move(left_knee_scale_offset * 1.2, 0, 0, temp_transform, os=True, relative=True)
     cmds.delete(cmds.pointConstraint(temp_transform, left_knee_ik_ctrl_grp))
@@ -3198,7 +3235,7 @@ def create_controls(biped_data):
     change_viewport_color(left_knee_ik_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_knee_ik_ctrl_grp, direction_ctrl)
 
-    ################# Left Foot IK Control #################
+    # ################# Left Foot IK Control #################
     left_foot_ik_ctrl_a = cmds.curve(name='left_foot_ik_' + CTRL_SUFFIX,
                                      p=[[0.267, 0.0, -0.641], [0.267, 0.0, 0.671], [-0.267, 0.0, 0.671],
                                         [-0.267, 0.0, -0.641], [0.267, 0.0, -0.641], [0.267, 0.321, -0.641],
@@ -3264,11 +3301,12 @@ def create_controls(biped_data):
                                               name=left_foot_ik_ctrl.replace('_' + CTRL_SUFFIX,
                                                                              '_offset' + CTRL_SUFFIX.capitalize()))[0]
     left_foot_offset_ik_ctrl_grp = \
-    cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[
-        0]  # group command generates junk data
+        cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[
+            0]  # group command generates junk data
     left_foot_offset_data_grp = \
-    cmds.duplicate(left_foot_ik_ctrl, po=True, name=left_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(), 'Data'))[
-        0]  # group command generates junk data
+        cmds.duplicate(left_foot_ik_ctrl, po=True,
+                       name=left_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(), 'Data'))[
+            0]  # group command generates junk data
     cmds.parent(left_foot_offset_data_grp, left_foot_offset_ik_ctrl_grp)
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_ik_ctrl_grp))
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_foot_offset_data_grp))
@@ -3519,8 +3557,8 @@ def create_controls(biped_data):
                                                name=right_foot_ik_ctrl.replace('_' + CTRL_SUFFIX,
                                                                                '_offset' + CTRL_SUFFIX.capitalize()))[0]
     right_foot_offset_ik_ctrl_grp = \
-    cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[
-        0]  # group command generates junk data
+        cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[
+            0]  # group command generates junk data
     right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,
                                                 name=right_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(),
                                                                                        'Data'))[
@@ -5296,7 +5334,7 @@ def create_controls(biped_data):
     cmds.parent(ik_spine_constraint_handle[0], chest_pivot_grp)
 
     chest_pivot_parent_grp = \
-    cmds.duplicate(chest_pivot_grp, name='chest_pivotParent' + GRP_SUFFIX.capitalize(), po=True)[0]
+        cmds.duplicate(chest_pivot_grp, name='chest_pivotParent' + GRP_SUFFIX.capitalize(), po=True)[0]
     chest_pivot_data_grp = cmds.duplicate(chest_pivot_grp, name='chest_data', po=True)[0]
     cmds.parent(chest_pivot_grp, chest_pivot_parent_grp)
     cmds.pointConstraint(ik_spine_constraint_joints[-1], chest_pivot_data_grp)
@@ -5493,7 +5531,7 @@ def create_controls(biped_data):
     cmds.delete(cmds.pointConstraint(rig_joints.get('spine04_jnt'), temp_clavicle_average_grp, skip=['x', 'z']))
     cv_pos_bottom = cmds.getAttr(chest_ribbon_ctrl + '.cv[0]')[1]
     cv_pos_top = cmds.getAttr(chest_ribbon_ctrl + '.cv[1]')[1]
-    chest_ctrl_y_offset = chest_ctrl_y_offset - (cv_pos_bottom[1] + cv_pos_top[1])*1.3
+    chest_ctrl_y_offset = chest_ctrl_y_offset - (cv_pos_bottom[1] + cv_pos_top[1]) * 1.3
 
     # Z Offset
     chest_ctrl_z_offset = dist_center_to_center(temp_clavicle_average_grp, rig_joints.get('spine04_jnt'))
@@ -5502,7 +5540,7 @@ def create_controls(biped_data):
     if z_offset_difference[2] < z_original_difference[2]:
         chest_ctrl_z_offset = -chest_ctrl_z_offset
     offset_curve_shape([chest_ribbon_ctrl, chest_ribbon_offset_ctrl, chest_global_fk_ctrl],
-                       [0, chest_ctrl_y_offset, chest_ctrl_z_offset*.5])
+                       [0, chest_ctrl_y_offset, chest_ctrl_z_offset * .5])
     cmds.delete(temp_clavicle_average_grp)
 
     # Spine Ctrl
@@ -5726,8 +5764,6 @@ def create_controls(biped_data):
         cmds.setAttr(shape + '.overrideColorRGB', AUTO_CTRL_COLOR[0], AUTO_CTRL_COLOR[1], AUTO_CTRL_COLOR[2])
         cmds.connectAttr(cog_ctrl + '.additionalFKCtrlsVisibility', shape + '.overrideVisibility', f=True)
     cmds.connectAttr(cog_ctrl + '.globalFKCtrlVisibility', chest_global_fk_ctrl_grp + '.v', f=True)
-
-
 
     spine_switch_condition_node = cmds.createNode('condition', name='spine_switchVisibility_' + AUTO_SUFFIX)
     spine_visibility_condition_node = cmds.createNode('condition', name='spine_autoVisibility_' + AUTO_SUFFIX)
@@ -6213,7 +6249,6 @@ def create_controls(biped_data):
         abduction_multiply_node = cmds.createNode('multiplyDivide', name=finger_name + 'abduction_multiply')
         abduction_range_node = cmds.createNode('setRange', name=finger_name + 'abduction_range')
         abduction_sum_node = cmds.createNode('plusMinusAverage', name=finger_name + 'abduction_sum')
-        abduction_sum_node_test = cmds.createNode('plusMinusAverage', name=finger_name + 'abduction_sum2') # TODO
         cmds.setAttr(abduction_range_node + '.oldMinZ', left_fingers_minz_scale)
         cmds.setAttr(abduction_range_node + '.oldMaxZ', left_fingers_maxz_scale)
         cmds.setAttr(abduction_range_node + '.minZ', left_fingers_min_abduction_rot)
@@ -6305,11 +6340,11 @@ def create_controls(biped_data):
         left_compression_ctrl_grp = cmds.group(name=left_compression_ctrl + GRP_SUFFIX.capitalize(),
                                                empty=True, world=True)
         cmds.parent(left_compression_ctrl, left_compression_ctrl_grp)
-        rescale(left_compression_ctrl, left_wrist_scale_offset*.3)
+        rescale(left_compression_ctrl, left_wrist_scale_offset * .3)
         cmds.delete(cmds.parentConstraint(left_fingers_ctrl, left_compression_ctrl_grp))
         cmds.delete(cmds.pointConstraint(joint, left_compression_ctrl_grp))
-        cmds.move(left_wrist_scale_offset*.3, left_compression_ctrl_grp, moveY=True, relative=True, objectSpace=True)
-        cmds.move(-left_wrist_scale_offset*.2, left_compression_ctrl_grp, moveX=True, relative=True, objectSpace=True)
+        cmds.move(left_wrist_scale_offset * .3, left_compression_ctrl_grp, moveY=True, relative=True, objectSpace=True)
+        cmds.move(-left_wrist_scale_offset * .2, left_compression_ctrl_grp, moveX=True, relative=True, objectSpace=True)
         lock_hide_default_attr(left_compression_ctrl, rotate=False)
         cmds.setAttr(left_compression_ctrl + '.rx', lock=True, keyable=False)
         cmds.setAttr(left_compression_ctrl + '.ry', lock=True, keyable=False)
@@ -7252,14 +7287,19 @@ def create_controls(biped_data):
     cmds.parent(left_toe_fk_pivot_zero_grp, left_toe_pivot_grp)
     cmds.parent(left_toe_pos_zero_grp, left_toe_fk_pivot_grp)
     left_toe_full_ctrl = cmds.curve(name='left_toe_ik_' + CTRL_SUFFIX,
-                         p=[[0.0, 0.0, 0.0], [0.0, 0.398, 0.229], [0.0, 0.409, 0.217], [0.0, 0.423, 0.206],
-                            [0.0, 0.439, 0.2], [0.0, 0.456, 0.197], [0.0, 0.473, 0.2], [0.0, 0.488, 0.206],
-                            [0.0, 0.456, 0.264], [0.0, 0.398, 0.229], [0.0, 0.392, 0.246], [0.0, 0.389, 0.264],
-                            [0.0, 0.392, 0.281], [0.0, 0.398, 0.296], [0.0, 0.409, 0.31], [0.0, 0.423, 0.319],
-                            [0.0, 0.439, 0.327], [0.0, 0.456, 0.329], [0.0, 0.473, 0.327], [0.0, 0.488, 0.319],
-                            [0.0, 0.502, 0.31], [0.0, 0.513, 0.296], [0.0, 0.519, 0.281], [0.0, 0.521, 0.264],
-                            [0.0, 0.519, 0.246], [0.0, 0.513, 0.229], [0.0, 0.502, 0.215], [0.0, 0.488, 0.206],
-                            [0.0, 0.423, 0.319], [0.0, 0.456, 0.264], [0.0, 0.513, 0.296]], d=1)
+                                    p=[[0.0, 0.0, 0.0], [0.0, 0.398, 0.229], [0.0, 0.409, 0.217], [0.0, 0.423, 0.206],
+                                       [0.0, 0.439, 0.2], [0.0, 0.456, 0.197], [0.0, 0.473, 0.2], [0.0, 0.488, 0.206],
+                                       [0.0, 0.456, 0.264], [0.0, 0.398, 0.229], [0.0, 0.392, 0.246],
+                                       [0.0, 0.389, 0.264],
+                                       [0.0, 0.392, 0.281], [0.0, 0.398, 0.296], [0.0, 0.409, 0.31],
+                                       [0.0, 0.423, 0.319],
+                                       [0.0, 0.439, 0.327], [0.0, 0.456, 0.329], [0.0, 0.473, 0.327],
+                                       [0.0, 0.488, 0.319],
+                                       [0.0, 0.502, 0.31], [0.0, 0.513, 0.296], [0.0, 0.519, 0.281],
+                                       [0.0, 0.521, 0.264],
+                                       [0.0, 0.519, 0.246], [0.0, 0.513, 0.229], [0.0, 0.502, 0.215],
+                                       [0.0, 0.488, 0.206],
+                                       [0.0, 0.423, 0.319], [0.0, 0.456, 0.264], [0.0, 0.513, 0.296]], d=1)
     rescale(left_toe_full_ctrl, left_foot_scale_offset, True)
     change_viewport_color(left_toe_full_ctrl, LEFT_CTRL_COLOR)
     lock_hide_default_attr(left_toe_full_ctrl, translate=False, rotate=False)
@@ -7578,7 +7618,8 @@ def create_controls(biped_data):
     cmds.setAttr(right_toe_pivot_grp + '.ry', desired_rotation[1])
 
     if cmds.objExists(biped_data.elements_default.get('right_heel_proxy_pivot')):
-        cmds.delete(cmds.pointConstraint(biped_data.elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
+        cmds.delete(
+            cmds.pointConstraint(biped_data.elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
 
     cmds.parent(right_foot_pivot_grp, rig_setup_grp)
     cmds.parent(right_heel_pivot_grp, right_foot_pivot_grp)
@@ -8170,7 +8211,7 @@ def create_controls(biped_data):
     cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_elbow_twist_sample_jnt)
     left_wrist_aim_loc = cmds.spaceLocator(name=rig_joints.get('left_wrist_jnt').replace(JNT_SUFFIX, 'twistLoc'))[0]
     cmds.delete(cmds.parentConstraint(left_wrist_twist_sample_jnt, left_wrist_aim_loc))
-    cmds.move(general_scale_offset*.4, left_wrist_aim_loc, moveY=True, relative=True, objectSpace=True)
+    cmds.move(general_scale_offset * .4, left_wrist_aim_loc, moveY=True, relative=True, objectSpace=True)
     change_viewport_color(left_wrist_aim_loc, (1, 0, 1))
     cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_aim_loc, mo=True)
     cmds.aimConstraint(left_elbow_twist_sample_jnt, left_wrist_twist_sample_jnt,
@@ -8657,7 +8698,7 @@ def create_controls(biped_data):
     cmds.parent(main_eye_data_offset_loc, main_eye_ctrl)
     cmds.setAttr(main_eye_data_offset_loc + '.v', 0)
     for dimension in ['X', 'Y', 'Z']:
-        cmds.setAttr(main_eye_data_offset_loc + '.localScale' + dimension, general_scale_offset*.5)
+        cmds.setAttr(main_eye_data_offset_loc + '.localScale' + dimension, general_scale_offset * .5)
 
     cmds.aimConstraint(head_offset_ctrl, main_eye_data_offset_loc, aimVector=(0, 0, -1), upVector=(0, 1, 0),
                        worldUpType='object', worldUpObject=head_up_vec_loc, mo=True)
@@ -8899,7 +8940,7 @@ def create_controls(biped_data):
     cmds.connectAttr(left_wrist_scale_blend + '.output', rig_joints.get('left_wrist_jnt') + '.scale')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_wrist_scale_blend + '.blender')
 
-    cmds.setAttr(right_wrist_ik_ctrl.replace(CTRL_SUFFIX, 'scaleCtrl') + '.sz', 1) # Account for inverted scale
+    cmds.setAttr(right_wrist_ik_ctrl.replace(CTRL_SUFFIX, 'scaleCtrl') + '.sz', 1)  # Account for inverted scale
     right_wrist_scale_blend = cmds.createNode('blendColors', name='right_wrist_switchScale_blend')
     cmds.connectAttr(right_wrist_ik_ctrl.replace(CTRL_SUFFIX, 'scaleCtrl') + '.scale',
                      right_wrist_scale_blend + '.color1')
@@ -9043,42 +9084,111 @@ def create_controls(biped_data):
     cmds.delete(cmds.pointConstraint(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_grp))
     cmds.parent(left_auto_clavicle_sc_ik_handle[0], left_auto_clavicle_sc_ik_handle_offset_grp)
 
-    cmds.addAttr(left_wrist_ik_ctrl, ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
-    cmds.setAttr(left_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    cmds.addAttr(left_wrist_ik_ctrl, ln='autoClavicleSystem', at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(left_wrist_ik_ctrl + '.autoClavicleSystem', lock=True)
+    cmds.addAttr(left_wrist_ik_ctrl, ln='clavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(left_wrist_ik_ctrl + ".clavicleInfluence", .1)
+    cmds.addAttr(left_wrist_ik_ctrl, ln='clavicleLimitZ', at='double', k=True, minValue=0)
+    cmds.setAttr(left_wrist_ik_ctrl + ".clavicleLimitZ", 3)
+    cmds.addAttr(left_wrist_ik_ctrl, ln='clavicleRampUpStartEnd', at='bool', k=True, niceName="Show Ramp-up Locs")
+    cmds.addAttr(left_wrist_ik_ctrl, ln='clavicleSlowMultiplier', at='double', k=True, minValue=0)
+    cmds.setAttr(left_wrist_ik_ctrl + ".clavicleSlowMultiplier", .5)
 
-    left_switch_influence_node = cmds.createNode('multiplyDivide',
-                                                  name=ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX)
+    cmds.setAttr(left_auto_clavicle_sc_ik_handle_offset_grp + '.maxTransZLimitEnable', 1)
+    cmds.setAttr(left_auto_clavicle_sc_ik_handle_offset_grp + '.minTransZLimitEnable', 1)
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleLimitZ',
+                     left_auto_clavicle_sc_ik_handle_offset_grp + '.maxTransZLimit')
 
-    offset_influence_multiply_node = cmds.createNode('multiplyDivide',
-                                                     name=ctrl_name + "_autoClavicleInfluence_" + MULTIPLY_SUFFIX)
+    left_invert_z_limit_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleZLimit_" + AUTO_SUFFIX)
+    cmds.setAttr(left_invert_z_limit_node + '.input2Z', -1)
 
-    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', left_switch_influence_node + '.input1X')
-    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', left_switch_influence_node + '.input1Y')
-    cmds.connectAttr(left_wrist_ik_ctrl + '.autoClavicleInfluence', left_switch_influence_node + '.input1Z')
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleLimitZ', left_invert_z_limit_node + '.input1Z')
+    cmds.connectAttr(left_invert_z_limit_node + '.outputZ',
+                     left_auto_clavicle_sc_ik_handle_offset_grp + '.minTransZLimit')
+
+    left_switch_influence_node = ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX
+    left_switch_influence_node = cmds.createNode('multiplyDivide', name=left_switch_influence_node)
+
+    offset_influence_multiply_node = ctrl_name + "_clavicleInfluence_" + MULTIPLY_SUFFIX
+    offset_influence_multiply_node = cmds.createNode('multiplyDivide', name=offset_influence_multiply_node)
+
+    # Gather Ramp-Up Information & Create Auxiliary Nodes
+    ramp_up_influence_multiply_node = ctrl_name + "_autoClavicleRampUp_" + MULTIPLY_SUFFIX
+    ramp_up_influence_multiply_node = cmds.createNode('multiplyDivide', name=ramp_up_influence_multiply_node)
+    ramp_up_influence_remap_node = ctrl_name + "_autoClavicleRampUp_remap"
+    ramp_up_influence_remap_node = cmds.createNode('remapValue', name=ramp_up_influence_remap_node)
+
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleInfluence', left_switch_influence_node + '.input1X')
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleInfluence', left_switch_influence_node + '.input1Y')
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleInfluence', left_switch_influence_node + '.input1Z')
+
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_switch_influence_node + '.input2X')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_switch_influence_node + '.input2Y')
     cmds.connectAttr(left_arm_switch + '.influenceSwitch', left_switch_influence_node + '.input2Z')
-    cmds.connectAttr(left_switch_influence_node + '.outputX', offset_influence_multiply_node + '.input2X')
-    cmds.connectAttr(left_switch_influence_node + '.outputY', offset_influence_multiply_node + '.input2Y')
-    cmds.connectAttr(left_switch_influence_node + '.outputZ', offset_influence_multiply_node + '.input2Z')
+    cmds.connectAttr(left_switch_influence_node + '.outputX', ramp_up_influence_multiply_node + '.input2X')
+    cmds.connectAttr(left_switch_influence_node + '.outputY', ramp_up_influence_multiply_node + '.input2Y')
+    cmds.connectAttr(left_switch_influence_node + '.outputZ', ramp_up_influence_multiply_node + '.input2Z')
+    cmds.connectAttr(ramp_up_influence_multiply_node + '.output', offset_influence_multiply_node + '.input2')
+
+    cmds.connectAttr(ramp_up_influence_remap_node + '.outValue', ramp_up_influence_multiply_node + '.input1Y')
+    cmds.setAttr(ramp_up_influence_multiply_node + '.input1X', 1)
+    cmds.setAttr(ramp_up_influence_multiply_node + '.input1Z', 1)
 
     # Account for Offset Control
-    left_auto_clavicle_rot = cmds.group(name='left_auto_clavicle_rot', empty=True, world=True)
-    left_auto_clavicle_rot_grp = cmds.group(name='left_auto_clavicle_rot' + GRP_SUFFIX.capitalize(), empty=True,
-                                            world=True)
-    cmds.parent(left_auto_clavicle_rot, left_auto_clavicle_rot_grp)
-    cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_auto_clavicle_rot_grp))
-    cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_rot)
-    cmds.parent(left_auto_clavicle_rot_grp, left_wrist_ik_ctrl_grp)
+    left_auto_clavicle_rot = cmds.group(name='left_auto_clavicle_posSampler', empty=True, world=True)
+    left_auto_clavicle_rot_grp = 'left_auto_clavicle_rot' + GRP_SUFFIX.capitalize()
+    left_auto_clavicle_rot_grp = cmds.group(name=left_auto_clavicle_rot_grp, empty=True, world=True)
 
-    cmds.connectAttr(left_auto_clavicle_rot + '.translate', offset_influence_multiply_node + '.input1', force=True)
+    # Limit to Translation Above Shoulder
+    left_auto_clavicle_ramp_up = cmds.spaceLocator(name='left_auto_clavicle_rot_ramp_up_start')[0]
+    left_auto_clavicle_ramp_up_end = cmds.spaceLocator(name='left_auto_clavicle_rot_ramp_up_end')[0]
+    left_auto_clavicle_ramp_up_grp = 'left_auto_clavicle_ramp_up' + GRP_SUFFIX.capitalize()
+    left_auto_clavicle_ramp_up_grp = cmds.group(name=left_auto_clavicle_ramp_up_grp, empty=True, world=True)
+
+    cmds.parent(left_auto_clavicle_rot, left_auto_clavicle_rot_grp)
+    cmds.parent(left_auto_clavicle_ramp_up, left_auto_clavicle_ramp_up_grp)
+    cmds.parent(left_auto_clavicle_ramp_up_end, left_auto_clavicle_ramp_up_grp)
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_auto_clavicle_rot_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_auto_clavicle_ramp_up_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('left_shoulder_jnt'),
+                                     left_auto_clavicle_ramp_up_grp, skip=('x', 'z')))
+
+    cmds.delete(cmds.pointConstraint(rig_joints.get('head_jnt'), left_auto_clavicle_ramp_up_end, skip=('x', 'z')))
+    cmds.connectAttr(left_auto_clavicle_ramp_up_end + '.ty', ramp_up_influence_remap_node + '.inputMax')
+    cmds.connectAttr(left_wrist_ik_ctrl + ".clavicleSlowMultiplier", ramp_up_influence_remap_node + '.outputMin')
+
+    cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_rot)
+    cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_auto_clavicle_ramp_up)
+
+    # Limit Ramp Up
+    cmds.setAttr(left_auto_clavicle_ramp_up + '.minTransYLimitEnable', 1)
+    cmds.setAttr(left_auto_clavicle_ramp_up + '.minTransYLimit', 0)
+    cmds.parent(left_auto_clavicle_rot_grp, left_wrist_ik_ctrl_grp)
+    cmds.parent(left_auto_clavicle_ramp_up_grp, left_wrist_ik_ctrl_grp)
+
+    cmds.connectAttr(left_auto_clavicle_rot + '.translate', offset_influence_multiply_node + '.input1')
     cmds.connectAttr(offset_influence_multiply_node + '.output',
-                     left_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+                     left_auto_clavicle_sc_ik_handle_offset_grp + '.translate')
 
     change_viewport_color(left_clavicle_auto_jnt, automation_jnt_color)
     change_viewport_color(left_shoulder_auto_jnt, automation_jnt_color)
     cmds.setAttr(left_clavicle_auto_jnt + ".radius", 1)
     cmds.setAttr(left_shoulder_auto_jnt + ".radius", .5)
+
+    # Setup Ramp-Up Locators
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleRampUpStartEnd', left_auto_clavicle_ramp_up + '.v')
+    cmds.connectAttr(left_wrist_ik_ctrl + '.clavicleRampUpStartEnd', left_auto_clavicle_ramp_up_end + '.v')
+    change_viewport_color(left_auto_clavicle_ramp_up, automation_jnt_color)
+    change_viewport_color(left_auto_clavicle_ramp_up_end, automation_jnt_color)
+    lock_hide_default_attr(left_auto_clavicle_ramp_up)
+    lock_hide_default_attr(left_auto_clavicle_ramp_up_end, translate=False)
+    cmds.setAttr(left_auto_clavicle_ramp_up_end + '.tx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(left_auto_clavicle_ramp_up_end + '.tz', lock=True, k=False, channelBox=False)
+    cmds.addAttr(left_auto_clavicle_ramp_up, ln='minimumTranslateY', at='double', k=True)
+    cmds.connectAttr(left_auto_clavicle_ramp_up + '.minimumTranslateY', left_auto_clavicle_ramp_up + '.minTransYLimit')
+
+    # Create Ramp Up Connection
+    cmds.connectAttr(left_auto_clavicle_ramp_up + '.ty', ramp_up_influence_remap_node + '.inputValue')
 
     left_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage',
                                                      name=ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX)
@@ -9118,47 +9228,112 @@ def create_controls(biped_data):
     cmds.delete(cmds.pointConstraint(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_grp))
     cmds.parent(right_auto_clavicle_sc_ik_handle[0], right_auto_clavicle_sc_ik_handle_offset_grp)
 
-    cmds.addAttr(right_wrist_ik_ctrl, ln='autoClavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
-    cmds.setAttr(right_wrist_ik_ctrl + ".autoClavicleInfluence", .1)
+    cmds.addAttr(right_wrist_ik_ctrl, ln='autoClavicleSystem', at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(right_wrist_ik_ctrl + '.autoClavicleSystem', lock=True)
+    cmds.addAttr(right_wrist_ik_ctrl, ln='clavicleInfluence', at='double', k=True, minValue=0, maxValue=1)
+    cmds.setAttr(right_wrist_ik_ctrl + ".clavicleInfluence", .1)
+    cmds.addAttr(right_wrist_ik_ctrl, ln='clavicleLimitZ', at='double', k=True, minValue=0)
+    cmds.setAttr(right_wrist_ik_ctrl + ".clavicleLimitZ", 3)
+    cmds.addAttr(right_wrist_ik_ctrl, ln='clavicleRampUpStartEnd', at='bool', k=True, niceName="Show Ramp-up Locs")
+    cmds.addAttr(right_wrist_ik_ctrl, ln='clavicleSlowMultiplier', at='double', k=True, minValue=0)
+    cmds.setAttr(right_wrist_ik_ctrl + ".clavicleSlowMultiplier", .5)
 
-    right_switch_influence_node = cmds.createNode('multiplyDivide',
-                                                  name=ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX)
+    cmds.setAttr(right_auto_clavicle_sc_ik_handle_offset_grp + '.maxTransZLimitEnable', 1)
+    cmds.setAttr(right_auto_clavicle_sc_ik_handle_offset_grp + '.minTransZLimitEnable', 1)
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleLimitZ',
+                     right_auto_clavicle_sc_ik_handle_offset_grp + '.maxTransZLimit')
 
-    offset_influence_multiply_node = cmds.createNode('multiplyDivide',
-                                                     name=ctrl_name + "_autoClavicleInfluence_" + MULTIPLY_SUFFIX)
+    right_invert_z_limit_node = cmds.createNode('multiplyDivide', name=ctrl_name + "_autoClavicleZLimit_" + AUTO_SUFFIX)
+    cmds.setAttr(right_invert_z_limit_node + '.input2Z', -1)
 
-    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', right_switch_influence_node + '.input1X')
-    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', right_switch_influence_node + '.input1Y')
-    cmds.connectAttr(right_wrist_ik_ctrl + '.autoClavicleInfluence', right_switch_influence_node + '.input1Z')
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleLimitZ', right_invert_z_limit_node + '.input1Z')
+    cmds.connectAttr(right_invert_z_limit_node + '.outputZ',
+                     right_auto_clavicle_sc_ik_handle_offset_grp + '.minTransZLimit')
+
+    right_switch_influence_node = ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX
+    right_switch_influence_node = cmds.createNode('multiplyDivide', name=right_switch_influence_node)
+
+    offset_influence_multiply_node = ctrl_name + "_clavicleInfluence_" + MULTIPLY_SUFFIX
+    offset_influence_multiply_node = cmds.createNode('multiplyDivide', name=offset_influence_multiply_node)
+
+    # Gather Ramp-Up Information & Create Auxiliary Nodes
+    ramp_up_influence_multiply_node = ctrl_name + "_autoClavicleRampUp_" + MULTIPLY_SUFFIX
+    ramp_up_influence_multiply_node = cmds.createNode('multiplyDivide', name=ramp_up_influence_multiply_node)
+    ramp_up_influence_remap_node = ctrl_name + "_autoClavicleRampUp_remap"
+    ramp_up_influence_remap_node = cmds.createNode('remapValue', name=ramp_up_influence_remap_node)
+
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleInfluence', right_switch_influence_node + '.input1X')
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleInfluence', right_switch_influence_node + '.input1Y')
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleInfluence', right_switch_influence_node + '.input1Z')
+
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_switch_influence_node + '.input2X')
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_switch_influence_node + '.input2Y')
     cmds.connectAttr(right_arm_switch + '.influenceSwitch', right_switch_influence_node + '.input2Z')
-    cmds.connectAttr(right_switch_influence_node + '.outputX', offset_influence_multiply_node + '.input2X')
-    cmds.connectAttr(right_switch_influence_node + '.outputY', offset_influence_multiply_node + '.input2Y')
-    cmds.connectAttr(right_switch_influence_node + '.outputZ', offset_influence_multiply_node + '.input2Z')
+    cmds.connectAttr(right_switch_influence_node + '.outputX', ramp_up_influence_multiply_node + '.input2X')
+    cmds.connectAttr(right_switch_influence_node + '.outputY', ramp_up_influence_multiply_node + '.input2Y')
+    cmds.connectAttr(right_switch_influence_node + '.outputZ', ramp_up_influence_multiply_node + '.input2Z')
+    cmds.connectAttr(ramp_up_influence_multiply_node + '.output', offset_influence_multiply_node + '.input2')
+
+    cmds.connectAttr(ramp_up_influence_remap_node + '.outValue', ramp_up_influence_multiply_node + '.input1Y')
+    cmds.setAttr(ramp_up_influence_multiply_node + '.input1X', 1)
+    cmds.setAttr(ramp_up_influence_multiply_node + '.input1Z', 1)
 
     # Account for Offset Control
-    right_auto_clavicle_rot = cmds.group(name='right_auto_clavicle_rot', empty=True, world=True)
-    right_auto_clavicle_rot_grp = cmds.group(name='right_auto_clavicle_rot' + GRP_SUFFIX.capitalize(), empty=True,
-                                             world=True)
+    right_auto_clavicle_rot = cmds.group(name='right_auto_clavicle_posSampler', empty=True, world=True)
+    right_auto_clavicle_rot_grp = 'right_auto_clavicle_rot' + GRP_SUFFIX.capitalize()
+    right_auto_clavicle_rot_grp = cmds.group(name=right_auto_clavicle_rot_grp, empty=True, world=True)
+
+    # Limit to Translation Above Shoulder
+    right_auto_clavicle_ramp_up = cmds.spaceLocator(name='right_auto_clavicle_rot_ramp_up_start')[0]
+    right_auto_clavicle_ramp_up_end = cmds.spaceLocator(name='right_auto_clavicle_rot_ramp_up_end')[0]
+    right_auto_clavicle_ramp_up_grp = 'right_auto_clavicle_ramp_up' + GRP_SUFFIX.capitalize()
+    right_auto_clavicle_ramp_up_grp = cmds.group(name=right_auto_clavicle_ramp_up_grp, empty=True, world=True)
+
     cmds.parent(right_auto_clavicle_rot, right_auto_clavicle_rot_grp)
+    cmds.parent(right_auto_clavicle_ramp_up, right_auto_clavicle_ramp_up_grp)
+    cmds.parent(right_auto_clavicle_ramp_up_end, right_auto_clavicle_ramp_up_grp)
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_auto_clavicle_rot_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_auto_clavicle_ramp_up_grp))
+    cmds.delete(cmds.pointConstraint(rig_joints.get('right_shoulder_jnt'),
+                                     right_auto_clavicle_ramp_up_grp, skip=('x', 'z')))
+
+    cmds.delete(cmds.pointConstraint(rig_joints.get('head_jnt'), right_auto_clavicle_ramp_up_end, skip=('x', 'z')))
+    cmds.connectAttr(right_auto_clavicle_ramp_up_end + '.ty', ramp_up_influence_remap_node + '.inputMax')
+    cmds.connectAttr(right_wrist_ik_ctrl + ".clavicleSlowMultiplier", ramp_up_influence_remap_node + '.outputMin')
+
     cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_rot)
+    cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_auto_clavicle_ramp_up)
+
+    # Limit Ramp Up
+    cmds.setAttr(right_auto_clavicle_ramp_up + '.minTransYLimitEnable', 1)
+    cmds.setAttr(right_auto_clavicle_ramp_up + '.minTransYLimit', 0)
     cmds.parent(right_auto_clavicle_rot_grp, right_wrist_ik_ctrl_grp)
+    cmds.parent(right_auto_clavicle_ramp_up_grp, right_wrist_ik_ctrl_grp)
 
-    # Right Side Inverse Orientation Multiply
-    inverse_orient_multiply_node = cmds.createNode('multiplyDivide',
-                                                   name=ctrl_name + "_autoClavicleInverse_" + MULTIPLY_SUFFIX)
-    cmds.connectAttr(right_auto_clavicle_rot + '.translate', inverse_orient_multiply_node + '.input1', force=True)
-    cmds.connectAttr(inverse_orient_multiply_node + '.output', offset_influence_multiply_node + '.input1', force=True)
-
+    cmds.connectAttr(right_auto_clavicle_rot + '.translate', offset_influence_multiply_node + '.input1')
     cmds.connectAttr(offset_influence_multiply_node + '.output',
-                     right_auto_clavicle_sc_ik_handle_offset_grp + '.translate', force=True)
+                     right_auto_clavicle_sc_ik_handle_offset_grp + '.translate')
 
     change_viewport_color(right_clavicle_auto_jnt, automation_jnt_color)
     change_viewport_color(right_shoulder_auto_jnt, automation_jnt_color)
     cmds.setAttr(right_clavicle_auto_jnt + ".radius", 1)
     cmds.setAttr(right_shoulder_auto_jnt + ".radius", .5)
+
+    # Setup Ramp-Up Locators
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleRampUpStartEnd', right_auto_clavicle_ramp_up + '.v')
+    cmds.connectAttr(right_wrist_ik_ctrl + '.clavicleRampUpStartEnd', right_auto_clavicle_ramp_up_end + '.v')
+    change_viewport_color(right_auto_clavicle_ramp_up, automation_jnt_color)
+    change_viewport_color(right_auto_clavicle_ramp_up_end, automation_jnt_color)
+    lock_hide_default_attr(right_auto_clavicle_ramp_up)
+    lock_hide_default_attr(right_auto_clavicle_ramp_up_end, translate=False)
+    cmds.setAttr(right_auto_clavicle_ramp_up_end + '.tx', lock=True, k=False, channelBox=False)
+    cmds.setAttr(right_auto_clavicle_ramp_up_end + '.tz', lock=True, k=False, channelBox=False)
+    cmds.addAttr(right_auto_clavicle_ramp_up, ln='minimumTranslateY', at='double', k=True)
+    cmds.connectAttr(right_auto_clavicle_ramp_up + '.minimumTranslateY',
+                     right_auto_clavicle_ramp_up + '.minTransYLimit')
+
+    # Create Ramp Up Connection
+    cmds.connectAttr(right_auto_clavicle_ramp_up + '.ty', ramp_up_influence_remap_node + '.inputValue')
 
     right_clavicle_offset_plus_node = cmds.createNode('plusMinusAverage',
                                                       name=ctrl_name + "_autoClavicleRotate_" + AUTO_SUFFIX)
@@ -9921,7 +10096,7 @@ def build_biped_rig(create_rig_ctrls=True):
     biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
     biped_obj.settings['worldspace_ik_orient'] = False
-    biped_obj.settings['simplify_spine'] = False
+    biped_obj.settings['simplify_spine'] = True
 
     # Get/Set Camera Pos/Rot
     if biped_obj.debugging and biped_obj.debugging_force_new_scene:
