@@ -119,7 +119,7 @@
 //	 Added gtu_uniform_jnt_label_toggle to GT Utilities
 //
 //   1.6.6
-//	 Updated icons for "GTU Uniform LRA Toggle" and "GTU Uniform Label Toggle" to avoid MacOS and Linux compatilibity issues.
+//	 Updated icons for "GTU Uniform LRA Toggle" and "GTU Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
 //
 //   1.6.7
 //	 Added Add Sine Attributes
@@ -149,6 +149,9 @@
 //
 //   1.7.21
 //   Added World Space Baker
+//
+//   1.7.22
+//   Added "gtu_generate_udim_previews()"
 //
 //----------------------------------------------------------------------------
 
@@ -251,14 +254,14 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
 menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
 
     menuItem 
-    -l ("Generate Python Curve") 
-    -c ("python(\"gt_tools.execute_script('gt_generate_python_curve', 'build_gui_py_curve')\");") 
+    -l ("Extract Python Curve")
+    -c ("python(\"gt_tools.execute_script('gt_shape_curve_to_python', 'build_gui_py_curve')\");")
     -ann ("Generates the python code necessary to create a selected curve.") 
     -image "pythonFamily.png" ;
     
     menuItem 
     -l ("Generate Text Curve") 
-    -c ("python(\"gt_tools.execute_script('gt_generate_text_curve', 'build_gui_generate_text_curve')\");") 
+    -c ("python(\"gt_tools.execute_script('gt_shape_text_to_curve', 'build_gui_generate_text_curve')\");")
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
     -image "text.png" ;
 
@@ -295,24 +298,33 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     -c ("python(\"gt_tools.execute_script('gt_create_sphere_types', 'build_gui_sphere_type')\");") 
     -ann ("A reminder for students that there are other sphere types.") 
     -image "blinn.svg" ;
-    
-        menuItem 
+
+
+    // GTU Functions
+    menuItem -divider true ;
+
+    menuItem
+    -l ("Preview All UDIMs")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_generate_udim_previews')\");")
+    -ann ("Generates UDIM previews for all file nodes.")
+    -image "textureToGeom.png";
+
+        menuItem
     -l ("Convert Bif to Mesh")
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_convert_bif_to_mesh')\");")
     -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
     -image "nurbsToPolygons.png";
 
-    
     // Material
     menuItem -divider true ;
-    
-    menuItem 
+
+    menuItem
     -l ("Copy Material")
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_copy_material')\");")
-    -ann ("Copies material to clipboard.") 
+    -ann ("Copies material to clipboard.")
     -image "polyBakeSetAssign.png";
-    
-    menuItem 
+
+    menuItem
     -l ("Paste Material")
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_paste_material')\");")
     -ann ("Pastes material from clipboard.") 

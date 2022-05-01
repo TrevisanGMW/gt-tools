@@ -422,6 +422,19 @@ def gtu_remove_references():
 """ ____________________________ Material Functions ____________________________"""
 
 
+def gtu_generate_udim_previews():
+    """ Generates UDIM previews for all file nodes """
+    all_file_nodes = cmds.ls(type='file')
+    for file_node in all_file_nodes:
+        try:
+            mel.eval('generateUvTilePreview ' + file_node + ';')
+        except Exception as e:
+            print(e)
+    message = 'Previews generated for all <span style=\"color:#FF0000;text-decoration:underline;\"> ' \
+              'UDIM</span> file nodes.'
+    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+
+
 def gtu_copy_material():
     """ Copies selected material to clipboard """
     selection = cmds.ls(selection=True)
@@ -439,8 +452,8 @@ def gtu_paste_material():
     try:
         cmds.polyClipboard(paste=True, shader=True)
     except:
-        cmds.warning(
-            'Couldn\'t paste material. Make sure you copied a material first, then selected the target objects or components.')
+        cmds.warning("Couldn\'t paste material. Make sure you copied a material first, "
+                     "then selected the target objects or components.")
 
 
 """ ____________________________ Layout Functions ____________________________"""
@@ -1326,16 +1339,6 @@ def gtu_convert_joints_to_mesh(combine_mesh=True):
         return generated_mesh
 
 
-def gtu_generate_udim_previews():
-    """ Generates UDIM previews for all file nodes """
-    all_file_nodes = cmds.ls(type='file')
-    for file_node in all_file_nodes:
-        try:
-            mel.eval('generateUvTilePreview ' + file_node + ';')
-        except Exception as e:
-            print(e)
-
-
 """ ____________________________ Functions ____________________________"""
 # gtu_reload_file()
 # gtu_open_resource_browser()
@@ -1347,6 +1350,7 @@ def gtu_generate_udim_previews():
 # gtu_uniform_jnt_label_toggle()
 # gtu_select_non_unique_objects()
 
+# gtu_generate_udim_previews()
 # gtu_copy_material()
 # gtu_paste_material()
 
