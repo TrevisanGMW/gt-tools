@@ -22,6 +22,13 @@
  0.0.5 - 2022-04-02
  Added extra inbetween constraint for knee setup
 
+ 0.0.6 - 2022-04-04
+ Added shoulder correctives
+ Create settings with checks so the user can decide which correctives to create
+
+ 0.0.7 - 2022-04-08
+ Added rotation connection to shoulder joints
+ Copied improved position to hip and shoulder goals
 
 """
 from collections import namedtuple
@@ -33,12 +40,20 @@ import maya.cmds as cmds
 script_name = 'GT Corrective Rigger'
 
 # Version:
-script_version = '0.0.5'
+script_version = '0.0.7'
 
 # General Vars
 debugging = True
 PROXY_COLOR = (1, 0, 1)
 PROXY_DRIVEN_COLOR = (1, .5, 1)
+
+gt_corrective_settings = {'setup_wrists': True,
+                          'setup_elbows': True,
+                          'setup_shoulders': True,
+                          'setup_knees': True,
+                          'setup_hips': True,
+                          }
+
 
 # Loaded Elements Dictionary
 _corrective_proxy_dict = {  # Pre Existing Elements
@@ -66,6 +81,12 @@ _corrective_proxy_dict = {  # Pre Existing Elements
     'left_main_elbow_crv': 'mainElbow_' + PROXY_SUFFIX,
     'left_front_elbow_crv': 'frontElbow_' + PROXY_SUFFIX,
 
+    # Shoulders
+    'left_main_shoulder_crv': 'mainShoulder_' + PROXY_SUFFIX,
+    'left_back_shoulder_crv': 'backShoulder_' + PROXY_SUFFIX,
+    'left_front_shoulder_crv': 'frontShoulder_' + PROXY_SUFFIX,
+    'left_upper_shoulder_crv': 'upperShoulder_' + PROXY_SUFFIX,
+    # 'left_lower_shoulder_crv': 'lowerShoulder_' + PROXY_SUFFIX,
 }
 
 
@@ -81,6 +102,8 @@ _preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
                      'right_hip_jnt': 'right_hip_jnt',
                      'left_elbow_jnt': 'left_elbow_jnt',
                      'right_elbow_jnt': 'right_elbow_jnt',
+                     'left_shoulder_jnt': 'left_shoulder_jnt',
+                     'right_shoulder_jnt': 'right_shoulder_jnt',
                      }
 
 # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
@@ -120,285 +143,423 @@ def create_corrective_proxy():
     for shape in cmds.listRelatives(main_root, s=True, f=True) or []:
         cmds.setAttr(shape + '.lineWidth', 3)
 
-    # ### Left Wrist ###
-    left_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_wrist_crv'), .5)
-    left_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=left_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_main_wrist_proxy_crv, left_main_wrist_proxy_grp)
-    cmds.move(58.2, 130.4, 0, left_main_wrist_proxy_grp)
-    cmds.rotate(-90, left_main_wrist_proxy_grp, rotateX=True)
-    cmds.parent(left_main_wrist_proxy_grp, main_root)
-    change_viewport_color(left_main_wrist_proxy_crv, PROXY_COLOR)
-    main_proxies.append(left_main_wrist_proxy_crv)
+    # ------------------------------------------------------------------------------------------- Wrists
+    if gt_corrective_settings.get("setup_wrists"):
+        # Left Wrist Main
+        left_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_wrist_crv'), .5)
+        left_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=left_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_main_wrist_proxy_crv, left_main_wrist_proxy_grp)
+        cmds.move(58.2, 130.4, 0, left_main_wrist_proxy_grp)
+        cmds.rotate(-90, left_main_wrist_proxy_grp, rotateX=True)
+        cmds.parent(left_main_wrist_proxy_grp, main_root)
+        change_viewport_color(left_main_wrist_proxy_crv, PROXY_COLOR)
+        main_proxies.append(left_main_wrist_proxy_crv)
 
-    # Left Upper Wrist
-    left_upper_wrist_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_upper_wrist_crv'), .2)
-    left_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=left_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_upper_wrist_proxy_crv, left_upper_wrist_proxy_grp)
-    cmds.move(58.2, 131.615, 0, left_upper_wrist_proxy_grp)
-    cmds.parent(left_upper_wrist_proxy_grp, left_main_wrist_proxy_crv)
-    change_viewport_color(left_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Upper Wrist
+        left_upper_wrist_proxy_crv = _corrective_proxy_dict.get('left_upper_wrist_crv')
+        left_upper_wrist_proxy_crv = create_directional_joint_curve(left_upper_wrist_proxy_crv, .2)
+        left_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=left_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_upper_wrist_proxy_crv, left_upper_wrist_proxy_grp)
+        cmds.move(58.2, 131.615, 0, left_upper_wrist_proxy_grp)
+        cmds.parent(left_upper_wrist_proxy_grp, left_main_wrist_proxy_crv)
+        change_viewport_color(left_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Left Lower Wrist
-    left_lower_wrist_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_lower_wrist_crv'), .2)
-    left_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=left_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_lower_wrist_proxy_crv, left_lower_wrist_proxy_grp)
-    cmds.move(58.2, 129.196, 0, left_lower_wrist_proxy_grp)
-    cmds.rotate(-180, left_lower_wrist_proxy_grp, rotateZ=True)
-    cmds.parent(left_lower_wrist_proxy_grp, left_main_wrist_proxy_crv)
-    change_viewport_color(left_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Lower Wrist
+        left_lower_wrist_proxy_crv = _corrective_proxy_dict.get('left_lower_wrist_crv')
+        left_lower_wrist_proxy_crv = create_directional_joint_curve(left_lower_wrist_proxy_crv, .2)
+        left_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=left_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_lower_wrist_proxy_crv, left_lower_wrist_proxy_grp)
+        cmds.move(58.2, 129.196, 0, left_lower_wrist_proxy_grp)
+        cmds.rotate(-180, left_lower_wrist_proxy_grp, rotateZ=True)
+        cmds.parent(left_lower_wrist_proxy_grp, left_main_wrist_proxy_crv)
+        change_viewport_color(left_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # ### Right Wrist ###
-    right_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_wrist_crv'), .5)
-    right_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=right_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_main_wrist_proxy_crv, right_main_wrist_proxy_grp)
-    cmds.move(-58.2, 130.4, 0, right_main_wrist_proxy_grp)
-    cmds.rotate(90, right_main_wrist_proxy_grp, rotateX=True)
-    cmds.rotate(180, right_main_wrist_proxy_grp, rotateY=True)
-    cmds.parent(right_main_wrist_proxy_grp, main_root)
-    change_viewport_color(right_main_wrist_proxy_crv, PROXY_COLOR)
-    main_proxies.append(right_main_wrist_proxy_crv)
+        # ### Right Wrist ###
+        right_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_wrist_crv'), .5)
+        right_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=right_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_main_wrist_proxy_crv, right_main_wrist_proxy_grp)
+        cmds.move(-58.2, 130.4, 0, right_main_wrist_proxy_grp)
+        cmds.rotate(90, right_main_wrist_proxy_grp, rotateX=True)
+        cmds.rotate(180, right_main_wrist_proxy_grp, rotateY=True)
+        cmds.parent(right_main_wrist_proxy_grp, main_root)
+        change_viewport_color(right_main_wrist_proxy_crv, PROXY_COLOR)
+        main_proxies.append(right_main_wrist_proxy_crv)
 
-    # Right Upper Wrist
-    right_upper_wrist_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_upper_wrist_crv'),
-                                                                 .2)
-    right_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                             name=right_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_upper_wrist_proxy_crv, right_upper_wrist_proxy_grp)
-    cmds.move(-58.2, 131.615, 0, right_upper_wrist_proxy_grp)
-    cmds.parent(right_upper_wrist_proxy_grp, right_main_wrist_proxy_crv)
-    change_viewport_color(right_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Upper Wrist
+        right_upper_wrist_proxy_crv = _corrective_proxy_dict.get('right_upper_wrist_crv')
+        right_upper_wrist_proxy_crv = create_directional_joint_curve(right_upper_wrist_proxy_crv, .2)
+        right_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                                 name=right_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_upper_wrist_proxy_crv, right_upper_wrist_proxy_grp)
+        cmds.move(-58.2, 131.615, 0, right_upper_wrist_proxy_grp)
+        cmds.parent(right_upper_wrist_proxy_grp, right_main_wrist_proxy_crv)
+        change_viewport_color(right_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Lower Wrist
-    right_lower_wrist_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_lower_wrist_crv'),
-                                                                 .2)
-    right_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                             name=right_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_lower_wrist_proxy_crv, right_lower_wrist_proxy_grp)
-    cmds.move(-58.2, 129.196, 0, right_lower_wrist_proxy_grp)
-    cmds.rotate(-180, right_lower_wrist_proxy_grp, rotateZ=True)
-    cmds.parent(right_lower_wrist_proxy_grp, right_main_wrist_proxy_crv)
-    change_viewport_color(right_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Lower Wrist
+        right_lower_wrist_proxy_crv = _corrective_proxy_dict.get('right_lower_wrist_crv')
+        right_lower_wrist_proxy_crv = create_directional_joint_curve(right_lower_wrist_proxy_crv, .2)
+        right_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                                 name=right_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_lower_wrist_proxy_crv, right_lower_wrist_proxy_grp)
+        cmds.move(-58.2, 129.196, 0, right_lower_wrist_proxy_grp)
+        cmds.rotate(-180, right_lower_wrist_proxy_grp, rotateZ=True)
+        cmds.parent(right_lower_wrist_proxy_grp, right_main_wrist_proxy_crv)
+        change_viewport_color(right_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # ################ Knees ################
-    # Left Main Knee
-    left_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_knee_crv'), .2)
-    left_main_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                          name=left_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_main_knee_proxy_crv, left_main_knee_proxy_grp)
-    cmds.move(10.2, 47.05, 0, left_main_knee_proxy_grp)
-    cmds.rotate(90, left_main_knee_proxy_grp, rotateX=True)
-    cmds.rotate(-90, left_main_knee_proxy_grp, rotateZ=True)
-    cmds.parent(left_main_knee_proxy_grp, main_root)
-    change_viewport_color(left_main_knee_proxy_crv, PROXY_COLOR)
-    main_proxies.append(left_main_knee_proxy_crv)
+    # --------------------------------------------------------------------------------------------- Knees
+    if gt_corrective_settings.get("setup_knees"):
+        # Left Main Knee
+        left_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_knee_crv'), .2)
+        left_main_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_main_knee_proxy_crv, left_main_knee_proxy_grp)
+        cmds.move(10.2, 47.05, 0, left_main_knee_proxy_grp)
+        cmds.rotate(90, left_main_knee_proxy_grp, rotateX=True)
+        cmds.rotate(-90, left_main_knee_proxy_grp, rotateZ=True)
+        cmds.parent(left_main_knee_proxy_grp, main_root)
+        change_viewport_color(left_main_knee_proxy_crv, PROXY_COLOR)
+        main_proxies.append(left_main_knee_proxy_crv)
 
-    # Left Back Knee
-    left_back_knee_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_knee_crv'), .2)
-    left_back_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                          name=left_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_back_knee_proxy_crv, left_back_knee_proxy_grp)
-    cmds.move(10.2, 47.05, -4, left_back_knee_proxy_grp)
-    cmds.rotate(-90, left_back_knee_proxy_grp, rotateX=True)
-    cmds.parent(left_back_knee_proxy_grp, left_main_knee_proxy_crv)
-    change_viewport_color(left_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Back Knee
+        left_back_knee_proxy_crv = _corrective_proxy_dict.get('left_back_knee_crv')
+        left_back_knee_proxy_crv = create_directional_joint_curve(left_back_knee_proxy_crv, .2)
+        left_back_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_back_knee_proxy_crv, left_back_knee_proxy_grp)
+        cmds.move(10.2, 47.05, -4, left_back_knee_proxy_grp)
+        cmds.rotate(-90, left_back_knee_proxy_grp, rotateX=True)
+        cmds.parent(left_back_knee_proxy_grp, left_main_knee_proxy_crv)
+        change_viewport_color(left_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Left Front Knee
-    left_front_knee_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_front_knee_crv'), .2)
-    left_front_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=left_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_front_knee_proxy_crv, left_front_knee_proxy_grp)
-    cmds.move(10.2, 47.05, 4, left_front_knee_proxy_grp)
-    cmds.rotate(90, left_front_knee_proxy_grp, rotateX=True)
-    cmds.parent(left_front_knee_proxy_grp, left_main_knee_proxy_crv)
-    change_viewport_color(left_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Front Knee
+        left_front_knee_proxy_crv = _corrective_proxy_dict.get('left_front_knee_crv')
+        left_front_knee_proxy_crv = create_directional_joint_curve(left_front_knee_proxy_crv, .2)
+        left_front_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=left_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_front_knee_proxy_crv, left_front_knee_proxy_grp)
+        cmds.move(10.2, 47.05, 4, left_front_knee_proxy_grp)
+        cmds.rotate(90, left_front_knee_proxy_grp, rotateX=True)
+        cmds.parent(left_front_knee_proxy_grp, left_main_knee_proxy_crv)
+        change_viewport_color(left_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Main Knee
-    right_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_knee_crv'), .2)
-    right_main_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=right_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_main_knee_proxy_crv, right_main_knee_proxy_grp)
-    cmds.move(-10.2, 47.05, 0, right_main_knee_proxy_grp)
-    cmds.rotate(270, right_main_knee_proxy_grp, rotateX=True)
-    cmds.rotate(90, right_main_knee_proxy_grp, rotateZ=True)
-    cmds.parent(right_main_knee_proxy_grp, main_root)
-    change_viewport_color(right_main_knee_proxy_crv, PROXY_COLOR)
-    main_proxies.append(right_main_knee_proxy_crv)
+        # Right Main Knee
+        right_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_knee_crv'), .2)
+        right_main_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_main_knee_proxy_crv, right_main_knee_proxy_grp)
+        cmds.move(-10.2, 47.05, 0, right_main_knee_proxy_grp)
+        cmds.rotate(270, right_main_knee_proxy_grp, rotateX=True)
+        cmds.rotate(90, right_main_knee_proxy_grp, rotateZ=True)
+        cmds.parent(right_main_knee_proxy_grp, main_root)
+        change_viewport_color(right_main_knee_proxy_crv, PROXY_COLOR)
+        main_proxies.append(right_main_knee_proxy_crv)
 
-    # Right Lower Knee
-    right_back_knee_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_back_knee_crv'), .2)
-    right_back_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=right_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_back_knee_proxy_crv, right_back_knee_proxy_grp)
-    cmds.move(-10.2, 47.05, -4, right_back_knee_proxy_grp)
-    cmds.rotate(-90, right_back_knee_proxy_grp, rotateX=True)
-    cmds.parent(right_back_knee_proxy_grp, right_main_knee_proxy_crv)
-    change_viewport_color(right_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Lower Knee
+        right_back_knee_proxy_crv = _corrective_proxy_dict.get('right_back_knee_crv')
+        right_back_knee_proxy_crv = create_directional_joint_curve(right_back_knee_proxy_crv, .2)
+        right_back_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_back_knee_proxy_crv, right_back_knee_proxy_grp)
+        cmds.move(-10.2, 47.05, -4, right_back_knee_proxy_grp)
+        cmds.rotate(-90, right_back_knee_proxy_grp, rotateX=True)
+        cmds.parent(right_back_knee_proxy_grp, right_main_knee_proxy_crv)
+        change_viewport_color(right_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Front Knee
-    right_front_knee_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_front_knee_crv'), .2)
-    right_front_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=right_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_front_knee_proxy_crv, right_front_knee_proxy_grp)
-    cmds.move(-10.2, 47.05, 4, right_front_knee_proxy_grp)
-    cmds.rotate(90, right_front_knee_proxy_grp, rotateX=True)
-    cmds.parent(right_front_knee_proxy_grp, right_main_knee_proxy_crv)
-    change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Front Knee
+        right_front_knee_proxy_crv = _corrective_proxy_dict.get('right_front_knee_crv')
+        right_front_knee_proxy_crv = create_directional_joint_curve(right_front_knee_proxy_crv, .2)
+        right_front_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=right_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_front_knee_proxy_crv, right_front_knee_proxy_grp)
+        cmds.move(-10.2, 47.05, 4, right_front_knee_proxy_grp)
+        cmds.rotate(90, right_front_knee_proxy_grp, rotateX=True)
+        cmds.parent(right_front_knee_proxy_grp, right_main_knee_proxy_crv)
+        change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # ################ Hips ################
-    # Left Main hip
-    left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
-    left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                         name=left_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_main_hip_proxy_crv, left_main_hip_proxy_grp)
-    cmds.move(10.2, 84.5, 0, left_main_hip_proxy_grp)
-    cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
-    cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
-    cmds.parent(left_main_hip_proxy_grp, main_root)
-    change_viewport_color(left_main_hip_proxy_crv, PROXY_COLOR)
-    main_proxies.append(left_main_hip_proxy_crv)
+    # --------------------------------------------------------------------------------------------------- Hips
+    if gt_corrective_settings.get("setup_hips"):
+        # Left Main Hip
+        left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
+        left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=left_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_main_hip_proxy_crv, left_main_hip_proxy_grp)
+        cmds.move(10.2, 84.5, 0, left_main_hip_proxy_grp)
+        cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
+        cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
+        cmds.parent(left_main_hip_proxy_grp, main_root)
+        change_viewport_color(left_main_hip_proxy_crv, PROXY_COLOR)
+        main_proxies.append(left_main_hip_proxy_crv)
 
-    # Left Back hip
-    left_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_hip_crv'), .2)
-    left_back_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                         name=left_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_back_hip_proxy_crv, left_back_hip_proxy_grp)
-    cmds.move(10.2, 84.5, -4, left_back_hip_proxy_grp)
-    cmds.rotate(-90, left_back_hip_proxy_grp, rotateX=True)
-    cmds.parent(left_back_hip_proxy_grp, left_main_hip_proxy_crv)
-    change_viewport_color(left_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Back Hip
+        left_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_hip_crv'), .2)
+        left_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=left_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_back_hip_proxy_crv, left_back_hip_proxy_grp)
+        cmds.move(10.2, 84.5, -4, left_back_hip_proxy_grp)
+        cmds.rotate(-90, left_back_hip_proxy_grp, rotateX=True)
+        cmds.parent(left_back_hip_proxy_grp, left_main_hip_proxy_crv)
+        change_viewport_color(left_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Left Front hip
-    left_extension_hip_proxy_crv = _corrective_proxy_dict.get('left_front_hip_crv')
-    left_extension_hip_proxy_crv = create_directional_joint_curve(left_extension_hip_proxy_crv, .2)
-    left_extension_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=left_extension_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_extension_hip_proxy_crv, left_extension_hip_proxy_grp)
-    cmds.move(10.2, 84.5, 4, left_extension_hip_proxy_grp)
-    cmds.rotate(90, left_extension_hip_proxy_grp, rotateX=True)
-    cmds.parent(left_extension_hip_proxy_grp, left_main_hip_proxy_crv)
-    change_viewport_color(left_extension_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Front Hip
+        left_front_hip_proxy_crv = _corrective_proxy_dict.get('left_front_hip_crv')
+        left_front_hip_proxy_crv = create_directional_joint_curve(left_front_hip_proxy_crv, .2)
+        left_front_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_front_hip_proxy_crv, left_front_hip_proxy_grp)
+        cmds.move(10.2, 84.5, 4, left_front_hip_proxy_grp)
+        cmds.rotate(90, left_front_hip_proxy_grp, rotateX=True)
+        cmds.parent(left_front_hip_proxy_grp, left_main_hip_proxy_crv)
+        change_viewport_color(left_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Left Outer hip
-    left_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_outer_hip_crv'), .2)
-    left_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                          name=left_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_outer_hip_proxy_crv, left_outer_hip_proxy_grp)
-    cmds.move(14.2, 84.5, 0, left_outer_hip_proxy_grp)
-    cmds.rotate(-90, left_outer_hip_proxy_grp, rotateZ=True)
-    cmds.parent(left_outer_hip_proxy_grp, left_main_hip_proxy_crv)
-    change_viewport_color(left_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Outer Hip
+        left_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_outer_hip_crv'), .2)
+        left_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_outer_hip_proxy_crv, left_outer_hip_proxy_grp)
+        cmds.move(14.2, 84.5, 0, left_outer_hip_proxy_grp)
+        cmds.rotate(-90, left_outer_hip_proxy_grp, rotateZ=True)
+        cmds.parent(left_outer_hip_proxy_grp, left_main_hip_proxy_crv)
+        change_viewport_color(left_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # # Left Inner hip
-    # left_inner_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_inner_hip_crv'), .2)
-    # left_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
-    #                                        name=left_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    # cmds.parent(left_inner_hip_proxy_crv, left_inner_hip_proxy_grp)
-    # cmds.move(6.2, 84.5, 0, left_inner_hip_proxy_grp)
-    # cmds.rotate(90, left_inner_hip_proxy_grp, rotateZ=True)
-    # cmds.parent(left_inner_hip_proxy_grp, left_main_hip_proxy_crv)
-    # change_viewport_color(left_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # # Left Inner Hip
+        # left_inner_hip_proxy_crv = _corrective_proxy_dict.get('left_inner_hip_crv')
+        # left_inner_hip_proxy_crv = create_directional_joint_curve(left_inner_hip_proxy_crv, .2)
+        # left_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+        #                                        name=left_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        # cmds.parent(left_inner_hip_proxy_crv, left_inner_hip_proxy_grp)
+        # cmds.move(6.2, 84.5, 0, left_inner_hip_proxy_grp)
+        # cmds.rotate(90, left_inner_hip_proxy_grp, rotateZ=True)
+        # cmds.parent(left_inner_hip_proxy_grp, left_main_hip_proxy_crv)
+        # change_viewport_color(left_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Main hip
-    right_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_hip_crv'), .2)
-    right_main_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                          name=right_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_main_hip_proxy_crv, right_main_hip_proxy_grp)
-    cmds.move(-10.2, 84.5, 0, right_main_hip_proxy_grp)
-    cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
-    cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
-    cmds.parent(right_main_hip_proxy_grp, main_root)
-    change_viewport_color(right_main_hip_proxy_crv, PROXY_COLOR)
-    main_proxies.append(right_main_hip_proxy_crv)
+        # Right Main Hip
+        right_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_hip_crv'), .2)
+        right_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=right_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_main_hip_proxy_crv, right_main_hip_proxy_grp)
+        cmds.move(-10.2, 84.5, 0, right_main_hip_proxy_grp)
+        cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
+        cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
+        cmds.parent(right_main_hip_proxy_grp, main_root)
+        change_viewport_color(right_main_hip_proxy_crv, PROXY_COLOR)
+        main_proxies.append(right_main_hip_proxy_crv)
 
-    # Right Back hip
-    right_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_back_hip_crv'), .2)
-    right_back_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                          name=right_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_back_hip_proxy_crv, right_back_hip_proxy_grp)
-    cmds.move(-10.2, 84.5, -4, right_back_hip_proxy_grp)
-    cmds.rotate(-90, right_back_hip_proxy_grp, rotateX=True)
-    cmds.parent(right_back_hip_proxy_grp, right_main_hip_proxy_crv)
-    change_viewport_color(right_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Back Hip
+        right_back_hip_proxy_crv = _corrective_proxy_dict.get('right_back_hip_crv')
+        right_back_hip_proxy_crv = create_directional_joint_curve(right_back_hip_proxy_crv, .2)
+        right_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=right_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_back_hip_proxy_crv, right_back_hip_proxy_grp)
+        cmds.move(-10.2, 84.5, -4, right_back_hip_proxy_grp)
+        cmds.rotate(-90, right_back_hip_proxy_grp, rotateX=True)
+        cmds.parent(right_back_hip_proxy_grp, right_main_hip_proxy_crv)
+        change_viewport_color(right_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Front hip
-    right_front_hip_proxy_crv = _corrective_proxy_dict.get('right_front_hip_crv')
-    right_front_hip_proxy_crv = create_directional_joint_curve(right_front_hip_proxy_crv, .2)
-    right_front_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=right_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_front_hip_proxy_crv, right_front_hip_proxy_grp)
-    cmds.move(-10.2, 84.5, 4, right_front_hip_proxy_grp)
-    cmds.rotate(90, right_front_hip_proxy_grp, rotateX=True)
-    cmds.parent(right_front_hip_proxy_grp, right_main_hip_proxy_crv)
-    change_viewport_color(right_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Front Hip
+        right_front_hip_proxy_crv = _corrective_proxy_dict.get('right_front_hip_crv')
+        right_front_hip_proxy_crv = create_directional_joint_curve(right_front_hip_proxy_crv, .2)
+        right_front_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_front_hip_proxy_crv, right_front_hip_proxy_grp)
+        cmds.move(-10.2, 84.5, 4, right_front_hip_proxy_grp)
+        cmds.rotate(90, right_front_hip_proxy_grp, rotateX=True)
+        cmds.parent(right_front_hip_proxy_grp, right_main_hip_proxy_crv)
+        change_viewport_color(right_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Outer hip
-    right_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_outer_hip_crv'), .2)
-    right_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=right_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_outer_hip_proxy_crv, right_outer_hip_proxy_grp)
-    cmds.move(-14.2, 84.5, 0, right_outer_hip_proxy_grp)
-    cmds.rotate(90, right_outer_hip_proxy_grp, rotateZ=True)
-    cmds.parent(right_outer_hip_proxy_grp, right_main_hip_proxy_crv)
-    change_viewport_color(right_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Outer Hip
+        right_outer_hip_proxy_crv = _corrective_proxy_dict.get('right_outer_hip_crv')
+        right_outer_hip_proxy_crv = create_directional_joint_curve(right_outer_hip_proxy_crv, .2)
+        right_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_outer_hip_proxy_crv, right_outer_hip_proxy_grp)
+        cmds.move(-14.2, 84.5, 0, right_outer_hip_proxy_grp)
+        cmds.rotate(90, right_outer_hip_proxy_grp, rotateZ=True)
+        cmds.parent(right_outer_hip_proxy_grp, right_main_hip_proxy_crv)
+        change_viewport_color(right_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # # Right Inner hip
-    # right_inner_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('right_inner_hip_crv'), .2)
-    # right_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
-    #                                        name=right_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
-    # cmds.parent(right_inner_hip_proxy_crv, right_inner_hip_proxy_grp)
-    # cmds.move(-6.2, 84.5, 0, right_inner_hip_proxy_grp)
-    # cmds.rotate(-90, right_inner_hip_proxy_grp, rotateZ=True)
-    # cmds.parent(right_inner_hip_proxy_grp, right_main_hip_proxy_crv)
-    # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+        # # Right Inner hip
+        # right_inner_hip_proxy_crv = _corrective_proxy_dict.get('right_inner_hip_crv')
+        # right_inner_hip_proxy_crv = create_directional_joint_curve(right_inner_hip_proxy_crv, .2)
+        # right_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+        #                                        name=right_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+        # cmds.parent(right_inner_hip_proxy_crv, right_inner_hip_proxy_grp)
+        # cmds.move(-6.2, 84.5, 0, right_inner_hip_proxy_grp)
+        # cmds.rotate(-90, right_inner_hip_proxy_grp, rotateZ=True)
+        # cmds.parent(right_inner_hip_proxy_grp, right_main_hip_proxy_crv)
+        # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Elbows ----------------------------------------------------------------------------------
-    # Left Main Elbow
-    left_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_elbow_crv'), .2)
-    left_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                           name=left_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_main_elbow_proxy_crv, left_main_elbow_proxy_grp)
-    cmds.move(37.7, 130.4, -0.01, left_main_elbow_proxy_grp)
-    cmds.rotate(-90, left_main_elbow_proxy_grp, rotateX=True)
-    cmds.parent(left_main_elbow_proxy_grp, main_root)
-    change_viewport_color(left_main_elbow_proxy_crv, PROXY_COLOR)
-    main_proxies.append(left_main_elbow_proxy_crv)
+    # -------------------------------------------------------------------------------------------- Elbows
+    if gt_corrective_settings.get("setup_elbows"):
+        # Left Main Elbow
+        left_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_elbow_crv'), .2)
+        left_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=left_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_main_elbow_proxy_crv, left_main_elbow_proxy_grp)
+        cmds.move(37.7, 130.4, -0.01, left_main_elbow_proxy_grp)
+        cmds.rotate(-90, left_main_elbow_proxy_grp, rotateX=True)
+        cmds.parent(left_main_elbow_proxy_grp, main_root)
+        change_viewport_color(left_main_elbow_proxy_crv, PROXY_COLOR)
+        main_proxies.append(left_main_elbow_proxy_crv)
 
-    # Left Front Elbow
-    left_front_elbow_proxy_crv = _corrective_proxy_dict.get('left_front_elbow_crv')
-    left_front_elbow_proxy_crv = create_directional_joint_curve(left_front_elbow_proxy_crv, .2)
-    left_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=left_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_front_elbow_proxy_crv, left_front_elbow_proxy_grp)
-    cmds.move(37.7, 130.4, 2, left_front_elbow_proxy_grp)
-    cmds.rotate(90, left_front_elbow_proxy_grp, rotateX=True)
-    cmds.parent(left_front_elbow_proxy_grp, left_main_elbow_proxy_crv)
-    change_viewport_color(left_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Left Front Elbow
+        left_front_elbow_proxy_crv = _corrective_proxy_dict.get('left_front_elbow_crv')
+        left_front_elbow_proxy_crv = create_directional_joint_curve(left_front_elbow_proxy_crv, .2)
+        left_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=left_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_front_elbow_proxy_crv, left_front_elbow_proxy_grp)
+        cmds.move(37.7, 130.4, 2, left_front_elbow_proxy_grp)
+        cmds.rotate(90, left_front_elbow_proxy_grp, rotateX=True)
+        cmds.parent(left_front_elbow_proxy_grp, left_main_elbow_proxy_crv)
+        change_viewport_color(left_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
 
-    # Right Main Elbow
-    right_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_elbow_crv'), .2)
-    right_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                            name=right_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_main_elbow_proxy_crv, right_main_elbow_proxy_grp)
-    cmds.move(-37.7, 130.4, -0.01, right_main_elbow_proxy_grp)
-    cmds.rotate(90, right_main_elbow_proxy_grp, rotateX=True)
-    cmds.parent(right_main_elbow_proxy_grp, main_root)
-    change_viewport_color(right_main_elbow_proxy_crv, PROXY_COLOR)
-    main_proxies.append(right_main_elbow_proxy_crv)
+        # Right Main Elbow
+        right_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_elbow_crv'), .2)
+        right_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=right_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_main_elbow_proxy_crv, right_main_elbow_proxy_grp)
+        cmds.move(-37.7, 130.4, -0.01, right_main_elbow_proxy_grp)
+        cmds.rotate(90, right_main_elbow_proxy_grp, rotateX=True)
+        cmds.parent(right_main_elbow_proxy_grp, main_root)
+        change_viewport_color(right_main_elbow_proxy_crv, PROXY_COLOR)
+        main_proxies.append(right_main_elbow_proxy_crv)
 
-    # Right Front Elbow
-    right_front_elbow_proxy_crv = _corrective_proxy_dict.get('right_front_elbow_crv')
-    right_front_elbow_proxy_crv = create_directional_joint_curve(right_front_elbow_proxy_crv, .2)
-    right_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                             name=right_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_front_elbow_proxy_crv, right_front_elbow_proxy_grp)
-    cmds.move(-37.7, 130.4, 2, right_front_elbow_proxy_grp)
-    cmds.rotate(90, right_front_elbow_proxy_grp, rotateX=True)
-    cmds.parent(right_front_elbow_proxy_grp, right_main_elbow_proxy_crv)
-    change_viewport_color(right_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
+        # Right Front Elbow
+        right_front_elbow_proxy_crv = _corrective_proxy_dict.get('right_front_elbow_crv')
+        right_front_elbow_proxy_crv = create_directional_joint_curve(right_front_elbow_proxy_crv, .2)
+        right_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                                 name=right_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_front_elbow_proxy_crv, right_front_elbow_proxy_grp)
+        cmds.move(-37.7, 130.4, 2, right_front_elbow_proxy_grp)
+        cmds.rotate(90, right_front_elbow_proxy_grp, rotateX=True)
+        cmds.parent(right_front_elbow_proxy_grp, right_main_elbow_proxy_crv)
+        change_viewport_color(right_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # --------------------------------------------------------------------------------------------- Shoulders
+    left_shoulder_elements = []
+    right_shoulder_elements = []
+    left_main_shoulder_proxy_crv = ''
+    right_main_shoulder_proxy_crv = ''
+    if gt_corrective_settings.get("setup_shoulders"):
+        # Left Main Shoulder
+        left_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_shoulder_crv'), .2)
+        left_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                  name=left_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_main_shoulder_proxy_crv, left_main_shoulder_proxy_grp)
+        cmds.move(17.2, 130.4, 0, left_main_shoulder_proxy_grp)
+        cmds.rotate(-90, left_main_shoulder_proxy_grp, rotateX=True)
+        cmds.parent(left_main_shoulder_proxy_grp, main_root)
+        change_viewport_color(left_main_shoulder_proxy_crv, PROXY_COLOR)
+        main_proxies.append(left_main_shoulder_proxy_crv)
+
+        # Left Back Shoulder
+        left_back_shoulder_proxy_crv = _corrective_proxy_dict.get('left_back_shoulder_crv')
+        left_back_shoulder_proxy_crv = create_directional_joint_curve(left_back_shoulder_proxy_crv, .2)
+        left_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                  name=left_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_back_shoulder_proxy_crv, left_back_shoulder_proxy_grp)
+        cmds.move(17.2, 130.4, -4, left_back_shoulder_proxy_grp)
+        cmds.rotate(-90, left_back_shoulder_proxy_grp, rotateX=True)
+        change_viewport_color(left_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # Left Front Shoulder
+        left_front_shoulder_proxy_crv = _corrective_proxy_dict.get('left_front_shoulder_crv')
+        left_front_shoulder_proxy_crv = create_directional_joint_curve(left_front_shoulder_proxy_crv, .2)
+        left_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                   name=left_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_front_shoulder_proxy_crv, left_front_shoulder_proxy_grp)
+        cmds.move(17.2, 130.4, 4, left_front_shoulder_proxy_grp)
+        cmds.rotate(90, left_front_shoulder_proxy_grp, rotateX=True)
+        change_viewport_color(left_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # Left Upper Shoulder
+        left_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('left_upper_shoulder_crv')
+        left_upper_shoulder_proxy_crv = create_directional_joint_curve(left_upper_shoulder_proxy_crv, .2)
+        left_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                   name=left_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(left_upper_shoulder_proxy_crv, left_upper_shoulder_proxy_grp)
+        cmds.move(17.2, 134.4, 0, left_upper_shoulder_proxy_grp)
+        change_viewport_color(left_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # # Left Lower Shoulder
+        # left_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('left_lower_shoulder_crv')
+        # left_lower_shoulder_proxy_crv = create_directional_joint_curve(left_lower_shoulder_proxy_crv, .2)
+        # left_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+        #                                            name=left_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        # cmds.parent(left_lower_shoulder_proxy_crv, left_lower_shoulder_proxy_grp)
+        # cmds.move(17.2, 126.4, 0, left_lower_shoulder_proxy_grp)
+        # cmds.rotate(180, left_lower_shoulder_proxy_grp, rotateX=True)
+        # change_viewport_color(left_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # Right Main Shoulder
+        right_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_shoulder_crv'), .2)
+        right_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                   name=right_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_main_shoulder_proxy_crv, right_main_shoulder_proxy_grp)
+        cmds.move(-17.2, 130.4, 0, right_main_shoulder_proxy_grp)
+        cmds.rotate(90, right_main_shoulder_proxy_grp, rotateX=True)
+        cmds.parent(right_main_shoulder_proxy_grp, main_root)
+        change_viewport_color(right_main_shoulder_proxy_crv, PROXY_COLOR)
+        main_proxies.append(right_main_shoulder_proxy_crv)
+
+        # Right Back Shoulder
+        right_back_shoulder_proxy_crv = _corrective_proxy_dict.get('right_back_shoulder_crv')
+        right_back_shoulder_proxy_crv = create_directional_joint_curve(right_back_shoulder_proxy_crv, .2)
+        right_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                   name=right_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_back_shoulder_proxy_crv, right_back_shoulder_proxy_grp)
+        cmds.move(-17.2, 130.4, -4, right_back_shoulder_proxy_grp)
+        cmds.rotate(-90, right_back_shoulder_proxy_grp, rotateX=True)
+        change_viewport_color(right_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # Right Front Shoulder
+        right_front_shoulder_proxy_crv = _corrective_proxy_dict.get('right_front_shoulder_crv')
+        right_front_shoulder_proxy_crv = create_directional_joint_curve(right_front_shoulder_proxy_crv, .2)
+        right_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                    name=right_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_front_shoulder_proxy_crv, right_front_shoulder_proxy_grp)
+        cmds.move(-17.2, 130.4, 4, right_front_shoulder_proxy_grp)
+        cmds.rotate(90, right_front_shoulder_proxy_grp, rotateX=True)
+        change_viewport_color(right_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # Right Upper Shoulder
+        right_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('right_upper_shoulder_crv')
+        right_upper_shoulder_proxy_crv = create_directional_joint_curve(right_upper_shoulder_proxy_crv, .2)
+        right_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                    name=right_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        cmds.parent(right_upper_shoulder_proxy_crv, right_upper_shoulder_proxy_grp)
+        cmds.move(-17.2, 134.4, 0, right_upper_shoulder_proxy_grp)
+        change_viewport_color(right_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+        #
+        # # Right Lower Shoulder
+        # right_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('right_lower_shoulder_crv')
+        # right_lower_shoulder_proxy_crv = create_directional_joint_curve(right_lower_shoulder_proxy_crv, .2)
+        # right_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+        #                                             name=right_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+        # cmds.parent(right_lower_shoulder_proxy_crv, right_lower_shoulder_proxy_grp)
+        # cmds.move(-17.2, 126.4, 0, right_lower_shoulder_proxy_grp)
+        # cmds.rotate(180, right_lower_shoulder_proxy_grp, rotateX=True)
+        # change_viewport_color(right_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+
+        # left_shoulder_elements = [left_lower_shoulder_proxy_grp, left_upper_shoulder_proxy_grp,
+        #                           left_front_shoulder_proxy_grp, left_back_shoulder_proxy_grp]
+        # right_shoulder_elements = [right_lower_shoulder_proxy_grp, right_upper_shoulder_proxy_grp,
+        #                            right_front_shoulder_proxy_grp, right_back_shoulder_proxy_grp]
+
+        left_shoulder_elements = [left_front_shoulder_proxy_grp,
+                                  left_back_shoulder_proxy_grp,
+                                  left_upper_shoulder_proxy_grp]
+        right_shoulder_elements = [right_front_shoulder_proxy_grp,
+                                   right_back_shoulder_proxy_grp,
+                                   right_upper_shoulder_proxy_grp]
+
+        for obj in left_shoulder_elements:
+            cmds.parent(obj, left_main_shoulder_proxy_crv)
+        for obj in right_shoulder_elements:
+            cmds.parent(obj, right_main_shoulder_proxy_crv)
 
     # Attempt to Set Initial Pose ----------------------------------------------------------------------------
     for key, data in _preexisting_dict.items():
@@ -407,17 +568,29 @@ def create_corrective_proxy():
             if 'right' in data:
                 side = 'right'
 
-            if 'wrist' in data:
+            if 'wrist' in data and gt_corrective_settings.get("setup_wrists"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_wrist_crv')))
 
-            if 'knee' in data:
+            if 'knee' in data and gt_corrective_settings.get("setup_knees"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_knee_crv')))
 
-            if 'hip' in data:
+            if 'hip' in data and gt_corrective_settings.get("setup_hips"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_hip_crv')))
 
-            if 'elbow' in data:
+            if 'elbow' in data and gt_corrective_settings.get("setup_elbows"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_elbow_crv')))
+
+            if 'shoulder' in data and gt_corrective_settings.get("setup_shoulders"):
+                cmds.delete(cmds.pointConstraint(data, _corrective_proxy_dict.get(side + '_main_shoulder_crv')))
+                for obj in left_shoulder_elements:
+                    cmds.parent(obj, world=True)
+                for obj in right_shoulder_elements:
+                    cmds.parent(obj, world=True)
+                cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_shoulder_crv')))
+                for obj in left_shoulder_elements:
+                    cmds.parent(obj, left_main_shoulder_proxy_crv)
+                for obj in right_shoulder_elements:
+                    cmds.parent(obj, right_main_shoulder_proxy_crv)
 
     # Improve Main Proxy Visibility
     for proxy in main_proxies:
@@ -486,11 +659,12 @@ def create_corrective_setup():
     ignore_crv_list = ['']
     for obj in _corrective_proxy_dict:
         if obj.endswith('_crv') and obj not in ignore_crv_list:
-            cmds.select(d=True)
-            joint = cmds.joint(name=rename_proxy(_corrective_proxy_dict.get(obj)), radius=.5)
-            cmds.delete(cmds.parentConstraint(_corrective_proxy_dict.get(obj), joint))
-            cmds.makeIdentity(joint, apply=True, rotate=True)
-            _cor_joints_dict[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = joint
+            if cmds.objExists(_corrective_proxy_dict.get(obj)):
+                cmds.select(d=True)
+                joint = cmds.joint(name=rename_proxy(_corrective_proxy_dict.get(obj)), radius=.5)
+                cmds.delete(cmds.parentConstraint(_corrective_proxy_dict.get(obj), joint))
+                cmds.makeIdentity(joint, apply=True, rotate=True)
+                _cor_joints_dict[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = joint
 
     # Create Main Ctrl Attributes
     main_ctrl = 'main_ctrl'
@@ -503,81 +677,129 @@ def create_corrective_setup():
 
     # Setup Driver Joints
     # Wrists ---------------------------------------------------------------------------------------------------
-    cmds.parent(_cor_joints_dict.get('left_upper_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_lower_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('left_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
 
-    cmds.parent(_cor_joints_dict.get('right_upper_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
-    cmds.parent(_cor_joints_dict.get('right_lower_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('right_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
+    dependencies_wrist = is_entire_list_available([_cor_joints_dict.get('left_main_wrist_jnt'),
+                                                   _cor_joints_dict.get('right_main_wrist_jnt')])
+    left_wrist_main_outfit_jnt = ''
+    right_wrist_main_outfit_jnt = ''
+
+    if gt_corrective_settings.get("setup_wrists") and dependencies_wrist:
+        cmds.parent(_cor_joints_dict.get('left_upper_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_lower_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('left_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
+
+        cmds.parent(_cor_joints_dict.get('right_upper_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_lower_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('right_wrist_jnt'), _cor_joints_dict.get('right_main_wrist_jnt'))
+
+        # Wrist Accessories ----------------------------------------------------------------------------------------
+        left_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('left_forearm_jnt'),
+                                                    name='left_wrist_mainOutfit_driverJnt', po=True)[0]
+        right_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('right_forearm_jnt'),
+                                                     name='right_wrist_mainOutfit_driverJnt', po=True)[0]
+        cmds.parent(left_wrist_main_outfit_jnt, world=True)
+        cmds.parent(right_wrist_main_outfit_jnt, world=True)
+        cmds.delete(cmds.pointConstraint(_preexisting_dict.get('left_wrist_jnt'), left_wrist_main_outfit_jnt))
+        cmds.delete(cmds.pointConstraint(_preexisting_dict.get('right_wrist_jnt'), right_wrist_main_outfit_jnt))
+        cmds.parentConstraint(_preexisting_dict.get('left_wrist_aimJnt'), left_wrist_main_outfit_jnt, mo=True)
+        cmds.parentConstraint(_preexisting_dict.get('right_wrist_aimJnt'), right_wrist_main_outfit_jnt, mo=True)
+
+        cmds.setAttr(left_wrist_main_outfit_jnt + '.radius', 0.5)
+        cmds.setAttr(right_wrist_main_outfit_jnt + '.radius', 0.5)
+
+        left_wrist_outfit_jnt = cmds.duplicate(left_wrist_main_outfit_jnt,
+                                               name='left_wrist_outfit_driverJnt', po=True)[0]
+        right_wrist_outfit_jnt = cmds.duplicate(right_wrist_main_outfit_jnt,
+                                                name='right_wrist_outfit_driverJnt', po=True)[0]
+        cmds.parent(left_wrist_outfit_jnt, left_wrist_main_outfit_jnt)
+        cmds.parent(right_wrist_outfit_jnt, right_wrist_main_outfit_jnt)
 
     # Knees ---------------------------------------------------------------------------------------------------
-    cmds.parent(_cor_joints_dict.get('left_back_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_front_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('left_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
+    dependencies_knees = is_entire_list_available([_cor_joints_dict.get('left_main_knee_jnt'),
+                                                   _cor_joints_dict.get('right_main_knee_jnt')])
 
-    cmds.parent(_cor_joints_dict.get('right_back_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
-    cmds.parent(_cor_joints_dict.get('right_front_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('right_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
+    if gt_corrective_settings.get("setup_knees") and dependencies_knees:
+        cmds.parent(_cor_joints_dict.get('left_back_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_front_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('left_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
+
+        cmds.parent(_cor_joints_dict.get('right_back_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_front_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('right_knee_jnt'), _cor_joints_dict.get('right_main_knee_jnt'))
 
     # Hips ---------------------------------------------------------------------------------------------------
-    pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
-    pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
-    cmds.parent(pelvis_driver_jnt, world=True)
-    cmds.parent(pelvis_driver_jnt, skeleton_grp)
-    # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('right_main_hip_jnt'))
-    cmds.parentConstraint(pelvis_jnt, pelvis_driver_jnt)
-    cmds.parent(_cor_joints_dict.get('right_back_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('right_front_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('right_outer_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
-    # cmds.parent(_cor_joints_dict.get('right_inner_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('right_main_hip_jnt'), pelvis_driver_jnt)
+    dependencies_hips = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
+                                                  _cor_joints_dict.get('right_main_hip_jnt')])
 
-    # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('left_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_back_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_front_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_outer_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
-    # cmds.parent(_cor_joints_dict.get('left_inner_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
-    cmds.parent(_cor_joints_dict.get('left_main_hip_jnt'), pelvis_driver_jnt)
+    if gt_corrective_settings.get("setup_hips") and dependencies_hips:
+        pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
+        pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
+        # cmds.parent(pelvis_driver_jnt, world=True)
+        cmds.parent(pelvis_driver_jnt, skeleton_grp)
+        # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('right_main_hip_jnt'))
+        cmds.parentConstraint(pelvis_jnt, pelvis_driver_jnt)
+        cmds.parent(_cor_joints_dict.get('right_back_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_front_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_outer_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+        # cmds.parent(_cor_joints_dict.get('right_inner_hip_jnt'), _cor_joints_dict.get('right_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_main_hip_jnt'), pelvis_driver_jnt)
+
+        # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('left_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_back_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_front_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_outer_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+        # cmds.parent(_cor_joints_dict.get('left_inner_hip_jnt'), _cor_joints_dict.get('left_main_hip_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_main_hip_jnt'), pelvis_driver_jnt)
 
     # Elbows ---------------------------------------------------------------------------------------------------
-    cmds.parent(_cor_joints_dict.get('left_front_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('left_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
-    
-    cmds.parent(_cor_joints_dict.get('right_front_elbow_jnt'), _cor_joints_dict.get('right_main_elbow_jnt'))
-    cmds.parentConstraint(_preexisting_dict.get('right_elbow_jnt'), _cor_joints_dict.get('right_main_elbow_jnt'))
+    dependencies_elbows = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
+                                                    _cor_joints_dict.get('right_main_hip_jnt')])
 
-    # Wrist Accessories ----------------------------------------------------------------------------------------
-    left_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('left_forearm_jnt'),
-                                                name='left_wrist_mainOutfit_driverJnt', po=True)[0]
-    right_wrist_main_outfit_jnt = cmds.duplicate(_preexisting_dict.get('right_forearm_jnt'),
-                                                 name='right_wrist_mainOutfit_driverJnt', po=True)[0]
-    cmds.parent(left_wrist_main_outfit_jnt, world=True)
-    cmds.parent(right_wrist_main_outfit_jnt, world=True)
-    cmds.delete(cmds.pointConstraint(_preexisting_dict.get('left_wrist_jnt'), left_wrist_main_outfit_jnt))
-    cmds.delete(cmds.pointConstraint(_preexisting_dict.get('right_wrist_jnt'), right_wrist_main_outfit_jnt))
-    cmds.parentConstraint(_preexisting_dict.get('left_wrist_aimJnt'), left_wrist_main_outfit_jnt, mo=True)
-    cmds.parentConstraint(_preexisting_dict.get('right_wrist_aimJnt'), right_wrist_main_outfit_jnt, mo=True)
+    if gt_corrective_settings.get("setup_elbows") and dependencies_elbows:
+        cmds.parent(_cor_joints_dict.get('left_front_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('left_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
 
-    cmds.setAttr(left_wrist_main_outfit_jnt + '.radius', 0.5)
-    cmds.setAttr(right_wrist_main_outfit_jnt + '.radius', 0.5)
+        cmds.parent(_cor_joints_dict.get('right_front_elbow_jnt'), _cor_joints_dict.get('right_main_elbow_jnt'))
+        cmds.parentConstraint(_preexisting_dict.get('right_elbow_jnt'), _cor_joints_dict.get('right_main_elbow_jnt'))
 
-    left_wrist_outfit_jnt = cmds.duplicate(left_wrist_main_outfit_jnt,
-                                           name='left_wrist_outfit_driverJnt', po=True)[0]
-    right_wrist_outfit_jnt = cmds.duplicate(right_wrist_main_outfit_jnt,
-                                            name='right_wrist_outfit_driverJnt', po=True)[0]
-    cmds.parent(left_wrist_outfit_jnt, left_wrist_main_outfit_jnt)
-    cmds.parent(right_wrist_outfit_jnt, right_wrist_main_outfit_jnt)
+    # Shoulders  ------------------------------------------------------------------------------------------------
+    dependencies_shoulders = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
+                                                       _cor_joints_dict.get('right_main_hip_jnt')])
+
+    if gt_corrective_settings.get("setup_shoulders") and dependencies_shoulders:
+        left_clavicle_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
+        left_clavicle_driver_jnt = cmds.duplicate(left_clavicle_jnt, name='left_clavicle_driverJnt', po=True)[0]
+        cmds.parent(left_clavicle_driver_jnt, skeleton_grp)
+        cmds.parentConstraint(left_clavicle_jnt, left_clavicle_driver_jnt)
+        cmds.parent(_cor_joints_dict.get('left_back_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_front_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_upper_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
+        # cmds.parent(_cor_joints_dict.get('left_lower_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('left_main_shoulder_jnt'), left_clavicle_driver_jnt)
+
+        right_clavicle_jnt = cmds.listRelatives(_preexisting_dict.get('right_shoulder_jnt'), parent=True)[0]
+        right_clavicle_driver_jnt = cmds.duplicate(right_clavicle_jnt, name='right_clavicle_driverJnt', po=True)[0]
+        cmds.parent(right_clavicle_driver_jnt, skeleton_grp)
+        cmds.parentConstraint(right_clavicle_jnt, right_clavicle_driver_jnt)
+        cmds.parent(_cor_joints_dict.get('right_back_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_front_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_upper_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
+        # cmds.parent(_cor_joints_dict.get('right_lower_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
+        cmds.parent(_cor_joints_dict.get('right_main_shoulder_jnt'), right_clavicle_driver_jnt)
 
     # Basic Organization
-    cmds.parent(_cor_joints_dict.get('left_main_wrist_jnt'), skeleton_grp)
-    cmds.parent(_cor_joints_dict.get('right_main_wrist_jnt'), skeleton_grp)
-    cmds.parent(_cor_joints_dict.get('left_main_knee_jnt'), skeleton_grp)
-    cmds.parent(_cor_joints_dict.get('right_main_knee_jnt'), skeleton_grp)
-    cmds.parent(_cor_joints_dict.get('left_main_elbow_jnt'), skeleton_grp)
-    cmds.parent(_cor_joints_dict.get('right_main_elbow_jnt'), skeleton_grp)
-    cmds.parent(left_wrist_main_outfit_jnt, skeleton_grp)
-    cmds.parent(right_wrist_main_outfit_jnt, skeleton_grp)
+    to_parent_to_skeleton_grp = [_cor_joints_dict.get('left_main_wrist_jnt'),
+                                 _cor_joints_dict.get('right_main_wrist_jnt'),
+                                 _cor_joints_dict.get('left_main_knee_jnt'),
+                                 _cor_joints_dict.get('right_main_knee_jnt'),
+                                 _cor_joints_dict.get('left_main_elbow_jnt'),
+                                 _cor_joints_dict.get('right_main_elbow_jnt'),
+                                 left_wrist_main_outfit_jnt,
+                                 right_wrist_main_outfit_jnt,
+                                 ]
+    for obj in to_parent_to_skeleton_grp:
+        if obj and cmds.objExists(obj):
+            cmds.parent(obj, skeleton_grp)
 
     # Pose Object Setup
     Pose = namedtuple('Pose', ['name',
@@ -587,7 +809,10 @@ def create_corrective_setup():
                                'driven',
                                'driven_offset',
                                'setup'])
-    poses = [
+    poses = []
+
+    if gt_corrective_settings.get("setup_wrists"):  # Wrists  -------------------------------------------------------
+        poses += [
             # Wrist Left ---------------------------------------------
             Pose(name='upperWristExtension',
                  driver='left_mainWrist_driverJnt',
@@ -620,6 +845,7 @@ def create_corrective_setup():
                  driven='left_lowerWrist_driverJnt',
                  driven_offset=[-0.2, 0.2, 0.21, 0.0, 122.72, 0.0, 1.0, 1.0, 1.0],
                  setup='lower_wrist'),
+
 
             # Wrist Right ------------------------------------------
             Pose(name='upperWristExtension',
@@ -654,41 +880,6 @@ def create_corrective_setup():
                  driven_offset=[0.2, -0.2, -0.21, 0.0, 122.72, 0.0, 1.0, 1.0, 1.0],
                  setup='lower_wrist'),
 
-            # Knees Left ------------------------------------------
-            Pose(name='kneeFlexion',
-                 driver='left_mainKnee_driverJnt',
-                 driver_bound='left_knee_jnt',
-                 driver_range=[0, -93],
-                 driven='left_backKnee_driverJnt',
-                 driven_offset=[9.469, -15.484, 0, 0, 0, 40, 0.005, 1, 1],
-                 setup='back_knee'),
-
-            Pose(name='kneeFlexion',
-                 driver='left_mainKnee_driverJnt',
-                 driver_bound='left_knee_jnt',
-                 driver_range=[0, -93],
-                 driven='left_frontKnee_driverJnt',
-                 driven_offset=[-2.8, 1.8, 0, 0, 0, 75, 1, 1, 1],
-                 setup='front_knee'),
-
-            # Knees Right ------------------------------------------
-            Pose(name='kneeFlexion',
-                 driver='right_mainKnee_driverJnt',
-                 driver_bound='right_knee_jnt',
-                 driver_range=[0, -93],
-                 driven='right_backKnee_driverJnt',
-                 driven_offset=[-9.469, 15.484, 0, 0, 0, 40, 0.005, 1, 1],
-                 setup='back_knee'),
-
-            Pose(name='kneeFlexion',
-                 driver='right_mainKnee_driverJnt',
-                 driver_bound='right_knee_jnt',
-                 driver_range=[0, -93],
-                 driven='right_frontKnee_driverJnt',
-                 driven_offset=[2.8, -1.8, 0, 0, 0, 75, 1, 1, 1],
-                 setup='front_knee'),
-
-
             # Outfit Correctives ------------------------------------
             Pose(name='outfitExtension',
                  driver='left_wrist_mainOutfit_driverJnt',
@@ -722,6 +913,47 @@ def create_corrective_setup():
                  driven_offset=[0.98, -0.0, 0.01, 0.0, 18.5, 0.0, 1.0, 1.0, 1.0],
                  setup='outfit_wrist'),
 
+        ]
+
+    if gt_corrective_settings.get("setup_knees"):  # Knees  ---------------------------------------------------------
+        poses += [
+            # Knees Left ------------------------------------------
+            Pose(name='kneeFlexion',
+                 driver='left_mainKnee_driverJnt',
+                 driver_bound='left_knee_jnt',
+                 driver_range=[0, -93],
+                 driven='left_backKnee_driverJnt',
+                 driven_offset=[12.16, -17.14, 0, 0, 0, 40, 0.01, 1, 1],
+                 setup='back_knee'),
+
+            Pose(name='kneeFlexion',
+                 driver='left_mainKnee_driverJnt',
+                 driver_bound='left_knee_jnt',
+                 driver_range=[0, -93],
+                 driven='left_frontKnee_driverJnt',
+                 driven_offset=[-2.8, 1.8, 0, 0, 0, 75, 1, 1, 1],
+                 setup='front_knee'),
+
+            # Knees Right ------------------------------------------
+            Pose(name='kneeFlexion',
+                 driver='right_mainKnee_driverJnt',
+                 driver_bound='right_knee_jnt',
+                 driver_range=[0, -93],
+                 driven='right_backKnee_driverJnt',
+                 driven_offset=[-12.16, 17.14, 0, 0, 0, 40, 0.01, 1, 1],
+                 setup='back_knee'),
+
+            Pose(name='kneeFlexion',
+                 driver='right_mainKnee_driverJnt',
+                 driver_bound='right_knee_jnt',
+                 driver_range=[0, -93],
+                 driven='right_frontKnee_driverJnt',
+                 driven_offset=[2.8, -1.8, 0, 0, 0, 75, 1, 1, 1],
+                 setup='front_knee'),
+        ]
+
+    if gt_corrective_settings.get("setup_hips"):  # Hips  ---------------------------------------------------------
+        poses += [
             # Back Hip Left ---------------------------------------------
             Pose(name='hipExtension',
                  driver='left_mainHip_driverJnt',
@@ -736,7 +968,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_backHip_driverJnt',
-                 driven_offset=[-12.16, -5.34, 0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
+                 driven_offset=[-10.45, -6.03, 0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
                  setup='flexion_hip'),  # Move/Kick forward
 
             Pose(name='hipAbduction',
@@ -744,7 +976,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_backHip_driverJnt',
-                 driven_offset=[-0.18, -1.09, -2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[1.9, -3.69, -2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Open legs to side
 
             # Front Hip Left ----------------------------------------------
@@ -753,7 +985,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_frontHip_driverJnt',
-                 driven_offset=[-24.0, 11.0, -2.6, 0.0, 0.0, 80.0, 1.0, 0.6, 1.0],
+                 driven_offset=[-25.34, 17.8, -2.6, 0.0, 0.0, 60.0, 1.0, 0.6, 1.0],
                  setup='extension_hip'),  # Move Backwards
 
             Pose(name='hipFlexion',
@@ -761,7 +993,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_frontHip_driverJnt',
-                 driven_offset=[3.58, 8.3, -0.0, 0.0, 0.0, -15.0, 1.0, 1.0, 1.0],
+                 driven_offset=[3.58, 8.3, 0.0, 0.0, 0.0, -15.0, 1.0, 1.0, 1.0],
                  setup='flexion_hip'),  # Move/Kick forward
 
             Pose(name='hipAbduction',
@@ -769,7 +1001,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_frontHip_driverJnt',
-                 driven_offset=[-0.0, 7.37, 1.0, 0.0, 65.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[-0.66, 9.19, -0.76, 0.0, 59.59, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Move/Kick forward
 
             # Side Hip Left ----------------------------------------------
@@ -778,7 +1010,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_outerHip_driverJnt',
-                 driven_offset=[0.0, 0.0, -9.0, 0.0, 0.0, 45.0, 1.0, 1.0, 1.0],
+                 driven_offset=[-0.43, -1.0, -9.0, 0.0, 0.0, 70.0, 1.0, 1.0, 1.0],
                  setup='extension_hip'),
 
             Pose(name='hipFlexion',
@@ -786,7 +1018,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_outerHip_driverJnt',
-                 driven_offset=[0.0, -0.0, -9.0, 0.0, 0.0, -45.0, 1.0, 1.0, 1.0],
+                 driven_offset=[0.0, 0.0, -9.0, 0.0, 0.0, -45.0, 1.0, 1.0, 1.0],
                  setup='flexion_hip'),
 
             Pose(name='hipAbduction',
@@ -794,7 +1026,7 @@ def create_corrective_setup():
                  driver_bound='left_hip_jnt',
                  driver_range=[0, 1],
                  driven='left_outerHip_driverJnt',
-                 driven_offset=[-24.97, -3.0, -14.32, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[-25.6, 3.68, -14.6, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Open legs to side
 
             # Back Hip Right ---------------------------------------------
@@ -811,7 +1043,7 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_backHip_driverJnt',
-                 driven_offset=[12.16, 5.34, -0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
+                 driven_offset=[10.45, 6.03, -0.54, 0.0, 0.0, -48.65, 1.15, 1.0, 1.0],
                  setup='flexion_hip'),  # Move/Kick forward
 
             Pose(name='hipAbduction',
@@ -819,7 +1051,7 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_backHip_driverJnt',
-                 driven_offset=[0.18, 1.09, 2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[-1.9, 3.69, 2.18, 0.0, 90.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Open legs to side
 
             # Front Hip Right ----------------------------------------------
@@ -828,7 +1060,7 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_frontHip_driverJnt',
-                 driven_offset=[24.0, -11.0, 2.6, 0.0, 0.0, 80.0, 1.0, 0.6, 1.0],
+                 driven_offset=[25.34, -17.8, 2.6, 0.0, 0.0, 60.0, 1.0, 0.6, 1.0],
                  setup='extension_hip'),  # Move Backwards
 
             Pose(name='hipFlexion',
@@ -844,7 +1076,7 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_frontHip_driverJnt',
-                 driven_offset=[0.0, -7.37, -1.0, 0.0, 65.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[0.66, -9.19, 0.76, 0.0, 59.59, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Move/Kick forward
 
             # Side Hip Right ----------------------------------------------
@@ -853,7 +1085,7 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_outerHip_driverJnt',
-                 driven_offset=[0.0, 0.0, 9.0, 0.0, 0.0, 45.0, 1.0, 1.0, 1.0],
+                 driven_offset=[0.43, 1.0, 9.0, 0.0, 0.0, 70.0, 1.0, 1.0, 1.0],
                  setup='extension_hip'),
 
             Pose(name='hipFlexion',
@@ -869,16 +1101,18 @@ def create_corrective_setup():
                  driver_bound='right_hip_jnt',
                  driver_range=[0, 1],
                  driven='right_outerHip_driverJnt',
-                 driven_offset=[24.97, 3.0, 14.32, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[25.6, -3.68, 14.6, 0.0, 60.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_hip'),  # Open legs to side
+        ]
 
-            # Elbows -------------------------------------------------------
+    if gt_corrective_settings.get("setup_elbows"):  # Elbows -------------------------------------------------------
+        poses += [
             Pose(name='elbowFlexion',
                  driver='left_mainElbow_driverJnt',
                  driver_bound='left_elbow_jnt',
                  driver_range=[0, -90],
                  driven='left_frontElbow_driverJnt',
-                 driven_offset=[12, -8, 0, 0, 0, 0, 1, 1, 1],
+                 driven_offset=[6.16, -13.03, 0.0, 0.0, 0.0, 0.0, 0.01, 1.0, 1.0],
                  setup='front_elbow'),
 
             Pose(name='elbowFlexion',
@@ -886,10 +1120,164 @@ def create_corrective_setup():
                  driver_bound='right_elbow_jnt',
                  driver_range=[0, -90],
                  driven='right_frontElbow_driverJnt',
-                 driven_offset=[-12, 8, 0, 0, 0, 0, 1, 1, 1],
+                 driven_offset=[-6.16, 13.03, 0, 0.0, 0.0, 0.0, 0.01, 1.0, 1.0],
                  setup='front_elbow'),
+        ]
 
-    ]
+    if gt_corrective_settings.get("setup_shoulders"):  # Shoulders ---------------------------------------------------
+        poses += [
+            # Left Front Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontShoulder_driverJnt',
+                 driven_offset=[-13.13, -13.0, 2.35, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontShoulder_driverJnt',
+                 driven_offset=[0.24, -15.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_frontShoulder_driverJnt',
+                 driven_offset=[-10.0, -12.0, 10.6, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+            # Left Back Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backShoulder_driverJnt',
+                 driven_offset=[3.63, 8.86, 3.61, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backShoulder_driverJnt',
+                 driven_offset=[-16.4, 19.37, -3.2, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_backShoulder_driverJnt',
+                 driven_offset=[-10.64, 6.98, 7.9, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+            # Left Upper Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_upperShoulder_driverJnt',
+                 driven_offset=[-3.52, -0.31, 5.46, 47.0, -10.0, -40.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_upperShoulder_driverJnt',
+                 driven_offset=[-3.64, -6.12, 7.8, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='left_mainShoulder_driverJnt',
+                 driver_bound='left_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='left_upperShoulder_driverJnt',
+                 driven_offset=[-18.94, -0.4, 8.87, 0.0, -20.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+            # Right Front Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontShoulder_driverJnt',
+                 driven_offset=[13.13, 13.0, -2.35, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontShoulder_driverJnt',
+                 driven_offset=[-0.24, 15.0, 0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_frontShoulder_driverJnt',
+                 driven_offset=[10.0, -12.0, -10.6, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+            # Right Back Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backShoulder_driverJnt',
+                 driven_offset=[-3.63, -8.86, -3.61, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backShoulder_driverJnt',
+                 driven_offset=[16.4, -19.37, 3.2, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_backShoulder_driverJnt',
+                 driven_offset=[10.64, -6.98, -7.9, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+            # Right Upper Shoulder ------------------------------------------
+            Pose(name='shoulderFlexion',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_upperShoulder_driverJnt',
+                 driven_offset=[3.52, 0.31, -5.46, 47.0, -10.0, -40.0, 1.0, 1.0, 1.0],
+                 setup='flexion_shoulder'),
+
+            Pose(name='shoulderExtension',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_upperShoulder_driverJnt',
+                 driven_offset=[3.64, 6.12, -7.8, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='extension_shoulder'),
+
+            Pose(name='shoulderAbduction',
+                 driver='right_mainShoulder_driverJnt',
+                 driver_bound='right_shoulder_jnt',
+                 driver_range=[0, 1],
+                 driven='right_upperShoulder_driverJnt',
+                 driven_offset=[18.94, 0.4, -8.87, 0.0, -20.0, 0.0, 1.0, 1.0, 1.0],
+                 setup='abduction_shoulder'),
+
+
+        ]
 
     corrective_ctrls = []
     # ################################# Pose Assembly #################################
@@ -987,72 +1375,97 @@ def create_corrective_setup():
                     cmds.parentConstraint(side + '_hip_' + JNT_SUFFIX, rot_angle_parent, mo=True)
 
         dist_setup_loc = side + '_' + setup + '_distanceBaseLoc'
-        if setup.endswith('hip'):
+        if setup.endswith('hip') or setup.endswith('shoulder'):
             if not cmds.objExists(dist_setup_loc):
-
                 loc_base = cmds.spaceLocator(name=dist_setup_loc)[0]
-                rand_pos_start = random.random()*10
-                rand_pos_end = rand_pos_start + 1
+                rand_pos_start = 20  # Is later overwritten
+                rand_pos_end = 25
                 distance_node = cmds.distanceDimension(endPoint=(rand_pos_end, rand_pos_end, rand_pos_end),
                                                        startPoint=(rand_pos_start, rand_pos_start, rand_pos_start))
                 loc_start = cmds.listConnections(distance_node + '.startPoint')
                 loc_end = cmds.listConnections(distance_node + '.endPoint')
-                distance_none = cmds.rename(distance_node, side + '_' + setup + '_distanceNode')
+                distance_node = cmds.rename(distance_node, side + '_' + setup + '_distanceNode')
 
                 # Rename and Re-parent Elements
-                distance_transform = cmds.listRelatives(distance_none, parent=True)[0]
-                distance_transform = cmds.rename(distance_transform, distance_none.replace('Node', 'Transform'))
+                distance_transform = cmds.listRelatives(distance_node, parent=True)[0]
+                distance_transform = cmds.rename(distance_transform, distance_node.replace('Node', 'Transform'))
                 cmds.parent(distance_transform, automation_grp)
                 cmds.parent(loc_base, automation_grp)
 
                 loc_start = cmds.rename(loc_start, dist_setup_loc.replace('Base', 'Start'))
                 loc_end = cmds.rename(loc_end, dist_setup_loc.replace('Base', 'End'))
 
-                pelvis_jnt = cmds.listRelatives(driver_bound, parent=True)[0]
-                hip_knee_scale = dist_center_to_center(pelvis_jnt, driver_bound)
+                driver_bound_parent = cmds.listRelatives(driver_bound, parent=True)[0]
+                limb_scale = dist_center_to_center(driver_bound_parent, driver_bound)
 
                 cmds.delete(cmds.parentConstraint(driver_bound, loc_base))
                 cmds.delete(cmds.parentConstraint(driver_bound, loc_start))
                 cmds.delete(cmds.parentConstraint(driver_bound, loc_end))
                 cmds.parent(loc_end, loc_base)
 
+                # HIP References -----------------------------
                 if setup == 'extension_hip':
-                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
-                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
                     cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
                     cmds.parent(loc_end, world=True)
                     cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
 
                 if setup == 'flexion_hip':
-                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
-                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
                     cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
                     cmds.parent(loc_end, world=True)
                     cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
 
                 if setup == 'abduction_hip':
-                    cmds.move(hip_knee_scale, loc_end, moveX=True, relative=True, objectSpace=True)
-                    cmds.move(hip_knee_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
                     cmds.rotate(90, loc_base, rotateY=True, relative=True, objectSpace=True)
                     cmds.parent(loc_end, world=True)
                     cmds.rotate(-90, loc_base, rotateY=True, relative=True, objectSpace=True)
 
+                # SHOULDER References -----------------------------
+                if setup == 'flexion_shoulder':
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+
+                if setup == 'extension_shoulder':
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(-90, loc_base, rotateZ=True, relative=True, objectSpace=True)
+
+                if setup == 'abduction_shoulder':
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
+                    cmds.rotate(-90, loc_base, rotateY=True, relative=True, objectSpace=True)
+                    cmds.parent(loc_end, world=True)
+                    cmds.rotate(90, loc_base, rotateY=True, relative=True, objectSpace=True)
+
                 cmds.parent(loc_end, loc_base)
                 cmds.parent(loc_start, loc_base)
                 cmds.parentConstraint(driver_bound, loc_start, mo=True)
-                cmds.pointConstraint(driver_bound, loc_base, mo=True)
+                cmds.parentConstraint(driver_bound_parent, loc_base, mo=True)
 
                 cmds.addAttr(loc_base, ln='normalizedDistance', at='double', k=True)
-                distance_range_node = cmds.createNode('remapValue', name=side + '_' + setup + '_range')
-                cmds.connectAttr(distance_none + '.distance', distance_range_node + '.inputValue')
-                cmds.setAttr(distance_range_node + '.inputMax', cmds.getAttr(distance_none + '.distance'))
-                cmds.setAttr(distance_range_node + '.outputMin', 1)
-                cmds.setAttr(distance_range_node + '.outputMax', 0)
-                cmds.connectAttr(distance_range_node + '.outValue', loc_base + '.normalizedDistance')
+                cmds.addAttr(loc_base, ln='finalThirdDistance', at='double', k=True)
+                distance_range_full_node = cmds.createNode('remapValue', name=side + '_' + setup + '_rangeNormalized')
+                cmds.connectAttr(distance_node + '.distance', distance_range_full_node + '.inputValue')
+                cmds.setAttr(distance_range_full_node + '.inputMax', cmds.getAttr(distance_node + '.distance'))
+                cmds.setAttr(distance_range_full_node + '.outputMin', 1)
+                cmds.setAttr(distance_range_full_node + '.outputMax', 0)
+                cmds.connectAttr(distance_range_full_node + '.outValue', loc_base + '.normalizedDistance')
 
         # Visibility Setup
-        cmds.setAttr(driver + '.drawStyle', 2)
-        cmds.setAttr(driven + '.drawStyle', 2)
+        if cmds.objectType(driver) == 'joint':
+            cmds.setAttr(driver + '.drawStyle', 2)
+        if cmds.objectType(driven) == 'joint':
+            cmds.setAttr(driven + '.drawStyle', 2)
 
         # ##### Corrective Posing #####
         # Basic Variables and Elements
@@ -1144,7 +1557,7 @@ def create_corrective_setup():
         # Create Original Correction Nodes
         subtract_pos_node = driven_prefix + '_' + name + '_removePosOffset'
         subtract_rot_node = driven_prefix + '_' + name + '_removeRotOffset'
-        subtract_sca_node = driven_prefix + '_' + name + '_removeRotOffset'
+        subtract_sca_node = driven_prefix + '_' + name + '_removeScaOffset'
         subtract_pos_node = cmds.createNode('plusMinusAverage', name=subtract_pos_node)
         subtract_rot_node = cmds.createNode('plusMinusAverage', name=subtract_rot_node)
         subtract_sca_node = cmds.createNode('plusMinusAverage', name=subtract_sca_node)
@@ -1152,12 +1565,12 @@ def create_corrective_setup():
         cmds.setAttr(subtract_rot_node + '.operation', 2)  # Subtract
         cmds.setAttr(subtract_sca_node + '.operation', 2)  # Subtract
 
-        # Create Basic Connections -----------------------------------------------------------------------
+        # Create Main Sample Connections -----------------------------------------------------------------------
         if setup.endswith('wrist'):
             cmds.connectAttr(rot_angle_child + '.ry', range_node + '.inputValue')
         if setup.endswith('knee') or setup.endswith('elbow'):
             cmds.connectAttr(rot_angle_child + '.rz', range_node + '.inputValue')
-        if setup.endswith('hip'):
+        if setup.endswith('hip') or setup.endswith('shoulder'):
             cmds.connectAttr(dist_setup_loc + '.normalizedDistance', range_node + '.inputValue')
 
         cmds.connectAttr(pose_loc + '.translate', subtract_pos_node + '.input3D[0]')
@@ -1254,6 +1667,32 @@ def create_corrective_setup():
                 cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
                 cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Z', force=True)
 
+        if setup.endswith('shoulder'):  # SHOULDER Adjustments -------------------------------------------------------
+            if 'frontShoulder_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                    cmds.setAttr(reverse_rot_output + '.input2Y', 1)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Z', force=True)
+            if 'upperShoulder_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Z', 1)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Z', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Y', force=True)
+            if 'backShoulder_' in driven:
+                cmds.setAttr(reverse_rot_output + '.input2Z', -1)
+                if side == 'right':
+                    cmds.setAttr(reverse_rot_output + '.input2Y', -1)
+                    cmds.setAttr(reverse_rot_output + '.input2Z', 1)
+                cmds.connectAttr(blend_rot_node + '.outputB', reverse_rot_output + '.input1X', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputG', reverse_rot_output + '.input1Y', force=True)
+                cmds.connectAttr(blend_rot_node + '.outputR', reverse_rot_output + '.input1Z', force=True)
+
         if setup == 'front_elbow':  # ELBOW Adjustments -------------------------------------------------------------
             cmds.setAttr(reverse_rot_output + '.input2Y', -1)
             cmds.setAttr(reverse_rot_output + '.input2Z', -1)
@@ -1328,7 +1767,7 @@ def create_corrective_setup():
         input_value_source = cmds.listConnections(range_node + '.inputValue', destination=False, plugs=True)[0]
         cmds.connectAttr(input_value_source, ctrl + '.' + current_value_attr)
 
-        # Elbow Setup - Keep it between wrist and shoulder --------------------------------------
+        # Elbow Setup and Constraint Wrist and Shoulder --------------------------------------
         if setup.endswith('elbow'):
             constraint_attr = name + 'FollowWristShoulderWristPlane'
             condition_attr = name + 'FollowWristShoulderWristCondition'
@@ -1336,7 +1775,6 @@ def create_corrective_setup():
                          niceName='Follow Shoulder/Wrist')
             cmds.addAttr(ctrl, ln=condition_attr, at='double', k=True,
                          niceName='Follow Condition (>)')
-            cmds.setAttr(ctrl + '.' + constraint_attr, 1)
             inbetween_grp = create_inbetween(ctrl, offset_suffix='Constraint')
             wrist_jnt = side + '_wrist_jnt'
             shoulder_jnt = side + '_shoulder_jnt'
@@ -1351,15 +1789,12 @@ def create_corrective_setup():
             cmds.connectAttr(condition_node + '.outColorR', constraint[0] + '.w1')
             cmds.setAttr(condition_node + '.operation', 2)
 
-        # Knee Setup - Keep it between wrist and shoulder --------------------------------------
+        # Knee Setup and Constraint Setup Wrist and Shoulder --------------------------------------
         if setup == 'back_knee':
             constraint_attr = name + 'FollowHipAnklePlane'
             condition_attr = name + 'FollowHipAnkleCondition'
-            cmds.addAttr(ctrl, ln=constraint_attr, at='bool', k=True,
-                         niceName='Follow Hip/Ankle')
-            cmds.addAttr(ctrl, ln=condition_attr, at='double', k=True,
-                         niceName='Follow Condition (>)')
-            cmds.setAttr(ctrl + '.' + constraint_attr, 1)
+            cmds.addAttr(ctrl, ln=constraint_attr, at='bool', k=True, niceName='Follow Hip/Ankle')
+            cmds.addAttr(ctrl, ln=condition_attr, at='double', k=True, niceName='Follow Condition (>)')
             inbetween_grp = create_inbetween(ctrl, offset_suffix='Constraint')
             hip_jnt = side + '_hip_jnt'
             ankle_jnt = side + '_ankle_jnt'
@@ -1373,6 +1808,62 @@ def create_corrective_setup():
             cmds.connectAttr(condition_node + '.outColorR', constraint[0] + '.w0')
             cmds.connectAttr(condition_node + '.outColorR', constraint[0] + '.w1')
             cmds.setAttr(condition_node + '.operation', 2)
+
+        # Secondary Offset Setup --------------------------------------------------------------------
+        driver_source = cmds.listConnections(range_node + '.inputValue', destination=False, plugs=True)[0]
+        offset_start_attr = name + 'OffsetStartValue'
+        offset_end_attr = name + 'OffsetEndValue'
+        offset_attr = name + 'OffsetExtra'
+
+        # Add Attributes
+        cmds.addAttr(ctrl, ln=offset_start_attr, at='double', k=True, niceName='Offset Start Value')
+        cmds.addAttr(ctrl, ln=offset_end_attr, at='double', k=True, niceName='Offset End Value')
+        cmds.addAttr(ctrl, ln=offset_attr, at='double3', k=True)
+        cmds.addAttr(ctrl, ln=offset_attr + 'X', at='double', k=True,
+                     parent=offset_attr, niceName='Secondary Offset X')
+        cmds.addAttr(ctrl, ln=offset_attr + 'Y', at='double', k=True,
+                     parent=offset_attr, niceName='Secondary Offset Y')
+        cmds.addAttr(ctrl, ln=offset_attr + 'Z', at='double', k=True,
+                     parent=offset_attr, niceName='Secondary Offset Z')
+
+        # Setup Offset
+        offset_range_node = cmds.createNode('remapValue', name=side + '_' + setup + '_rangeOffset')
+        offset_influence_node = cmds.createNode('multiplyDivide', name=side + '_' + setup + '_influenceOffset')
+        cmds.connectAttr(driver_source, offset_range_node + '.inputValue')
+        cmds.connectAttr(ctrl + '.' + offset_start_attr, offset_range_node + '.inputMin')
+        cmds.connectAttr(ctrl + '.' + offset_end_attr, offset_range_node + '.inputMax')
+        cmds.connectAttr(reverse_min_max + '.outputX', offset_range_node + '.outputMin')
+        cmds.connectAttr(ctrl + '.' + reverse_influence_attr, offset_range_node + '.outputMax')
+
+        pos_next_slot = get_plus_minus_average_available_slot(sum_pos_node)
+        cmds.connectAttr(offset_range_node + '.outValue', offset_influence_node + '.input1X')
+        cmds.connectAttr(offset_range_node + '.outValue', offset_influence_node + '.input1Y')
+        cmds.connectAttr(offset_range_node + '.outValue', offset_influence_node + '.input1Z')
+        cmds.connectAttr(ctrl + '.' + offset_attr, offset_influence_node + '.input2')
+        cmds.connectAttr(offset_influence_node + '.output', sum_pos_node + '.input3D[' + str(pos_next_slot) + ']')
+        # End Range (Identical to "End Value"
+
+        if setup.endswith('elbow') or setup == 'upper_wrist' or setup == 'back_knee':
+            # Initiate Variables
+            start_offset_value = driver_range[1]
+            end_offset_value = (driver_range[1] + driver_range[1] * .7)
+            default_knee_offset_x_value = 20
+            default_knee_offset_y_value = default_knee_offset_x_value/2
+            # Adjustments
+            if setup.endswith('elbow'):
+                default_knee_offset_x_value = 15
+                default_knee_offset_y_value = 5
+                start_offset_value = -80
+            if setup == 'upper_wrist':
+                default_knee_offset_x_value = 10
+            # Transfer Values
+            cmds.setAttr(ctrl + '.' + offset_start_attr, start_offset_value)
+            cmds.setAttr(ctrl + '.' + offset_end_attr, end_offset_value)
+            cmds.setAttr(ctrl + '.' + offset_attr + "X", default_knee_offset_x_value)
+            cmds.setAttr(ctrl + '.' + offset_attr + "Y", default_knee_offset_y_value)
+            if side == 'right':
+                cmds.setAttr(ctrl + '.' + offset_attr + "X", -default_knee_offset_x_value)
+                cmds.setAttr(ctrl + '.' + offset_attr + "Y", -default_knee_offset_y_value)
 
         if setup.endswith('elbow') or setup == 'back_knee':
             scale_source = cmds.listConnections(driven + '.scale', destination=False, plugs=True)[0]
@@ -1417,7 +1908,7 @@ def create_corrective_setup():
         cmds.connectAttr(highlight_condition_color + '.outColor', pose_loc + '.overrideColorRGB')
 
         for color_channel in ['R', 'G', 'B']:  # Size Preset
-            cmds.setAttr(highlight_condition_size + '.colorIfTrue' + color_channel, 1.2)
+            cmds.setAttr(highlight_condition_size + '.colorIfTrue' + color_channel, 3)
             cmds.setAttr(highlight_condition_size + '.colorIfFalse' + color_channel, .3)
         cmds.setAttr(highlight_condition_color + '.colorIfTrueR', 0)
         cmds.setAttr(highlight_condition_color + '.colorIfTrueG', 1)
@@ -1452,9 +1943,9 @@ def merge_corrective_elements():
     skeleton_grp = 'skeleton_grp'
     direction_ctrl = 'direction_ctrl'
     rig_setup_grp = 'rig_setup_grp'
-    corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True)
-    corrective_ctrls = cmds.listRelatives('corrective_controls_grp', children=True)
-    rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True)
+    corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
+    corrective_ctrls = cmds.listRelatives('corrective_controls_grp', children=True) or []
+    rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True) or []
 
     for jnt in corrective_joints:
         cmds.parent(jnt, skeleton_grp)
@@ -1468,7 +1959,7 @@ def merge_corrective_elements():
 
 # Test it
 if __name__ == '__main__':
-    debugging = True
+    debugging = False
     if debugging:
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
@@ -1490,7 +1981,7 @@ if __name__ == '__main__':
     if debugging:
         cmds.setAttr('main_ctrl.correctiveVisibility', 1)
         cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
-        cmds.setAttr('rig_setup_grp.v', 1)
+        # cmds.setAttr('rig_setup_grp.v', 1)
         # cmds.setAttr("left_hip_ctrl.rotateX", -90)
         # cmds.setAttr("right_hip_ctrl.rotateX", -90)
         # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
