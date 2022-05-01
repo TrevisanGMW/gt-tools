@@ -208,7 +208,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
         (system elements) and the end_ik_jnt (joint under the ikHandle)
     """
 
-    def caculate_distance(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
+    def calculate_distance(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
         """
         Calculates the magnitude (in this case distance) between two objects
         
@@ -255,47 +255,47 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
 
         assert (0 <= num)
 
-        if (num < 20):
+        if num < 20:
             return d[num]
 
-        if (num < 100):
+        if num < 100:
             if num % 10 == 0:
                 return d[num]
             else:
                 return d[num // 10 * 10] + '-' + d[num % 10]
 
-        if (num < k):
+        if num < k:
             if num % 100 == 0:
                 return d[num // 100] + ' hundred'
             else:
                 return d[num // 100] + ' hundred and ' + int_to_en(num % 100)
 
-        if (num < m):
+        if num < m:
             if num % k == 0:
                 return int_to_en(num // k) + ' thousand'
             else:
                 return int_to_en(num // k) + ' thousand, ' + int_to_en(num % k)
 
-        if (num < b):
+        if num < b:
             if (num % m) == 0:
                 return int_to_en(num // m) + ' million'
             else:
                 return int_to_en(num // m) + ' million, ' + int_to_en(num % m)
 
-        if (num < t):
+        if num < t:
             if (num % b) == 0:
                 return int_to_en(num // b) + ' billion'
             else:
                 return int_to_en(num // b) + ' billion, ' + int_to_en(num % b)
 
-        if (num % t == 0):
+        if num % t == 0:
             return int_to_en(num // t) + ' trillion'
         else:
             return int_to_en(num // t) + ' trillion, ' + int_to_en(num % t)
 
         # raise AssertionError('num is too large: %s' % str(num))
 
-    ########## Start of Make Stretchy Function ##########
+    # ########## Start of Make Stretchy Function ##########
     scale_channels = ['X', 'Y', 'Z']
     ik_handle_joints = cmds.ikHandle(ik_handle, q=True, jointList=True)
     children_last_jnt = cmds.listRelatives(ik_handle_joints[-1], children=True, type='joint') or []
@@ -309,8 +309,8 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
         for jnt in children_last_jnt:
             ik_handle_ws_pos = cmds.xform(ik_handle, q=True, t=True, ws=True)
             jnt_ws_pos = cmds.xform(jnt, q=True, t=True, ws=True)
-            mag = caculate_distance(ik_handle_ws_pos[0], ik_handle_ws_pos[1], ik_handle_ws_pos[2], jnt_ws_pos[0],
-                                    jnt_ws_pos[1], jnt_ws_pos[2])
+            mag = calculate_distance(ik_handle_ws_pos[0], ik_handle_ws_pos[1], ik_handle_ws_pos[2], jnt_ws_pos[0],
+                                     jnt_ws_pos[1], jnt_ws_pos[2])
             jnt_magnitude_pairs.append([jnt, mag])
         # Find Lowest Distance
         curent_jnt = jnt_magnitude_pairs[1:][0]
@@ -914,9 +914,12 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
             Parameters:
                 curve_name (string): Name of the generated curve
                 initial_scale (float): Initial Scale of the curve
-                custom_shape (string): Doesn't generate an arrow. Use the provided shape instead. Name of a curve shape. (Use "start_cv_list" and "end_cv_list" to set cvs)
-                start_cv_list (list): A list of strings. In case you want to overwrite the original curve, you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
-                end_cv_list (list):  A list of strings. In case you want to overwrite the original curve, you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+                custom_shape (string): Doesn't generate an arrow. Use the provided shape instead. N
+                                       ame of a curve shape. (Use "start_cv_list" and "end_cv_list" to set cvs)
+                start_cv_list (list): A list of strings. In case you want to overwrite the original curve,
+                                      you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+                end_cv_list (list):  A list of strings. In case you want to overwrite the original curve,
+                                     you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
                 
             Returns:
                 generated_elements (list): A list with the generated elements: [curve_name, curve_scale_handle, rig_grp]
@@ -1009,7 +1012,8 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
 
 def create_finger_curl_ctrl(ctrl_name, parent='world', scale_multiplier=1, x_offset=0, z_offset=0):
     """
-    Creates a finger curl control. This function was made for a very specific use, so it already orients the control accordingly.
+    Creates a finger curl control. This function was made for a very specific use, so it already orients the control
+    accordingly.
     
             Parameters:
                 ctrl_name (string) : Name of the control (thumb, index, middle, ring, pinky)
@@ -1555,7 +1559,7 @@ def create_limit_lock_attributes(obj, lock_attr='lockXY', primary_rotation_chann
                 obj (string): Name of the target object
                 lock_attr (string) : Name of the rotation lock attribute
                 primary_rotation_channel (string) : Name of the rotation channel to be ignored (left unlocked)
-                ignore_rot (bool): Ignores the rotate channels and creates online lock translate attribute
+                ignore_rot (bool): Ignores rotate channels and creates online lock translate attribute
     """
     available_channels = ['X', 'Y', 'Z']
     cmds.addAttr(obj, ln='lockTranslate', at='bool', k=True)
@@ -1585,10 +1589,10 @@ def lock_hide_default_attr(obj, translate=True, rotate=True, scale=True, visibil
 
             Parameters:
                 obj (string): Name of the object to be locked
-                translate (bool): Whether or not to lock and hide translate
-                rotate (bool): Whether or not to lock and hide rotate
-                scale (bool): Whether or not to lock and hide scale
-                visibility (bool): Whether or not to lock and hide visibility
+                translate (bool): Whether to lock and hide translate
+                rotate (bool): Whether to lock and hide rotate
+                scale (bool): Whether to lock and hide scale
+                visibility (bool): Whether to lock and hide visibility
 
     """
     if translate:
@@ -2683,6 +2687,41 @@ def enforce_parent(obj_name, desired_parent):
             cmds.parent(obj_name, desired_parent)
     else:
         cmds.parent(obj_name, desired_parent)
+
+
+def is_entire_list_available(obj_list):
+    """
+    Checks if all objects are available (it exists) in Maya and return True or False accordingly
+    Args:
+        obj_list (list): List of strings (object names) or None objects
+
+    Returns:
+        True if all objects were found, False if one or more are missing.
+
+    """
+    for obj in obj_list:
+        if obj:
+            if not cmds.objExists(obj):
+                return False
+        else:
+            return False
+    return True
+
+
+def orient_offset(obj_name, rot_offset, apply=True):
+    """
+    Rotates the target then freezes its transformation (used to quickly re-orient an object)
+
+    Args:
+        obj_name (string): Name of the object to orient (usually a joint)
+        rot_offset (tuple): A tuple containing three floats (XYZ), used as rotate offset.
+        apply (optional, bool): Whether to execute the function
+    """
+    if apply:
+        cmds.setAttr(obj_name + '.rotateX', rot_offset[0])
+        cmds.setAttr(obj_name + '.rotateY', rot_offset[1])
+        cmds.setAttr(obj_name + '.rotateZ', rot_offset[2])
+        cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
 
 # Tests
