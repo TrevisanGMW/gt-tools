@@ -34,7 +34,7 @@ class GTBipedRiggerData:
     script_name = 'GT Auto Biped Rigger'
 
     # Version:
-    script_version = '1.9.8'
+    script_version = '1.9.9'
 
     # Permanent Settings
     option_var = 'gt_auto_biped_rigger_setup'
@@ -158,7 +158,12 @@ class GTBipedRiggerData:
     debugging_post_code = True  # Runs code found at the end of the create controls command
 
 
-class GTFacialRiggerData:
+class GTBipedRiggerFacialData:
+    pass
+    # TODO
+
+
+class GTBipedRiggerCorrectiveData:
     pass
     # TODO
 
