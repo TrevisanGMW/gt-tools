@@ -4,6 +4,7 @@
 
 """
 
+
 def make_flat_list(*args):
     """
     Return a single list of all the items, essentially merging lists and single object into one list.
@@ -37,3 +38,18 @@ def remove_numbers(string):
 
     """
     return ''.join([i for i in string if not i.isdigit()])
+
+
+def remove_strings_from_string(input_string, undesired_string_list):
+    """
+    Removes provided strings from input
+    Args:
+        input_string: String to be modified. E.g. "left_elbow_ctrl"
+        undesired_string_list (list): A list of strings to be removed. E.g. ['left', 'ctrl'] # Outputs: "_elbow_"
+
+    Returns:
+        clean_string (string): The "input_string" after without strings provided in the "undesired_string_list" list
+    """
+    for undesired in undesired_string_list:
+        input_string = input_string.replace(undesired, '')
+    return input_string
