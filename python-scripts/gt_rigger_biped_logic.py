@@ -52,6 +52,7 @@
  v1.1.11 - 2022-04-20
  Added Z limit to auto clavicle system
  Added ramp-up system to auto clavicle system
+
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -8717,9 +8718,9 @@ def create_controls(biped_data):
     cmds.connectAttr(eye_converge_reverse_multiply + '.outputX', left_eye_ctrl_offset_grp + '.tx')
 
     # ################ Organize Stretchy System Elements #################
-    stretchy_system_grp = cmds.group(name='stretchySystem_' + GRP_SUFFIX, empty=True, world=True)
+    stretchy_system_grp = cmds.group(name='stretchyAutomation_' + GRP_SUFFIX, empty=True, world=True)
     foot_automation_grp = cmds.group(name='footAutomation_' + GRP_SUFFIX, empty=True, world=True)
-    change_outliner_color(stretchy_system_grp, (.5, 1, .85))
+    change_outliner_color(stretchy_system_grp, (1, .65, .45))
     change_outliner_color(foot_automation_grp, (1, .65, .45))
     cmds.parent(left_leg_stretchy_elements[1], stretchy_system_grp)
     cmds.parent(right_leg_stretchy_elements[1], stretchy_system_grp)
@@ -8727,6 +8728,15 @@ def create_controls(biped_data):
     cmds.parent(right_foot_pivot_grp, foot_automation_grp)
     cmds.parent(right_arm_stretchy_elements[1], stretchy_system_grp)
     cmds.parent(left_arm_stretchy_elements[1], stretchy_system_grp)
+    stretchy_system_grp_children = cmds.listRelatives(stretchy_system_grp, children=True)  # TODO Send to make stretchy
+    for obj in stretchy_system_grp_children:
+        grp_children = cmds.listRelatives(obj, children=True)
+        for child in grp_children:
+            child_shape = cmds.listRelatives(child, shapes=True) or []
+            for shape in child_shape:
+                if cmds.objectType(shape) == 'distanceDimShape':
+                    cmds.setAttr(child + '.overrideEnabled', 1)
+                    cmds.setAttr(child + '.overrideDisplayType', 1)
 
     # Finger Automation System Hierarchy
     finger_automation_grp = cmds.group(name='fingersAutomation_' + GRP_SUFFIX, empty=True, world=True)
@@ -8750,8 +8760,8 @@ def create_controls(biped_data):
     change_outliner_color(geometry_grp, (.3, 1, .8))
     rig_grp = cmds.group(name='rig_grp', empty=True, world=True)
     change_outliner_color(rig_grp, (1, .45, .7))
-    cmds.parent(stretchy_system_grp, rig_setup_grp)
     cmds.parent(general_automation_grp, rig_setup_grp)
+    cmds.parent(stretchy_system_grp, rig_setup_grp)
     cmds.parent(arms_automation_grp, rig_setup_grp)
     cmds.parent(finger_automation_grp, rig_setup_grp)
     cmds.parent(spine_automation_grp, rig_setup_grp)
@@ -10119,8 +10129,8 @@ def build_biped_rig(create_rig_ctrls=True):
     biped_obj.debugging_import_proxy = True
     import gt_rigger_biped_gui
     if biped_obj.debugging_import_proxy:
-        gt_rigger_biped_gui.import_proxy_pose(debugging=biped_obj.debugging_import_proxy,
-                                              debugging_path=biped_obj.debugging_import_path)
+        gt_rigger_biped_gui.import_biped_proxy_pose(debugging=biped_obj.debugging_import_proxy,
+                                                    debugging_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
