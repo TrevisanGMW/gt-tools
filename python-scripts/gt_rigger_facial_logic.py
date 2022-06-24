@@ -36,12 +36,15 @@
 
  0.11 - 2022-04-30
  Added cheek controls
- Add scale control to tongue
+ Added scale control to tongue
+
+ 0.12 - 2022-06-24
+ Changed merge rig function to keep scale constraints at the bottom of the stack
 
  TODO:
- Polish mouth up poses (rotation is unpredictable at the moment)
- Add nose proxy / control
- Improve tongue scale control system
+     Polish mouth up poses (rotation is unpredictable at the moment)
+     Add nose proxy / control
+     Improve tongue scale control system
 
 """
 from collections import namedtuple
@@ -55,7 +58,7 @@ import random
 script_name = 'GT Facial Rigger'
 
 # Version:
-script_version = '0.11'
+script_version = '0.12'
 
 find_pre_existing_elements = True
 
@@ -270,7 +273,7 @@ def create_arched_control(end_joint,
     return ctrl, ctrl_grp, trans_loc, trans_loc_grp, end_joint, offset_grp
 
 
-def create_face_proxy():
+def create_facial_proxy():
     """ Creates a proxy (guide) skeleton used to later generate entire rig """
 
     proxy_curves = []
@@ -725,7 +728,7 @@ def create_face_proxy():
         lock_hide_default_attr(crv, translate=False, rotate=False)
 
 
-def create_face_controls():
+def create_facial_controls():
     """ Creates Facial Rig Controls """
 
     def rename_proxy(old_name):
@@ -757,6 +760,7 @@ def create_face_controls():
     change_outliner_color(controls_grp, (1, 0.47, 0.18))
 
     rig_setup_grp = cmds.group(name=face_prefix + 'rig_setup_' + GRP_SUFFIX, empty=True, world=True)
+    cmds.setAttr(rig_setup_grp + '.v', 0) # @@@
     change_outliner_color(rig_setup_grp, (1, .26, .26))
 
     general_automation_grp = cmds.group(name='facialAutomation_grp', world=True, empty=True)
@@ -1640,7 +1644,7 @@ def create_face_controls():
     general_head_scale += dist_center_to_center(_facial_joints_dict.get('head_jnt'),
                                                 _facial_joints_dict.get('mid_upper_lip_jnt'))
 
-    facial_gui_grp = create_facial_controls()
+    facial_gui_grp = create_facial_side_gui()
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('mid_upper_lip_jnt'), facial_gui_grp))
     cmds.parent(facial_gui_grp, head_ctrl)
     cmds.move(general_head_scale * 2, facial_gui_grp, moveX=True, relative=True)
@@ -2349,8 +2353,8 @@ def create_face_controls():
             driven_control = create_inbetween(ctrl[0], 'driver')
             cmds.rename(driven_control, remove_strings_from_string(driven_control, ['invertOrient']))
             cmds.setAttr(ctrl[0] + '.rotateZ', 0)
-    for ctrl in [left_cheek_ctrl, right_cheek_ctrl, left_nose_ctrl, right_nose_ctrl]:
-        print(ctrl)
+    # for ctrl in [left_cheek_ctrl, right_cheek_ctrl, left_nose_ctrl, right_nose_ctrl]:
+    #     print(ctrl) # @@@
 
     # Pose Object Setup
     Pose = namedtuple('Pose', ['name',
@@ -3232,13 +3236,16 @@ def merge_facial_elements():
             cmds.warning(f'Missing a require element. "{obj}"')
             return
 
-    corrective_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
-    rig_setup_grps = cmds.listRelatives('facial_rig_setup_grp', children=True)
+    facial_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
+    facial_rig_setup_grps = cmds.listRelatives('facial_rig_setup_grp', children=True)
+    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint')
 
-    for jnt in corrective_joints:
+    for jnt in facial_joints:
         cmds.parent(jnt, skeleton_grp)
-    for grp in rig_setup_grps:
+    for grp in facial_rig_setup_grps:
         cmds.parent(grp, rig_setup_grp)
+    for constraint in rig_setup_scale_constraints:
+        cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
     cmds.delete(facial_rig_grp)
 
@@ -3260,32 +3267,33 @@ if __name__ == '__main__':
         cmds.setAttr('persp.ry', persp_rot[1])
         cmds.setAttr('persp.rz', persp_rot[2])
 
-    # Core Functions ---------------------------------------------------------------------------------------------
-    # create_face_proxy()
-    create_face_controls()
+    # Core Functions --------------------------------------5-------------------------------------------------------
+    create_facial_proxy()
+    create_facial_controls()
     merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if debugging:
-        cmds.select(['root_jnt'], hierarchy=True)
-        selection = cmds.ls(selection=True)
-        cmds.skinCluster(selection, 'body_geo', bindMethod=1, toSelectedBones=True, smoothWeights=0.5,
-                         maximumInfluences=4)
-
-        from ngSkinTools2 import api as ng_tools_api
-        from ngSkinTools2.api import InfluenceMappingConfig, VertexTransferMode
-
-        config = InfluenceMappingConfig()
-        config.use_distance_matching = True
-        config.use_name_matching = True
-
-        source_file_name = 'C:\\body.json'
-
-        # Import Skin Weights
-        ng_tools_api.import_json(
-            "body_geo",
-            file=source_file_name,
-            vertex_transfer_mode=VertexTransferMode.vertexId,
-            # vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
-            influences_mapping_config=config,
-        )
+        pass
+        # cmds.select(['root_jnt'], hierarchy=True)
+        # selection = cmds.ls(selection=True)
+        # cmds.skinCluster(selection, 'body_geo', bindMethod=1, toSelectedBones=True, smoothWeights=0.5,
+        #                  maximumInfluences=4)
+        #
+        # from ngSkinTools2 import api as ng_tools_api
+        # from ngSkinTools2.api import InfluenceMappingConfig, VertexTransferMode
+        #
+        # config = InfluenceMappingConfig()
+        # config.use_distance_matching = True
+        # config.use_name_matching = True
+        #
+        # source_file_name = 'C:\\body.json'
+        #
+        # # Import Skin Weights
+        # ng_tools_api.import_json(
+        #     "body_geo",
+        #     file=source_file_name,
+        #     vertex_transfer_mode=VertexTransferMode.vertexId,
+        #     # vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
+        #     influences_mapping_config=config,
+        # )
