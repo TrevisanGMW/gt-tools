@@ -30,6 +30,10 @@
  Added rotation connection to shoulder joints
  Copied improved position to hip and shoulder goals
 
+ 0.0.8 - 2022-06-24
+ Connected corrective distance to rig scale to keep rig scalable
+ Changed the look of the distanceBase locators and reordered outliner elements
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
@@ -40,7 +44,7 @@ import maya.cmds as cmds
 script_name = 'GT Corrective Rigger'
 
 # Version:
-script_version = '0.0.7'
+script_version = '0.0.8'
 
 # General Vars
 debugging = True
@@ -624,11 +628,11 @@ def create_corrective_setup():
             missing_objs.append(data)
 
     if len(missing_objs) > 0:
-        cmds.warning('Missing necessary joints. Check script editor for details.')
         print("#"*80)
         for obj in missing_objs:
             print('"' + obj + '" is missing.')
         print("#"*80)
+        cmds.warning('Missing necessary joints. Check script editor for details.')
         return False
 
     # Create Parent Groups
@@ -1389,6 +1393,7 @@ def create_corrective_setup():
                 # Rename and Re-parent Elements
                 distance_transform = cmds.listRelatives(distance_node, parent=True)[0]
                 distance_transform = cmds.rename(distance_transform, distance_node.replace('Node', 'Transform'))
+                cmds.setAttr(distance_transform + '.v', 0)
                 cmds.parent(distance_transform, automation_grp)
                 cmds.parent(loc_base, automation_grp)
 
@@ -1452,11 +1457,25 @@ def create_corrective_setup():
                 cmds.parentConstraint(driver_bound, loc_start, mo=True)
                 cmds.parentConstraint(driver_bound_parent, loc_base, mo=True)
 
+                # Make Locators easily seen
+                change_viewport_color(loc_base, (0, 0, 1))
+                change_viewport_color(loc_start, (.41, .41, 1))
+                change_viewport_color(loc_end, (.41, .41, 1))
+                change_outliner_color(loc_base, (1, .4, .4))
+                loc_base_shape = cmds.listRelatives(loc_base, shapes=True)[0]
+                cmds.setAttr(loc_base_shape + '.localScaleX', 8)
+                cmds.setAttr(loc_base_shape + '.localScaleY', 8)
+                cmds.setAttr(loc_base_shape + '.localScaleZ', 8)
+
                 cmds.addAttr(loc_base, ln='normalizedDistance', at='double', k=True)
-                cmds.addAttr(loc_base, ln='finalThirdDistance', at='double', k=True)
+                cmds.addAttr(loc_base, ln='triggerDistance', at='double', k=True)
                 distance_range_full_node = cmds.createNode('remapValue', name=side + '_' + setup + '_rangeNormalized')
+                scale_detection = cmds.createNode('multiplyDivide', name=side + '_' + setup + '_scaleDetection')
                 cmds.connectAttr(distance_node + '.distance', distance_range_full_node + '.inputValue')
-                cmds.setAttr(distance_range_full_node + '.inputMax', cmds.getAttr(distance_node + '.distance'))
+                cmds.connectAttr(scale_detection + '.outputX', distance_range_full_node + '.inputMax')
+                cmds.setAttr(loc_base + '.triggerDistance', cmds.getAttr(distance_node + '.distance'))
+                cmds.connectAttr(loc_base + '.triggerDistance', scale_detection + '.input2X')
+                cmds.connectAttr(main_ctrl + '.sy', scale_detection + '.input1X')
                 cmds.setAttr(distance_range_full_node + '.outputMin', 1)
                 cmds.setAttr(distance_range_full_node + '.outputMax', 0)
                 cmds.connectAttr(distance_range_full_node + '.outValue', loc_base + '.normalizedDistance')
@@ -1917,6 +1936,19 @@ def create_corrective_setup():
         cmds.setAttr(highlight_condition_color + '.colorIfFalseG', .5)
         cmds.setAttr(highlight_condition_color + '.colorIfFalseB', 0)
 
+    # Organize Automation Group
+    rig_setup_children = cmds.listRelatives(automation_grp, children=True)
+    for obj in rig_setup_children:
+        if obj.endswith('distanceBaseLoc'):
+            cmds.reorder(obj, front=True)
+        elif obj.endswith('upAimLoc'):
+            cmds.reorder(obj, back=True)
+
+    for obj in rig_setup_children:
+        if obj.endswith('distanceTransform'):
+            cmds.setAttr(obj + '.overrideEnabled', 1)
+            cmds.setAttr(obj + '.overrideDisplayType', 1)
+
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
@@ -1939,13 +1971,28 @@ def create_corrective_setup():
 
 
 def merge_corrective_elements():
+    """ Merges corrective elements with pre-existing biped rig """
+    necessary_elements = []
+
     corrective_rig_grp = 'corrective_rig_grp'
     skeleton_grp = 'skeleton_grp'
     direction_ctrl = 'direction_ctrl'
     rig_setup_grp = 'rig_setup_grp'
+
+    necessary_elements.append(corrective_rig_grp)
+    necessary_elements.append(skeleton_grp)
+    necessary_elements.append(direction_ctrl)
+    necessary_elements.append(rig_setup_grp)
+
+    for obj in necessary_elements:
+        if not cmds.objExists(obj):
+            cmds.warning(f'Missing a require element. "{obj}"')
+            return
+
     corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
     corrective_ctrls = cmds.listRelatives('corrective_controls_grp', children=True) or []
     rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True) or []
+    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint')
 
     for jnt in corrective_joints:
         cmds.parent(jnt, skeleton_grp)
@@ -1953,13 +2000,15 @@ def merge_corrective_elements():
         cmds.parent(ctrl, direction_ctrl)
     for grp in rig_setup_grps:
         cmds.parent(grp, rig_setup_grp)
+    for constraint in rig_setup_scale_constraints:
+        cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
     cmds.delete(corrective_rig_grp)
 
 
 # Test it
 if __name__ == '__main__':
-    debugging = False
+    debugging = True
     if debugging:
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
@@ -1979,8 +2028,9 @@ if __name__ == '__main__':
     merge_corrective_elements()
 
     if debugging:
-        cmds.setAttr('main_ctrl.correctiveVisibility', 1)
-        cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
+        pass
+        # cmds.setAttr('main_ctrl.correctiveVisibility', 1)
+        # cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
         # cmds.setAttr('rig_setup_grp.v', 1)
         # cmds.setAttr("left_hip_ctrl.rotateX", -90)
         # cmds.setAttr("right_hip_ctrl.rotateX", -90)
