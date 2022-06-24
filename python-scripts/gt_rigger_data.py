@@ -1,9 +1,12 @@
 """
 GT Rigger Data - Settings and naming conventions for auto rigger scripts
 github.com/TrevisanGMW - 2021-12-10
+
 """
 import maya.cmds as cmds
 import copy
+
+SCRIPT_VERSION_BIPED = '1.9.11'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -31,10 +34,10 @@ CUSTOM_ATTR_SEPARATOR = 'controlBehaviour'
 
 class GTBipedRiggerData:
     # Script Name
-    script_name = 'GT Auto Biped Rigger'
+    script_name = 'GT Biped Rigger'
 
     # Version:
-    script_version = '1.9.9'
+    script_version = SCRIPT_VERSION_BIPED
 
     # Permanent Settings
     option_var = 'gt_auto_biped_rigger_setup'
@@ -59,7 +62,7 @@ class GTBipedRiggerData:
         'jaw_end_proxy_crv': 'jaw' + '_end' + PROXY_SUFFIX.capitalize(),
         'hip_proxy_crv': 'pelvis' + '_' + PROXY_SUFFIX,
         # Left Side Elements (No need for prefix, these are automatically added)
-        # Right Side Elements are auto populated, script copies from Left to Right
+        # Right Side Elements are autopopulated, script copies from Left to Right
         'left_eye_proxy_crv': 'eye' + '_' + PROXY_SUFFIX,
         'left_clavicle_proxy_crv': 'clavicle' + '_' + PROXY_SUFFIX,
         'left_shoulder_proxy_crv': 'shoulder' + '_' + PROXY_SUFFIX,
@@ -177,7 +180,7 @@ def get_persistent_settings(data_object):
             data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
 
         Returns:
-            True or False (bool): Whether or not it was successfully updated
+            True or False (bool): Whether operation was successful
     """
     # Basic Validation
     if not data_object:
@@ -202,22 +205,22 @@ def get_persistent_settings(data_object):
                     if stored_item == item and item not in data_object.ignore_keys:
                         data_object.settings[item] = stored_settings.get(stored_item)
         except:
-            print('Couldn\'t load persistent settings. Resetting it might fix the issue.')
+            print("Couldn't load persistent settings. Resetting it might fix the issue.")
             return False
         return True
 
 
 def set_persistent_settings(data_object):
     """
-    Stores persistant settings for GT Auto Rigger Data objects.
+    Stores persistent settings for GT Auto Rigger Data objects.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
-        Parameters:
-            data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
+    Args:
+        data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
 
-        Returns:
-            True or False (bool): Whether or not it was successfully set
+    Returns:
+        True or False (bool): Whether the operation was successful
     """
     # Basic Validation
     if not data_object:
@@ -236,43 +239,29 @@ def set_persistent_settings(data_object):
 
 
 def reset_persistent_settings(data_object):
-    """ Resets persistant settings for GT Auto Biped Rigger
+    """
+    Resets persistent settings for GT Auto Biped Rigger
 
-        Parameters:
-            data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
+    Args:
+        data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
 
-        Returns:
-            True or False (bool): Whether or not it was successfully updated
+    Returns:
+        True or False (bool): Whether the reset was successful
     """
     # Basic Validation
-    # if not data_object:
-    #     return False
-    # try:
-    #     data_object.option_var
-    #     data_object.settings
-    #     data_object.script_name
-    #     data_object.gui_module
-    #     data_object.entry_function
-    # except:
-    #     return False
-    print('Before Reset:')
-    print(data_object.settings)
+    if not data_object:
+        return False
+    try:
+        data_object.option_var
+        data_object.settings
+        data_object.script_name
+        data_object.gui_module
+        data_object.entry_function
+    except:
+        return False
+
     cmds.optionVar(remove=data_object.option_var)
-    # data_object.settings = data_object.settings_default
-
+    data_object.settings = data_object.settings_default
     cmds.warning('Persistent settings for ' + data_object.script_name + ' were cleared.')
-    print('After Reset:')
-    print(data_object.settings)
+    return True
 
-    print("Was in the default:")
-    print(data_object.settings_default)
-
-    # try:
-    #     cmds.evalDeferred('import ' + data_object.gui_module)
-    #     cmds.evalDeferred(data_object.gui_module + '.' + data_object.entry_function)
-    # except:
-    #     try:
-    #         cmds.evalDeferred(data_object.entry_function)
-    #     except:
-    #         pass
-    # return True
