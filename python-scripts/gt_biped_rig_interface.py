@@ -2,7 +2,7 @@
  Custom Rig Interface for GT Auto Biped Rigger.
  github.com/TrevisanGMW/gt-tools - 2021-01-05
  
- 1.0 - 2021-01-05
+ 1.0 - 2021-05-01
  Initial Release
 
  1.1 - 2021-05-11
@@ -99,6 +99,9 @@
  1.3.20 - 2022-03-17
  Fixed a few PEP8 warnings (long lines)
 
+ 1.3.21 - 2022-03-17
+ Checked to see if using new name for clavicle influence attribute (autoClavicleInfluence -> clavicleInfluence)
+
 
  TODO:
     Created flip pose function
@@ -128,7 +131,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.20"
+script_version = "1.3.21"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -1219,10 +1222,14 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
 
     else:
         if ik_fk_dict.get('incompatible_attr_holder'):
-            auto_clavicle_value = cmds.getAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') +
-                                               '.autoClavicleInfluence')
-            cmds.setAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence', 0)
-
+            ns_incompatible_attr_holder = namespace + ik_fk_dict.get('incompatible_attr_holder')
+            available_attributes = cmds.listAttr(ns_incompatible_attr_holder, userDefined=True)
+            if 'autoClavicleInfluence' in available_attributes:  # Before V1.7
+                auto_clavicle_value = cmds.getAttr(ns_incompatible_attr_holder + '.autoClavicleInfluence')
+                cmds.setAttr(ns_incompatible_attr_holder + '.autoClavicleInfluence', 0)
+            else:
+                auto_clavicle_value = cmds.getAttr(ns_incompatible_attr_holder + '.clavicleInfluence')
+                cmds.setAttr(ns_incompatible_attr_holder + '.clavicleInfluence', 0)
         if keyframe:
             if method.lower() == 'sparse':  # Only Influence Switch
                 original_time = cmds.currentTime(q=True)
@@ -1281,8 +1288,12 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
             print_inview_feedback()
 
         if ik_fk_dict.get('incompatible_attr_holder'):
-            cmds.setAttr(namespace + ik_fk_dict.get('incompatible_attr_holder') + '.autoClavicleInfluence',
-                         auto_clavicle_value)
+            ns_incompatible_attr_holder = namespace + ik_fk_dict.get('incompatible_attr_holder')
+            available_attributes = cmds.listAttr(ns_incompatible_attr_holder, userDefined=True)
+            if 'autoClavicleInfluence' in available_attributes:  # Before V1.7
+                cmds.setAttr(ns_incompatible_attr_holder + '.autoClavicleInfluence', auto_clavicle_value)
+            else:
+                cmds.setAttr(ns_incompatible_attr_holder + '.clavicleInfluence', auto_clavicle_value)
             if auto_clavicle_value != 0:
                 # Print Feedback
                 cmds.inViewMessage(
@@ -2183,11 +2194,13 @@ def _anim_export(namespace=''):
 
 def _anim_import(debugging=False, debugging_path='', namespace=''):
     """
-    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls (exported using the "_anim_export" function)
+    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls
+    (exported using the "_anim_export" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
     
     Args:
-        debugging (bool): If debugging, the function will attempt to auto load the file provided in the "debugging_path" parameter
+        debugging (bool): If debugging, the function will attempt to auto load the file provided in the
+                          "debugging_path" parameter
         debugging_path (string): Debugging path for the import function
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     """
