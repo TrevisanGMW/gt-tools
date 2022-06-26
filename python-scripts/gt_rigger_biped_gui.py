@@ -292,9 +292,9 @@ import os
 import re
 
 # Biped Data
-biped_data = GTBipedRiggerData()
-get_persistent_settings(biped_data)
-# facial_data = GTBipedRiggerFacialData()  # Not yet used
+data_base = GTBipedRiggerData()
+get_persistent_settings(data_base)
+data_facial = GTBipedRiggerFacialData()
 
 
 # Main Dialog ============================================================================
@@ -302,8 +302,8 @@ def build_gui_auto_biped_rig():
     """  Creates the main GUI for GT Auto Biped Rigger """
 
     # Unpack Common Variables
-    script_name = biped_data.script_name
-    script_version = biped_data.script_version
+    script_name = data_base.script_name
+    script_version = data_base.script_version
 
     window_name = 'build_gui_auto_biped_rig'
     if cmds.window(window_name, exists=True):
@@ -320,7 +320,7 @@ def build_gui_auto_biped_rig():
     # Title Text
     title_bgc_color = (.4, .4, .4)
     main_window_title = script_name
-    if biped_data.debugging:
+    if data_base.debugging:
         title_bgc_color = (1, .3, .3)
         main_window_title = 'Debugging Mode Activated'
 
@@ -376,12 +376,12 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Step 2 - Biped Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_biped_proxy())
+    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy())
     cmds.separator(h=6, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('right_to_left'))
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('left_to_right'))
+    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left'))
+    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right'))
 
     cmds.separator(h=8, style='none')  # Empty Space
     cmds.separator(h=8, style='none')  # Empty Space
@@ -454,17 +454,17 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Step 2 - Facial Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_biped_proxy(), en=False)
+    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(proxy_target='facial'))
     cmds.separator(h=6, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('right_to_left'), en=False)
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('left_to_right'), en=False)
+    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left', 'facial'))
+    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right', 'facial'))
 
     cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(), en=False)
+    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(proxy_target='facial'))
 
     # Step 3 - Facial
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
@@ -514,16 +514,16 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Step 2 - Corrective Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_biped_proxy(), en=False)
+    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(), en=False)
     cmds.separator(h=6, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('right_to_left'), en=0)
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_biped_proxy('left_to_right'), en=0)
+    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left'), en=0)
+    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right'), en=0)
     cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(), en=False)
+    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy('facial'))
 
     # Step 3 - Corrective
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
@@ -570,7 +570,7 @@ def build_gui_auto_biped_rig():
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Use Real-time Skeleton', value=biped_data.settings.get('using_no_ssc_skeleton'),
+    cmds.checkBox(label='  Use Real-time Skeleton', value=data_base.settings.get('using_no_ssc_skeleton'),
                   ebg=True, cc=lambda x: _invert_stored_setting('using_no_ssc_skeleton'), en=is_option_enabled)
 
     realtime_custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" ' \
@@ -590,7 +590,7 @@ def build_gui_auto_biped_rig():
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Limit Proxy Movement', value=biped_data.settings.get('proxy_limits'),
+    cmds.checkBox(label='  Limit Proxy Movement', value=data_base.settings.get('proxy_limits'),
                   ebg=True, cc=lambda x: _invert_stored_setting('proxy_limits'), en=is_option_enabled)
 
     proxy_limit_custom_help_message = 'Unlocks transforms for feet and spine proxy elements. ' \
@@ -606,7 +606,7 @@ def build_gui_auto_biped_rig():
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Uniform Control Orientation', value=biped_data.settings.get('uniform_ctrl_orient'),
+    cmds.checkBox(label='  Uniform Control Orientation', value=data_base.settings.get('uniform_ctrl_orient'),
                   ebg=True, cc=lambda x: _invert_stored_setting('uniform_ctrl_orient'), en=is_option_enabled)
 
     uniform_orients_custom_help_message = 'Changes the orientation of most controls to be match the world\'s ' \
@@ -621,7 +621,7 @@ def build_gui_auto_biped_rig():
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  World-Space IK Orientation', value=biped_data.settings.get('worldspace_ik_orient'),
+    cmds.checkBox(label='  World-Space IK Orientation', value=data_base.settings.get('worldspace_ik_orient'),
                   ebg=True, cc=lambda x: _invert_stored_setting('worldspace_ik_orient'), en=is_option_enabled)
 
     ws_ik_orients_custom_help_message = 'Changes the orientation of the IK controls to be match the world\'s ' \
@@ -636,7 +636,7 @@ def build_gui_auto_biped_rig():
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Simplify Spine Joints', value=biped_data.settings.get('simplify_spine'),
+    cmds.checkBox(label='  Simplify Spine Joints', value=data_base.settings.get('simplify_spine'),
                   ebg=True, cc=lambda x: _invert_stored_setting('simplify_spine'), en=is_option_enabled)
 
     simplify_spine_custom_help_message = 'The number of spine joints used in the base skinned skeleton is reduced.' \
@@ -654,7 +654,7 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=25)
     # cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Reset Persistent Settings', bgc=current_bgc_color,
-                c=lambda x: _reset_persistent_settings_validation(biped_data))
+                c=lambda x: _reset_persistent_settings_validation(data_base))
 
     # ####################################### END TABS #######################################
     cmds.tabLayout(tabs, edit=True, tabLabel=((biped_rigger_tab, 'Biped/Base'),
@@ -680,8 +680,8 @@ def build_gui_auto_biped_rig():
                 Parameters:
                     key_string (string) : Key name, used to determine what bool value to flip
         """
-        biped_data.settings[key_string] = not biped_data.settings.get(key_string)
-        set_persistent_settings(biped_data)
+        data_base.settings[key_string] = not data_base.settings.get(key_string)
+        set_persistent_settings(data_base)
 
     def _reset_persistent_settings_validation(biped_data):
         """
@@ -865,9 +865,9 @@ def validate_facial_operation(operation):
     """
     print(operation)
     if operation == "create_proxy":
-        gt_rigger_facial_logic.create_facial_proxy()
+        gt_rigger_facial_logic.create_facial_proxy(data_facial)
     elif operation == "create_controls":
-        gt_rigger_facial_logic.create_facial_controls()
+        gt_rigger_facial_logic.create_facial_controls(data_facial)
     elif operation == "merge":
         gt_rigger_facial_logic.merge_facial_elements()
 
@@ -908,11 +908,11 @@ def validate_biped_operation(operation):
     is_valid = True
     if operation == 'create_proxy':
         # Starts new instance (clean scene)
-        if biped_data.debugging and biped_data.debugging_force_new_scene:
+        if data_base.debugging and data_base.debugging_force_new_scene:
             persp_pos = cmds.getAttr('persp.translate')[0]
             persp_rot = cmds.getAttr('persp.rotate')[0]
             cmds.file(new=True, force=True)
-            if biped_data.debugging_keep_cam_transforms:
+            if data_base.debugging_keep_cam_transforms:
                 cmds.viewFit(all=True)
                 cmds.setAttr('persp.tx', persp_pos[0])
                 cmds.setAttr('persp.ty', persp_pos[1])
@@ -922,17 +922,17 @@ def validate_biped_operation(operation):
                 cmds.setAttr('persp.rz', persp_rot[2])
 
         # Debugging (Auto deletes generated proxy)
-        if biped_data.debugging and biped_data.debugging_auto_recreate:
+        if data_base.debugging and data_base.debugging_auto_recreate:
             try:
-                cmds.delete(biped_data.elements_default.get('main_proxy_grp'))
+                cmds.delete(data_base.elements_default.get('main_proxy_grp'))
             except:
                 pass
 
         # Check if proxy exists in the scene
-        proxy_elements = [biped_data.elements_default.get('main_proxy_grp')]
-        for proxy in biped_data.elements_default:
+        proxy_elements = [data_base.elements_default.get('main_proxy_grp')]
+        for proxy in data_base.elements_default:
             if '_crv' in proxy:
-                proxy_elements.append(biped_data.elements_default.get(proxy))
+                proxy_elements.append(data_base.elements_default.get(proxy))
         for obj in proxy_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
@@ -941,8 +941,8 @@ def validate_biped_operation(operation):
 
         # Check for existing rig or conflicting names
         undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
-        for jnt in biped_data.joints_default:
-            undesired_elements.append(biped_data.joints_default.get(jnt))
+        for jnt in data_base.joints_default:
+            undesired_elements.append(data_base.joints_default.get(jnt))
         for obj in undesired_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
@@ -956,7 +956,7 @@ def validate_biped_operation(operation):
             cmds.undoInfo(openChunk=True, chunkName=function_name)
             cmds.refresh(suspend=True)
             try:
-                create_proxy(biped_data)
+                create_proxy(data_base)
             except Exception as e:
                 cmds.warning(str(e))
             finally:
@@ -964,17 +964,17 @@ def validate_biped_operation(operation):
                 cmds.refresh(suspend=False)
 
         # Debugging (Auto imports proxy)
-        if biped_data.debugging and biped_data.debugging_import_proxy and os.path.exists(
-                biped_data.debugging_import_path):
-            import_biped_proxy_pose(debugging=True, debugging_path=biped_data.debugging_import_path)
+        if data_base.debugging and data_base.debugging_import_proxy and os.path.exists(
+                data_base.debugging_import_path):
+            import_biped_proxy_pose(debugging=True, debugging_path=data_base.debugging_import_path)
 
     elif operation == 'create_controls':
         # Starts new instance (clean scene)
-        if biped_data.debugging and biped_data.debugging_force_new_scene:
+        if data_base.debugging and data_base.debugging_force_new_scene:
             persp_pos = cmds.getAttr('persp.translate')[0]
             persp_rot = cmds.getAttr('persp.rotate')[0]
             cmds.file(new=True, force=True)
-            if biped_data.debugging_keep_cam_transforms:
+            if data_base.debugging_keep_cam_transforms:
                 cmds.viewFit(all=True)
                 cmds.setAttr('persp.tx', persp_pos[0])
                 cmds.setAttr('persp.ty', persp_pos[1])
@@ -984,29 +984,29 @@ def validate_biped_operation(operation):
                 cmds.setAttr('persp.rz', persp_rot[2])
 
         # Debugging (Auto deletes generated rig)
-        if biped_data.debugging and biped_data.debugging_auto_recreate:
+        if data_base.debugging and data_base.debugging_auto_recreate:
             try:
                 if cmds.objExists('rig_grp'):
                     cmds.delete('rig_grp')
-                if cmds.objExists(biped_data.elements.get('main_proxy_grp')):
-                    cmds.delete(biped_data.elements.get('main_proxy_grp'))
-                create_proxy(biped_data)
+                if cmds.objExists(data_base.elements.get('main_proxy_grp')):
+                    cmds.delete(data_base.elements.get('main_proxy_grp'))
+                create_proxy(data_base)
                 # Debugging (Auto imports proxy)
-                if biped_data.debugging_import_proxy and os.path.exists(biped_data.debugging_import_path):
-                    import_biped_proxy_pose(debugging=True, debugging_path=biped_data.debugging_import_path)
+                if data_base.debugging_import_proxy and os.path.exists(data_base.debugging_import_path):
+                    import_biped_proxy_pose(debugging=True, debugging_path=data_base.debugging_import_path)
             except:
                 pass
 
         # Validate Proxy
-        if not cmds.objExists(biped_data.elements.get('main_proxy_grp')):
+        if not cmds.objExists(data_base.elements.get('main_proxy_grp')):
             is_valid = False
             cmds.warning("Proxy couldn't be found. "
                          "Make sure you first create a proxy (guide objects) before generating a rig.")
 
-        proxy_elements = [biped_data.elements.get('main_proxy_grp')]
-        for proxy in biped_data.elements_default:
+        proxy_elements = [data_base.elements.get('main_proxy_grp')]
+        for proxy in data_base.elements_default:
             if '_crv' in proxy:
-                proxy_elements.append(biped_data.elements.get(proxy))
+                proxy_elements.append(data_base.elements.get(proxy))
         for obj in proxy_elements:
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
@@ -1016,13 +1016,13 @@ def validate_biped_operation(operation):
         # If valid, create rig
         if is_valid:
             function_name = 'GT Auto Biped - Create Rig'
-            if biped_data.debugging:
-                create_controls(biped_data)
+            if data_base.debugging:
+                create_controls(data_base)
             else:
                 cmds.undoInfo(openChunk=True, chunkName=function_name)
                 cmds.refresh(suspend=True)
                 try:
-                    create_controls(biped_data)
+                    create_controls(data_base)
                 except Exception as e:
                     raise e
                 finally:
@@ -1030,15 +1030,15 @@ def validate_biped_operation(operation):
                     cmds.refresh(suspend=False)
 
             # Debugging (Auto binds joints to provided geo)
-            if biped_data.debugging and biped_data.debugging_bind_rig and cmds.objExists(biped_data.debugging_bind_geo):
+            if data_base.debugging and data_base.debugging_bind_rig and cmds.objExists(data_base.debugging_bind_geo):
                 cmds.select(d=True)
                 select_skinning_joints()
                 selection = cmds.ls(selection=True)
-                if biped_data.debugging_bind_heatmap:
-                    cmds.skinCluster(selection, biped_data.debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68,
+                if data_base.debugging_bind_heatmap:
+                    cmds.skinCluster(selection, data_base.debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68,
                                      toSelectedBones=True, smoothWeights=0.5, maximumInfluences=4)
                 else:
-                    cmds.skinCluster(selection, biped_data.debugging_bind_geo, bindMethod=1, toSelectedBones=True,
+                    cmds.skinCluster(selection, data_base.debugging_bind_geo, bindMethod=1, toSelectedBones=True,
                                      smoothWeights=0.5, maximumInfluences=4)
                 cmds.select(d=True)
 
@@ -1049,8 +1049,8 @@ def select_skinning_joints():
     # Check for existing rig
     is_valid = True
     desired_elements = []
-    for jnt in biped_data.joints_default:
-        desired_elements.append(biped_data.joints_default.get(jnt))
+    for jnt in data_base.joints_default:
+        desired_elements.append(data_base.joints_default.get(jnt))
     for obj in desired_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -1059,14 +1059,14 @@ def select_skinning_joints():
 
     if is_valid:
         skinning_joints = []
-        for obj in biped_data.joints_default:
-            if '_end' + JNT_SUFFIX.capitalize() not in biped_data.joints_default.get(obj) \
-                    and '_toe' not in biped_data.joints_default.get(obj) \
-                    and 'root_' not in biped_data.joints_default.get(obj) \
-                    and 'driver' not in biped_data.joints_default.get(obj):
-                parent = cmds.listRelatives(biped_data.joints_default.get(obj), parent=True)[0] or ''
+        for obj in data_base.joints_default:
+            if '_end' + JNT_SUFFIX.capitalize() not in data_base.joints_default.get(obj) \
+                    and '_toe' not in data_base.joints_default.get(obj) \
+                    and 'root_' not in data_base.joints_default.get(obj) \
+                    and 'driver' not in data_base.joints_default.get(obj):
+                parent = cmds.listRelatives(data_base.joints_default.get(obj), parent=True)[0] or ''
                 if parent != 'skeleton_grp':
-                    skinning_joints.append(biped_data.joints_default.get(obj))
+                    skinning_joints.append(data_base.joints_default.get(obj))
         cmds.select(skinning_joints)
         if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
             for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
@@ -1076,12 +1076,13 @@ def select_skinning_joints():
                     pass
 
 
-def reset_biped_proxy(suppress_warning=False):
+def reset_proxy(suppress_warning=False, proxy_target='base'):
     """
     Resets proxy elements to their original position
 
-            Parameters:
-                suppress_warning (bool): Whether it should give inView feedback
+    Args:
+        suppress_warning (bool): Whether it should give inView feedback
+        proxy_target (string) : Defaults to "base", determines which proxy to mirror: "base", "facial" or "corrective"
 
     """
 
@@ -1089,9 +1090,16 @@ def reset_biped_proxy(suppress_warning=False):
     attributes_set_zero = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'followHip']
     attributes_set_one = ['sx', 'sy', 'sz', 'v']
     proxy_elements = []
-    for proxy in biped_data.elements_default:
+
+    data_obj = ''
+    if proxy_target == 'base':
+        data_obj = data_base
+    elif proxy_target == 'facial':
+        data_obj = data_facial
+
+    for proxy in data_obj.elements_default:
         if '_crv' in proxy or proxy.endswith('_pivot'):
-            proxy_elements.append(biped_data.elements_default.get(proxy))
+            proxy_elements.append(data_obj.elements_default.get(proxy))
     for obj in proxy_elements:
         if cmds.objExists(obj):
             for attr in attributes_set_zero:
@@ -1118,20 +1126,25 @@ def reset_biped_proxy(suppress_warning=False):
         cmds.warning('No proxy found. Nothing was reset.')
 
 
-def delete_proxy(suppress_warning=False):
+def delete_proxy(suppress_warning=False, proxy_target='base'):
     """
     Deletes current proxy/guide curves
 
-            Parameters:
-                suppress_warning (bool): Whether it should give warnings (feedback)
+    Args:
+        suppress_warning (bool): Whether it should give warnings (feedback)
+        proxy_target (string): Which proxy it should affect: "base" (default), "facial", "corrective"
 
     """
 
     is_deleted = False
+    to_delete_elements = []
+    if proxy_target == 'base':
+        to_delete_elements = [data_base.elements.get('main_proxy_grp'), data_base.elements.get('main_crv')]
+    elif proxy_target == 'facial':
+        to_delete_elements = [data_facial.elements.get('main_proxy_grp')]
 
-    to_delete_elements = [biped_data.elements.get('main_proxy_grp'), biped_data.elements.get('main_crv')]
     for obj in to_delete_elements:
-        if cmds.objExists(obj) and is_deleted == False:
+        if cmds.objExists(obj) and is_deleted is False:
             cmds.delete(obj)
             is_deleted = True
 
@@ -1145,12 +1158,13 @@ def delete_proxy(suppress_warning=False):
         cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
 
 
-def mirror_biped_proxy(operation):
+def mirror_proxy(operation, proxy_target='base'):
     """
-    Mirrors a pose on the proxy curves by copying translate, rotate and scale attributes from one side to the other
+    Mirrors the proxy curves pose by copying translate, rotate and scale attributes from one side to the other
 
-            Parameters:
-                operation (string) : what direction to mirror. "left_to_right" (+X to -X) or "right_to_left" (-X to +X)
+    Args:
+        operation (string) : what direction to mirror. "left_to_right" (+X to -X) or "right_to_left" (-X to +X)
+        proxy_target (string) : Defaults to "base", determines which proxy to mirror: "base", "facial" or "corrective"
 
     """
 
@@ -1175,14 +1189,31 @@ def mirror_biped_proxy(operation):
 
     # Validate Proxy
     is_valid = True
-    if not cmds.objExists(biped_data.elements.get('main_proxy_grp')):
+    # Determine system to be mirrored
+    data_obj = ''
+    if proxy_target == 'base':
+        data_obj = data_base
+    elif proxy_target == 'facial':
+        data_obj = data_facial
+    elif proxy_target == 'corrective':
+        data_obj = ''  #data_corrective.elements.get('main_proxy_grp')
+    else:
+        data_obj = ''
         is_valid = False
-        cmds.warning("Proxy couldn't be found. Make sure you first create a proxy (guide objects) before mirroring it.")
+        cmds.warning('Proxy target not specified or invalid. Please check the ')
 
-    proxy_elements = [biped_data.elements.get('main_proxy_grp')]
-    for proxy in biped_data.elements_default:
+    # Check existence
+    proxy_group = data_obj.elements.get('main_proxy_grp')
+    if not cmds.objExists(proxy_group):
+        is_valid = False
+        print('Missing: "' + proxy_group + '". (Renaming or adding name spaces may interfere with it)')
+        cmds.warning("Proxy group couldn't be found. "
+                     "Make sure you first create a proxy (guide objects) before mirroring it.")
+
+    proxy_elements = [data_obj.elements.get('main_proxy_grp')]
+    for proxy in data_obj.elements_default:
         if '_crv' in proxy:
-            proxy_elements.append(biped_data.elements.get(proxy))
+            proxy_elements.append(data_obj.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -1195,17 +1226,18 @@ def mirror_biped_proxy(operation):
     right_elements = []
 
     if is_valid:
-        for obj in biped_data.elements:
+        for obj in data_obj.elements:
             if obj.startswith('left_') and ('_crv' in obj or '_pivot' in obj):
-                left_elements.append(biped_data.elements.get(obj))
+                left_elements.append(data_obj.elements.get(obj))
             elif obj.startswith('right_') and ('_crv' in obj or '_pivot' in obj):
-                right_elements.append(biped_data.elements.get(obj))
+                right_elements.append(data_obj.elements.get(obj))
 
         for left_obj in left_elements:
             for right_obj in right_elements:
                 if left_obj.replace('left', '') == right_obj.replace('right', ''):
 
                     if operation == 'left_to_right':
+                        print(left_obj, right_obj)
                         mirror_attr(left_obj, right_obj)
 
                     elif operation == 'right_to_left':
@@ -1235,10 +1267,10 @@ def export_biped_proxy_pose():
     successfully_created_file = False
     pose_file = None
 
-    proxy_elements = [biped_data.elements.get('main_proxy_grp')]
-    for proxy in biped_data.elements_default:
+    proxy_elements = [data_base.elements.get('main_proxy_grp')]
+    for proxy in data_base.elements_default:
         if '_crv' in proxy:
-            proxy_elements.append(biped_data.elements.get(proxy))
+            proxy_elements.append(data_base.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -1247,32 +1279,32 @@ def export_biped_proxy_pose():
             cmds.warning(warning)
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=biped_data.script_name + ' - PPOSE File (*.ppose);;'
-                                                + biped_data.script_name + ' - JSON File (*.json)',
+        file_name = cmds.fileDialog2(fileFilter=data_base.script_name + ' - PPOSE File (*.ppose);;'
+                                                + data_base.script_name + ' - JSON File (*.json)',
                                      dialogStyle=2, okCaption='Export',
-                                     caption='Exporting Proxy Pose for "' + biped_data.script_name + '"') or []
+                                     caption='Exporting Proxy Pose for "' + data_base.script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
 
     if successfully_created_file and is_valid:
 
-        export_dict = {'gt_auto_biped_version': biped_data.script_version,
+        export_dict = {'gt_auto_biped_version': data_base.script_version,
                        'gt_auto_biped_export_method': 'object-space'}
-        for obj in biped_data.elements_default:
+        for obj in data_base.elements_default:
             if '_crv' in obj:
-                translate = cmds.getAttr(biped_data.elements_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(biped_data.elements_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(biped_data.elements_default.get(obj) + '.scale')[0]
-                to_save = [biped_data.elements_default.get(obj), translate, rotate, scale]
+                translate = cmds.getAttr(data_base.elements_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_base.elements_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_base.elements_default.get(obj) + '.scale')[0]
+                to_save = [data_base.elements_default.get(obj), translate, rotate, scale]
                 export_dict[obj] = to_save
 
             if obj.endswith('_pivot'):
-                if cmds.objExists(biped_data.elements_default.get(obj)):
-                    translate = cmds.getAttr(biped_data.elements_default.get(obj) + '.translate')[0]
-                    rotate = cmds.getAttr(biped_data.elements_default.get(obj) + '.rotate')[0]
-                    scale = cmds.getAttr(biped_data.elements_default.get(obj) + '.scale')[0]
-                    to_save = [biped_data.elements_default.get(obj), translate, rotate, scale]
+                if cmds.objExists(data_base.elements_default.get(obj)):
+                    translate = cmds.getAttr(data_base.elements_default.get(obj) + '.translate')[0]
+                    rotate = cmds.getAttr(data_base.elements_default.get(obj) + '.rotate')[0]
+                    scale = cmds.getAttr(data_base.elements_default.get(obj) + '.scale')[0]
+                    to_save = [data_base.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
 
         try:
@@ -1349,10 +1381,10 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
     pose_file = None
 
     if not debugging:
-        file_name = cmds.fileDialog2(fileFilter=biped_data.script_name + ' - PPOSE File (*.ppose);;' +
-                                                biped_data.script_name + ' - JSON File (*.json)',
+        file_name = cmds.fileDialog2(fileFilter=data_base.script_name + ' - PPOSE File (*.ppose);;' +
+                                                data_base.script_name + ' - JSON File (*.json)',
                                      dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + biped_data.script_name + '"') or []
+                                     caption='Importing Proxy Pose for "' + data_base.script_name + '"') or []
     else:
         file_name = [debugging_path]
 
@@ -1381,8 +1413,8 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                     is_valid_scene = True
                     # Check for existing rig or conflicting names
                     undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
-                    for jnt in biped_data.joints_default:
-                        undesired_elements.append(biped_data.joints_default.get(jnt))
+                    for jnt in data_base.joints_default:
+                        undesired_elements.append(data_base.joints_default.get(jnt))
                     for obj in undesired_elements:
                         if cmds.objExists(obj) and is_valid_scene:
                             is_valid_scene = False
@@ -1394,19 +1426,19 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                         proxy_exists = True
 
                         proxy_elements = []
-                        for proxy in biped_data.elements_default:
+                        for proxy in data_base.elements_default:
                             if '_crv' in proxy:
-                                proxy_elements.append(biped_data.elements.get(proxy))
+                                proxy_elements.append(data_base.elements.get(proxy))
                         for obj in proxy_elements:
                             if not cmds.objExists(obj) and proxy_exists:
                                 proxy_exists = False
-                                delete_proxy(True)
+                                delete_proxy(suppress_warning=True)
                                 validate_biped_operation('create_proxy', debugging)
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
 
                     if is_valid_file and is_valid_scene:
                         if import_method == 'world-space':
-                            reset_biped_proxy(suppress_warning=True)
+                            reset_proxy(suppress_warning=True)
                             sorted_pairs = []
                             for proxy in data:
                                 if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
@@ -1490,15 +1522,15 @@ def define_biped_humanik(character_name):
         pass
 
     # Check for existing rig
-    exceptions = [biped_data.joints_default.get('spine01_jnt'),
-                  biped_data.joints_default.get('spine02_jnt'),
-                  biped_data.joints_default.get('spine03_jnt'),
+    exceptions = [data_base.joints_default.get('spine01_jnt'),
+                  data_base.joints_default.get('spine02_jnt'),
+                  data_base.joints_default.get('spine03_jnt'),
                   # biped_data.joints_default.get('spine03_jnt'),
                   ]
     desired_elements = []
-    for jnt in biped_data.joints_default:
-        if not biped_data.joints_default.get(jnt).endswith('endJnt'):
-            desired_elements.append(biped_data.joints_default.get(jnt))
+    for jnt in data_base.joints_default:
+        if not data_base.joints_default.get(jnt).endswith('endJnt'):
+            desired_elements.append(data_base.joints_default.get(jnt))
     for obj in exceptions:
         desired_elements.remove(obj)
     for obj in desired_elements:
@@ -1533,7 +1565,7 @@ def define_biped_humanik(character_name):
     # Create Character Definition
     if is_operation_valid:
         try:
-            joints = biped_data.joints_default  # Unpack
+            joints = data_base.joints_default  # Unpack
 
             mel.eval('catchQuiet(deleteCharacter("' + character_name + '"))')
             mel.eval('hikCreateCharacter("' + character_name + '")')
@@ -1696,8 +1728,8 @@ def extract_biped_proxy_pose():
 
     # Check for existing rig
     desired_elements = []
-    for jnt in biped_data.joints_default:
-        desired_elements.append(biped_data.joints_default.get(jnt))
+    for jnt in data_base.joints_default:
+        desired_elements.append(data_base.joints_default.get(jnt))
     for obj in desired_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
@@ -1705,18 +1737,18 @@ def extract_biped_proxy_pose():
                                      '(Click on "Help" for more details)')
 
     if is_valid:
-        script_name_str = biped_data.script_name
+        script_name_str = data_base.script_name
         file_name = cmds.fileDialog2(
             fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
             dialogStyle=2, okCaption='Export',
-            caption='Exporting Proxy Pose for "' + biped_data.script_name + '"') or []
+            caption='Exporting Proxy Pose for "' + data_base.script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
 
     if successfully_created_file and is_valid:
 
-        export_dict = {'gt_auto_biped_version': biped_data.script_version, 'gt_auto_biped_export_method': 'world-space'}
+        export_dict = {'gt_auto_biped_version': data_base.script_version, 'gt_auto_biped_export_method': 'world-space'}
 
         no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
         left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
@@ -1725,7 +1757,7 @@ def extract_biped_proxy_pose():
         left_offset_rot_list = []
         right_offset_rot_list = []
 
-        for jnt_key in biped_data.joints_default:
+        for jnt_key in data_base.joints_default:
             for string in no_rot_string_list:
                 if string in jnt_key:
                     no_rot_list.append(jnt_key)
@@ -1736,8 +1768,8 @@ def extract_biped_proxy_pose():
                 if string in jnt_key:
                     right_offset_rot_list.append(jnt_key)
 
-        for jnt_key in biped_data.joints_default:
-            jnt = biped_data.joints_default.get(jnt_key)
+        for jnt_key in data_base.joints_default:
+            jnt = data_base.joints_default.get(jnt_key)
 
             if jnt_key in no_rot_list:
                 values_to_store = extract_transform_joint_to_proxy(jnt, ignore_rotate=True)
@@ -1780,7 +1812,7 @@ def extract_biped_proxy_pose():
             else:
                 values_to_store = extract_transform_joint_to_proxy(jnt)
 
-            for proxy_key in biped_data.elements_default:
+            for proxy_key in data_base.elements_default:
                 if jnt_key.replace('_' + JNT_SUFFIX, '_proxy_crv') == proxy_key:
                     export_dict[proxy_key] = values_to_store
 
