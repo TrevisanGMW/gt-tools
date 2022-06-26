@@ -63,16 +63,16 @@ import json
 import re
 
 
-def create_proxy(biped_data):
+def create_proxy(data_biped):
     """
     Creates a proxy (guide) skeleton used to later generate entire rig 
     
-            Parameters:
-                biped_data (GTBipedRiggerData) : Object containing naming and settings for the proxy creation
+    Args:
+        data_biped (GTBipedRiggerData) : Object containing naming and settings for the proxy creation
     """
-    biped_data.elements_default = biped_data.elements_default
-    biped_data.elements = biped_data.elements
-    settings = biped_data.settings
+    data_biped.elements_default = data_biped.elements_default
+    data_biped.elements = data_biped.elements
+    settings = data_biped.settings
     colorize_proxy = True
     proxy_finger_scale = 0.3
     proxy_end_joint_scale = 0.2
@@ -81,234 +81,234 @@ def create_proxy(biped_data):
         cmds.warning('Proxy creation already in progress, please finish it first.')
 
     # Main
-    main_crv = create_main_control(biped_data.elements_default.get('main_crv'))
-    main_grp = cmds.group(empty=True, world=True, name=biped_data.elements_default.get('main_proxy_grp'))
+    main_crv = create_main_control(data_biped.elements_default.get('main_crv'))
+    main_grp = cmds.group(empty=True, world=True, name=data_biped.elements_default.get('main_proxy_grp'))
     cmds.parent(main_crv, main_grp)
 
     # Root
-    cog_proxy_crv = create_joint_curve(biped_data.elements_default.get('cog_proxy_crv'), 1)
+    cog_proxy_crv = create_joint_curve(data_biped.elements_default.get('cog_proxy_crv'), 1)
     root_proxy_grp = cmds.group(empty=True, world=True, name=cog_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(cog_proxy_crv, root_proxy_grp)
     cmds.move(0, 89.2, 0, root_proxy_grp)
 
     # Spine 1
-    spine01_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine01_proxy_crv'), 0.5)
+    spine01_proxy_crv = create_joint_curve(data_biped.elements_default.get('spine01_proxy_crv'), 0.5)
     spine01_proxy_grp = cmds.group(empty=True, world=True, name=spine01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine01_proxy_crv, spine01_proxy_grp)
     cmds.move(0, 98.5, 0, spine01_proxy_grp)
 
     # Spine 2
-    spine02_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine02_proxy_crv'), 0.5)
+    spine02_proxy_crv = create_joint_curve(data_biped.elements_default.get('spine02_proxy_crv'), 0.5)
     spine02_proxy_grp = cmds.group(empty=True, world=True, name=spine02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine02_proxy_crv, spine02_proxy_grp)
     cmds.move(0, 104.5, 0, spine02_proxy_grp)
 
     # Spine 3
-    spine03_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine03_proxy_crv'), 0.5)
+    spine03_proxy_crv = create_joint_curve(data_biped.elements_default.get('spine03_proxy_crv'), 0.5)
     spine03_proxy_grp = cmds.group(empty=True, world=True, name=spine03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine03_proxy_crv, spine03_proxy_grp)
     cmds.move(0, 109.5, 0, spine03_proxy_grp)
 
     # Spine 4
-    spine04_proxy_crv = create_joint_curve(biped_data.elements_default.get('spine04_proxy_crv'), 1)
+    spine04_proxy_crv = create_joint_curve(data_biped.elements_default.get('spine04_proxy_crv'), 1)
     spine04_proxy_grp = cmds.group(empty=True, world=True, name=spine04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(spine04_proxy_crv, spine04_proxy_grp)
     cmds.move(0, 114.5, 0, spine04_proxy_grp)
 
     # Neck Base
-    neck_base_proxy_crv = create_joint_curve(biped_data.elements_default.get('neck_base_proxy_crv'), .5)
+    neck_base_proxy_crv = create_joint_curve(data_biped.elements_default.get('neck_base_proxy_crv'), .5)
     neck_base_proxy_grp = cmds.group(empty=True, world=True, name=neck_base_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(neck_base_proxy_crv, neck_base_proxy_grp)
     cmds.move(0, 137.1, 0, neck_base_proxy_grp)
 
     # Neck Mid
-    neck_mid_proxy_crv = create_joint_curve(biped_data.elements_default.get('neck_mid_proxy_crv'), .2)
+    neck_mid_proxy_crv = create_joint_curve(data_biped.elements_default.get('neck_mid_proxy_crv'), .2)
     neck_mid_proxy_grp = cmds.group(empty=True, world=True, name=neck_mid_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(neck_mid_proxy_crv, neck_mid_proxy_grp)
     cmds.move(0, 139.8, 0, neck_mid_proxy_grp)
 
     # Head
-    head_proxy_crv = create_joint_curve(biped_data.elements_default.get('head_proxy_crv'), .5)
+    head_proxy_crv = create_joint_curve(data_biped.elements_default.get('head_proxy_crv'), .5)
     head_proxy_grp = cmds.group(empty=True, world=True, name=head_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(head_proxy_crv, head_proxy_grp)
     cmds.move(0, 142.4, 0, head_proxy_grp)
 
     # Head End
-    head_end_proxy_crv = create_joint_curve(biped_data.elements_default.get('head_end_proxy_crv'), .2)
+    head_end_proxy_crv = create_joint_curve(data_biped.elements_default.get('head_end_proxy_crv'), .2)
     head_end_proxy_grp = cmds.group(empty=True, world=True, name=head_end_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(head_end_proxy_crv, head_end_proxy_grp)
     cmds.move(0, 160, 0, head_end_proxy_grp)
 
     # Jaw
-    jaw_proxy_crv = create_joint_curve(biped_data.elements_default.get('jaw_proxy_crv'), .5)
+    jaw_proxy_crv = create_joint_curve(data_biped.elements_default.get('jaw_proxy_crv'), .5)
     jaw_proxy_grp = cmds.group(empty=True, world=True, name=jaw_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(jaw_proxy_crv, jaw_proxy_grp)
     cmds.move(0, 147.4, 2.35, jaw_proxy_grp)
 
     # Jaw End
-    jaw_end_proxy_crv = create_joint_curve(biped_data.elements_default.get('jaw_end_proxy_crv'), .2)
+    jaw_end_proxy_crv = create_joint_curve(data_biped.elements_default.get('jaw_end_proxy_crv'), .2)
     jaw_end_proxy_grp = cmds.group(empty=True, world=True, name=jaw_end_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(jaw_end_proxy_crv, jaw_end_proxy_grp)
     cmds.move(0, 142.7, 10.8, jaw_end_proxy_grp)
 
     # Right Eye
-    right_eye_proxy_crv = create_loc_joint_curve(biped_data.elements_default.get('right_eye_proxy_crv'), .6)
+    right_eye_proxy_crv = create_loc_joint_curve(data_biped.elements_default.get('right_eye_proxy_crv'), .6)
     right_eye_proxy_grp = cmds.group(empty=True, world=True, name=right_eye_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_eye_proxy_crv, right_eye_proxy_grp)
     cmds.move(-3.5, 151.2, 8.7, right_eye_proxy_grp)
 
     # Left Eye
-    left_eye_proxy_crv = create_loc_joint_curve(biped_data.elements_default.get('left_eye_proxy_crv'), .6)
+    left_eye_proxy_crv = create_loc_joint_curve(data_biped.elements_default.get('left_eye_proxy_crv'), .6)
     left_eye_proxy_grp = cmds.group(empty=True, world=True, name=left_eye_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_eye_proxy_crv, left_eye_proxy_grp)
     cmds.move(3.5, 151.2, 8.7, left_eye_proxy_grp)
 
     # ################# Left Arm #################
     # Left Clavicle
-    left_clavicle_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_clavicle_proxy_crv'),
+    left_clavicle_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_clavicle_proxy_crv'),
                                                              .5)
     left_clavicle_proxy_grp = cmds.group(empty=True, world=True, name=left_clavicle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_clavicle_proxy_crv, left_clavicle_proxy_grp)
     cmds.move(3, 130.4, 0, left_clavicle_proxy_grp)
 
     # Left Shoulder
-    left_shoulder_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_shoulder_proxy_crv'), .5)
+    left_shoulder_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_shoulder_proxy_crv'), .5)
     left_shoulder_proxy_grp = cmds.group(empty=True, world=True, name=left_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_shoulder_proxy_crv, left_shoulder_proxy_grp)
     cmds.move(17.2, 130.4, 0, left_shoulder_proxy_grp)
 
     # Left Elbow
-    left_elbow_proxy_crv = create_aim_joint_curve(biped_data.elements_default.get('left_elbow_proxy_crv'), .5)
+    left_elbow_proxy_crv = create_aim_joint_curve(data_biped.elements_default.get('left_elbow_proxy_crv'), .5)
     left_elbow_proxy_grp = cmds.group(empty=True, world=True, name=left_elbow_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_elbow_proxy_crv, left_elbow_proxy_grp)
     cmds.move(37.7, 130.4, 0, left_elbow_proxy_grp)
 
     # Left Wrist
-    left_wrist_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_wrist_proxy_crv'), .6)
+    left_wrist_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_wrist_proxy_crv'), .6)
     left_wrist_proxy_grp = cmds.group(empty=True, world=True, name=left_wrist_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_wrist_proxy_crv, left_wrist_proxy_grp)
     cmds.move(58.2, 130.4, 0, left_wrist_proxy_grp)
 
     # Left Thumb
-    left_thumb01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_thumb01_proxy_crv'),
+    left_thumb01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_thumb01_proxy_crv'),
                                                             proxy_finger_scale)
     left_thumb01_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_thumb01_proxy_crv, left_thumb01_proxy_grp)
     cmds.move(60.8, 130.4, 2.9, left_thumb01_proxy_grp)
 
-    left_thumb02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_thumb02_proxy_crv'),
+    left_thumb02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_thumb02_proxy_crv'),
                                                             proxy_finger_scale)
     left_thumb02_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_thumb02_proxy_crv, left_thumb02_proxy_grp)
     cmds.move(60.8, 130.4, 7.3, left_thumb02_proxy_grp)
 
-    left_thumb03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_thumb03_proxy_crv'),
+    left_thumb03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_thumb03_proxy_crv'),
                                                             proxy_finger_scale)
     left_thumb03_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_thumb03_proxy_crv, left_thumb03_proxy_grp)
     cmds.move(60.8, 130.4, 11.7, left_thumb03_proxy_grp)
 
-    left_thumb04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_thumb04_proxy_crv'),
+    left_thumb04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_thumb04_proxy_crv'),
                                                             proxy_end_joint_scale)
     left_thumb04_proxy_grp = cmds.group(empty=True, world=True, name=left_thumb04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_thumb04_proxy_crv, left_thumb04_proxy_grp)
     cmds.move(60.8, 130.4, 16.3, left_thumb04_proxy_grp)
 
     # Left Index
-    left_index01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_index01_proxy_crv'),
+    left_index01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_index01_proxy_crv'),
                                                             proxy_finger_scale)
     left_index01_proxy_grp = cmds.group(empty=True, world=True, name=left_index01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_index01_proxy_crv, left_index01_proxy_grp)
     cmds.move(66.9, 130.4, 3.5, left_index01_proxy_grp)
 
-    left_index02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_index02_proxy_crv'),
+    left_index02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_index02_proxy_crv'),
                                                             proxy_finger_scale)
     left_index02_proxy_grp = cmds.group(empty=True, world=True, name=left_index02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_index02_proxy_crv, left_index02_proxy_grp)
     cmds.move(70.1, 130.4, 3.5, left_index02_proxy_grp)
 
-    left_index03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_index03_proxy_crv'),
+    left_index03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_index03_proxy_crv'),
                                                             proxy_finger_scale)
     left_index03_proxy_grp = cmds.group(empty=True, world=True, name=left_index03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_index03_proxy_crv, left_index03_proxy_grp)
     cmds.move(74.2, 130.4, 3.5, left_index03_proxy_grp)
 
-    left_index04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_index04_proxy_crv'),
+    left_index04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_index04_proxy_crv'),
                                                             proxy_end_joint_scale)
     left_index04_proxy_grp = cmds.group(empty=True, world=True, name=left_index04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_index04_proxy_crv, left_index04_proxy_grp)
     cmds.move(77.5, 130.4, 3.5, left_index04_proxy_grp)
 
     # Left Middle
-    left_middle01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_middle01_proxy_crv'),
+    left_middle01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_middle01_proxy_crv'),
                                                              proxy_finger_scale)
     left_middle01_proxy_grp = cmds.group(empty=True, world=True, name=left_middle01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_middle01_proxy_crv, left_middle01_proxy_grp)
     cmds.move(66.9, 130.4, 1.1, left_middle01_proxy_grp)
 
-    left_middle02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_middle02_proxy_crv'),
+    left_middle02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_middle02_proxy_crv'),
                                                              proxy_finger_scale)
     left_middle02_proxy_grp = cmds.group(empty=True, world=True, name=left_middle02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_middle02_proxy_crv, left_middle02_proxy_grp)
     cmds.move(70.7, 130.4, 1.1, left_middle02_proxy_grp)
 
-    left_middle03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_middle03_proxy_crv'),
+    left_middle03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_middle03_proxy_crv'),
                                                              proxy_finger_scale)
     left_middle03_proxy_grp = cmds.group(empty=True, world=True, name=left_middle03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_middle03_proxy_crv, left_middle03_proxy_grp)
     cmds.move(74.4, 130.4, 1.1, left_middle03_proxy_grp)
 
-    left_middle04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_middle04_proxy_crv'),
+    left_middle04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_middle04_proxy_crv'),
                                                              proxy_end_joint_scale)
     left_middle04_proxy_grp = cmds.group(empty=True, world=True, name=left_middle04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_middle04_proxy_crv, left_middle04_proxy_grp)
     cmds.move(78.0, 130.4, 1.1, left_middle04_proxy_grp)
 
     # Left Ring
-    left_ring01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_ring01_proxy_crv'),
+    left_ring01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_ring01_proxy_crv'),
                                                            proxy_finger_scale)
     left_ring01_proxy_grp = cmds.group(empty=True, world=True, name=left_ring01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ring01_proxy_crv, left_ring01_proxy_grp)
     cmds.move(66.9, 130.4, -1.1, left_ring01_proxy_grp)
 
-    left_ring02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_ring02_proxy_crv'),
+    left_ring02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_ring02_proxy_crv'),
                                                            proxy_finger_scale)
     left_ring02_proxy_grp = cmds.group(empty=True, world=True, name=left_ring02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ring02_proxy_crv, left_ring02_proxy_grp)
     cmds.move(70.4, 130.4, -1.1, left_ring02_proxy_grp)
 
-    left_ring03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_ring03_proxy_crv'),
+    left_ring03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_ring03_proxy_crv'),
                                                            proxy_finger_scale)
     left_ring03_proxy_grp = cmds.group(empty=True, world=True, name=left_ring03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ring03_proxy_crv, left_ring03_proxy_grp)
     cmds.move(74, 130.4, -1.1, left_ring03_proxy_grp)
 
-    left_ring04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_ring04_proxy_crv'),
+    left_ring04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_ring04_proxy_crv'),
                                                            proxy_end_joint_scale)
     left_ring04_proxy_grp = cmds.group(empty=True, world=True, name=left_ring04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ring04_proxy_crv, left_ring04_proxy_grp)
     cmds.move(77.5, 130.4, -1.1, left_ring04_proxy_grp)
 
     # Left Pinky
-    left_pinky01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_pinky01_proxy_crv'),
+    left_pinky01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_pinky01_proxy_crv'),
                                                             proxy_finger_scale)
     left_pinky01_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_pinky01_proxy_crv, left_pinky01_proxy_grp)
     cmds.move(66.3, 130.4, -3.2, left_pinky01_proxy_grp)
 
-    left_pinky02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_pinky02_proxy_crv'),
+    left_pinky02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_pinky02_proxy_crv'),
                                                             proxy_finger_scale)
     left_pinky02_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_pinky02_proxy_crv, left_pinky02_proxy_grp)
     cmds.move(69.6, 130.4, -3.2, left_pinky02_proxy_grp)
 
-    left_pinky03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_pinky03_proxy_crv'),
+    left_pinky03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_pinky03_proxy_crv'),
                                                             proxy_finger_scale)
     left_pinky03_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_pinky03_proxy_crv, left_pinky03_proxy_grp)
     cmds.move(72.8, 130.4, -3.2, left_pinky03_proxy_grp)
 
-    left_pinky04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('left_pinky04_proxy_crv'),
+    left_pinky04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('left_pinky04_proxy_crv'),
                                                             proxy_end_joint_scale)
     left_pinky04_proxy_grp = cmds.group(empty=True, world=True, name=left_pinky04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_pinky04_proxy_crv, left_pinky04_proxy_grp)
@@ -317,76 +317,76 @@ def create_proxy(biped_data):
     # ################# Right Arm #################
     # Right Clavicle
     right_clavicle_proxy_crv = create_directional_joint_curve(
-        biped_data.elements_default.get('right_clavicle_proxy_crv'), .5)
+        data_biped.elements_default.get('right_clavicle_proxy_crv'), .5)
     right_clavicle_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_clavicle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_clavicle_proxy_crv, right_clavicle_proxy_grp)
     cmds.move(-3, 130.4, 0, right_clavicle_proxy_grp)
 
     # Right Shoulder
-    right_shoulder_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_shoulder_proxy_crv'), .5)
+    right_shoulder_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_shoulder_proxy_crv'), .5)
     right_shoulder_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_shoulder_proxy_crv, right_shoulder_proxy_grp)
     cmds.move(-17.2, 130.4, 0, right_shoulder_proxy_grp)
 
     # Right Elbow
-    right_elbow_proxy_crv = create_aim_joint_curve(biped_data.elements_default.get('right_elbow_proxy_crv'), .5)
+    right_elbow_proxy_crv = create_aim_joint_curve(data_biped.elements_default.get('right_elbow_proxy_crv'), .5)
     right_elbow_proxy_grp = cmds.group(empty=True, world=True, name=right_elbow_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_elbow_proxy_crv, right_elbow_proxy_grp)
     cmds.move(-37.7, 130.4, 0, right_elbow_proxy_grp)
 
     # Right Wrist
-    right_wrist_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_wrist_proxy_crv'), .6)
+    right_wrist_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_wrist_proxy_crv'), .6)
     right_wrist_proxy_grp = cmds.group(empty=True, world=True, name=right_wrist_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_wrist_proxy_crv, right_wrist_proxy_grp)
     cmds.move(-58.2, 130.4, 0, right_wrist_proxy_grp)
 
     # Right Thumb
-    right_thumb01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_thumb01_proxy_crv'),
+    right_thumb01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_thumb01_proxy_crv'),
                                                              proxy_finger_scale)
     right_thumb01_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_thumb01_proxy_crv, right_thumb01_proxy_grp)
     cmds.move(-60.8, 130.4, 2.9, right_thumb01_proxy_grp)
 
-    right_thumb02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_thumb02_proxy_crv'),
+    right_thumb02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_thumb02_proxy_crv'),
                                                              proxy_finger_scale)
     right_thumb02_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_thumb02_proxy_crv, right_thumb02_proxy_grp)
     cmds.move(-60.8, 130.4, 7.3, right_thumb02_proxy_grp)
 
-    right_thumb03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_thumb03_proxy_crv'),
+    right_thumb03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_thumb03_proxy_crv'),
                                                              proxy_finger_scale)
     right_thumb03_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_thumb03_proxy_crv, right_thumb03_proxy_grp)
     cmds.move(-60.8, 130.4, 11.7, right_thumb03_proxy_grp)
 
-    right_thumb04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_thumb04_proxy_crv'),
+    right_thumb04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_thumb04_proxy_crv'),
                                                              proxy_end_joint_scale)
     right_thumb04_proxy_grp = cmds.group(empty=True, world=True, name=right_thumb04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_thumb04_proxy_crv, right_thumb04_proxy_grp)
     cmds.move(-60.8, 130.4, 16.3, right_thumb04_proxy_grp)
 
     # Right Index
-    right_index01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_index01_proxy_crv'),
+    right_index01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_index01_proxy_crv'),
                                                              proxy_finger_scale)
     right_index01_proxy_grp = cmds.group(empty=True, world=True, name=right_index01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_index01_proxy_crv, right_index01_proxy_grp)
     cmds.move(-66.9, 130.4, 3.5, right_index01_proxy_grp)
 
-    right_index02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_index02_proxy_crv'),
+    right_index02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_index02_proxy_crv'),
                                                              proxy_finger_scale)
     right_index02_proxy_grp = cmds.group(empty=True, world=True, name=right_index02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_index02_proxy_crv, right_index02_proxy_grp)
     cmds.move(-70.1, 130.4, 3.5, right_index02_proxy_grp)
 
-    right_index03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_index03_proxy_crv'),
+    right_index03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_index03_proxy_crv'),
                                                              proxy_finger_scale)
     right_index03_proxy_grp = cmds.group(empty=True, world=True, name=right_index03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_index03_proxy_crv, right_index03_proxy_grp)
     cmds.move(-74.2, 130.4, 3.5, right_index03_proxy_grp)
 
-    right_index04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_index04_proxy_crv'),
+    right_index04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_index04_proxy_crv'),
                                                              proxy_end_joint_scale)
     right_index04_proxy_grp = cmds.group(empty=True, world=True, name=right_index04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_index04_proxy_crv, right_index04_proxy_grp)
@@ -394,7 +394,7 @@ def create_proxy(biped_data):
 
     # Right Middle
     right_middle01_proxy_crv = create_directional_joint_curve(
-        biped_data.elements_default.get('right_middle01_proxy_crv'),
+        data_biped.elements_default.get('right_middle01_proxy_crv'),
         proxy_finger_scale)
     right_middle01_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle01_proxy_crv + GRP_SUFFIX.capitalize())
@@ -402,7 +402,7 @@ def create_proxy(biped_data):
     cmds.move(-66.9, 130.4, 1.1, right_middle01_proxy_grp)
 
     right_middle02_proxy_crv = create_directional_joint_curve(
-        biped_data.elements_default.get('right_middle02_proxy_crv'),
+        data_biped.elements_default.get('right_middle02_proxy_crv'),
         proxy_finger_scale)
     right_middle02_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle02_proxy_crv + GRP_SUFFIX.capitalize())
@@ -410,7 +410,7 @@ def create_proxy(biped_data):
     cmds.move(-70.7, 130.4, 1.1, right_middle02_proxy_grp)
 
     right_middle03_proxy_crv = create_directional_joint_curve(
-        biped_data.elements_default.get('right_middle03_proxy_crv'),
+        data_biped.elements_default.get('right_middle03_proxy_crv'),
         proxy_finger_scale)
     right_middle03_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle03_proxy_crv + GRP_SUFFIX.capitalize())
@@ -418,7 +418,7 @@ def create_proxy(biped_data):
     cmds.move(-74.4, 130.4, 1.1, right_middle03_proxy_grp)
 
     right_middle04_proxy_crv = create_directional_joint_curve(
-        biped_data.elements_default.get('right_middle04_proxy_crv'),
+        data_biped.elements_default.get('right_middle04_proxy_crv'),
         proxy_end_joint_scale)
     right_middle04_proxy_grp = cmds.group(empty=True, world=True,
                                           name=right_middle04_proxy_crv + GRP_SUFFIX.capitalize())
@@ -426,70 +426,70 @@ def create_proxy(biped_data):
     cmds.move(-78, 130.4, 1.1, right_middle04_proxy_grp)
 
     # Right Ring
-    right_ring01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_ring01_proxy_crv'),
+    right_ring01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_ring01_proxy_crv'),
                                                             proxy_finger_scale)
     right_ring01_proxy_grp = cmds.group(empty=True, world=True, name=right_ring01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ring01_proxy_crv, right_ring01_proxy_grp)
     cmds.move(-66.9, 130.4, -1.1, right_ring01_proxy_grp)
 
-    right_ring02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_ring02_proxy_crv'),
+    right_ring02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_ring02_proxy_crv'),
                                                             proxy_finger_scale)
     right_ring02_proxy_grp = cmds.group(empty=True, world=True, name=right_ring02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ring02_proxy_crv, right_ring02_proxy_grp)
     cmds.move(-70.4, 130.4, -1.1, right_ring02_proxy_grp)
 
-    right_ring03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_ring03_proxy_crv'),
+    right_ring03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_ring03_proxy_crv'),
                                                             proxy_finger_scale)
     right_ring03_proxy_grp = cmds.group(empty=True, world=True, name=right_ring03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ring03_proxy_crv, right_ring03_proxy_grp)
     cmds.move(-74, 130.4, -1.1, right_ring03_proxy_grp)
 
-    right_ring04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_ring04_proxy_crv'),
+    right_ring04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_ring04_proxy_crv'),
                                                             proxy_end_joint_scale)
     right_ring04_proxy_grp = cmds.group(empty=True, world=True, name=right_ring04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ring04_proxy_crv, right_ring04_proxy_grp)
     cmds.move(-77.5, 130.4, -1.1, right_ring04_proxy_grp)
 
     # Right Pinky
-    right_pinky01_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_pinky01_proxy_crv'),
+    right_pinky01_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_pinky01_proxy_crv'),
                                                              proxy_finger_scale)
     right_pinky01_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky01_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_pinky01_proxy_crv, right_pinky01_proxy_grp)
     cmds.move(-66.3, 130.4, -3.2, right_pinky01_proxy_grp)
 
-    right_pinky02_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_pinky02_proxy_crv'),
+    right_pinky02_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_pinky02_proxy_crv'),
                                                              proxy_finger_scale)
     right_pinky02_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky02_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_pinky02_proxy_crv, right_pinky02_proxy_grp)
     cmds.move(-69.6, 130.4, -3.2, right_pinky02_proxy_grp)
 
-    right_pinky03_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_pinky03_proxy_crv'),
+    right_pinky03_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_pinky03_proxy_crv'),
                                                              proxy_finger_scale)
     right_pinky03_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky03_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_pinky03_proxy_crv, right_pinky03_proxy_grp)
     cmds.move(-72.8, 130.4, -3.2, right_pinky03_proxy_grp)
 
-    right_pinky04_proxy_crv = create_directional_joint_curve(biped_data.elements_default.get('right_pinky04_proxy_crv'),
+    right_pinky04_proxy_crv = create_directional_joint_curve(data_biped.elements_default.get('right_pinky04_proxy_crv'),
                                                              proxy_end_joint_scale)
     right_pinky04_proxy_grp = cmds.group(empty=True, world=True, name=right_pinky04_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_pinky04_proxy_crv, right_pinky04_proxy_grp)
     cmds.move(-76.3, 130.4, -3.2, right_pinky04_proxy_grp)
 
     # Hip
-    hip_proxy_crv = create_joint_curve(biped_data.elements_default.get('hip_proxy_crv'), .4)
+    hip_proxy_crv = create_joint_curve(data_biped.elements_default.get('hip_proxy_crv'), .4)
     hip_proxy_grp = cmds.group(empty=True, world=True, name=hip_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(hip_proxy_crv, hip_proxy_grp)
     cmds.move(0, 84.5, 0, hip_proxy_grp)
 
     # ################# Left Leg #################
     # Left Hip
-    left_hip_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_hip_proxy_crv'), .4)
+    left_hip_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_hip_proxy_crv'), .4)
     left_hip_proxy_grp = cmds.group(empty=True, world=True, name=left_hip_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_hip_proxy_crv, left_hip_proxy_grp)
     cmds.move(10.2, 84.5, 0, left_hip_proxy_grp)
 
     # Left Knee
-    left_knee_proxy_crv = create_aim_joint_curve(biped_data.elements_default.get('left_knee_proxy_crv'), .5)
+    left_knee_proxy_crv = create_aim_joint_curve(data_biped.elements_default.get('left_knee_proxy_crv'), .5)
     cmds.rotate(0, 180, 90, left_knee_proxy_crv)
     cmds.makeIdentity(left_knee_proxy_crv, apply=True, translate=True, scale=True, rotate=True)
     left_knee_proxy_grp = cmds.group(empty=True, world=True, name=left_knee_proxy_crv + GRP_SUFFIX.capitalize())
@@ -497,25 +497,25 @@ def create_proxy(biped_data):
     cmds.move(10.2, 46.8, 0, left_knee_proxy_grp)
 
     # Left Ankle
-    left_ankle_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_ankle_proxy_crv'), .4)
+    left_ankle_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_ankle_proxy_crv'), .4)
     left_ankle_proxy_grp = cmds.group(empty=True, world=True, name=left_ankle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ankle_proxy_crv, left_ankle_proxy_grp)
     cmds.move(10.2, 9.6, 0, left_ankle_proxy_grp)
 
     # Left Ball
-    left_ball_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_ball_proxy_crv'), .4)
+    left_ball_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_ball_proxy_crv'), .4)
     left_ball_proxy_grp = cmds.group(empty=True, world=True, name=left_ball_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_ball_proxy_crv, left_ball_proxy_grp)
     cmds.move(10.2, 0, 13.1, left_ball_proxy_grp)
 
     # Left Toe
-    left_toe_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_toe_proxy_crv'), .35)
+    left_toe_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_toe_proxy_crv'), .35)
     left_toe_proxy_grp = cmds.group(empty=True, world=True, name=left_toe_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_toe_proxy_crv, left_toe_proxy_grp)
     cmds.move(10.2, 0, 23.4, left_toe_proxy_grp)
 
     # Left Heel Roll Pivot
-    left_heel_proxy_crv = create_joint_curve(biped_data.elements_default.get('left_heel_proxy_pivot'), .1)
+    left_heel_proxy_crv = create_joint_curve(data_biped.elements_default.get('left_heel_proxy_pivot'), .1)
     left_heel_proxy_grp = cmds.group(empty=True, world=True, name=left_heel_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(left_heel_proxy_crv, left_heel_proxy_grp)
     cmds.parent(left_heel_proxy_grp, left_ankle_proxy_grp)
@@ -533,13 +533,13 @@ def create_proxy(biped_data):
 
     # ################# Right Leg #################
     # Right Hip
-    right_hip_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_hip_proxy_crv'), .4)
+    right_hip_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_hip_proxy_crv'), .4)
     right_hip_proxy_grp = cmds.group(empty=True, world=True, name=right_hip_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_hip_proxy_crv, right_hip_proxy_grp)
     cmds.move(-10.2, 84.5, 0, right_hip_proxy_grp)
 
     # Right Knee
-    right_knee_proxy_crv = create_aim_joint_curve(biped_data.elements_default.get('right_knee_proxy_crv'), .5)
+    right_knee_proxy_crv = create_aim_joint_curve(data_biped.elements_default.get('right_knee_proxy_crv'), .5)
     cmds.rotate(0, 180, 90, right_knee_proxy_crv)
     cmds.makeIdentity(right_knee_proxy_crv, apply=True, translate=True, scale=True, rotate=True)
     right_knee_proxy_grp = cmds.group(empty=True, world=True, name=right_knee_proxy_crv + GRP_SUFFIX.capitalize())
@@ -547,25 +547,25 @@ def create_proxy(biped_data):
     cmds.move(-1.75, 8, 0, right_knee_proxy_grp)
 
     # Right Ankle
-    right_ankle_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_ankle_proxy_crv'), .4)
+    right_ankle_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_ankle_proxy_crv'), .4)
     right_ankle_proxy_grp = cmds.group(empty=True, world=True, name=right_ankle_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ankle_proxy_crv, right_ankle_proxy_grp)
     cmds.move(-10.2, 9.6, 0, right_ankle_proxy_grp)
 
     # Right Ball
-    right_ball_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_ball_proxy_crv'), .4)
+    right_ball_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_ball_proxy_crv'), .4)
     right_ball_proxy_grp = cmds.group(empty=True, world=True, name=right_ball_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_ball_proxy_crv, right_ball_proxy_grp)
     cmds.move(-10.2, 0, 13.1, right_ball_proxy_grp)
 
     # Right Toe
-    right_toe_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_toe_proxy_crv'), .35)
+    right_toe_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_toe_proxy_crv'), .35)
     right_toe_proxy_grp = cmds.group(empty=True, world=True, name=right_toe_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_toe_proxy_crv, right_toe_proxy_grp)
     cmds.move(-10.2, 0, 23.4, right_toe_proxy_grp)
 
     # Right Heel Roll Pivot
-    right_heel_proxy_crv = create_joint_curve(biped_data.elements_default.get('right_heel_proxy_pivot'), .1)
+    right_heel_proxy_crv = create_joint_curve(data_biped.elements_default.get('right_heel_proxy_pivot'), .1)
     right_heel_proxy_grp = cmds.group(empty=True, world=True, name=right_heel_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_heel_proxy_crv, right_heel_proxy_grp)
     cmds.parent(right_heel_proxy_grp, right_ankle_proxy_grp)
@@ -703,14 +703,14 @@ def create_proxy(biped_data):
 
     # Left Elbow Constraints
     # Left Elbow Pole Vector Dir
-    left_elbow_pv_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_elbow_pv_dir'))
-    cmds.delete(cmds.pointConstraint(biped_data.elements_default.get('left_elbow_proxy_crv'), left_elbow_pv_loc[0]))
-    cmds.parent(left_elbow_pv_loc[0], biped_data.elements_default.get('left_elbow_proxy_crv'))
+    left_elbow_pv_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_elbow_pv_dir'))
+    cmds.delete(cmds.pointConstraint(data_biped.elements_default.get('left_elbow_proxy_crv'), left_elbow_pv_loc[0]))
+    cmds.parent(left_elbow_pv_loc[0], data_biped.elements_default.get('left_elbow_proxy_crv'))
     cmds.move(0, 0, -9.6, left_elbow_pv_loc[0], relative=True)
 
-    left_elbow_dir_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_elbow_dir_loc'))
-    left_elbow_aim_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_elbow_aim_loc'))
-    left_elbow_upvec_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_elbow_upvec_loc'))
+    left_elbow_dir_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_elbow_dir_loc'))
+    left_elbow_aim_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_elbow_aim_loc'))
+    left_elbow_upvec_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_elbow_upvec_loc'))
     left_elbow_upvec_loc_grp = cmds.group(empty=True, world=True,
                                           name=left_elbow_upvec_loc[0] + GRP_SUFFIX.capitalize())
 
@@ -726,7 +726,7 @@ def create_proxy(biped_data):
     cmds.pointConstraint(left_shoulder_proxy_crv, left_elbow_upvec_loc_grp, skip=['x', 'z'])
 
     left_elbow_divide_node = cmds.createNode('multiplyDivide',
-                                             name=biped_data.elements_default.get('left_elbow_divide_node'))
+                                             name=data_biped.elements_default.get('left_elbow_divide_node'))
 
     cmds.setAttr(left_elbow_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(left_elbow_divide_node + '.input2X', -2)
@@ -745,14 +745,14 @@ def create_proxy(biped_data):
 
     # Right Elbow Constraints
     # Right Elbow Pole Vector Dir
-    right_elbow_pv_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_elbow_pv_dir'))
-    cmds.delete(cmds.pointConstraint(biped_data.elements_default.get('right_elbow_proxy_crv'), right_elbow_pv_loc[0]))
-    cmds.parent(right_elbow_pv_loc[0], biped_data.elements_default.get('right_elbow_proxy_crv'))
+    right_elbow_pv_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_elbow_pv_dir'))
+    cmds.delete(cmds.pointConstraint(data_biped.elements_default.get('right_elbow_proxy_crv'), right_elbow_pv_loc[0]))
+    cmds.parent(right_elbow_pv_loc[0], data_biped.elements_default.get('right_elbow_proxy_crv'))
     cmds.move(0, 0, -9.6, right_elbow_pv_loc[0], relative=True)
 
-    right_elbow_dir_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_elbow_dir_loc'))
-    right_elbow_aim_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_elbow_aim_loc'))
-    right_elbow_upvec_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_elbow_upvec_loc'))
+    right_elbow_dir_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_elbow_dir_loc'))
+    right_elbow_aim_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_elbow_aim_loc'))
+    right_elbow_upvec_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_elbow_upvec_loc'))
     right_elbow_upvec_loc_grp = cmds.group(empty=True, world=True,
                                            name=right_elbow_upvec_loc[0] + GRP_SUFFIX.capitalize())
 
@@ -768,7 +768,7 @@ def create_proxy(biped_data):
     cmds.pointConstraint(right_shoulder_proxy_crv, right_elbow_upvec_loc_grp, skip=['x', 'z'])
 
     right_elbow_divide_node = cmds.createNode('multiplyDivide',
-                                              name=biped_data.elements_default.get('right_elbow_divide_node'))
+                                              name=data_biped.elements_default.get('right_elbow_divide_node'))
 
     cmds.setAttr(right_elbow_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(right_elbow_divide_node + '.input2X', -2)
@@ -786,23 +786,23 @@ def create_proxy(biped_data):
                        worldUpType='none', skip=['y', 'z'])  # Possible Issue
 
     # Left Knee Setup
-    left_knee_pv_dir = cmds.spaceLocator(name=biped_data.elements_default.get('left_knee_pv_dir'))
+    left_knee_pv_dir = cmds.spaceLocator(name=data_biped.elements_default.get('left_knee_pv_dir'))
     temp = cmds.pointConstraint(left_knee_proxy_crv, left_knee_pv_dir)
     cmds.delete(temp)
     cmds.move(0, 0, 12.9, left_knee_pv_dir, relative=True)
     cmds.parent(left_knee_pv_dir[0], left_knee_proxy_crv)
 
     # Right Knee Setup
-    right_knee_pv_dir = cmds.spaceLocator(name=biped_data.elements_default.get('right_knee_pv_dir'))
+    right_knee_pv_dir = cmds.spaceLocator(name=data_biped.elements_default.get('right_knee_pv_dir'))
     temp = cmds.pointConstraint(right_knee_proxy_crv, right_knee_pv_dir)
     cmds.delete(temp)
     cmds.move(0, 0, 12.9, right_knee_pv_dir, relative=True)
     cmds.parent(right_knee_pv_dir[0], right_knee_proxy_crv)
 
     # Left Knee Constraints
-    left_knee_dir_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_knee_dir_loc'))
-    left_knee_aim_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_knee_aim_loc'))
-    left_knee_upvec_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_knee_upvec_loc'))
+    left_knee_dir_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_knee_dir_loc'))
+    left_knee_aim_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_knee_aim_loc'))
+    left_knee_upvec_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_knee_upvec_loc'))
     left_knee_upvec_loc_grp = cmds.group(empty=True, world=True, name=left_knee_upvec_loc[0] + GRP_SUFFIX.capitalize())
     cmds.parent(left_knee_upvec_loc, left_knee_upvec_loc_grp)
     cmds.parent(left_knee_upvec_loc_grp, main_crv)
@@ -810,7 +810,7 @@ def create_proxy(biped_data):
     cmds.parent(left_knee_aim_loc[0], left_knee_dir_loc[0])
 
     left_knee_divide_node = cmds.createNode('multiplyDivide',
-                                            name=biped_data.elements_default.get('left_knee_divide_node'))
+                                            name=data_biped.elements_default.get('left_knee_divide_node'))
     cmds.setAttr(left_knee_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(left_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(left_ankle_proxy_crv + '.tx', left_knee_divide_node + '.input1X')
@@ -829,9 +829,9 @@ def create_proxy(biped_data):
                        worldUpType='none', skip=['x', 'z'])  # Possible Issue
 
     # Right Knee Constraints
-    right_knee_dir_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_knee_dir_loc'))
-    right_knee_aim_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_knee_aim_loc'))
-    right_knee_upvec_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_knee_upvec_loc'))
+    right_knee_dir_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_knee_dir_loc'))
+    right_knee_aim_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_knee_aim_loc'))
+    right_knee_upvec_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_knee_upvec_loc'))
     right_knee_upvec_loc_grp = cmds.group(empty=True, world=True,
                                           name=right_knee_upvec_loc[0] + GRP_SUFFIX.capitalize())
     cmds.parent(right_knee_upvec_loc, right_knee_upvec_loc_grp)
@@ -840,7 +840,7 @@ def create_proxy(biped_data):
     cmds.parent(right_knee_aim_loc[0], right_knee_dir_loc[0])
 
     right_knee_divide_node = cmds.createNode('multiplyDivide',
-                                             name=biped_data.elements_default.get('right_knee_divide_node'))
+                                             name=data_biped.elements_default.get('right_knee_divide_node'))
     cmds.setAttr(right_knee_divide_node + '.operation', 2)  # Make Divide
     cmds.setAttr(right_knee_divide_node + '.input2X', -2)
     cmds.connectAttr(right_ankle_proxy_crv + '.tx', right_knee_divide_node + '.input1X')
@@ -860,7 +860,7 @@ def create_proxy(biped_data):
 
     # Left Rolls
     left_ball_pivot_grp = cmds.group(empty=True, world=True,
-                                     name=biped_data.elements_default.get('left_ball_pivot_grp'))
+                                     name=data_biped.elements_default.get('left_ball_pivot_grp'))
     cmds.parent(left_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(left_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], left_ball_pivot_grp, moveX=True)
@@ -872,7 +872,7 @@ def create_proxy(biped_data):
 
     # Right Rolls
     right_ball_pivot_grp = cmds.group(empty=True, world=True,
-                                      name=biped_data.elements_default.get('right_ball_pivot_grp'))
+                                      name=data_biped.elements_default.get('right_ball_pivot_grp'))
     cmds.parent(right_ball_pivot_grp, main_crv)
     ankle_pos = cmds.xform(right_ankle_proxy_crv, q=True, ws=True, rp=True)
     cmds.move(ankle_pos[0], right_ball_pivot_grp, moveX=True)
@@ -1067,110 +1067,110 @@ def create_proxy(biped_data):
     cmds.connectAttr(right_ankle_proxy_crv + '.followHip', constraint[0] + '.w0')
 
     # Store new names into settings in case they were modified
-    biped_data.elements['main_crv'] = main_crv
-    biped_data.elements['cog_proxy_crv'] = cog_proxy_crv
-    biped_data.elements['spine01_proxy_crv'] = spine01_proxy_crv
-    biped_data.elements['spine02_proxy_crv'] = spine02_proxy_crv
-    biped_data.elements['spine03_proxy_crv'] = spine03_proxy_crv
-    biped_data.elements['spine04_proxy_crv'] = spine04_proxy_crv
-    biped_data.elements['neck_base_proxy_crv'] = neck_base_proxy_crv
-    biped_data.elements['neck_mid_proxy_crv'] = neck_mid_proxy_crv
-    biped_data.elements['head_proxy_crv'] = head_proxy_crv
-    biped_data.elements['head_end_proxy_crv'] = head_end_proxy_crv
-    biped_data.elements['jaw_proxy_crv'] = jaw_proxy_crv
-    biped_data.elements['jaw_end_proxy_crv'] = jaw_end_proxy_crv
-    biped_data.elements['hip_proxy_crv'] = hip_proxy_crv
+    data_biped.elements['main_crv'] = main_crv
+    data_biped.elements['cog_proxy_crv'] = cog_proxy_crv
+    data_biped.elements['spine01_proxy_crv'] = spine01_proxy_crv
+    data_biped.elements['spine02_proxy_crv'] = spine02_proxy_crv
+    data_biped.elements['spine03_proxy_crv'] = spine03_proxy_crv
+    data_biped.elements['spine04_proxy_crv'] = spine04_proxy_crv
+    data_biped.elements['neck_base_proxy_crv'] = neck_base_proxy_crv
+    data_biped.elements['neck_mid_proxy_crv'] = neck_mid_proxy_crv
+    data_biped.elements['head_proxy_crv'] = head_proxy_crv
+    data_biped.elements['head_end_proxy_crv'] = head_end_proxy_crv
+    data_biped.elements['jaw_proxy_crv'] = jaw_proxy_crv
+    data_biped.elements['jaw_end_proxy_crv'] = jaw_end_proxy_crv
+    data_biped.elements['hip_proxy_crv'] = hip_proxy_crv
     # Left Side Elements
-    biped_data.elements['left_eye_proxy_crv'] = left_eye_proxy_crv
-    biped_data.elements['left_clavicle_proxy_crv'] = left_clavicle_proxy_crv
-    biped_data.elements['left_shoulder_proxy_crv'] = left_shoulder_proxy_crv
-    biped_data.elements['left_elbow_proxy_crv'] = left_elbow_proxy_crv
-    biped_data.elements['left_wrist_proxy_crv'] = left_wrist_proxy_crv
-    biped_data.elements['left_thumb01_proxy_crv'] = left_thumb01_proxy_crv
-    biped_data.elements['left_thumb02_proxy_crv'] = left_thumb02_proxy_crv
-    biped_data.elements['left_thumb03_proxy_crv'] = left_thumb03_proxy_crv
-    biped_data.elements['left_thumb04_proxy_crv'] = left_thumb04_proxy_crv
-    biped_data.elements['left_index01_proxy_crv'] = left_index01_proxy_crv
-    biped_data.elements['left_index02_proxy_crv'] = left_index02_proxy_crv
-    biped_data.elements['left_index03_proxy_crv'] = left_index03_proxy_crv
-    biped_data.elements['left_index04_proxy_crv'] = left_index04_proxy_crv
-    biped_data.elements['left_middle01_proxy_crv'] = left_middle01_proxy_crv
-    biped_data.elements['left_middle02_proxy_crv'] = left_middle02_proxy_crv
-    biped_data.elements['left_middle03_proxy_crv'] = left_middle03_proxy_crv
-    biped_data.elements['left_middle04_proxy_crv'] = left_middle04_proxy_crv
-    biped_data.elements['left_ring01_proxy_crv'] = left_ring01_proxy_crv
-    biped_data.elements['left_ring02_proxy_crv'] = left_ring02_proxy_crv
-    biped_data.elements['left_ring03_proxy_crv'] = left_ring03_proxy_crv
-    biped_data.elements['left_ring04_proxy_crv'] = left_ring04_proxy_crv
-    biped_data.elements['left_pinky01_proxy_crv'] = left_pinky01_proxy_crv
-    biped_data.elements['left_pinky02_proxy_crv'] = left_pinky02_proxy_crv
-    biped_data.elements['left_pinky03_proxy_crv'] = left_pinky03_proxy_crv
-    biped_data.elements['left_pinky04_proxy_crv'] = left_pinky04_proxy_crv
-    biped_data.elements['left_hip_proxy_crv'] = left_hip_proxy_crv
-    biped_data.elements['left_knee_proxy_crv'] = left_knee_proxy_crv
-    biped_data.elements['left_ankle_proxy_crv'] = left_ankle_proxy_crv
-    biped_data.elements['left_ball_proxy_crv'] = left_ball_proxy_crv
-    biped_data.elements['left_toe_proxy_crv'] = left_toe_proxy_crv
-    biped_data.elements['left_elbow_pv_loc'] = left_elbow_pv_loc[0]
-    biped_data.elements['left_elbow_dir_loc'] = left_elbow_dir_loc[0]
-    biped_data.elements['left_elbow_aim_loc'] = left_elbow_aim_loc[0]
-    biped_data.elements['left_elbow_upvec_loc'] = left_elbow_upvec_loc[0]
-    biped_data.elements['left_elbow_divide_node'] = left_elbow_divide_node
-    biped_data.elements['left_knee_pv_dir'] = left_knee_pv_dir[0]
-    biped_data.elements['left_knee_dir_loc'] = left_knee_dir_loc[0]
-    biped_data.elements['left_knee_aim_loc'] = left_knee_aim_loc[0]
-    biped_data.elements['left_knee_upvec_loc'] = left_knee_upvec_loc[0]
-    biped_data.elements['left_knee_divide_node'] = left_knee_divide_node
-    biped_data.elements['left_ball_pivot_grp'] = left_ball_pivot_grp
+    data_biped.elements['left_eye_proxy_crv'] = left_eye_proxy_crv
+    data_biped.elements['left_clavicle_proxy_crv'] = left_clavicle_proxy_crv
+    data_biped.elements['left_shoulder_proxy_crv'] = left_shoulder_proxy_crv
+    data_biped.elements['left_elbow_proxy_crv'] = left_elbow_proxy_crv
+    data_biped.elements['left_wrist_proxy_crv'] = left_wrist_proxy_crv
+    data_biped.elements['left_thumb01_proxy_crv'] = left_thumb01_proxy_crv
+    data_biped.elements['left_thumb02_proxy_crv'] = left_thumb02_proxy_crv
+    data_biped.elements['left_thumb03_proxy_crv'] = left_thumb03_proxy_crv
+    data_biped.elements['left_thumb04_proxy_crv'] = left_thumb04_proxy_crv
+    data_biped.elements['left_index01_proxy_crv'] = left_index01_proxy_crv
+    data_biped.elements['left_index02_proxy_crv'] = left_index02_proxy_crv
+    data_biped.elements['left_index03_proxy_crv'] = left_index03_proxy_crv
+    data_biped.elements['left_index04_proxy_crv'] = left_index04_proxy_crv
+    data_biped.elements['left_middle01_proxy_crv'] = left_middle01_proxy_crv
+    data_biped.elements['left_middle02_proxy_crv'] = left_middle02_proxy_crv
+    data_biped.elements['left_middle03_proxy_crv'] = left_middle03_proxy_crv
+    data_biped.elements['left_middle04_proxy_crv'] = left_middle04_proxy_crv
+    data_biped.elements['left_ring01_proxy_crv'] = left_ring01_proxy_crv
+    data_biped.elements['left_ring02_proxy_crv'] = left_ring02_proxy_crv
+    data_biped.elements['left_ring03_proxy_crv'] = left_ring03_proxy_crv
+    data_biped.elements['left_ring04_proxy_crv'] = left_ring04_proxy_crv
+    data_biped.elements['left_pinky01_proxy_crv'] = left_pinky01_proxy_crv
+    data_biped.elements['left_pinky02_proxy_crv'] = left_pinky02_proxy_crv
+    data_biped.elements['left_pinky03_proxy_crv'] = left_pinky03_proxy_crv
+    data_biped.elements['left_pinky04_proxy_crv'] = left_pinky04_proxy_crv
+    data_biped.elements['left_hip_proxy_crv'] = left_hip_proxy_crv
+    data_biped.elements['left_knee_proxy_crv'] = left_knee_proxy_crv
+    data_biped.elements['left_ankle_proxy_crv'] = left_ankle_proxy_crv
+    data_biped.elements['left_ball_proxy_crv'] = left_ball_proxy_crv
+    data_biped.elements['left_toe_proxy_crv'] = left_toe_proxy_crv
+    data_biped.elements['left_elbow_pv_loc'] = left_elbow_pv_loc[0]
+    data_biped.elements['left_elbow_dir_loc'] = left_elbow_dir_loc[0]
+    data_biped.elements['left_elbow_aim_loc'] = left_elbow_aim_loc[0]
+    data_biped.elements['left_elbow_upvec_loc'] = left_elbow_upvec_loc[0]
+    data_biped.elements['left_elbow_divide_node'] = left_elbow_divide_node
+    data_biped.elements['left_knee_pv_dir'] = left_knee_pv_dir[0]
+    data_biped.elements['left_knee_dir_loc'] = left_knee_dir_loc[0]
+    data_biped.elements['left_knee_aim_loc'] = left_knee_aim_loc[0]
+    data_biped.elements['left_knee_upvec_loc'] = left_knee_upvec_loc[0]
+    data_biped.elements['left_knee_divide_node'] = left_knee_divide_node
+    data_biped.elements['left_ball_pivot_grp'] = left_ball_pivot_grp
     # Right Side Elements
-    biped_data.elements['right_eye_proxy_crv'] = right_eye_proxy_crv
-    biped_data.elements['right_clavicle_proxy_crv'] = right_clavicle_proxy_crv
-    biped_data.elements['right_shoulder_proxy_crv'] = right_shoulder_proxy_crv
-    biped_data.elements['right_elbow_proxy_crv'] = right_elbow_proxy_crv
-    biped_data.elements['right_wrist_proxy_crv'] = right_wrist_proxy_crv
-    biped_data.elements['right_thumb01_proxy_crv'] = right_thumb01_proxy_crv
-    biped_data.elements['right_thumb02_proxy_crv'] = right_thumb02_proxy_crv
-    biped_data.elements['right_thumb03_proxy_crv'] = right_thumb03_proxy_crv
-    biped_data.elements['right_thumb04_proxy_crv'] = right_thumb04_proxy_crv
-    biped_data.elements['right_index01_proxy_crv'] = right_index01_proxy_crv
-    biped_data.elements['right_index02_proxy_crv'] = right_index02_proxy_crv
-    biped_data.elements['right_index03_proxy_crv'] = right_index03_proxy_crv
-    biped_data.elements['right_index04_proxy_crv'] = right_index04_proxy_crv
-    biped_data.elements['right_middle01_proxy_crv'] = right_middle01_proxy_crv
-    biped_data.elements['right_middle02_proxy_crv'] = right_middle02_proxy_crv
-    biped_data.elements['right_middle03_proxy_crv'] = right_middle03_proxy_crv
-    biped_data.elements['right_middle04_proxy_crv'] = right_middle04_proxy_crv
-    biped_data.elements['right_ring01_proxy_crv'] = right_ring01_proxy_crv
-    biped_data.elements['right_ring02_proxy_crv'] = right_ring02_proxy_crv
-    biped_data.elements['right_ring03_proxy_crv'] = right_ring03_proxy_crv
-    biped_data.elements['right_ring04_proxy_crv'] = right_ring04_proxy_crv
-    biped_data.elements['right_pinky01_proxy_crv'] = right_pinky01_proxy_crv
-    biped_data.elements['right_pinky02_proxy_crv'] = right_pinky02_proxy_crv
-    biped_data.elements['right_pinky03_proxy_crv'] = right_pinky03_proxy_crv
-    biped_data.elements['right_pinky04_proxy_crv'] = right_pinky04_proxy_crv
-    biped_data.elements['right_hip_proxy_crv'] = right_hip_proxy_crv
-    biped_data.elements['right_knee_proxy_crv'] = right_knee_proxy_crv
-    biped_data.elements['right_ankle_proxy_crv'] = right_ankle_proxy_crv
-    biped_data.elements['right_ball_proxy_crv'] = right_ball_proxy_crv
-    biped_data.elements['right_toe_proxy_crv'] = right_toe_proxy_crv
-    biped_data.elements['right_elbow_pv_loc'] = right_elbow_pv_loc[0]
-    biped_data.elements['right_elbow_dir_loc'] = right_elbow_dir_loc[0]
-    biped_data.elements['right_elbow_aim_loc'] = right_elbow_aim_loc[0]
-    biped_data.elements['right_elbow_upvec_loc'] = right_elbow_upvec_loc[0]
-    biped_data.elements['right_elbow_divide_node'] = right_elbow_divide_node
-    biped_data.elements['right_knee_pv_dir'] = right_knee_pv_dir[0]
-    biped_data.elements['right_knee_dir_loc'] = right_knee_dir_loc[0]
-    biped_data.elements['right_knee_aim_loc'] = right_knee_aim_loc[0]
-    biped_data.elements['right_knee_upvec_loc'] = right_knee_upvec_loc[0]
-    biped_data.elements['right_knee_divide_node'] = right_knee_divide_node
-    biped_data.elements['right_ball_pivot_grp'] = right_ball_pivot_grp
+    data_biped.elements['right_eye_proxy_crv'] = right_eye_proxy_crv
+    data_biped.elements['right_clavicle_proxy_crv'] = right_clavicle_proxy_crv
+    data_biped.elements['right_shoulder_proxy_crv'] = right_shoulder_proxy_crv
+    data_biped.elements['right_elbow_proxy_crv'] = right_elbow_proxy_crv
+    data_biped.elements['right_wrist_proxy_crv'] = right_wrist_proxy_crv
+    data_biped.elements['right_thumb01_proxy_crv'] = right_thumb01_proxy_crv
+    data_biped.elements['right_thumb02_proxy_crv'] = right_thumb02_proxy_crv
+    data_biped.elements['right_thumb03_proxy_crv'] = right_thumb03_proxy_crv
+    data_biped.elements['right_thumb04_proxy_crv'] = right_thumb04_proxy_crv
+    data_biped.elements['right_index01_proxy_crv'] = right_index01_proxy_crv
+    data_biped.elements['right_index02_proxy_crv'] = right_index02_proxy_crv
+    data_biped.elements['right_index03_proxy_crv'] = right_index03_proxy_crv
+    data_biped.elements['right_index04_proxy_crv'] = right_index04_proxy_crv
+    data_biped.elements['right_middle01_proxy_crv'] = right_middle01_proxy_crv
+    data_biped.elements['right_middle02_proxy_crv'] = right_middle02_proxy_crv
+    data_biped.elements['right_middle03_proxy_crv'] = right_middle03_proxy_crv
+    data_biped.elements['right_middle04_proxy_crv'] = right_middle04_proxy_crv
+    data_biped.elements['right_ring01_proxy_crv'] = right_ring01_proxy_crv
+    data_biped.elements['right_ring02_proxy_crv'] = right_ring02_proxy_crv
+    data_biped.elements['right_ring03_proxy_crv'] = right_ring03_proxy_crv
+    data_biped.elements['right_ring04_proxy_crv'] = right_ring04_proxy_crv
+    data_biped.elements['right_pinky01_proxy_crv'] = right_pinky01_proxy_crv
+    data_biped.elements['right_pinky02_proxy_crv'] = right_pinky02_proxy_crv
+    data_biped.elements['right_pinky03_proxy_crv'] = right_pinky03_proxy_crv
+    data_biped.elements['right_pinky04_proxy_crv'] = right_pinky04_proxy_crv
+    data_biped.elements['right_hip_proxy_crv'] = right_hip_proxy_crv
+    data_biped.elements['right_knee_proxy_crv'] = right_knee_proxy_crv
+    data_biped.elements['right_ankle_proxy_crv'] = right_ankle_proxy_crv
+    data_biped.elements['right_ball_proxy_crv'] = right_ball_proxy_crv
+    data_biped.elements['right_toe_proxy_crv'] = right_toe_proxy_crv
+    data_biped.elements['right_elbow_pv_loc'] = right_elbow_pv_loc[0]
+    data_biped.elements['right_elbow_dir_loc'] = right_elbow_dir_loc[0]
+    data_biped.elements['right_elbow_aim_loc'] = right_elbow_aim_loc[0]
+    data_biped.elements['right_elbow_upvec_loc'] = right_elbow_upvec_loc[0]
+    data_biped.elements['right_elbow_divide_node'] = right_elbow_divide_node
+    data_biped.elements['right_knee_pv_dir'] = right_knee_pv_dir[0]
+    data_biped.elements['right_knee_dir_loc'] = right_knee_dir_loc[0]
+    data_biped.elements['right_knee_aim_loc'] = right_knee_aim_loc[0]
+    data_biped.elements['right_knee_upvec_loc'] = right_knee_upvec_loc[0]
+    data_biped.elements['right_knee_divide_node'] = right_knee_divide_node
+    data_biped.elements['right_ball_pivot_grp'] = right_ball_pivot_grp
 
-    biped_data.elements = biped_data.elements
+    data_biped.elements = data_biped.elements
 
     # Visibility Adjustments
-    for obj in biped_data.elements:
+    for obj in data_biped.elements:
         if obj.endswith('_crv'):
-            proxy_crv = biped_data.elements.get(obj)
+            proxy_crv = data_biped.elements.get(obj)
             is_end_jnt = False
             if '_endProxy' in proxy_crv:
                 note = 'This is an end proxy. This element will be used to determine the orientation of its parent. ' \
@@ -1179,12 +1179,12 @@ def create_proxy(biped_data):
                 add_node_note(proxy_crv, note)
                 color = (.5, .5, 0)
                 is_end_jnt = True
-            elif biped_data.elements.get('neck_mid_proxy_crv') in proxy_crv:
+            elif data_biped.elements.get('neck_mid_proxy_crv') in proxy_crv:
                 note = 'This is the neckMid proxy. This element will be automated to receive part of its transforms ' \
                        'from the neckBase and the other part from the head.'
                 add_node_note(proxy_crv, note)
                 color = (.3, .3, 0)
-            elif biped_data.elements.get('left_toe_proxy_crv') in proxy_crv or biped_data.elements.get(
+            elif data_biped.elements.get('left_toe_proxy_crv') in proxy_crv or data_biped.elements.get(
                     'right_toe_proxy_crv') in proxy_crv:
                 note = 'This is a toe proxy. This element will be used to automate toe poses. Much like an end proxy,' \
                        ' it will generate a joint that most likely should not be used as an influence when skinning.' \
@@ -1196,14 +1196,14 @@ def create_proxy(biped_data):
                 color = (1, .4, .4)
             elif proxy_crv.startswith('left_'):
                 color = (.2, .6, 1)
-            elif biped_data.elements.get('spine01_proxy_crv') in proxy_crv or biped_data.elements.get(
-                    'spine02_proxy_crv') in proxy_crv or biped_data.elements.get('spine03_proxy_crv') in proxy_crv:
+            elif data_biped.elements.get('spine01_proxy_crv') in proxy_crv or data_biped.elements.get(
+                    'spine02_proxy_crv') in proxy_crv or data_biped.elements.get('spine03_proxy_crv') in proxy_crv:
                 color = (.3, .3, 0)
             else:
                 color = (1, 1, .65)
 
             # Notes Only
-            if biped_data.elements.get('left_eye_proxy_crv') in proxy_crv or biped_data.elements.get(
+            if data_biped.elements.get('left_eye_proxy_crv') in proxy_crv or data_biped.elements.get(
                     'right_eye_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv,
                               'This is an eye proxy.\nThis element should be snapped to the center of the eye '
@@ -1213,14 +1213,14 @@ def create_proxy(biped_data):
                               'reason the pivot point is not in the center of the eye, you can reset it first: '
                               '"Modify > Center Pivot".')
 
-            if biped_data.elements.get('left_elbow_proxy_crv') in proxy_crv or biped_data.elements.get(
+            if data_biped.elements.get('left_elbow_proxy_crv') in proxy_crv or data_biped.elements.get(
                     'right_elbow_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv,
                               'This is an elbow proxy.\nThe movement of this element is intentionally limited to '
                               'attempt to keep the joints in one single plane. For better results keep the arm '
                               'joints in "T" or "A" pose.')
 
-            if biped_data.elements.get('left_knee_proxy_crv') in proxy_crv or biped_data.elements.get(
+            if data_biped.elements.get('left_knee_proxy_crv') in proxy_crv or data_biped.elements.get(
                     'right_knee_proxy_crv') in proxy_crv:
                 add_node_note(proxy_crv,
                               'This is a knee proxy.\nThe movement of this element is intentionally limited to '
@@ -1234,175 +1234,175 @@ def create_proxy(biped_data):
 
     # Create Lines
     line_list = [
-        create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('hip_proxy_crv')),
+        create_visualization_line(data_biped.elements.get('cog_proxy_crv'), data_biped.elements.get('hip_proxy_crv')),
     ]
     line_list.append(
-        create_visualization_line(biped_data.elements.get('cog_proxy_crv'), biped_data.elements.get('hip_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('cog_proxy_crv'), data_biped.elements.get('hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('cog_proxy_crv'),
-                                  biped_data.elements.get('spine01_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('cog_proxy_crv'),
+                                  data_biped.elements.get('spine01_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine01_proxy_crv'),
-                                  biped_data.elements.get('spine02_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('spine01_proxy_crv'),
+                                  data_biped.elements.get('spine02_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine02_proxy_crv'),
-                                  biped_data.elements.get('spine03_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('spine02_proxy_crv'),
+                                  data_biped.elements.get('spine03_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine03_proxy_crv'),
-                                  biped_data.elements.get('spine04_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('spine03_proxy_crv'),
+                                  data_biped.elements.get('spine04_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
-                                  biped_data.elements.get('neck_base_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('spine04_proxy_crv'),
+                                  data_biped.elements.get('neck_base_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('neck_base_proxy_crv'),
-                                  biped_data.elements.get('neck_mid_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('neck_base_proxy_crv'),
+                                  data_biped.elements.get('neck_mid_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('neck_mid_proxy_crv'),
-                                  biped_data.elements.get('head_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('neck_mid_proxy_crv'),
+                                  data_biped.elements.get('head_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
-                                  biped_data.elements.get('head_end_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('head_proxy_crv'),
+                                  data_biped.elements.get('head_end_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'), biped_data.elements.get('jaw_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('head_proxy_crv'), data_biped.elements.get('jaw_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('jaw_proxy_crv'),
-                                  biped_data.elements.get('jaw_end_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('jaw_proxy_crv'),
+                                  data_biped.elements.get('jaw_end_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
-                                  biped_data.elements.get('left_eye_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('head_proxy_crv'),
+                                  data_biped.elements.get('left_eye_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('head_proxy_crv'),
-                                  biped_data.elements.get('right_eye_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('head_proxy_crv'),
+                                  data_biped.elements.get('right_eye_proxy_crv')))
     # Left Side
     line_list.append(
-        create_visualization_line(biped_data.elements.get('hip_proxy_crv'),
-                                  biped_data.elements.get('left_hip_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('hip_proxy_crv'),
+                                  data_biped.elements.get('left_hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_hip_proxy_crv'),
-                                  biped_data.elements.get('left_knee_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('left_hip_proxy_crv'),
+                                  data_biped.elements.get('left_knee_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_knee_proxy_crv'),
-                                  biped_data.elements.get('left_ankle_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('left_knee_proxy_crv'),
+                                  data_biped.elements.get('left_ankle_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_ankle_proxy_crv'),
-                                  biped_data.elements.get('left_ball_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('left_ankle_proxy_crv'),
+                                  data_biped.elements.get('left_ball_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_ball_proxy_crv'),
-                                  biped_data.elements.get('left_toe_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('left_ball_proxy_crv'),
+                                  data_biped.elements.get('left_toe_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
-                                  biped_data.elements.get('left_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_clavicle_proxy_crv'),
-                                               biped_data.elements.get('left_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_shoulder_proxy_crv'),
-                                               biped_data.elements.get('left_elbow_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('spine04_proxy_crv'),
+                                  data_biped.elements.get('left_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_clavicle_proxy_crv'),
+                                               data_biped.elements.get('left_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_shoulder_proxy_crv'),
+                                               data_biped.elements.get('left_elbow_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('left_elbow_proxy_crv'),
-                                  biped_data.elements.get('left_wrist_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('left_elbow_proxy_crv'),
+                                  data_biped.elements.get('left_wrist_proxy_crv')))
     # Left Fingers
-    line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
-                                               biped_data.elements.get('left_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_thumb01_proxy_crv'),
-                                               biped_data.elements.get('left_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_thumb02_proxy_crv'),
-                                               biped_data.elements.get('left_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_thumb03_proxy_crv'),
-                                               biped_data.elements.get('left_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
-                                               biped_data.elements.get('left_index01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_index01_proxy_crv'),
-                                               biped_data.elements.get('left_index02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_index02_proxy_crv'),
-                                               biped_data.elements.get('left_index03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_index03_proxy_crv'),
-                                               biped_data.elements.get('left_index04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
-                                               biped_data.elements.get('left_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_middle01_proxy_crv'),
-                                               biped_data.elements.get('left_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_middle02_proxy_crv'),
-                                               biped_data.elements.get('left_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_middle03_proxy_crv'),
-                                               biped_data.elements.get('left_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
-                                               biped_data.elements.get('left_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_ring01_proxy_crv'),
-                                               biped_data.elements.get('left_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_ring02_proxy_crv'),
-                                               biped_data.elements.get('left_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_ring03_proxy_crv'),
-                                               biped_data.elements.get('left_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_wrist_proxy_crv'),
-                                               biped_data.elements.get('left_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_pinky01_proxy_crv'),
-                                               biped_data.elements.get('left_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_pinky02_proxy_crv'),
-                                               biped_data.elements.get('left_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('left_pinky03_proxy_crv'),
-                                               biped_data.elements.get('left_pinky04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_wrist_proxy_crv'),
+                                               data_biped.elements.get('left_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_thumb01_proxy_crv'),
+                                               data_biped.elements.get('left_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_thumb02_proxy_crv'),
+                                               data_biped.elements.get('left_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_thumb03_proxy_crv'),
+                                               data_biped.elements.get('left_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_wrist_proxy_crv'),
+                                               data_biped.elements.get('left_index01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_index01_proxy_crv'),
+                                               data_biped.elements.get('left_index02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_index02_proxy_crv'),
+                                               data_biped.elements.get('left_index03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_index03_proxy_crv'),
+                                               data_biped.elements.get('left_index04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_wrist_proxy_crv'),
+                                               data_biped.elements.get('left_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_middle01_proxy_crv'),
+                                               data_biped.elements.get('left_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_middle02_proxy_crv'),
+                                               data_biped.elements.get('left_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_middle03_proxy_crv'),
+                                               data_biped.elements.get('left_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_wrist_proxy_crv'),
+                                               data_biped.elements.get('left_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_ring01_proxy_crv'),
+                                               data_biped.elements.get('left_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_ring02_proxy_crv'),
+                                               data_biped.elements.get('left_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_ring03_proxy_crv'),
+                                               data_biped.elements.get('left_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_wrist_proxy_crv'),
+                                               data_biped.elements.get('left_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_pinky01_proxy_crv'),
+                                               data_biped.elements.get('left_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_pinky02_proxy_crv'),
+                                               data_biped.elements.get('left_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('left_pinky03_proxy_crv'),
+                                               data_biped.elements.get('left_pinky04_proxy_crv')))
     # Right Side
     line_list.append(
-        create_visualization_line(biped_data.elements.get('hip_proxy_crv'),
-                                  biped_data.elements.get('right_hip_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('hip_proxy_crv'),
+                                  data_biped.elements.get('right_hip_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('right_hip_proxy_crv'),
-                                  biped_data.elements.get('right_knee_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_knee_proxy_crv'),
-                                               biped_data.elements.get('right_ankle_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_ankle_proxy_crv'),
-                                               biped_data.elements.get('right_ball_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('right_hip_proxy_crv'),
+                                  data_biped.elements.get('right_knee_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_knee_proxy_crv'),
+                                               data_biped.elements.get('right_ankle_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_ankle_proxy_crv'),
+                                               data_biped.elements.get('right_ball_proxy_crv')))
     line_list.append(
-        create_visualization_line(biped_data.elements.get('right_ball_proxy_crv'),
-                                  biped_data.elements.get('right_toe_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('spine04_proxy_crv'),
-                                               biped_data.elements.get('right_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_clavicle_proxy_crv'),
-                                               biped_data.elements.get('right_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_shoulder_proxy_crv'),
-                                               biped_data.elements.get('right_elbow_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_elbow_proxy_crv'),
-                                               biped_data.elements.get('right_wrist_proxy_crv')))
+        create_visualization_line(data_biped.elements.get('right_ball_proxy_crv'),
+                                  data_biped.elements.get('right_toe_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('spine04_proxy_crv'),
+                                               data_biped.elements.get('right_clavicle_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_clavicle_proxy_crv'),
+                                               data_biped.elements.get('right_shoulder_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_shoulder_proxy_crv'),
+                                               data_biped.elements.get('right_elbow_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_elbow_proxy_crv'),
+                                               data_biped.elements.get('right_wrist_proxy_crv')))
     # Right Fingers
-    line_list.append(create_visualization_line(biped_data.elements.get('right_wrist_proxy_crv'),
-                                               biped_data.elements.get('right_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_thumb01_proxy_crv'),
-                                               biped_data.elements.get('right_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_thumb02_proxy_crv'),
-                                               biped_data.elements.get('right_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_thumb03_proxy_crv'),
-                                               biped_data.elements.get('right_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_wrist_proxy_crv'),
-                                               biped_data.elements.get('right_index01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_index01_proxy_crv'),
-                                               biped_data.elements.get('right_index02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_index02_proxy_crv'),
-                                               biped_data.elements.get('right_index03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_index03_proxy_crv'),
-                                               biped_data.elements.get('right_index04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_wrist_proxy_crv'),
-                                               biped_data.elements.get('right_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_middle01_proxy_crv'),
-                                               biped_data.elements.get('right_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_middle02_proxy_crv'),
-                                               biped_data.elements.get('right_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_middle03_proxy_crv'),
-                                               biped_data.elements.get('right_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_wrist_proxy_crv'),
-                                               biped_data.elements.get('right_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_ring01_proxy_crv'),
-                                               biped_data.elements.get('right_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_ring02_proxy_crv'),
-                                               biped_data.elements.get('right_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_ring03_proxy_crv'),
-                                               biped_data.elements.get('right_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_wrist_proxy_crv'),
-                                               biped_data.elements.get('right_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_pinky01_proxy_crv'),
-                                               biped_data.elements.get('right_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_pinky02_proxy_crv'),
-                                               biped_data.elements.get('right_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(biped_data.elements.get('right_pinky03_proxy_crv'),
-                                               biped_data.elements.get('right_pinky04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_wrist_proxy_crv'),
+                                               data_biped.elements.get('right_thumb01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_thumb01_proxy_crv'),
+                                               data_biped.elements.get('right_thumb02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_thumb02_proxy_crv'),
+                                               data_biped.elements.get('right_thumb03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_thumb03_proxy_crv'),
+                                               data_biped.elements.get('right_thumb04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_wrist_proxy_crv'),
+                                               data_biped.elements.get('right_index01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_index01_proxy_crv'),
+                                               data_biped.elements.get('right_index02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_index02_proxy_crv'),
+                                               data_biped.elements.get('right_index03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_index03_proxy_crv'),
+                                               data_biped.elements.get('right_index04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_wrist_proxy_crv'),
+                                               data_biped.elements.get('right_middle01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_middle01_proxy_crv'),
+                                               data_biped.elements.get('right_middle02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_middle02_proxy_crv'),
+                                               data_biped.elements.get('right_middle03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_middle03_proxy_crv'),
+                                               data_biped.elements.get('right_middle04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_wrist_proxy_crv'),
+                                               data_biped.elements.get('right_ring01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_ring01_proxy_crv'),
+                                               data_biped.elements.get('right_ring02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_ring02_proxy_crv'),
+                                               data_biped.elements.get('right_ring03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_ring03_proxy_crv'),
+                                               data_biped.elements.get('right_ring04_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_wrist_proxy_crv'),
+                                               data_biped.elements.get('right_pinky01_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_pinky01_proxy_crv'),
+                                               data_biped.elements.get('right_pinky02_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_pinky02_proxy_crv'),
+                                               data_biped.elements.get('right_pinky03_proxy_crv')))
+    line_list.append(create_visualization_line(data_biped.elements.get('right_pinky03_proxy_crv'),
+                                               data_biped.elements.get('right_pinky04_proxy_crv')))
 
     lines_grp = cmds.group(name='visualization_lines', empty=True, world=True)
     cmds.setAttr(lines_grp + '.overrideEnabled', 1)
@@ -1411,19 +1411,19 @@ def create_proxy(biped_data):
         for obj in line_objs:
             cmds.parent(obj, lines_grp)
 
-    cmds.parent(lines_grp, biped_data.elements.get('main_proxy_grp'))
+    cmds.parent(lines_grp, data_biped.elements.get('main_proxy_grp'))
 
-    cmds.addAttr(biped_data.elements.get('main_crv'), ln="proxyOptions", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(biped_data.elements.get('main_crv') + '.proxyOptions', lock=True)
-    cmds.addAttr(biped_data.elements.get('main_crv'), ln="linesVisibility", at="bool", keyable=True)
-    cmds.setAttr(biped_data.elements.get('main_crv') + '.linesVisibility', 1)
-    cmds.connectAttr(biped_data.elements.get('main_crv') + '.linesVisibility', lines_grp + '.v', f=True)
+    cmds.addAttr(data_biped.elements.get('main_crv'), ln="proxyOptions", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(data_biped.elements.get('main_crv') + '.proxyOptions', lock=True)
+    cmds.addAttr(data_biped.elements.get('main_crv'), ln="linesVisibility", at="bool", keyable=True)
+    cmds.setAttr(data_biped.elements.get('main_crv') + '.linesVisibility', 1)
+    cmds.connectAttr(data_biped.elements.get('main_crv') + '.linesVisibility', lines_grp + '.v', f=True)
 
     # Main Proxy Control Scale
-    cmds.connectAttr(biped_data.elements.get('main_crv') + '.sy', biped_data.elements.get('main_crv') + '.sx', f=True)
-    cmds.connectAttr(biped_data.elements.get('main_crv') + '.sy', biped_data.elements.get('main_crv') + '.sz', f=True)
-    cmds.setAttr(biped_data.elements.get('main_crv') + '.sx', k=False)
-    cmds.setAttr(biped_data.elements.get('main_crv') + '.sz', k=False)
+    cmds.connectAttr(data_biped.elements.get('main_crv') + '.sy', data_biped.elements.get('main_crv') + '.sx', f=True)
+    cmds.connectAttr(data_biped.elements.get('main_crv') + '.sy', data_biped.elements.get('main_crv') + '.sz', f=True)
+    cmds.setAttr(data_biped.elements.get('main_crv') + '.sx', k=False)
+    cmds.setAttr(data_biped.elements.get('main_crv') + '.sz', k=False)
 
     # Clean Selection and Print Feedback
     cmds.select(d=True)
@@ -1434,7 +1434,7 @@ def create_proxy(biped_data):
 
 
 # noinspection PyTypeChecker
-def create_controls(biped_data):
+def create_controls(data_biped):
     """ Creates rig using the previously created proxy/guide """
 
     def rename_proxy(old_name):
@@ -1574,10 +1574,10 @@ def create_controls(biped_data):
         return ''.join([i for i in string if not i.isdigit()])
 
     # Extract Biped Data
-    biped_data.elements_default = biped_data.elements_default
-    biped_data.elements = biped_data.elements
-    settings = biped_data.settings
-    rig_joints_default = biped_data.joints_default
+    data_biped.elements_default = data_biped.elements_default
+    data_biped.elements = data_biped.elements
+    settings = data_biped.settings
+    rig_joints_default = data_biped.joints_default
 
     # Store selection and symmetry states
     cmds.select(d=True)  # Clear Selection
@@ -1585,11 +1585,11 @@ def create_controls(biped_data):
 
     # Create Joints
     rig_joints = {}
-    for obj in biped_data.elements:
+    for obj in data_biped.elements:
         if obj.endswith('_crv'):
             cmds.select(d=True)
-            joint = cmds.joint(name=rename_proxy(biped_data.elements.get(obj)), radius=1)
-            constraint = cmds.pointConstraint(biped_data.elements.get(obj), joint)
+            joint = cmds.joint(name=rename_proxy(data_biped.elements.get(obj)), radius=1)
+            constraint = cmds.pointConstraint(data_biped.elements.get(obj), joint)
             cmds.delete(constraint)
             rig_joints[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = joint
 
@@ -1605,125 +1605,125 @@ def create_controls(biped_data):
 
     # Left Finger Orients
     orient_to_target(rig_joints.get('left_thumb01_jnt'), rig_joints.get('left_thumb02_jnt'), (0, 0, 0),
-                     biped_data.elements.get('left_thumb01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_thumb01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_thumb02_jnt'), rig_joints.get('left_thumb03_jnt'), (0, 0, 0),
-                     biped_data.elements.get('left_thumb02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_thumb02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_thumb03_jnt'), rig_joints.get('left_thumb04_jnt'), (0, 0, 0),
-                     biped_data.elements.get('left_thumb03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_thumb03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
 
     orient_to_target(rig_joints.get('left_index01_jnt'), rig_joints.get('left_index02_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_index01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_index01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_index02_jnt'), rig_joints.get('left_index03_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_index02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_index02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_index03_jnt'), rig_joints.get('left_index04_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_index03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_index03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
 
     orient_to_target(rig_joints.get('left_middle01_jnt'), rig_joints.get('left_middle02_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_middle01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_middle01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_middle02_jnt'), rig_joints.get('left_middle03_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_middle02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_middle02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_middle03_jnt'), rig_joints.get('left_middle04_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_middle03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_middle03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
 
     orient_to_target(rig_joints.get('left_ring01_jnt'), rig_joints.get('left_ring02_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_ring01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_ring01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_ring02_jnt'), rig_joints.get('left_ring03_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_ring02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_ring02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_ring03_jnt'), rig_joints.get('left_ring04_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_ring03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_ring03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
 
     orient_to_target(rig_joints.get('left_pinky01_jnt'), rig_joints.get('left_pinky02_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_pinky01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_pinky01_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_pinky02_jnt'), rig_joints.get('left_pinky03_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_pinky02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_pinky02_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
     orient_to_target(rig_joints.get('left_pinky03_jnt'), rig_joints.get('left_pinky04_jnt'), (0, 0, 90),
-                     biped_data.elements.get('left_pinky03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
+                     data_biped.elements.get('left_pinky03_proxy_crv'), up_vec=(0, 1, 0), brute_force=True)
 
     # Right Finger Orients
     orient_to_target(rig_joints.get('right_thumb01_jnt'), rig_joints.get('right_thumb02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_thumb01_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_thumb01_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_thumb02_jnt'), rig_joints.get('right_thumb03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_thumb02_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_thumb02_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_thumb03_jnt'), rig_joints.get('right_thumb04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_thumb03_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_thumb03_proxy_crv'), up_vec=(0, -1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
 
     orient_to_target(rig_joints.get('right_index01_jnt'), rig_joints.get('right_index02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_index01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_index01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_index02_jnt'), rig_joints.get('right_index03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_index02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_index02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_index03_jnt'), rig_joints.get('right_index04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_index03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_index03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
 
     orient_to_target(rig_joints.get('right_middle01_jnt'), rig_joints.get('right_middle02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_middle01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_middle01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_middle02_jnt'), rig_joints.get('right_middle03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_middle02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_middle02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_middle03_jnt'), rig_joints.get('right_middle04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_middle03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_middle03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
 
     orient_to_target(rig_joints.get('right_ring01_jnt'), rig_joints.get('right_ring02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_ring01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_ring02_jnt'), rig_joints.get('right_ring03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_ring02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_ring03_jnt'), rig_joints.get('right_ring04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_ring03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_ring03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
 
     orient_to_target(rig_joints.get('right_pinky01_jnt'), rig_joints.get('right_pinky02_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_pinky01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_pinky01_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_pinky02_jnt'), rig_joints.get('right_pinky03_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_pinky02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_pinky02_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
     orient_to_target(rig_joints.get('right_pinky03_jnt'), rig_joints.get('right_pinky04_jnt'), (0, 180, 0),
-                     biped_data.elements.get('right_pinky03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
+                     data_biped.elements.get('right_pinky03_proxy_crv'), up_vec=(0, 1, 0), aim_vec=(1, 0, 0),
                      brute_force=True)
 
     # Set Arm Orientation
     orient_to_target(rig_joints.get('left_clavicle_jnt'), rig_joints.get('left_shoulder_jnt'), (-90, 0, 0),
-                     biped_data.elements.get('left_clavicle_proxy_crv'))
+                     data_biped.elements.get('left_clavicle_proxy_crv'))
     orient_to_target(rig_joints.get('left_shoulder_jnt'), rig_joints.get('left_elbow_jnt'), (-90, 0, 0))
     orient_to_target(rig_joints.get('left_elbow_jnt'), rig_joints.get('left_wrist_jnt'), (-90, 0, 0),
-                     biped_data.elements.get('left_elbow_proxy_crv'))
+                     data_biped.elements.get('left_elbow_proxy_crv'))
 
     orient_to_target(rig_joints.get('right_clavicle_jnt'), rig_joints.get('right_shoulder_jnt'), (90, 0, 0),
-                     biped_data.elements.get('right_clavicle_proxy_crv'), (-1, 0, 0))
+                     data_biped.elements.get('right_clavicle_proxy_crv'), (-1, 0, 0))
     orient_to_target(rig_joints.get('right_shoulder_jnt'), rig_joints.get('right_elbow_jnt'), (90, 0, 0),
                      aim_vec=(-1, 0, 0))
     orient_to_target(rig_joints.get('right_elbow_jnt'), rig_joints.get('right_wrist_jnt'), (90, 0, 0),
-                     biped_data.elements.get('right_elbow_proxy_crv'), aim_vec=(-1, 0, 0))
+                     data_biped.elements.get('right_elbow_proxy_crv'), aim_vec=(-1, 0, 0))
 
     # Set Leg Orientation
     orient_to_target(rig_joints.get('left_hip_jnt'), rig_joints.get('left_knee_jnt'), (90, 0, -90))
     orient_to_target(rig_joints.get('left_knee_jnt'), rig_joints.get('left_ankle_jnt'), (90, 0, -90),
-                     biped_data.elements.get('left_knee_proxy_crv'))
+                     data_biped.elements.get('left_knee_proxy_crv'))
 
     orient_to_target(rig_joints.get('right_hip_jnt'), rig_joints.get('right_knee_jnt'), (90, 0, -90),
                      aim_vec=(-1, 0, 0))
     orient_to_target(rig_joints.get('right_knee_jnt'), rig_joints.get('right_ankle_jnt'), (90, 0, -90),
-                     biped_data.elements.get('right_knee_proxy_crv'), (-1, 0, 0))
+                     data_biped.elements.get('right_knee_proxy_crv'), (-1, 0, 0))
 
     # Set Foot Orientation
     orient_to_target(rig_joints.get('left_ankle_jnt'), rig_joints.get('left_ball_jnt'), (90, 0, -90),
-                     biped_data.elements.get('left_ankle_proxy_crv'))
+                     data_biped.elements.get('left_ankle_proxy_crv'))
     orient_to_target(rig_joints.get('left_ball_jnt'), rig_joints.get('left_toe_jnt'), (90, 0, -90),
-                     biped_data.elements.get('left_ball_proxy_crv'))
+                     data_biped.elements.get('left_ball_proxy_crv'))
 
     orient_to_target(rig_joints.get('right_ankle_jnt'), rig_joints.get('right_ball_jnt'), (90, 0, -90),
-                     biped_data.elements.get('right_ankle_proxy_crv'), (-1, 0, 0))
+                     data_biped.elements.get('right_ankle_proxy_crv'), (-1, 0, 0))
     orient_to_target(rig_joints.get('right_ball_jnt'), rig_joints.get('right_toe_jnt'), (90, 0, -90),
-                     biped_data.elements.get('right_ball_proxy_crv'), (-1, 0, 0))
+                     data_biped.elements.get('right_ball_proxy_crv'), (-1, 0, 0))
 
     # # Enforce Right Hip Orientation
     # cmds.joint(rig_joints.get('cog_jnt'), e=True, oj='none', zso=True)  # ch
@@ -1865,13 +1865,13 @@ def create_controls(biped_data):
 
     # Left Wrist Orient
     temp_transform = cmds.group(empty=True, world=True,
-                                name=biped_data.elements.get('left_wrist_proxy_crv') + '_orient_target')
-    constraint = cmds.parentConstraint(biped_data.elements.get('left_wrist_proxy_crv'), temp_transform)
+                                name=data_biped.elements.get('left_wrist_proxy_crv') + '_orient_target')
+    constraint = cmds.parentConstraint(data_biped.elements.get('left_wrist_proxy_crv'), temp_transform)
     cmds.delete(constraint)
-    cmds.parent(temp_transform, biped_data.elements.get('left_wrist_proxy_crv'))
+    cmds.parent(temp_transform, data_biped.elements.get('left_wrist_proxy_crv'))
     cmds.setAttr(temp_transform + '.tx', 1)
     orient_to_target(rig_joints.get('left_wrist_jnt'), temp_transform, (-90, 0, 0),
-                     biped_data.elements.get('left_wrist_proxy_crv'))
+                     data_biped.elements.get('left_wrist_proxy_crv'))
     cmds.delete(temp_transform)
 
     # Left Add Fingers
@@ -1893,13 +1893,13 @@ def create_controls(biped_data):
 
     # Right Wrist Orient
     temp_transform = cmds.group(empty=True, world=True,
-                                name=biped_data.elements.get('right_wrist_proxy_crv') + '_orient_target')
-    constraint = cmds.parentConstraint(biped_data.elements.get('right_wrist_proxy_crv'), temp_transform)
+                                name=data_biped.elements.get('right_wrist_proxy_crv') + '_orient_target')
+    constraint = cmds.parentConstraint(data_biped.elements.get('right_wrist_proxy_crv'), temp_transform)
     cmds.delete(constraint)
-    cmds.parent(temp_transform, biped_data.elements.get('right_wrist_proxy_crv'))
+    cmds.parent(temp_transform, data_biped.elements.get('right_wrist_proxy_crv'))
     cmds.setAttr(temp_transform + '.tx', -1)
     orient_to_target(rig_joints.get('right_wrist_jnt'), temp_transform, (90, 0, 0),
-                     biped_data.elements.get('right_wrist_proxy_crv'), (-1, 0, 0))
+                     data_biped.elements.get('right_wrist_proxy_crv'), (-1, 0, 0))
     cmds.delete(temp_transform)
 
     # Right Add Fingers
@@ -1918,7 +1918,7 @@ def create_controls(biped_data):
     cmds.parent(rig_joints.get('spine01_jnt'), world=True)
 
     # Root Orients
-    cog_orients = cmds.xform(biped_data.elements.get('cog_proxy_crv'), q=True, ro=True)
+    cog_orients = cmds.xform(data_biped.elements.get('cog_proxy_crv'), q=True, ro=True)
     cmds.joint(rig_joints.get('cog_jnt'), e=True, oj='none', zso=True)  # ch
     cmds.setAttr(rig_joints.get('cog_jnt') + '.jointOrientX', 90)
     cmds.setAttr(rig_joints.get('cog_jnt') + '.jointOrientY', 0)
@@ -1927,7 +1927,7 @@ def create_controls(biped_data):
     cmds.makeIdentity(rig_joints.get('cog_jnt'), apply=True, rotate=True)
 
     # Hip Orients
-    hip_orients = cmds.xform(biped_data.elements.get('hip_proxy_crv'), q=True, ro=True)
+    hip_orients = cmds.xform(data_biped.elements.get('hip_proxy_crv'), q=True, ro=True)
     cmds.joint(rig_joints.get('hip_jnt'), e=True, oj='none', zso=True)
     cmds.setAttr(rig_joints.get('hip_jnt') + '.jointOrientX', 90)
     cmds.setAttr(rig_joints.get('hip_jnt') + '.jointOrientY', 0)
@@ -2389,7 +2389,7 @@ def create_controls(biped_data):
 
     # Main Ctrl
     main_ctrl = create_main_control(name='main_' + CTRL_SUFFIX)
-    main_ctrl_scale = cmds.xform(biped_data.elements.get('main_crv'), q=True, ws=True, scale=True)
+    main_ctrl_scale = cmds.xform(data_biped.elements.get('main_crv'), q=True, ws=True, scale=True)
     cmds.scale(main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl_scale[1], main_ctrl)
 
     cmds.makeIdentity(main_ctrl, apply=True, scale=True)
@@ -2409,7 +2409,7 @@ def create_controls(biped_data):
     for shape in cmds.listRelatives(direction_ctrl, s=True, f=True) or []:
         cmds.rename(shape, '{0}Shape'.format(direction_ctrl))
     change_viewport_color(direction_ctrl, (1, 1, 0))
-    cmds.delete(cmds.scaleConstraint(biped_data.elements.get('main_crv'), direction_ctrl))
+    cmds.delete(cmds.scaleConstraint(data_biped.elements.get('main_crv'), direction_ctrl))
     cmds.makeIdentity(direction_ctrl, apply=True, scale=True)
     direction_ctrl_grp = cmds.group(name=direction_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(direction_ctrl, direction_ctrl_grp)
@@ -3219,9 +3219,9 @@ def create_controls(biped_data):
 
     # Left Knee Find Position
     temp_transform = cmds.group(name=left_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_knee_proxy_crv'), temp_transform))
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('left_knee_proxy_crv'), temp_transform))
     cmds.delete(
-        cmds.aimConstraint(biped_data.elements.get('left_knee_pv_dir'), temp_transform, offset=(0, 0, 0),
+        cmds.aimConstraint(data_biped.elements.get('left_knee_pv_dir'), temp_transform, offset=(0, 0, 0),
                            aimVector=(1, 0, 0),
                            upVector=(0, -1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))
     cmds.move(left_knee_scale_offset * 1.2, 0, 0, temp_transform, os=True, relative=True)
@@ -3285,8 +3285,8 @@ def create_controls(biped_data):
     # Left Foot Position
     cmds.delete(cmds.pointConstraint([rig_joints.get('left_ankle_jnt'),
                                       rig_joints.get('left_toe_jnt')], left_foot_ik_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     if settings.get('worldspace_ik_orient'):
         cmds.setAttr(left_foot_ik_ctrl + '.ry', desired_rotation[1])
         cmds.makeIdentity(left_foot_ik_ctrl, apply=True, rotate=True)
@@ -3474,8 +3474,8 @@ def create_controls(biped_data):
 
     # Right Knee Find Position
     temp_transform = cmds.group(name=right_knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('right_knee_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(biped_data.elements.get('right_knee_pv_dir'), temp_transform, offset=(0, 0, 0),
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('right_knee_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(data_biped.elements.get('right_knee_pv_dir'), temp_transform, offset=(0, 0, 0),
                                    aimVector=(1, 0, 0), upVector=(0, -1, 0), worldUpType='vector',
                                    worldUpVector=(0, 1, 0)))
     cmds.move(right_knee_scale_offset * -1.2, 0, 0, temp_transform, os=True, relative=True)
@@ -3541,8 +3541,8 @@ def create_controls(biped_data):
     # Right Foot Position
     cmds.delete(cmds.pointConstraint([rig_joints.get('right_ankle_jnt'), rig_joints.get('right_toe_jnt')],
                                      right_foot_ik_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     if settings.get('worldspace_ik_orient'):
         cmds.setAttr(right_foot_ik_ctrl + '.ry', desired_rotation[1])
         cmds.makeIdentity(right_foot_ik_ctrl, apply=True, rotate=True)
@@ -3908,8 +3908,8 @@ def create_controls(biped_data):
     # Left Elbow Find Position
     left_arm_scale_offset = left_arm_scale_offset * .5
     temp_transform = cmds.group(name=left_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_elbow_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(biped_data.elements.get('left_elbow_pv_dir'), temp_transform, offset=(0, 0, 0),
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('left_elbow_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(data_biped.elements.get('left_elbow_pv_dir'), temp_transform, offset=(0, 0, 0),
                                    aimVector=(1, 0, 0), upVector=(0, -1, 0), worldUpType='vector',
                                    worldUpVector=(0, 1, 0)))
     cmds.move(left_arm_scale_offset * 1.2, 0, 0, temp_transform, os=True, relative=True)
@@ -4266,8 +4266,8 @@ def create_controls(biped_data):
     # Right Elbow Find Position
     right_arm_scale_offset = abs(right_arm_scale_offset) * .5
     temp_transform = cmds.group(name=right_elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('right_elbow_proxy_crv'), temp_transform))
-    cmds.delete(cmds.aimConstraint(biped_data.elements.get('right_elbow_pv_dir'), temp_transform, offset=(0, 0, 0),
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('right_elbow_proxy_crv'), temp_transform))
+    cmds.delete(cmds.aimConstraint(data_biped.elements.get('right_elbow_pv_dir'), temp_transform, offset=(0, 0, 0),
                                    aimVector=(1, 0, 0), upVector=(0, 1, 0), worldUpType='vector',
                                    worldUpVector=(0, 1, 0)))
     cmds.move(right_arm_scale_offset * 1.2, 0, 0, temp_transform, os=True, relative=True)
@@ -4335,7 +4335,7 @@ def create_controls(biped_data):
     cmds.parent(left_arm_switch, left_arm_switch_grp)
 
     change_viewport_color(left_arm_switch, LEFT_CTRL_COLOR)
-    cmds.delete(cmds.parentConstraint(biped_data.elements.get('left_wrist_proxy_crv'), left_arm_switch_grp))
+    cmds.delete(cmds.parentConstraint(data_biped.elements.get('left_wrist_proxy_crv'), left_arm_switch_grp))
     cmds.parent(left_arm_switch_grp, main_ctrl)
 
     # Right Arm
@@ -4390,7 +4390,7 @@ def create_controls(biped_data):
     cmds.parent(right_arm_switch, right_arm_switch_grp)
 
     change_viewport_color(right_arm_switch, RIGHT_CTRL_COLOR)
-    cmds.delete(cmds.parentConstraint(biped_data.elements.get('right_wrist_proxy_crv'), right_arm_switch_grp))
+    cmds.delete(cmds.parentConstraint(data_biped.elements.get('right_wrist_proxy_crv'), right_arm_switch_grp))
     cmds.parent(right_arm_switch_grp, main_ctrl)
 
     # Left Leg
@@ -4444,9 +4444,9 @@ def create_controls(biped_data):
     cmds.parent(left_leg_switch, left_leg_switch_grp)
 
     change_viewport_color(left_leg_switch, LEFT_CTRL_COLOR)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_ankle_proxy_crv'), left_leg_switch_grp))
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('left_ankle_proxy_crv'), left_leg_switch_grp))
 
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_leg_switch_grp + '.ry', desired_rotation[1])
 
     cmds.parent(left_leg_switch_grp, main_ctrl)
@@ -4503,7 +4503,7 @@ def create_controls(biped_data):
     cmds.parent(right_leg_switch, right_leg_switch_grp)
 
     change_viewport_color(right_leg_switch, RIGHT_CTRL_COLOR)
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('right_ankle_proxy_crv'), right_leg_switch_grp))
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('right_ankle_proxy_crv'), right_leg_switch_grp))
     cmds.parent(right_leg_switch_grp, main_ctrl)
 
     # Left Foot Automation Controls
@@ -4554,8 +4554,8 @@ def create_controls(biped_data):
 
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 4, left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4583,8 +4583,8 @@ def create_controls(biped_data):
 
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_up_down_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 2.6, left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4638,8 +4638,8 @@ def create_controls(biped_data):
 
     # Left Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_ball_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 3, left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
 
@@ -4693,8 +4693,8 @@ def create_controls(biped_data):
 
     # Left Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_heel_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 3.5 * -1, left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4753,8 +4753,8 @@ def create_controls(biped_data):
 
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 4, right_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4782,8 +4782,8 @@ def create_controls(biped_data):
 
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_up_down_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 2.6, right_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4841,8 +4841,8 @@ def create_controls(biped_data):
 
     # Right Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_ball_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(right_foot_scale_offset / 3, right_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
 
@@ -4900,8 +4900,8 @@ def create_controls(biped_data):
 
     # Right Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_heel_roll_ctrl_grp, skip='y'))
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_translation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 3.5 * -1, right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -7265,18 +7265,18 @@ def create_controls(biped_data):
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_toe_fk_pivot_zero_grp))
 
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_foot_pivot_grp))
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('left_ball_pivot_grp'), left_heel_pivot_grp))
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('left_ball_pivot_grp'), left_heel_pivot_grp))
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_ball_pivot_grp))
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_pivot_grp))
 
-    desired_rotation = cmds.xform(biped_data.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_foot_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(left_toe_pivot_grp + '.ry', desired_rotation[1])
 
-    if cmds.objExists(biped_data.elements_default.get('left_heel_proxy_pivot')):
-        cmds.delete(cmds.pointConstraint(biped_data.elements_default.get('left_heel_proxy_pivot'), left_heel_pivot_grp))
+    if cmds.objExists(data_biped.elements_default.get('left_heel_proxy_pivot')):
+        cmds.delete(cmds.pointConstraint(data_biped.elements_default.get('left_heel_proxy_pivot'), left_heel_pivot_grp))
 
     cmds.parent(left_foot_pivot_grp, rig_setup_grp)
     cmds.parent(left_heel_pivot_grp, left_foot_pivot_grp)
@@ -7608,19 +7608,19 @@ def create_controls(biped_data):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_toe_fk_pivot_zero_grp))
 
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_foot_pivot_grp))
-    cmds.delete(cmds.pointConstraint(biped_data.elements.get('right_ball_pivot_grp'), right_heel_pivot_grp))
+    cmds.delete(cmds.pointConstraint(data_biped.elements.get('right_ball_pivot_grp'), right_heel_pivot_grp))
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_ball_pivot_grp))
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_pivot_grp))
 
-    desired_rotation = cmds.xform(biped_data.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
+    desired_rotation = cmds.xform(data_biped.elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_foot_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_heel_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_ball_pivot_grp + '.ry', desired_rotation[1])
     cmds.setAttr(right_toe_pivot_grp + '.ry', desired_rotation[1])
 
-    if cmds.objExists(biped_data.elements_default.get('right_heel_proxy_pivot')):
+    if cmds.objExists(data_biped.elements_default.get('right_heel_proxy_pivot')):
         cmds.delete(
-            cmds.pointConstraint(biped_data.elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
+            cmds.pointConstraint(data_biped.elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
 
     cmds.parent(right_foot_pivot_grp, rig_setup_grp)
     cmds.parent(right_heel_pivot_grp, right_foot_pivot_grp)
@@ -9597,43 +9597,43 @@ def create_controls(biped_data):
     lock_hide_default_attr(chest_ribbon_ctrl, translate=False, rotate=False)
 
     # Create Seamless FK/IK Switch References
-    left_ankle_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_ankle_ik_reference'))[0]
+    left_ankle_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_ankle_ik_reference'))[0]
     cmds.delete(cmds.parentConstraint(left_foot_ik_ctrl, left_ankle_ref_loc))
     cmds.parent(left_ankle_ref_loc, left_ankle_fk_jnt)
     cmds.setAttr(left_ankle_ref_loc + '.v', 0)
 
-    left_knee_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_knee_ik_reference'))[0]
+    left_knee_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_knee_ik_reference'))[0]
     cmds.delete(cmds.pointConstraint(left_knee_ik_ctrl, left_knee_ref_loc))
     cmds.parent(left_knee_ref_loc, left_knee_fk_jnt)
     cmds.setAttr(left_knee_ref_loc + '.v', 0)
 
-    left_elbow_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_elbow_ik_reference'))[0]
+    left_elbow_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_elbow_ik_reference'))[0]
     cmds.delete(cmds.pointConstraint(left_elbow_ik_ctrl, left_elbow_ref_loc))
     cmds.parent(left_elbow_ref_loc, left_elbow_fk_jnt)
     cmds.setAttr(left_elbow_ref_loc + '.v', 0)
 
-    right_ankle_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_ankle_ik_reference'))[0]
+    right_ankle_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_ankle_ik_reference'))[0]
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_ankle_ref_loc))
     cmds.parent(right_ankle_ref_loc, right_ankle_fk_jnt)
     cmds.setAttr(right_ankle_ref_loc + '.v', 0)
 
-    right_knee_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_knee_ik_reference'))[0]
+    right_knee_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_knee_ik_reference'))[0]
     cmds.delete(cmds.pointConstraint(right_knee_ik_ctrl, right_knee_ref_loc))
     cmds.parent(right_knee_ref_loc, right_knee_fk_jnt)
     cmds.setAttr(right_knee_ref_loc + '.v', 0)
 
-    right_elbow_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_elbow_ik_reference'))[0]
+    right_elbow_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_elbow_ik_reference'))[0]
     cmds.delete(cmds.pointConstraint(right_elbow_ik_ctrl, right_elbow_ref_loc))
     cmds.parent(right_elbow_ref_loc, right_elbow_fk_jnt)
     cmds.setAttr(right_elbow_ref_loc + '.v', 0)
 
     # Wrist Reference
-    right_wrist_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('right_wrist_ik_reference'))[0]
+    right_wrist_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('right_wrist_ik_reference'))[0]
     cmds.delete(cmds.parentConstraint(right_wrist_ik_ctrl, right_wrist_ref_loc))
     cmds.parent(right_wrist_ref_loc, right_wrist_fk_jnt)
     cmds.setAttr(right_wrist_ref_loc + '.v', 0)
 
-    left_wrist_ref_loc = cmds.spaceLocator(name=biped_data.elements_default.get('left_wrist_ik_reference'))[0]
+    left_wrist_ref_loc = cmds.spaceLocator(name=data_biped.elements_default.get('left_wrist_ik_reference'))[0]
     cmds.delete(cmds.parentConstraint(left_wrist_ik_ctrl, left_wrist_ref_loc))
     cmds.parent(left_wrist_ref_loc, left_wrist_fk_jnt)
     cmds.setAttr(left_wrist_ref_loc + '.v', 0)
@@ -9752,11 +9752,11 @@ def create_controls(biped_data):
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
 
     # Delete Proxy
-    cmds.delete(biped_data.elements.get('main_proxy_grp'))
+    cmds.delete(data_biped.elements.get('main_proxy_grp'))
 
     # Add Notes - Controls
-    note = 'This rig was created using ' + str(biped_data.script_name) + '. (v' + str(
-        biped_data.script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
+    note = 'This rig was created using ' + str(data_biped.script_name) + '. (v' + str(
+        data_biped.script_version) + ')\n\nIssues, questions or suggestions? Go to:\ngithub.com/TrevisanGMW/gt-tools'
     add_node_note(main_ctrl, note)
     add_node_note(main_ctrl_grp, note)
     add_node_note(controls_grp, note)
@@ -9951,7 +9951,7 @@ def create_controls(biped_data):
         pos='botLeft', fade=True, alpha=.9)
 
     # ################# Start of Extra Debugging Commands #################
-    if biped_data.debugging and biped_data.debugging_post_code:
+    if data_biped.debugging and data_biped.debugging_post_code:
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
         debugging_display_lra = False
