@@ -54,71 +54,6 @@ from gt_rigger_data import *
 import maya.cmds as cmds
 import random
 
-# Script Name
-script_name = 'GT Facial Rigger'
-
-# Version:
-script_version = '0.12'
-
-find_pre_existing_elements = True
-
-# Debugging Vars
-debugging = False
-
-# Loaded Elements Dictionary
-_facial_proxy_dict = {  # Pre Existing Elements
-    'main_proxy_grp': 'auto_face_proxy' + '_' + GRP_SUFFIX,
-    'main_root': 'auto_face_proxy' + '_' + PROXY_SUFFIX,
-
-    # Center Elements
-    'head_crv': 'headRoot' + '_' + PROXY_SUFFIX,
-    'jaw_crv': 'jawRoot' + '_' + PROXY_SUFFIX,
-    'left_eye_crv': 'eyeRoot_' + PROXY_SUFFIX,
-
-    # Eyelids
-    'left_upper_eyelid_crv': 'upperEyelid_' + PROXY_SUFFIX,
-    'left_lower_eyelid_crv': 'lowerEyelid_' + PROXY_SUFFIX,
-
-    # Eyebrows
-    'left_inner_brow_crv': 'innerBrow_' + PROXY_SUFFIX,
-    'left_mid_brow_crv': 'midBrow_' + PROXY_SUFFIX,
-    'left_outer_brow_crv': 'outerBrow_' + PROXY_SUFFIX,
-
-    # Mouth
-    'mid_upper_lip_crv': 'mid_upperLip_' + PROXY_SUFFIX,
-    'mid_lower_lip_crv': 'mid_lowerLip_' + PROXY_SUFFIX,
-    'left_upper_outer_lip_crv': 'upperOuterLip_' + PROXY_SUFFIX,
-    'left_lower_outer_lip_crv': 'lowerOuterLip_' + PROXY_SUFFIX,
-    'left_corner_lip_crv': 'cornerLip_' + PROXY_SUFFIX,
-
-    # Tongue
-    'base_tongue_crv': 'baseTongue_' + PROXY_SUFFIX,
-    'mid_tongue_crv': 'midTongue_' + PROXY_SUFFIX,
-    'tip_tongue_crv': 'tipTongue_' + PROXY_SUFFIX,
-
-    # Cheek
-    'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
-
-    # # Nose
-    'left_nose_crv': 'nose_' + PROXY_SUFFIX,
-}
-
-_preexisting_dict = {'neck_base_jnt': 'neckBase_jnt',
-                     'head_jnt': 'head_jnt',
-                     'jaw_jnt': 'jaw_jnt',
-                     'left_eye_jnt': 'left_eye_jnt',
-                     'right_eye_jnt': 'right_eye_jnt',
-                     'head_ctrl': 'head_ctrl',
-                     'jaw_ctrl': 'jaw_ctrl',
-                     }
-
-# Auto Populate Control Names (Copy from Left to Right) + Add prefixes
-for item in list(_facial_proxy_dict):
-    if item.startswith('left_'):
-        _facial_proxy_dict[item] = 'left_' + _facial_proxy_dict.get(item)  # Add "left_" prefix
-        _facial_proxy_dict[item.replace('left_', 'right_')] = _facial_proxy_dict.get(item).replace('left_',
-                                                                                                   'right_')
-
 
 def create_arched_control(end_joint,
                           ctrl_name='',
@@ -273,10 +208,20 @@ def create_arched_control(end_joint,
     return ctrl, ctrl_grp, trans_loc, trans_loc_grp, end_joint, offset_grp
 
 
-def create_facial_proxy():
-    """ Creates a proxy (guide) skeleton used to later generate entire rig """
+def create_facial_proxy(facial_data):
+    """
+    Creates a proxy (guide) skeleton used to later generate entire rig
+
+    Args:
+        facial_data (GTBipedRiggerFacialData) : Object containing naming and settings for the proxy creation
+
+    """
 
     proxy_curves = []
+
+    # Unpack elements
+    _facial_proxy_dict = facial_data.elements
+    _preexisting_dict = facial_data.preexisting_dict
 
     # Main
     main_grp = cmds.group(empty=True, world=True, name=_facial_proxy_dict.get('main_proxy_grp'))
@@ -644,7 +589,7 @@ def create_facial_proxy():
     ################
 
     # Find Pre-existing Elements
-    if find_pre_existing_elements:
+    if facial_data.settings.get('find_pre_existing_elements'):
         if cmds.objExists(_preexisting_dict.get('neck_base_jnt')):
             cmds.delete(cmds.pointConstraint(_preexisting_dict.get('neck_base_jnt'), main_root))
 
@@ -728,8 +673,13 @@ def create_facial_proxy():
         lock_hide_default_attr(crv, translate=False, rotate=False)
 
 
-def create_facial_controls():
-    """ Creates Facial Rig Controls """
+def create_facial_controls(facial_data):
+    """ Creates Facial Rig Controls
+
+    Args:
+        facial_data (GTBipedRiggerFacialData) : Object containing naming and settings for the proxy creation
+
+    """
 
     def rename_proxy(old_name):
         """
@@ -747,6 +697,10 @@ def create_facial_controls():
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
 
+    # Unpack elements
+    _facial_proxy_dict = facial_data.elements
+    _preexisting_dict = facial_data.preexisting_dict
+
     # Create Parent Groups
     face_prefix = 'facial_'
 
@@ -760,7 +714,7 @@ def create_facial_controls():
     change_outliner_color(controls_grp, (1, 0.47, 0.18))
 
     rig_setup_grp = cmds.group(name=face_prefix + 'rig_setup_' + GRP_SUFFIX, empty=True, world=True)
-    cmds.setAttr(rig_setup_grp + '.v', 0) # @@@
+    cmds.setAttr(rig_setup_grp + '.v', 0)  # @@@
     change_outliner_color(rig_setup_grp, (1, .26, .26))
 
     general_automation_grp = cmds.group(name='facialAutomation_grp', world=True, empty=True)
@@ -813,7 +767,7 @@ def create_facial_controls():
         generated_eye = eye.replace(PROXY_SUFFIX, JNT_SUFFIX)
         if cmds.objExists(generated_eye):
             cmds.parent(generated_eye, _facial_joints_dict.get('head_jnt'))
-            cmds.setAttr(generated_eye + '.radius', mouth_scale*.3)
+            cmds.setAttr(generated_eye + '.radius', mouth_scale * .3)
 
     # If jaw joint wasn't found, orient the created one
     jaw_ctrl = 'jaw_ctrl'
@@ -1160,8 +1114,8 @@ def create_facial_controls():
                                    k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
                                    name='right_cornerLip_ctrl')
 
-    rescale(left_corner_ctrl, mouth_scale*.2)
-    rescale(right_corner_ctrl, mouth_scale*.2)
+    rescale(left_corner_ctrl, mouth_scale * .2)
+    rescale(right_corner_ctrl, mouth_scale * .2)
 
     change_viewport_color(left_corner_ctrl, LEFT_CTRL_COLOR)
     change_viewport_color(right_corner_ctrl, RIGHT_CTRL_COLOR)
@@ -1464,7 +1418,7 @@ def create_facial_controls():
     # ## Left Eyelids ##
     left_eyelids_scale = 0
     left_eyelids_scale += dist_center_to_center(_facial_joints_dict.get('left_upper_eyelid_jnt'),
-                                                _facial_joints_dict.get('left_lower_eyelid_jnt'))*5
+                                                _facial_joints_dict.get('left_lower_eyelid_jnt')) * 5
 
     cmds.select(clear=True)
     left_eyelid_pivot_jnt = cmds.joint(name='left_eyelid_pivot' + JNT_SUFFIX.capitalize(), radius=.5)
@@ -1519,7 +1473,7 @@ def create_facial_controls():
         cmds.parent(trans_loc_grp, left_eyelids_data_grp)
 
         # Adjust Controls
-        cmds.setAttr(ctrl + '.movement', left_eyelids_scale*1.4)
+        cmds.setAttr(ctrl + '.movement', left_eyelids_scale * 1.4)
         cmds.setAttr(trans_loc + '.v', 0)
 
         cmds.setAttr(ctrl + '.zOffsetInfluence', k=False)
@@ -1536,7 +1490,7 @@ def create_facial_controls():
     # ## Right Eyelids ##
     right_eyelids_scale = 0
     right_eyelids_scale += dist_center_to_center(_facial_joints_dict.get('right_upper_eyelid_jnt'),
-                                                 _facial_joints_dict.get('right_lower_eyelid_jnt'))*5
+                                                 _facial_joints_dict.get('right_lower_eyelid_jnt')) * 5
 
     cmds.select(clear=True)
     right_eyelid_pivot_jnt = cmds.joint(name='right_eyelid_pivot' + JNT_SUFFIX.capitalize(), radius=.5)
@@ -1593,9 +1547,9 @@ def create_facial_controls():
 
         # Adjust Controls
         if 'upper' in ctrl:
-            cmds.setAttr(ctrl + '.movement', right_eyelids_scale*5.35)
+            cmds.setAttr(ctrl + '.movement', right_eyelids_scale * 5.35)
         else:
-            cmds.setAttr(ctrl + '.movement', right_eyelids_scale*1.5)
+            cmds.setAttr(ctrl + '.movement', right_eyelids_scale * 1.5)
         cmds.setAttr(trans_loc + '.v', 0)
 
         cmds.setAttr(ctrl + '.zOffsetInfluence', k=False)
@@ -1841,10 +1795,10 @@ def create_facial_controls():
             cmds.move(-float_value, ctrl_loc, moveX=True, relative=True)
         elif 'left_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
             cmds.setAttr(ctrl_loc + '.ty', 0)
-            cmds.move(float_value*1.2, ctrl_loc, moveX=True, relative=True)
+            cmds.move(float_value * 1.2, ctrl_loc, moveX=True, relative=True)
         elif 'right_innerBrow_ctrlOffsetXLoc' in ctrl_loc:
             cmds.setAttr(ctrl_loc + '.ty', 0)
-            cmds.move(-float_value*1.2, ctrl_loc, moveX=True, relative=True)
+            cmds.move(-float_value * 1.2, ctrl_loc, moveX=True, relative=True)
         elif 'Eyelid_ctrlOffsetLoc' in ctrl_loc:
             side = 'left'
             if 'right' in ctrl_loc:
@@ -1983,9 +1937,9 @@ def create_facial_controls():
         cmds.setAttr(ctrl + '.' + scale_attr + 'X', 1)
         cmds.setAttr(ctrl + '.' + scale_attr + 'Y', 1)
         cmds.setAttr(ctrl + '.' + scale_attr + 'Z', 1)
-        cmds.connectAttr(ctrl + '.jointScaleX',  jnt + '.sx')
-        cmds.connectAttr(ctrl + '.jointScaleY',  jnt + '.sy')
-        cmds.connectAttr(ctrl + '.jointScaleZ',  jnt + '.sz')
+        cmds.connectAttr(ctrl + '.jointScaleX', jnt + '.sx')
+        cmds.connectAttr(ctrl + '.jointScaleY', jnt + '.sy')
+        cmds.connectAttr(ctrl + '.jointScaleZ', jnt + '.sz')
 
     # Side GUI Tongue Connection
     in_out_base_loc = cmds.spaceLocator(name='inOutTongueBase_targetLoc')[0]
@@ -2010,12 +1964,12 @@ def create_facial_controls():
     base_tongue_extra_offset = create_inbetween(base_tongue_ctrl, offset_suffix='Rot')
     mid_tongue_extra_offset = create_inbetween(mid_tongue_ctrl, offset_suffix='Rot')
 
-    cmds.move(tongue_scale*1.5, in_out_base_loc, moveZ=True, relative=True)
-    cmds.move(tongue_scale*.2, in_out_base_loc, moveY=True, relative=True)
+    cmds.move(tongue_scale * 1.5, in_out_base_loc, moveZ=True, relative=True)
+    cmds.move(tongue_scale * .2, in_out_base_loc, moveY=True, relative=True)
     cmds.parent(in_out_base_loc, base_tongue_ctrl_grp)
 
-    cmds.move(tongue_scale*1.5, in_out_mid_loc, moveZ=True, relative=True)
-    cmds.move(tongue_scale*.2, in_out_mid_loc, moveY=True, relative=True)
+    cmds.move(tongue_scale * 1.5, in_out_mid_loc, moveZ=True, relative=True)
+    cmds.move(tongue_scale * .2, in_out_mid_loc, moveY=True, relative=True)
     cmds.parent(in_out_mid_loc, mid_tongue_ctrl_grp)
 
     # Setup Blends
@@ -2228,7 +2182,7 @@ def create_facial_controls():
                                     [0.222, 0.129, 0.636], [0.182, 0.181, 0.636], [0.129, 0.221, 0.636],
                                     [0.066, 0.247, 0.636], [-0.0, 0.257, 0.636], [-0.0, -0.257, 0.636],
                                     [0.001, 0.001, 0.636], [0.257, 0.001, 0.636]], d=1)
-    rescale(left_cheek_ctrl, cheeks_scale_offset*.1)
+    rescale(left_cheek_ctrl, cheeks_scale_offset * .1)
     left_cheek_ctrl_grp = cmds.group(name=left_cheek_ctrl + GRP_SUFFIX.capitalize(),
                                      empty=True, world=True)
     cmds.parent(left_cheek_ctrl, left_cheek_ctrl_grp)
@@ -2274,7 +2228,7 @@ def create_facial_controls():
                                       _facial_joints_dict.get('left_nose_jnt')))
 
     left_nose_ctrl = cmds.circle(name='left_nose_' + CTRL_SUFFIX, normal=[0, 0, 1],
-                                 ch=False, radius=nose_scale_offset*.2)[0]
+                                 ch=False, radius=nose_scale_offset * .2)[0]
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.rx', 0)
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.ry', 0)
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.rz', 0)
@@ -2572,7 +2526,7 @@ def create_facial_controls():
              driven=['left_lowerCornerLip_ctrl'],
              driven_offset=[1.2, 1.25, 0, 0, 0, 15, 1, 1, 1],
              setup='outer_corner_lip'),
-        ]
+    ]
 
     poses += [
         # Inner Eyebrows --------------------------------------------------------------------------------
@@ -2679,7 +2633,7 @@ def create_facial_controls():
              driven=['left_outerBrow_ctrl'],
              driven_offset=[0, -1.5, 0, 0, 0, 0, 1, 1, 1],
              setup='eyebrow'),
-        ]
+    ]
 
     poses += [
         # Misc ----------------------------------------------------------------------------------
@@ -2913,7 +2867,6 @@ def create_facial_controls():
              driven=['right_lowerOuterLip_ctrl'],
              driven_offset=[0, -0.31, -0.05, 0, 0, 0, 1, 0.8, 1],
              setup='mouth'),
-
 
     ]
 
@@ -3251,13 +3204,16 @@ def merge_facial_elements():
 
 
 if __name__ == '__main__':
-    debugging = True
+    data_facial = GTBipedRiggerFacialData()
+    # data_facial.debugging = True
+    debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
-    if debugging:
+    if data_facial.debugging:
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
         persp_rot = cmds.getAttr('persp.rotate')[0]
         import gt_maya_utilities
+
         gt_maya_utilities.gtu_reload_file()
         cmds.viewFit(all=True)
         cmds.setAttr('persp.tx', persp_pos[0])
@@ -3267,13 +3223,14 @@ if __name__ == '__main__':
         cmds.setAttr('persp.ry', persp_rot[1])
         cmds.setAttr('persp.rz', persp_rot[2])
 
-    # Core Functions --------------------------------------5-------------------------------------------------------
-    create_facial_proxy()
-    create_facial_controls()
-    merge_facial_elements()
+    # Core Functions ---------------------------------------------------------------------------------------------
+
+    create_facial_proxy(data_facial)
+    create_facial_controls(data_facial)
+    # merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
-    if debugging:
+    if data_facial.debugging:
         pass
         # cmds.select(['root_jnt'], hierarchy=True)
         # selection = cmds.ls(selection=True)
