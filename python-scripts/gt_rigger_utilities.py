@@ -2372,7 +2372,7 @@ def create_eye_controls():
     return (gui_grp, controls)
 
 
-def create_facial_controls():
+def create_facial_side_gui():
     parent_grp = cmds.group(empty=True, world=True, name='facial_side_gui_grp')
     eyebrow_ctrls = create_eyebrow_controls()
     eye_ctrls = create_eye_controls()
