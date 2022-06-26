@@ -6,7 +6,8 @@ github.com/TrevisanGMW - 2021-12-10
 import maya.cmds as cmds
 import copy
 
-SCRIPT_VERSION_BIPED = '1.9.11'
+SCRIPT_VERSION_BASE = '1.9.11'
+SCRIPT_VERSION_FACIAL = '0.0.12'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -37,15 +38,15 @@ class GTBipedRiggerData:
     script_name = 'GT Biped Rigger'
 
     # Version:
-    script_version = SCRIPT_VERSION_BIPED
+    script_version = SCRIPT_VERSION_BASE
 
     # Permanent Settings
-    option_var = 'gt_auto_biped_rigger_setup'
-    ignore_keys = ['is_settings_visible', 'body_column_height']
+    option_var = 'gt_biped_rigger_base_setup'
+    ignore_keys = ['']  # Not to be stored
 
     # Loaded Elements Dictionary
     elements = {  # General Settings
-        'main_proxy_grp': 'auto_biped_proxy' + '_' + GRP_SUFFIX,
+        'main_proxy_grp': 'rigger_biped_base_proxy' + '_' + GRP_SUFFIX,
         # Center Elements
         'main_crv': 'root' + '_' + PROXY_SUFFIX,
         'cog_proxy_crv': 'waist' + '_' + PROXY_SUFFIX,
@@ -62,7 +63,7 @@ class GTBipedRiggerData:
         'jaw_end_proxy_crv': 'jaw' + '_end' + PROXY_SUFFIX.capitalize(),
         'hip_proxy_crv': 'pelvis' + '_' + PROXY_SUFFIX,
         # Left Side Elements (No need for prefix, these are automatically added)
-        # Right Side Elements are autopopulated, script copies from Left to Right
+        # Right Side Elements are automatically populated, script copies from Left to Right
         'left_eye_proxy_crv': 'eye' + '_' + PROXY_SUFFIX,
         'left_clavicle_proxy_crv': 'clavicle' + '_' + PROXY_SUFFIX,
         'left_shoulder_proxy_crv': 'shoulder' + '_' + PROXY_SUFFIX,
@@ -121,9 +122,7 @@ class GTBipedRiggerData:
 
     # Store Default Values
     def __init__(self):
-        self.settings = {'is_settings_visible': False,
-                         'body_column_height': 0,  # determined during settings GUI creation
-                         'using_no_ssc_skeleton': False,
+        self.settings = {'using_no_ssc_skeleton': False,
                          'proxy_limits': False,
                          'offer_heel_roll_positioning': True,
                          'uniform_ctrl_orient': True,
@@ -162,8 +161,93 @@ class GTBipedRiggerData:
 
 
 class GTBipedRiggerFacialData:
-    pass
-    # TODO
+    # Script Name
+    script_name = 'GT Facial Rigger'
+
+    # Version:
+    script_version = SCRIPT_VERSION_FACIAL
+
+    # Permanent Settings
+    option_var = 'gt_biped_rigger_facial_setup'
+    ignore_keys = ['']  # Not to be stored
+
+    # Loaded Elements Dictionary
+    elements = {  # Pre Existing Elements
+        'main_proxy_grp': 'rigger_facial_proxy' + '_' + GRP_SUFFIX,
+        'main_root': 'rigger_facial_proxy' + '_' + PROXY_SUFFIX,
+
+        # Center Elements
+        'head_crv': 'headRoot' + '_' + PROXY_SUFFIX,
+        'jaw_crv': 'jawRoot' + '_' + PROXY_SUFFIX,
+        'left_eye_crv': 'eyeRoot_' + PROXY_SUFFIX,
+
+        # Eyelids
+        'left_upper_eyelid_crv': 'upperEyelid_' + PROXY_SUFFIX,
+        'left_lower_eyelid_crv': 'lowerEyelid_' + PROXY_SUFFIX,
+
+        # Eyebrows
+        'left_inner_brow_crv': 'innerBrow_' + PROXY_SUFFIX,
+        'left_mid_brow_crv': 'midBrow_' + PROXY_SUFFIX,
+        'left_outer_brow_crv': 'outerBrow_' + PROXY_SUFFIX,
+
+        # Mouth
+        'mid_upper_lip_crv': 'mid_upperLip_' + PROXY_SUFFIX,
+        'mid_lower_lip_crv': 'mid_lowerLip_' + PROXY_SUFFIX,
+        'left_upper_outer_lip_crv': 'upperOuterLip_' + PROXY_SUFFIX,
+        'left_lower_outer_lip_crv': 'lowerOuterLip_' + PROXY_SUFFIX,
+        'left_corner_lip_crv': 'cornerLip_' + PROXY_SUFFIX,
+
+        # Tongue
+        'base_tongue_crv': 'baseTongue_' + PROXY_SUFFIX,
+        'mid_tongue_crv': 'midTongue_' + PROXY_SUFFIX,
+        'tip_tongue_crv': 'tipTongue_' + PROXY_SUFFIX,
+
+        # Cheek
+        'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
+
+        # # Nose
+        'left_nose_crv': 'nose_' + PROXY_SUFFIX,
+    }
+
+    # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
+    elements_list = list(elements)
+    for item in elements_list:
+        if item.startswith('left_'):
+            elements[item] = 'left_' + elements.get(item)  # Add "left_" prefix
+            elements[item.replace('left_', 'right_')] = elements.get(item).replace('left_', 'right_')  # Add right copy
+
+    # Expected elements for when merging with existing rig
+    preexisting_dict = {'neck_base_jnt': 'neckBase_jnt',
+                        'head_jnt': 'head_jnt',
+                        'jaw_jnt': 'jaw_jnt',
+                        'left_eye_jnt': 'left_eye_jnt',
+                        'right_eye_jnt': 'right_eye_jnt',
+                        'head_ctrl': 'head_ctrl',
+                        'jaw_ctrl': 'jaw_ctrl',
+                        }
+
+    # Store Default Values
+    def __init__(self):
+        self.settings = {'find_pre_existing_elements ': True,
+                         }
+
+        self.elements_default = copy.deepcopy(self.elements)
+        self.settings_default = copy.deepcopy(self.settings)
+
+    # Create Joints List
+    joints_default = {}
+    for obj in elements:
+        if obj.endswith('_crv'):
+            name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
+                                                                               'end' + JNT_SUFFIX.capitalize())
+            joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
+
+    # Reset Persistent Settings Variables
+    gui_module = 'gt_rigger_biped_gui'
+    entry_function = 'build_gui_auto_biped_rig()'
+
+    # Debugging Vars
+    debugging = False  # Activates Debugging Mode
 
 
 class GTBipedRiggerCorrectiveData:
