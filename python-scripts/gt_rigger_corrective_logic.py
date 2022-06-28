@@ -34,92 +34,29 @@
  Connected corrective distance to rig scale to keep rig scalable
  Changed the look of the distanceBase locators and reordered outliner elements
 
+ 0.0.9 - 2022-06-28
+ Changed where the data is stored (gt_rigger_data)
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
 from gt_rigger_data import *
 import maya.cmds as cmds
 
-# Script Name
-script_name = 'GT Corrective Rigger'
 
-# Version:
-script_version = '0.0.8'
+def create_corrective_proxy(corrective_data):
+    """ Creates a proxy (guide) skeleton used to later generate setup
 
-# General Vars
-debugging = True
-PROXY_COLOR = (1, 0, 1)
-PROXY_DRIVEN_COLOR = (1, .5, 1)
+    Args:
+        corrective_data (GTBipedRiggerCorrectiveData) : Object containing naming and settings for the proxy creation
 
-gt_corrective_settings = {'setup_wrists': True,
-                          'setup_elbows': True,
-                          'setup_shoulders': True,
-                          'setup_knees': True,
-                          'setup_hips': True,
-                          }
+    """
 
+    # Unpack elements
+    _corrective_proxy_dict = corrective_data.elements
+    _preexisting_dict = corrective_data.preexisting_dict
+    _corrective_settings = corrective_data.settings
 
-# Loaded Elements Dictionary
-_corrective_proxy_dict = {  # Pre Existing Elements
-    'main_proxy_grp': 'auto_corrective_proxy' + '_' + GRP_SUFFIX,
-    'main_root': 'auto_corrective_proxy' + '_' + PROXY_SUFFIX,
-
-    # Wrists
-    'left_main_wrist_crv': 'mainWrist_' + PROXY_SUFFIX,
-    'left_upper_wrist_crv': 'upperWrist_' + PROXY_SUFFIX,
-    'left_lower_wrist_crv': 'lowerWrist_' + PROXY_SUFFIX,
-
-    # Knees
-    'left_main_knee_crv': 'mainKnee_' + PROXY_SUFFIX,
-    'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
-    'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
-
-    # Hips
-    'left_main_hip_crv': 'mainHip_' + PROXY_SUFFIX,
-    'left_back_hip_crv': 'backHip_' + PROXY_SUFFIX,
-    'left_front_hip_crv': 'frontHip_' + PROXY_SUFFIX,
-    'left_outer_hip_crv': 'outerHip_' + PROXY_SUFFIX,
-    # 'left_inner_hip_crv': 'innerHip_' + PROXY_SUFFIX,
-
-    # Elbows
-    'left_main_elbow_crv': 'mainElbow_' + PROXY_SUFFIX,
-    'left_front_elbow_crv': 'frontElbow_' + PROXY_SUFFIX,
-
-    # Shoulders
-    'left_main_shoulder_crv': 'mainShoulder_' + PROXY_SUFFIX,
-    'left_back_shoulder_crv': 'backShoulder_' + PROXY_SUFFIX,
-    'left_front_shoulder_crv': 'frontShoulder_' + PROXY_SUFFIX,
-    'left_upper_shoulder_crv': 'upperShoulder_' + PROXY_SUFFIX,
-    # 'left_lower_shoulder_crv': 'lowerShoulder_' + PROXY_SUFFIX,
-}
-
-
-_preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
-                     'right_wrist_jnt': 'right_wrist_jnt',
-                     'left_knee_jnt': 'left_knee_jnt',
-                     'right_knee_jnt': 'right_knee_jnt',
-                     'left_forearm_jnt': 'left_forearm_jnt',
-                     'right_forearm_jnt': 'right_forearm_jnt',
-                     'left_wrist_aimJnt': 'left_wrist_aimJnt',
-                     'right_wrist_aimJnt': 'right_wrist_aimJnt',
-                     'left_hip_jnt': 'left_hip_jnt',
-                     'right_hip_jnt': 'right_hip_jnt',
-                     'left_elbow_jnt': 'left_elbow_jnt',
-                     'right_elbow_jnt': 'right_elbow_jnt',
-                     'left_shoulder_jnt': 'left_shoulder_jnt',
-                     'right_shoulder_jnt': 'right_shoulder_jnt',
-                     }
-
-# Auto Populate Control Names (Copy from Left to Right) + Add prefixes
-for item in list(_corrective_proxy_dict):
-    if item.startswith('left_'):
-        _corrective_proxy_dict[item] = 'left_' + _corrective_proxy_dict.get(item)  # Add "left_" prefix
-        _corrective_proxy_dict[item.replace('left_', 'right_')] = \
-            _corrective_proxy_dict.get(item).replace('left_', 'right_')
-
-
-def create_corrective_proxy():
-    """ Creates a proxy (guide) skeleton used to later generate setup """
     # Main
     main_proxies = []
     main_grp = cmds.group(empty=True, world=True, name=_corrective_proxy_dict.get('main_proxy_grp'))
@@ -148,7 +85,7 @@ def create_corrective_proxy():
         cmds.setAttr(shape + '.lineWidth', 3)
 
     # ------------------------------------------------------------------------------------------- Wrists
-    if gt_corrective_settings.get("setup_wrists"):
+    if _corrective_settings.get("setup_wrists"):
         # Left Wrist Main
         left_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_wrist_crv'), .5)
         left_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
@@ -157,7 +94,7 @@ def create_corrective_proxy():
         cmds.move(58.2, 130.4, 0, left_main_wrist_proxy_grp)
         cmds.rotate(-90, left_main_wrist_proxy_grp, rotateX=True)
         cmds.parent(left_main_wrist_proxy_grp, main_root)
-        change_viewport_color(left_main_wrist_proxy_crv, PROXY_COLOR)
+        change_viewport_color(left_main_wrist_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(left_main_wrist_proxy_crv)
 
         # Left Upper Wrist
@@ -190,7 +127,7 @@ def create_corrective_proxy():
         cmds.rotate(90, right_main_wrist_proxy_grp, rotateX=True)
         cmds.rotate(180, right_main_wrist_proxy_grp, rotateY=True)
         cmds.parent(right_main_wrist_proxy_grp, main_root)
-        change_viewport_color(right_main_wrist_proxy_crv, PROXY_COLOR)
+        change_viewport_color(right_main_wrist_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(right_main_wrist_proxy_crv)
 
         # Right Upper Wrist
@@ -215,7 +152,7 @@ def create_corrective_proxy():
         change_viewport_color(right_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # --------------------------------------------------------------------------------------------- Knees
-    if gt_corrective_settings.get("setup_knees"):
+    if _corrective_settings.get("setup_knees"):
         # Left Main Knee
         left_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_knee_crv'), .2)
         left_main_knee_proxy_grp = cmds.group(empty=True, world=True,
@@ -225,7 +162,7 @@ def create_corrective_proxy():
         cmds.rotate(90, left_main_knee_proxy_grp, rotateX=True)
         cmds.rotate(-90, left_main_knee_proxy_grp, rotateZ=True)
         cmds.parent(left_main_knee_proxy_grp, main_root)
-        change_viewport_color(left_main_knee_proxy_crv, PROXY_COLOR)
+        change_viewport_color(left_main_knee_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(left_main_knee_proxy_crv)
 
         # Left Back Knee
@@ -259,7 +196,7 @@ def create_corrective_proxy():
         cmds.rotate(270, right_main_knee_proxy_grp, rotateX=True)
         cmds.rotate(90, right_main_knee_proxy_grp, rotateZ=True)
         cmds.parent(right_main_knee_proxy_grp, main_root)
-        change_viewport_color(right_main_knee_proxy_crv, PROXY_COLOR)
+        change_viewport_color(right_main_knee_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(right_main_knee_proxy_crv)
 
         # Right Lower Knee
@@ -285,7 +222,7 @@ def create_corrective_proxy():
         change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # --------------------------------------------------------------------------------------------------- Hips
-    if gt_corrective_settings.get("setup_hips"):
+    if _corrective_settings.get("setup_hips"):
         # Left Main Hip
         left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
         left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
@@ -295,7 +232,7 @@ def create_corrective_proxy():
         cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
         cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
         cmds.parent(left_main_hip_proxy_grp, main_root)
-        change_viewport_color(left_main_hip_proxy_crv, PROXY_COLOR)
+        change_viewport_color(left_main_hip_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(left_main_hip_proxy_crv)
 
         # Left Back Hip
@@ -349,7 +286,7 @@ def create_corrective_proxy():
         cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
         cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
         cmds.parent(right_main_hip_proxy_grp, main_root)
-        change_viewport_color(right_main_hip_proxy_crv, PROXY_COLOR)
+        change_viewport_color(right_main_hip_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(right_main_hip_proxy_crv)
 
         # Right Back Hip
@@ -397,7 +334,7 @@ def create_corrective_proxy():
         # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # -------------------------------------------------------------------------------------------- Elbows
-    if gt_corrective_settings.get("setup_elbows"):
+    if _corrective_settings.get("setup_elbows"):
         # Left Main Elbow
         left_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_elbow_crv'), .2)
         left_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
@@ -406,7 +343,7 @@ def create_corrective_proxy():
         cmds.move(37.7, 130.4, -0.01, left_main_elbow_proxy_grp)
         cmds.rotate(-90, left_main_elbow_proxy_grp, rotateX=True)
         cmds.parent(left_main_elbow_proxy_grp, main_root)
-        change_viewport_color(left_main_elbow_proxy_crv, PROXY_COLOR)
+        change_viewport_color(left_main_elbow_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(left_main_elbow_proxy_crv)
 
         # Left Front Elbow
@@ -428,7 +365,7 @@ def create_corrective_proxy():
         cmds.move(-37.7, 130.4, -0.01, right_main_elbow_proxy_grp)
         cmds.rotate(90, right_main_elbow_proxy_grp, rotateX=True)
         cmds.parent(right_main_elbow_proxy_grp, main_root)
-        change_viewport_color(right_main_elbow_proxy_crv, PROXY_COLOR)
+        change_viewport_color(right_main_elbow_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(right_main_elbow_proxy_crv)
 
         # Right Front Elbow
@@ -447,7 +384,7 @@ def create_corrective_proxy():
     right_shoulder_elements = []
     left_main_shoulder_proxy_crv = ''
     right_main_shoulder_proxy_crv = ''
-    if gt_corrective_settings.get("setup_shoulders"):
+    if _corrective_settings.get("setup_shoulders"):
         # Left Main Shoulder
         left_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_shoulder_crv'), .2)
         left_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
@@ -456,7 +393,7 @@ def create_corrective_proxy():
         cmds.move(17.2, 130.4, 0, left_main_shoulder_proxy_grp)
         cmds.rotate(-90, left_main_shoulder_proxy_grp, rotateX=True)
         cmds.parent(left_main_shoulder_proxy_grp, main_root)
-        change_viewport_color(left_main_shoulder_proxy_crv, PROXY_COLOR)
+        change_viewport_color(left_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(left_main_shoulder_proxy_crv)
 
         # Left Back Shoulder
@@ -506,7 +443,7 @@ def create_corrective_proxy():
         cmds.move(-17.2, 130.4, 0, right_main_shoulder_proxy_grp)
         cmds.rotate(90, right_main_shoulder_proxy_grp, rotateX=True)
         cmds.parent(right_main_shoulder_proxy_grp, main_root)
-        change_viewport_color(right_main_shoulder_proxy_crv, PROXY_COLOR)
+        change_viewport_color(right_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
         main_proxies.append(right_main_shoulder_proxy_crv)
 
         # Right Back Shoulder
@@ -572,19 +509,19 @@ def create_corrective_proxy():
             if 'right' in data:
                 side = 'right'
 
-            if 'wrist' in data and gt_corrective_settings.get("setup_wrists"):
+            if 'wrist' in data and _corrective_settings.get("setup_wrists"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_wrist_crv')))
 
-            if 'knee' in data and gt_corrective_settings.get("setup_knees"):
+            if 'knee' in data and _corrective_settings.get("setup_knees"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_knee_crv')))
 
-            if 'hip' in data and gt_corrective_settings.get("setup_hips"):
+            if 'hip' in data and _corrective_settings.get("setup_hips"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_hip_crv')))
 
-            if 'elbow' in data and gt_corrective_settings.get("setup_elbows"):
+            if 'elbow' in data and _corrective_settings.get("setup_elbows"):
                 cmds.delete(cmds.parentConstraint(data, _corrective_proxy_dict.get(side + '_main_elbow_crv')))
 
-            if 'shoulder' in data and gt_corrective_settings.get("setup_shoulders"):
+            if 'shoulder' in data and _corrective_settings.get("setup_shoulders"):
                 cmds.delete(cmds.pointConstraint(data, _corrective_proxy_dict.get(side + '_main_shoulder_crv')))
                 for obj in left_shoulder_elements:
                     cmds.parent(obj, world=True)
@@ -602,7 +539,7 @@ def create_corrective_proxy():
             cmds.setAttr(shape + '.lineWidth', 3)
 
 
-def create_corrective_setup():
+def create_corrective_setup(corrective_data):
     """ Creates Corrective Rig Setup """
 
     def rename_proxy(old_name):
@@ -620,6 +557,11 @@ def create_corrective_setup():
         """
         new_name = old_name.replace(PROXY_SUFFIX, 'driver' + JNT_SUFFIX.capitalize())
         return new_name.replace('driverEnd' + PROXY_SUFFIX.capitalize(), 'driverEnd' + JNT_SUFFIX.capitalize())
+
+    # Unpack elements
+    _corrective_proxy_dict = corrective_data.elements
+    _preexisting_dict = corrective_data.preexisting_dict
+    _corrective_settings = corrective_data.settings
 
     # Cancel operation if missing elements
     missing_objs = []
@@ -687,7 +629,7 @@ def create_corrective_setup():
     left_wrist_main_outfit_jnt = ''
     right_wrist_main_outfit_jnt = ''
 
-    if gt_corrective_settings.get("setup_wrists") and dependencies_wrist:
+    if _corrective_settings.get("setup_wrists") and dependencies_wrist:
         cmds.parent(_cor_joints_dict.get('left_upper_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
         cmds.parent(_cor_joints_dict.get('left_lower_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
         cmds.parentConstraint(_preexisting_dict.get('left_wrist_jnt'), _cor_joints_dict.get('left_main_wrist_jnt'))
@@ -722,7 +664,7 @@ def create_corrective_setup():
     dependencies_knees = is_entire_list_available([_cor_joints_dict.get('left_main_knee_jnt'),
                                                    _cor_joints_dict.get('right_main_knee_jnt')])
 
-    if gt_corrective_settings.get("setup_knees") and dependencies_knees:
+    if _corrective_settings.get("setup_knees") and dependencies_knees:
         cmds.parent(_cor_joints_dict.get('left_back_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
         cmds.parent(_cor_joints_dict.get('left_front_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
         cmds.parentConstraint(_preexisting_dict.get('left_knee_jnt'), _cor_joints_dict.get('left_main_knee_jnt'))
@@ -735,7 +677,7 @@ def create_corrective_setup():
     dependencies_hips = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
                                                   _cor_joints_dict.get('right_main_hip_jnt')])
 
-    if gt_corrective_settings.get("setup_hips") and dependencies_hips:
+    if _corrective_settings.get("setup_hips") and dependencies_hips:
         pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
         pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
         # cmds.parent(pelvis_driver_jnt, world=True)
@@ -759,7 +701,7 @@ def create_corrective_setup():
     dependencies_elbows = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
                                                     _cor_joints_dict.get('right_main_hip_jnt')])
 
-    if gt_corrective_settings.get("setup_elbows") and dependencies_elbows:
+    if _corrective_settings.get("setup_elbows") and dependencies_elbows:
         cmds.parent(_cor_joints_dict.get('left_front_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
         cmds.parentConstraint(_preexisting_dict.get('left_elbow_jnt'), _cor_joints_dict.get('left_main_elbow_jnt'))
 
@@ -770,7 +712,7 @@ def create_corrective_setup():
     dependencies_shoulders = is_entire_list_available([_cor_joints_dict.get('left_main_hip_jnt'),
                                                        _cor_joints_dict.get('right_main_hip_jnt')])
 
-    if gt_corrective_settings.get("setup_shoulders") and dependencies_shoulders:
+    if _corrective_settings.get("setup_shoulders") and dependencies_shoulders:
         left_clavicle_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
         left_clavicle_driver_jnt = cmds.duplicate(left_clavicle_jnt, name='left_clavicle_driverJnt', po=True)[0]
         cmds.parent(left_clavicle_driver_jnt, skeleton_grp)
@@ -815,7 +757,7 @@ def create_corrective_setup():
                                'setup'])
     poses = []
 
-    if gt_corrective_settings.get("setup_wrists"):  # Wrists  -------------------------------------------------------
+    if _corrective_settings.get("setup_wrists"):  # Wrists  -------------------------------------------------------
         poses += [
             # Wrist Left ---------------------------------------------
             Pose(name='upperWristExtension',
@@ -919,7 +861,7 @@ def create_corrective_setup():
 
         ]
 
-    if gt_corrective_settings.get("setup_knees"):  # Knees  ---------------------------------------------------------
+    if _corrective_settings.get("setup_knees"):  # Knees  ---------------------------------------------------------
         poses += [
             # Knees Left ------------------------------------------
             Pose(name='kneeFlexion',
@@ -956,7 +898,7 @@ def create_corrective_setup():
                  setup='front_knee'),
         ]
 
-    if gt_corrective_settings.get("setup_hips"):  # Hips  ---------------------------------------------------------
+    if _corrective_settings.get("setup_hips"):  # Hips  ---------------------------------------------------------
         poses += [
             # Back Hip Left ---------------------------------------------
             Pose(name='hipExtension',
@@ -1109,7 +1051,7 @@ def create_corrective_setup():
                  setup='abduction_hip'),  # Open legs to side
         ]
 
-    if gt_corrective_settings.get("setup_elbows"):  # Elbows -------------------------------------------------------
+    if _corrective_settings.get("setup_elbows"):  # Elbows -------------------------------------------------------
         poses += [
             Pose(name='elbowFlexion',
                  driver='left_mainElbow_driverJnt',
@@ -1128,7 +1070,7 @@ def create_corrective_setup():
                  setup='front_elbow'),
         ]
 
-    if gt_corrective_settings.get("setup_shoulders"):  # Shoulders ---------------------------------------------------
+    if _corrective_settings.get("setup_shoulders"):  # Shoulders ---------------------------------------------------
         poses += [
             # Left Front Shoulder ------------------------------------------
             Pose(name='shoulderFlexion',
@@ -1954,7 +1896,7 @@ def create_corrective_setup():
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
 
     # ###################################### Debugging #######################################
-    if debugging:
+    if corrective_data.debugging:
         try:
             # Make Locators Visible
             for ctrl in corrective_ctrls:
@@ -2008,7 +1950,16 @@ def merge_corrective_elements():
 
 # Test it
 if __name__ == '__main__':
-    debugging = True
+    data_corrective = GTBipedRiggerCorrectiveData()
+    # data_facial.debugging = True
+    debugging = data_corrective.debugging
+
+    # 'setup_wrists': True,
+    # 'setup_elbows': True,
+    # 'setup_shoulders': True,
+    # 'setup_knees': True,
+    # 'setup_hips': True,
+
     if debugging:
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
@@ -2023,8 +1974,8 @@ if __name__ == '__main__':
         cmds.setAttr('persp.ry', persp_rot[1])
         cmds.setAttr('persp.rz', persp_rot[2])
 
-    create_corrective_proxy()
-    create_corrective_setup()
+    create_corrective_proxy(data_corrective)
+    create_corrective_setup(data_corrective)
     merge_corrective_elements()
 
     if debugging:
