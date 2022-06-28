@@ -57,125 +57,132 @@ except ImportError:
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.5"
+script_version = "1.5.0"
 
 # Python Version
 python_version = sys.version_info.major
 
 # Auto Suffix/Prefix Strings and other settings:
-gt_renamer_settings = { 'transform_suffix' : '_grp',
-                        'mesh_suffix' : '_geo',
-                        'nurbs_curv_suffix' : '_crv',
-                        'joint_suffix' : '_jnt',
-                        'locator_suffix' : '_loc',
-                        'surface_suffix' : '_sur',
-                        'left_prefix' : 'left_',
-                        'right_prefix' : 'right_',
-                        'center_prefix' : 'center_',
-                        'def_starting_number' : '1',
-                        'def_padding_number' : '2',
-                        'selection_type' : '0', 
-                        'error_message' : 'Some objects were not renamed. Open the script editor to see why.',
-                        'nodes_to_ignore' : ['defaultRenderLayer', 'renderLayerManager', 'defaultLayer', 'layerManager', 'poseInterpolatorManager', \
-                                            'shapeEditorManager', 'side', 'front', 'top', 'persp', 'lightLinker1', 'strokeGlobals', 'globalCacheControl',\
-                                            'hyperGraphLayout', 'hyperGraphInfo', 'ikSystem', 'defaultHardwareRenderGlobals', 'characterPartition', 'hardwareRenderGlobals',\
-                                            'defaultColorMgtGlobals', 'defaultViewColorManager', 'defaultObjectSet', 'defaultLightSet', 'defaultResolution',\
-                                            'defaultRenderQuality', 'defaultRenderGlobals', 'dof1', 'shaderGlow1', 'initialMaterialInfo', 'initialParticleSE', \
-                                            'initialShadingGroup', 'particleCloud1', 'standardSurface1', 'lambert1', 'defaultTextureList1', 'lightList1', 'defaultRenderingList1', \
-                                            'defaultRenderUtilityList1', 'postProcessList1', 'defaultShaderList1', 'defaultLightList1', 'renderGlobalsList1',\
-                                            'renderPartition', 'hardwareRenderingGlobals', 'sequenceManager1', 'time1'],
-                        'node_types_to_ignore' : ['objectRenderFilter', 'objectTypeFilter', 'dynController', 'objectMultiFilter', 'selectionListOperator']
-                      }
+gt_renamer_settings = {'transform_suffix': '_grp',
+                       'mesh_suffix': '_geo',
+                       'nurbs_curv_suffix': '_crv',
+                       'joint_suffix': '_jnt',
+                       'locator_suffix': '_loc',
+                       'surface_suffix': '_sur',
+                       'left_prefix': 'left_',
+                       'right_prefix': 'right_',
+                       'center_prefix': 'center_',
+                       'def_starting_number': '1',
+                       'def_padding_number': '2',
+                       'selection_type': '0',
+                       'error_message': 'Some objects were not renamed. Open the script editor to see why.',
+                       'nodes_to_ignore': ['defaultRenderLayer', 'renderLayerManager', 'defaultLayer', 'layerManager',
+                                           'poseInterpolatorManager', 'shapeEditorManager', 'side', 'front', 'top',
+                                           'persp', 'lightLinker1', 'strokeGlobals', 'globalCacheControl',
+                                           'hyperGraphLayout', 'hyperGraphInfo', 'ikSystem',
+                                           'defaultHardwareRenderGlobals', 'characterPartition',
+                                           'hardwareRenderGlobals', 'defaultColorMgtGlobals',
+                                           'defaultViewColorManager', 'defaultObjectSet', 'defaultLightSet',
+                                           'defaultResolution', 'defaultRenderQuality', 'defaultRenderGlobals',
+                                           'dof1', 'shaderGlow1', 'initialMaterialInfo', 'initialParticleSE',
+                                           'initialShadingGroup', 'particleCloud1', 'standardSurface1', 'lambert1',
+                                           'defaultTextureList1', 'lightList1', 'defaultRenderingList1',
+                                           'defaultRenderUtilityList1', 'postProcessList1', 'defaultShaderList1',
+                                           'defaultLightList1', 'renderGlobalsList1', 'renderPartition',
+                                           'hardwareRenderingGlobals', 'sequenceManager1', 'time1'],
+                       'node_types_to_ignore': ['objectRenderFilter', 'objectTypeFilter', 'dynController',
+                                                'objectMultiFilter', 'selectionListOperator']
+                       }
 
-# Store Default Values for Reseting
+# Store Default Values for Resetting
 gt_renamer_settings_default_values = copy.deepcopy(gt_renamer_settings)
 
 
 def get_persistent_settings_renamer():
-    ''' 
-    Checks if persistant settings for GT Renamer exists and transfer them to the settings variables.
+    """ 
+    Checks if persistent settings for GT Renamer exists and transfer them to the settings variables.
     It assumes that persistent settings were stored using the cmds.optionVar function.
-    '''
+    """
 
-    stored_transform_suffix_exists = cmds.optionVar(exists=("gt_renamer_transform_suffix"))
-    stored_mesh_suffix_exists = cmds.optionVar(exists=("gt_renamer_mesh_suffix"))
-    stored_nurbs_curv_suffix_exists = cmds.optionVar(exists=("gt_renamer_nurbs_curve_suffix"))
-    stored_joint_suffix_exists = cmds.optionVar(exists=("gt_renamer_joint_suffix"))
-    stored_locator_suffix_exists = cmds.optionVar(exists=("gt_renamer_locator_suffix"))
-    stored_surface_suffix_exists = cmds.optionVar(exists=("gt_renamer_surface_suffix"))
-    stored_left_prefix_exists = cmds.optionVar(exists=("gt_renamer_left_prefix"))
-    stored_right_prefix_exists = cmds.optionVar(exists=("gt_renamer_right_prefix"))
-    stored_center_prefix_exists = cmds.optionVar(exists=("gt_renamer_center_prefix"))
-    stored_def_starting_number_exists = cmds.optionVar(exists=("gt_renamer_def_starting_number"))
-    stored_def_padding_number_exists = cmds.optionVar(exists=("gt_renamer_def_padding_number"))
-    stored_selection_type_exists = cmds.optionVar(exists=("gt_renamer_selection_type"))
+    stored_transform_suffix_exists = cmds.optionVar(exists="gt_renamer_transform_suffix")
+    stored_mesh_suffix_exists = cmds.optionVar(exists="gt_renamer_mesh_suffix")
+    stored_nurbs_curv_suffix_exists = cmds.optionVar(exists="gt_renamer_nurbs_curve_suffix")
+    stored_joint_suffix_exists = cmds.optionVar(exists="gt_renamer_joint_suffix")
+    stored_locator_suffix_exists = cmds.optionVar(exists="gt_renamer_locator_suffix")
+    stored_surface_suffix_exists = cmds.optionVar(exists="gt_renamer_surface_suffix")
+    stored_left_prefix_exists = cmds.optionVar(exists="gt_renamer_left_prefix")
+    stored_right_prefix_exists = cmds.optionVar(exists="gt_renamer_right_prefix")
+    stored_center_prefix_exists = cmds.optionVar(exists="gt_renamer_center_prefix")
+    stored_def_starting_number_exists = cmds.optionVar(exists="gt_renamer_def_starting_number")
+    stored_def_padding_number_exists = cmds.optionVar(exists="gt_renamer_def_padding_number")
+    stored_selection_type_exists = cmds.optionVar(exists="gt_renamer_selection_type")
     
     if stored_transform_suffix_exists:
-        gt_renamer_settings['transform_suffix'] = str(cmds.optionVar(q=("gt_renamer_transform_suffix")))
+        gt_renamer_settings['transform_suffix'] = str(cmds.optionVar(q="gt_renamer_transform_suffix"))
     
     if stored_mesh_suffix_exists:
-        gt_renamer_settings['mesh_suffix'] = str(cmds.optionVar(q=("gt_renamer_mesh_suffix")))
+        gt_renamer_settings['mesh_suffix'] = str(cmds.optionVar(q="gt_renamer_mesh_suffix"))
         
     if stored_nurbs_curv_suffix_exists:
-        gt_renamer_settings['nurbs_curv_suffix'] = str(cmds.optionVar(q=("gt_renamer_nurbs_curve_suffix")))
+        gt_renamer_settings['nurbs_curv_suffix'] = str(cmds.optionVar(q="gt_renamer_nurbs_curve_suffix"))
         
     if stored_joint_suffix_exists:
-        gt_renamer_settings['joint_suffix'] = str(cmds.optionVar(q=("gt_renamer_joint_suffix")))
+        gt_renamer_settings['joint_suffix'] = str(cmds.optionVar(q="gt_renamer_joint_suffix"))
         
     if stored_locator_suffix_exists:
-        gt_renamer_settings['locator_suffix'] = str(cmds.optionVar(q=("gt_renamer_locator_suffix")))
+        gt_renamer_settings['locator_suffix'] = str(cmds.optionVar(q="gt_renamer_locator_suffix"))
         
     if stored_surface_suffix_exists:
-        gt_renamer_settings['surface_suffix'] = str(cmds.optionVar(q=("gt_renamer_surface_suffix")))
+        gt_renamer_settings['surface_suffix'] = str(cmds.optionVar(q="gt_renamer_surface_suffix"))
         
     if stored_left_prefix_exists:
-        gt_renamer_settings['left_prefix'] = str(cmds.optionVar(q=("gt_renamer_left_prefix")))
+        gt_renamer_settings['left_prefix'] = str(cmds.optionVar(q="gt_renamer_left_prefix"))
         
     if stored_right_prefix_exists:
-        gt_renamer_settings['right_prefix'] = str(cmds.optionVar(q=("gt_renamer_right_prefix")))
+        gt_renamer_settings['right_prefix'] = str(cmds.optionVar(q="gt_renamer_right_prefix"))
         
     if stored_center_prefix_exists:
-        gt_renamer_settings['center_prefix'] = str(cmds.optionVar(q=("gt_renamer_center_prefix")))
+        gt_renamer_settings['center_prefix'] = str(cmds.optionVar(q="gt_renamer_center_prefix"))
         
     if stored_def_starting_number_exists:
-        gt_renamer_settings['def_starting_number'] = str(cmds.optionVar(q=("gt_renamer_def_starting_number")))
+        gt_renamer_settings['def_starting_number'] = str(cmds.optionVar(q="gt_renamer_def_starting_number"))
         
     if stored_def_padding_number_exists:
-        gt_renamer_settings['def_padding_number'] = str(cmds.optionVar(q=("gt_renamer_def_padding_number")))
+        gt_renamer_settings['def_padding_number'] = str(cmds.optionVar(q="gt_renamer_def_padding_number"))
       
     if stored_selection_type_exists:
-        gt_renamer_settings['selection_type'] = str(cmds.optionVar(q=("gt_renamer_selection_type")))  
+        gt_renamer_settings['selection_type'] = str(cmds.optionVar(q="gt_renamer_selection_type"))
     
 
 def set_persistent_settings_renamer(option_var_name, option_var_string):
-    ''' 
-    Stores persistant settings for GT Renamer.
+    """ 
+    Stores persistent settings for GT Renamer.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     
         Parameters:
                 option_var_name (string): name of the optionVar string. Must start with script name + name of the variable
                 option_var_string (string): string to be stored under the option_var_name
                     
-    '''
+    """
     
     if option_var_string != '' and option_var_name != '':
         cmds.optionVar( sv=(str(option_var_name), str(option_var_string)))
     
 
 def reset_persistent_settings_renamer():
-    ''' Resets persistant settings for GT Renamer '''
-    cmds.optionVar( remove='gt_renamer_transform_suffix' )
-    cmds.optionVar( remove='gt_renamer_mesh_suffix' )
-    cmds.optionVar( remove='gt_renamer_nurbs_curve_suffix' )
-    cmds.optionVar( remove='gt_renamer_joint_suffix' )
-    cmds.optionVar( remove='gt_renamer_locator_suffix' )
-    cmds.optionVar( remove='gt_renamer_surface_suffix' )
-    cmds.optionVar( remove='gt_renamer_left_prefix' )
-    cmds.optionVar( remove='gt_renamer_right_prefix' )
-    cmds.optionVar( remove='gt_renamer_center_prefix' )
-    cmds.optionVar( remove='gt_renamer_def_starting_number' )
-    cmds.optionVar( remove='gt_renamer_def_padding_number' )
-    cmds.optionVar( remove='gt_renamer_selection_type' )
+    """ Resets persistent settings for GT Renamer """
+    cmds.optionVar(remove='gt_renamer_transform_suffix')
+    cmds.optionVar(remove='gt_renamer_mesh_suffix')
+    cmds.optionVar(remove='gt_renamer_nurbs_curve_suffix')
+    cmds.optionVar(remove='gt_renamer_joint_suffix')
+    cmds.optionVar(remove='gt_renamer_locator_suffix')
+    cmds.optionVar(remove='gt_renamer_surface_suffix')
+    cmds.optionVar(remove='gt_renamer_left_prefix')
+    cmds.optionVar(remove='gt_renamer_right_prefix')
+    cmds.optionVar(remove='gt_renamer_center_prefix')
+    cmds.optionVar(remove='gt_renamer_def_starting_number')
+    cmds.optionVar(remove='gt_renamer_def_padding_number')
+    cmds.optionVar(remove='gt_renamer_selection_type')
     
     for def_value in gt_renamer_settings_default_values:
         for value in gt_renamer_settings:
@@ -187,18 +194,17 @@ def reset_persistent_settings_renamer():
     cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
     
 
-
 # Renamer UI ============================================================================
 def build_gui_renamer():
-    ''' Builds the UI for GT Renamer '''
+    """ Builds the UI for GT Renamer """
     window_name = "build_gui_renamer"
     if cmds.window(window_name, exists =True):
         cmds.deleteUI(window_name)    
 
     # ===================================================================================
     
-    build_gui_renamer = cmds.window(window_name, title=script_name + '  (v' + script_version+ ')',\
-                          titleBar=True, mnb=False, mxb=False, sizeable =True)
+    build_gui_renamer = cmds.window(window_name, title=script_name + '  (v' + script_version+ ')',
+                                    titleBar=True, mnb=False, mxb=False, sizeable =True)
     
     cmds.window(window_name, e=True, s=True, wh=[1,1])
     
@@ -206,24 +212,24 @@ def build_gui_renamer():
 
     # Title Text
     title_bgc_color = (.4, .4, .4)
-    cmds.separator(h=10, style='none') # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main) # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main) # Title Column
-    cmds.text(" ", bgc=title_bgc_color) # Tiny Empty Green Space
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main)
+    cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color,  fn="boldLabelFont", align="left")
     cmds.button( l ="Help", bgc=title_bgc_color, c=lambda x:build_gui_help_renamer())
-    cmds.separator(h=10, style='none', p=content_main) # Empty Space
+    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1,10)], p=content_main)
     cmds.rowColumnLayout(nc=3, cw=[(1, 90),(2, 95),(3, 95)], cs=[(1,15)])
     selection_type_rc = cmds.radioCollection()
-    selection_type_selected = cmds.radioButton( label='Selected', select=True, cc=lambda x:store_selection_type_persistant_settings())
-    selection_type_hierarchy = cmds.radioButton( label='Hierarchy', cc=lambda x:store_selection_type_persistant_settings())
-    selection_type_all = cmds.radioButton( label='All', cc=lambda x:store_selection_type_persistant_settings())
+    selection_type_selected = cmds.radioButton( label='Selected', select=True, cc=lambda x:store_selection_type_persistent_settings())
+    selection_type_hierarchy = cmds.radioButton( label='Hierarchy', cc=lambda x:store_selection_type_persistent_settings())
+    selection_type_all = cmds.radioButton( label='All', cc=lambda x:store_selection_type_persistent_settings())
     
-    def store_selection_type_persistant_settings():
-        ''' Stores current state of seletion type as persistent settings '''
+    def store_selection_type_persistent_settings():
+        """ Stores current state of seletion type as persistent settings """
         set_persistent_settings_renamer('gt_renamer_selection_type', cmds.radioButton(cmds.radioCollection(selection_type_rc, q=True, select=True), q=True, label=True))
         
     # Set Persistent Settings for Selection Type
@@ -262,72 +268,74 @@ def build_gui_renamer():
     
     cmds.rowColumnLayout( nc=2, cw=[(1, 80),(2, 150)], cs=[(1, 5),(2, 0)], p=body_column)
     cmds.text('Rename:')
-    rename_number_textfield = cmds.textField(placeholderText = 'new_name', enterCommand=lambda x:start_renaming('rename_and_number'))
+    rename_number_textfield = cmds.textField(placeholderText = 'new_name', enterCommand=lambda x: start_renaming('rename_and_number'))
     
     cmds.separator(h=7, style='none') # Empty Space
     
     cmds.rowColumnLayout( nc=4, cw=[(1, 50),(2, 40),(3, 60),(4, 40)], cs=[(1, 20),(2, 0),(3, 10),(4, 0)], p=body_column)
     cmds.text('Start #:')
-    start_number_textfield = cmds.textField(text = gt_renamer_settings.get('def_starting_number'), \
-                                            enterCommand=lambda x:start_renaming('rename_and_number'), \
-                                            cc=lambda x:set_persistent_settings_renamer('gt_renamer_def_starting_number', cmds.textField(start_number_textfield, q=True, text=True)))
+    start_number_textfield = cmds.textField(text = gt_renamer_settings.get('def_starting_number'),
+                                            enterCommand=lambda x:start_renaming('rename_and_number'),
+                                            cc=lambda x: set_persistent_settings_renamer('gt_renamer_def_starting_number', cmds.textField(start_number_textfield, q=True, text=True)))
     cmds.text('Padding:')
     padding_number_textfield = cmds.textField(text = gt_renamer_settings.get('def_padding_number'), \
                                               enterCommand=lambda x:start_renaming('rename_and_number'), \
-                                              cc=lambda x:set_persistent_settings_renamer('gt_renamer_def_padding_number', cmds.textField(padding_number_textfield, q=True, text=True)))
+                                              cc=lambda x: set_persistent_settings_renamer('gt_renamer_def_padding_number', cmds.textField(padding_number_textfield, q=True, text=True)))
         
     cmds.rowColumnLayout( nc=1, cw=[(1, 240)], cs=[(1, 10)], p=body_column)
-    cmds.separator(h=10, style='none') # Empty Space
-    cmds.button(l ="Rename and Number", bgc=(.6, .6, .6), c=lambda x:start_renaming('rename_and_number'))
-    cmds.separator(h=10, style='none') # Empty Space
-    
-    
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.button(l ="Rename and Number", bgc=(.6, .6, .6), c=lambda x: start_renaming('rename_and_number'))
+    cmds.separator(h=10, style='none')  # Empty Space
+
     # Prefix and Suffix ================
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=10)
-    cmds.separator(h=5, style='none') # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Prefix and Suffix')
-    cmds.separator(h=7, style='none') # Empty Space
+    cmds.separator(h=7, style='none')  # Empty Space
     
     cmds.rowColumnLayout( nc=4, cw=[(1, 50),(2, 50),(3, 50),(4, 85)], cs=[(1, 0),(2, 0),(3, 0),(4, 10)], p=body_column)
     cmds.text('Prefix:')
     cmds.radioCollection()
-    add_prefix_auto = cmds.radioButton( label='Auto', select=True, cc=lambda x:update_prefix_suffix_options() ) 
-    cmds.radioButton( label='Input', cc=lambda x:update_prefix_suffix_options() ) 
-    prefix_textfield = cmds.textField(placeholderText = 'prefix_', enterCommand=lambda x:start_renaming('add_prefix'), en=False)
+    add_prefix_auto = cmds.radioButton( label='Auto', select=True, cc=lambda x:update_prefix_suffix_options())
+    cmds.radioButton( label='Input', cc=lambda x:update_prefix_suffix_options())
+    prefix_textfield = cmds.textField(placeholderText='prefix_',
+                                      enterCommand=lambda x: start_renaming('add_prefix'), en=False)
     
     cmds.text('Suffix:')
     cmds.radioCollection()
-    add_suffix_auto = cmds.radioButton( label='Auto', select=True, cc=lambda x:update_prefix_suffix_options() ) 
-    cmds.radioButton( label='Input', cc=lambda x:update_prefix_suffix_options() ) 
-    suffix_textfield = cmds.textField(placeholderText = '_suffix', enterCommand=lambda x:start_renaming('add_suffix'), en=False)
+    add_suffix_auto = cmds.radioButton( label='Auto', select=True, cc=lambda x:update_prefix_suffix_options())
+    cmds.radioButton( label='Input', cc=lambda x:update_prefix_suffix_options())
+    suffix_textfield = cmds.textField(placeholderText='_suffix',
+                                      enterCommand=lambda x: start_renaming('add_suffix'), en=False)
     
-    cmds.separator(h=10, style='none') # Empty Space
+    cmds.separator(h=10, style='none')  # Empty Space
     
-    cmds.rowColumnLayout( nc=6, cw=[(1, 40),(2, 40),(3, 40),(4, 40),(5, 40),(6, 40)], cs=[(1, 5),(2, 0),(3, 0),(4, 0),(5, 0),(6, 0)], p=body_column)
+    cmds.rowColumnLayout( nc=6, cw=[(1, 40), (2, 40),(3, 40),(4, 40),(5, 40), (6, 40)],
+                          cs=[(1, 5),(2, 0),(3, 0),(4, 0),(5, 0),(6, 0)], p=body_column)
     cmds.text('Group', font='smallObliqueLabelFont')
     cmds.text('Mesh', font='smallObliqueLabelFont')
     cmds.text('Nurbs', font='smallObliqueLabelFont')
     cmds.text('Joint', font='smallObliqueLabelFont')
     cmds.text('Locator', font='smallObliqueLabelFont')
     cmds.text('Surface', font='smallObliqueLabelFont')
-    transform_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('transform_suffix'), \
-                                                enterCommand=lambda x:start_renaming('add_suffix'), \
+    transform_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('transform_suffix'),
+                                                enterCommand=lambda x:start_renaming('add_suffix'),
                                                 cc=lambda x:set_persistent_settings_renamer('gt_renamer_transform_suffix', cmds.textField(transform_suffix_textfield, q=True, text=True)))
-    mesh_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('mesh_suffix'), \
-                                            enterCommand=lambda x:start_renaming('add_suffix'), \
+    mesh_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('mesh_suffix'),
+                                            enterCommand=lambda x:start_renaming('add_suffix'),
                                             cc=lambda x:set_persistent_settings_renamer('gt_renamer_mesh_suffix', cmds.textField(mesh_suffix_textfield, q=True, text=True)))
-    nurbs_curve_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('nurbs_curv_suffix'), \
-                                                enterCommand=lambda x:start_renaming('add_suffix'), \
+    nurbs_curve_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('nurbs_curv_suffix'),
+                                                enterCommand=lambda x:start_renaming('add_suffix'),
                                                 cc=lambda x:set_persistent_settings_renamer('gt_renamer_nurbs_curve_suffix', cmds.textField(nurbs_curve_suffix_textfield, q=True, text=True)))
-    joint_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('joint_suffix'), \
-                                            enterCommand=lambda x:start_renaming('add_suffix'), \
+    joint_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('joint_suffix'),
+                                            enterCommand=lambda x:start_renaming('add_suffix'),
                                             cc=lambda x:set_persistent_settings_renamer('gt_renamer_joint_suffix', cmds.textField(joint_suffix_textfield, q=True, text=True)))
-    locator_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('locator_suffix'), \
-                                              enterCommand=lambda x:start_renaming('add_suffix'), \
+    locator_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('locator_suffix'),
+                                              enterCommand=lambda x:start_renaming('add_suffix'),
                                               cc=lambda x:set_persistent_settings_renamer('gt_renamer_locator_suffix', cmds.textField(locator_suffix_textfield, q=True, text=True)))
-    surface_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('surface_suffix'), \
-                                              enterCommand=lambda x:start_renaming('add_suffix'), \
+    surface_suffix_textfield = cmds.textField(text = gt_renamer_settings.get('surface_suffix'),
+                                              enterCommand=lambda x:start_renaming('add_suffix'),
                                               cc=lambda x:set_persistent_settings_renamer('gt_renamer_surface_suffix', cmds.textField(surface_suffix_textfield, q=True, text=True)))
     
     cmds.separator(h=5, style='none') # Empty Space
@@ -374,7 +382,7 @@ def build_gui_renamer():
        
        
     def update_prefix_suffix_options():
-        ''' Updates variables and UI when there is an user input (For the prefix and suffix options) '''
+        """ Updates variables and UI when there is an user input (For the prefix and suffix options) """
         if cmds.radioButton(add_prefix_auto, q=True, select=True):
             prefix_auto_textfields = True
             prefix_input_textfields = False
@@ -405,12 +413,12 @@ def build_gui_renamer():
        
        
     def start_renaming(operation):
-        ''' 
+        """ 
         Main function to rename elements, it uses a string to determine what operation to run.
         
                 Parameters:
                     operation (string): name of the operation to execute. (e.g. search_and_replace)
-        '''
+        """
         current_selection = cmds.ls(selection=True)
         is_operation_valid = True
         
@@ -527,7 +535,7 @@ def build_gui_renamer():
 
 
 def build_gui_help_renamer():
-    ''' Creates the Help GUI for GT Renamer '''
+    """ Creates the Help GUI for GT Renamer """
     window_name = "build_gui_help_renamer"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -627,14 +635,14 @@ def build_gui_help_renamer():
 
 
 def string_replace(string, search, replace):
-    '''
+    """
     Search and Replace Function for a String
             
             Parameters:
                     string (string): string to be processed
                     search (string): what to search for
                     replace (string): what to replace it with
-    '''
+    """
     if string == '':
         return ''
     replace_string = string.replace(search, replace)    
@@ -643,12 +651,12 @@ def string_replace(string, search, replace):
 
 
 def get_short_name(obj):
-    '''
+    """
     Get the name of the objects without its path (Maya returns full path if name is not unique)
 
             Parameters:
                     obj (string) - object to extract short name
-    '''
+    """
     if obj == '':
         return ''
     split_path = obj.split('|')
@@ -658,12 +666,12 @@ def get_short_name(obj):
 
 
 def rename_uppercase(obj_list):
-    '''
+    """
     Rename objects to be uppercase
     
             Parameters:
                     obj_list (list) - a list of objects (strings) to be renamed
-    '''
+    """
     to_rename = []
     errors = ''
     
@@ -688,12 +696,12 @@ def rename_uppercase(obj_list):
     renaming_inview_feedback(len(to_rename))
 
 def rename_lowercase(obj_list):
-    '''
+    """
     Rename objects to be lowercase
     
             Parameters:
                     obj_list (list) - a list of objects (strings) to be renamed
-    '''
+    """
     to_rename = []
     errors = ''
     
@@ -719,12 +727,12 @@ def rename_lowercase(obj_list):
 
 
 def rename_capitalize(obj_list):
-    '''
+    """
     Rename objects to be capitalized
 
             Parameters:
                     obj_list (list) - a list of objects (strings) to be renamed
-    '''
+    """
     to_rename = []
     errors = ''
     
@@ -759,12 +767,12 @@ def rename_capitalize(obj_list):
 
 
 def remove_first_letter(obj_list):
-    '''
+    """
     Rename objects removing the first letter
 
             Parameters:
                     obj_list (list) - a list of objects (strings) to be renamed
-    '''
+    """
     to_rename = []
     errors = ''
     
@@ -798,12 +806,12 @@ def remove_first_letter(obj_list):
 
 
 def remove_last_letter(obj_list):
-    '''
+    """
     Rename objects removing the last letter
 
             Parameters:
                     obj_list (list) - a list of objects (strings) to be renamed
-    '''
+    """
     to_rename = []
     errors = ''
     
@@ -837,14 +845,14 @@ def remove_last_letter(obj_list):
 
 
 def rename_search_replace(obj_list, search, replace):
-    '''
+    """
     Rename Using Search and Replace
 
             Parameters:
                     obj_list (list): a list of objects (strings) to be renamed
                     search (string): what to search for
                     replace (string): what to replace it with
-    '''
+    """
     if search == '':
         cmds.warning('The search string must not be empty.')
     else: 
@@ -864,7 +872,7 @@ def rename_search_replace(obj_list, search, replace):
         
 
 def rename_and_number(obj_list, new_name, start_number, padding_number):
-    '''
+    """
     Rename Objects and Add Number (With Padding)
 
             Parameters:
@@ -872,7 +880,7 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
                     new_name (string): a new name to rename the objects
                     start_number (int): what number to start counting from
                     padding_number (int): how many zeroes it will add before numbers
-    '''
+    """
     if new_name == '':
         cmds.warning('The provided string must not be empty.')
     else: 
@@ -904,13 +912,13 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
 
 
 def rename_add_prefix(obj_list, new_prefix_list):
-    '''
+    """
     Add Prefix
 
             Parameters:
                     obj_list (list): a list of objects (strings) to be renamed
                     new_prefix_list (list) - a list of prefix strings, if just one it assumes that it's a manual input, if more (3) it automates (usually left, center, right)
-    '''
+    """
     
     auto_prefix = True
     if len(new_prefix_list) == 1:
@@ -969,13 +977,13 @@ def rename_add_prefix(obj_list, new_prefix_list):
             
 
 def rename_add_suffix(obj_list, new_suffix_list):
-    '''
+    """
     Add Suffix
 
             Parameters:
                     obj_list (list): a list of objects (strings) to be renamed
                     new_suffix_list (list): - a list of suffix strings, if just one it assumes that it's a manual input, if more (6) it automates (usually _geo,_jnt, etc...)
-    '''
+    """
     auto_suffix = True
     
     if len(new_suffix_list) == 1:
@@ -1043,13 +1051,13 @@ def rename_add_suffix(obj_list, new_suffix_list):
     
         
 def rename_and_alphabetize(obj_list, new_name):
-    '''
+    """
     WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
 
             Parameters:
                     obj_list (list): a list of objects (strings) to be renamed
                     new_name - WIP
-    '''
+    """
     alphabet_array = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
     print([len(alphabet_array)])
     current_letter_index = 0
@@ -1065,13 +1073,13 @@ def rename_and_alphabetize(obj_list, new_name):
 
 
 def renaming_inview_feedback(number_of_renames):
-    '''
+    """
     Prints an inViewMessage to give feedback to the user about how many objects were renamed.
     Uses the module "random" to force identical messages to appear at the same time.
 
             Parameters:
                     number_of_renames (int): how many objects were renamed.
-    '''
+    """
     if number_of_renames != 0:
             message = '<' + str(random.random()) + '><span style=\"color:#FF0000;text-decoration:underline;\">' + str(number_of_renames)
             
