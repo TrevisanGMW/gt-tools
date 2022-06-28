@@ -73,7 +73,7 @@ def generate_image(file_path, image_encoded):
 
 def generate_image_from_library(file_path, image_key):
     """
-
+    Creates an image using the data from the "image_library"
     Args:
         file_path: Path to where the function should save the image (must be valid)
                    e,g, "C:\\image.png"
