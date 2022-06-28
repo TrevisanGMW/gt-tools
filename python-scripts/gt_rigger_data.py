@@ -2,12 +2,16 @@
 GT Rigger Data - Settings and naming conventions for auto rigger scripts
 github.com/TrevisanGMW - 2021-12-10
 
+2022-06-28
+Added corrective class
+
 """
 import maya.cmds as cmds
 import copy
 
-SCRIPT_VERSION_BASE = '1.9.11'
+SCRIPT_VERSION_BASE = '1.9.12'
 SCRIPT_VERSION_FACIAL = '0.0.12'
+SCRIPT_VERSION_CORRECTIVE = '0.0.9'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -29,6 +33,8 @@ CENTER_JNT_COLOR = (.8, .8, .8)
 LEFT_PROXY_COLOR = (.2, .6, 1)
 RIGHT_PROXY_COLOR = (1, .4, .4)
 CENTER_PROXY_COLOR = (.8, .8, .8)
+ALT_PROXY_COLOR = (1, 0, 1)
+PROXY_DRIVEN_COLOR = (1, .5, 1)
 ROTATE_ORDER_ENUM = 'xyz:yzx:zxy:xzy:yxz:zyx'
 CUSTOM_ATTR_SEPARATOR = 'controlBehaviour'
 
@@ -46,7 +52,7 @@ class GTBipedRiggerData:
 
     # Loaded Elements Dictionary
     elements = {  # General Settings
-        'main_proxy_grp': 'rigger_biped_base_proxy' + '_' + GRP_SUFFIX,
+        'main_proxy_grp': 'rigger_biped_proxy' + '_' + GRP_SUFFIX,
         # Center Elements
         'main_crv': 'root' + '_' + PROXY_SUFFIX,
         'cog_proxy_crv': 'waist' + '_' + PROXY_SUFFIX,
@@ -251,8 +257,111 @@ class GTBipedRiggerFacialData:
 
 
 class GTBipedRiggerCorrectiveData:
-    pass
-    # TODO
+    # Script Name
+    script_name = 'GT Corrective Rigger'
+
+    # Version:
+    script_version = SCRIPT_VERSION_CORRECTIVE
+
+    # Permanent Settings
+    option_var = 'gt_biped_rigger_corrective_setup'
+    ignore_keys = ['']  # Not to be stored
+
+    # Loaded Elements Dictionary
+    elements = {  # Pre Existing Elements
+                'main_proxy_grp': 'rigger_corrective_proxy' + '_' + GRP_SUFFIX,
+                'main_root': 'rigger_corrective_proxy' + '_' + PROXY_SUFFIX,
+
+                # Wrists
+                'left_main_wrist_crv': 'mainWrist_' + PROXY_SUFFIX,
+                'left_upper_wrist_crv': 'upperWrist_' + PROXY_SUFFIX,
+                'left_lower_wrist_crv': 'lowerWrist_' + PROXY_SUFFIX,
+
+                # Knees
+                'left_main_knee_crv': 'mainKnee_' + PROXY_SUFFIX,
+                'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
+                'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
+
+                # Hips
+                'left_main_hip_crv': 'mainHip_' + PROXY_SUFFIX,
+                'left_back_hip_crv': 'backHip_' + PROXY_SUFFIX,
+                'left_front_hip_crv': 'frontHip_' + PROXY_SUFFIX,
+                'left_outer_hip_crv': 'outerHip_' + PROXY_SUFFIX,
+                # 'left_inner_hip_crv': 'innerHip_' + PROXY_SUFFIX,
+
+                # Elbows
+                'left_main_elbow_crv': 'mainElbow_' + PROXY_SUFFIX,
+                'left_front_elbow_crv': 'frontElbow_' + PROXY_SUFFIX,
+
+                # Shoulders
+                'left_main_shoulder_crv': 'mainShoulder_' + PROXY_SUFFIX,
+                'left_back_shoulder_crv': 'backShoulder_' + PROXY_SUFFIX,
+                'left_front_shoulder_crv': 'frontShoulder_' + PROXY_SUFFIX,
+                'left_upper_shoulder_crv': 'upperShoulder_' + PROXY_SUFFIX,
+                # 'left_lower_shoulder_crv': 'lowerShoulder_' + PROXY_SUFFIX,
+                }
+
+    # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
+    elements_list = list(elements)
+    for item in elements_list:
+        if item.startswith('left_'):
+            elements[item] = 'left_' + elements.get(item)  # Add "left_" prefix
+            elements[item.replace('left_', 'right_')] = elements.get(item).replace('left_', 'right_')  # Add right copy
+
+    preexisting_dict = {'left_wrist_jnt': 'left_wrist_jnt',
+                        'right_wrist_jnt': 'right_wrist_jnt',
+                        'left_knee_jnt': 'left_knee_jnt',
+                        'right_knee_jnt': 'right_knee_jnt',
+                        'left_forearm_jnt': 'left_forearm_jnt',
+                        'right_forearm_jnt': 'right_forearm_jnt',
+                        'left_wrist_aimJnt': 'left_wrist_aimJnt',
+                        'right_wrist_aimJnt': 'right_wrist_aimJnt',
+                        'left_hip_jnt': 'left_hip_jnt',
+                        'right_hip_jnt': 'right_hip_jnt',
+                        'left_elbow_jnt': 'left_elbow_jnt',
+                        'right_elbow_jnt': 'right_elbow_jnt',
+                        'left_shoulder_jnt': 'left_shoulder_jnt',
+                        'right_shoulder_jnt': 'right_shoulder_jnt',
+                        }
+
+    # Store Default Values
+    def __init__(self):
+        self.settings = {'setup_wrists': True,
+                         'setup_elbows': True,
+                         'setup_shoulders': True,
+                         'setup_knees': True,
+                         'setup_hips': True,
+                         }
+
+        self.elements_default = copy.deepcopy(self.elements)
+        self.settings_default = copy.deepcopy(self.settings)
+
+    # Create Joints List
+    joints_default = {}
+    for obj in elements:
+        if obj.endswith('_crv'):
+            name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
+                                                                               'end' + JNT_SUFFIX.capitalize())
+            joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
+    joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
+    joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
+
+    # Reset Persistent Settings Variables
+    gui_module = 'gt_rigger_biped_gui'
+    entry_function = 'build_gui_auto_biped_rig()'
+
+    # Debugging Vars
+    debugging = False  # Activates Debugging Mode
+    debugging_auto_recreate = True  # Auto deletes proxy/rig before creating
+    debugging_force_new_scene = True  # Forces new instance every time
+    debugging_keep_cam_transforms = True  # Keeps camera position
+    debugging_import_proxy = True  # Auto Imports Proxy
+    debugging_import_path = 'C:\\template.ppose'  # Path to auto import
+    debugging_bind_rig = False  # Auto Binds Rig
+    debugging_bind_geo = 'body_geo'  # Name of the geo to bind
+    debugging_bind_heatmap = False  # If not using heatmap, then closest distance
+    debugging_post_code = True  # Runs code found at the end of the create controls command
+
 
 # Manage Persistent Settings
 def get_persistent_settings(data_object):
