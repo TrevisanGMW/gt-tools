@@ -2,7 +2,6 @@
 
  GT Maya Utilities
  github.com/TrevisanGMW - 2020-09-13
- Functions were named with a "gtu" (GT Utilities) prefix to avoid conflicts.
  
  1.1 - 2020-10-17
  Added move pivot to bottom/top
@@ -21,7 +20,7 @@
  Added "gtu_separate_curves"
  
  1.4 - 2020-11-13
- Updated combine and separate functions to work with bezier curves
+ Updated combine and separate functions to work with Bezier curves
  
  1.5 - 2020-11-14
  Added "gtu_convert_bif_to_mesh"
@@ -32,7 +31,7 @@
  Updated "gtu_delete_keyframes" to have inView feedback
  
  1.7 - 2020-11-22
- Updated text for the about window
+ Updated about window text
  
  1.8 - 2020-12-03
  Changed the background color for the title in the "About" window
@@ -47,7 +46,7 @@
  
  2.1 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
- Added refresh to combine curves function as they were not automatically updating after reparenting shapes
+ Added refresh to combine curves function as they were not automatically updating after re-parenting shapes
  
  2.2 - 2021-06-25
  Updated bif to mesh to work with newer versions of bifrost
@@ -71,27 +70,30 @@
  2.6 - 2022-01-04
  Renamed script to "gt_maya_utilities"
 
- 
- To Do:
- Add proper error handling to all functions.
- New functions:
-    Reset Display Type and Color
-    Find/Rename non-unique names - Enforce unique names
-    Remove Custom Colors - select object types, outliner or viewport - colorPickCursor.png - use string to determine a list of types
-    Assign lambert to everything function (Maybe assing to objects missing shaders)
-    Add Unlock all attributes
-    Add unhide attributes (provide list?)
-    Add Remove pasted_ function
-    Add assign checkboard function (already in bonus tools > rendering)
-    Force focus (focus without looking at children)
-    Brute force clean models (export OBJ and reimport)
- New options:
-    Import all references : Add function to use a string to ignore certain references
-    Reset Transforms : Add reset only translate, rotate or scale
-    Delete all keyframes : Include option to delete or not set driven keys
-    Reset persp camera : Reset all other attributes too (including transform?)
-    Delete Display Layers : only empty? ignore string?
-    Delete Namespaces : only empty? ignore string?
+ 2.7 - 2022-06-29
+ Added string to notepad (txt)
+ Renamed functions
+
+ TODO:
+     Add proper error handling to all functions through logging
+     New functions:
+        Reset Display Type and Color
+        Find/Rename non-unique names - Enforce unique names
+        Remove Custom Colors - select object types, outliner or viewport. Use string to determine a list of types
+        Assign lambert to everything function (Maybe assign to object missing shaders)
+        Add Unlock all attributes
+        Add unhide attributes (provide list?)
+        Add Remove pasted_ function
+        Add assign checkerboard function (already in bonus tools > rendering)
+        Force focus (focus without looking at children)
+        Brute force clean models (export OBJ and reimport)
+     New options:
+        Import all references : Add function to use a string to ignore certain references
+        Reset Transforms : Add reset only translate, rotate or scale
+        Delete all keyframes : Include option to delete or not set driven keys
+        Reset persp camera : Reset all other attributes too (including transform?)
+        Delete Display Layers : only empty? ignore string?
+        Delete Namespaces : only empty? ignore string?
     
 """
 import maya.cmds as cmds
@@ -110,8 +112,6 @@ try:
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
-# Script Version
-gtu_script_version = '2.6'
 
 # Python Version
 python_version = sys.version_info.major
@@ -1339,43 +1339,66 @@ def gtu_convert_joints_to_mesh(combine_mesh=True):
         return generated_mesh
 
 
-""" ____________________________ Functions ____________________________"""
-# gtu_reload_file()
-# gtu_open_resource_browser()
-# gtu_unlock_default_channels()
-# gtu_unhide_default_channels()
-# gtu_import_references()
-# gtu_remove_references()
-# gtu_uniform_lra_toggle()
-# gtu_uniform_jnt_label_toggle()
-# gtu_select_non_unique_objects()
+def output_string_to_notepad(string, file_name='tmp'):
+    """
+    Creates a txt file and writes a list of objects to it (with necessary code used to select it, in Mel and Python)
 
-# gtu_generate_udim_previews()
-# gtu_copy_material()
-# gtu_paste_material()
+    Args:
+        string (string): A list of string to be exported to a txt file
+        file_name (string): Name of the generated file
 
-# gtu_move_pivot_to_top()
-# gtu_move_pivot_to_base()
-# gtu_move_to_origin()
+    """
+    temp_dir = cmds.internalVar(userTmpDir=True)
+    txt_file = temp_dir + file_name + '.txt'
 
-# gtu_reset_joint_sizes()
-# gtu_reset_transforms()
-# gtu_reset_persp_shape_attributes()
+    f = open(txt_file, 'w')
+    f.write(string)
+    f.close()
 
-# gtu_delete_namespaces()
-# gtu_delete_display_layers()
-# gtu_delete_keyframes()
-# gtu_delete_nucleus_nodes()
-# gtu_delete_user_defined_attributes()
+    notepad_command = 'exec("notepad ' + txt_file + '");'
+    mel.eval(notepad_command)
 
-# --- Outside Utilities ---
-# gtu_combine_curves()
-# gtu_separate_curves()
-# gtu_convert_bif_to_mesh()
 
-# gtu_build_gui_about_gt_tools()
+""" ____________________________ Functions Calls ____________________________"""
+if __name__ == '__main__':
+    pass
+    # gtu_reload_file()
+    # gtu_open_resource_browser()
+    # gtu_unlock_default_channels()
+    # gtu_unhide_default_channels()
+    # gtu_import_references()
+    # gtu_remove_references()
+    # gtu_uniform_lra_toggle()
+    # gtu_uniform_jnt_label_toggle()
+    # gtu_select_non_unique_objects()
 
-# --- Other Functions ---
-# gtu_delete_all_locators()
-# gtu_full_hud_toggle()
-# gtu_convert_joints_to_mesh()
+    # gtu_generate_udim_previews()
+    # gtu_copy_material()
+    # gtu_paste_material()
+
+    # gtu_move_pivot_to_top()
+    # gtu_move_pivot_to_base()
+    # gtu_move_to_origin()
+
+    # gtu_reset_joint_sizes()
+    # gtu_reset_transforms()
+    # gtu_reset_persp_shape_attributes()
+
+    # gtu_delete_namespaces()
+    # gtu_delete_display_layers()
+    # gtu_delete_keyframes()
+    # gtu_delete_nucleus_nodes()
+    # gtu_delete_user_defined_attributes()
+
+    # --- Outside Utilities ---
+    # gtu_combine_curves()
+    # gtu_separate_curves()
+    # gtu_convert_bif_to_mesh()
+
+    # gtu_build_gui_about_gt_tools()
+
+    # --- Other Functions ---
+    # gtu_delete_all_locators()
+    # gtu_full_hud_toggle()
+    # gtu_convert_joints_to_mesh()
+    # output_string_to_notepad('Test')
