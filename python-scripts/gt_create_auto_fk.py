@@ -42,10 +42,15 @@
  Replace "Tag" with "Suffix" for the UI text
  A bit of clean up in the code
 
+ 1.9.2 - 2022-06-29
+ Added logger
+ Added pin as an option for the custom curve dialog
+ Small clean up to the code and docs
+
 """
 import maya.cmds as cmds
+import logging
 import copy
-import sys
 from maya import OpenMayaUI as omui
 
 try:
@@ -59,14 +64,16 @@ try:
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_create_auto_fk")
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+
 # Script Name
 script_name = "GT - Create FK Control"
 
 # Version:
-script_version = "1.9.1"
-
-# Python Version
-python_version = sys.version_info.major
+script_version = "1.9.2"
 
 # Custom Curve Dictionary
 gt_auto_fk_settings = {'using_custom_curve': False,
@@ -81,7 +88,6 @@ gt_auto_fk_settings = {'using_custom_curve': False,
                        'string_joint_suffix': '_jnt',
                        'curve_radius': '1.0',
                        'undesired_strings': 'endJnt, eye',
-                       'error_message': 'Errors detected during creation. Open the script editor to see details.'
                        }
 
 # Store Default Values for Resetting
@@ -200,8 +206,8 @@ def build_gui_auto_fk():
 
         # Main GUI Start Here =================================================================================
 
-    build_gui_auto_fk = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',
-                                    titleBar=True, mnb=False, mxb=False, sizeable=True)
+    window_gui_auto_fk = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',
+                                     titleBar=True, mnb=False, mxb=False, sizeable=True)
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
@@ -266,8 +272,8 @@ def build_gui_auto_fk():
     cmds.separator(h=7, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1, 13)], p=body_column)
     cmds.button('gt_auto_fk_custom_curve_btn', l="(Advanced) Custom Curve", c=lambda x: define_custom_curve())
-    if gt_auto_fk_settings.get('using_custom_curve') == True and gt_auto_fk_settings.get(
-            'failed_to_build_curve') == False:
+    if gt_auto_fk_settings.get('using_custom_curve') is True and gt_auto_fk_settings.get(
+            'failed_to_build_curve') is False:
         cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[0, .1, 0])
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
@@ -361,6 +367,7 @@ def build_gui_auto_fk():
                     try:
                         ctrl = [cmds.rename(ctrl, ctrl_name)]
                     except Exception as e:
+                        logging.debug(str(e))
                         ctrl = cmds.circle(name=ctrl_name, normal=[1, 0, 0], radius=ctrl_curve_radius,
                                            ch=False)  # Default Circle Curve
 
@@ -428,9 +435,10 @@ def build_gui_auto_fk():
                 print('#' * 80)
                 print(errors)
                 print('#' * 80)
-                cmds.warning(gt_auto_fk_settings.get('error_message'))
+                error_message = 'Errors detected during creation. Open the script editor to see details.'
+                cmds.warning(error_message)
         except Exception as e:
-            cmds.warning(str(e))
+            logging.warning(str(e))
         finally:
             cmds.undoInfo(closeChunk=True, chunkName='Auto Generate FK Ctrls')
 
@@ -450,10 +458,10 @@ def build_gui_auto_fk():
             title='Py Curve',
             message='Paste Python Curve Below: \n(Use \"GT Generate Python Curve \" '
                     'to extract it from an existing curve)',
-            button=['Use Python', 'Use Cube', 'Use Default'],
+            button=['Use Python', 'Use Cube', 'Use Pin', 'Use Default'],
             defaultButton='OK',
             cancelButton='Use Default',
-            dismissString='',
+            dismissString='Use Default',
             text=textfield_data
         )
 
@@ -485,6 +493,27 @@ def build_gui_auto_fk():
             set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', True)
             set_persistent_settings_auto_fk('gt_auto_fk_failed_to_build_curve', False)
             cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[0, .1, 0])
+        elif result == 'Use Pin':
+            gt_auto_fk_settings["custom_curve"] = 'cmds.curve(p=[[0.0, 0.0, 0.0], [0.0, 4.007, 0.0], ' \
+                                                  '[0.147, 4.024, 0.0], [0.286, 4.083, 0.0], [0.406, 4.176, 0.0],' \
+                                                  ' [0.496, 4.292, 0.0], [0.554, 4.431, 0.0], [0.572, 4.578, 0.0],' \
+                                                  ' [0.0, 4.578, 0.0], [0.0, 4.007, 0.0], [-0.147, 4.024, 0.0],' \
+                                                  ' [-0.286, 4.083, 0.0], [-0.406, 4.176, 0.0], [-0.496, 4.292, 0.0],' \
+                                                  ' [-0.554, 4.431, 0.0], [-0.572, 4.578, 0.0], [-0.554, 4.726, 0.0]' \
+                                                  ', [-0.496, 4.864, 0.0], [-0.406, 4.985, 0.0],' \
+                                                  ' [-0.286, 5.074, 0.0], [-0.147, 5.132, 0.0], [0.0, 5.15, 0.0],' \
+                                                  ' [0.147, 5.132, 0.0], [0.286, 5.074, 0.0], [0.406, 4.985, 0.0],' \
+                                                  ' [0.496, 4.864, 0.0], [0.554, 4.726, 0.0], [0.572, 4.578, 0.0],' \
+                                                  ' [-0.572, 4.578, 0.0], [0.0, 4.578, 0.0], [0.0, 5.15, 0.0]], d=1)'
+            gt_auto_fk_settings["using_custom_curve"] = True
+            gt_auto_fk_settings["failed_to_build_curve"] = False
+            cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, e=True, en=False)
+            # Update Persistent Settings
+            set_persistent_settings_auto_fk('gt_auto_fk_custom_curve',
+                                            str(cmds.promptDialog(query=True, text=True)))
+            set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', True)
+            set_persistent_settings_auto_fk('gt_auto_fk_failed_to_build_curve', False)
+            cmds.button('gt_auto_fk_custom_curve_btn', e=True, l='ACTIVE - Custom Curve', bgc=[0, .1, 0])
         else:
             gt_auto_fk_settings["using_custom_curve"] = False
             cmds.floatSliderGrp(ctrl_curve_radius_slider_grp, e=True, en=True)
@@ -494,15 +523,12 @@ def build_gui_auto_fk():
             set_persistent_settings_auto_fk('gt_auto_fk_using_custom_curve', False)
 
     # Show and Lock Window
-    cmds.showWindow(build_gui_auto_fk)
+    cmds.showWindow(window_gui_auto_fk)
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/kinInsert.png')
     widget.setWindowIcon(icon)
 
@@ -584,10 +610,7 @@ def build_gui_help_auto_fk():
 
     # Set Window Icon
     qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
 
