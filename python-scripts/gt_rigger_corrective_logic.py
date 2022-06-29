@@ -37,6 +37,10 @@
  0.0.9 - 2022-06-28
  Changed where the data is stored (gt_rigger_data)
 
+ 0.0.10 - 2022-06-29
+ Added proxy visibility and locked main group
+ Added settings to make the creation of certain correctives optional
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
@@ -84,423 +88,452 @@ def create_corrective_proxy(corrective_data):
     for shape in cmds.listRelatives(main_root, s=True, f=True) or []:
         cmds.setAttr(shape + '.lineWidth', 3)
 
+    # Main Group Attribute Setup
+    lock_hide_default_attr(main_grp)
+    cmds.addAttr(main_grp, ln="proxyVisibility", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(main_grp + '.proxyVisibility', e=True, lock=True)
+    cmds.addAttr(main_grp, ln="wristsVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_grp + ".wristsVisibility", 1)
+    cmds.addAttr(main_grp, ln="elbowVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_grp + ".elbowVisibility", 1)
+    cmds.addAttr(main_grp, ln="shouldersVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_grp + ".shouldersVisibility", 1)
+    cmds.addAttr(main_grp, ln="kneesVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_grp + ".kneesVisibility", 1)
+    cmds.addAttr(main_grp, ln="hipsVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_grp + ".hipsVisibility", 1)
+
     # ------------------------------------------------------------------------------------------- Wrists
-    if _corrective_settings.get("setup_wrists"):
-        # Left Wrist Main
-        left_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_wrist_crv'), .5)
-        left_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=left_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_main_wrist_proxy_crv, left_main_wrist_proxy_grp)
-        cmds.move(58.2, 130.4, 0, left_main_wrist_proxy_grp)
-        cmds.rotate(-90, left_main_wrist_proxy_grp, rotateX=True)
-        cmds.parent(left_main_wrist_proxy_grp, main_root)
-        change_viewport_color(left_main_wrist_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(left_main_wrist_proxy_crv)
+    # Left Wrist Main
+    left_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_wrist_crv'), .5)
+    left_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=left_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_wrist_proxy_crv, left_main_wrist_proxy_grp)
+    cmds.move(58.2, 130.4, 0, left_main_wrist_proxy_grp)
+    cmds.rotate(-90, left_main_wrist_proxy_grp, rotateX=True)
+    cmds.parent(left_main_wrist_proxy_grp, main_root)
+    change_viewport_color(left_main_wrist_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(left_main_wrist_proxy_crv)
 
-        # Left Upper Wrist
-        left_upper_wrist_proxy_crv = _corrective_proxy_dict.get('left_upper_wrist_crv')
-        left_upper_wrist_proxy_crv = create_directional_joint_curve(left_upper_wrist_proxy_crv, .2)
-        left_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=left_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_upper_wrist_proxy_crv, left_upper_wrist_proxy_grp)
-        cmds.move(58.2, 131.615, 0, left_upper_wrist_proxy_grp)
-        cmds.parent(left_upper_wrist_proxy_grp, left_main_wrist_proxy_crv)
-        change_viewport_color(left_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Upper Wrist
+    left_upper_wrist_proxy_crv = _corrective_proxy_dict.get('left_upper_wrist_crv')
+    left_upper_wrist_proxy_crv = create_directional_joint_curve(left_upper_wrist_proxy_crv, .2)
+    left_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=left_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_upper_wrist_proxy_crv, left_upper_wrist_proxy_grp)
+    cmds.move(58.2, 131.615, 0, left_upper_wrist_proxy_grp)
+    cmds.parent(left_upper_wrist_proxy_grp, left_main_wrist_proxy_crv)
+    change_viewport_color(left_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Left Lower Wrist
-        left_lower_wrist_proxy_crv = _corrective_proxy_dict.get('left_lower_wrist_crv')
-        left_lower_wrist_proxy_crv = create_directional_joint_curve(left_lower_wrist_proxy_crv, .2)
-        left_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=left_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_lower_wrist_proxy_crv, left_lower_wrist_proxy_grp)
-        cmds.move(58.2, 129.196, 0, left_lower_wrist_proxy_grp)
-        cmds.rotate(-180, left_lower_wrist_proxy_grp, rotateZ=True)
-        cmds.parent(left_lower_wrist_proxy_grp, left_main_wrist_proxy_crv)
-        change_viewport_color(left_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Lower Wrist
+    left_lower_wrist_proxy_crv = _corrective_proxy_dict.get('left_lower_wrist_crv')
+    left_lower_wrist_proxy_crv = create_directional_joint_curve(left_lower_wrist_proxy_crv, .2)
+    left_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=left_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_lower_wrist_proxy_crv, left_lower_wrist_proxy_grp)
+    cmds.move(58.2, 129.196, 0, left_lower_wrist_proxy_grp)
+    cmds.rotate(-180, left_lower_wrist_proxy_grp, rotateZ=True)
+    cmds.parent(left_lower_wrist_proxy_grp, left_main_wrist_proxy_crv)
+    change_viewport_color(left_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # ### Right Wrist ###
-        right_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_wrist_crv'), .5)
-        right_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=right_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_main_wrist_proxy_crv, right_main_wrist_proxy_grp)
-        cmds.move(-58.2, 130.4, 0, right_main_wrist_proxy_grp)
-        cmds.rotate(90, right_main_wrist_proxy_grp, rotateX=True)
-        cmds.rotate(180, right_main_wrist_proxy_grp, rotateY=True)
-        cmds.parent(right_main_wrist_proxy_grp, main_root)
-        change_viewport_color(right_main_wrist_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(right_main_wrist_proxy_crv)
+    # ### Right Wrist ###
+    right_main_wrist_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_wrist_crv'), .5)
+    right_main_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=right_main_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_wrist_proxy_crv, right_main_wrist_proxy_grp)
+    cmds.move(-58.2, 130.4, 0, right_main_wrist_proxy_grp)
+    cmds.rotate(90, right_main_wrist_proxy_grp, rotateX=True)
+    cmds.rotate(180, right_main_wrist_proxy_grp, rotateY=True)
+    cmds.parent(right_main_wrist_proxy_grp, main_root)
+    change_viewport_color(right_main_wrist_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(right_main_wrist_proxy_crv)
 
-        # Right Upper Wrist
-        right_upper_wrist_proxy_crv = _corrective_proxy_dict.get('right_upper_wrist_crv')
-        right_upper_wrist_proxy_crv = create_directional_joint_curve(right_upper_wrist_proxy_crv, .2)
-        right_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                                 name=right_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_upper_wrist_proxy_crv, right_upper_wrist_proxy_grp)
-        cmds.move(-58.2, 131.615, 0, right_upper_wrist_proxy_grp)
-        cmds.parent(right_upper_wrist_proxy_grp, right_main_wrist_proxy_crv)
-        change_viewport_color(right_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Upper Wrist
+    right_upper_wrist_proxy_crv = _corrective_proxy_dict.get('right_upper_wrist_crv')
+    right_upper_wrist_proxy_crv = create_directional_joint_curve(right_upper_wrist_proxy_crv, .2)
+    right_upper_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=right_upper_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_upper_wrist_proxy_crv, right_upper_wrist_proxy_grp)
+    cmds.move(-58.2, 131.615, 0, right_upper_wrist_proxy_grp)
+    cmds.parent(right_upper_wrist_proxy_grp, right_main_wrist_proxy_crv)
+    change_viewport_color(right_upper_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Lower Wrist
-        right_lower_wrist_proxy_crv = _corrective_proxy_dict.get('right_lower_wrist_crv')
-        right_lower_wrist_proxy_crv = create_directional_joint_curve(right_lower_wrist_proxy_crv, .2)
-        right_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
-                                                 name=right_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_lower_wrist_proxy_crv, right_lower_wrist_proxy_grp)
-        cmds.move(-58.2, 129.196, 0, right_lower_wrist_proxy_grp)
-        cmds.rotate(-180, right_lower_wrist_proxy_grp, rotateZ=True)
-        cmds.parent(right_lower_wrist_proxy_grp, right_main_wrist_proxy_crv)
-        change_viewport_color(right_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Lower Wrist
+    right_lower_wrist_proxy_crv = _corrective_proxy_dict.get('right_lower_wrist_crv')
+    right_lower_wrist_proxy_crv = create_directional_joint_curve(right_lower_wrist_proxy_crv, .2)
+    right_lower_wrist_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=right_lower_wrist_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_lower_wrist_proxy_crv, right_lower_wrist_proxy_grp)
+    cmds.move(-58.2, 129.196, 0, right_lower_wrist_proxy_grp)
+    cmds.rotate(-180, right_lower_wrist_proxy_grp, rotateZ=True)
+    cmds.parent(right_lower_wrist_proxy_grp, right_main_wrist_proxy_crv)
+    change_viewport_color(right_lower_wrist_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # --------------------------------------------------------------------------------------------- Knees
-    if _corrective_settings.get("setup_knees"):
-        # Left Main Knee
-        left_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_knee_crv'), .2)
-        left_main_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=left_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_main_knee_proxy_crv, left_main_knee_proxy_grp)
-        cmds.move(10.2, 47.05, 0, left_main_knee_proxy_grp)
-        cmds.rotate(90, left_main_knee_proxy_grp, rotateX=True)
-        cmds.rotate(-90, left_main_knee_proxy_grp, rotateZ=True)
-        cmds.parent(left_main_knee_proxy_grp, main_root)
-        change_viewport_color(left_main_knee_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(left_main_knee_proxy_crv)
+    # Left Main Knee
+    left_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_knee_crv'), .2)
+    left_main_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_knee_proxy_crv, left_main_knee_proxy_grp)
+    cmds.move(10.2, 47.05, 0, left_main_knee_proxy_grp)
+    cmds.rotate(90, left_main_knee_proxy_grp, rotateX=True)
+    cmds.rotate(-90, left_main_knee_proxy_grp, rotateZ=True)
+    cmds.parent(left_main_knee_proxy_grp, main_root)
+    change_viewport_color(left_main_knee_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(left_main_knee_proxy_crv)
 
-        # Left Back Knee
-        left_back_knee_proxy_crv = _corrective_proxy_dict.get('left_back_knee_crv')
-        left_back_knee_proxy_crv = create_directional_joint_curve(left_back_knee_proxy_crv, .2)
-        left_back_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=left_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_back_knee_proxy_crv, left_back_knee_proxy_grp)
-        cmds.move(10.2, 47.05, -4, left_back_knee_proxy_grp)
-        cmds.rotate(-90, left_back_knee_proxy_grp, rotateX=True)
-        cmds.parent(left_back_knee_proxy_grp, left_main_knee_proxy_crv)
-        change_viewport_color(left_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Back Knee
+    left_back_knee_proxy_crv = _corrective_proxy_dict.get('left_back_knee_crv')
+    left_back_knee_proxy_crv = create_directional_joint_curve(left_back_knee_proxy_crv, .2)
+    left_back_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_back_knee_proxy_crv, left_back_knee_proxy_grp)
+    cmds.move(10.2, 47.05, -4, left_back_knee_proxy_grp)
+    cmds.rotate(-90, left_back_knee_proxy_grp, rotateX=True)
+    cmds.parent(left_back_knee_proxy_grp, left_main_knee_proxy_crv)
+    change_viewport_color(left_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Left Front Knee
-        left_front_knee_proxy_crv = _corrective_proxy_dict.get('left_front_knee_crv')
-        left_front_knee_proxy_crv = create_directional_joint_curve(left_front_knee_proxy_crv, .2)
-        left_front_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=left_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_front_knee_proxy_crv, left_front_knee_proxy_grp)
-        cmds.move(10.2, 47.05, 4, left_front_knee_proxy_grp)
-        cmds.rotate(90, left_front_knee_proxy_grp, rotateX=True)
-        cmds.parent(left_front_knee_proxy_grp, left_main_knee_proxy_crv)
-        change_viewport_color(left_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Front Knee
+    left_front_knee_proxy_crv = _corrective_proxy_dict.get('left_front_knee_crv')
+    left_front_knee_proxy_crv = create_directional_joint_curve(left_front_knee_proxy_crv, .2)
+    left_front_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=left_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_front_knee_proxy_crv, left_front_knee_proxy_grp)
+    cmds.move(10.2, 47.05, 4, left_front_knee_proxy_grp)
+    cmds.rotate(90, left_front_knee_proxy_grp, rotateX=True)
+    cmds.parent(left_front_knee_proxy_grp, left_main_knee_proxy_crv)
+    change_viewport_color(left_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Main Knee
-        right_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_knee_crv'), .2)
-        right_main_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=right_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_main_knee_proxy_crv, right_main_knee_proxy_grp)
-        cmds.move(-10.2, 47.05, 0, right_main_knee_proxy_grp)
-        cmds.rotate(270, right_main_knee_proxy_grp, rotateX=True)
-        cmds.rotate(90, right_main_knee_proxy_grp, rotateZ=True)
-        cmds.parent(right_main_knee_proxy_grp, main_root)
-        change_viewport_color(right_main_knee_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(right_main_knee_proxy_crv)
+    # Right Main Knee
+    right_main_knee_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_knee_crv'), .2)
+    right_main_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_main_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_knee_proxy_crv, right_main_knee_proxy_grp)
+    cmds.move(-10.2, 47.05, 0, right_main_knee_proxy_grp)
+    cmds.rotate(270, right_main_knee_proxy_grp, rotateX=True)
+    cmds.rotate(90, right_main_knee_proxy_grp, rotateZ=True)
+    cmds.parent(right_main_knee_proxy_grp, main_root)
+    change_viewport_color(right_main_knee_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(right_main_knee_proxy_crv)
 
-        # Right Lower Knee
-        right_back_knee_proxy_crv = _corrective_proxy_dict.get('right_back_knee_crv')
-        right_back_knee_proxy_crv = create_directional_joint_curve(right_back_knee_proxy_crv, .2)
-        right_back_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=right_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_back_knee_proxy_crv, right_back_knee_proxy_grp)
-        cmds.move(-10.2, 47.05, -4, right_back_knee_proxy_grp)
-        cmds.rotate(-90, right_back_knee_proxy_grp, rotateX=True)
-        cmds.parent(right_back_knee_proxy_grp, right_main_knee_proxy_crv)
-        change_viewport_color(right_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Lower Knee
+    right_back_knee_proxy_crv = _corrective_proxy_dict.get('right_back_knee_crv')
+    right_back_knee_proxy_crv = create_directional_joint_curve(right_back_knee_proxy_crv, .2)
+    right_back_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_back_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_back_knee_proxy_crv, right_back_knee_proxy_grp)
+    cmds.move(-10.2, 47.05, -4, right_back_knee_proxy_grp)
+    cmds.rotate(-90, right_back_knee_proxy_grp, rotateX=True)
+    cmds.parent(right_back_knee_proxy_grp, right_main_knee_proxy_crv)
+    change_viewport_color(right_back_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Front Knee
-        right_front_knee_proxy_crv = _corrective_proxy_dict.get('right_front_knee_crv')
-        right_front_knee_proxy_crv = create_directional_joint_curve(right_front_knee_proxy_crv, .2)
-        right_front_knee_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=right_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_front_knee_proxy_crv, right_front_knee_proxy_grp)
-        cmds.move(-10.2, 47.05, 4, right_front_knee_proxy_grp)
-        cmds.rotate(90, right_front_knee_proxy_grp, rotateX=True)
-        cmds.parent(right_front_knee_proxy_grp, right_main_knee_proxy_crv)
-        change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Front Knee
+    right_front_knee_proxy_crv = _corrective_proxy_dict.get('right_front_knee_crv')
+    right_front_knee_proxy_crv = create_directional_joint_curve(right_front_knee_proxy_crv, .2)
+    right_front_knee_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=right_front_knee_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_front_knee_proxy_crv, right_front_knee_proxy_grp)
+    cmds.move(-10.2, 47.05, 4, right_front_knee_proxy_grp)
+    cmds.rotate(90, right_front_knee_proxy_grp, rotateX=True)
+    cmds.parent(right_front_knee_proxy_grp, right_main_knee_proxy_crv)
+    change_viewport_color(right_front_knee_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # --------------------------------------------------------------------------------------------------- Hips
-    if _corrective_settings.get("setup_hips"):
-        # Left Main Hip
-        left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
-        left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                             name=left_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_main_hip_proxy_crv, left_main_hip_proxy_grp)
-        cmds.move(10.2, 84.5, 0, left_main_hip_proxy_grp)
-        cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
-        cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
-        cmds.parent(left_main_hip_proxy_grp, main_root)
-        change_viewport_color(left_main_hip_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(left_main_hip_proxy_crv)
 
-        # Left Back Hip
-        left_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_hip_crv'), .2)
-        left_back_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                             name=left_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_back_hip_proxy_crv, left_back_hip_proxy_grp)
-        cmds.move(10.2, 84.5, -4, left_back_hip_proxy_grp)
-        cmds.rotate(-90, left_back_hip_proxy_grp, rotateX=True)
-        cmds.parent(left_back_hip_proxy_grp, left_main_hip_proxy_crv)
-        change_viewport_color(left_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Main Hip
+    left_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_hip_crv'), .2)
+    left_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                         name=left_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_hip_proxy_crv, left_main_hip_proxy_grp)
+    cmds.move(10.2, 84.5, 0, left_main_hip_proxy_grp)
+    cmds.rotate(90, left_main_hip_proxy_grp, rotateX=True)
+    cmds.rotate(-90, left_main_hip_proxy_grp, rotateZ=True)
+    cmds.parent(left_main_hip_proxy_grp, main_root)
+    change_viewport_color(left_main_hip_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(left_main_hip_proxy_crv)
 
-        # Left Front Hip
-        left_front_hip_proxy_crv = _corrective_proxy_dict.get('left_front_hip_crv')
-        left_front_hip_proxy_crv = create_directional_joint_curve(left_front_hip_proxy_crv, .2)
-        left_front_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=left_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_front_hip_proxy_crv, left_front_hip_proxy_grp)
-        cmds.move(10.2, 84.5, 4, left_front_hip_proxy_grp)
-        cmds.rotate(90, left_front_hip_proxy_grp, rotateX=True)
-        cmds.parent(left_front_hip_proxy_grp, left_main_hip_proxy_crv)
-        change_viewport_color(left_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Back Hip
+    left_back_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_back_hip_crv'), .2)
+    left_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                         name=left_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_back_hip_proxy_crv, left_back_hip_proxy_grp)
+    cmds.move(10.2, 84.5, -4, left_back_hip_proxy_grp)
+    cmds.rotate(-90, left_back_hip_proxy_grp, rotateX=True)
+    cmds.parent(left_back_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Left Outer Hip
-        left_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_outer_hip_crv'), .2)
-        left_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=left_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_outer_hip_proxy_crv, left_outer_hip_proxy_grp)
-        cmds.move(14.2, 84.5, 0, left_outer_hip_proxy_grp)
-        cmds.rotate(-90, left_outer_hip_proxy_grp, rotateZ=True)
-        cmds.parent(left_outer_hip_proxy_grp, left_main_hip_proxy_crv)
-        change_viewport_color(left_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Front Hip
+    left_front_hip_proxy_crv = _corrective_proxy_dict.get('left_front_hip_crv')
+    left_front_hip_proxy_crv = create_directional_joint_curve(left_front_hip_proxy_crv, .2)
+    left_front_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_front_hip_proxy_crv, left_front_hip_proxy_grp)
+    cmds.move(10.2, 84.5, 4, left_front_hip_proxy_grp)
+    cmds.rotate(90, left_front_hip_proxy_grp, rotateX=True)
+    cmds.parent(left_front_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # # Left Inner Hip
-        # left_inner_hip_proxy_crv = _corrective_proxy_dict.get('left_inner_hip_crv')
-        # left_inner_hip_proxy_crv = create_directional_joint_curve(left_inner_hip_proxy_crv, .2)
-        # left_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
-        #                                        name=left_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        # cmds.parent(left_inner_hip_proxy_crv, left_inner_hip_proxy_grp)
-        # cmds.move(6.2, 84.5, 0, left_inner_hip_proxy_grp)
-        # cmds.rotate(90, left_inner_hip_proxy_grp, rotateZ=True)
-        # cmds.parent(left_inner_hip_proxy_grp, left_main_hip_proxy_crv)
-        # change_viewport_color(left_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Outer Hip
+    left_outer_hip_proxy_crv = create_directional_joint_curve(_corrective_proxy_dict.get('left_outer_hip_crv'), .2)
+    left_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=left_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_outer_hip_proxy_crv, left_outer_hip_proxy_grp)
+    cmds.move(14.2, 84.5, 0, left_outer_hip_proxy_grp)
+    cmds.rotate(-90, left_outer_hip_proxy_grp, rotateZ=True)
+    cmds.parent(left_outer_hip_proxy_grp, left_main_hip_proxy_crv)
+    change_viewport_color(left_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Main Hip
-        right_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_hip_crv'), .2)
-        right_main_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=right_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_main_hip_proxy_crv, right_main_hip_proxy_grp)
-        cmds.move(-10.2, 84.5, 0, right_main_hip_proxy_grp)
-        cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
-        cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
-        cmds.parent(right_main_hip_proxy_grp, main_root)
-        change_viewport_color(right_main_hip_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(right_main_hip_proxy_crv)
+    # # Left Inner Hip
+    # left_inner_hip_proxy_crv = _corrective_proxy_dict.get('left_inner_hip_crv')
+    # left_inner_hip_proxy_crv = create_directional_joint_curve(left_inner_hip_proxy_crv, .2)
+    # left_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+    #                                        name=left_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(left_inner_hip_proxy_crv, left_inner_hip_proxy_grp)
+    # cmds.move(6.2, 84.5, 0, left_inner_hip_proxy_grp)
+    # cmds.rotate(90, left_inner_hip_proxy_grp, rotateZ=True)
+    # cmds.parent(left_inner_hip_proxy_grp, left_main_hip_proxy_crv)
+    # change_viewport_color(left_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Back Hip
-        right_back_hip_proxy_crv = _corrective_proxy_dict.get('right_back_hip_crv')
-        right_back_hip_proxy_crv = create_directional_joint_curve(right_back_hip_proxy_crv, .2)
-        right_back_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                              name=right_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_back_hip_proxy_crv, right_back_hip_proxy_grp)
-        cmds.move(-10.2, 84.5, -4, right_back_hip_proxy_grp)
-        cmds.rotate(-90, right_back_hip_proxy_grp, rotateX=True)
-        cmds.parent(right_back_hip_proxy_grp, right_main_hip_proxy_crv)
-        change_viewport_color(right_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Main Hip
+    right_main_hip_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_hip_crv'), .2)
+    right_main_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=right_main_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_hip_proxy_crv, right_main_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, 0, right_main_hip_proxy_grp)
+    cmds.rotate(-90, right_main_hip_proxy_grp, rotateX=True)
+    cmds.rotate(90, right_main_hip_proxy_grp, rotateZ=True)
+    cmds.parent(right_main_hip_proxy_grp, main_root)
+    change_viewport_color(right_main_hip_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(right_main_hip_proxy_crv)
 
-        # Right Front Hip
-        right_front_hip_proxy_crv = _corrective_proxy_dict.get('right_front_hip_crv')
-        right_front_hip_proxy_crv = create_directional_joint_curve(right_front_hip_proxy_crv, .2)
-        right_front_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=right_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_front_hip_proxy_crv, right_front_hip_proxy_grp)
-        cmds.move(-10.2, 84.5, 4, right_front_hip_proxy_grp)
-        cmds.rotate(90, right_front_hip_proxy_grp, rotateX=True)
-        cmds.parent(right_front_hip_proxy_grp, right_main_hip_proxy_crv)
-        change_viewport_color(right_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Back Hip
+    right_back_hip_proxy_crv = _corrective_proxy_dict.get('right_back_hip_crv')
+    right_back_hip_proxy_crv = create_directional_joint_curve(right_back_hip_proxy_crv, .2)
+    right_back_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                          name=right_back_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_back_hip_proxy_crv, right_back_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, -4, right_back_hip_proxy_grp)
+    cmds.rotate(-90, right_back_hip_proxy_grp, rotateX=True)
+    cmds.parent(right_back_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_back_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Outer Hip
-        right_outer_hip_proxy_crv = _corrective_proxy_dict.get('right_outer_hip_crv')
-        right_outer_hip_proxy_crv = create_directional_joint_curve(right_outer_hip_proxy_crv, .2)
-        right_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=right_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_outer_hip_proxy_crv, right_outer_hip_proxy_grp)
-        cmds.move(-14.2, 84.5, 0, right_outer_hip_proxy_grp)
-        cmds.rotate(90, right_outer_hip_proxy_grp, rotateZ=True)
-        cmds.parent(right_outer_hip_proxy_grp, right_main_hip_proxy_crv)
-        change_viewport_color(right_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Front Hip
+    right_front_hip_proxy_crv = _corrective_proxy_dict.get('right_front_hip_crv')
+    right_front_hip_proxy_crv = create_directional_joint_curve(right_front_hip_proxy_crv, .2)
+    right_front_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_front_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_front_hip_proxy_crv, right_front_hip_proxy_grp)
+    cmds.move(-10.2, 84.5, 4, right_front_hip_proxy_grp)
+    cmds.rotate(90, right_front_hip_proxy_grp, rotateX=True)
+    cmds.parent(right_front_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_front_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # # Right Inner hip
-        # right_inner_hip_proxy_crv = _corrective_proxy_dict.get('right_inner_hip_crv')
-        # right_inner_hip_proxy_crv = create_directional_joint_curve(right_inner_hip_proxy_crv, .2)
-        # right_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
-        #                                        name=right_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
-        # cmds.parent(right_inner_hip_proxy_crv, right_inner_hip_proxy_grp)
-        # cmds.move(-6.2, 84.5, 0, right_inner_hip_proxy_grp)
-        # cmds.rotate(-90, right_inner_hip_proxy_grp, rotateZ=True)
-        # cmds.parent(right_inner_hip_proxy_grp, right_main_hip_proxy_crv)
-        # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Outer Hip
+    right_outer_hip_proxy_crv = _corrective_proxy_dict.get('right_outer_hip_crv')
+    right_outer_hip_proxy_crv = create_directional_joint_curve(right_outer_hip_proxy_crv, .2)
+    right_outer_hip_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=right_outer_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_outer_hip_proxy_crv, right_outer_hip_proxy_grp)
+    cmds.move(-14.2, 84.5, 0, right_outer_hip_proxy_grp)
+    cmds.rotate(90, right_outer_hip_proxy_grp, rotateZ=True)
+    cmds.parent(right_outer_hip_proxy_grp, right_main_hip_proxy_crv)
+    change_viewport_color(right_outer_hip_proxy_crv, PROXY_DRIVEN_COLOR)
+
+    # # Right Inner hip
+    # right_inner_hip_proxy_crv = _corrective_proxy_dict.get('right_inner_hip_crv')
+    # right_inner_hip_proxy_crv = create_directional_joint_curve(right_inner_hip_proxy_crv, .2)
+    # right_inner_hip_proxy_grp = cmds.group(empty=True, world=True,
+    #                                        name=right_inner_hip_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(right_inner_hip_proxy_crv, right_inner_hip_proxy_grp)
+    # cmds.move(-6.2, 84.5, 0, right_inner_hip_proxy_grp)
+    # cmds.rotate(-90, right_inner_hip_proxy_grp, rotateZ=True)
+    # cmds.parent(right_inner_hip_proxy_grp, right_main_hip_proxy_crv)
+    # change_viewport_color(right_inner_hip_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # -------------------------------------------------------------------------------------------- Elbows
-    if _corrective_settings.get("setup_elbows"):
-        # Left Main Elbow
-        left_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_elbow_crv'), .2)
-        left_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                               name=left_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_main_elbow_proxy_crv, left_main_elbow_proxy_grp)
-        cmds.move(37.7, 130.4, -0.01, left_main_elbow_proxy_grp)
-        cmds.rotate(-90, left_main_elbow_proxy_grp, rotateX=True)
-        cmds.parent(left_main_elbow_proxy_grp, main_root)
-        change_viewport_color(left_main_elbow_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(left_main_elbow_proxy_crv)
+    # Left Main Elbow
+    left_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_elbow_crv'), .2)
+    left_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                           name=left_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_elbow_proxy_crv, left_main_elbow_proxy_grp)
+    cmds.move(37.7, 130.4, -0.01, left_main_elbow_proxy_grp)
+    cmds.rotate(-90, left_main_elbow_proxy_grp, rotateX=True)
+    cmds.parent(left_main_elbow_proxy_grp, main_root)
+    change_viewport_color(left_main_elbow_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(left_main_elbow_proxy_crv)
 
-        # Left Front Elbow
-        left_front_elbow_proxy_crv = _corrective_proxy_dict.get('left_front_elbow_crv')
-        left_front_elbow_proxy_crv = create_directional_joint_curve(left_front_elbow_proxy_crv, .2)
-        left_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=left_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_front_elbow_proxy_crv, left_front_elbow_proxy_grp)
-        cmds.move(37.7, 130.4, 2, left_front_elbow_proxy_grp)
-        cmds.rotate(90, left_front_elbow_proxy_grp, rotateX=True)
-        cmds.parent(left_front_elbow_proxy_grp, left_main_elbow_proxy_crv)
-        change_viewport_color(left_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Front Elbow
+    left_front_elbow_proxy_crv = _corrective_proxy_dict.get('left_front_elbow_crv')
+    left_front_elbow_proxy_crv = create_directional_joint_curve(left_front_elbow_proxy_crv, .2)
+    left_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=left_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_front_elbow_proxy_crv, left_front_elbow_proxy_grp)
+    cmds.move(37.7, 130.4, 2, left_front_elbow_proxy_grp)
+    cmds.rotate(90, left_front_elbow_proxy_grp, rotateX=True)
+    cmds.parent(left_front_elbow_proxy_grp, left_main_elbow_proxy_crv)
+    change_viewport_color(left_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Main Elbow
-        right_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_elbow_crv'), .2)
-        right_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                                name=right_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_main_elbow_proxy_crv, right_main_elbow_proxy_grp)
-        cmds.move(-37.7, 130.4, -0.01, right_main_elbow_proxy_grp)
-        cmds.rotate(90, right_main_elbow_proxy_grp, rotateX=True)
-        cmds.parent(right_main_elbow_proxy_grp, main_root)
-        change_viewport_color(right_main_elbow_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(right_main_elbow_proxy_crv)
+    # Right Main Elbow
+    right_main_elbow_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_elbow_crv'), .2)
+    right_main_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                            name=right_main_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_elbow_proxy_crv, right_main_elbow_proxy_grp)
+    cmds.move(-37.7, 130.4, -0.01, right_main_elbow_proxy_grp)
+    cmds.rotate(90, right_main_elbow_proxy_grp, rotateX=True)
+    cmds.parent(right_main_elbow_proxy_grp, main_root)
+    change_viewport_color(right_main_elbow_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(right_main_elbow_proxy_crv)
 
-        # Right Front Elbow
-        right_front_elbow_proxy_crv = _corrective_proxy_dict.get('right_front_elbow_crv')
-        right_front_elbow_proxy_crv = create_directional_joint_curve(right_front_elbow_proxy_crv, .2)
-        right_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
-                                                 name=right_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_front_elbow_proxy_crv, right_front_elbow_proxy_grp)
-        cmds.move(-37.7, 130.4, 2, right_front_elbow_proxy_grp)
-        cmds.rotate(90, right_front_elbow_proxy_grp, rotateX=True)
-        cmds.parent(right_front_elbow_proxy_grp, right_main_elbow_proxy_crv)
-        change_viewport_color(right_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Front Elbow
+    right_front_elbow_proxy_crv = _corrective_proxy_dict.get('right_front_elbow_crv')
+    right_front_elbow_proxy_crv = create_directional_joint_curve(right_front_elbow_proxy_crv, .2)
+    right_front_elbow_proxy_grp = cmds.group(empty=True, world=True,
+                                             name=right_front_elbow_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_front_elbow_proxy_crv, right_front_elbow_proxy_grp)
+    cmds.move(-37.7, 130.4, 2, right_front_elbow_proxy_grp)
+    cmds.rotate(90, right_front_elbow_proxy_grp, rotateX=True)
+    cmds.parent(right_front_elbow_proxy_grp, right_main_elbow_proxy_crv)
+    change_viewport_color(right_front_elbow_proxy_crv, PROXY_DRIVEN_COLOR)
 
     # --------------------------------------------------------------------------------------------- Shoulders
-    left_shoulder_elements = []
-    right_shoulder_elements = []
-    left_main_shoulder_proxy_crv = ''
-    right_main_shoulder_proxy_crv = ''
-    if _corrective_settings.get("setup_shoulders"):
-        # Left Main Shoulder
-        left_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_shoulder_crv'), .2)
-        left_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                  name=left_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_main_shoulder_proxy_crv, left_main_shoulder_proxy_grp)
-        cmds.move(17.2, 130.4, 0, left_main_shoulder_proxy_grp)
-        cmds.rotate(-90, left_main_shoulder_proxy_grp, rotateX=True)
-        cmds.parent(left_main_shoulder_proxy_grp, main_root)
-        change_viewport_color(left_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(left_main_shoulder_proxy_crv)
+    # Left Main Shoulder
+    left_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('left_main_shoulder_crv'), .2)
+    left_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_main_shoulder_proxy_crv, left_main_shoulder_proxy_grp)
+    cmds.move(17.2, 130.4, 0, left_main_shoulder_proxy_grp)
+    cmds.rotate(-90, left_main_shoulder_proxy_grp, rotateX=True)
+    cmds.parent(left_main_shoulder_proxy_grp, main_root)
+    change_viewport_color(left_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(left_main_shoulder_proxy_crv)
 
-        # Left Back Shoulder
-        left_back_shoulder_proxy_crv = _corrective_proxy_dict.get('left_back_shoulder_crv')
-        left_back_shoulder_proxy_crv = create_directional_joint_curve(left_back_shoulder_proxy_crv, .2)
-        left_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                  name=left_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_back_shoulder_proxy_crv, left_back_shoulder_proxy_grp)
-        cmds.move(17.2, 130.4, -4, left_back_shoulder_proxy_grp)
-        cmds.rotate(-90, left_back_shoulder_proxy_grp, rotateX=True)
-        change_viewport_color(left_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Back Shoulder
+    left_back_shoulder_proxy_crv = _corrective_proxy_dict.get('left_back_shoulder_crv')
+    left_back_shoulder_proxy_crv = create_directional_joint_curve(left_back_shoulder_proxy_crv, .2)
+    left_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                              name=left_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_back_shoulder_proxy_crv, left_back_shoulder_proxy_grp)
+    cmds.move(17.2, 130.4, -4, left_back_shoulder_proxy_grp)
+    cmds.rotate(-90, left_back_shoulder_proxy_grp, rotateX=True)
+    change_viewport_color(left_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Left Front Shoulder
-        left_front_shoulder_proxy_crv = _corrective_proxy_dict.get('left_front_shoulder_crv')
-        left_front_shoulder_proxy_crv = create_directional_joint_curve(left_front_shoulder_proxy_crv, .2)
-        left_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                   name=left_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_front_shoulder_proxy_crv, left_front_shoulder_proxy_grp)
-        cmds.move(17.2, 130.4, 4, left_front_shoulder_proxy_grp)
-        cmds.rotate(90, left_front_shoulder_proxy_grp, rotateX=True)
-        change_viewport_color(left_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Front Shoulder
+    left_front_shoulder_proxy_crv = _corrective_proxy_dict.get('left_front_shoulder_crv')
+    left_front_shoulder_proxy_crv = create_directional_joint_curve(left_front_shoulder_proxy_crv, .2)
+    left_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=left_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_front_shoulder_proxy_crv, left_front_shoulder_proxy_grp)
+    cmds.move(17.2, 130.4, 4, left_front_shoulder_proxy_grp)
+    cmds.rotate(90, left_front_shoulder_proxy_grp, rotateX=True)
+    change_viewport_color(left_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Left Upper Shoulder
-        left_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('left_upper_shoulder_crv')
-        left_upper_shoulder_proxy_crv = create_directional_joint_curve(left_upper_shoulder_proxy_crv, .2)
-        left_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                   name=left_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(left_upper_shoulder_proxy_crv, left_upper_shoulder_proxy_grp)
-        cmds.move(17.2, 134.4, 0, left_upper_shoulder_proxy_grp)
-        change_viewport_color(left_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Left Upper Shoulder
+    left_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('left_upper_shoulder_crv')
+    left_upper_shoulder_proxy_crv = create_directional_joint_curve(left_upper_shoulder_proxy_crv, .2)
+    left_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=left_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(left_upper_shoulder_proxy_crv, left_upper_shoulder_proxy_grp)
+    cmds.move(17.2, 134.4, 0, left_upper_shoulder_proxy_grp)
+    change_viewport_color(left_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # # Left Lower Shoulder
-        # left_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('left_lower_shoulder_crv')
-        # left_lower_shoulder_proxy_crv = create_directional_joint_curve(left_lower_shoulder_proxy_crv, .2)
-        # left_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-        #                                            name=left_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        # cmds.parent(left_lower_shoulder_proxy_crv, left_lower_shoulder_proxy_grp)
-        # cmds.move(17.2, 126.4, 0, left_lower_shoulder_proxy_grp)
-        # cmds.rotate(180, left_lower_shoulder_proxy_grp, rotateX=True)
-        # change_viewport_color(left_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # # Left Lower Shoulder
+    # left_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('left_lower_shoulder_crv')
+    # left_lower_shoulder_proxy_crv = create_directional_joint_curve(left_lower_shoulder_proxy_crv, .2)
+    # left_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+    #                                            name=left_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(left_lower_shoulder_proxy_crv, left_lower_shoulder_proxy_grp)
+    # cmds.move(17.2, 126.4, 0, left_lower_shoulder_proxy_grp)
+    # cmds.rotate(180, left_lower_shoulder_proxy_grp, rotateX=True)
+    # change_viewport_color(left_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Main Shoulder
-        right_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_shoulder_crv'), .2)
-        right_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                   name=right_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_main_shoulder_proxy_crv, right_main_shoulder_proxy_grp)
-        cmds.move(-17.2, 130.4, 0, right_main_shoulder_proxy_grp)
-        cmds.rotate(90, right_main_shoulder_proxy_grp, rotateX=True)
-        cmds.parent(right_main_shoulder_proxy_grp, main_root)
-        change_viewport_color(right_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
-        main_proxies.append(right_main_shoulder_proxy_crv)
+    # Right Main Shoulder
+    right_main_shoulder_proxy_crv = create_joint_curve(_corrective_proxy_dict.get('right_main_shoulder_crv'), .2)
+    right_main_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_main_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_main_shoulder_proxy_crv, right_main_shoulder_proxy_grp)
+    cmds.move(-17.2, 130.4, 0, right_main_shoulder_proxy_grp)
+    cmds.rotate(90, right_main_shoulder_proxy_grp, rotateX=True)
+    cmds.parent(right_main_shoulder_proxy_grp, main_root)
+    change_viewport_color(right_main_shoulder_proxy_crv, ALT_PROXY_COLOR)
+    main_proxies.append(right_main_shoulder_proxy_crv)
 
-        # Right Back Shoulder
-        right_back_shoulder_proxy_crv = _corrective_proxy_dict.get('right_back_shoulder_crv')
-        right_back_shoulder_proxy_crv = create_directional_joint_curve(right_back_shoulder_proxy_crv, .2)
-        right_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                   name=right_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_back_shoulder_proxy_crv, right_back_shoulder_proxy_grp)
-        cmds.move(-17.2, 130.4, -4, right_back_shoulder_proxy_grp)
-        cmds.rotate(-90, right_back_shoulder_proxy_grp, rotateX=True)
-        change_viewport_color(right_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Back Shoulder
+    right_back_shoulder_proxy_crv = _corrective_proxy_dict.get('right_back_shoulder_crv')
+    right_back_shoulder_proxy_crv = create_directional_joint_curve(right_back_shoulder_proxy_crv, .2)
+    right_back_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                               name=right_back_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_back_shoulder_proxy_crv, right_back_shoulder_proxy_grp)
+    cmds.move(-17.2, 130.4, -4, right_back_shoulder_proxy_grp)
+    cmds.rotate(-90, right_back_shoulder_proxy_grp, rotateX=True)
+    change_viewport_color(right_back_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Front Shoulder
-        right_front_shoulder_proxy_crv = _corrective_proxy_dict.get('right_front_shoulder_crv')
-        right_front_shoulder_proxy_crv = create_directional_joint_curve(right_front_shoulder_proxy_crv, .2)
-        right_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                    name=right_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_front_shoulder_proxy_crv, right_front_shoulder_proxy_grp)
-        cmds.move(-17.2, 130.4, 4, right_front_shoulder_proxy_grp)
-        cmds.rotate(90, right_front_shoulder_proxy_grp, rotateX=True)
-        change_viewport_color(right_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Front Shoulder
+    right_front_shoulder_proxy_crv = _corrective_proxy_dict.get('right_front_shoulder_crv')
+    right_front_shoulder_proxy_crv = create_directional_joint_curve(right_front_shoulder_proxy_crv, .2)
+    right_front_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=right_front_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_front_shoulder_proxy_crv, right_front_shoulder_proxy_grp)
+    cmds.move(-17.2, 130.4, 4, right_front_shoulder_proxy_grp)
+    cmds.rotate(90, right_front_shoulder_proxy_grp, rotateX=True)
+    change_viewport_color(right_front_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # Right Upper Shoulder
-        right_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('right_upper_shoulder_crv')
-        right_upper_shoulder_proxy_crv = create_directional_joint_curve(right_upper_shoulder_proxy_crv, .2)
-        right_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-                                                    name=right_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        cmds.parent(right_upper_shoulder_proxy_crv, right_upper_shoulder_proxy_grp)
-        cmds.move(-17.2, 134.4, 0, right_upper_shoulder_proxy_grp)
-        change_viewport_color(right_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
-        #
-        # # Right Lower Shoulder
-        # right_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('right_lower_shoulder_crv')
-        # right_lower_shoulder_proxy_crv = create_directional_joint_curve(right_lower_shoulder_proxy_crv, .2)
-        # right_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
-        #                                             name=right_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
-        # cmds.parent(right_lower_shoulder_proxy_crv, right_lower_shoulder_proxy_grp)
-        # cmds.move(-17.2, 126.4, 0, right_lower_shoulder_proxy_grp)
-        # cmds.rotate(180, right_lower_shoulder_proxy_grp, rotateX=True)
-        # change_viewport_color(right_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    # Right Upper Shoulder
+    right_upper_shoulder_proxy_crv = _corrective_proxy_dict.get('right_upper_shoulder_crv')
+    right_upper_shoulder_proxy_crv = create_directional_joint_curve(right_upper_shoulder_proxy_crv, .2)
+    right_upper_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+                                                name=right_upper_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    cmds.parent(right_upper_shoulder_proxy_crv, right_upper_shoulder_proxy_grp)
+    cmds.move(-17.2, 134.4, 0, right_upper_shoulder_proxy_grp)
+    change_viewport_color(right_upper_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
+    #
+    # # Right Lower Shoulder
+    # right_lower_shoulder_proxy_crv = _corrective_proxy_dict.get('right_lower_shoulder_crv')
+    # right_lower_shoulder_proxy_crv = create_directional_joint_curve(right_lower_shoulder_proxy_crv, .2)
+    # right_lower_shoulder_proxy_grp = cmds.group(empty=True, world=True,
+    #                                             name=right_lower_shoulder_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(right_lower_shoulder_proxy_crv, right_lower_shoulder_proxy_grp)
+    # cmds.move(-17.2, 126.4, 0, right_lower_shoulder_proxy_grp)
+    # cmds.rotate(180, right_lower_shoulder_proxy_grp, rotateX=True)
+    # change_viewport_color(right_lower_shoulder_proxy_crv, PROXY_DRIVEN_COLOR)
 
-        # left_shoulder_elements = [left_lower_shoulder_proxy_grp, left_upper_shoulder_proxy_grp,
-        #                           left_front_shoulder_proxy_grp, left_back_shoulder_proxy_grp]
-        # right_shoulder_elements = [right_lower_shoulder_proxy_grp, right_upper_shoulder_proxy_grp,
-        #                            right_front_shoulder_proxy_grp, right_back_shoulder_proxy_grp]
+    # left_shoulder_elements = [left_lower_shoulder_proxy_grp, left_upper_shoulder_proxy_grp,
+    #                           left_front_shoulder_proxy_grp, left_back_shoulder_proxy_grp]
+    # right_shoulder_elements = [right_lower_shoulder_proxy_grp, right_upper_shoulder_proxy_grp,
+    #                            right_front_shoulder_proxy_grp, right_back_shoulder_proxy_grp]
 
-        left_shoulder_elements = [left_front_shoulder_proxy_grp,
-                                  left_back_shoulder_proxy_grp,
-                                  left_upper_shoulder_proxy_grp]
-        right_shoulder_elements = [right_front_shoulder_proxy_grp,
-                                   right_back_shoulder_proxy_grp,
-                                   right_upper_shoulder_proxy_grp]
+    left_shoulder_elements = [left_front_shoulder_proxy_grp,
+                              left_back_shoulder_proxy_grp,
+                              left_upper_shoulder_proxy_grp]
+    right_shoulder_elements = [right_front_shoulder_proxy_grp,
+                               right_back_shoulder_proxy_grp,
+                               right_upper_shoulder_proxy_grp]
 
-        for obj in left_shoulder_elements:
-            cmds.parent(obj, left_main_shoulder_proxy_crv)
-        for obj in right_shoulder_elements:
-            cmds.parent(obj, right_main_shoulder_proxy_crv)
+    for obj in left_shoulder_elements:
+        cmds.parent(obj, left_main_shoulder_proxy_crv)
+    for obj in right_shoulder_elements:
+        cmds.parent(obj, right_main_shoulder_proxy_crv)
+
+    # Setup Visibility
+    cmds.connectAttr(main_grp + '.wristsVisibility', left_main_wrist_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.wristsVisibility', right_main_wrist_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.elbowVisibility', left_main_elbow_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.elbowVisibility', right_main_elbow_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.shouldersVisibility', left_main_shoulder_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.shouldersVisibility', right_main_shoulder_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.kneesVisibility', left_main_knee_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.kneesVisibility', right_main_knee_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.hipsVisibility', left_main_hip_proxy_grp + '.v')
+    cmds.connectAttr(main_grp + '.hipsVisibility', right_main_hip_proxy_grp + '.v')
+    if not _corrective_settings.get("setup_wrists"):
+        cmds.setAttr(main_grp + ".wristsVisibility", 0)
+    if not _corrective_settings.get("setup_elbows"):
+        cmds.setAttr(main_grp + ".elbowVisibility", 0)
+    if not _corrective_settings.get("setup_shoulders"):
+        cmds.setAttr(main_grp + ".shouldersVisibility", 0)
+    if not _corrective_settings.get("setup_knees"):
+        cmds.setAttr(main_grp + ".kneesVisibility", 0)
+    if not _corrective_settings.get("setup_hips"):
+        cmds.setAttr(main_grp + ".hipsVisibility", 0)
 
     # Attempt to Set Initial Pose ----------------------------------------------------------------------------
     for key, data in _preexisting_dict.items():
@@ -1908,8 +1941,8 @@ def create_corrective_setup(corrective_data):
             cmds.setAttr('left_elbow_aimJnt.v', 1)
             cmds.setAttr('right_elbow_aimJnt.v', 1)
 
-        except Exception as e:
-            print(e)
+        except Exception as exception:
+            logger.debug(exception)
 
 
 def merge_corrective_elements():
@@ -1951,14 +1984,14 @@ def merge_corrective_elements():
 # Test it
 if __name__ == '__main__':
     data_corrective = GTBipedRiggerCorrectiveData()
-    # data_facial.debugging = True
+    data_corrective.debugging = True
     debugging = data_corrective.debugging
 
-    # 'setup_wrists': True,
-    # 'setup_elbows': True,
-    # 'setup_shoulders': True,
-    # 'setup_knees': True,
-    # 'setup_hips': True,
+    # data_corrective.settings['setup_wrists'] = False
+    # data_corrective.settings['setup_elbows'] = False
+    # data_corrective.settings['setup_shoulders'] = False
+    # data_corrective.settings['setup_knees'] = False
+    # data_corrective.settings['setup_hips'] = False
 
     if debugging:
         # Get/Set Camera Pos/Rot
@@ -1975,15 +2008,18 @@ if __name__ == '__main__':
         cmds.setAttr('persp.rz', persp_rot[2])
 
     create_corrective_proxy(data_corrective)
-    create_corrective_setup(data_corrective)
-    merge_corrective_elements()
+    # create_corrective_setup(data_corrective)
+    # merge_corrective_elements()
 
     if debugging:
         pass
-        # cmds.setAttr('main_ctrl.correctiveVisibility', 1)
-        # cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
-        # cmds.setAttr('rig_setup_grp.v', 1)
-        # cmds.setAttr("left_hip_ctrl.rotateX", -90)
-        # cmds.setAttr("right_hip_ctrl.rotateX", -90)
-        # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
-        # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+        try:
+            cmds.setAttr('main_ctrl.correctiveVisibility', 1)
+            cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
+            # cmds.setAttr('rig_setup_grp.v', 1)
+            # cmds.setAttr("left_hip_ctrl.rotateX", -90)
+            # cmds.setAttr("right_hip_ctrl.rotateX", -90)
+            # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+            # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+        except Exception as e:
+            logger.debug(str(e))
