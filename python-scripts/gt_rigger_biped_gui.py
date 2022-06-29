@@ -262,12 +262,15 @@
  Added basic operations and future operations buttons to facial and corrective tabs
  Added "Add Influence Options" to facial and corrective tabs
 
+ 1.9.13 - 2022-06-28
+ Added logging for better debugging
+ Added settings for corrective rigging
+ Fixed reset persistent settings to include facial and corrective settings
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
-    Add logging for debugging
     Add option to leave all lock translation attributes off
-    Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only
-    (inheritance percentage)
+    Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (with influence %)
     Make scale system and breathing system optional
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
@@ -277,7 +280,7 @@
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI
 from gt_rigger_biped_logic import *
 from gt_rigger_data import *
 import gt_generate_icons
@@ -285,17 +288,25 @@ import gt_rigger_corrective_logic
 import gt_rigger_facial_logic
 import maya.cmds as cmds
 import maya.mel as mel
+import logging
 import random
 import json
 import sys
 import os
 import re
 
-# Biped Data
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_rigger_biped_gui")
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+
+# Data Objects
 data_biped = GTBipedRiggerData()
 get_persistent_settings(data_biped)
 data_facial = GTBipedRiggerFacialData()
+get_persistent_settings(data_facial)
 data_corrective = GTBipedRiggerCorrectiveData()
+get_persistent_settings(data_corrective)
 
 
 # Main Dialog ============================================================================
@@ -310,9 +321,9 @@ def build_gui_auto_biped_rig():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
 
-        # Main GUI Start Here =================================================================================
-    build_gui_auto_biped_rig = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
-                                           titleBar=True, minimizeButton=False, maximizeButton=False, sizeable=True)
+    # Main GUI Start Here =================================================================================
+    gui_auto_biped_rig_window = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
+                                            titleBar=True, minimizeButton=False, maximizeButton=False, sizeable=True)
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
@@ -411,7 +422,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints())
+    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_biped())
     cmds.button(label='Bind Skin Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('SmoothBindSkinOptions;'))
 
     cmds.separator(h=5, style='none')  # Empty Space
@@ -473,7 +484,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 3 - Create Facial Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Corrective Rig',
+    cmds.iconTextButton(style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Facial Rig',
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -485,7 +496,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints(), en=0)
+    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_facial(), en=0)
     cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
 
     # Utilities - Facial
@@ -544,7 +555,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints(), en=False)
+    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_biped(), en=False)
     cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
 
     # Utilities - Corrective
@@ -572,7 +583,8 @@ def build_gui_auto_biped_rig():
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
     cmds.checkBox(label='  Use Real-time Skeleton', value=data_biped.settings.get('using_no_ssc_skeleton'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('using_no_ssc_skeleton'), en=is_option_enabled)
+                  ebg=True, cc=lambda x: _invert_stored_setting('using_no_ssc_skeleton', data_biped),
+                  en=is_option_enabled)
 
     realtime_custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" ' \
                                    'being active. This skeleton inherits the transforms from the controls while ' \
@@ -592,7 +604,8 @@ def build_gui_auto_biped_rig():
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
     cmds.checkBox(label='  Limit Proxy Movement', value=data_biped.settings.get('proxy_limits'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('proxy_limits'), en=is_option_enabled)
+                  ebg=True, cc=lambda x: _invert_stored_setting('proxy_limits', data_biped),
+                  en=is_option_enabled)
 
     proxy_limit_custom_help_message = 'Unlocks transforms for feet and spine proxy elements. ' \
                                       'This allows for more unconventional character shapes, but makes' \
@@ -608,7 +621,8 @@ def build_gui_auto_biped_rig():
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
     cmds.checkBox(label='  Uniform Control Orientation', value=data_biped.settings.get('uniform_ctrl_orient'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('uniform_ctrl_orient'), en=is_option_enabled)
+                  ebg=True, cc=lambda x: _invert_stored_setting('uniform_ctrl_orient', data_biped),
+                  en=is_option_enabled)
 
     uniform_orients_custom_help_message = 'Changes the orientation of most controls to be match the world\'s ' \
                                           'orientation. This means that Z will likely face forward, ' \
@@ -623,7 +637,8 @@ def build_gui_auto_biped_rig():
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
     cmds.checkBox(label='  World-Space IK Orientation', value=data_biped.settings.get('worldspace_ik_orient'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('worldspace_ik_orient'), en=is_option_enabled)
+                  ebg=True, cc=lambda x: _invert_stored_setting('worldspace_ik_orient', data_biped),
+                  en=is_option_enabled)
 
     ws_ik_orients_custom_help_message = 'Changes the orientation of the IK controls to be match the world\'s ' \
                                         'orientation. This means that Z will face forward, X side and Y up/down.' \
@@ -638,7 +653,8 @@ def build_gui_auto_biped_rig():
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
     cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
     cmds.checkBox(label='  Simplify Spine Joints', value=data_biped.settings.get('simplify_spine'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('simplify_spine'), en=is_option_enabled)
+                  ebg=True, cc=lambda x: _invert_stored_setting('simplify_spine', data_biped),
+                  en=is_option_enabled)
 
     simplify_spine_custom_help_message = 'The number of spine joints used in the base skinned skeleton is reduced.' \
                                          '\nInstead of creating spine 1, 2, 3, and chest, the auto rigger outputs' \
@@ -649,20 +665,119 @@ def build_gui_auto_biped_rig():
                 c=lambda x: build_custom_help_window(simplify_spine_custom_help_message,
                                                      simplify_spine_custom_help_title))
 
+    # # ####################################### FACIAL SETTINGS ##########################################
+    # cmds.separator(h=10, style='none', p=settings_tab)  # Empty Space
+    # cmds.text('  Facial Settings:', font='boldLabelFont', p=settings_tab)
+    # cmds.separator(h=5, style='none', p=settings_tab)  # Empty Space
+    # cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 210), (3, 20)], cs=[(1, 10)], p=settings_tab)
+    #
+    # # Name
+    # is_option_enabled = True
+    # current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    # cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    # cmds.checkBox(label='  Simplify Spine Joints', value=data_biped.settings.get('simplify_spine'),
+    #               ebg=True, cc=lambda x: _invert_stored_setting('simplify_spine'), en=is_option_enabled)
+    #
+    # simplify_spine_custom_help_message = ''
+    # simplify_spine_custom_help_title = 'Simplify Spine Joints'
+    # cmds.button(label='?', bgc=current_bgc_color,
+    #             c=lambda x: build_custom_help_window(simplify_spine_custom_help_message,
+    #                                                  simplify_spine_custom_help_title))
+
+    # ####################################### CORRECTIVE SETTINGS ##########################################
+    cmds.separator(h=10, style='none', p=settings_tab)  # Empty Space
+    cmds.text('  Corrective Settings:', font='boldLabelFont', p=settings_tab)
+    cmds.separator(h=5, style='none', p=settings_tab)  # Empty Space
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 210), (3, 20)], cs=[(1, 10)], p=settings_tab)
+
+    # Setup Wrist Correctives
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Setup Wrist Correctives', value=data_corrective.settings.get('setup_wrists'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('setup_wrists', data_corrective),
+                  en=is_option_enabled)
+
+    setup_wrists_custom_help_message = 'Creates Wrist Correctives'
+    setup_wrists_custom_help_title = 'Setup Wrist Correctives'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
+                                                     setup_wrists_custom_help_title))
+
+    # Setup Elbow Correctives
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Setup Elbow Correctives', value=data_corrective.settings.get('setup_elbows'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('setup_elbows', data_corrective),
+                  en=is_option_enabled)
+
+    setup_wrists_custom_help_message = 'Creates Elbow Correctives'
+    setup_wrists_custom_help_title = 'Setup Elbow Correctives'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
+                                                     setup_wrists_custom_help_title))
+
+    # Setup Shoulder Correctives
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Setup Shoulder Correctives', value=data_corrective.settings.get('setup_shoulders'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('setup_shoulders', data_corrective),
+                  en=is_option_enabled)
+
+    setup_wrists_custom_help_message = 'Creates Shoulder Correctives'
+    setup_wrists_custom_help_title = 'Setup Shoulder Correctives'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
+                                                     setup_wrists_custom_help_title))
+
+    # Setup Hip Correctives
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Setup Hip Correctives', value=data_corrective.settings.get('setup_hips'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('setup_hips', data_corrective),
+                  en=is_option_enabled)
+
+    setup_wrists_custom_help_message = 'Creates Hip Correctives'
+    setup_wrists_custom_help_title = 'Setup Hip Correctives'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
+                                                     setup_wrists_custom_help_title))
+
+    # Setup Knee Correctives
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Setup Knee Correctives', value=data_corrective.settings.get('setup_knees'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('setup_knees', data_corrective),
+                  en=is_option_enabled)
+
+    setup_wrists_custom_help_message = 'Creates Knee Correctives'
+    setup_wrists_custom_help_title = 'Setup Knee Correctives'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
+                                                     setup_wrists_custom_help_title))
+    # #########################################################################################################
     # Reset Persistent Settings
     cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 10)], p=settings_tab)
     #
     cmds.separator(h=25)
     # cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Reset Persistent Settings', bgc=current_bgc_color,
-                c=lambda x: _reset_persistent_settings_validation(data_biped))
+                c=lambda x: _reset_persistent_settings_validation([data_biped, data_facial, data_corrective]))
 
     # Versions:
-    cmds.separator(h=340, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=3, cw=[(1, 85), (2, 85), (3, 85)], cs=[(1, 0)], p=settings_tab)
-    cmds.text('Biped: v' + str(data_biped.script_version), font='tinyBoldLabelFont', en=False)
-    cmds.text('Facial: v' + str(data_facial.script_version), font='tinyBoldLabelFont', en=False)
-    cmds.text('Corrective: v' + str(data_corrective.script_version), font='tinyBoldLabelFont', en=False)
+    cmds.separator(h=180, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=6, cw=[(1, 35), (2, 35), (3, 35), (4, 35), (5, 50), (6, 35)],
+                         cs=[(1, 10), (2, 0), (3, 7), (4, 0), (5, 7)], p=settings_tab)
+    cmds.text('Biped: ', font='tinyBoldLabelFont', en=False)
+    cmds.text('v' + str(data_biped.script_version), font='tinyBoldLabelFont')
+    cmds.text('Facial: ', font='tinyBoldLabelFont', en=False)
+    cmds.text('v' + str(data_facial.script_version), font='tinyBoldLabelFont')
+    cmds.text('Corrective: ', font='tinyBoldLabelFont', en=False)
+    cmds.text('v' + str(data_corrective.script_version), font='tinyBoldLabelFont')
     # cmds.separator(h=5, style='none')  # Empty Space
     # cmds.separator(h=5)  # Empty Space
 
@@ -673,47 +788,51 @@ def build_gui_auto_biped_rig():
                                               (settings_tab, 'Settings ')))
 
     # Show and Lock Window
-    cmds.showWindow(build_gui_auto_biped_rig)
+    cmds.showWindow(gui_auto_biped_rig_window)
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/HIKcreateControlRig.png')
     widget.setWindowIcon(icon)
 
     # ### GUI Functions ###
-    def _invert_stored_setting(key_string):
+    def _invert_stored_setting(key_string, data_object):
         """
         Used for boolean values, it inverts the value, so if True it becomes False and vice-versa
         
-                Parameters:
-                    key_string (string) : Key name, used to determine what bool value to flip
+        Args:
+            key_string (string) : Key name, used to determine what bool value to flip
+            data_object: GT Rigger data object used to update the settings
         """
-        data_biped.settings[key_string] = not data_biped.settings.get(key_string)
-        set_persistent_settings(data_biped)
+        data_object.settings[key_string] = not data_object.settings.get(key_string)
+        set_persistent_settings(data_object)
 
-    def _reset_persistent_settings_validation(biped_data):
+    def _reset_persistent_settings_validation(data_objects):
         """
-        Used for boolean values, it inverts the value, so if True it becomes False and vice-versa
+        Resets persistent settings for provided data_objects. e.g. GTBipedRiggerData, GTCorrectiveRiggerData...
 
         Args:
-            biped_data (GTBipedData) : Key name, used to determine what bool value to flip
+            data_objects (list) : List of data objects to be reset
         """
-        reset_persistent_settings(biped_data)
-        get_persistent_settings(biped_data)
+        for data_obj in data_objects:
+            reset_persistent_settings(data_obj)
+            get_persistent_settings(data_obj)
 
         try:
 
             cmds.evalDeferred('gt_tools.execute_script("gt_rigger_biped_gui", "build_gui_auto_biped_rig")')
-        except:
+        except Exception as exception:
+            logger.debug(str(exception))
             try:
                 build_gui_auto_biped_rig()
-            except:
+            except Exception as exception:
+                logger.debug(str(exception))
                 try:
                     cmds.evalDeferred('gt_rigger.biped_gui.build_gui_auto_biped_rig()')
-                except:
-                    pass
+                except Exception as exception:
+                    logger.debug(str(exception))
 
     # Main GUI Ends Here =================================================================================
 
@@ -756,8 +875,7 @@ def build_help_gui_auto_biped_rig(script_name):
 
     auto_biped_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='[X] Step 1: .\n -Create Proxy:\n   This button will create many temporary curves that will'
-                        ' later\n   be used to generate the rig.')
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='[X] Step 1: .\n -Create Proxy:\n   This button will create many temporary curves that will later\n   be used to generate the rig.')
     cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   In case you want to re-scale the proxy, use the root proxy\n   control for that. The initial scale is the average height of a\n   woman. (160cm)\n   Presets for other sizes can be found on Github.')
     cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   These are not joints. Please don\'t delete or rename them.')
 
@@ -798,7 +916,7 @@ def build_help_gui_auto_biped_rig(script_name):
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
@@ -853,7 +971,7 @@ def build_custom_help_window(input_text, help_title=''):
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
@@ -879,7 +997,6 @@ def validate_facial_operation(operation):
         gt_rigger_facial_logic.create_facial_controls(data_facial)
     elif operation == "merge":
         gt_rigger_facial_logic.merge_facial_elements()
-
 
 
 def validate_corrective_operation(operation):
@@ -933,7 +1050,8 @@ def validate_biped_operation(operation):
         if data_biped.debugging and data_biped.debugging_auto_recreate:
             try:
                 cmds.delete(data_biped.elements_default.get('main_proxy_grp'))
-            except:
+            except Exception as e:
+                logger.debug(e)
                 pass
 
         # Check if proxy exists in the scene
@@ -1002,11 +1120,13 @@ def validate_biped_operation(operation):
                 # Debugging (Auto imports proxy)
                 if data_biped.debugging_import_proxy and os.path.exists(data_biped.debugging_import_path):
                     import_biped_proxy_pose(debugging=True, debugging_path=data_biped.debugging_import_path)
-            except:
+            except Exception as e:
+                logger.debug(e)
                 pass
 
         # Validate Proxy
         if not cmds.objExists(data_biped.elements.get('main_proxy_grp')):
+            logger.debug('"' + str(data_biped.elements.get('main_proxy_grp')) + '" not found.')
             is_valid = False
             cmds.warning("Proxy couldn't be found. "
                          "Make sure you first create a proxy (guide objects) before generating a rig.")
@@ -1040,7 +1160,7 @@ def validate_biped_operation(operation):
             # Debugging (Auto binds joints to provided geo)
             if data_biped.debugging and data_biped.debugging_bind_rig and cmds.objExists(data_biped.debugging_bind_geo):
                 cmds.select(d=True)
-                select_skinning_joints()
+                select_skinning_joints_biped()
                 selection = cmds.ls(selection=True)
                 if data_biped.debugging_bind_heatmap:
                     cmds.skinCluster(selection, data_biped.debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68,
@@ -1051,7 +1171,7 @@ def validate_biped_operation(operation):
                 cmds.select(d=True)
 
 
-def select_skinning_joints():
+def select_skinning_joints_biped():
     """ Selects joints that should be used during the skinning process """
 
     # Check for existing rig
@@ -1080,8 +1200,42 @@ def select_skinning_joints():
             for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
                 try:
                     cmds.select(obj, add=True)
-                except:
+                except Exception as e:
+                    logger.debug(e)
                     pass
+
+
+def select_skinning_joints_facial():
+    """ Selects joints that should be used during the skinning process """
+
+    # Check for existing rig
+    is_valid = True
+    desired_elements = []
+    for jnt in data_biped.joints_default:
+        desired_elements.append(data_biped.joints_default.get(jnt))
+    for obj in desired_elements:
+        if not cmds.objExists(obj) and is_valid:
+            is_valid = False
+            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
+                                     '(Click on "Help" for more details)')
+
+    if is_valid:
+        skinning_joints = []
+        for obj in data_biped.joints_default:
+            if '_end' + JNT_SUFFIX.capitalize() not in data_biped.joints_default.get(obj) \
+                    and '_toe' not in data_biped.joints_default.get(obj) \
+                    and 'root_' not in data_biped.joints_default.get(obj) \
+                    and 'driver' not in data_biped.joints_default.get(obj):
+                parent = cmds.listRelatives(data_biped.joints_default.get(obj), parent=True)[0] or ''
+                if parent != 'skeleton_grp':
+                    skinning_joints.append(data_biped.joints_default.get(obj))
+        cmds.select(skinning_joints)
+        if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
+            for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
+                try:
+                    cmds.select(obj, add=True)
+                except Exception as e:
+                    logger.debug(str(e))
 
 
 def reset_proxy(suppress_warning=False, proxy_target='base'):
@@ -1116,14 +1270,14 @@ def reset_proxy(suppress_warning=False, proxy_target='base'):
                 try:
                     cmds.setAttr(obj + '.' + attr, 0)
                     is_reset = True
-                except:
-                    pass
+                except Exception as exception:
+                    logger.debug(str(exception))
             for attr in attributes_set_one:
                 try:
                     cmds.setAttr(obj + '.' + attr, 1)
                     is_reset = True
-                except:
-                    pass
+                except Exception as exception:
+                    logger.debug(str(exception))
 
     if is_reset:
         if not suppress_warning:
@@ -1202,13 +1356,12 @@ def mirror_proxy(operation, proxy_target='base'):
     # Validate Proxy
     is_valid = True
     # Determine system to be mirrored
-    data_obj = ''
     if proxy_target == 'base':
         data_obj = data_biped
     elif proxy_target == 'facial':
         data_obj = data_facial
     elif proxy_target == 'corrective':
-        data_obj = data_corrective # @@@
+        data_obj = data_corrective
     else:
         data_obj = ''
         is_valid = False
@@ -1291,8 +1444,9 @@ def export_biped_proxy_pose():
             cmds.warning(warning)
 
     if is_valid:
-        file_name = cmds.fileDialog2(fileFilter=data_biped.script_name + ' - PPOSE File (*.ppose);;'
-                                                + data_biped.script_name + ' - JSON File (*.json)',
+        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
+        file_filter += data_biped.script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
                                      dialogStyle=2, okCaption='Export',
                                      caption='Exporting Proxy Pose for "' + data_biped.script_name + '"') or []
         if len(file_name) > 0:
@@ -1328,9 +1482,10 @@ def export_biped_proxy_pose():
                                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
                                                     'exported.</span>', pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
-        except Exception as e:
-            print(e)
+        except Exception as exception:
             successfully_created_file = False
+            logger.info(str(exception))
+            logger.info("Successfully Created_ File: " + str(successfully_created_file))
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
@@ -1365,8 +1520,8 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
         try:
             if not cmds.getAttr(target + '.' + attr, lock=True):
                 cmds.setAttr(target + '.' + attr, value)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
     def set_unlocked_ws_attr(target, attr, value_tuple):
         """
@@ -1385,16 +1540,16 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                 cmds.xform(target, ws=True, ro=value_tuple)
             if attr == 'scale':
                 cmds.xform(target, ws=True, s=value_tuple)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
-    import_version = 0.0
     import_method = 'object-space'
     pose_file = None
 
     if not debugging:
-        file_name = cmds.fileDialog2(fileFilter=data_biped.script_name + ' - PPOSE File (*.ppose);;' +
-                                                data_biped.script_name + ' - JSON File (*.json)',
+        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
+        file_filter += data_biped.script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
                                      dialogStyle=2, fileMode=1, okCaption='Import',
                                      caption='Importing Proxy Pose for "' + data_biped.script_name + '"') or []
     else:
@@ -1418,9 +1573,11 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                         cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_auto_biped_version'))))
+                        logger.debug(str(import_version))
 
                     if data.get('gt_auto_biped_export_method'):
                         import_method = data.get('gt_auto_biped_export_method')
+                        logger.debug(str(import_method))
 
                     is_valid_scene = True
                     # Check for existing rig or conflicting names
@@ -1431,7 +1588,9 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                         if cmds.objExists(obj) and is_valid_scene:
                             is_valid_scene = False
                             cmds.warning(
-                                '"' + obj + '" found in the scene. This means that you either already created a rig or you have conflicting names on your objects. (Click on "Help" for more details)')
+                                '"' + obj + '" found in the scene. This means that you either already created a '
+                                            'rig or you have conflicting names on your objects. '
+                                            '(Click on "Help" for more details)')
 
                     if is_valid_scene:
                         # Check for Proxy
@@ -1445,7 +1604,7 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                             if not cmds.objExists(obj) and proxy_exists:
                                 proxy_exists = False
                                 delete_proxy(suppress_warning=True)
-                                validate_biped_operation('create_proxy', debugging)
+                                validate_biped_operation('create_proxy')
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
 
                     if is_valid_file and is_valid_scene:
@@ -1508,12 +1667,14 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                                 pos='botLeft', fade=True, alpha=.9)
                             sys.stdout.write('Pose imported from the file "' + pose_file + '".')
 
-                except Exception as e:
-                    print(e)
+                except Exception as exception:
+                    logger.info(str(exception))
                     cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
                                  'file. (Click on "Help" for more info)')
-        except:
+        except Exception as exception:
             file_exists = False
+            logger.debug(exception)
+            logger.debug('File exists:', str(file_exists))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
@@ -1530,8 +1691,8 @@ def define_biped_humanik(character_name):
     try:
         if not cmds.pluginInfo("mayaHIK", query=True, loaded=True):
             cmds.loadPlugin("mayaHIK", quiet=True)
-    except:
-        pass
+    except Exception as exception:
+        logger.debug(exception)
 
     # Check for existing rig
     exceptions = [data_biped.joints_default.get('spine01_jnt'),
@@ -1559,7 +1720,8 @@ def define_biped_humanik(character_name):
             mel.eval('source "' + maya_location + '/scripts/others/hikGlobalUtils.mel"')
             mel.eval('source "' + maya_location + '/scripts/others/hikCharacterControlsUI.mel"')
             mel.eval('source "' + maya_location + '/scripts/others/hikDefinitionOperations.mel"')
-        except Exception as e:
+        except Exception as exception:
+            logger.debug(str(exception))
             print('#' * 80)
             if not os.path.exists(maya_location + '/scripts/others/hikGlobalUtils.mel'):
                 print('The module "' + maya_location + "/scripts/others/hikGlobalUtils.mel\" couldn't be found.")
@@ -1662,8 +1824,8 @@ def define_biped_humanik(character_name):
                     'setCharacterObject("' + joints.get('left_forearm_jnt') + '", "' + character_name + '", 193,0);')
                 mel.eval(
                     'setCharacterObject("' + joints.get('right_forearm_jnt') + '", "' + character_name + '", 195,0);')
-            except Exception as e:
-                print(e)
+            except Exception as exception:
+                logger.info(str(exception))
                 pass
 
             mel.eval('hikUpdateDefinitionUI;')
@@ -1677,8 +1839,8 @@ def define_biped_humanik(character_name):
                                      '<span style=\"color:#FFFFFF;\"> character and definition created!</span>',
                 pos='botLeft', fade=True, alpha=.9)
 
-        except Exception as e:
-            print(e)
+        except Exception as exception:
+            logger.info(str(exception))
             cmds.warning('An error happened when creating the definition. '
                          'You might have to assign your joints manually.')
 
@@ -1849,12 +2011,13 @@ def extract_biped_proxy_pose():
                                      'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
                 pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
-        except Exception as e:
-            print(e)
+        except Exception as exception:
+            logger.info(str(exception))
             # successfully_created_file = False
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
 # Build UI
 if __name__ == '__main__':
+    # logger.setLevel(10)
     build_gui_auto_biped_rig()
