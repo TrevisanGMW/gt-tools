@@ -11,7 +11,7 @@ import copy
 
 SCRIPT_VERSION_BASE = '1.9.12'
 SCRIPT_VERSION_FACIAL = '0.0.12'
-SCRIPT_VERSION_CORRECTIVE = '0.0.9'
+SCRIPT_VERSION_CORRECTIVE = '0.0.10'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -207,12 +207,12 @@ class GTBipedRiggerFacialData:
         'base_tongue_crv': 'baseTongue_' + PROXY_SUFFIX,
         'mid_tongue_crv': 'midTongue_' + PROXY_SUFFIX,
         'tip_tongue_crv': 'tipTongue_' + PROXY_SUFFIX,
-
-        # Cheek
-        'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
-
-        # # Nose
-        'left_nose_crv': 'nose_' + PROXY_SUFFIX,
+        #
+        # # Cheek
+        # 'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
+        #
+        # # # Nose
+        # 'left_nose_crv': 'nose_' + PROXY_SUFFIX,
     }
 
     # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
