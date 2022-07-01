@@ -6,7 +6,7 @@ import sys
 import os
 
 # Global Vars
-PACKAGE_VERSION = "1.7.23"
+PACKAGE_VERSION = "1.7.24"
 
 # Initial Setup - Add path and initialize logger
 if __name__ != '__main__':
@@ -15,7 +15,7 @@ if __name__ != '__main__':
 
 logging.basicConfig()
 logger = logging.getLogger("gt-tools")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 
 def execute_script(import_name, entry_point_function, reload=True):
@@ -24,7 +24,7 @@ def execute_script(import_name, entry_point_function, reload=True):
     Args:
         import_name: Name of the script or module to import. For example "gt_utilities"
         entry_point_function: Name of the entry point function, usually the one that opens the script's GUI (string)
-        reload: Whether or not to reload the module before executing it (optional, bool)
+        reload: Whether to reload the module before executing it (optional, bool)
 
     Returns:
         succeeded: True if there were no errors (bool)
@@ -34,8 +34,8 @@ def execute_script(import_name, entry_point_function, reload=True):
         if reload:
             importlib.reload(module)
     except ModuleNotFoundError as e:
-        logger.debug('"' + import_name + '" was not found.')
-        logger.debug('Error: ' + str(e))
+        logger.warning('"' + import_name + '" was not found.')
+        logger.warning('Error: ' + str(e))
         raise e
 
     entry_line = 'module.' + entry_point_function + '()'
@@ -43,8 +43,8 @@ def execute_script(import_name, entry_point_function, reload=True):
         eval(entry_line)
         return True
     except AttributeError as e:
-        logger.debug('"' + entry_line + '" failed to run.')
-        logger.debug('Error: ' + str(e))
+        logger.warning('"' + entry_line + '" failed to run.')
+        logger.warning('Error: ' + str(e))
         cmds.warning("Failed to execute entry point. Make sure the correct functions is being called.")
         return False
 
