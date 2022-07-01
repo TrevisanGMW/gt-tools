@@ -10,7 +10,7 @@ import maya.cmds as cmds
 import copy
 
 SCRIPT_VERSION_BASE = '1.9.13'
-SCRIPT_VERSION_FACIAL = '0.0.12'
+SCRIPT_VERSION_FACIAL = '0.0.13'
 SCRIPT_VERSION_CORRECTIVE = '0.0.10'
 
 # General Vars
@@ -180,7 +180,7 @@ class GTBipedRiggerFacialData:
     # Loaded Elements Dictionary
     elements = {  # Pre Existing Elements
         'main_proxy_grp': 'rigger_facial_proxy' + '_' + GRP_SUFFIX,
-        'main_root': 'rigger_facial_proxy' + '_' + PROXY_SUFFIX,
+        'main_root': 'rigger_facial' + '_' + PROXY_SUFFIX,
 
         # Center Elements
         'head_crv': 'headRoot' + '_' + PROXY_SUFFIX,
@@ -234,7 +234,7 @@ class GTBipedRiggerFacialData:
 
     # Store Default Values
     def __init__(self):
-        self.settings = {'find_pre_existing_elements ': True,
+        self.settings = {'find_pre_existing_elements': True,
                          }
 
         self.elements_default = copy.deepcopy(self.elements)
@@ -249,7 +249,7 @@ class GTBipedRiggerFacialData:
             joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
 
     # Reset Persistent Settings Variables
-    gui_module = 'gt_rigger_biped_gui'
+    gui_module = 'gt_rigger_facial_gui'
     entry_function = 'build_gui_auto_biped_rig()'
 
     # Debugging Vars
