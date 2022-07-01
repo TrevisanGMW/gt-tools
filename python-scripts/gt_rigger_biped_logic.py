@@ -2,60 +2,292 @@
  GT Biped Rigger Logic
  github.com/TrevisanGMW - 2020-12-08
 
- v1.0.0 - 2021-12-08
- Separated scripts into logic, gui and data modules
+ 1.0 - 2020-12-29
+ Initial Release
 
- v1.1.0 - 2022-01-06
- Added option to make FK controls uniform
+ 1.1 - 2021-01-03
+ Renamed shapes
+ Added joint labelling
+ Added icons to buttons
+ Added curves (lines) between proxies
+ Changed and added a few notes
+ Added manip default to all main controls
+ Locked default channels for the main rig group
+ Made rig setup elements visible after creation
+ Updated stretchy system to avoid cycles or errors
+ Updated stretchy system to account for any curvature
+ Fixed possible scale cycle happening during control creation
+
+ 1.2 - 2021-01-04
+ Changed stretchy system so it doesn't use floatConstant nodes
+ Updated the import proxy function so it doesn't give an error when importing a different scale
+ Added utility to automatically create and define a HumanIK character from the rig
+ Added utility to toggle the visibility of all joint labels
+ Created utility to add a seamless FK/IK switch script to the current shelf
+ "followHip" (ankle proxies) attribute is not longer activated by default
+ Fixed an issue where left arm ik would be generated with an offset in extreme angles
+
+ 1.3 - 2021-01-19
+ Updated help window to better accommodate a high volume of text
+ Added new utility to extract proxy pose from generated rig
+ Updated export/import functions to be compatible with world-space
+ Added version check to importer for backwards compatibility
+ Added auto load for HumanIK plugin in case it's not loaded when attaching rig
+ Patched a few small bugs, added colors to a few controls and updated the help text
+ Changed forearm joints hierarchy so the rig can be easily exported in to game engines
+ Moved the mechanics of the roll joints into the rig setup folder
+ Updated the order of the groups inside the rig setup folder
+ Added joint inflation/deflation system
+ Switch the order and name of a few custom attributes (none of the keyable ones
+ Switch the order of a few custom attributes (influenceSwitch was moved up)
+ Added activation attribute to the main control for the joint inflation/deflation system
+ Added counter rotation system to neckMid control so the shape stays in place when automated
+ Fixed an issue where the right thumb wouldn't orient correctly
+ Added finger abduction/adduction control and updated the name of a few attributes
+
+ 1.4 - 2021-01-25
+ Created auto breathing system
+ Added check for geometry group (common name)
+ Updated "orient_to_target" function to enforce proxy direction properly
+ Added manip default to the foot roll controls
+ Fixed an issue where you wouldn't be able to import a JSON file for the beta versions
+ Added negative rotation to adduction for more flexibility
+ Added auto knuckle compression system (Translation Z Offset)
+ Changed the data transfer type of the wrists from parentConstraint to raw to prevent flipping
+ Created sin function without expressions
+ Created a trigonometry sine function that doesn't use third-party plugins or expressions
+ Added debugging option to auto import proxy templates and auto bind geometry
+ Added a check for required plugins before running the script
+ Changed the data transfer type of the clavicles to allow for offsets (for auto breathing)
+ Added notes to the knee proxies (similar to elbows)
+
+ 1.5 - 2021-01-26
+ Changed the names of a few nodes
+ Updated the entire forearm and wrist joints system as they would sometimes flip
+ Added attribute to head control to determine the visibility of the eye controls
+ Updated right forearm connections so it goes into the correct direction
+ Fixed undesired offset inherited from a broken node inside the auto breathing system
+ Fixed an issue where the shape of some controls would stay opened
+ Updated most curves to be created as periodic curves to avoid creation issues
+ Fixed the direction of the right side FK/IK switch shapes
+
+ 1.6 - 2021-01-28
+ Fixed an issue where the fingers would still move even when the stretchy system was deactivated
+ Fixed another issue where the wrist joints would flip flipping
+ Fixed issue where the spine controls would look locked when moving the cog control
+
+ 1.7 - 2021-02-05
+ Fixed issue where the ik shoulders would sometimes flip during a main control rotation
+ Unlocked translate Z for hip proxies
+
+ 1.7.1 - 2021-02-14
+ Fixed issue where "right_forearm_jnt" would rotate to the wrong direction
+
+ 1.7.2 - 2021-05-10
+ Made script compatible with Python 3 (Maya 2022+)
+
+ 1.7.3 - 2021-08-07
+ Fixed an issue where the foot would sometimes be flipped when the angle of the leg is not perfectly straight (
+ Enforce footToe ikHandle position)
+
+ 1.7.4 - 2021-10-10
+ Fixed an issue where the rig would start flickering when following motion capture using a custom rig setup (HumanIK)
+ Modified inflation/deflation system to use controls instead of inverseMatrix nodes (less convenient, but more robust)
+ Removed extraction of hip rotation from the "Extra Proxy Pose From Generated Rig" to fix flipped issue
+ Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
+ Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
+
+ 1.7.5 - 2021-10-19
+ Added option to generate secondary skeleton used for game engines (no Segment Scale Compensate)
+ Added option to create lines between pole vectors and their targets
+
+ 1.7.6 - 2021-10-20
+ Created "settings" button and the GUI updates necessary to display it
+ Created the base for persistent settings and implemented "User Real-time Skeleton" option
+ Created a custom help window that takes strings as help inputs to display it to the user
+
+ 1.7.7 - 2021-10-21
+ Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
+
+ 1.7.8 - 2021-10-24
+ Added aim lines to pole vectors and eye controls
+ Added some missing documentation
+ Fixed a missing connection between follow attributes and their constraints (pole vectors and eyes)
+
+ 1.7.9 - 2021-10-26
+ Fixed an issue where the right IK switcher curve would sometimes not orient itself correctly
+ Added parenting options to IK Switchers (chest, clavicle, world)
+
+ 1.7.10 - 2021-10-28
+ Created more debugging options
+ Created ribbon setup for the spine (IK Spine)
+ Created IK/FK switcher for the new spine setup
+ Made proxy limits optional
+ Add option to mirror rigged pose. IK Only. (for animators)
+ Added option to reset pose
+
+ 1.7.11 - 2021-10-29
+ Changed the name of the seamless FK/IK button to "Custom Rig Interface" as it now carries pose management functions
+ Big update to Custom Rig Interface. It can now mirror, reset, import and export poses.
+ Created utility to toggle rigging specific attributes
+
+ 1.7.12 - 2021-11-01
+ Minor patches applied to Custom Rig Interface script
+ Created finger specific curl controls
+ Added option to control visibility of the fingers
+
+ 1.7.13 - 2021-11-03
+ Modified control notes a bit
+ Changed the radius of the IK spine joints
+ Created IK finger controls
+ Included cog_ctrl IK visibility attributes under rigging specific attributes
+ Updated order of the custom attributes under the finger controls (no more top separator)
+ Fixed an issue where the right hand would receive an unnecessary offset on its abduction system
+
+ 1.7.14 - 2021-11-04
+ Exposed rotation order attribute for a few controls
+
+ 1.7.15 - 2021-11-05
+ Added missing rotation order attribute to feet
+ Added a tagged version of the rotation order to the wrist
+ Updated custom rig interface GUI
+ Replaced a few repeating strings with general variables
+
+ 1.7.16 - 2021-11-08
+ Big update to custom rig interface
+
+ 1.7.17 - 2021-11-08
+ Fixed an issue where IK fingers wouldn't follow the correct preferred angle
+
+ 1.8.0 - 2021-11-15
+ Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visible by default)
+ Changed IK Spine to be the default influence
+ Secondary chest adjustment control only affects the chest, not the head (so you can keep line of sight)
+ Arm pole vector controls now follow arm's plane instead of wrist
+ Moved pole vector custom attributes to wrist for ease of access
+ Added twist attributes to the pole vector controls for the arms (found under wrists)
+ Added 3D visibility type shapes to IK feet and IK wrists
+ Changed the source constraint for the feet stretchy system so it accounts for the roll controls
+
+ 1.8.1 - 2021-11-16
+ Brought back the follow wrist option for the elbow pole vector controls
+ Fixed elbow control issue (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
+ Slightly changed the shape of the IK spine control for a better starting point
+ Moved the pole vector controls little bit further away during creation
+ Created pole vector twist and parenting system for legs
+
+ 1.8.2 - 2021-11-17
+ Slightly changed the initial hand and spine box shapes to better conform to the body shape
+ Created auto clavicle system. Clavicle rotates based on wrist position (according to influence % under the wrist ctrl)
+ Added option to define heel roll as a proxy step (This should allow for a quicker rig profile import/export)
+ Gave proxy pose a default extension ".ppose" instead of just ".json" to avoid confusion with other scripts
+
+ 1.8.3 - 2021-11-18
+ Added offset controls to wrists, chest, cog
+
+ 1.8.4 - 2021-11-19
+ Added offset controls to feet
+
+ 1.8.5 - 2021-11-23
+ Fixed an issue where right arm pole vector was receiving undesired offset due to new twisting system
+
+ 1.8.6 - 2021-11-24
+ Created uniform orientation option
+ Redefined the scale calculation system to rely on position calculation rather than joint X distance
+ Updated stretchy system to accept different joint scale channels
+ Removed tagged version of the rotation order enum
+
+ 1.8.7 - 2021-11-25
+ Changed the general scale calculation slightly
+ Fixed issue where spine04_ctrl curve would be rotated incorrectly when using uniform orients
+
+ 1.8.8 - 2021-11-29
+ Updated the distance calculation method for legs and arms
+ Created an option to output world-space IK controls instead of inheriting from the joints
+ Changed rotation source for auto clavicle to account for world-space ik controls
+ Recreated the IK Spine to support stretchy system and limit positioning while attached to the ribbon setup
+ Added world-space IK support to IK spine
+ Added refresh suspend function before operations to speedup rig creation
+ Added metadata in form of an attribute (type string) attached to the main control (dictionary/json format)
+ Added new FK/IK switching references to account for new wrist orientations
+
+ 1.8.9 - 2021-12-01
+ Re-create the uniform orientation option to keep the orientation of the joints intact (use offset instead)
+
+ 1.8.10 - 2021-12-02
+ Replaced "uniform_ctrl_orient" functionality to drive new offset orientation system
+ Created new neck head influence system
+ Added offset control to neck
+
+ 1.8.11 - 2021-12-10
+ Fixed an issue where spine wouldn't move properly in Maya 2022 (Python 3)
+ Split biped rigger file into a more MVC format (controller, model, view)
+
+ 1.8.12 - 2021-12-20
+ Fixed flipping spine control
+ Deactivated auto clavicle when switching to FK
+
+ 1.8.13 - 2021-12-21
+ Added option to simplify spine
+ Added option to eliminate center hip joint
+ Renamed auto clavicle joints to "driver" instead of auto
+ Renamed "cog" joint to be called "waist" to better describe it
+ Renamed "spine04" joint to be called "chest" so it makes sense when simplified
+ Fixed some code repetition for the finger abduction system
+ Created sum input node for abduction system
+ Added rotation to abduction system
+
+ 1.8.14 - 2021-12-22
+ Fixed an issue where the finger compression system would pop when adjusted
+
+ 1.9.0 - 2022-01-15
+ Dropped Python 2 support
+ Separated scripts into logic, gui and data modules
+ Added option to make FK controls uniform  - 2022-01-06
  Added reference locators with offset data to drive the FK/IK switch system
  Fixed junk data left in the chest offset control
  Ribbon controls are now affected by the uniform orientation option
  Updated auto clavicle system to use point constraints and not account for orientation
+ Changed the default value of the neck to head influence to zero - 2022-01-07
+ Commented out joint labelling section - 2022-01-13
 
- v1.1.1 - 2022-01-07
- Changed the default value of the neck to head influence to zero
-
- v1.1.2 - 2022-01-13
+ 1.9.1 - 2022-01-15
  Commented out joint labelling section
-
- v1.1.3 - 2022-01-17
  Fixed an issue where the ball ik handles for the feet would be inverted
-
- v1.1.4 - 2022-01-28
  Created a more robust system for the forearm twist (aimLoc)
  Fixed an issue where the simplification of the spine would cause a rotation offset to happen to the upper body joints
  Changed output hierarchy so pelvis (hip) goes under the root joint for more retargeting compatibility
 
- v1.1.5 - 2022-01-31
- Added Distal Multiplier to automatic finger rotation system
-
- v1.1.6 - 2022-02-01
- Added manual compression controls to the fingers
-
- v1.1.7 - 2022-02-02
- Changed orientation of the right wrist to be uniform with left side (inverted scale)
-
- v1.1.8 - 2022-02-22
- Added new toe_ik_ctrl to IK feet
+ 1.9.2 to 1.9.12
+ Fixed an issue where the ball ik handles for the feet would be inverted - 2022-01-17
+ Created a more robust system for the forearm twist (aimLoc)  - 2022-01-28
+ Fixed an issue where the simplification of the spine would cause a rotation offset to happen to the upper body joints
+ Changed output hierarchy so pelvis (hip) goes under the root joint for more retargeting compatibility
+ Added Distal Multiplier to automatic finger rotation system - 2022-01-31
+ Added manual compression controls to the fingers - 2022-02-01
+ Changed orientation of the right wrist to be uniform with left side (inverted scale) - 2022-02-02
+ Added new toe_ik_ctrl to IK feet - 2022-02-22
  Fixed issue where right automation controls wouldn't follow the offset control
-
- v1.1.9 - 2022-03-08
- Added inherit head roll and converge options to the eyes
-
- v1.1.10 - 2022-03-15
- Changed the shape of the spine controls
+ Added inherit head roll and converge options to the eyes - 2022-03-08
+ Changed the shape of the spine controls - 2022-03-15
  Changed the auto rotate spine attribute names to be the same
  Added shape switching system to FK spine controls
  Updated automated generated chest IK control for a better position prediction
  Changed the proxy skeleton (moved clavicles closer to one another and spine closer to hip)
-
- v1.1.11 - 2022-04-20
- Added Z limit to auto clavicle system
+ Added Z limit to auto clavicle system - 2022-04-20
  Added ramp-up system to auto clavicle system
 
- v1.1.12 - 2022-04-26
- Updated a variable names
+ 1.9.13 - 2022-06-30
+ Added "biped_proxy_pose" stored as a string to main_ctrl
 
+ TODO Biped Rigger:
+    Transfer scale information from ik spine limit spine to spines
+    Add option to leave all lock translation attributes off
+    Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (with influence %)
+    Make scale system and breathing system optional
+    Add more roll joints (upper part of the arm, legs, etc)
+    Add option to auto create proxy geo
+    Fix "Use Real-time Skeleton" option (broken after new UI setup)
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -9754,6 +9986,27 @@ def create_controls(data_biped):
     # Move Pelvis under Root
     cmds.parent(rig_joints.get('hip_jnt'), rig_joints.get('main_jnt'))
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
+
+    # Store Biped Proxy
+    export_dict = {'gt_auto_biped_version': data_biped.script_version,
+                   'gt_auto_biped_export_method': 'object-space'}
+    for obj in data_biped.elements_default:
+        if '_crv' in obj:
+            translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
+            rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
+            scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+            to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+            export_dict[obj] = to_save
+
+        if obj.endswith('_pivot'):
+            if cmds.objExists(data_biped.elements_default.get(obj)):
+                translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                export_dict[obj] = to_save
+    cmds.addAttr(main_ctrl, ln='biped_proxy_pose', dataType='string')
+    cmds.setAttr(main_ctrl + '.biped_proxy_pose', json.dumps(export_dict, indent=4), typ='string')
 
     # Delete Proxy
     cmds.delete(elements.get('main_proxy_grp'))
