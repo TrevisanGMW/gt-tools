@@ -20,6 +20,9 @@
  2022-06-30
  Updated (biped) extract pose from generated rig to prioritize "main_ctrl" string attribute
 
+ 2022-07-01
+ Added "Extract Proxy Pose From Facial Rig" and "Import Pose" (Facial)
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -133,14 +136,14 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 2 - Biped Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy())
-    cmds.separator(h=6, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
     cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left'))
     cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right'))
 
-    cmds.separator(h=8, style='none')  # Empty Space
-    cmds.separator(h=8, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Import Pose', bgc=(.3, .3, .3), c=lambda x: import_biped_proxy_pose())
     cmds.button(label='Export Pose', bgc=(.3, .3, .3), c=lambda x: export_biped_proxy_pose())
     cmds.separator(h=5, style='none')  # Empty Space
@@ -211,12 +214,16 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 2 - Facial Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(proxy_target='facial'))
-    cmds.separator(h=6, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
     cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left', 'facial'))
     cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right', 'facial'))
 
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.button(label='Import Pose', bgc=(.3, .3, .3), c=lambda x: import_facial_proxy_pose())
+    cmds.button(label='Export Pose', bgc=(.3, .3, .3), c=lambda x: export_facial_proxy_pose(), en=0)
     cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
@@ -253,7 +260,7 @@ def build_gui_auto_biped_rig():
                 c=lambda x: validate_facial_operation('merge'))
     cmds.separator(h=7, style='none')  # Empty Space
     cmds.button(label='Extract Proxy Pose From Facial Rig', bgc=(.3, .3, .3),
-                c=lambda x: extract_facial_proxy_pose(), en=0)
+                c=lambda x: extract_facial_proxy_pose())
 
     # ####################################### CORRECTIVE TAB #######################################
     corrective_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
@@ -274,7 +281,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 2 - Corrective Pose:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(proxy_target='corrective'))
-    cmds.separator(h=6, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
     cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left', 'corrective'))
@@ -1177,7 +1184,7 @@ def mirror_proxy(operation, proxy_target='base'):
 def export_biped_proxy_pose():
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
-    Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
+    Added a variable called "gt_rigger_biped_export_method" after v1.3, so the extraction method can be stored.
 
     """
     # Validate Proxy and Write file
@@ -1208,8 +1215,8 @@ def export_biped_proxy_pose():
 
     if successfully_created_file and is_valid:
 
-        export_dict = {'gt_auto_biped_version': data_biped.script_version,
-                       'gt_auto_biped_export_method': 'object-space'}
+        export_dict = {'gt_rigger_biped_version': data_biped.script_version,
+                       'gt_rigger_biped_export_method': 'object-space'}
         for obj in data_biped.elements_default:
             if '_crv' in obj:
                 translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
@@ -1321,15 +1328,15 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                 try:
                     is_valid_file = True
 
-                    if not data.get('gt_auto_biped_version'):
+                    if not data.get('gt_rigger_biped_version'):
                         is_valid_file = False
                         cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
-                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_auto_biped_version'))))
+                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_rigger_biped_version'))))
                         logger.debug(str(import_version))
 
-                    if data.get('gt_auto_biped_export_method'):
-                        import_method = data.get('gt_auto_biped_export_method')
+                    if data.get('gt_rigger_biped_export_method'):
+                        import_method = data.get('gt_rigger_biped_export_method')
                         logger.debug(str(import_method))
 
                     is_valid_scene = True
@@ -1365,7 +1372,7 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                             reset_proxy(suppress_warning=True)
                             sorted_pairs = []
                             for proxy in data:
-                                if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
+                                if proxy != 'gt_rigger_biped_version' and proxy != 'gt_rigger_biped_export_method':
                                     current_object = data.get(proxy)  # Name, T, R, S
                                     if cmds.objExists(current_object[0]):
                                         long_name = cmds.ls(current_object[0], l=True) or []
@@ -1399,7 +1406,7 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
 
                         else:  # Object-Space
                             for proxy in data:
-                                if proxy != 'gt_auto_biped_version' and proxy != 'gt_auto_biped_export_method':
+                                if proxy != 'gt_rigger_biped_version' and proxy != 'gt_rigger_biped_export_method':
                                     current_object = data.get(proxy)  # Name, T, R, S
                                     if cmds.objExists(current_object[0]):
                                         set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
@@ -1411,6 +1418,137 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                                         set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
                                         set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
                                         set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                        if not debugging:
+                            unique_message = '<' + str(random.random()) + '>'
+                            cmds.inViewMessage(
+                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
+                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                                pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
+
+                except Exception as exception:
+                    logger.info(str(exception))
+                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
+                                 'file. (Click on "Help" for more info)')
+        except Exception as exception:
+            file_exists = False
+            logger.debug(exception)
+            logger.debug('File exists:', str(file_exists))
+            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
+
+
+def import_facial_proxy_pose(debugging=False, debugging_path=''):
+    """
+    Imports a JSON file containing the translation, rotation and scale data for every proxy curve
+    (exported using the "export_proxy_pose" function)
+    Uses the imported data to set the translation, rotation and scale position of every proxy curve
+    Uses the function "delete_proxy()" to recreate it if necessary
+    Uses the function "reset_proxy()" to clean proxy before importing
+
+    It now checks import method to use the proper method when setting attributes.
+    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
+
+    Args:
+        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
+                          "debugging_path" parameter
+        debugging_path (string): Debugging path for the import function
+
+    """
+
+    def set_unlocked_os_attr(target, attr, value):
+        """
+        Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
+
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+
+        """
+        try:
+            if not cmds.getAttr(target + '.' + attr, lock=True):
+                cmds.setAttr(target + '.' + attr, value)
+        except Exception as e:
+            logger.debug(str(e))
+
+    pose_file = None
+
+    if not debugging:
+        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
+        file_filter += data_biped.script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
+                                     dialogStyle=2, fileMode=1, okCaption='Import',
+                                     caption='Importing Proxy Pose for "' + data_biped.script_name + '"') or []
+    else:
+        file_name = [debugging_path]
+
+    if len(file_name) > 0:
+        pose_file = file_name[0]
+        file_exists = True
+    else:
+        file_exists = False
+
+    if file_exists:
+        try:
+            with open(pose_file) as json_file:
+                data = json.load(json_file)
+                try:
+                    is_valid_file = True
+
+                    if not data.get('gt_rigger_facial_version'):
+                        is_valid_file = False
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
+                    else:
+                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_rigger_facial_version'))))
+                        logger.debug(str(import_version))
+
+                    if data.get('gt_rigger_facial_export_method'):
+                        import_method = data.get('gt_rigger_facial_export_method')
+                        logger.debug(str(import_method))
+
+                    is_valid_scene = True
+                    # Check for existing rig or conflicting names
+                    undesired_elements = ['facial_rig_grp']
+                    for jnt in data_facial.joints_default:
+                        undesired_elements.append(data_facial.joints_default.get(jnt))
+                    for obj in undesired_elements:
+                        if cmds.objExists(obj) and is_valid_scene:
+                            is_valid_scene = False
+                            cmds.warning(
+                                '"' + obj + '" found in the scene. This means that you either already created a '
+                                            'rig or you have conflicting names on your objects. '
+                                            '(Click on "Help" for more details)')
+
+                    if is_valid_scene:
+                        # Check for Proxy
+                        proxy_exists = True
+
+                        proxy_elements = []
+                        for proxy in data_facial.elements_default:
+                            if '_crv' in proxy or 'main_root' in proxy:
+                                proxy_elements.append(data_facial.elements.get(proxy))
+                        for obj in proxy_elements:
+                            if not cmds.objExists(obj) and proxy_exists:
+                                proxy_exists = False
+                                delete_proxy(suppress_warning=True, proxy_target='facial')
+                                validate_facial_operation('create_proxy')
+                                cmds.warning('Current proxy was missing elements, a new one was created.')
+
+                    if is_valid_file and is_valid_scene:
+                        for proxy in data:
+                            if proxy != 'gt_rigger_facial_version' and proxy != 'gt_rigger_facial_export_method':
+                                current_object = data.get(proxy)  # Name, T, R, S
+                                if cmds.objExists(current_object[0]):
+                                    set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                    set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                    set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                    set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                    set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                    set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
 
                         if not debugging:
                             unique_message = '<' + str(random.random()) + '>'
@@ -1604,13 +1742,64 @@ def extract_corrective_proxy_pose():
 
 
 def extract_facial_proxy_pose():
-    pass
-    print('facial')
+    """
+    Extracts the proxy pose from a generated rig into a JSON file. (Facial)
+    Useful when the user forgot to save it and generated the rig already.
+    """
+
+    # Validate Proxy and Write file
+    successfully_created_file = False
+    pose_file = None
+    export_dict = {}
+
+    # Easy method (main_ctrl string)
+    main_ctrl = 'head_ctrl'
+    if cmds.objExists(main_ctrl):
+        proxy_attr = main_ctrl + '.facial_proxy_pose'
+        if cmds.objExists(proxy_attr):
+            export_dict = cmds.getAttr(proxy_attr)
+            try:
+                export_dict = json.loads(str(export_dict))
+            except Exception as e:
+                logger.warning(str(e))
+                cmds.warning('Failed to decode JSON data.')
+                return
+        else:
+            cmds.warning('Missing required attribute: "' + proxy_attr + '"')
+            return
+    else:
+        cmds.warning('Missing required control: "' + main_ctrl + '"')
+        return
+
+    script_name_str = data_facial.script_name
+    file_name = cmds.fileDialog2(
+        fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
+        dialogStyle=2, okCaption='Export',
+        caption='Exporting Proxy Pose for "' + script_name_str + '"') or []
+    if len(file_name) > 0:
+        pose_file = file_name[0]
+        successfully_created_file = True
+
+    if successfully_created_file:
+        try:
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(
+                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
+                pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
+        except Exception as exception:
+            logger.info(str(exception))
+            # successfully_created_file = False
+            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
 def extract_biped_proxy_pose():
     """
-    Extracts the proxy pose from a generated rig into a JSON file.
+    Extracts the proxy pose from a generated rig into a JSON file. (Biped)
     Useful when the user forgot to save it and generated the rig already.
 
     Exports using "xform" and world space for more flexibility (scale is ignored)
@@ -1664,8 +1853,8 @@ def extract_biped_proxy_pose():
         Returns:
             extracted_export_dict (dict): Proxy dictionary to be written on to a file
         """
-        extracted_export_dict = {'gt_auto_biped_version': data_biped.script_version,
-                                 'gt_auto_biped_export_method': 'world-space'}
+        extracted_export_dict = {'gt_rigger_biped_version': data_biped.script_version,
+                                 'gt_rigger_biped_export_method': 'world-space'}
 
         no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
         left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
