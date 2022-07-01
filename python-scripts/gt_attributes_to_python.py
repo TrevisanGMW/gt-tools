@@ -12,6 +12,11 @@
 """
 import maya.cmds as cmds
 
+# Script Name
+script_name = 'GT Attributes to Python'
+
+# Version:
+script_version = "0.0.3"
 
 DIMENSIONS = ['x', 'y', 'z']
 DEFAULT_CHANNELS = ['t', 'r', 's']
@@ -60,7 +65,7 @@ def attr_to_list(obj_list, printing=True, decimal_place=2, separate_channels=Fal
 
         if not separate_channels:
             output += 'object = "' + str(obj) + '"\n'
-            output += 'trs_attr_list = ' + str(data).replace("'","") + '\n'
+            output += 'trs_attr_list = ' + str(data).replace("'", "") + '\n'
         else:
             output += 'object = "' + str(obj) + '"\n'
             output += 't_attr_list = [' + str(data[0]) + ', ' + str(data[1]) + ', ' + str(data[2]) + ']\n'
