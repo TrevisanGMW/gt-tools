@@ -102,10 +102,12 @@
  1.3.21 - 2022-03-17
  Checked to see if using new name for clavicle influence attribute (autoClavicleInfluence -> clavicleInfluence)
 
+ 1.3.22 - 2022-06-30
+ General code/docs cleanup
+
 
  TODO:
     Created flip pose function
-    Convert GUI to QT
     Add Flip options
     Overwrite keys for animation functions
     Add Namespace picker (button to the right of the namespace textfield)
@@ -131,7 +133,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.21"
+script_version = "1.3.22"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -380,13 +382,13 @@ def _get_metadata(namespace):
     """
     Attempts to retrieve metadata from the rig.
     It can be found under the "main_ctrl.metadata" as a string. The string is in json format.
-    This is useful when an different settings were used, such as different skeleton or orientation.
+    This is useful when different settings were used, such as different skeleton or orientation.
 
-        Parameters:
-            namespace (string): Expected namespace for when looking for main_ctrl
+    Args:
+        namespace (string): Expected namespace for when looking for main_ctrl
 
-        Returns:
-            dictionary or None: Returns data if available (JSON format becomes a dictionary)
+    Returns:
+        dictionary or None: Returns data if available (JSON format becomes a dictionary)
     """
     _main_ctrl = namespace + 'main_ctrl'
     if not cmds.objExists(_main_ctrl):
@@ -465,25 +467,25 @@ def build_gui_custom_rig_interface():
             [right_leg_seamless_dict, right_leg_fk_btn, right_leg_ik_btn],
             [left_leg_seamless_dict, left_leg_fk_btn, left_leg_ik_btn]
         ]
-        for ctrl_btns in ctrl_btn_lists:
+        for ctrl_buttons in ctrl_btn_lists:
             if cmds.objExists(
-                    gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get(
+                    gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_buttons[0].get(
                         'switch_ctrl')):
                 try:
                     current_system = cmds.getAttr(
-                        gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_btns[0].get(
+                        gt_custom_rig_interface_settings.get('namespace') + namespace_separator + ctrl_buttons[0].get(
                             'switch_ctrl') + '.influenceSwitch')
                     if current_system < 0.5:
-                        cmds.button(ctrl_btns[1], e=True, bgc=active_color)  # FK Button
-                        cmds.button(ctrl_btns[2], e=True, bgc=inactive_color)  # IK Button
+                        cmds.button(ctrl_buttons[1], e=True, bgc=active_color)  # FK Button
+                        cmds.button(ctrl_buttons[2], e=True, bgc=inactive_color)  # IK Button
                     else:
-                        cmds.button(ctrl_btns[2], e=True, bgc=active_color)  # FK Button
-                        cmds.button(ctrl_btns[1], e=True, bgc=inactive_color)  # IK Button
+                        cmds.button(ctrl_buttons[2], e=True, bgc=active_color)  # FK Button
+                        cmds.button(ctrl_buttons[1], e=True, bgc=inactive_color)  # IK Button
                 except:
                     pass
             else:
-                cmds.button(ctrl_btns[2], e=True, bgc=inactive_color)  # FK Button
-                cmds.button(ctrl_btns[1], e=True, bgc=inactive_color)  # IK Button
+                cmds.button(ctrl_buttons[2], e=True, bgc=inactive_color)  # FK Button
+                cmds.button(ctrl_buttons[1], e=True, bgc=inactive_color)  # IK Button
 
     def update_stored_settings(is_instance=False):
         """
@@ -571,8 +573,8 @@ def build_gui_custom_rig_interface():
         Used for boolean values, it inverts the value, so if True it becomes False and vice-versa.
         It also stores the new values after they are changed so future instances remember it.
         
-                Parameters:
-                    key_string (string) : Key name, used to determine what bool value to flip
+        Args:
+            key_string (string) : Key name, used to determine what bool value to flip
         """
         gt_custom_rig_interface_settings[key_string] = not gt_custom_rig_interface_settings.get(key_string)
         _set_persistent_settings_rig_interface()
@@ -580,13 +582,13 @@ def build_gui_custom_rig_interface():
 
     def get_auto_key_current_frame(target_integer_field='start', is_instance=False):
         """
-        Gets the current frame and auto fills an integer field.
+        Gets the current frame and fills an integer field.
         
-                Parameters:
-                    target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the
-                    start or end integer field. Can only be "start" or "end". Anything else will be understood as "end".
-                    is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to
-                    be stored or not . This is used for secondary instances (multiple windows)
+        Args:
+            target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the
+            start or end integer field. Can only be "start" or "end". Anything else will be understood as "end".
+            is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to
+            be stored or not . This is used for secondary instances (multiple windows)
         
         """
         current_time = cmds.currentTime(q=True)
@@ -599,7 +601,7 @@ def build_gui_custom_rig_interface():
 
     def get_auto_key_selection_frames(is_instance=False):
         """
-        Gets the current frame selection and auto fills an integer field.
+        Gets the current frame selection and fills an integer field.
 
         Args:
             is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be
@@ -617,7 +619,7 @@ def build_gui_custom_rig_interface():
 
     def get_auto_key_timeline_frames(is_instance=False):
         """
-        Gets the current timeline range and auto fills an integer field.
+        Gets the current timeline range and fills an integer field.
 
         Args:
             is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to be
@@ -638,7 +640,7 @@ def build_gui_custom_rig_interface():
         Runs a full pose mirror function.
         
         Args:
-             source_side (optinal, string): Either "right" or "left".
+             source_side (optional, string): Either "right" or "left".
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
@@ -669,9 +671,9 @@ def build_gui_custom_rig_interface():
         """
         Creates a help window to display the provided text
 
-                Parameters:
-                    input_text (string): Text used as help, this is displayed in a scroll fields.
-                    help_title (optional, string)
+        Args:
+            input_text (string): Text used as help, this is displayed in a scroll fields.
+            help_title (optional, string)
         """
         window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
         if cmds.window(window_name, exists=True):
@@ -891,24 +893,28 @@ def build_gui_custom_rig_interface():
     pose_mirror_ik_fk_column = cmds.rowColumnLayout(nc=4, cw=cw_fk_ik_states, cs=cs_fk_ik_states, p=pose_management_tab)
 
     # IK Pose Mirror
-    cmds.button(l="IK Only >", c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
-                                                        namespace=cmds.textField(namespace_txt, q=True,
-                                                                                 text=True) + namespace_separator),
-                p=pose_mirror_ik_fk_column)  # R
-    cmds.button(l="FK Only >", c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
-                                                        namespace=cmds.textField(namespace_txt, q=True,
-                                                                                 text=True) + namespace_separator),
-                p=pose_mirror_ik_fk_column)  # R
+    cmds.button(l="IK Only >",
+                p=pose_mirror_ik_fk_column,
+                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
+                                         namespace=cmds.textField(namespace_txt, q=True,
+                                         text=True) + namespace_separator))  # R
+    cmds.button(l="FK Only >",
+                p=pose_mirror_ik_fk_column,
+                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
+                                         namespace=cmds.textField(namespace_txt, q=True,
+                                                                  text=True) + namespace_separator))  # R
 
     # FK Pose Mirror
-    cmds.button(l="< IK Only", c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
-                                                        namespace=cmds.textField(namespace_txt, q=True,
-                                                                                 text=True) + namespace_separator),
-                p=pose_mirror_ik_fk_column)  # L
-    cmds.button(l="< FK Only", c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
-                                                        namespace=cmds.textField(namespace_txt, q=True,
-                                                                                 text=True) + namespace_separator),
-                p=pose_mirror_ik_fk_column)  # L
+    cmds.button(l="< IK Only",
+                p=pose_mirror_ik_fk_column,
+                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
+                                         namespace=cmds.textField(namespace_txt, q=True,
+                                                                  text=True) + namespace_separator))  # L
+    cmds.button(l="< FK Only",
+                p=pose_mirror_ik_fk_column,
+                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
+                                          namespace=cmds.textField(namespace_txt, q=True,
+                                          text=True) + namespace_separator))  # L
 
     # Reset Pose
     pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)
@@ -1046,7 +1052,7 @@ def build_gui_custom_rig_interface():
         export_pose_thumbnail_help_message = 'This option will be included in future versions, ' \
                                              'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
                                              'file together with your ".pose" file.\nThis extra thumbnail ' \
-                                             'file can be used to quickly undestand what you pose looks like ' \
+                                             'file can be used to quickly understand what you pose looks like ' \
                                              'before importing it.\n\nThe thumbnail is a screenshot of you active' \
                                              ' viewport at the moment of exporting the pose. ' \
                                              'If necessary, export it again to generate another thumbnail.'
@@ -1097,7 +1103,7 @@ def build_gui_custom_rig_interface():
 
 
 def _open_gt_tools_documentation():
-    """ Opens a web browser with the the auto rigger docs  """
+    """ Opens a web browser with the auto rigger docs  """
     cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True)
 
 
@@ -1107,17 +1113,17 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
     Transfer the position of the FK to IK or IK to FK systems in a seamless way,
     so the animator can easily switch between one and the other
 
-            Parameters:
-                ik_fk_dict (dict): A dictionary containing the elements that are part of the system you want to switch
-                direction (optional, string): Either "fk_to_ik" or "ik_to_fk".
-                                              It determines what is the source and what is the target.
-                namespace (optional, string): In case the rig has a namespace,
-                                              it will be used to properly select the controls.
+    Args:
+        ik_fk_dict (dict): A dictionary containing the elements that are part of the system you want to switch
+        direction (optional, string): Either "fk_to_ik" or "ik_to_fk".
+                                      It determines what is the source and what is the target.
+        namespace (optional, string): In case the rig has a namespace,
+                                      it will be used to properly select the controls.
 
-                keyframe (optional, bool): If active it will created a keyframe at the current frame, move to the
-                start_time (optional, int): Where to create the first keyframe
-                end_time (optional, int): Where to create the last keyframe
-                method (optional, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.
+        keyframe (optional, bool): If active it will create a keyframe at the current frame, move to the
+        start_time (optional, int): Where to create the first keyframe
+        end_time (optional, int): Where to create the last keyframe
+        method (optional, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.
     """
 
     def switch(match_only=False):
@@ -1313,7 +1319,7 @@ def _fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, e
         ik_fk_dict (dictionary): A dictionary containing the elements that are part of the system you want to switch.
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
 
-        keyframe (optional, bool): If active it will created a keyframe at the current frame, move to the
+        keyframe (optional, bool): If active it will create a keyframe at the current frame, move to the
         start_time (optional, int): Where to create the first keyframe
         end_time (optional, int): Where to create the last keyframe
         method (optional, string): Method used for creating the keyframes. Either 'sparse' or 'bake'.
@@ -1400,7 +1406,7 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
     Mirrors the character pose from one side to the other
 
     Args:
-        gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
+        gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
@@ -1513,7 +1519,7 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
 
 def _pose_export(namespace=''):
     """
-    Exports a Pose (JSON) file containing the translate, rotate and scale data from the rig controls (pose)
+    Exports a Pose (JSON) file containing the translation, rotation and scale data from the rig controls (pose)
     Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
     
     Args:
@@ -1610,10 +1616,10 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
         
-                Parameters:
-                    target (string): Name of the target object (object that will receive transforms)
-                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-                    value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
         
         """
         try:
@@ -1626,11 +1632,11 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
         
-                Parameters:
-                    target (string): Name of the target object (object that will receive transforms)
-                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-                    value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
-        
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+
         """
         try:
             if attr == 'translate':
@@ -1692,7 +1698,7 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
 
                     if not data.get('gt_interface_version'):
                         is_valid_file = False
-                        cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_interface_version'))))
 
@@ -1707,17 +1713,17 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
                         # Object-Space
                         for ctrl in data:
                             if ctrl != 'gt_interface_version' and ctrl != 'gt_export_method':
-                                curent_object = data.get(ctrl)  # Name, T, R, S
-                                if cmds.objExists(namespace + curent_object[0]):
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'tx', curent_object[1][0])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'ty', curent_object[1][1])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'tz', curent_object[1][2])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'rx', curent_object[2][0])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'ry', curent_object[2][1])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'rz', curent_object[2][2])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'sx', curent_object[3][0])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'sy', curent_object[3][1])
-                                    set_unlocked_os_attr(namespace + curent_object[0], 'sz', curent_object[3][2])
+                                current_object = data.get(ctrl)  # Name, T, R, S
+                                if cmds.objExists(namespace + current_object[0]):
+                                    set_unlocked_os_attr(namespace + current_object[0], 'tx', current_object[1][0])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'ty', current_object[1][1])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'tz', current_object[1][2])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'rx', current_object[2][0])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'ry', current_object[2][1])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'rz', current_object[2][2])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'sx', current_object[3][0])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'sy', current_object[3][1])
+                                    set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
 
                         unique_message = '<' + str(random.random()) + '>'
                         cmds.inViewMessage(
@@ -1730,7 +1736,7 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
 
                 except Exception as e:
                     print(e)
-                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid POSE file.')
+                    cmds.warning('An error occurred when importing the pose. Make sure you imported a valid POSE file.')
         except:
             file_exists = False
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
@@ -1739,12 +1745,12 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
 def _pose_flip(namespace=''):
     """
     Flips the current pose (Essentially like a mirror in both sides at te same time)
-    Creates a Pose dictionary containing the translate, rotate and scale data from the rig controls
+    Creates a Pose dictionary containing the translation, rotation and scale data from the rig controls
     (used to store a pose)
     
-        Parameters:
-            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+    Args:
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+
     """
     # Validate Operation and Write file
     is_valid = True
@@ -1811,8 +1817,8 @@ def _anim_reset(namespace=''):
     """
     Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)
     
-            Parameters:
-                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.    
+    Args:
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     """
     function_name = 'GT Reset Rig Animation'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -1852,9 +1858,9 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
     """
     Mirrors the character animation from one side to the other
 
-        Parameters:
-                gt_ab_ctrls (dict) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
-                namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    Args:
+            gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
+            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
 
@@ -1862,11 +1868,11 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
         """
         Returns a list where all the float values are inverted. For example, if the value is 5, it will then become -5.
 
-            Parameters:
-                    float_list (list) : A list of floats.
-                    
-            Returns:
-                    inverted_float_list (list): A list of floats with their values inverted
+        Args:
+                float_list (list) : A list of floats.
+
+        Returns:
+                inverted_float_list (list): A list of floats with their values inverted
     
         """
 
@@ -2103,10 +2109,10 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
 
 def _anim_export(namespace=''):
     """
-    Exports an ANIM (JSON) file containing the translate, rotate and scale keyframe data from the rig controls.
+    Exports an ANIM (JSON) file containing the translation, rotation and scale keyframe data from the rig controls.
 
-        Parameters:
-            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+    Args:
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
     # Validate Operation and Write file
@@ -2194,12 +2200,12 @@ def _anim_export(namespace=''):
 
 def _anim_import(debugging=False, debugging_path='', namespace=''):
     """
-    Imports an ANIM (JSON) file containing the translate, rotate and scale keyframe data for the rig controls
+    Imports an ANIM (JSON) file containing the translation, rotation and scale keyframe data for the rig controls
     (exported using the "_anim_export" function)
-    Uses the imported data to set the translate, rotate and scale position of every control curve
+    Uses the imported data to set the translation, rotation and scale of every control curve
     
     Args:
-        debugging (bool): If debugging, the function will attempt to auto load the file provided in the
+        debugging (bool): If debugging, the function will attempt to load the file provided in the
                           "debugging_path" parameter
         debugging_path (string): Debugging path for the import function
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
@@ -2254,7 +2260,7 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
 
                     if not data.get('gt_interface_version'):
                         is_valid_file = False
-                        cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_interface_version'))))
 
@@ -2274,7 +2280,7 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
                                     time = key_data[0]
                                     value = key_data[1]
                                     in_angle_tangent = key_data[2]
-                                    out_angle_tanget = key_data[3]
+                                    out_angle_tangent = key_data[3]
                                     is_locked = key_data[4]
                                     in_weight = key_data[5]
                                     out_weight = key_data[6]
@@ -2289,7 +2295,7 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
                                         cmds.keyTangent(namespace + obj, at=attr, time=(time, time),
                                                         inAngle=in_angle_tangent, e=True)
                                         cmds.keyTangent(namespace + obj, at=attr, time=(time, time),
-                                                        outAngle=out_angle_tanget, e=True)
+                                                        outAngle=out_angle_tangent, e=True)
                                         cmds.keyTangent(namespace + obj, at=attr, time=(time, time), inWeight=in_weight,
                                                         e=True)
                                         cmds.keyTangent(namespace + obj, at=attr, time=(time, time),
@@ -2311,7 +2317,7 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
 
                 except Exception as e:
                     print(e)
-                    cmds.warning('An error occured when importing the pose. Make sure you imported a valid ANIM file.')
+                    cmds.warning('An error occurred when importing the pose. Make sure you imported a valid ANIM file.')
         except:
             file_exists = False
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
