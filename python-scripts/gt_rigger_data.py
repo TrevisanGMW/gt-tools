@@ -9,7 +9,7 @@ Added corrective class
 import maya.cmds as cmds
 import copy
 
-SCRIPT_VERSION_BASE = '1.9.12'
+SCRIPT_VERSION_BASE = '1.9.13'
 SCRIPT_VERSION_FACIAL = '0.0.12'
 SCRIPT_VERSION_CORRECTIVE = '0.0.10'
 
