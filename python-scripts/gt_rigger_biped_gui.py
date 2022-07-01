@@ -2,279 +2,23 @@
  GT Biped Rigger GUI
  github.com/TrevisanGMW - 2020-12-08
 
- Changelog Biped Rigger:
+ 2022-06-20
+ Added tabs to GUI (Biped/Base, Facial, Corrective, Settings)
+ Updated settings management, fixed persistent settings issue
 
- 1.0 - 2020-12-29 - (Merged)
- Initial Release
-
- 1.1 - 2021-01-03 - (Merged)
- Renamed shapes
- Added joint labelling
- Added icons to buttons
- Added curves (lines) between proxies
- Changed and added a few notes
- Added manip default to all main controls
- Locked default channels for the main rig group
- Made rig setup elements visible after creation
- Updated stretchy system to avoid cycles or errors
- Updated stretchy system to account for any curvature
- Fixed possible scale cycle happening during control creation
-
- 1.2 - 2021-01-04 - (Merged)
- Changed stretchy system so it doesn't use floatConstant nodes
- Updated the import proxy function so it doesn't give an error when importing a different scale
- Added utility to automatically create and define a HumanIK character from the rig
- Added utility to toggle the visibility of all joint labels
- Created utility to add a seamless FK/IK switch script to the current shelf
- "followHip" (ankle proxies) attribute is not longer activated by default
- Fixed an issue where left arm ik would be generated with an offset in extreme angles
-
- 1.3 - 2021-01-19 - (Merged)
- Updated help window to better accommodate a high volume of text
- Added new utility to extract proxy pose from generated rig
- Updated export/import functions to be compatible with world-space
- Added version check to importer for backwards compatibility
- Added auto load for HumanIK plugin in case it's not loaded when attaching rig
- Patched a few small bugs, added colors to a few controls and updated the help text
- Changed forearm joints hierarchy so the rig can be easily exported in to game engines
- Moved the mechanics of the roll joints into the rig setup folder
- Updated the order of the groups inside the rig setup folder
- Added joint inflation/deflation system
- Switch the order and name of a few custom attributes (none of the keyable ones
- Switch the order of a few custom attributes (influenceSwitch was moved up)
- Added activation attribute to the main control for the joint inflation/deflation system
- Added counter rotation system to neckMid control so the shape stays in place when automated
- Fixed an issue where the right thumb wouldn't orient correctly
- Added finger abduction/adduction control and updated the name of a few attributes
-
- 1.4 - 2021-01-25 - (Merged)
- Created auto breathing system
- Added check for geometry group (common name)
- Updated "orient_to_target" function to enforce proxy direction properly
- Added manip default to the foot roll controls
- Fixed an issue where you wouldn't be able to import a JSON file for the beta versions
- Added negative rotation to adduction for more flexibility
- Added auto knuckle compression system (Translation Z Offset)
- Changed the data transfer type of the wrists from parentConstraint to raw to prevent flipping
- Created sin function without expressions
- Created a trigonometry sine function that doesn't use third-party plugins or expressions
- Added debugging option to auto import proxy templates and auto bind geometry
- Added a check for required plugins before running the script
- Changed the data transfer type of the clavicles to allow for offsets (for auto breathing)
- Added notes to the knee proxies (similar to elbows)
-
- 1.5 - 2021-01-26 - (Merged)
- Changed the names of a few nodes
- Updated the entire forearm and wrist joints system as they would sometimes flip
- Added attribute to head control to determine the visibility of the eye controls
- Updated right forearm connections so it goes into the correct direction
- Fixed undesired offset inherited from a broken node inside the auto breathing system
- Fixed an issue where the shape of some controls would stay opened
- Updated most curves to be created as periodic curves to avoid creation issues
- Fixed the direction of the right side FK/IK switch shapes
-
- 1.6 - 2021-01-28 - (Merged)
- Fixed an issue where the fingers would still move even when the stretchy system was deactivated
- Fixed another issue where the wrist joints would flip flipping
- Fixed issue where the spine controls would look locked when moving the cog control
-
- 1.7 - 2021-02-05 - (Merged)
- Fixed issue where the ik shoulders would sometimes flip during a main control rotation
- Unlocked translate Z for hip proxies
-
- 1.7.1 - 2021-02-14 - (Merged)
- Fixed issue where "right_forearm_jnt" would rotate to the wrong direction
-
- 1.7.2 - 2021-05-10 - (Merged)
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.7.3 - 2021-08-07 - (Merged)
- Fixed an issue where the foot would sometimes be flipped when the angle of the leg is not perfectly straight (
- Enforce footToe ikHandle position)
-
- 1.7.4 - 2021-10-10 - (Merged)
- Fixed an issue where the rig would start flickering when following motion capture using a custom rig setup (HumanIK)
- Modified inflation/deflation system to use controls instead of inverseMatrix nodes (less convenient, but more robust)
- Removed extraction of hip rotation from the "Extra Proxy Pose From Generated Rig" to fix flipped issue
- Added debugging warning to GUI for when debugging mode is activated (Replaces script title next to help)
- Changed the "followName" attribute data type for the pole vector controls to float so interpolation is possible
-
- 1.7.5 - 2021-10-19 - (Merged)
- Added option to generate secondary skeleton used for game engines (no Segment Scale Compensate)
- Added option to create lines between pole vectors and their targets
-
- 1.7.6 - 2021-10-20 - (Merged)
- Created "settings" button and the GUI updates necessary to display it
- Created the base for persistent settings and implemented "User Real-time Skeleton" option
- Created a custom help window that takes strings as help inputs to display it to the user
-
- 1.7.7 - 2021-10-21 - (Merged)
- Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
-
- 1.7.8 - 2021-10-24 - (Merged)
- Added aim lines to pole vectors and eye controls
- Added some missing documentation
- Fixed a missing connection between follow attributes and their constraints (pole vectors and eyes)
-
- 1.7.9 - 2021-10-26 - (Merged)
- Fixed an issue where the right IK switcher curve would sometimes not orient itself correctly
- Added parenting options to IK Switchers (chest, clavicle, world)
-
- 1.7.10 - 2021-10-28 - (Merged)
- Created more debugging options
- Created ribbon setup for the spine (IK Spine)
- Created IK/FK switcher for the new spine setup
- Made proxy limits optional
- Add option to mirror rigged pose. IK Only. (for animators)
- Added option to reset pose
-
- 1.7.11 - 2021-10-29 - (Merged)
- Changed the name of the seamless FK/IK button to "Custom Rig Interface" as it now carries pose management functions
- Big update to Custom Rig Interface. It can now mirror, reset, import and export poses.
- Created utility to toggle rigging specific attributes
-
- 1.7.12 - 2021-11-01 - (Merged)
- Minor patches applied to Custom Rig Interface script
- Created finger specific curl controls
- Added option to control visibility of the fingers
-
- 1.7.13 - 2021-11-03 - (Merged)
- Modified control notes a bit
- Changed the radius of the IK spine joints
- Created IK finger controls
- Included cog_ctrl IK visibility attributes under rigging specific attributes
- Updated order of the custom attributes under the finger controls (no more top separator)
- Fixed an issue where the right hand would receive an unnecessary offset on its abduction system
-
- 1.7.14 - 2021-11-04 - (Merged)
- Exposed rotation order attribute for a few controls
-
- 1.7.15 - 2021-11-05 - (Merged)
- Added missing rotation order attribute to feet
- Added a tagged version of the rotation order to the wrist
- Updated custom rig interface GUI
- Replaced a few repeating strings with general variables
-
- 1.7.16 - 2021-11-08 - (Merged)
- Big update to custom rig interface
-
- 1.7.17 - 2021-11-08 - (Merged)
- Fixed an issue where IK fingers wouldn't follow the correct preferred angle
-
- 1.8.0 - 2021-11-15 - (Merged)
- Changed IK Spine to cube control (With 3 hidden adjustment controls. Not visible by default)
- Changed IK Spine to be the default influence
- Secondary chest adjustment control only affects the chest, not the head (so you can keep line of sight)
- Arm pole vector controls now follow arm's plane instead of wrist
- Moved pole vector custom attributes to wrist for ease of access
- Added twist attributes to the pole vector controls for the arms (found under wrists)
- Added 3D visibility type shapes to IK feet and IK wrists
- Changed the source constraint for the feet stretchy system so it accounts for the roll controls
-
- 1.8.1 - 2021-11-16 - (Merged)
- Brought back the follow wrist option for the elbow pole vector controls
- Fixed elbow control issue (pole vector) would sometimes receive rotation from the spine (missing aim up dir)
- Slightly changed the shape of the IK spine control for a better starting point
- Moved the pole vector controls little bit further away during creation
- Created pole vector twist and parenting system for legs
-
- 1.8.2 - 2021-11-17 - (Merged)
- Slightly changed the initial hand and spine box shapes to better conform to the body shape
- Created auto clavicle system. Clavicle rotates based on wrist position (according to influence % under the wrist ctrl)
- Added option to define heel roll as a proxy step (This should allow for a quicker rig profile import/export)
- Gave proxy pose a default extension ".ppose" instead of just ".json" to avoid confusion with other scripts
-
- 1.8.3 - 2021-11-18 - (Merged)
- Added offset controls to wrists, chest, cog
-
- 1.8.4 - 2021-11-19 - (Merged)
- Added offset controls to feet
-
- 1.8.5 - 2021-11-23 - (Merged)
- Fixed an issue where right arm pole vector was receiving undesired offset due to new twisting system
-
- 1.8.6 - 2021-11-24 - (Merged)
- Created uniform orientation option
- Redefined the scale calculation system to rely on position calculation rather than joint X distance
- Updated stretchy system to accept different joint scale channels
- Removed tagged version of the rotation order enum
-
- 1.8.7 - 2021-11-25 - (Merged)
- Changed the general scale calculation slightly
- Fixed issue where spine04_ctrl curve would be rotated incorrectly when using uniform orients
-
- 1.8.8 - 2021-11-29 - (Merged)
- Updated the distance calculation method for legs and arms
- Created an option to output world-space IK controls instead of inheriting from the joints
- Changed rotation source for auto clavicle to account for world-space ik controls
- Recreated the IK Spine to support stretchy system and limit positioning while attached to the ribbon setup
- Added world-space IK support to IK spine
- Added refresh suspend function before operations to speedup rig creation
- Added metadata in form of an attribute (type string) attached to the main control (dictionary/json format)
- Added new FK/IK switching references to account for new wrist orientations
-
- 1.8.9 - 2021-12-01 - (Merged)
- Re-create the uniform orientation option to keep the orientation of the joints intact (use offset instead)
-
- 1.8.10 - 2021-12-02 - (Merged)
- Replaced "uniform_ctrl_orient" functionality to drive new offset orientation system
- Created new neck head influence system
- Added offset control to neck
-
- 1.8.11 - 2021-12-10 - (GUI, Logic, Data)
- Fixed an issue where spine wouldn't move properly in Maya 2022 (Python 3)
- Split biped rigger file into a more MVC format (controller, model, view)
-
- 1.8.12 - 2021-12-20 - (Logic)
- Fixed flipping spine control
- Deactivated auto clavicle when switching to FK
-
- 1.8.13 - 2021-12-21 - (GUI, Logic)
- Added option to simplify spine
- Added option to eliminate center hip joint
- Renamed auto clavicle joints to "driver" instead of auto
- Renamed "cog" joint to be called "waist" to better describe it
- Renamed "spine04" joint to be called "chest" so it makes sense when simplified
- Fixed some code repetition for the finger abduction system
- Created sum input node for abduction system
- Added rotation to abduction system
-
- 1.8.14 - 2021-12-22 - (Logic)
- Fixed an issue where the finger compression system would pop when adjusted
-
- 1.9.0 - 2022-01-15 - (GUI, Logic)
- Dropped Python 2 support
-
- 1.9.1 - 2022-01-15 - (Logic)
- Commented out joint labelling section
- Fixed an issue where the ball ik handles for the feet would be inverted
- Created a more robust system for the forearm twist (aimLoc)
- Fixed an issue where the simplification of the spine would cause a rotation offset to happen to the upper body joints
- Changed output hierarchy so pelvis (hip) goes under the root joint for more retargeting compatibility
-
- 1.9.10 - 2022-06-20 - (GUI, Data)
- Updated GUI so it uses tabs
- Updated settings management, fixed persistent settings
-
- 1.9.12 - 2022-06-20 - (Facial, GUI, Data)
+ 2022-06-20
  Added Facial and Corrective Tabs to GUI
  Refactored a few function names to avoid conflicts
  Added basic operations and future operations buttons to facial and corrective tabs
  Added "Add Influence Options" to facial and corrective tabs
 
- 1.9.13 - 2022-06-28
+ 2022-06-28
  Added logging for better debugging
  Added settings for corrective rigging
  Fixed reset persistent settings to include facial and corrective settings
 
- TODO Biped Rigger:
-    Transfer scale information from ik spine limit spine to spines
-    Add option to leave all lock translation attributes off
-    Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (with influence %)
-    Make scale system and breathing system optional
-    Add more roll joints (upper part of the arm, legs, etc)
-    Add option to auto create proxy geo
-    Fix "Use Real-time Skeleton" option (broken after new UI setup)
+ 2022-06-30
+ Updated (biped) extract pose from generated rig to prioritize "main_ctrl" string attribute
 
 """
 from shiboken2 import wrapInstance
@@ -443,7 +187,7 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
     cmds.button(label='Toggle Rigging Specific Attributes', bgc=(.3, .3, .3), c=lambda x: toggle_rigging_attr())
     cmds.separator(h=7, style='none')  # Empty Space
-    cmds.button(label='Extract Proxy Pose From Generated Rig', bgc=(.3, .3, .3), c=lambda x: extract_biped_proxy_pose())
+    cmds.button(label='Extract Proxy Pose From Biped Rig', bgc=(.3, .3, .3), c=lambda x: extract_biped_proxy_pose())
 
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.separator(h=10, style='none', p=body_column)  # Empty Space
@@ -507,6 +251,9 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
     cmds.button(label='Merge Facial Rig with Biped Rig', bgc=(.3, .3, .3),
                 c=lambda x: validate_facial_operation('merge'))
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.button(label='Extract Proxy Pose From Facial Rig', bgc=(.3, .3, .3),
+                c=lambda x: extract_facial_proxy_pose(), en=0)
 
     # ####################################### CORRECTIVE TAB #######################################
     corrective_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
@@ -566,6 +313,9 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
     cmds.button(label='Merge Corrective Rig with Biped Rig', bgc=(.3, .3, .3),
                 c=lambda x: validate_corrective_operation('merge'))
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.button(label='Extract Proxy Pose From Corrective Rig', bgc=(.3, .3, .3),
+                c=lambda x: extract_corrective_proxy_pose(), en=0)
 
     # ####################################### SETTINGS TAB #######################################
 
@@ -875,24 +625,27 @@ def build_help_gui_auto_biped_rig(script_name):
 
     auto_biped_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='[X] Step 1: .\n -Create Proxy:\n   This button will create many temporary curves that will later\n   be used to generate the rig.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   In case you want to re-scale the proxy, use the root proxy\n   control for that. The initial scale is the average height of a\n   woman. (160cm)\n   Presets for other sizes can be found on Github.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n   These are not joints. Please don\'t delete or rename them.')
-
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 2:\n   Pose the proxy (guide) to match your character.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Reset Proxy:\n   Resets the position and rotation of the proxy elements,\n   essentially "recreating" the proxy.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Mirror Side to Side:\n   Copies the transform data from one side to the other,\n   mirroring the pose.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Import Pose:\n   Imports a JSON file containing the transforms of the proxy\n   elements. This file is generated using the "Export Pose"\n   function.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Export Pose:\n   Exports a JSON file containing the transforms of the proxy\n   elements.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Delete Proxy:\n   Simply deletes the proxy in case you no longer need it.')
-
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 3:\n   This button creates the control rig. It uses the transform data\n   found in the proxy to determine how to create the skeleton\n   and controls. This function will delete the proxy.\n   Make sure you export it first if you plan to reuse it later.')
-
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Step 4:\n   Now that the rig has been created, it\'s time to attach it to the\n   geometry.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Select Skinning Joints:\n   Select only joints that should be used when skinning the\n   character. This means that it will not include end joints or\n   the toes.')
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n -Bind Skin Options:\n   Opens the options for the function "Bind Skin" so the desired\n   geometry can attached to the skinning joints.\n   Make sure to use the "Bind to" as "Selected Joints"')
-
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it='\n\n[X] Utilities:\n   These are utilities that you can use after creating your rig.\n   Please visit the full documentation to learn more about it.')
+    text = '[X] Step 1: .\n -Create Proxy:\n   This button creates many temporary curves that will later' \
+           '\n   be used to generate the rig.\n\n   The initial scale is the average height of a\n   woman. (160cm)' \
+           '\n   Presets for other sizes can be found on Github.\n\n   These are not joints. Please don\'t delete or' \
+           ' rename them.\n\n[X] Step 2:\n   Pose the proxy (guide) to match your character.\n\n -Reset Proxy:' \
+           '\n   Resets the position and rotation of the proxy elements,\n   essentially "recreating" the proxy.' \
+           '\n\n -Mirror Side to Side:\n   Copies the transform data from one side to the other,\n   ' \
+           'mirroring the pose.\n\n -Import Pose:\n   Imports a JSON file containing the transforms of the proxy\n  ' \
+           'elements. This file is generated using the "Export Pose"\n   function.\n\n -Export Pose:\n   ' \
+           'Exports a JSON file containing the transforms of the proxy\n   elements.\n\n -Delete Proxy:\n   ' \
+           'Simply deletes the proxy in case you no longer need it.\n\n[X] Step 3:\n   ' \
+           'This button creates the control rig. It uses the transform data\n   ' \
+           'found in the proxy to determine how to create the skeleton\n   and controls. ' \
+           'This function will delete the proxy.\n   Make sure you export it first if you plan to reuse it later.' \
+           '\n\n[X] Step 4:\n   Now that the rig has been created, it\'s time to attach it to the\n   geometry.' \
+           '\n\n -Select Skinning Joints:\n   Select only joints that should be used when skinning the\n   character.' \
+           ' This means that it will not include end joints or\n   the toes.\n\n -Bind Skin Options:\n   ' \
+           'Opens the options for the function "Bind Skin" so the desired\n   ' \
+           'geometry can attached to the skinning joints.\n   Make sure to use the "Bind to" as "Selected Joints"' \
+           '\n\n[X] Utilities:\n   These are utilities that you can use after creating your rig.\n   ' \
+           'Please visit the full documentation to learn more about it.'
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it=text)
 
     cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
 
@@ -932,9 +685,9 @@ def build_custom_help_window(input_text, help_title=''):
     """
     Creates a help window to display the provided text
 
-            Parameters:
-                input_text (string): Text used as help, this is displayed in a scroll fields.
-                help_title (optional, string)
+    Args:
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (optional, string)
     """
     window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
     if cmds.window(window_name, exists=True):
@@ -1500,10 +1253,10 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
     It now checks import method to use the proper method when setting attributes.
     Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
 
-            Parameters:
-                debugging (bool): If debugging, the function will attempt to autoload the file provided in the
-                                  "debugging_path" parameter
-                debugging_path (string): Debugging path for the import function
+    Args:
+        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
+                          "debugging_path" parameter
+        debugging_path (string): Debugging path for the import function
 
     """
 
@@ -1511,10 +1264,10 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
 
-                Parameters:
-                    target (string): Name of the target object (object that will receive transforms)
-                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-                    value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
 
         """
         try:
@@ -1527,10 +1280,10 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
 
-                Parameters:
-                    target (string): Name of the target object (object that will receive transforms)
-                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-                    value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
 
         """
         try:
@@ -1682,8 +1435,8 @@ def define_biped_humanik(character_name):
     """
     Auto creates a character definition for GT Auto Biped. (It overwrites any definition with the same name)
 
-            Parameters:
-                character_name (string): Name of the HIK character
+    Args:
+        character_name (string): Name of the HIK character
 
     """
     is_operation_valid = True
@@ -1845,6 +1598,16 @@ def define_biped_humanik(character_name):
                          'You might have to assign your joints manually.')
 
 
+def extract_corrective_proxy_pose():
+    pass
+    print('corrective')
+
+
+def extract_facial_proxy_pose():
+    pass
+    print('facial')
+
+
 def extract_biped_proxy_pose():
     """
     Extracts the proxy pose from a generated rig into a JSON file.
@@ -1895,34 +1658,14 @@ def extract_biped_proxy_pose():
 
         return [proxy_name, translate, rotate, scale]
 
-    # Validate Proxy and Write file
-    is_valid = True
-    successfully_created_file = False
-    pose_file = None
-
-    # Check for existing rig
-    desired_elements = []
-    for jnt in data_biped.joints_default:
-        desired_elements.append(data_biped.joints_default.get(jnt))
-    for obj in desired_elements:
-        if not cmds.objExists(obj) and is_valid:
-            is_valid = False
-            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
-                                     '(Click on "Help" for more details)')
-
-    if is_valid:
-        script_name_str = data_biped.script_name
-        file_name = cmds.fileDialog2(
-            fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
-            dialogStyle=2, okCaption='Export',
-            caption='Exporting Proxy Pose for "' + data_biped.script_name + '"') or []
-        if len(file_name) > 0:
-            pose_file = file_name[0]
-            successfully_created_file = True
-
-    if successfully_created_file and is_valid:
-
-        export_dict = {'gt_auto_biped_version': data_biped.script_version, 'gt_auto_biped_export_method': 'world-space'}
+    def force_extract_from_joints():
+        """
+        Extract proxy using current joints (less accurate)
+        Returns:
+            extracted_export_dict (dict): Proxy dictionary to be written on to a file
+        """
+        extracted_export_dict = {'gt_auto_biped_version': data_biped.script_version,
+                                 'gt_auto_biped_export_method': 'world-space'}
 
         no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
         left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
@@ -1943,17 +1686,17 @@ def extract_biped_proxy_pose():
                     right_offset_rot_list.append(jnt_key)
 
         for jnt_key in data_biped.joints_default:
-            jnt = data_biped.joints_default.get(jnt_key)
+            current_jnt = data_biped.joints_default.get(jnt_key)
 
             if jnt_key in no_rot_list:
-                values_to_store = extract_transform_joint_to_proxy(jnt, ignore_rotate=True)
+                values_to_store = extract_transform_joint_to_proxy(current_jnt, ignore_rotate=True)
             elif jnt_key in left_offset_rot_list:
                 temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
                 temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True)
                 temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True)
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp))
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp_dir))
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp_up))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_dir))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_up))
                 cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
                 cmds.move(1, temp_grp_up, z=True, relative=True, objectSpace=True)
                 cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0, 0, 0), aimVector=(1, 0, 0),
@@ -1961,7 +1704,7 @@ def extract_biped_proxy_pose():
                 cmds.delete(
                     cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0, 0, 0), aimVector=(0, 1, 0), upVector=(0, 1, 0),
                                        worldUpType='vector', worldUpVector=(0, 1, 0), skip=('y', 'z')))
-                values_to_store = extract_transform_joint_to_proxy(jnt, no_jnt_extraction=temp_grp)
+                values_to_store = extract_transform_joint_to_proxy(current_jnt, no_jnt_extraction=temp_grp)
                 cmds.delete(temp_grp)
                 cmds.delete(temp_grp_dir)
                 cmds.delete(temp_grp_up)
@@ -1969,9 +1712,9 @@ def extract_biped_proxy_pose():
                 temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
                 temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True)
                 temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True)
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp))
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp_dir))
-                cmds.delete(cmds.parentConstraint(jnt, temp_grp_up))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_dir))
+                cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_up))
                 cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
                 cmds.move(-1, temp_grp_up, z=True, relative=True, objectSpace=True)
                 cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0, 0, 0), aimVector=(1, 0, 0),
@@ -1979,18 +1722,18 @@ def extract_biped_proxy_pose():
                 cmds.delete(
                     cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0, 0, 0), aimVector=(0, 1, 0), upVector=(0, 1, 0),
                                        worldUpType='vector', worldUpVector=(0, 1, 0), skip=('y', 'z')))
-                values_to_store = extract_transform_joint_to_proxy(jnt, no_jnt_extraction=temp_grp)
+                values_to_store = extract_transform_joint_to_proxy(current_jnt, no_jnt_extraction=temp_grp)
                 cmds.delete(temp_grp)
                 cmds.delete(temp_grp_dir)
                 cmds.delete(temp_grp_up)
             else:
-                values_to_store = extract_transform_joint_to_proxy(jnt)
+                values_to_store = extract_transform_joint_to_proxy(current_jnt)
 
             for proxy_key in data_biped.elements_default:
                 if jnt_key.replace('_' + JNT_SUFFIX, '_proxy_crv') == proxy_key:
-                    export_dict[proxy_key] = values_to_store
+                    extracted_export_dict[proxy_key] = values_to_store
 
-        # Heel Pivot Extraction 
+        # Heel Pivot Extraction
         for pivot in ['left_heel_pivotGrp', 'right_heel_pivotGrp']:
             if cmds.objExists(pivot):
                 temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
@@ -1998,9 +1741,56 @@ def extract_biped_proxy_pose():
                 pivot_pos = extract_transform_joint_to_proxy(temp_grp, ignore_translate=False, ignore_rotate=True,
                                                              ignore_scale=True)
                 cmds.delete(temp_grp)
-                export_dict[pivot.replace('_pivotGrp', '_proxy_pivot')] = (
+                extracted_export_dict[pivot.replace('_pivotGrp', '_proxy_pivot')] = (
                     pivot.replace('_pivotGrp', '_pivot_proxy'), pivot_pos[1], pivot_pos[2], pivot_pos[3])
 
+        return extracted_export_dict
+
+    # ############################### extract_biped_proxy_pose main function ############################
+
+    # Validate Proxy and Write file
+    is_valid = True
+    successfully_created_file = False
+    pose_file = None
+    needs_joints = True
+    export_dict = {}
+
+    # Easy method (main_ctrl string)
+    main_ctrl = 'main_ctrl'
+    if cmds.objExists(main_ctrl):
+        proxy_attr = main_ctrl + '.biped_proxy_pose'
+        if cmds.objExists(proxy_attr):
+            export_dict = cmds.getAttr(proxy_attr)
+            try:
+                export_dict = json.loads(str(export_dict))
+                needs_joints = False
+            except Exception as e:
+                logger.debug(str(e))
+
+    # Check for existing rig
+    if needs_joints:
+        desired_elements = ['main_ctrl']
+        for jnt in data_biped.joints_default:
+            desired_elements.append(data_biped.joints_default.get(jnt))
+        for obj in desired_elements:
+            if not cmds.objExists(obj) and is_valid:
+                is_valid = False
+                cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
+                                         '(Click on "Help" for more details)')
+
+    if is_valid:
+        script_name_str = data_biped.script_name
+        file_name = cmds.fileDialog2(
+            fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
+            dialogStyle=2, okCaption='Export',
+            caption='Exporting Proxy Pose for "' + data_biped.script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+
+    if successfully_created_file and is_valid:
+        if needs_joints:
+            export_dict = force_extract_from_joints()
         try:
             with open(pose_file, 'w') as outfile:
                 json.dump(export_dict, outfile, indent=4)
