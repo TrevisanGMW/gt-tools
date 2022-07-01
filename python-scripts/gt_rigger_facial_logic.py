@@ -41,11 +41,15 @@
  0.12 - 2022-06-24
  Changed merge rig function to keep scale constraints at the bottom of the stack
 
+ 0.13 - 2022-07-01
+ Fixed functionality of finding pre-existing joints
+ Added attribute to store proxy as a string to the "head_ctrl" (Used to extract proxy from generated rig)
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
      Add nose proxy / control
      Improve tongue scale control system
-     Look for existing rig (not only proxy) when creating facial proxy
+     Look for existing biped proxy (not only joints) when creating facial proxy
 
 """
 from collections import namedtuple
@@ -542,48 +546,48 @@ def create_facial_proxy(facial_data):
     cmds.parent(tip_tongue_proxy_grp, tongue_proxy_crv)
     change_viewport_color(tip_tongue_proxy_crv, (.7, .3, .7))
     proxy_curves.append(tip_tongue_proxy_crv)
-
-    # Left Cheeks
-    left_cheek_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_cheek_crv'), .06)
-    cmds.makeIdentity(left_cheek_proxy_crv, apply=True, rotate=True)
-    left_cheek_proxy_crv_grp = cmds.group(empty=True, world=True, name=left_cheek_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_cheek_proxy_crv, left_cheek_proxy_crv_grp)
-    cmds.move(4, 148, 12, left_cheek_proxy_crv_grp)
-    cmds.rotate(45, 0, -90, left_cheek_proxy_crv_grp)
-    cmds.parent(left_cheek_proxy_crv_grp, main_root)
-    change_viewport_color(left_cheek_proxy_crv, (.6, .3, .6))
-    proxy_curves.append(left_cheek_proxy_crv)
-
-    # Right Cheeks
-    right_cheek_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_cheek_crv'), .06)
-    cmds.makeIdentity(right_cheek_proxy_crv, apply=True, rotate=True)
-    right_cheek_proxy_crv_grp = cmds.group(empty=True, world=True, name=right_cheek_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_cheek_proxy_crv, right_cheek_proxy_crv_grp)
-    cmds.move(-4, 148, 12, right_cheek_proxy_crv_grp)
-    cmds.rotate(135, 0, -90, right_cheek_proxy_crv_grp)
-    cmds.parent(right_cheek_proxy_crv_grp, main_root)
-    change_viewport_color(right_cheek_proxy_crv, (.6, .3, .6))
-    proxy_curves.append(right_cheek_proxy_crv)
-
-    # Left Nose
-    left_nose_proxy_crv = create_joint_curve(_facial_proxy_dict.get('left_nose_crv'), .06)
-    cmds.makeIdentity(left_nose_proxy_crv, apply=True, rotate=True)
-    left_nose_proxy_crv_grp = cmds.group(empty=True, world=True, name=left_nose_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(left_nose_proxy_crv, left_nose_proxy_crv_grp)
-    cmds.move(1.2, 149.1, 12.5, left_nose_proxy_crv_grp)
-    cmds.parent(left_nose_proxy_crv_grp, main_root)
-    change_viewport_color(left_nose_proxy_crv, (.6, .3, .6))
-    proxy_curves.append(left_nose_proxy_crv)
-
-    # Right Nose
-    right_nose_proxy_crv = create_joint_curve(_facial_proxy_dict.get('right_nose_crv'), .06)
-    cmds.makeIdentity(right_nose_proxy_crv, apply=True, rotate=True)
-    right_nose_proxy_crv_grp = cmds.group(empty=True, world=True, name=right_nose_proxy_crv + GRP_SUFFIX.capitalize())
-    cmds.parent(right_nose_proxy_crv, right_nose_proxy_crv_grp)
-    cmds.move(-1.2, 149.1, 12.5, right_nose_proxy_crv_grp)
-    cmds.parent(right_nose_proxy_crv_grp, main_root)
-    change_viewport_color(right_nose_proxy_crv, (.6, .3, .6))
-    proxy_curves.append(right_nose_proxy_crv)
+    #
+    # # Left Cheeks
+    # left_cheek_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('left_cheek_crv'), .06)
+    # cmds.makeIdentity(left_cheek_proxy_crv, apply=True, rotate=True)
+    # left_cheek_proxy_crv_grp = cmds.group(empty=True, world=True, name=left_cheek_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(left_cheek_proxy_crv, left_cheek_proxy_crv_grp)
+    # cmds.move(4, 148, 12, left_cheek_proxy_crv_grp)
+    # cmds.rotate(45, 0, -90, left_cheek_proxy_crv_grp)
+    # cmds.parent(left_cheek_proxy_crv_grp, main_root)
+    # change_viewport_color(left_cheek_proxy_crv, (.6, .3, .6))
+    # proxy_curves.append(left_cheek_proxy_crv)
+    #
+    # # Right Cheeks
+    # right_cheek_proxy_crv = create_directional_joint_curve(_facial_proxy_dict.get('right_cheek_crv'), .06)
+    # cmds.makeIdentity(right_cheek_proxy_crv, apply=True, rotate=True)
+    # right_cheek_proxy_crv_grp = cmds.group(empty=True, world=True, name=right_cheek_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(right_cheek_proxy_crv, right_cheek_proxy_crv_grp)
+    # cmds.move(-4, 148, 12, right_cheek_proxy_crv_grp)
+    # cmds.rotate(135, 0, -90, right_cheek_proxy_crv_grp)
+    # cmds.parent(right_cheek_proxy_crv_grp, main_root)
+    # change_viewport_color(right_cheek_proxy_crv, (.6, .3, .6))
+    # proxy_curves.append(right_cheek_proxy_crv)
+    #
+    # # Left Nose
+    # left_nose_proxy_crv = create_joint_curve(_facial_proxy_dict.get('left_nose_crv'), .06)
+    # cmds.makeIdentity(left_nose_proxy_crv, apply=True, rotate=True)
+    # left_nose_proxy_crv_grp = cmds.group(empty=True, world=True, name=left_nose_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(left_nose_proxy_crv, left_nose_proxy_crv_grp)
+    # cmds.move(1.2, 149.1, 12.5, left_nose_proxy_crv_grp)
+    # cmds.parent(left_nose_proxy_crv_grp, main_root)
+    # change_viewport_color(left_nose_proxy_crv, (.6, .3, .6))
+    # proxy_curves.append(left_nose_proxy_crv)
+    #
+    # # Right Nose
+    # right_nose_proxy_crv = create_joint_curve(_facial_proxy_dict.get('right_nose_crv'), .06)
+    # cmds.makeIdentity(right_nose_proxy_crv, apply=True, rotate=True)
+    # right_nose_proxy_crv_grp = cmds.group(empty=True, world=True, name=right_nose_proxy_crv + GRP_SUFFIX.capitalize())
+    # cmds.parent(right_nose_proxy_crv, right_nose_proxy_crv_grp)
+    # cmds.move(-1.2, 149.1, 12.5, right_nose_proxy_crv_grp)
+    # cmds.parent(right_nose_proxy_crv_grp, main_root)
+    # change_viewport_color(right_nose_proxy_crv, (.6, .3, .6))
+    # proxy_curves.append(right_nose_proxy_crv)
 
     # Auto Orient Outer Controls
     right_outer_rot_multiply_node = cmds.createNode('multiplyDivide', name='right_upperOuter_autoRot_multiply')
@@ -702,6 +706,35 @@ def create_facial_controls(facial_data):
         """
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
+    
+    def store_proxy_as_string(target_obj, data_obj):
+        """
+        Stores the current proxy as an attribute (string) onto the "target_obj"
+        Args:
+            target_obj (string): Name of the object to receive the string attribute which contains a JSON description
+                                 of the proxy pose
+            data_obj: Object carrying list of proxy elements
+        """
+        # Store Facial Proxy
+        export_dict = {'gt_rigger_facial_version': facial_data.script_version,
+                       'gt_rigger_facial_export_method': 'object-space'}
+        for expected_obj in data_obj.elements_default:
+            if '_crv' in expected_obj or 'main_root' in expected_obj:
+                translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                export_dict[expected_obj] = to_save
+
+            if expected_obj.endswith('_pivot'):
+                if cmds.objExists(data_obj.elements_default.get(expected_obj)):
+                    translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
+                    rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
+                    scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                    to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                    export_dict[expected_obj] = to_save
+        cmds.addAttr(target_obj, ln='facial_proxy_pose', dataType='string')
+        cmds.setAttr(target_obj + '.facial_proxy_pose', json.dumps(export_dict, indent=4), typ='string')
 
     # Unpack elements
     _settings = facial_data.settings
@@ -3168,6 +3201,9 @@ def create_facial_controls(facial_data):
 
     # TODO END ------------------------------------------------------------------------------------------------------
 
+    # Store Proxy as String Attribute
+    store_proxy_as_string(head_ctrl, facial_data)
+
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_facial_proxy_dict.get('main_proxy_grp'))
@@ -3212,7 +3248,7 @@ def merge_facial_elements():
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    # data_facial.debugging = True
+    data_facial.debugging = True
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
@@ -3232,9 +3268,9 @@ if __name__ == '__main__':
 
     # Core Functions ---------------------------------------------------------------------------------------------
 
-    # create_facial_proxy(data_facial)
+    create_facial_proxy(data_facial)
     create_facial_controls(data_facial)
-    # merge_facial_elements()
+    merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
