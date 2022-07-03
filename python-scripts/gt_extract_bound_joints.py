@@ -2,7 +2,6 @@
 GT Transfer Bound Joints - Extract or transfer bound joints
 
 """
-import gt_maya_utilities as gtu
 import maya.cmds as cmds
 import logging
 
@@ -49,4 +48,5 @@ if __name__ == '__main__':
     bound_joints = get_bound_joints(selection_source)
     print(bound_joints)
     # cmds.select(bound_joints, replace=True)
+    # import gt_maya_utilities as gtu
     # gtu.output_string_to_notepad(bound_joints)
