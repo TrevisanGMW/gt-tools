@@ -144,9 +144,9 @@ def build_gui_auto_biped_rig():
 
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Import Pose', bgc=(.3, .3, .3), c=lambda x: import_biped_proxy_pose())
-    cmds.button(label='Export Pose', bgc=(.3, .3, .3), c=lambda x: export_biped_proxy_pose())
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.button(label='Import Biped Pose', bgc=(.3, .3, .3), c=lambda x: import_biped_proxy_pose())
+    cmds.button(label='Export Biped Pose', bgc=(.3, .3, .3), c=lambda x: export_biped_proxy_pose())
+    cmds.separator(h=4, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
     cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy())
@@ -189,7 +189,7 @@ def build_gui_auto_biped_rig():
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
     cmds.button(label='Toggle Rigging Specific Attributes', bgc=(.3, .3, .3), c=lambda x: toggle_rigging_attr())
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=6, style='none')  # Empty Space
     cmds.button(label='Extract Proxy Pose From Biped Rig', bgc=(.3, .3, .3), c=lambda x: extract_biped_proxy_pose())
 
     cmds.separator(h=5, style='none')  # Empty Space
@@ -222,9 +222,9 @@ def build_gui_auto_biped_rig():
 
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Import Pose', bgc=(.3, .3, .3), c=lambda x: import_facial_proxy_pose())
-    cmds.button(label='Export Pose', bgc=(.3, .3, .3), c=lambda x: export_facial_proxy_pose(), en=0)
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.button(label='Import Facial Pose', bgc=(.3, .3, .3), c=lambda x: import_facial_proxy_pose())
+    cmds.button(label='Export Facial Pose', bgc=(.3, .3, .3), c=lambda x: export_facial_proxy_pose())
+    cmds.separator(h=4, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
     cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(proxy_target='facial'))
@@ -258,7 +258,7 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
     cmds.button(label='Merge Facial Rig with Biped Rig', bgc=(.3, .3, .3),
                 c=lambda x: validate_facial_operation('merge'))
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=6, style='none')  # Empty Space
     cmds.button(label='Extract Proxy Pose From Facial Rig', bgc=(.3, .3, .3),
                 c=lambda x: extract_facial_proxy_pose())
 
@@ -320,9 +320,9 @@ def build_gui_auto_biped_rig():
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
     cmds.button(label='Merge Corrective Rig with Biped Rig', bgc=(.3, .3, .3),
                 c=lambda x: validate_corrective_operation('merge'))
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=6, style='none')  # Empty Space
     cmds.button(label='Extract Proxy Pose From Corrective Rig', bgc=(.3, .3, .3),
-                c=lambda x: extract_corrective_proxy_pose(), en=0)
+                c=lambda x: extract_corrective_proxy_pose())
 
     # ####################################### SETTINGS TAB #######################################
 
@@ -1181,394 +1181,6 @@ def mirror_proxy(operation, proxy_target='base'):
             cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
 
 
-def export_biped_proxy_pose():
-    """
-    Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
-    Added a variable called "gt_rigger_biped_export_method" after v1.3, so the extraction method can be stored.
-
-    """
-    # Validate Proxy and Write file
-    is_valid = True
-    successfully_created_file = False
-    pose_file = None
-
-    proxy_elements = [data_biped.elements.get('main_proxy_grp')]
-    for proxy in data_biped.elements_default:
-        if '_crv' in proxy:
-            proxy_elements.append(data_biped.elements.get(proxy))
-    for obj in proxy_elements:
-        if not cmds.objExists(obj) and is_valid:
-            is_valid = False
-            warning = '"' + obj + '"'
-            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
-            cmds.warning(warning)
-
-    if is_valid:
-        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
-        file_filter += data_biped.script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, okCaption='Export',
-                                     caption='Exporting Proxy Pose for "' + data_biped.script_name + '"') or []
-        if len(file_name) > 0:
-            pose_file = file_name[0]
-            successfully_created_file = True
-
-    if successfully_created_file and is_valid:
-
-        export_dict = {'gt_rigger_biped_version': data_biped.script_version,
-                       'gt_rigger_biped_export_method': 'object-space'}
-        for obj in data_biped.elements_default:
-            if '_crv' in obj:
-                translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
-                to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
-                export_dict[obj] = to_save
-
-            if obj.endswith('_pivot'):
-                if cmds.objExists(data_biped.elements_default.get(obj)):
-                    translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                    rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
-                    to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
-                    export_dict[obj] = to_save
-
-        try:
-            with open(pose_file, 'w') as outfile:
-                json.dump(export_dict, outfile, indent=4)
-
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
-                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write('Pose exported to the file "' + pose_file + '".')
-        except Exception as exception:
-            successfully_created_file = False
-            logger.info(str(exception))
-            logger.info("Successfully Created_ File: " + str(successfully_created_file))
-            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
-
-
-def import_biped_proxy_pose(debugging=False, debugging_path=''):
-    """
-    Imports a JSON file containing the translation, rotation and scale data for every proxy curve
-    (exported using the "export_proxy_pose" function)
-    Uses the imported data to set the translation, rotation and scale position of every proxy curve
-    Uses the function "delete_proxy()" to recreate it if necessary
-    Uses the function "reset_proxy()" to clean proxy before importing
-
-    It now checks import method to use the proper method when setting attributes.
-    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
-
-    Args:
-        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
-                          "debugging_path" parameter
-        debugging_path (string): Debugging path for the import function
-
-    """
-
-    def set_unlocked_os_attr(target, attr, value):
-        """
-        Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
-
-        Args:
-            target (string): Name of the target object (object that will receive transforms)
-            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
-
-        """
-        try:
-            if not cmds.getAttr(target + '.' + attr, lock=True):
-                cmds.setAttr(target + '.' + attr, value)
-        except Exception as e:
-            logger.debug(str(e))
-
-    def set_unlocked_ws_attr(target, attr, value_tuple):
-        """
-        Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
-
-        Args:
-            target (string): Name of the target object (object that will receive transforms)
-            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-            value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
-
-        """
-        try:
-            if attr == 'translate':
-                cmds.xform(target, ws=True, t=value_tuple)
-            if attr == 'rotate':
-                cmds.xform(target, ws=True, ro=value_tuple)
-            if attr == 'scale':
-                cmds.xform(target, ws=True, s=value_tuple)
-        except Exception as e:
-            logger.debug(str(e))
-
-    import_method = 'object-space'
-    pose_file = None
-
-    if not debugging:
-        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
-        file_filter += data_biped.script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + data_biped.script_name + '"') or []
-    else:
-        file_name = [debugging_path]
-
-    if len(file_name) > 0:
-        pose_file = file_name[0]
-        file_exists = True
-    else:
-        file_exists = False
-
-    if file_exists:
-        try:
-            with open(pose_file) as json_file:
-                data = json.load(json_file)
-                try:
-                    is_valid_file = True
-
-                    if not data.get('gt_rigger_biped_version'):
-                        is_valid_file = False
-                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
-                    else:
-                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_rigger_biped_version'))))
-                        logger.debug(str(import_version))
-
-                    if data.get('gt_rigger_biped_export_method'):
-                        import_method = data.get('gt_rigger_biped_export_method')
-                        logger.debug(str(import_method))
-
-                    is_valid_scene = True
-                    # Check for existing rig or conflicting names
-                    undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
-                    for jnt in data_biped.joints_default:
-                        undesired_elements.append(data_biped.joints_default.get(jnt))
-                    for obj in undesired_elements:
-                        if cmds.objExists(obj) and is_valid_scene:
-                            is_valid_scene = False
-                            cmds.warning(
-                                '"' + obj + '" found in the scene. This means that you either already created a '
-                                            'rig or you have conflicting names on your objects. '
-                                            '(Click on "Help" for more details)')
-
-                    if is_valid_scene:
-                        # Check for Proxy
-                        proxy_exists = True
-
-                        proxy_elements = []
-                        for proxy in data_biped.elements_default:
-                            if '_crv' in proxy:
-                                proxy_elements.append(data_biped.elements.get(proxy))
-                        for obj in proxy_elements:
-                            if not cmds.objExists(obj) and proxy_exists:
-                                proxy_exists = False
-                                delete_proxy(suppress_warning=True)
-                                validate_biped_operation('create_proxy')
-                                cmds.warning('Current proxy was missing elements, a new one was created.')
-
-                    if is_valid_file and is_valid_scene:
-                        if import_method == 'world-space':
-                            reset_proxy(suppress_warning=True)
-                            sorted_pairs = []
-                            for proxy in data:
-                                if proxy != 'gt_rigger_biped_version' and proxy != 'gt_rigger_biped_export_method':
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        long_name = cmds.ls(current_object[0], l=True) or []
-                                        number_of_parents = len(long_name[0].split('|'))
-                                        sorted_pairs.append((current_object, number_of_parents))
-
-                                    sorted_pairs.sort(key=lambda x: x[1], reverse=True)
-
-                            # Scale (Children First)
-                            for obj in sorted_pairs:
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-
-                            # Translate and Rotate (Parents First)
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                    set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-
-                            # Set Transfer Pole Vectors Again
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                if 'knee' in current_object[0] or 'elbow' in current_object[0]:
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                        set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-
-                        else:  # Object-Space
-                            for proxy in data:
-                                if proxy != 'gt_rigger_biped_version' and proxy != 'gt_rigger_biped_export_method':
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                        set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                        set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                        set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                        set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                        set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                        set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                        set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                        set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-
-                        if not debugging:
-                            unique_message = '<' + str(random.random()) + '>'
-                            cmds.inViewMessage(
-                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                                pos='botLeft', fade=True, alpha=.9)
-                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
-
-                except Exception as exception:
-                    logger.info(str(exception))
-                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                                 'file. (Click on "Help" for more info)')
-        except Exception as exception:
-            file_exists = False
-            logger.debug(exception)
-            logger.debug('File exists:', str(file_exists))
-            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
-
-
-def import_facial_proxy_pose(debugging=False, debugging_path=''):
-    """
-    Imports a JSON file containing the translation, rotation and scale data for every proxy curve
-    (exported using the "export_proxy_pose" function)
-    Uses the imported data to set the translation, rotation and scale position of every proxy curve
-    Uses the function "delete_proxy()" to recreate it if necessary
-    Uses the function "reset_proxy()" to clean proxy before importing
-
-    It now checks import method to use the proper method when setting attributes.
-    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
-
-    Args:
-        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
-                          "debugging_path" parameter
-        debugging_path (string): Debugging path for the import function
-
-    """
-
-    def set_unlocked_os_attr(target, attr, value):
-        """
-        Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
-
-        Args:
-            target (string): Name of the target object (object that will receive transforms)
-            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
-
-        """
-        try:
-            if not cmds.getAttr(target + '.' + attr, lock=True):
-                cmds.setAttr(target + '.' + attr, value)
-        except Exception as e:
-            logger.debug(str(e))
-
-    pose_file = None
-
-    if not debugging:
-        file_filter = data_biped.script_name + ' - PPOSE File (*.ppose);;'
-        file_filter += data_biped.script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + data_biped.script_name + '"') or []
-    else:
-        file_name = [debugging_path]
-
-    if len(file_name) > 0:
-        pose_file = file_name[0]
-        file_exists = True
-    else:
-        file_exists = False
-
-    if file_exists:
-        try:
-            with open(pose_file) as json_file:
-                data = json.load(json_file)
-                try:
-                    is_valid_file = True
-
-                    if not data.get('gt_rigger_facial_version'):
-                        is_valid_file = False
-                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
-                    else:
-                        import_version = float(re.sub("[^0-9]", "", str(data.get('gt_rigger_facial_version'))))
-                        logger.debug(str(import_version))
-
-                    if data.get('gt_rigger_facial_export_method'):
-                        import_method = data.get('gt_rigger_facial_export_method')
-                        logger.debug(str(import_method))
-
-                    is_valid_scene = True
-                    # Check for existing rig or conflicting names
-                    undesired_elements = ['facial_rig_grp']
-                    for jnt in data_facial.joints_default:
-                        undesired_elements.append(data_facial.joints_default.get(jnt))
-                    for obj in undesired_elements:
-                        if cmds.objExists(obj) and is_valid_scene:
-                            is_valid_scene = False
-                            cmds.warning(
-                                '"' + obj + '" found in the scene. This means that you either already created a '
-                                            'rig or you have conflicting names on your objects. '
-                                            '(Click on "Help" for more details)')
-
-                    if is_valid_scene:
-                        # Check for Proxy
-                        proxy_exists = True
-
-                        proxy_elements = []
-                        for proxy in data_facial.elements_default:
-                            if '_crv' in proxy or 'main_root' in proxy:
-                                proxy_elements.append(data_facial.elements.get(proxy))
-                        for obj in proxy_elements:
-                            if not cmds.objExists(obj) and proxy_exists:
-                                proxy_exists = False
-                                delete_proxy(suppress_warning=True, proxy_target='facial')
-                                validate_facial_operation('create_proxy')
-                                cmds.warning('Current proxy was missing elements, a new one was created.')
-
-                    if is_valid_file and is_valid_scene:
-                        for proxy in data:
-                            if proxy != 'gt_rigger_facial_version' and proxy != 'gt_rigger_facial_export_method':
-                                current_object = data.get(proxy)  # Name, T, R, S
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                    set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                    set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                    set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                    set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                    set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-
-                        if not debugging:
-                            unique_message = '<' + str(random.random()) + '>'
-                            cmds.inViewMessage(
-                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                                pos='botLeft', fade=True, alpha=.9)
-                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
-
-                except Exception as exception:
-                    logger.info(str(exception))
-                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                                 'file. (Click on "Help" for more info)')
-        except Exception as exception:
-            file_exists = False
-            logger.debug(exception)
-            logger.debug('File exists:', str(file_exists))
-            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
-
-
 def define_biped_humanik(character_name):
     """
     Auto creates a character definition for GT Auto Biped. (It overwrites any definition with the same name)
@@ -1736,9 +1348,409 @@ def define_biped_humanik(character_name):
                          'You might have to assign your joints manually.')
 
 
-def extract_corrective_proxy_pose():
-    pass
-    print('corrective')
+def export_biped_proxy_pose():
+    """
+    Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
+    Added a variable called "gt_rigger_biped_export_method" after v1.3, so the extraction method can be stored.
+
+    """
+    # Validate Proxy and Write file
+    is_valid = True
+    successfully_created_file = False
+    pose_file = None
+    script_name = data_biped.script_name
+    file_extension = data_biped.proxy_storage_variables.get('file_extension')
+
+    proxy_elements = [data_biped.elements.get('main_proxy_grp')]
+    for proxy in data_biped.elements_default:
+        if '_crv' in proxy:
+            proxy_elements.append(data_biped.elements.get(proxy))
+    for obj in proxy_elements:
+        if not cmds.objExists(obj) and is_valid:
+            is_valid = False
+            warning = '"' + obj + '"'
+            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            cmds.warning(warning)
+
+    if is_valid:
+        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+        file_filter += script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
+                                     dialogStyle=2, okCaption='Export',
+                                     caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+
+    if successfully_created_file and is_valid:
+        export_dict = {data_biped.proxy_storage_variables.get('script_source'): data_biped.script_version,
+                       data_biped.proxy_storage_variables.get('export_method'): 'object-space'}
+        for obj in data_biped.elements_default:
+            if '_crv' in obj:
+                translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                export_dict[obj] = to_save
+
+            if obj.endswith('_pivot'):
+                if cmds.objExists(data_biped.elements_default.get(obj)):
+                    translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
+                    rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
+                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                    to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
+
+        try:
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
+                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose exported to the file "' + pose_file + '".')
+        except Exception as exception:
+            successfully_created_file = False
+            logger.info(str(exception))
+            logger.info("Successfully Created_ File: " + str(successfully_created_file))
+            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
+
+
+def export_facial_proxy_pose():
+    """
+    Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
+    Added a variable called "gt_rigger_facial_export_method" after v1.3, so the extraction method can be stored.
+    """
+    # Validate Proxy and Write file
+    is_valid = True
+    successfully_created_file = False
+    pose_file = None
+    file_extension = data_facial.proxy_storage_variables.get('file_extension')
+    script_name = data_facial.script_name
+
+    proxy_elements = [data_facial.elements.get('main_proxy_grp')]
+    for proxy in data_facial.elements_default:
+        if '_crv' in proxy:
+            proxy_elements.append(data_facial.elements.get(proxy))
+    for obj in proxy_elements:
+        if not cmds.objExists(obj) and is_valid:
+            is_valid = False
+            warning = '"' + obj + '"'
+            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            cmds.warning(warning)
+
+    if is_valid:
+        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+        file_filter += script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
+                                     dialogStyle=2, okCaption='Export',
+                                     caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        if len(file_name) > 0:
+            pose_file = file_name[0]
+            successfully_created_file = True
+
+    if successfully_created_file and is_valid:
+        export_dict = {data_facial.proxy_storage_variables.get('script_source'): data_facial.script_version,
+                       data_facial.proxy_storage_variables.get('export_method'): 'object-space'}
+        for obj in data_facial.elements_default:
+            if '_crv' in obj or 'main_root' in obj:
+                translate = cmds.getAttr(data_facial.elements_default.get(obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_facial.elements_default.get(obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
+                to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
+                export_dict[obj] = to_save
+        try:
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
+                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose exported to the file "' + pose_file + '".')
+        except Exception as exception:
+            successfully_created_file = False
+            logger.info(str(exception))
+            logger.info("Successfully Created_ File: " + str(successfully_created_file))
+            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
+
+
+def import_biped_proxy_pose(debugging=False, debugging_path=''):
+    """
+    Imports a JSON file containing the translation, rotation and scale data for every proxy curve
+    (exported using the "export_proxy_pose" function)
+    Uses the imported data to set the translation, rotation and scale position of every proxy curve
+    Uses the function "delete_proxy()" to recreate it if necessary
+    Uses the function "reset_proxy()" to clean proxy before importing
+
+    It now checks import method to use the proper method when setting attributes.
+    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
+
+    Args:
+        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
+                          "debugging_path" parameter
+        debugging_path (string): Debugging path for the import function
+
+    """
+
+    import_method = 'object-space'
+    pose_file = None
+    _proxy_storage = data_biped.proxy_storage_variables
+    script_source = _proxy_storage.get('script_source')
+    export_method = _proxy_storage.get('export_method')
+    file_extension = _proxy_storage.get('file_extension')
+    script_name = data_biped.script_name
+
+    if not debugging:
+        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+        file_filter += script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
+                                     dialogStyle=2, fileMode=1, okCaption='Import',
+                                     caption='Importing Proxy Pose for "' + script_name + '"') or []
+    else:
+        file_name = [debugging_path]
+
+    if len(file_name) > 0:
+        pose_file = file_name[0]
+        file_exists = True
+    else:
+        file_exists = False
+
+    if file_exists:
+        try:
+            with open(pose_file) as json_file:
+                data = json.load(json_file)
+                try:
+                    is_valid_file = True
+                    if not data.get(script_source):
+                        is_valid_file = False
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
+                    else:
+                        import_version = float(re.sub("[^0-9]", "", str(data.get(script_source))))
+                        logger.debug(str(import_version))
+
+                    if data.get(export_method):
+                        import_method = data.get(export_method)
+                        logger.debug(str(import_method))
+
+                    is_valid_scene = True
+                    # Check for existing rig or conflicting names
+                    undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
+                    for jnt in data_biped.joints_default:
+                        undesired_elements.append(data_biped.joints_default.get(jnt))
+                    for obj in undesired_elements:
+                        if cmds.objExists(obj) and is_valid_scene:
+                            is_valid_scene = False
+                            cmds.warning(
+                                '"' + obj + '" found in the scene. This means that you either already created a '
+                                            'rig or you have conflicting names on your objects. '
+                                            '(Click on "Help" for more details)')
+
+                    if is_valid_scene:
+                        # Check for Proxy
+                        proxy_exists = True
+
+                        proxy_elements = []
+                        for proxy in data_biped.elements_default:
+                            if '_crv' in proxy:
+                                proxy_elements.append(data_biped.elements.get(proxy))
+                        for obj in proxy_elements:
+                            if not cmds.objExists(obj) and proxy_exists:
+                                proxy_exists = False
+                                delete_proxy(suppress_warning=True)
+                                validate_biped_operation('create_proxy')
+                                cmds.warning('Current proxy was missing elements, a new one was created.')
+
+                    if is_valid_file and is_valid_scene:
+                        if import_method == 'world-space':
+                            reset_proxy(suppress_warning=True)
+                            sorted_pairs = []
+                            for proxy in data:
+                                if proxy != script_source and proxy != export_method:
+                                    current_object = data.get(proxy)  # Name, T, R, S
+                                    if cmds.objExists(current_object[0]):
+                                        long_name = cmds.ls(current_object[0], l=True) or []
+                                        number_of_parents = len(long_name[0].split('|'))
+                                        sorted_pairs.append((current_object, number_of_parents))
+
+                                    sorted_pairs.sort(key=lambda x: x[1], reverse=True)
+
+                            # Scale (Children First)
+                            for obj in sorted_pairs:
+                                current_object = obj[0]
+                                if cmds.objExists(current_object[0]):
+                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                            # Translate and Rotate (Parents First)
+                            for obj in reversed(sorted_pairs):
+                                current_object = obj[0]
+                                if cmds.objExists(current_object[0]):
+                                    set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                    set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+
+                            # Set Transfer Pole Vectors Again
+                            for obj in reversed(sorted_pairs):
+                                current_object = obj[0]
+                                if 'knee' in current_object[0] or 'elbow' in current_object[0]:
+                                    if cmds.objExists(current_object[0]):
+                                        set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                        set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+
+                        else:  # Object-Space
+                            for proxy in data:
+                                if proxy != script_source and proxy != export_method:
+                                    current_object = data.get(proxy)  # Name, T, R, S
+                                    if cmds.objExists(current_object[0]):
+                                        set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                        set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                        set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                        set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                        set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                        set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                        set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                        set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                        set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                        if not debugging:
+                            unique_message = '<' + str(random.random()) + '>'
+                            cmds.inViewMessage(
+                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
+                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                                pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
+
+                except Exception as exception:
+                    logger.info(str(exception))
+                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
+                                 'file. (Click on "Help" for more info)')
+        except Exception as exception:
+            file_exists = False
+            logger.debug(exception)
+            logger.debug('File exists:', str(file_exists))
+            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
+
+
+def import_facial_proxy_pose(debugging=False, debugging_path=''):
+    """
+    Imports a JSON file containing the translation, rotation and scale data for every proxy curve
+    (exported using the "export_proxy_pose" function)
+    Uses the imported data to set the translation, rotation and scale position of every proxy curve
+    Uses the function "delete_proxy()" to recreate it if necessary
+    Uses the function "reset_proxy()" to clean proxy before importing
+
+    It now checks import method to use the proper method when setting attributes.
+    Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
+
+    Args:
+        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
+                          "debugging_path" parameter
+        debugging_path (string): Debugging path for the import function
+
+    """
+
+    pose_file = None
+    _proxy_storage = data_facial.proxy_storage_variables
+    script_source = _proxy_storage.get('script_source')
+    export_method = _proxy_storage.get('export_method')
+    file_extension = _proxy_storage.get('file_extension')
+    script_name = data_facial.script_name
+
+    if not debugging:
+        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+        file_filter += script_name + ' - JSON File (*.json)'
+        file_name = cmds.fileDialog2(fileFilter=file_filter,
+                                     dialogStyle=2, fileMode=1, okCaption='Import',
+                                     caption='Importing Proxy Pose for "' + script_name + '"') or []
+    else:
+        file_name = [debugging_path]
+
+    if len(file_name) > 0:
+        pose_file = file_name[0]
+        file_exists = True
+    else:
+        file_exists = False
+
+    if file_exists:
+        try:
+            with open(pose_file) as json_file:
+                data = json.load(json_file)
+                try:
+                    is_valid_file = True
+
+                    if not data.get(script_source):
+                        is_valid_file = False
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
+                    else:
+                        import_version = float(re.sub("[^0-9]", "", str(data.get(script_source))))
+                        logger.debug(str(import_version))
+
+                    if data.get(export_method):
+                        import_method = data.get(export_method)
+                        logger.debug(str(import_method))
+
+                    is_valid_scene = True
+                    # Check for existing rig or conflicting names
+                    undesired_elements = ['facial_rig_grp']
+                    for jnt in data_facial.joints_default:
+                        undesired_elements.append(data_facial.joints_default.get(jnt))
+                    for obj in undesired_elements:
+                        if cmds.objExists(obj) and is_valid_scene:
+                            is_valid_scene = False
+                            cmds.warning(
+                                '"' + obj + '" found in the scene. This means that you either already created a '
+                                            'rig or you have conflicting names on your objects. '
+                                            '(Click on "Help" for more details)')
+
+                    if is_valid_scene:
+                        # Check for Proxy
+                        proxy_exists = True
+
+                        proxy_elements = []
+                        for proxy in data_facial.elements_default:
+                            if '_crv' in proxy or 'main_root' in proxy:
+                                proxy_elements.append(data_facial.elements.get(proxy))
+                        for obj in proxy_elements:
+                            if not cmds.objExists(obj) and proxy_exists:
+                                proxy_exists = False
+                                delete_proxy(suppress_warning=True, proxy_target='facial')
+                                validate_facial_operation('create_proxy')
+                                cmds.warning('Current proxy was missing elements, a new one was created.')
+
+                    if is_valid_file and is_valid_scene:
+                        for proxy in data:
+                            if proxy != script_source and proxy != export_method:
+                                current_object = data.get(proxy)  # Name, T, R, S
+                                if cmds.objExists(current_object[0]):
+                                    set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                    set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                    set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                    set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                    set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                    set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                        if not debugging:
+                            unique_message = '<' + str(random.random()) + '>'
+                            cmds.inViewMessage(
+                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
+                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                                pos='botLeft', fade=True, alpha=.9)
+                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
+
+                except Exception as exception:
+                    logger.info(str(exception))
+                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
+                                 'file. (Click on "Help" for more info)')
+        except Exception as exception:
+            file_exists = False
+            logger.debug(exception)
+            logger.debug('File exists:', str(file_exists))
+            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
 def extract_facial_proxy_pose():
@@ -1750,12 +1762,14 @@ def extract_facial_proxy_pose():
     # Validate Proxy and Write file
     successfully_created_file = False
     pose_file = None
-    export_dict = {}
+    script_name = data_facial.script_name
+    file_extension = data_facial.proxy_storage_variables.get('file_extension')
+    proxy_attr_name = data_facial.proxy_storage_variables.get('attr_name')
 
     # Easy method (main_ctrl string)
     main_ctrl = 'head_ctrl'
     if cmds.objExists(main_ctrl):
-        proxy_attr = main_ctrl + '.facial_proxy_pose'
+        proxy_attr = main_ctrl + '.' + proxy_attr_name
         if cmds.objExists(proxy_attr):
             export_dict = cmds.getAttr(proxy_attr)
             try:
@@ -1771,11 +1785,12 @@ def extract_facial_proxy_pose():
         cmds.warning('Missing required control: "' + main_ctrl + '"')
         return
 
-    script_name_str = data_facial.script_name
+    file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+    file_filter += script_name + ' - JSON File (*.json)'
     file_name = cmds.fileDialog2(
-        fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
+        fileFilter=file_filter,
         dialogStyle=2, okCaption='Export',
-        caption='Exporting Proxy Pose for "' + script_name_str + '"') or []
+        caption='Exporting Proxy Pose for "' + script_name + '"') or []
     if len(file_name) > 0:
         pose_file = file_name[0]
         successfully_created_file = True
@@ -1853,8 +1868,9 @@ def extract_biped_proxy_pose():
         Returns:
             extracted_export_dict (dict): Proxy dictionary to be written on to a file
         """
-        extracted_export_dict = {'gt_rigger_biped_version': data_biped.script_version,
-                                 'gt_rigger_biped_export_method': 'world-space'}
+        _proxy_storage = data_biped.proxy_storage_variables
+        extracted_export_dict = {_proxy_storage.get('script_source'): data_biped.script_version,
+                                 _proxy_storage.get('export_method'): 'world-space'}
 
         no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
         left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
@@ -1943,11 +1959,14 @@ def extract_biped_proxy_pose():
     pose_file = None
     needs_joints = True
     export_dict = {}
+    file_extension = data_biped.proxy_storage_variables.get('file_extension')
+    proxy_attr_name = data_biped.proxy_storage_variables.get('attr_name')
+    script_name = data_biped.script_name
 
     # Easy method (main_ctrl string)
     main_ctrl = 'main_ctrl'
     if cmds.objExists(main_ctrl):
-        proxy_attr = main_ctrl + '.biped_proxy_pose'
+        proxy_attr = main_ctrl + '.' + proxy_attr_name
         if cmds.objExists(proxy_attr):
             export_dict = cmds.getAttr(proxy_attr)
             try:
@@ -1968,11 +1987,12 @@ def extract_biped_proxy_pose():
                                          '(Click on "Help" for more details)')
 
     if is_valid:
-        script_name_str = data_biped.script_name
+        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+        file_filter += script_name + ' - JSON File (*.json)'
         file_name = cmds.fileDialog2(
-            fileFilter=script_name_str + ' - PPOSE File (*.ppose);;' + script_name_str + ' - JSON File (*.json)',
+            fileFilter=file_filter,
             dialogStyle=2, okCaption='Export',
-            caption='Exporting Proxy Pose for "' + data_biped.script_name + '"') or []
+            caption='Exporting Proxy Pose for "' + script_name + '"') or []
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -1996,7 +2016,65 @@ def extract_biped_proxy_pose():
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
+def extract_corrective_proxy_pose():
+    """
+    Extracts the proxy pose from a generated rig into a JSON file. (Corrective)
+    Useful when the user forgot to save it and generated the rig already.
+    """
+
+    # Validate Proxy and Write file
+    successfully_created_file = False
+    pose_file = None
+    script_name = data_corrective.script_name
+    file_extension = data_corrective.proxy_storage_variables.get('file_extension')
+    proxy_attr_name = data_corrective.proxy_storage_variables.get('attr_name')
+
+    # Easy method (main_ctrl string)
+    main_ctrl = 'main_ctrl'
+    if cmds.objExists(main_ctrl):
+        proxy_attr = main_ctrl + '.' + proxy_attr_name
+        if cmds.objExists(proxy_attr):
+            export_dict = cmds.getAttr(proxy_attr)
+            try:
+                export_dict = json.loads(str(export_dict))
+            except Exception as e:
+                logger.warning(str(e))
+                cmds.warning('Failed to decode JSON data.')
+                return
+        else:
+            cmds.warning('Missing required attribute: "' + proxy_attr + '"')
+            return
+    else:
+        cmds.warning('Missing required control: "' + main_ctrl + '"')
+        return
+
+    file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
+    file_filter += script_name + ' - JSON File (*.json)'
+    file_name = cmds.fileDialog2(
+        fileFilter=file_filter,
+        dialogStyle=2, okCaption='Export',
+        caption='Exporting Proxy Pose for "' + script_name + '"') or []
+    if len(file_name) > 0:
+        pose_file = file_name[0]
+        successfully_created_file = True
+
+    if successfully_created_file:
+        try:
+            with open(pose_file, 'w') as outfile:
+                json.dump(export_dict, outfile, indent=4)
+
+            unique_message = '<' + str(random.random()) + '>'
+            cmds.inViewMessage(
+                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
+                pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
+        except Exception as exception:
+            logger.info(str(exception))
+            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
+
+
 # Build UI
 if __name__ == '__main__':
-    # logger.setLevel(10)
+    logger.setLevel(10)
     build_gui_auto_biped_rig()
