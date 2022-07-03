@@ -706,35 +706,6 @@ def create_facial_controls(facial_data):
         """
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
-    
-    def store_proxy_as_string(target_obj, data_obj):
-        """
-        Stores the current proxy as an attribute (string) onto the "target_obj"
-        Args:
-            target_obj (string): Name of the object to receive the string attribute which contains a JSON description
-                                 of the proxy pose
-            data_obj: Object carrying list of proxy elements
-        """
-        # Store Facial Proxy
-        export_dict = {'gt_rigger_facial_version': facial_data.script_version,
-                       'gt_rigger_facial_export_method': 'object-space'}
-        for expected_obj in data_obj.elements_default:
-            if '_crv' in expected_obj or 'main_root' in expected_obj:
-                translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
-                rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
-                scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
-                to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
-                export_dict[expected_obj] = to_save
-
-            if expected_obj.endswith('_pivot'):
-                if cmds.objExists(data_obj.elements_default.get(expected_obj)):
-                    translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
-                    rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
-                    scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
-                    to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
-                    export_dict[expected_obj] = to_save
-        cmds.addAttr(target_obj, ln='facial_proxy_pose', dataType='string')
-        cmds.setAttr(target_obj + '.facial_proxy_pose', json.dumps(export_dict, indent=4), typ='string')
 
     # Unpack elements
     _settings = facial_data.settings
@@ -3202,7 +3173,7 @@ def create_facial_controls(facial_data):
     # TODO END ------------------------------------------------------------------------------------------------------
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(head_ctrl, facial_data)
+    store_proxy_as_string(head_ctrl, 'facial_proxy_pose', facial_data)
 
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
