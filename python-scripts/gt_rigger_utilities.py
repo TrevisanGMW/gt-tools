@@ -2369,7 +2369,7 @@ def create_eye_controls():
     cmds.parent(bg_grp, gui_grp)
     change_outliner_color(bg_grp, (0, 0, 0))
 
-    return (gui_grp, controls)
+    return gui_grp, controls
 
 
 def create_facial_side_gui():
@@ -2724,10 +2724,77 @@ def orient_offset(obj_name, rot_offset, apply=True):
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
 
+def store_proxy_as_string(target_obj, attr_name, data_obj):
+    """
+    Stores the current proxy as an attribute (string) onto the "target_obj"
+    Args:
+        target_obj (string): Name of the object to receive the string attribute which contains a JSON description
+                             of the proxy pose
+        attr_name (string): Name of the string attribute used to store the JSON proxy data
+        data_obj: Object carrying list of proxy elements
+    """
+    # Store Facial Proxy
+    export_dict = {data_obj.proxy_storage_variables.get('script_source'): data_obj.script_version,
+                   data_obj.proxy_storage_variables.get('export_method'): 'object-space'}
+    for expected_obj in data_obj.elements_default:
+        if '_crv' in expected_obj or 'main_root' in expected_obj:
+            translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
+            rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
+            scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+            to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+            export_dict[expected_obj] = to_save
+        if expected_obj.endswith('_pivot'):
+            if cmds.objExists(data_obj.elements_default.get(expected_obj)):
+                translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
+                rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
+                scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                export_dict[expected_obj] = to_save
+    cmds.addAttr(target_obj, ln=attr_name, dataType='string')
+    cmds.setAttr(target_obj + '.' + attr_name, json.dumps(export_dict, indent=4), typ='string')
+
+
+def set_unlocked_os_attr(target, attr, value):
+    """
+    Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
+
+    Args:
+        target (string): Name of the target object (object that will receive transforms)
+        attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+        value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+    """
+    try:
+        if not cmds.getAttr(target + '.' + attr, lock=True):
+            cmds.setAttr(target + '.' + attr, value)
+    except Exception as e:
+        logger.debug(str(e))
+
+
+def set_unlocked_ws_attr(target, attr, value_tuple):
+    """
+    Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
+
+    Args:
+        target (string): Name of the target object (object that will receive transforms)
+        attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+        value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+
+    """
+    try:
+        if attr == 'translate':
+            cmds.xform(target, ws=True, t=value_tuple)
+        if attr == 'rotate':
+            cmds.xform(target, ws=True, ro=value_tuple)
+        if attr == 'scale':
+            cmds.xform(target, ws=True, s=value_tuple)
+    except Exception as e:
+        logger.debug(str(e))
+
+
 # Tests
 if __name__ == '__main__':
+    # create_slider_control('temp', initial_position='bottom', lock_unused_channels=True)
     # enforce_parent('pSphere1', 'head_offsetCtrl')
-    output = ''
     # if cmds.objExists('slider_2dGrp'):
     #     cmds.delete('slider_2dGrp')
     # create_slider_control('1d_slider', initial_position='bottom')
@@ -2735,8 +2802,8 @@ if __name__ == '__main__':
     #                                   initial_position_y='middle',
     #                                   initial_position_x='middle',
     #                                   ignore_range='top')
-    # create_facial_controls()
     # print(output)
     # toggle_rigging_attr()
-    # create_facial_controls()
+    create_facial_side_gui()
+    output = ''
     pass
