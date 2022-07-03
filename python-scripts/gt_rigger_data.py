@@ -153,6 +153,12 @@ class GTBipedRiggerData:
     gui_module = 'gt_rigger_biped_gui'
     entry_function = 'build_gui_auto_biped_rig()'
 
+    # Used to export/import proxy
+    proxy_storage_variables = {'file_extension': 'ppose_base',
+                               'script_source': 'gt_rigger_biped_version',
+                               'export_method': 'gt_rigger_biped_export_method',
+                               'attr_name': 'biped_proxy_pose'}
+
     # Debugging Vars
     debugging = False  # Activates Debugging Mode
     debugging_auto_recreate = True  # Auto deletes proxy/rig before creating
@@ -252,6 +258,12 @@ class GTBipedRiggerFacialData:
     gui_module = 'gt_rigger_facial_gui'
     entry_function = 'build_gui_auto_biped_rig()'
 
+    # Used to export/import proxy
+    proxy_storage_variables = {'file_extension': 'ppose_facial',
+                               'script_source': 'gt_rigger_facial_version',
+                               'export_method': 'gt_rigger_facial_export_method',
+                               'attr_name': 'facial_proxy_pose'}
+
     # Debugging Vars
     debugging = False  # Activates Debugging Mode
 
@@ -349,6 +361,12 @@ class GTBipedRiggerCorrectiveData:
     # Reset Persistent Settings Variables
     gui_module = 'gt_rigger_biped_gui'
     entry_function = 'build_gui_auto_biped_rig()'
+
+    # Used to export/import proxy
+    proxy_storage_variables = {'file_extension': 'ppose_corrective',
+                               'script_source': 'gt_rigger_corrective_version',
+                               'export_method': 'gt_rigger_corrective_export_method',
+                               'attr_name': 'corrective_proxy_pose'}
 
     # Debugging Vars
     debugging = False  # Activates Debugging Mode
