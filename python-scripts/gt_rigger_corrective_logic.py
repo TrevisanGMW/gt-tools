@@ -1924,6 +1924,9 @@ def create_corrective_setup(corrective_data):
             cmds.setAttr(obj + '.overrideEnabled', 1)
             cmds.setAttr(obj + '.overrideDisplayType', 1)
 
+    # Store Proxy as String Attribute
+    store_proxy_as_string(main_ctrl, 'corrective_proxy_pose', corrective_data)
+
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
