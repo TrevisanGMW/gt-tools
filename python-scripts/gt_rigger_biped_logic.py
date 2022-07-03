@@ -9987,26 +9987,8 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('hip_jnt'), rig_joints.get('main_jnt'))
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
 
-    # Store Biped Proxy
-    export_dict = {'gt_auto_biped_version': data_biped.script_version,
-                   'gt_auto_biped_export_method': 'object-space'}
-    for obj in data_biped.elements_default:
-        if '_crv' in obj:
-            translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-            rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-            scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
-            to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
-            export_dict[obj] = to_save
-
-        if obj.endswith('_pivot'):
-            if cmds.objExists(data_biped.elements_default.get(obj)):
-                translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
-                to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
-                export_dict[obj] = to_save
-    cmds.addAttr(main_ctrl, ln='biped_proxy_pose', dataType='string')
-    cmds.setAttr(main_ctrl + '.biped_proxy_pose', json.dumps(export_dict, indent=4), typ='string')
+    # Store Proxy as String Attribute
+    store_proxy_as_string(main_ctrl, 'biped_proxy_pose', data_biped)
 
     # Delete Proxy
     cmds.delete(elements.get('main_proxy_grp'))
