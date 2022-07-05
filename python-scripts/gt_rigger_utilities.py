@@ -12,7 +12,7 @@
 from gt_utilities import make_flat_list
 from gt_rigger_data import *
 from functools import partial
-import maya.api.OpenMaya as om
+import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -110,6 +110,7 @@ def combine_curves_list(curve_list):
                                             icon='warning')
             if user_input == 'Yes':
                 for obj in bezier_in_selection:
+                    logger.debug(obj)
                     cmds.bezierCurveToNurbs()
 
         if valid_selection:
@@ -198,10 +199,11 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
         ik_handle (string) : Name of the IK Handle (joints will be extracted from it)
         stretchy_name (string): Name to be used when creating system (optional, if not provided it will be "temp")
         attribute_holder (string): The name of an object. If it exists, custom attributes will be added to it.
-                                   These attributes allow the user to control whether or not the system is active,
+                                   These attributes allow the user to control whether the system is active,
                                    as well as its operation.
                                    For a more complete stretchy system you have to provide a valid object in this
                                    parameter as without it volume preservation is skipped
+        jnt_scale_channel (string): Channels used to increase the scale of the joint (Default = X)
 
     Returns:
         list (list): A list with the end locator one (to be attached to the IK control) the stretchy_grp
@@ -515,7 +517,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
 def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime', hide_unkeyable=True,
                         add_absolute_output=False, nice_name_prefix=True):
     """
-    Create Sine function without using third-party plugins or expressions
+    Create Sine functions without using third-party plugins or expressions
     
             Parameters:
                 obj (string): Name of the object
@@ -525,6 +527,7 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
                 hide_unkeyable (bool): Hides the tick and output attributes
                 add_absolute_output (bool): Also creates an output version that gives only positive numbers much like
                                             the abs() expression
+                nice_name_prefix (bool): Determines if the prefix should be used for the nice name
 
             Returns:
                 sine_output_attrs (list): String with the name of the object and the name of the sine output attribute.
@@ -626,13 +629,13 @@ def get_inverted_hierarchy_tree(obj_list, return_short_name=True):
     starting with objects at the bottom of the hierarchy then working its way up to
     the top parents. It extracts the number of "|" symbols in the full path to the file
     to determine its position in the hierarchy before sorting it.
-    
-            Parameters:
-                obj_list (list): A list of strings with the name of the Maya elements (Usually a maya selection)
-                return_short_name (optional, bool): Determines if the return list will return the full path or just the short name.
-                
-            Returns:
-                inverted_hierarchy_tree (list) : A list containing the same elements, but sorted from lowest child to top parent.
+
+    Args:
+        obj_list (list): A list of strings with the name of the Maya elements (Usually a maya selection)
+        return_short_name (optional, bool): Determines if the return list will return the full path or short name.
+
+    Returns:
+        inverted_hierarchy_tree (list) : A list containing the same elements sorted from the lowest child to top parent
     
     """
     # Find hierarchy position and create pair
@@ -663,11 +666,11 @@ def get_short_name(obj):
     """
     Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-            Parameters:
-                    obj (string) : object to extract short name
-                    
-            Returns:
-                    short_name (string) : Name of the object without its full path
+    Args:
+        obj (string) : object to extract short name
+
+    Returns:
+        short_name (string) : Name of the object without its full path
     """
     if obj == '':
         return ''
@@ -679,14 +682,14 @@ def get_short_name(obj):
 
 def create_visualization_line(object_a, object_b):
     """
-    Creates a curve attached to two objects so you can easily visualize hierarchies 
+    Creates a curve attached to two objects, so you can easily visualize hierarchies
     
-                Parameters:
-                    object_a (string): Name of the object driving the start of the curve
-                    object_b (string): Name of the object driving end of the curve (usually a child of object_a)
-                    
-                Returns:
-                    list (list): A list with the generated curve, cluster_a, and cluster_b
+    Args:
+        object_a (string): Name of the object driving the start of the curve
+        object_b (string): Name of the object driving end of the curve (usually a child of object_a)
+
+    Returns:
+        list (list): A list with the generated curve, cluster_a, and cluster_b
     
     """
     crv = cmds.curve(p=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], d=1)
@@ -1614,7 +1617,8 @@ def lock_hide_default_attr(obj, translate=True, rotate=True, scale=True, visibil
         cmds.setAttr(obj + '.v', lock=True, k=False, channelBox=False)
 
 
-def setup_shape_switch(control, attr='controlShape', shape_names=['box', 'semiCircle', 'pin'],
+def setup_shape_switch(control, attr='controlShape',
+                       shape_names=['box', 'semiCircle', 'pin'],
                        shape_enum=['Box', 'Semi-Circle', 'Pin']):
     """
     Creates the nodes and connections necessary to switch between three shapes.
@@ -2542,51 +2546,51 @@ def get_children(root):
 
 
 def create_pin_control(jnt_name, scale_offset, create_offset_grp=True):
-        """
-        Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
+    """
+    Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
 
-        Arg:
-            jnt_name (string): Name of the joint that will be controlled
-            scale_offset (float): The scale offset applied to the control before freezing it
-            create_offset_grp (bool): Whether or not an offset group will be created
-        Returns:
-            control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
+    Arg:
+        jnt_name (string): Name of the joint that will be controlled
+        scale_offset (float): The scale offset applied to the control before freezing it
+        create_offset_grp (bool): Whether an offset group will be created
+    Returns:
+        control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
 
-        """
-        fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-                             p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
-                                [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
-                                [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
-                                [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
-                                [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
-                                [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
-                                [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
-                                [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
-        fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    """
+    fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
+                         p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
+                            [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
+                            [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
+                            [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
+                            [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
+                            [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
+                            [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
+                            [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
+    fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
 
-        fk_ctrl_offset_grp = ''
-        if create_offset_grp:
-            fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-            cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
-            cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
-        else:
-            cmds.parent(fk_ctrl, fk_ctrl_grp)
+    fk_ctrl_offset_grp = ''
+    if create_offset_grp:
+        fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
+        cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
+        cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
+    else:
+        cmds.parent(fk_ctrl, fk_ctrl_grp)
 
-        cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
-        cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
-        cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
-        cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
+    cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
+    cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
+    cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
+    cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
 
-        cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
-        if 'left_' in jnt_name:
-            change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
-        elif 'right_' in jnt_name:
-            change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
+    cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
+    if 'left_' in jnt_name:
+        change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
+    elif 'right_' in jnt_name:
+        change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
 
-        for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
-            cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
+    for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
+        cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
 
-        return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
+    return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
 
 def _get_object_namespaces(objectName):
@@ -2645,8 +2649,8 @@ class StripNamespace(object):
 
                 # get an api handle to the node
                 try:
-                    api_obj = om.MGlobal.getSelectionListByName(absolute_name).getDependNode(0)
-                    api_node = om.MFnDependencyNode(api_obj)
+                    api_obj = OpenMaya.MGlobal.getSelectionListByName(absolute_name).getDependNode(0)
+                    api_node = OpenMaya.MFnDependencyNode(api_obj)
 
                     # Remember the original name to return upon exit
                     uuid = api_node.uuid().asString()
@@ -2664,8 +2668,8 @@ class StripNamespace(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         for uuid, original_name in self.original_names.items():
             current_name = self.as_name(uuid)
-            api_obj = om.MGlobal.getSelectionListByName(current_name).getDependNode(0)
-            api_node = om.MFnDependencyNode(api_obj)
+            api_obj = OpenMaya.MGlobal.getSelectionListByName(current_name).getDependNode(0)
+            api_node = OpenMaya.MFnDependencyNode(api_obj)
             api_node.setName(original_name)
 
 
@@ -2791,6 +2795,23 @@ def set_unlocked_ws_attr(target, attr, value_tuple):
         logger.debug(str(e))
 
 
+def print_inview_message(part_a, part_b, color_a='FF0000', color_b='FFFFFF'):
+    """
+    Simple inview system to print a message containing two colors, the first one highlighted and the second one not.
+    Args:
+        part_a (string): First portion of the message (with underline)
+        part_b (string): Second portion of the message
+        color_a (string): HEX Color: Default FF0000 (Red)
+        color_b (string): HEX Color: Default FFFFFF (White)
+
+    """
+    cmds.optionVar(iv=('inViewMessageEnable', 1))  # Forces inView Messages to be active
+    unique_message = '<' + str(random.random()) + '>'
+    unique_message += '<span style=\"color:#' + color_a + ';text-decoration:underline;\">' + part_a + '</span>'
+    unique_message += '<span style=\"color:#' + color_b + ';\">' + part_b + '</span>'
+    cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+
+
 # Tests
 if __name__ == '__main__':
     # create_slider_control('temp', initial_position='bottom', lock_unused_channels=True)
@@ -2804,6 +2825,7 @@ if __name__ == '__main__':
     #                                   ignore_range='top')
     # print(output)
     # toggle_rigging_attr()
-    create_facial_side_gui()
+    # print_inview_message('Hello', ' World!')
+    # create_facial_side_gui()
     output = ''
     pass
