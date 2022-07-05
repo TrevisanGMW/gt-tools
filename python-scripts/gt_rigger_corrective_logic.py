@@ -89,19 +89,19 @@ def create_corrective_proxy(corrective_data):
         cmds.setAttr(shape + '.lineWidth', 3)
 
     # Main Group Attribute Setup
-    lock_hide_default_attr(main_grp)
-    cmds.addAttr(main_grp, ln="proxyVisibility", at='enum', en='-------------:', keyable=True)
-    cmds.setAttr(main_grp + '.proxyVisibility', e=True, lock=True)
-    cmds.addAttr(main_grp, ln="wristsVisibility", at='bool', keyable=True)
-    cmds.setAttr(main_grp + ".wristsVisibility", 1)
-    cmds.addAttr(main_grp, ln="elbowVisibility", at='bool', keyable=True)
-    cmds.setAttr(main_grp + ".elbowVisibility", 1)
-    cmds.addAttr(main_grp, ln="shouldersVisibility", at='bool', keyable=True)
-    cmds.setAttr(main_grp + ".shouldersVisibility", 1)
-    cmds.addAttr(main_grp, ln="kneesVisibility", at='bool', keyable=True)
-    cmds.setAttr(main_grp + ".kneesVisibility", 1)
-    cmds.addAttr(main_grp, ln="hipsVisibility", at='bool', keyable=True)
-    cmds.setAttr(main_grp + ".hipsVisibility", 1)
+    lock_hide_default_attr(main_root, visibility=False)
+    cmds.addAttr(main_root, ln="proxyVisibility", at='enum', en='-------------:', keyable=True)
+    cmds.setAttr(main_root + '.proxyVisibility', e=True, lock=True)
+    cmds.addAttr(main_root, ln="wristsVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_root + ".wristsVisibility", 1)
+    cmds.addAttr(main_root, ln="elbowVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_root + ".elbowVisibility", 1)
+    cmds.addAttr(main_root, ln="shouldersVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_root + ".shouldersVisibility", 1)
+    cmds.addAttr(main_root, ln="kneesVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_root + ".kneesVisibility", 1)
+    cmds.addAttr(main_root, ln="hipsVisibility", at='bool', keyable=True)
+    cmds.setAttr(main_root + ".hipsVisibility", 1)
 
     # ------------------------------------------------------------------------------------------- Wrists
     # Left Wrist Main
@@ -514,26 +514,26 @@ def create_corrective_proxy(corrective_data):
         cmds.parent(obj, right_main_shoulder_proxy_crv)
 
     # Setup Visibility
-    cmds.connectAttr(main_grp + '.wristsVisibility', left_main_wrist_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.wristsVisibility', right_main_wrist_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.elbowVisibility', left_main_elbow_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.elbowVisibility', right_main_elbow_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.shouldersVisibility', left_main_shoulder_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.shouldersVisibility', right_main_shoulder_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.kneesVisibility', left_main_knee_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.kneesVisibility', right_main_knee_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.hipsVisibility', left_main_hip_proxy_grp + '.v')
-    cmds.connectAttr(main_grp + '.hipsVisibility', right_main_hip_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.wristsVisibility', left_main_wrist_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.wristsVisibility', right_main_wrist_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.elbowVisibility', left_main_elbow_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.elbowVisibility', right_main_elbow_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.shouldersVisibility', left_main_shoulder_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.shouldersVisibility', right_main_shoulder_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.kneesVisibility', left_main_knee_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.kneesVisibility', right_main_knee_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.hipsVisibility', left_main_hip_proxy_grp + '.v')
+    cmds.connectAttr(main_root + '.hipsVisibility', right_main_hip_proxy_grp + '.v')
     if not _corrective_settings.get("setup_wrists"):
-        cmds.setAttr(main_grp + ".wristsVisibility", 0)
+        cmds.setAttr(main_root + ".wristsVisibility", 0)
     if not _corrective_settings.get("setup_elbows"):
-        cmds.setAttr(main_grp + ".elbowVisibility", 0)
+        cmds.setAttr(main_root + ".elbowVisibility", 0)
     if not _corrective_settings.get("setup_shoulders"):
-        cmds.setAttr(main_grp + ".shouldersVisibility", 0)
+        cmds.setAttr(main_root + ".shouldersVisibility", 0)
     if not _corrective_settings.get("setup_knees"):
-        cmds.setAttr(main_grp + ".kneesVisibility", 0)
+        cmds.setAttr(main_root + ".kneesVisibility", 0)
     if not _corrective_settings.get("setup_hips"):
-        cmds.setAttr(main_grp + ".hipsVisibility", 0)
+        cmds.setAttr(main_root + ".hipsVisibility", 0)
 
     # Attempt to Set Initial Pose ----------------------------------------------------------------------------
     for key, data in _preexisting_dict.items():
@@ -596,6 +596,10 @@ def create_corrective_setup(corrective_data):
     _preexisting_dict = corrective_data.preexisting_dict
     _corrective_settings = corrective_data.settings
 
+    if not any(_corrective_settings.values()):
+        cmds.warning('All corrective options deactivated. Rig build ignored.')
+        return
+
     # Cancel operation if missing elements
     missing_objs = []
     for key, data in _preexisting_dict.items():
@@ -636,6 +640,22 @@ def create_corrective_setup(corrective_data):
     # Create Driver Joints
     _cor_joints_dict = {}
     ignore_crv_list = ['']
+    for obj in _corrective_proxy_dict:
+        if not _corrective_settings.get("setup_wrists"):
+            if obj.endswith('_crv') and 'wrist' in obj:
+                ignore_crv_list.append(obj)
+        if not _corrective_settings.get("setup_elbows"):
+            if obj.endswith('_crv') and 'elbow' in obj:
+                ignore_crv_list.append(obj)
+        if not _corrective_settings.get("setup_shoulders"):
+            if obj.endswith('_crv') and 'shoulder' in obj:
+                ignore_crv_list.append(obj)
+        if not _corrective_settings.get("setup_knees"):
+            if obj.endswith('_crv') and 'knee' in obj:
+                ignore_crv_list.append(obj)
+        if not _corrective_settings.get("setup_hips"):
+            if obj.endswith('_crv') and 'hip' in obj:
+                ignore_crv_list.append(obj)
     for obj in _corrective_proxy_dict:
         if obj.endswith('_crv') and obj not in ignore_crv_list:
             if cmds.objExists(_corrective_proxy_dict.get(obj)):
@@ -746,25 +766,25 @@ def create_corrective_setup(corrective_data):
                                                        _cor_joints_dict.get('right_main_hip_jnt')])
 
     if _corrective_settings.get("setup_shoulders") and dependencies_shoulders:
-        left_clavicle_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
-        left_clavicle_driver_jnt = cmds.duplicate(left_clavicle_jnt, name='left_clavicle_driverJnt', po=True)[0]
-        cmds.parent(left_clavicle_driver_jnt, skeleton_grp)
-        cmds.parentConstraint(left_clavicle_jnt, left_clavicle_driver_jnt)
+        left_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
+        left_scapula_driver_jnt = cmds.duplicate(left_scapula_jnt, name='left_scapula_driverJnt', po=True)[0]
+        cmds.parent(left_scapula_driver_jnt, skeleton_grp)
+        cmds.parentConstraint(left_scapula_jnt, left_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('left_back_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
         cmds.parent(_cor_joints_dict.get('left_front_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
         cmds.parent(_cor_joints_dict.get('left_upper_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
         # cmds.parent(_cor_joints_dict.get('left_lower_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
-        cmds.parent(_cor_joints_dict.get('left_main_shoulder_jnt'), left_clavicle_driver_jnt)
+        cmds.parent(_cor_joints_dict.get('left_main_shoulder_jnt'), left_scapula_driver_jnt)
 
-        right_clavicle_jnt = cmds.listRelatives(_preexisting_dict.get('right_shoulder_jnt'), parent=True)[0]
-        right_clavicle_driver_jnt = cmds.duplicate(right_clavicle_jnt, name='right_clavicle_driverJnt', po=True)[0]
-        cmds.parent(right_clavicle_driver_jnt, skeleton_grp)
-        cmds.parentConstraint(right_clavicle_jnt, right_clavicle_driver_jnt)
+        right_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('right_shoulder_jnt'), parent=True)[0]
+        right_scapula_driver_jnt = cmds.duplicate(right_scapula_jnt, name='right_scapula_driverJnt', po=True)[0]
+        cmds.parent(right_scapula_driver_jnt, skeleton_grp)
+        cmds.parentConstraint(right_scapula_jnt, right_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('right_back_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
         cmds.parent(_cor_joints_dict.get('right_front_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
         cmds.parent(_cor_joints_dict.get('right_upper_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
         # cmds.parent(_cor_joints_dict.get('right_lower_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
-        cmds.parent(_cor_joints_dict.get('right_main_shoulder_jnt'), right_clavicle_driver_jnt)
+        cmds.parent(_cor_joints_dict.get('right_main_shoulder_jnt'), right_scapula_driver_jnt)
 
     # Basic Organization
     to_parent_to_skeleton_grp = [_cor_joints_dict.get('left_main_wrist_jnt'),
@@ -1835,7 +1855,7 @@ def create_corrective_setup(corrective_data):
         cmds.connectAttr(offset_range_node + '.outValue', offset_influence_node + '.input1Z')
         cmds.connectAttr(ctrl + '.' + offset_attr, offset_influence_node + '.input2')
         cmds.connectAttr(offset_influence_node + '.output', sum_pos_node + '.input3D[' + str(pos_next_slot) + ']')
-        # End Range (Identical to "End Value"
+        # End Range (Identical to "End Value")
 
         if setup.endswith('elbow') or setup == 'upper_wrist' or setup == 'back_knee':
             # Initiate Variables
@@ -2011,18 +2031,18 @@ if __name__ == '__main__':
         cmds.setAttr('persp.rz', persp_rot[2])
 
     create_corrective_proxy(data_corrective)
-    # create_corrective_setup(data_corrective)
+    create_corrective_setup(data_corrective)
     # merge_corrective_elements()
 
     if debugging:
         pass
-        try:
-            cmds.setAttr('main_ctrl.correctiveVisibility', 1)
-            cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
-            # cmds.setAttr('rig_setup_grp.v', 1)
-            # cmds.setAttr("left_hip_ctrl.rotateX", -90)
-            # cmds.setAttr("right_hip_ctrl.rotateX", -90)
-            # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
-            # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
-        except Exception as e:
-            logger.debug(str(e))
+        # try:
+        #     cmds.setAttr('main_ctrl.correctiveVisibility', 1)
+        #     cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
+        #     # cmds.setAttr('rig_setup_grp.v', 1)
+        #     # cmds.setAttr("left_hip_ctrl.rotateX", -90)
+        #     # cmds.setAttr("right_hip_ctrl.rotateX", -90)
+        #     # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+        #     # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+        # except Exception as e:
+        #     logger.debug(str(e))
