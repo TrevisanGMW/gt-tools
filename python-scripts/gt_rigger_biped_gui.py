@@ -23,6 +23,9 @@
  2022-07-01
  Added "Extract Proxy Pose From Facial Rig" and "Import Pose" (Facial)
 
+ 2022-07-04
+ Added validation for creating facial or corrective proxy/rig
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -751,12 +754,33 @@ def validate_facial_operation(operation):
         operation (string): Name of the desired operation. e.g. "create_proxy" or "create_controls"
 
     """
+    if operation == "merge":
+        gt_rigger_facial_logic.merge_facial_elements()
+        return
+
+    # Check for existing rig or conflicting names
+    undesired_elements = ['facial_rig_grp', 'facialAutomation_grp', 'mouthAutomation_grp']
+    for obj in undesired_elements:
+        if cmds.objExists(obj):
+            cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
+                                     ' rig or you have conflicting names on your objects. '
+                                     '(Click on "Help" for more details)')
+            return
+
     if operation == "create_proxy":
+        # Check if proxy exists in the scene
+        proxy_elements = [data_facial.elements_default.get('main_proxy_grp')]
+        for proxy in data_facial.elements_default:
+            if '_crv' in proxy:
+                proxy_elements.append(data_facial.elements_default.get(proxy))
+        for obj in proxy_elements:
+            if cmds.objExists(obj):
+                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
+                                         'Delete current proxy or generate a rig before creating a new one.')
+                return
         gt_rigger_facial_logic.create_facial_proxy(data_facial)
     elif operation == "create_controls":
         gt_rigger_facial_logic.create_facial_controls(data_facial)
-    elif operation == "merge":
-        gt_rigger_facial_logic.merge_facial_elements()
 
 
 def validate_corrective_operation(operation):
@@ -767,12 +791,33 @@ def validate_corrective_operation(operation):
         operation (string): Name of the desired operation. e.g. "create_proxy" or "create_controls"
 
     """
+    if operation == "merge":
+        gt_rigger_corrective_logic.merge_corrective_elements()
+        return
+
+    # Check for existing rig or conflicting names
+    undesired_elements = ['corrective_rig_grp', 'correctiveAutomation_grp']
+    for obj in undesired_elements:
+        if cmds.objExists(obj):
+            cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
+                                     ' rig or you have conflicting names on your objects. '
+                                     '(Click on "Help" for more details)')
+            return
+
     if operation == "create_proxy":
+        # Check if proxy exists in the scene
+        proxy_elements = [data_corrective.elements_default.get('main_proxy_grp')]
+        for proxy in data_corrective.elements_default:
+            if '_crv' in proxy:
+                proxy_elements.append(data_corrective.elements_default.get(proxy))
+        for obj in proxy_elements:
+            if cmds.objExists(obj):
+                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
+                                         'Delete current proxy or generate a rig before creating a new one.')
+                return
         gt_rigger_corrective_logic.create_corrective_proxy(data_corrective)
     elif operation == "create_controls":
         gt_rigger_corrective_logic.create_corrective_setup(data_corrective)
-    elif operation == "merge":
-        gt_rigger_corrective_logic.merge_corrective_elements()
 
 
 def validate_biped_operation(operation):
