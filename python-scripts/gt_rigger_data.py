@@ -10,7 +10,7 @@ import maya.cmds as cmds
 import copy
 
 SCRIPT_VERSION_BASE = '1.9.13'
-SCRIPT_VERSION_FACIAL = '0.0.13'
+SCRIPT_VERSION_FACIAL = '0.0.14'
 SCRIPT_VERSION_CORRECTIVE = '0.0.10'
 
 # General Vars
@@ -213,12 +213,12 @@ class GTBipedRiggerFacialData:
         'base_tongue_crv': 'baseTongue_' + PROXY_SUFFIX,
         'mid_tongue_crv': 'midTongue_' + PROXY_SUFFIX,
         'tip_tongue_crv': 'tipTongue_' + PROXY_SUFFIX,
-        #
-        # # Cheek
-        # 'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
-        #
-        # # # Nose
-        # 'left_nose_crv': 'nose_' + PROXY_SUFFIX,
+
+        # Cheek
+        'left_cheek_crv': 'cheek_' + PROXY_SUFFIX,
+
+        # # Nose
+        'left_nose_crv': 'nose_' + PROXY_SUFFIX,
     }
 
     # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
@@ -241,7 +241,7 @@ class GTBipedRiggerFacialData:
     # Store Default Values
     def __init__(self):
         self.settings = {'find_pre_existing_elements': True,
-                         }
+                         'setup_nose_cheek': False}
 
         self.elements_default = copy.deepcopy(self.elements)
         self.settings_default = copy.deepcopy(self.settings)
