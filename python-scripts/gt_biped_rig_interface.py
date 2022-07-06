@@ -103,7 +103,7 @@
  Checked to see if using new name for clavicle influence attribute (autoClavicleInfluence -> clavicleInfluence)
 
  1.3.22 - 2022-06-30
- General code/docs cleanup
+ General PEP8 code cleanup
 
 
  TODO:
@@ -118,15 +118,21 @@
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
 from shiboken2 import wrapInstance
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
+import logging
 import random
 import json
 import copy
 import sys
 import os
 import re
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_rigger_biped_gui")
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 # Script Name
 script_name = 'GT Custom Rig Interface'
@@ -340,7 +346,6 @@ def _get_persistent_settings_rig_interface():
     stored_setup_exists = cmds.optionVar(exists="gt_auto_biped_rig_interface_setup")
 
     if stored_setup_exists:
-        stored_settings = {}
         try:
             stored_settings = eval(str(cmds.optionVar(q="gt_auto_biped_rig_interface_setup")))
             for stored_item in stored_settings:
@@ -348,6 +353,7 @@ def _get_persistent_settings_rig_interface():
                     if stored_item == item:
                         gt_custom_rig_interface_settings[item] = stored_settings.get(stored_item)
         except Exception as e:
+            logger.debug(str(e))
             print("Couldn't load persistent settings, try resetting it in the help menu.")
 
 
@@ -363,18 +369,21 @@ def _set_persistent_settings_rig_interface():
 def _reset_persistent_settings_rig_interface():
     """ Resets persistent settings for GT Auto Biped Rig Interface """
     cmds.optionVar(remove='gt_auto_biped_rig_interface_setup')
-    gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_default
+    # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_default
     cmds.optionVar(sv=('gt_auto_biped_rig_interface_setup', str(gt_custom_rig_interface_settings_default)))
     cmds.warning('Persistent settings for ' + script_name + ' were cleared.')
     try:
         cmds.evalDeferred('build_gui_custom_rig_interface()')
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         try:
             build_gui_custom_rig_interface()
-        except:
+        except Exception as e:
+            logger.debug(str(e))
             try:
                 cmds.evalDeferred('gt_biped_rig_interface.build_gui_custom_rig_interface()')
-            except:
+            except Exception as e:
+                logger.debug(str(e))
                 pass
 
 
@@ -396,7 +405,8 @@ def _get_metadata(namespace):
     try:
         metadata_str = cmds.getAttr(_main_ctrl + '.metadata')
         return json.loads(str(metadata_str))
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         return None
 
 
@@ -415,8 +425,7 @@ def build_gui_custom_rig_interface():
         if cmds.window(rig_interface_window_name, exists=True):
             rig_interface_window_name = rig_interface_window_name + '_' + str(random.random()).replace('.', '')
             is_secondary_instance = True
-
-            gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)
+            # gt_custom_rig_interface_settings_instanced = copy.deepcopy(gt_custom_rig_interface_settings)
 
     # Main GUI Start Here =================================================================================
     def get_namespace():
@@ -481,8 +490,8 @@ def build_gui_custom_rig_interface():
                     else:
                         cmds.button(ctrl_buttons[2], e=True, bgc=active_color)  # FK Button
                         cmds.button(ctrl_buttons[1], e=True, bgc=inactive_color)  # IK Button
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(str(e))
             else:
                 cmds.button(ctrl_buttons[2], e=True, bgc=inactive_color)  # FK Button
                 cmds.button(ctrl_buttons[1], e=True, bgc=inactive_color)  # IK Button
@@ -544,6 +553,7 @@ def build_gui_custom_rig_interface():
              ik_fk_dict (dict): A dictionary containing the elements that are part of the system you want to switch.
              direction (optional, string): Either "fk_to_ik" or "ik_to_fk".
                                            It determines what is the source and what is the target.
+           is_auto_switch (bool) : Is it auto switching? (Auto detect value)
         """
         method = 'bake' if gt_custom_rig_interface_settings.get('auto_key_method_bake') else 'sparse'
 
@@ -609,11 +619,11 @@ def build_gui_custom_rig_interface():
 
         """
         time_slider = mel.eval('$tmpVar=$gPlayBackSlider')
-        timeRange = cmds.timeControl(time_slider, q=True, rangeArray=True)
-        if (timeRange[1] - timeRange[0] != 1):
-            timeRange = [timeRange[0], timeRange[1] + 1]
-        cmds.intField(auto_key_start_int_field, e=True, value=timeRange[0])
-        cmds.intField(auto_key_end_int_field, e=True, value=timeRange[1])
+        time_range = cmds.timeControl(time_slider, q=True, rangeArray=True)
+        if time_range[1] - time_range[0] != 1:
+            time_range = [time_range[0], time_range[1] + 1]
+        cmds.intField(auto_key_start_int_field, e=True, value=time_range[0])
+        cmds.intField(auto_key_end_int_field, e=True, value=time_range[1])
 
         update_stored_settings(is_instance)
 
@@ -710,10 +720,10 @@ def build_gui_custom_rig_interface():
         cmds.window(window_name, e=True, s=False)
 
         # Set Window Icon
-        qw = omui.MQtUtil.findWindow(window_name)
-        widget = wrapInstance(int(qw), QWidget)
-        icon = QIcon(':/question.png')
-        widget.setWindowIcon(icon)
+        help_qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+        help_widget = wrapInstance(int(help_qw), QWidget)
+        help_icon = QIcon(':/question.png')
+        help_widget.setWindowIcon(help_icon)
 
         def close_help_gui():
             """ Closes help windows """
@@ -731,8 +741,8 @@ def build_gui_custom_rig_interface():
     else:
         script_version_title = '  (v' + script_version + ')'
 
-    build_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + script_version_title,
-                                                 titleBar=True, mnb=False, mxb=False, sizeable=True)
+    window_gui_custom_rig_interface = cmds.window(rig_interface_window_name, title=script_title + script_version_title,
+                                                  titleBar=True, mnb=False, mxb=False, sizeable=True)
 
     cmds.window(rig_interface_window_name, e=True, s=True, wh=[1, 1])
 
@@ -823,7 +833,7 @@ def build_gui_custom_rig_interface():
                 p=legs_switch_column)  # L
 
     # Auto Key Settings (Switch Settings)
-    switch_settings_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=[(1, 6)], p=fk_ik_switch_tab)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=[(1, 6)], p=fk_ik_switch_tab)
     cmds.separator(h=15)  # Empty Space
     switch_auto_key_column = cmds.rowColumnLayout(nc=3, cw=[(1, 80), (2, 130), (3, 60)], cs=[(1, 25)],
                                                   p=fk_ik_switch_tab)
@@ -831,7 +841,7 @@ def build_gui_custom_rig_interface():
                                         cc=lambda x: update_stored_settings(is_secondary_instance))
 
     method_container = cmds.rowColumnLayout(p=switch_auto_key_column, numberOfRows=1)
-    auto_key_method_rc = cmds.radioCollection()
+    cmds.radioCollection()
     auto_key_method_rb1 = cmds.radioButton(p=method_container, label=' Bake  ',
                                            sl=gt_custom_rig_interface_settings.get('auto_key_method_bake'),
                                            cc=lambda x: update_stored_settings(is_secondary_instance))
@@ -897,7 +907,7 @@ def build_gui_custom_rig_interface():
                 p=pose_mirror_ik_fk_column,
                 c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
                                          namespace=cmds.textField(namespace_txt, q=True,
-                                         text=True) + namespace_separator))  # R
+                                                                  text=True) + namespace_separator))  # R
     cmds.button(l="FK Only >",
                 p=pose_mirror_ik_fk_column,
                 c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
@@ -913,8 +923,8 @@ def build_gui_custom_rig_interface():
     cmds.button(l="< FK Only",
                 p=pose_mirror_ik_fk_column,
                 c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
-                                          namespace=cmds.textField(namespace_txt, q=True,
-                                          text=True) + namespace_separator))  # L
+                                         namespace=cmds.textField(namespace_txt, q=True,
+                                                                  text=True) + namespace_separator))  # L
 
     # Reset Pose
     pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)
@@ -1081,11 +1091,11 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Show and Lock Window
-    cmds.showWindow(build_gui_custom_rig_interface)
+    cmds.showWindow(window_gui_custom_rig_interface)
     cmds.window(rig_interface_window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(rig_interface_window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(rig_interface_window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/out_timeEditorAnimSource.png')
     if is_secondary_instance:
@@ -1206,11 +1216,10 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
         if is_valid_message:
             # Print Feedback
             unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FFFFFF;\">Switched ' + message_direction + ' ' +
-                    message_limb + ' to </span><span style=\"color:#FF0000;text-decoration:underline;\">' +
-                    message_target + '</span>  ' + message_range,
-                pos='botLeft', fade=True, alpha=.9)
+            unique_message += '<span style=\"color:#FFFFFF;\">Switched ' + message_direction + ' '
+            unique_message += message_limb + ' to </span><span style=\"color:#FF0000;text-decoration:underline;\">'
+            unique_message += message_target + '</span>  ' + message_range
+            cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
 
     # Find Available Controls
     available_ctrls = []
@@ -1223,10 +1232,9 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
 
     # No Controls were found
     if len(available_ctrls) == 0:
-        is_valid = False
         cmds.warning('No controls were found. Make sure you are using the correct namespace.')
-
     else:
+        auto_clavicle_value = None
         if ik_fk_dict.get('incompatible_attr_holder'):
             ns_incompatible_attr_holder = namespace + ik_fk_dict.get('incompatible_attr_holder')
             available_attributes = cmds.listAttr(ns_incompatible_attr_holder, userDefined=True)
@@ -1339,25 +1347,25 @@ def _fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, e
         cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))
 
 
-def _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''):
+def _pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
     """
     Reset transforms list of controls back to 0 Translate and Rotate values.
 
     Args:
-        gt_ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. "_wrist_ctrl")
-        gt_ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. "_wrist_ctrl")
-        gt_ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. "spine01_ctrl")
+        ab_ik_ctrls (dict, list) : A list or dictionary of IK controls without their side prefix (e.g. "_wrist_ctrl")
+        ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. "_wrist_ctrl")
+        ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. "spine01_ctrl")
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
     available_ctrls = []
-    for obj in gt_ab_ik_ctrls:
+    for obj in ab_ik_ctrls:
         if cmds.objExists(namespace + left_prefix + obj):
             available_ctrls.append(left_prefix + obj)
         if cmds.objExists(namespace + right_prefix + obj):
             available_ctrls.append(right_prefix + obj)
 
-    for obj in gt_ab_fk_ctrls:
+    for obj in ab_fk_ctrls:
         if cmds.objExists(namespace + left_prefix + obj):
             available_ctrls.append(left_prefix + obj)
         if cmds.objExists(namespace + right_prefix + obj):
@@ -1369,7 +1377,7 @@ def _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''
         if cmds.objExists(namespace + right_prefix + obj):
             available_ctrls.append(right_prefix + obj)
 
-    for obj in gt_ab_center_ctrls:
+    for obj in ab_center_ctrls:
         if cmds.objExists(namespace + obj):
             available_ctrls.append(obj)
 
@@ -1390,8 +1398,8 @@ def _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=''
                 try:
                     if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:
                         cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(str(e))
 
     # Special Cases
     special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']
@@ -1448,15 +1456,14 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
 
                     key = gt_ab_ctrls_dict.get(
                         remove_side_tag_right)  # TR = [(inverted?,inverted?,inverted?),(inverted?,inverted?,inverted?)]
-                    transforms = []
 
                     # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.
-                    transforms.append([True, key[0][0], 'tx'])
-                    transforms.append([True, key[0][1], 'ty'])
-                    transforms.append([True, key[0][2], 'tz'])
-                    transforms.append([True, key[1][0], 'rx'])
-                    transforms.append([True, key[1][1], 'ry'])
-                    transforms.append([True, key[1][2], 'rz'])
+                    transforms = [[True, key[0][0], 'tx'],
+                                  [True, key[0][1], 'ty'],
+                                  [True, key[0][2], 'tz'],
+                                  [True, key[1][0], 'rx'],
+                                  [True, key[1][1], 'ry'],
+                                  [True, key[1][2], 'rz']]
 
                     if len(key) > 2:  # Mirroring Scale?
                         transforms.append([True, False, 'sx'])
@@ -1503,7 +1510,6 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
             pos='botLeft', fade=True, alpha=.9)
 
         if len(errors) != 0:
-            unique_message = '<' + str(random.random()) + '>'
             if len(errors) == 1:
                 is_plural = 'attribute was'
             else:
@@ -1560,6 +1566,7 @@ def _pose_export(namespace=''):
         is_valid = False
         cmds.warning('No controls were found. Make sure you are using the correct namespace.')
 
+    file_name = None
     if is_valid:
         file_name = cmds.fileDialog2(fileFilter=script_name + " - POSE File (*.pose)", dialogStyle=2,
                                      okCaption='Export', caption='Exporting Rig Pose for "' + script_name + '"') or []
@@ -1581,16 +1588,13 @@ def _pose_export(namespace=''):
                 json.dump(export_dict, outfile, indent=4)
 
             unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Pose exported to </span>'
-                                     '<span style=\"color:#FF0000;text-decoration:underline;\">' +
-                    os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>',
-                pos='botLeft', fade=True,
-                alpha=.9)
+            unique_message += '<span style=\"color:#FFFFFF;\">Current Pose exported to </span>'
+            unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+            unique_message += os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>'
+            cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
         except Exception as e:
-            print(e)
-            successfully_created_file = False
+            logger.info(str(e))
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
@@ -1625,28 +1629,8 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
         try:
             if not cmds.getAttr(target + '.' + attr, lock=True):
                 cmds.setAttr(target + '.' + attr, value)
-        except:
-            pass
-
-    def set_unlocked_ws_attr(target, attr, value_tuple):
-        """
-        Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
-        
-        Args:
-            target (string): Name of the target object (object that will receive transforms)
-            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-            value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
-
-        """
-        try:
-            if attr == 'translate':
-                cmds.xform(target, ws=True, t=value_tuple)
-            if attr == 'rotate':
-                cmds.xform(target, ws=True, ro=value_tuple)
-            if attr == 'scale':
-                cmds.xform(target, ws=True, s=value_tuple)
-        except:
-            pass
+        except Exception as exception:
+            logger.debug(str(exception))
 
     # Find Available Controls
     available_ctrls = []
@@ -1672,10 +1656,6 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
         if cmds.objExists(namespace + obj):
             available_ctrls.append(obj)
 
-    # Track Current State
-    import_version = 0.0
-    import_method = 'object-space'
-
     if not debugging:
         file_name = cmds.fileDialog2(fileFilter=script_name + " - POSE File (*.pose)", dialogStyle=2, fileMode=1,
                                      okCaption='Import', caption='Importing Proxy Pose for "' + script_name + '"') or []
@@ -1686,6 +1666,7 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
         pose_file = file_name[0]
         file_exists = True
     else:
+        pose_file = None
         file_exists = False
 
     if file_exists:
@@ -1693,17 +1674,18 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
             with open(pose_file) as json_file:
                 data = json.load(json_file)
                 try:
-                    is_valid_file = True
                     is_operation_valid = True
 
                     if not data.get('gt_interface_version'):
-                        is_valid_file = False
+                        is_operation_valid = False
                         cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_interface_version'))))
+                        logger.debug(str(import_version))
 
                     if data.get('gt_export_method'):
                         import_method = data.get('gt_export_method')
+                        logger.debug(str(import_method))
 
                     if len(available_ctrls) == 0:
                         cmds.warning('No controls were found. Please check if a namespace is necessary.')
@@ -1724,21 +1706,18 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
                                     set_unlocked_os_attr(namespace + current_object[0], 'sx', current_object[3][0])
                                     set_unlocked_os_attr(namespace + current_object[0], 'sy', current_object[3][1])
                                     set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
-
                         unique_message = '<' + str(random.random()) + '>'
-                        cmds.inViewMessage(
-                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Pose imported from </span>'
-                                                 '<span style=\"color:#FF0000;text-decoration:underline;\">' +
-                                os.path.basename(
-                                    pose_file) + '</span><span style=\"color:#FFFFFF;\">.</span>',
-                            pos='botLeft', fade=True, alpha=.9)
+                        unique_message += '<span style=\"color:#FFFFFF;\">Pose imported from </span>'
+                        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                        unique_message += os.path.basename(pose_file)
+                        unique_message += '</span><span style=\"color:#FFFFFF;\">.</span>'
+                        cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Pose imported from the file "' + pose_file + '".')
-
                 except Exception as e:
-                    print(e)
+                    logger.info(str(e))
                     cmds.warning('An error occurred when importing the pose. Make sure you imported a valid POSE file.')
-        except:
-            file_exists = False
+        except Exception as e:
+            logger.debug(str(e))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
@@ -1836,8 +1815,8 @@ def _anim_reset(namespace=''):
                         cmds.listConnections(key, destination=True)[0].split(':')) == 1:
                     cmds.delete(key)
                     deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
         message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'keyframe nodes were'
         if deleted_counter == 1:
@@ -1919,15 +1898,14 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
 
                     key = gt_ab_ctrls_dict.get(
                         remove_side_tag_right)  # TR = [(inverted?,inverted?,inverted?),(inverted?,inverted?,inverted?)]
-                    transforms = []
 
                     # Mirroring Transform?, Inverting it? (X,Y,Z), Transform name.
-                    transforms.append([True, key[0][0], 'tx'])
-                    transforms.append([True, key[0][1], 'ty'])
-                    transforms.append([True, key[0][2], 'tz'])
-                    transforms.append([True, key[1][0], 'rx'])
-                    transforms.append([True, key[1][1], 'ry'])
-                    transforms.append([True, key[1][2], 'rz'])
+                    transforms = [[True, key[0][0], 'tx'],
+                                  [True, key[0][1], 'ty'],
+                                  [True, key[0][2], 'tz'],
+                                  [True, key[1][0], 'rx'],
+                                  [True, key[1][1], 'ry'],
+                                  [True, key[1][2], 'rz']]
 
                     if len(key) > 2:  # Mirroring Scale?
                         transforms.append([True, False, 'sx'])
@@ -1987,8 +1965,8 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
                                                         inTangentType=in_tangent_type[index], e=True)
                                         cmds.keyTangent(namespace + left_obj, at=attr, time=(time, time),
                                                         outTangentType=out_tangent_type[index], e=True)
-                                except:
-                                    pass  # 0 keyframes
+                                except Exception as e:
+                                    logger.debug(str(e))  # 0 keyframes
 
                         # Other Attributes
                         attributes = cmds.listAnimatable(namespace + right_obj)
@@ -2005,8 +1983,8 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
                                     for index in range(len(values)):
                                         cmds.setKeyframe(namespace + left_obj, time=frames[index], attribute=short_attr,
                                                          value=values[index])
-                            except:
-                                pass  # 0 keyframes
+                            except Exception as e:
+                                logger.debug(str(e))  # 0 keyframes
 
                     # Transfer Left to Right
                     if source_side is 'left':
@@ -2061,8 +2039,8 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
                                                         inTangentType=in_tangent_type[index], e=True)
                                         cmds.keyTangent(namespace + right_obj, at=attr, time=(time, time),
                                                         outTangentType=out_tangent_type[index], e=True)
-                                except:
-                                    pass  # 0 keyframes
+                                except Exception as e:
+                                    logger.debug(str(e))  # 0 keyframes
 
                         # Other Attributes
                         attributes = cmds.listAnimatable(namespace + left_obj)
@@ -2079,22 +2057,18 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
                                     for index in range(len(values)):
                                         cmds.setKeyframe(namespace + right_obj, time=frames[index],
                                                          attribute=short_attr, value=values[index])
-                            except:
-                                pass  # 0 keyframes
+                            except Exception as e:
+                                logger.debug(str(e))  # 0 keyframes
 
         # Print Feedback
         unique_message = '<' + str(random.random()) + '>'
         source_message = '(Left to Right)'
         if source_side == 'right':
             source_message = '(Right to Left)'
-        cmds.inViewMessage(
-            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation </span>'
-                                 '<span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' +
-                source_message,
-            pos='botLeft', fade=True, alpha=.9)
-
+        unique_message += '<span style=\"color:#FFFFFF;\">Animation </span>'
+        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> ' + source_message
+        cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
         if len(errors) != 0:
-            unique_message = '<' + str(random.random()) + '>'
             if len(errors) == 1:
                 is_plural = ' error '
             else:
@@ -2148,6 +2122,8 @@ def _anim_export(namespace=''):
         is_valid = False
         cmds.warning('No controls were found. Make sure you are using the correct namespace.')
 
+    pose_file = None
+    file_name = None
     if is_valid:
         file_name = cmds.fileDialog2(fileFilter=script_name + " - ANIM File (*.anim)", dialogStyle=2,
                                      okCaption='Export',
@@ -2177,7 +2153,8 @@ def _anim_export(namespace=''):
                     export_dict['{}.{}'.format(obj, short_attr)] = list(
                         zip(frames, values, in_angle_tangent, out_angle_tangent, is_locked, in_weight, out_weight,
                             in_tangent_type, out_tangent_type))
-                except:
+                except Exception as e:
+                    logger.debug(str(e))
                     pass  # 0 keyframes
 
         try:
@@ -2185,16 +2162,13 @@ def _anim_export(namespace=''):
                 json.dump(export_dict, outfile, indent=4)
 
             unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FFFFFF;\">Current Animation exported to </span>'
-                                     '<span style=\"color:#FF0000;text-decoration:underline;\">' +
-                    os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>',
-                pos='botLeft', fade=True,
-                alpha=.9)
+            unique_message += '<span style=\"color:#FFFFFF;\">Current Animation exported to </span>'
+            unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+            unique_message += os.path.basename(file_name[0]) + '</span><span style=\"color:#FFFFFF;\">.</span>'
+            cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('Animation exported to the file "' + pose_file + '".')
         except Exception as e:
-            print(e)
-            successfully_created_file = False
+            logger.warning(str(e))
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
@@ -2234,10 +2208,6 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
         if cmds.objExists(namespace + obj):
             available_ctrls.append(obj)
 
-    # Track Current State
-    import_version = 0.0
-    import_method = 'object-space'
-
     if not debugging:
         file_name = cmds.fileDialog2(fileFilter=script_name + " - ANIM File (*.anim)", dialogStyle=2, fileMode=1,
                                      okCaption='Import', caption='Importing Proxy Pose for "' + script_name + '"') or []
@@ -2248,6 +2218,7 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
         anim_file = file_name[0]
         file_exists = True
     else:
+        anim_file = ''
         file_exists = False
 
     if file_exists:
@@ -2255,17 +2226,18 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
             with open(anim_file) as json_file:
                 data = json.load(json_file)
                 try:
-                    is_valid_file = True
                     is_operation_valid = True
 
                     if not data.get('gt_interface_version'):
-                        is_valid_file = False
+                        is_operation_valid = False
                         cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_interface_version'))))
+                        logger.debug(str(import_version))
 
                     if data.get('gt_export_method'):
                         import_method = data.get('gt_export_method')
+                        logger.debug(str(import_method))
 
                     if len(available_ctrls) == 0:
                         cmds.warning('No controls were found. Please check if a namespace is necessary.')
@@ -2304,22 +2276,21 @@ def _anim_import(debugging=False, debugging_path='', namespace=''):
                                                         inTangentType=in_tangent_type, e=True)
                                         cmds.keyTangent(namespace + obj, at=attr, time=(time, time),
                                                         outTangentType=out_tangent_type, e=True)
-                                    except:
-                                        pass
+                                    except Exception as e:
+                                        logger.debug(str(e))
 
                         unique_message = '<' + str(random.random()) + '>'
-                        cmds.inViewMessage(
-                            amg=unique_message + '<span style=\"color:#FFFFFF;\">Animation imported from </span>'
-                                                 '<span style=\"color:#FF0000;text-decoration:underline;\">' +
-                                os.path.basename(anim_file) + '</span><span style=\"color:#FFFFFF;\">.</span>',
-                            pos='botLeft', fade=True, alpha=.9)
+                        unique_message += '<span style=\"color:#FFFFFF;\">Animation imported from </span>'
+                        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                        unique_message += os.path.basename(anim_file) + '</span><span style=\"color:#FFFFFF;\">.</span>'
+                        cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write('Animation imported from the file "' + anim_file + '".')
 
                 except Exception as e:
-                    print(e)
+                    logger.debug(str(e))
                     cmds.warning('An error occurred when importing the pose. Make sure you imported a valid ANIM file.')
-        except:
-            file_exists = False
+        except Exception as e:
+            logger.debug(str(e))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
