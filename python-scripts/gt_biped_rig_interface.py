@@ -131,7 +131,7 @@ import re
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("gt_rigger_biped_gui")
+logger = logging.getLogger("gt_biped_rig_interface")
 logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 # Script Name
