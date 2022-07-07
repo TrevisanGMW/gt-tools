@@ -3,11 +3,17 @@ GT Rigger Data - Settings and naming conventions for auto rigger scripts
 github.com/TrevisanGMW - 2021-12-10
 
 2022-06-28
-Added corrective class
+Added facial and corrective classes
 
 """
 import maya.cmds as cmds
+import logging
 import copy
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_rigger_data")
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 SCRIPT_VERSION_BASE = '1.9.13'
 SCRIPT_VERSION_FACIAL = '0.0.14'
@@ -468,11 +474,11 @@ def reset_persistent_settings(data_object):
         data_object.script_name
         data_object.gui_module
         data_object.entry_function
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         return False
 
     cmds.optionVar(remove=data_object.option_var)
     data_object.settings = data_object.settings_default
     cmds.warning('Persistent settings for ' + data_object.script_name + ' were cleared.')
     return True
-
