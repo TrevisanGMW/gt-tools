@@ -14,7 +14,6 @@
  Minor PEP8 Cleanup
  Dropped Python 2 support (Only Python 3+ now)
 
- 
  TODO:
     Add sparse key option
 
@@ -36,7 +35,7 @@ import logging
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("gt_rigger_biped_gui")
+logger = logging.getLogger("gt_world_space_baker")
 logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 # Script Name
