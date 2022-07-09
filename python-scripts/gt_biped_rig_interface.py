@@ -105,6 +105,10 @@
  1.3.22 - 2022-06-30
  General PEP8 code cleanup
 
+ 1.3.23 - 2022-06-30
+ Made some functions not protected as they can be helpful in other scripts
+ Fixed a little GUI alignment issue
+
 
  TODO:
     Created flip pose function
@@ -139,7 +143,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.22"
+script_version = "1.3.23"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -558,23 +562,23 @@ def build_gui_custom_rig_interface():
         method = 'bake' if gt_custom_rig_interface_settings.get('auto_key_method_bake') else 'sparse'
 
         if is_auto_switch:
-            _fk_ik_switch_auto(ik_fk_dict,
-                               namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
-                               keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
-                               start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')),
-                               end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),
-                               method=method
-                               )
+            fk_ik_switch_auto(ik_fk_dict,
+                              namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
+                              keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
+                              start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')),
+                              end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),
+                              method=method
+                              )
 
         else:
-            _fk_ik_switch(ik_fk_dict,
-                          direction,
-                          namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
-                          keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
-                          start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')),
-                          end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),
-                          method=method
-                          )
+            fk_ik_switch(ik_fk_dict,
+                         direction,
+                         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
+                         keyframe=gt_custom_rig_interface_settings.get('auto_key_switch'),
+                         start_time=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')),
+                         end_time=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),
+                         method=method
+                         )
 
         update_fk_ik_buttons()
 
@@ -654,8 +658,8 @@ def build_gui_custom_rig_interface():
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
-                     namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
+                    namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def mirror_animation(source_side='right'):
         """
@@ -666,16 +670,16 @@ def build_gui_custom_rig_interface():
                                              It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        _anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
-                     namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        anim_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
+                    namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def reset_animation_and_pose():
         """
         Deletes Keyframes and Resets pose back to default
         """
-        _anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
-        _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls,
-                    namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        anim_reset(namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls,
+                   namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def build_custom_help_window(input_text, help_title=''):
         """
@@ -781,7 +785,7 @@ def build_gui_custom_rig_interface():
     btn_margin = 5
     fk_ik_switch_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 246)], cs=[(1, 2)], p=tabs)
 
-    fk_ik_btn_width = 59
+    fk_ik_btn_width = 58
     cw_fk_ik_states = [(1, fk_ik_btn_width), (2, fk_ik_btn_width), (3, fk_ik_btn_width), (4, fk_ik_btn_width)]
     cs_fk_ik_states = [(1, 2), (2, 2), (3, 3), (4, 2)]
 
@@ -905,26 +909,26 @@ def build_gui_custom_rig_interface():
     # IK Pose Mirror
     cmds.button(l="IK Only >",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
-                                         namespace=cmds.textField(namespace_txt, q=True,
-                                                                  text=True) + namespace_separator))  # R
+                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
+                                        namespace=cmds.textField(namespace_txt, q=True,
+                                                                 text=True) + namespace_separator))  # R
     cmds.button(l="FK Only >",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
-                                         namespace=cmds.textField(namespace_txt, q=True,
-                                                                  text=True) + namespace_separator))  # R
+                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
+                                        namespace=cmds.textField(namespace_txt, q=True,
+                                                                 text=True) + namespace_separator))  # R
 
     # FK Pose Mirror
     cmds.button(l="< IK Only",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
-                                         namespace=cmds.textField(namespace_txt, q=True,
-                                                                  text=True) + namespace_separator))  # L
+                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
+                                        namespace=cmds.textField(namespace_txt, q=True,
+                                                                 text=True) + namespace_separator))  # L
     cmds.button(l="< FK Only",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: _pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
-                                         namespace=cmds.textField(namespace_txt, q=True,
-                                                                  text=True) + namespace_separator))  # L
+                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
+                                        namespace=cmds.textField(namespace_txt, q=True,
+                                                                 text=True) + namespace_separator))  # L
 
     # Reset Pose
     pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)
@@ -932,9 +936,9 @@ def build_gui_custom_rig_interface():
     cmds.text('Reset Pose:', p=pose_management_column)  # R
     cmds.separator(h=btn_margin, style='none', p=pose_management_column)  # Empty Space
     cmds.button(l="Reset Back to Default Pose",
-                c=lambda x: _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls,
-                                        namespace=cmds.textField(namespace_txt, q=True,
-                                                                 text=True) + namespace_separator),
+                c=lambda x: pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls,
+                                       namespace=cmds.textField(namespace_txt, q=True,
+                                                                text=True) + namespace_separator),
                 p=pose_management_column)
 
     # Export Import Pose
@@ -946,9 +950,9 @@ def build_gui_custom_rig_interface():
                                                      p=pose_management_tab)
     cmds.separator(h=btn_margin, style='none')  # Empty Space
     cmds.separator(h=btn_margin, style='none')  # Empty Space
-    cmds.button(l="Import Current Pose", c=lambda x: _pose_import(
+    cmds.button(l="Import Current Pose", c=lambda x: pose_import(
         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator), p=import_export_pose_column)
-    cmds.button(l="Export Current Pose", c=lambda x: _pose_export(
+    cmds.button(l="Export Current Pose", c=lambda x: pose_export(
         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator), p=import_export_pose_column)
 
     # ############# Animation Management Tab #############
@@ -978,7 +982,7 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=15, style='none', p=anim_management_column)  # Empty Space
     cmds.text('Reset Animation:', p=anim_management_column)  # R
     cmds.separator(h=btn_margin, style='none', p=anim_management_column)  # Empty Space
-    cmds.button(l="Reset Animation (Delete Keyframes)", c=lambda x: _anim_reset(
+    cmds.button(l="Reset Animation (Delete Keyframes)", c=lambda x: anim_reset(
         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator), p=anim_management_column)
     cmds.separator(h=btn_margin, style='none', p=anim_management_column)  # Empty Space
     cmds.button(l="Reset Animation and Pose", c=lambda x: reset_animation_and_pose(), p=anim_management_column)
@@ -991,9 +995,9 @@ def build_gui_custom_rig_interface():
                                                      p=anim_management_tab)
     cmds.separator(h=btn_margin, style='none')  # Empty Space
     cmds.separator(h=btn_margin, style='none')  # Empty Space
-    cmds.button(l="Import Animation", c=lambda x: _anim_import(
+    cmds.button(l="Import Animation", c=lambda x: anim_import(
         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator), p=import_export_pose_column)
-    cmds.button(l="Export Animation", c=lambda x: _anim_export(
+    cmds.button(l="Export Animation", c=lambda x: anim_export(
         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator), p=import_export_pose_column)
 
     # ############# Settings Tab #############
@@ -1117,8 +1121,8 @@ def _open_gt_tools_documentation():
     cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True)
 
 
-def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0,
-                  method='sparse'):
+def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0,
+                 method='sparse'):
     """
     Transfer the position of the FK to IK or IK to FK systems in a seamless way,
     so the animator can easily switch between one and the other
@@ -1317,7 +1321,7 @@ def _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False
                     pos='botLeft', fade=True, alpha=.9, fadeStayTime=2000)
 
 
-def _fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
+def fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
     """
     Calls _fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. 
     It automatically checks the influenceSwitch value attribute and determines what direction to take it.
@@ -1336,18 +1340,18 @@ def _fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, e
         if cmds.objExists(namespace + ik_fk_dict.get('switch_ctrl')):
             current_system = cmds.getAttr(namespace + ik_fk_dict.get('switch_ctrl') + '.influenceSwitch')
             if current_system < 0.5:
-                _fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe,
-                              start_time=start_time, end_time=end_time, method=method)
+                fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace=namespace, keyframe=keyframe,
+                             start_time=start_time, end_time=end_time, method=method)
             else:
-                _fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe,
-                              start_time=start_time, end_time=end_time, method=method)
+                fk_ik_switch(ik_fk_dict, direction='ik_to_fk', namespace=namespace, keyframe=keyframe,
+                             start_time=start_time, end_time=end_time, method=method)
         else:
             cmds.warning('Switch control was not found. Please check if a namespace is necessary.')
     except Exception as e:
         cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))
 
 
-def _pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
+def pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
     """
     Reset transforms list of controls back to 0 Translate and Rotate values.
 
@@ -1409,12 +1413,13 @@ def _pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
                 cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
 
 
-def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
+def pose_mirror(gt_ab_ctrls, source_side, namespace=''):
     """
     Mirrors the character pose from one side to the other
 
     Args:
         gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
+        source_side (string): Source of the pose. "left" or "right"
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
@@ -1523,7 +1528,7 @@ def _pose_mirror(gt_ab_ctrls, source_side, namespace=''):
     cmds.setFocus("MayaWindow")
 
 
-def _pose_export(namespace=''):
+def pose_export(namespace=''):
     """
     Exports a Pose (JSON) file containing the translation, rotation and scale data from the rig controls (pose)
     Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
@@ -1598,7 +1603,7 @@ def _pose_export(namespace=''):
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
-def _pose_import(debugging=False, debugging_path='', namespace=''):
+def pose_import(debugging=False, debugging_path='', namespace=''):
     """
     Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls
     (exported using the "_pose_export" function)
@@ -1721,7 +1726,7 @@ def _pose_import(debugging=False, debugging_path='', namespace=''):
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
-def _pose_flip(namespace=''):
+def pose_flip(namespace=''):
     """
     Flips the current pose (Essentially like a mirror in both sides at te same time)
     Creates a Pose dictionary containing the translation, rotation and scale data from the rig controls
@@ -1792,7 +1797,7 @@ def _pose_flip(namespace=''):
             #         set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
 
 
-def _anim_reset(namespace=''):
+def anim_reset(namespace=''):
     """
     Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)
     
@@ -1833,13 +1838,14 @@ def _anim_reset(namespace=''):
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
+def anim_mirror(gt_ab_ctrls, source_side, namespace=''):
     """
     Mirrors the character animation from one side to the other
 
     Args:
-            gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
-            namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+        gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
+        source_side (string): Source of the pose. "left" or "right"
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     
     """
 
@@ -1848,10 +1854,10 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
         Returns a list where all the float values are inverted. For example, if the value is 5, it will then become -5.
 
         Args:
-                float_list (list) : A list of floats.
+            float_list (list) : A list of floats.
 
         Returns:
-                inverted_float_list (list): A list of floats with their values inverted
+            inverted_float_list (list): A list of floats with their values inverted
     
         """
 
@@ -2081,7 +2087,7 @@ def _anim_mirror(gt_ab_ctrls, source_side, namespace=''):
     cmds.setFocus("MayaWindow")
 
 
-def _anim_export(namespace=''):
+def anim_export(namespace=''):
     """
     Exports an ANIM (JSON) file containing the translation, rotation and scale keyframe data from the rig controls.
 
@@ -2172,7 +2178,7 @@ def _anim_export(namespace=''):
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
-def _anim_import(debugging=False, debugging_path='', namespace=''):
+def anim_import(debugging=False, debugging_path='', namespace=''):
     """
     Imports an ANIM (JSON) file containing the translation, rotation and scale keyframe data for the rig controls
     (exported using the "_anim_export" function)
