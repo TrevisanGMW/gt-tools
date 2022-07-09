@@ -8,7 +8,7 @@ Script to help transfer motion capture data to custom rig controls
     Used parentConstraints to prevent undesired offset rotation
 
     v0.0.5 - 2022-03-04
-    Simplified the script to avoid errors. It now auto detect joints and bakes FK and IK in one go
+    Simplified the script to avoid errors. It now detects joints and bakes FK and IK in one go
 
     v0.0.6 - 2022-03-06
     Updated UI and added button with explanations
@@ -20,25 +20,41 @@ Script to help transfer motion capture data to custom rig controls
     v0.0.8 - 2022-03-07
     Added leg stabilization, removed Transfer to IK option
 
+    v0.0.9 - 2022-07-07
+    PEP8 cleanup
+    Fixed "Get Current" option
+
 """
-import sys
-import maya.cmds as cmds
-import maya.mel as mel
 from functools import partial
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
 from shiboken2 import wrapInstance
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
+import maya.cmds as cmds
+import maya.mel as mel
+import logging
+import sys
 
 try:
     import gt_biped_rig_interface as switcher
-except ModuleNotFoundError:
-    from mayaTools import gt_biped_rig_interface as switcher
+except ModuleNotFoundError as error:
+    try:
+        print('Failed to load IK/FK Switcher. Attempting to import through "mayaTools"')
+        from mayaTools import gt_biped_rig_interface as switcher
+    except ModuleNotFoundError as error_sg:
+        cmds.warning(str(error))
+        cmds.warning(str(error_sg))
+        cmds.warning("Fail to load required module. Open script editor for more information.")
 
-SCRIPT_VERSION = "0.0.8"
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_rigger_retarget_assistant")
+logger.setLevel(20)
+
+# General Variables
+SCRIPT_VERSION = "0.0.9"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
-
 
 settings = {'connect_toes': True,
             'connect_spine': True,
@@ -54,10 +70,14 @@ hik_character = {'source': '',
 toe_ctrl_pairs = {'left_ball_ctrl': '',
                   'right_ball_ctrl': ''}
 
+debugging_settings = {'is_debugging': False,
+                      'source': '',
+                      'target': '', }
 
-def hik_get_current_character():
+
+def get_hik_current_character():
     """ Returns current HIK Character """
-    return (mel.eval( 'hikGetCurrentCharacter()' ) or '')
+    return mel.eval('hikGetCurrentCharacter()') or ''
 
 
 def hik_get_definition(character):
@@ -88,8 +108,8 @@ def hik_update_tool():
         """
     try:
         mel.eval(mel_code)
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
 
 
 def hik_bake_animation():
@@ -103,8 +123,8 @@ def hik_bake_animation():
         """
     try:
         mel.eval(mel_code)
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
 
 
 def hik_set_current_character(character):
@@ -219,7 +239,6 @@ def create_toe_mocap_rig():
             cmds.warning('The provided mocap joints cannot be found.')
             return
 
-
     created_controls = []
 
     for ctrl, target in toe_ctrl_pairs.items():
@@ -229,7 +248,7 @@ def create_toe_mocap_rig():
         if ctrl.startswith('left'):
             side = 'left'
 
-        target_parent = cmds.listRelatives(target, parent=True)[0]
+        # target_parent = cmds.listRelatives(target, parent=True)[0]
         ctrl_ns = find_item_no_namespace(ctrl)[0]
 
         mocap_ctrl = cmds.curve(name=ctrl + '_retargetOffsetCtrl',
@@ -285,8 +304,8 @@ def create_toe_mocap_rig():
         cmds.connectAttr(mocap_data_loc + '.rotate', rot_multiply_node + '.input1')
         cmds.connectAttr(rot_multiply_node + '.output', multiplied_mocap_data_loc + '.rotate')
 
-        cmds.addAttr(mocap_ctrl, ln='controlBehavour', at='enum', en='-------------:', keyable=True)
-        cmds.setAttr(mocap_ctrl + '.controlBehavour', lock=True)
+        cmds.addAttr(mocap_ctrl, ln='controlBehaviour', at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(mocap_ctrl + '.controlBehaviour', lock=True)
         cmds.addAttr(mocap_ctrl, ln='rotationInfluence', at='double', k=True, min=0)
         cmds.setAttr(mocap_ctrl + '.rotationInfluence', 1)
         cmds.connectAttr(mocap_ctrl + '.rotationInfluence', rot_multiply_node + '.input2X')
@@ -344,15 +363,16 @@ def _btn_populate_textfield(*args):
     """
     # hik_update_tool()
     mel.eval("HIKCharacterControlsTool;")  # Focus on UI
-    current_char = hik_get_current_character()
-    cmds.textField(args[0], e=True, text=current_char)
+    current_char = get_hik_current_character()
 
     # Update Dictionary
     annotation = cmds.textField(args[0], q=True, ann=True)
-    if annotation == 'source':
-        _btn_refresh_textfield_hik_data('source', current_char)
     if annotation == 'target':
         _btn_refresh_textfield_hik_data('target', current_char)
+        cmds.textField(args[0], e=True, text=current_char)
+    if annotation == 'source':
+        _btn_refresh_textfield_hik_data('source', get_hik_source(current_char))
+        cmds.textField(args[0], e=True, text=get_hik_source(current_char))
 
 
 def hik_post_bake_mocap_rig(controls_to_bake):
@@ -396,9 +416,9 @@ def transfer_fk_ik_toe_mocap_rig():
     cmds.parentConstraint(left_locator, left_toe_ik_ctrl_ns)
     cmds.parentConstraint(right_locator, right_toe_ik_ctrl_ns)
 
-    controls = []
-    controls.append(left_toe_ik_ctrl_ns)
-    controls.append(right_toe_ik_ctrl_ns)
+    controls = [left_toe_ik_ctrl_ns, right_toe_ik_ctrl_ns]
+    # controls.append(left_toe_ik_ctrl_ns)
+    # controls.append(right_toe_ik_ctrl_ns)
 
     start = cmds.playbackOptions(q=True, min=True)
     end = cmds.playbackOptions(q=True, max=True) + 1
@@ -420,11 +440,11 @@ def switch_to_fk_influence(switch_ctrls):
 
 
 def _btn_bake_mocap_with_fixes(*args):
+    if debugging_settings.get('is_debugging'):
+        hik_character['source'] = debugging_settings.get('source')
+        hik_character['target'] = debugging_settings.get('target')
 
-    # Debug Lines
-    # hik_character['source'] = 'mocap'
-    # hik_character['target'] = 'Kandi'
-    # hik_character['target'] = 'Dummy_Char'
+    logger.debug(str(args))
 
     hik_definition_source = hik_get_definition(hik_character.get('source'))
     hik_definition_target = hik_get_definition(hik_character.get('target'))
@@ -475,8 +495,8 @@ def _btn_bake_mocap_with_fixes(*args):
                 if attr.startswith('lock'):
                     try:
                         cmds.setAttr(ctrl_ns + '.' + attr, 0)
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.debug(str(e))
 
     # Leg Stabilization Setup
     to_unlock_rotations = {'left_knee_ctrl': [],
@@ -493,13 +513,12 @@ def _btn_bake_mocap_with_fixes(*args):
             ctrl_ns = find_item_no_namespace(ctrl)[0]
             attributes = cmds.listAttr(ctrl_ns, userDefined=True)
             for attr in attributes:
-                print(attr)
                 if attr.startswith('lock'):
                     try:
                         to_unlock_rotations.get(ctrl).append((ctrl_ns + '.' + attr, cmds.getAttr(ctrl_ns + '.' + attr)))
                         cmds.setAttr(ctrl_ns + '.' + attr, 0)
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.debug(str(e))
 
     # Start Baking Process ------------------------------------------------------
     try:
@@ -510,12 +529,12 @@ def _btn_bake_mocap_with_fixes(*args):
         offset_nodes = []
 
         # Pole Vectors
-        left_kneeSwitch_loc_ns = find_item_no_namespace('left_kneeSwitch_loc')[0]
-        right_kneeSwitch_loc_ns = find_item_no_namespace('right_kneeSwitch_loc')[0]
+        left_knee_switch_loc_ns = find_item_no_namespace('left_kneeSwitch_loc')[0]
+        right_knee_switch_loc_ns = find_item_no_namespace('right_kneeSwitch_loc')[0]
         left_knee_ik_ctrl_ns = find_item_no_namespace('left_knee_ik_ctrl')[0]
         right_knee_ik_ctrl_ns = find_item_no_namespace('right_knee_ik_ctrl')[0]
-        left_knee_constraint = cmds.pointConstraint(left_kneeSwitch_loc_ns, left_knee_ik_ctrl_ns)
-        right_knee_constraint = cmds.pointConstraint(right_kneeSwitch_loc_ns, right_knee_ik_ctrl_ns)
+        left_knee_constraint = cmds.pointConstraint(left_knee_switch_loc_ns, left_knee_ik_ctrl_ns)
+        right_knee_constraint = cmds.pointConstraint(right_knee_switch_loc_ns, right_knee_ik_ctrl_ns)
 
         # left_elbowSwitch_loc_ns = find_item_no_namespace('left_elbowSwitch_loc')[0]
         # right_elbowSwitch_loc_ns = find_item_no_namespace('right_elbowSwitch_loc')[0]
@@ -564,8 +583,8 @@ def _btn_bake_mocap_with_fixes(*args):
         for node in offset_nodes:
             try:
                 cmds.delete(node)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
         # FK/IK Legs
         left_leg_switch_ctrl_ns = find_item_no_namespace('left_leg_switch_ctrl')[0]
@@ -574,33 +593,33 @@ def _btn_bake_mocap_with_fixes(*args):
         end = cmds.playbackOptions(q=True, max=True) + 1
 
         if settings.get('leg_stabilization'):
-                switcher._fk_ik_switch(switcher.left_leg_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
-                                       keyframe=True, start_time=int(start), end_time=int(end), method='bake')
-                switcher._fk_ik_switch(switcher.right_leg_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
-                                       keyframe=True, start_time=int(start), end_time=int(end), method='bake')
-                # Re-set locking options
-                for ctrl, data in to_unlock_rotations.items():
-                    for attribute_value in data:
-                        cmds.setAttr(attribute_value[0], attribute_value[1])
+            switcher.fk_ik_switch(switcher.left_leg_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            switcher.fk_ik_switch(switcher.right_leg_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            # Re-set locking options
+            for ctrl, data in to_unlock_rotations.items():
+                for attribute_value in data:
+                    cmds.setAttr(attribute_value[0], attribute_value[1])
 
         else:
             # Setup Switcher
-            switcher._fk_ik_switch(switcher.left_leg_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
-                                   keyframe=True, start_time=int(start), end_time=int(end), method='bake')
-            switcher._fk_ik_switch(switcher.right_leg_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
-                                   keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            switcher.fk_ik_switch(switcher.left_leg_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            switcher.fk_ik_switch(switcher.right_leg_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
 
         # FK/IK Arms
-        switcher._fk_ik_switch(switcher.left_arm_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
-                               keyframe=True, start_time=int(start), end_time=int(end), method='bake')
-        switcher._fk_ik_switch(switcher.right_arm_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
-                               keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+        switcher.fk_ik_switch(switcher.left_arm_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
+                              keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+        switcher.fk_ik_switch(switcher.right_arm_seamless_dict, direction='fk_to_ik', namespace=rig_namespace,
+                              keyframe=True, start_time=int(start), end_time=int(end), method='bake')
 
         if settings.get('merge_axis'):
-            switcher._fk_ik_switch(switcher.left_arm_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
-                                   keyframe=True, start_time=int(start), end_time=int(end), method='bake')
-            switcher._fk_ik_switch(switcher.right_arm_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
-                                   keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            switcher.fk_ik_switch(switcher.left_arm_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
+            switcher.fk_ik_switch(switcher.right_arm_seamless_dict, direction='ik_to_fk', namespace=rig_namespace,
+                                  keyframe=True, start_time=int(start), end_time=int(end), method='bake')
 
         transfer_fk_ik_toe_mocap_rig()
 
@@ -680,10 +699,11 @@ def create_finger_mocap_rig(hik_source_definition):
                     cmds.connectAttr(sum_node + '.output3D', target_ns + '.rotate', force=True)
 
                     connected_controls.append(target_ns)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
     return connected_controls, offset_nodes
+
 
 def create_spine_mocap_rig(hik_source_definition):
     # Necessary Ctrls
@@ -697,6 +717,7 @@ def create_spine_mocap_rig(hik_source_definition):
     # Delete Keyframes
     for ctrl in [chest_ctrl_ns, spine02_ctrl_ns]:
         for axis in ['r']:
+            logger.debug(str(axis))
             for dimension in ['x', 'y', 'z']:
                 attr = cmds.listConnections(ctrl + '.' + 'r' + dimension, destination=False) or []
                 if attr:
@@ -721,8 +742,6 @@ def create_spine_mocap_rig(hik_source_definition):
 
     control_pairs[spines[-1]] = chest_ctrl_ns
 
-    print(control_pairs)
-
     for source, target in control_pairs.items():
 
         source_bone_rx = cmds.getAttr(source + '.rx')
@@ -742,9 +761,8 @@ def create_spine_mocap_rig(hik_source_definition):
         offset_nodes.append(storage_node)
         offset_nodes.append(sum_node)
 
-
         if is_wrong_orientation:
-            print("didnt work")
+            logger.debug('is_wrong_orientation: ' + str(is_wrong_orientation))
             invert_node = cmds.createNode('multiplyDivide', name=source + '_tempInvertNode')
             cmds.connectAttr(sum_node + '.output3D', invert_node + '.input1', force=True)
             cmds.connectAttr(invert_node + '.outputY', target + '.rz', force=True)
@@ -760,7 +778,7 @@ def create_spine_mocap_rig(hik_source_definition):
 
 
 def hik_find_highest_spine(hik_definition):
-    spine_query = [hik_definition.get('Spine') , hik_definition.get('Spine1'), hik_definition.get('Spine2'),
+    spine_query = [hik_definition.get('Spine'), hik_definition.get('Spine1'), hik_definition.get('Spine2'),
                    hik_definition.get('Spine3'), hik_definition.get('Spine4'), hik_definition.get('Spine5'),
                    hik_definition.get('Spine6'), hik_definition.get('Spine7'), hik_definition.get('Spine8'),
                    hik_definition.get('Spine9')]
@@ -803,7 +821,6 @@ def build_gui_mocap_rig():
     cmds.text("v" + SCRIPT_VERSION, backgroundColor=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.separator(h=10, style='none')  # Empty Space
 
-
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 240)],
                          columnSpacing=[(1, 25), (3, 5)], parent=content_main)
     cmds.separator(height=10, style='none')  # Empty Space
@@ -833,14 +850,13 @@ def build_gui_mocap_rig():
                                                                help_message_connect_toes,
                                                                help_title_connect_toes))
 
-
     cmds.checkBox(label='Connect Spine', value=settings.get('connect_spine'),
                   cc=partial(_btn_refresh_textfield_settings_data, 'connect_spine'))
 
     help_message_connect_spine = 'This option will replace the data received from HumanIK and transfer the ' \
                                  'rotation directly from the spine joints to the rig controls.\n\n' \
                                  'WARNING: It might sometimes look funny or exaggerated because there is no scale ' \
-                                 'compensantion happening.\nTo fix that, compress or expand the entire animation till ' \
+                                 'compensation happening.\nTo fix that, compress or expand the entire animation till ' \
                                  'the desired result is achieved.'
     help_title_connect_spine = 'Connect Spine'
 
@@ -890,7 +906,7 @@ def build_gui_mocap_rig():
     help_message_unlock_rotations = 'WARNING: This option should not be used for all bakes.\nIt will unlock all ' \
                                     'rotations allowing for the knee and elbow to receive rotation data into any ' \
                                     'axis. This might be desired in some cases when counter rotation is happening, ' \
-                                    'keep in mind that the data will lose some precision when transferred to IK, ' \
+                                    'but keep in mind that the data will lose some precision when transferred to IK,' \
                                     'due to plane rotation nature of the IK solver. Consider using the option "Merge' \
                                     ' FK axis" to re-bake the FK controls back into one single plane rotation.'
     help_title_unlock_rotations = 'Unlock Rotations'
@@ -917,27 +933,29 @@ def build_gui_mocap_rig():
 
     cmds.separator(height=10, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 70), (2, 115), (3, 75)],
-                         columnSpacing=[(1, 15), (3, 5)], parent=content_main)
-
-    cmds.text('HIK Source:')
-    hik_source_textfield = cmds.textField(placeholderText='HIK Source Character',
-                                              cc=partial(_btn_refresh_textfield_hik_data),
-                                              ann='source')
-    cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
-                c=partial(_btn_populate_textfield, hik_source_textfield))
-
-    cmds.separator(height=5, style='none')  # Empty Space
-
+    # Target TF
     cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 70), (2, 115), (3, 75)],
                          columnSpacing=[(1, 15), (3, 5)], parent=content_main)
 
     cmds.text('HIK Target:')
     hik_target_textfield = cmds.textField(placeholderText='HIK Target Character',
-                                              cc=partial(_btn_refresh_textfield_hik_data),
-                                              ann='target')
+                                          cc=partial(_btn_refresh_textfield_hik_data),
+                                          ann='target')
     cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
                 c=partial(_btn_populate_textfield, hik_target_textfield))
+
+    cmds.separator(height=5, style='none')  # Empty Space
+
+    # Source TF
+    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 70), (2, 115), (3, 75)],
+                         columnSpacing=[(1, 15), (3, 5)], parent=content_main)
+
+    cmds.text('HIK Source:')
+    hik_source_textfield = cmds.textField(placeholderText='HIK Source Character',
+                                          cc=partial(_btn_refresh_textfield_hik_data),
+                                          ann='source')
+    cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
+                c=partial(_btn_populate_textfield, hik_source_textfield))
 
     #  Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 260), (2, 120)],
@@ -962,6 +980,7 @@ def build_custom_help_window(input_text, help_title='', *args):
                 input_text (string): Text used as help, this is displayed in a scroll fields.
                 help_title (optional, string)
     """
+    logger.debug(str(args))
     window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -989,7 +1008,7 @@ def build_custom_help_window(input_text, help_title='', *args):
     # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
     cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
+    cmds.button(l='OK', h=30, c=lambda x: close_help_gui())
     cmds.separator(h=8, style='none')
 
     # Show and Lock Window
@@ -997,7 +1016,7 @@ def build_custom_help_window(input_text, help_title='', *args):
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
@@ -1007,6 +1026,113 @@ def build_custom_help_window(input_text, help_title='', *args):
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
+
+def is_hik_character_valid(char):
+    """
+    Checks if a HumanIK character definition is valid
+    Args:
+        char (string): Name of the HIK Character
+    """
+    if not cmds.objExists(char):
+        return False
+
+    if cmds.objectType(char) != 'HIKCharacterNode':
+        return False
+    return True
+
+
+def get_hik_properties_node(char):
+    if not is_hik_character_valid(char):
+        raise Exception("Couldn't find character definition for: \"" + char + '".')
+    try:
+        property_node = mel.eval('getProperty2StateFrocmdsharacter("' + char + '")')
+    except Exception as e:
+        logger.debug(str(e))
+        source_connection = cmds.listConnections(char + '.propertyState', s=True, d=False) or []
+        if not source_connection:
+            raise Exception("Couldn't find \"HIKProperty2State\" node from character \"" + char + "\".")
+
+        elif len(source_connection) > 1:
+            logger.info("Multiple \"HIKProperty2State\" nodes found. First source connection will be used.")
+
+        property_node = source_connection[0]
+    return property_node
+
+
+def get_hik_retarget_node(char):
+    if not is_hik_character_valid(char):
+        raise Exception("Couldn't find character definition for: \"" + char + '".')
+
+    source_connection = cmds.ls(cmds.listConnections(char + '.OutputCharacterDefinition', d=True, s=False) or [],
+                                typ='HIKRetargeterNode')
+    if not source_connection:
+        logger.info("Couldn't find \"HIKRetargeterNode\" node from character \"" + char + "\".")
+        return ''
+
+    if len(source_connection) > 1:
+        logger.info("Multiple \"HIKRetargeterNode\" nodes found. First target connection will be used.")
+
+    return source_connection[0]
+
+
+def get_hik_solver_node(char):
+    if not is_hik_character_valid(char):
+        raise Exception("Couldn't find character definition for: \"" + char + '".')
+
+    source_connection = cmds.ls(cmds.listConnections(char + '.OutputCharacterDefinition', d=True, s=False) or [],
+                                typ='HIKSolverNode')
+    if not source_connection:
+        raise Exception("Couldn't find \"HIKSolverNode\" node from character \"" + char + "\".")
+
+    if len(source_connection) > 1:
+        logger.info("Multiple \"HIKSolverNode\" nodes found. First target connection will be used.")
+
+    return source_connection[0]
+
+
+def get_hik_source(char):
+    if not is_hik_character_valid(char):
+        logger.debug("Couldn't find character definition for: \"" + char + '".')
+        return ''
+
+    retarget_node = get_hik_retarget_node(char)
+    if retarget_node:
+        source_connection = cmds.ls(cmds.listConnections(retarget_node + '.InputCharacterDefinitionSrc',
+                                                         d=False, s=True) or [], typ='HIKCharacterNode')
+        if not source_connection:
+            return ''
+
+        if len(source_connection) > 1:
+            logger.info("Multiple \"HIKCharacterNode\" nodes found. First target connection will be used.")
+
+        return source_connection[0]
+    else:
+        return ''
+
+
 # Tests
 if __name__ == '__main__':
+    # Debug Lines
+    debugging_settings['is_debugging'] = True
+    if debugging_settings.get('is_debugging'):
+        logger.setLevel(10)  # Debug
+        debugging_settings['source'] = 'Source_Mocap'
+        debugging_settings['target'] = 'Target_Char'
+
+        # # Get/Set Camera Pos/Rot
+        # persp_pos = cmds.getAttr('persp.translate')[0]
+        # persp_rot = cmds.getAttr('persp.rotate')[0]
+        # import gt_maya_utilities
+        # gt_maya_utilities.gtu_reload_file()
+        # cmds.viewFit(all=True)
+        # cmds.setAttr('persp.tx', persp_pos[0])
+        # cmds.setAttr('persp.ty', persp_pos[1])
+        # cmds.setAttr('persp.tz', persp_pos[2])
+        # cmds.setAttr('persp.rx', persp_rot[0])
+        # cmds.setAttr('persp.ry', persp_rot[1])
+        # cmds.setAttr('persp.rz', persp_rot[2])
+
+    output = get_hik_source(get_hik_current_character())
+    print(output)
+
     build_gui_mocap_rig()
