@@ -22,7 +22,8 @@ Script to help transfer motion capture data to custom rig controls
 
     v0.0.9 - 2022-07-07
     PEP8 cleanup
-    Fixed "Get Current" option
+    Changed "Get Current" option, so it updates both fields
+    Added a few utility functions
 
 """
 from functools import partial
@@ -352,27 +353,6 @@ def _btn_refresh_textfield_settings_data(*args):
     else:
         cmds.checkBox('ch_merge_axis', e=True, value=False, en=False)
         settings['merge_axis'] = False
-
-
-def _btn_populate_textfield(*args):
-    """
-    Populates the provided text field with the selected object.
-    Args:
-        *args:
-        Textfield to be modified
-    """
-    # hik_update_tool()
-    mel.eval("HIKCharacterControlsTool;")  # Focus on UI
-    current_char = get_hik_current_character()
-
-    # Update Dictionary
-    annotation = cmds.textField(args[0], q=True, ann=True)
-    if annotation == 'target':
-        _btn_refresh_textfield_hik_data('target', current_char)
-        cmds.textField(args[0], e=True, text=current_char)
-    if annotation == 'source':
-        _btn_refresh_textfield_hik_data('source', get_hik_source(current_char))
-        cmds.textField(args[0], e=True, text=get_hik_source(current_char))
 
 
 def hik_post_bake_mocap_rig(controls_to_bake):
@@ -791,6 +771,27 @@ def hik_find_highest_spine(hik_definition):
 
 def build_gui_mocap_rig():
     """Creates simple GUI for Mocap Rig"""
+
+    def _btn_target_source_textfield(*args):
+        """
+        Populates the provided text field with the selected object.
+        """
+        logger.debug(str(args))
+        mel.eval("HIKCharacterControlsTool;")  # Focus on UI
+        current_char = get_hik_current_character()
+
+        # Update Dictionary and Textfield
+        _btn_refresh_textfield_hik_data('target', current_char)
+        cmds.textField(hik_target_textfield, e=True, text=current_char)
+
+        hik_source = get_hik_source(current_char)
+        if hik_source:
+            hik_source = hik_source[1:]
+            if hik_source == 'Stance':
+                hik_source = ''
+        _btn_refresh_textfield_hik_data('source', hik_source)
+        cmds.textField(hik_source_textfield, e=True, text=hik_source)
+
     window_name = "build_gui_mocap_rig"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
@@ -931,36 +932,42 @@ def build_gui_mocap_rig():
                                                                help_message_merge_fk_axis,
                                                                help_title_merge_fk_axis))
 
-    cmds.separator(height=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 260), (2, 120)],
+                         columnSpacing=[(1, 20)], parent=content_main)
+    cmds.separator(height=15, style='none')  # Empty Space
 
     # Target TF
-    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 70), (2, 115), (3, 75)],
+    cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 120), (2, 135), (3, 75)],
                          columnSpacing=[(1, 15), (3, 5)], parent=content_main)
 
-    cmds.text('HIK Target:')
+    cmds.text('HIK Character / Target:')
     hik_target_textfield = cmds.textField(placeholderText='HIK Target Character',
                                           cc=partial(_btn_refresh_textfield_hik_data),
                                           ann='target')
-    cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
-                c=partial(_btn_populate_textfield, hik_target_textfield))
+    # cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
+    #             c=partial(_btn_target_source_textfield))
 
     cmds.separator(height=5, style='none')  # Empty Space
 
     # Source TF
-    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 70), (2, 115), (3, 75)],
+    cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 120), (2, 135), (3, 75)],
                          columnSpacing=[(1, 15), (3, 5)], parent=content_main)
 
-    cmds.text('HIK Source:')
+    cmds.text('HIK Mocap / Source:')
     hik_source_textfield = cmds.textField(placeholderText='HIK Source Character',
                                           cc=partial(_btn_refresh_textfield_hik_data),
                                           ann='source')
-    cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
-                c=partial(_btn_populate_textfield, hik_source_textfield))
+    # cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
+    #             c=partial(_btn_target_source_textfield))
 
     #  Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 260), (2, 120)],
                          columnSpacing=[(1, 20)], parent=content_main)
     cmds.separator(height=15, style='none')  # Empty Space
+
+    cmds.button(label="Get Current Target/Source", backgroundColor=(.3, .3, .3), c=_btn_target_source_textfield)
+
+    cmds.separator(height=10, style='none')  # Empty Space
 
     cmds.button(label="Bake Mocap with Fixes", backgroundColor=(.3, .3, .3), c=_btn_bake_mocap_with_fixes)
     cmds.separator(height=5, style='none')  # Empty Space
@@ -1091,29 +1098,46 @@ def get_hik_solver_node(char):
 
 
 def get_hik_source(char):
-    if not is_hik_character_valid(char):
-        logger.debug("Couldn't find character definition for: \"" + char + '".')
-        return ''
+    # Try to get it through the menu
+    try:
+        option_menu_group_list = cmds.lsUI(l=True, type="optionMenuGrp")
+        ui_hik_source = None
+        for ui in option_menu_group_list:
+            if "hikSourceList" in ui:
+                ui_hik_source = cmds.optionMenuGrp(ui, q=True, value=True)
+        if ui_hik_source:
+            if ui_hik_source == " None":
+                return ''
+            else:
+                return ui_hik_source
+    # Attempt to find through nodes
+    except Exception as exception:
+        logger.info(str(exception))
+        logger.info('Failed to get HIK Source through Menu, attempting to find node through connections.')
 
-    retarget_node = get_hik_retarget_node(char)
-    if retarget_node:
-        source_connection = cmds.ls(cmds.listConnections(retarget_node + '.InputCharacterDefinitionSrc',
-                                                         d=False, s=True) or [], typ='HIKCharacterNode')
-        if not source_connection:
+        if not is_hik_character_valid(char):
+            logger.debug("Couldn't find character definition for: \"" + char + '".')
             return ''
 
-        if len(source_connection) > 1:
-            logger.info("Multiple \"HIKCharacterNode\" nodes found. First target connection will be used.")
+        retarget_node = get_hik_retarget_node(char)
+        if retarget_node:
+            source_connection = cmds.ls(cmds.listConnections(retarget_node + '.InputCharacterDefinitionSrc',
+                                                             d=False, s=True) or [], typ='HIKCharacterNode')
+            if not source_connection:
+                return ''
 
-        return source_connection[0]
-    else:
-        return ''
+            if len(source_connection) > 1:
+                logger.info("Multiple \"HIKCharacterNode\" nodes found. First target connection will be used.")
+
+            return source_connection[0]
+        else:
+            return ''
 
 
 # Tests
 if __name__ == '__main__':
     # Debug Lines
-    debugging_settings['is_debugging'] = True
+    debugging_settings['is_debugging'] = False
     if debugging_settings.get('is_debugging'):
         logger.setLevel(10)  # Debug
         debugging_settings['source'] = 'Source_Mocap'
@@ -1131,8 +1155,5 @@ if __name__ == '__main__':
         # cmds.setAttr('persp.rx', persp_rot[0])
         # cmds.setAttr('persp.ry', persp_rot[1])
         # cmds.setAttr('persp.rz', persp_rot[2])
-
-    output = get_hik_source(get_hik_current_character())
-    print(output)
 
     build_gui_mocap_rig()
