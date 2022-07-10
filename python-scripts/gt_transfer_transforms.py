@@ -1,5 +1,5 @@
 """
- GT Transfer Transforms - Script for transfering Translate, Rotate, and Scale between objects.
+ GT Transfer Transforms - Script for transferring Translate, Rotate, and Scale between objects.
  A solution for mirroring poses and set driven keys.
  @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2020-06-07
  
@@ -34,6 +34,9 @@
  Fixed an issue where the script would stop execution when failing to change a locked attribute
  Added better feedback for when values are set (with inView error warning)
  Removed a few unnecessary lines
+
+ 1.6.1 - 2022-07-09
+ PEP8 Cleanup
  
 """
 try:
@@ -49,17 +52,22 @@ except ImportError:
 import maya.cmds as cmds
 
 from maya import OpenMayaUI as omui
+import logging
 import random
 import json
 import sys
-import os
 import re
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_transfer_transforms")
+logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
 
 # Script Name
 script_name = 'GT - Transfer Transforms'
 
 # Version:
-script_version = '1.6'
+script_version = '1.6.1'
 
 # Python Version
 python_version = sys.version_info.major
@@ -223,13 +231,13 @@ def build_gui_transfer_transforms():
     cmds.separator(h=7, style='none', p=content_main)  # Empty Space
 
     def update_get_dict(textfield):
-        ''' 
+        """
         Stores provided value to the settings dictionary 
         
                 Parameters:
                     textfield (cmds.textField): Textfield used to extract the values. Text = Float, Ann = Attr
         
-        '''
+        """
         text = cmds.textField(textfield, q=True, text=True)
         ann = cmds.textField(textfield, q=True, ann=True)
         previous_value = gt_transfer_transforms_dict.get(ann)
@@ -240,26 +248,26 @@ def build_gui_transfer_transforms():
             cmds.textField(textfield, e=True, text=previous_value)
 
     def extract_checkbox_transform_value(checkbox_grp, attribute_name):
-        ''' 
+        """
         Returns the checkbox transform value to determine if in use, inverted and the name of the attribute
         
                 Returns:
                     list (list): [is_used, is_inverted, attribute_name]
         
-        '''
+        """
         is_used = cmds.checkBoxGrp(checkbox_grp, q=True, value1=True)
         is_inverted = cmds.checkBoxGrp(checkbox_grp, q=True, value2=True)
         attribute_name = attribute_name
         return [is_used, is_inverted, attribute_name]
 
     def get_desired_transforms():
-        ''' 
+        """
         Returns a list with all the TRS data
         
                 Returns:
                     transforms (list): T(XYZ) R(XYZ) S(XYZ)
         
-        '''
+        """
         transforms = []
         tx = extract_checkbox_transform_value(translate_x_checkbox, 'tx')
         ty = extract_checkbox_transform_value(translate_y_checkbox, 'ty')
@@ -288,9 +296,9 @@ def build_gui_transfer_transforms():
 
     # Main Function Starts --------------------------------------------
     def transfer_transforms():
-        '''
+        """
         Transfer the transforms from source to target according to provided settings
-        '''
+        """
         if len(cmds.ls(selection=True)) != 0:
             source = cmds.ls(selection=True)[0]
             targets = cmds.ls(selection=True)
@@ -333,9 +341,9 @@ def build_gui_transfer_transforms():
     # Main Function Ends --------------------------------------------
 
     def transfer_transforms_side_to_side(source_side):
-        '''
+        """
         Uses the naming convention to pair elements and mirror transforms
-        '''
+        """
         if len(cmds.ls(selection=True)) != 0:
 
             # Settings
@@ -412,9 +420,9 @@ def build_gui_transfer_transforms():
 
     # Copy Paste Function Starts --------------------------------------------
     def transfer_transforms_copy_paste(operation):
-        '''
+        """
         Validate operation before Getting and Settings transforms (Copy and Paste)
-        '''
+        """
         copy_text_fields = [tx_copy_text_field, ty_copy_text_field, tz_copy_text_field, \
                             rx_copy_text_field, ry_copy_text_field, rz_copy_text_field, \
                             sx_copy_text_field, sy_copy_text_field, sz_copy_text_field]
@@ -485,9 +493,9 @@ def build_gui_transfer_transforms():
     # Copy Paste Function Ends --------------------------------------------
 
     def validate_import_export(operation):
-        '''
+        """
         Creates undo chunk for import and export operations
-        '''
+        """
         function_name = script_name + ' ' + operation.capitalize() + ' Transforms'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
@@ -526,9 +534,9 @@ def build_gui_transfer_transforms():
 
 # Creates Help GUI
 def build_gui_help_transfer_transforms():
-    '''
+    """
     Builds the help window
-    '''
+    """
     window_name = 'build_gui_help_transfer_transforms'
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -571,7 +579,7 @@ def build_gui_help_transfer_transforms():
     cmds.text(l='from selected fields back to selected objects.', align='left')
     cmds.text(l='', align='left')
     cmds.text(l='Export and Import Transforms:', align='left', fn='boldLabelFont')
-    cmds.text(l='Exports a file contaning Translate, Rotate, and Scale\ndata for every selected object.', align='left')
+    cmds.text(l='Exports a file containing Translate, Rotate, and Scale\ndata for every selected object.', align='left')
     cmds.text(l='When importing, it tries to find the same elements\nto apply the exported data.', align='left')
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p='main_column')
@@ -602,21 +610,21 @@ def build_gui_help_transfer_transforms():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
-        '''
+        """
         Closes Help GUI 
-        '''
+        """
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
 
 def parse_text_field(textfield_data):
-    '''
+    """
     Parses the text from a textfield returning a list of every word (no spaces)
     
             Returns:
                 return_list (list): A list with all the provided words (split character is ",")
     
-    '''
+    """
     text_field_data_no_spaces = textfield_data.replace(' ', '')
     if len(text_field_data_no_spaces) <= 0:
         return []
@@ -632,19 +640,17 @@ def parse_text_field(textfield_data):
 
 
 def export_trs_transforms():
-    ''' 
-    Exports a JSON file containing the translate, rotate and scale data from every selected object
-
-    
-    '''
+    """
+    Exports a JSON file containing the translation, rotation and scale data from every selected object
+    """
 
     def get_short_name(obj):
-        '''
+        """
         Get the name of the objects without its path (Maya returns full path if name is not unique)
 
                 Parameters:
                         obj (string) - object to extract short name
-        '''
+        """
         if obj == '':
             return ''
         split_path = obj.split('|')
@@ -652,7 +658,7 @@ def export_trs_transforms():
             short_name = split_path[len(split_path) - 1]
         return short_name
 
-    ### Start Export TRS Transforms ###
+    # ### Start Export TRS Transforms ###
     is_valid = False
     successfully_created_file = False
 
@@ -689,17 +695,17 @@ def export_trs_transforms():
         except Exception as e:
             print(e)
             successfully_created_file = False
-            cmds.warning('Couldn\'t write to file. Please make sure the exporting directory is accessible.')
+            cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
 def import_trs_transforms():
-    ''' 
-    Imports a JSON file containing the translate, rotate and scale data for every object in the import list
+    """
+    Imports a JSON file containing the translation, rotation and scale data for every object in the import list
    
-    '''
+    """
 
     def set_unlocked_attr(target, attr, value):
-        ''' 
+        """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
         
                 Parameters:
@@ -710,7 +716,7 @@ def import_trs_transforms():
                 Returns:
                     error_message(string): Error message. (Returns nothing if there were no errors)
         
-        '''
+        """
         if not cmds.getAttr(target + '.' + attr, lock=True):
             cmds.setAttr(target + '.' + attr, value)
         else:
@@ -732,13 +738,11 @@ def import_trs_transforms():
             with open(pose_file) as json_file:
                 data = json.load(json_file)
                 try:
-                    is_valid_file = True
-
                     if not data.get('gt_transfer_transforms_version'):
-                        is_valid_file = False
-                        cmds.warning('Imported file doesn\'t seem to be compatible or is missing data.')
+                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
                     else:
                         import_version = float(re.sub("[^0-9]", "", str(data.get('gt_transfer_transforms_version'))))
+                        logger.debug(str(import_version))
 
                     failed_imports = []
                     set_attr_responses = []
@@ -789,20 +793,21 @@ def import_trs_transforms():
                             is_plural = ' attribute was '
                         else:
                             is_plural = ' attributes were '
-                        cmds.inViewMessage(
-                            amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-                                len(errors)) + '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural + 'ignored. (Open Script Editor to see a list)</span>',
-                            pos='botLeft', fade=True, alpha=.9)
+                        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                        unique_message += str(len(errors))
+                        unique_message += '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural
+                        unique_message += 'ignored. (Open Script Editor to see a list)</span>'
+                        cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
                         sys.stdout.write(
                             str(len(errors)) + ' locked ' + is_plural + 'ignored. (Open Script Editor to see a list)\n')
                         for error in errors:
                             print(str(error))
 
                     if failed_imports:
-                        cmds.warning(
-                            'Not all transforms were imported, because not all objects were found. See script editor for more info.')
+                        cmds.warning('Not all transforms were imported, because not all objects were found. '
+                                     'See script editor for more info.')
                         print('#' * 80)
-                        print('The following objects couldn\'t be found in the scene:')
+                        print("The following objects couldn't be found in the scene:")
                         for obj in failed_imports:
                             if obj[0] != obj[1]:
                                 print(obj[0] + ' (Long name: "' + obj[1] + '").')
@@ -811,17 +816,20 @@ def import_trs_transforms():
                         print('#' * 80)
                     unique_message = '<' + str(random.random()) + '>'
                     cmds.inViewMessage(
-                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Transforms</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                             'Transforms</span><span style=\"color:#FFFFFF;\"> imported!</span>',
                         pos='botLeft', fade=True, alpha=.9)
                     sys.stdout.write('Transforms imported from the file "' + pose_file + '".')
 
                 except Exception as e:
-                    print(e)
-                    cmds.warning(
-                        'An error occured when importing the pose. Make sure you imported the correct JSON file. (Click on "Help" for more info)')
-        except:
+                    logger.info(str(e))
+                    cmds.warning('An error occurred when importing the pose. '
+                                 'Make sure you imported the correct JSON file. (Click on "Help" for more info)')
+        except Exception as e:
             file_exists = False
-            cmds.warning('Couldn\'t read the file. Please make sure the selected file is accessible.')
+            logger.info(str(e))
+            logger.info('file_exists: ' + str(file_exists))
+            cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
 # Build UI
