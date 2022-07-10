@@ -51,7 +51,7 @@ except ImportError:
     from PySide.QtGui import QIcon, QWidget
 import maya.cmds as cmds
 
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
 import logging
 import random
 import json
@@ -95,8 +95,8 @@ def build_gui_transfer_transforms():
 
         # Main GUI Start Here =================================================================================
 
-    build_gui_transfer_transforms = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
-                                                titleBar=True, mnb=False, mxb=False, sizeable=True)
+    window_gui_transfer_transforms = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
+                                                 titleBar=True, mnb=False, mxb=False, sizeable=True)
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
@@ -120,39 +120,39 @@ def build_gui_transfer_transforms():
     transform_column_width = [100, 1]
 
     # Translate
-    translate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    translate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                             label1='  Translate X', label2='Invert Value', v1=True, v2=False)
 
-    translate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    translate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                             label1='  Translate Y', label2='Invert Value', v1=True, v2=False)
 
-    translate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    translate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                             label1='  Translate Z', label2='Invert Value', v1=True, v2=False)
 
     cmds.separator(h=10, p=body_column)
 
     # Rotate
     cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1, 20)], p=body_column)
-    rotate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    rotate_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                          label1='  Rotate X', label2='Invert Value', v1=True, v2=False)
 
-    rotate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    rotate_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                          label1='  Rotate Y', label2='Invert Value', v1=True, v2=False)
 
-    rotate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    rotate_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                          label1='  Rotate Z', label2='Invert Value', v1=True, v2=False)
 
     cmds.separator(h=10, p=body_column)
 
     # Scale  
     cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1, 20)], p=body_column)
-    scale_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    scale_x_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                         label1='  Scale X', label2='Invert Value', v1=True, v2=False)
 
-    scale_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    scale_y_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                         label1='  Scale Y', label2='Invert Value', v1=True, v2=False)
 
-    scale_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2, \
+    scale_z_checkbox = cmds.checkBoxGrp(columnWidth2=transform_column_width, numberOfCheckBoxes=2,
                                         label1='  Scale Z', label2='Invert Value', v1=True, v2=False)
 
     cmds.separator(h=10, p=body_column)
@@ -167,8 +167,10 @@ def build_gui_transfer_transforms():
     cmds.separator(h=7, style='none', p=body_column)  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=[(1, 100), (2, 100)], cs=[(1, 15), (2, 0)], p=body_column)
-    left_tag_text_field = cmds.textField(text='left_', enterCommand=lambda x: update_stored_values_and_run())
-    right_tag_text_field = cmds.textField(text='right_', enterCommand=lambda x: update_stored_values_and_run())
+    left_tag_text_field = cmds.textField(text='left_',
+                                         enterCommand=lambda x: transfer_transforms_side_to_side('left'))
+    right_tag_text_field = cmds.textField(text='right_',
+                                          enterCommand=lambda x: transfer_transforms_side_to_side('right'))
 
     cmds.separator(h=7, style='none', p=body_column)  # Empty Space
 
@@ -234,8 +236,8 @@ def build_gui_transfer_transforms():
         """
         Stores provided value to the settings dictionary 
         
-                Parameters:
-                    textfield (cmds.textField): Textfield used to extract the values. Text = Float, Ann = Attr
+        Args:
+            textfield (cmds.textField): Textfield used to extract the values. Text = Float, Ann = Attr
         
         """
         text = cmds.textField(textfield, q=True, text=True)
@@ -244,15 +246,16 @@ def build_gui_transfer_transforms():
         try:
             new_value = float(text)
             gt_transfer_transforms_dict[ann] = new_value
-        except:
+        except Exception as e:
+            logger.debug(str(e))
             cmds.textField(textfield, e=True, text=previous_value)
 
     def extract_checkbox_transform_value(checkbox_grp, attribute_name):
         """
         Returns the checkbox transform value to determine if in use, inverted and the name of the attribute
         
-                Returns:
-                    list (list): [is_used, is_inverted, attribute_name]
+        Returns:
+            list (list): [is_used, is_inverted, attribute_name]
         
         """
         is_used = cmds.checkBoxGrp(checkbox_grp, q=True, value1=True)
@@ -327,12 +330,12 @@ def build_gui_transfer_transforms():
                     is_plural = ' attribute was '
                 else:
                     is_plural = ' attributes were '
-                cmds.inViewMessage(
-                    amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-                        len(errors)) + '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural + 'ignored. (Open Script Editor to see a list)</span>',
-                    pos='botLeft', fade=True, alpha=.9)
-                sys.stdout.write(
-                    str(len(errors)) + ' locked ' + is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                unique_message += str(len(errors)) + '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural
+                unique_message += 'ignored. (Open Script Editor to see a list)</span>'
+                cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(len(errors)) + ' locked ' + is_plural + 'ignored. '
+                                                                             '(Open Script Editor to see a list)\n')
                 for error in errors:
                     print(str(error))
         else:
@@ -406,12 +409,13 @@ def build_gui_transfer_transforms():
                     is_plural = ' attribute was '
                 else:
                     is_plural = ' attributes were '
-                cmds.inViewMessage(
-                    amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-                        len(errors)) + '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural + 'ignored. (Open Script Editor to see a list)</span>',
-                    pos='botLeft', fade=True, alpha=.9)
-                sys.stdout.write(
-                    str(len(errors)) + ' locked ' + is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                unique_message += str(len(errors))
+                unique_message += '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural
+                unique_message += 'ignored. (Open Script Editor to see a list)</span>'
+                cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(len(errors)) + ' locked ' + is_plural + 'ignored. '
+                                                                             '(Open Script Editor to see a list)\n')
                 for error in errors:
                     print(str(error))
         else:
@@ -423,8 +427,8 @@ def build_gui_transfer_transforms():
         """
         Validate operation before Getting and Settings transforms (Copy and Paste)
         """
-        copy_text_fields = [tx_copy_text_field, ty_copy_text_field, tz_copy_text_field, \
-                            rx_copy_text_field, ry_copy_text_field, rz_copy_text_field, \
+        copy_text_fields = [tx_copy_text_field, ty_copy_text_field, tz_copy_text_field,
+                            rx_copy_text_field, ry_copy_text_field, rz_copy_text_field,
                             sx_copy_text_field, sy_copy_text_field, sz_copy_text_field]
 
         if operation == 'get':
@@ -478,12 +482,13 @@ def build_gui_transfer_transforms():
                         is_plural = ' attribute was '
                     else:
                         is_plural = ' attributes were '
-                    cmds.inViewMessage(
-                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-                            len(errors)) + '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural + 'ignored. (Open Script Editor to see a list)</span>',
-                        pos='botLeft', fade=True, alpha=.9)
-                    sys.stdout.write(
-                        str(len(errors)) + ' locked ' + is_plural + 'ignored. (Open Script Editor to see a list)\n')
+                    unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                    unique_message += str(len(errors))
+                    unique_message += '</span><span style=\"color:#FFFFFF;\"> locked' + is_plural
+                    unique_message += 'ignored. (Open Script Editor to see a list)</span>'
+                    cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+                    sys.stdout.write(str(len(errors)) + ' locked ' + is_plural + 'ignored. '
+                                                                                 '(Open Script Editor to see a list)\n')
                     for error in errors:
                         print(str(error))
 
@@ -506,23 +511,20 @@ def build_gui_transfer_transforms():
             if operation == 'export':
                 export_trs_transforms()
 
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
         finally:
             cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     # Valida Import Export Ends --------------------------------------------  
 
     # Show and Lock Window
-    cmds.showWindow(build_gui_transfer_transforms)
+    cmds.showWindow(window_gui_transfer_transforms)
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/transform.svg')
     widget.setWindowIcon(icon)
 
@@ -601,11 +603,8 @@ def build_gui_help_transfer_transforms():
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
 
@@ -644,16 +643,17 @@ def export_trs_transforms():
     Exports a JSON file containing the translation, rotation and scale data from every selected object
     """
 
-    def get_short_name(obj):
+    def get_short_name(name):
         """
         Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-                Parameters:
-                        obj (string) - object to extract short name
+        Args:
+            name (string) - object to extract short name
         """
+        short_name = ''
         if obj == '':
             return ''
-        split_path = obj.split('|')
+        split_path = name.split('|')
         if len(split_path) >= 1:
             short_name = split_path[len(split_path) - 1]
         return short_name
@@ -667,6 +667,7 @@ def export_trs_transforms():
     else:
         cmds.warning('Nothing selected. Please select at least one object and try again.')
 
+    pose_file = ''
     if is_valid:
         file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2,
                                      okCaption='Export', caption='Exporting TRS for Selected Objects') or []
@@ -689,12 +690,14 @@ def export_trs_transforms():
 
             unique_message = '<' + str(random.random()) + '>'
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Transforms</span><span style=\"color:#FFFFFF;\"> exported.</span>',
+                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                                     'Transforms</span><span style=\"color:#FFFFFF;\"> exported.</span>',
                 pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('Transforms exported to the file "' + pose_file + '".')
         except Exception as e:
-            print(e)
             successfully_created_file = False
+            logger.debug('successfully_created_file: ' + str(successfully_created_file))
+            logger.info(str(e))
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
@@ -708,21 +711,19 @@ def import_trs_transforms():
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
         
-                Parameters:
-                    target (string): Name of the target object (object that will receive transforms)
-                    attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-                    value (float): Value used to set attribute. e.g. 1.5, 2, 5...
-                    
-                Returns:
-                    error_message(string): Error message. (Returns nothing if there were no errors)
+        Args:
+            target (string): Name of the target object (object that will receive transforms)
+            attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+            value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+
+        Returns:
+            error_message(string): Error message. (Returns nothing if there were no errors)
         
         """
         if not cmds.getAttr(target + '.' + attr, lock=True):
             cmds.setAttr(target + '.' + attr, value)
         else:
             return str(target) + ' (' + attr + ') is locked.'
-
-    import_version = 0.0
 
     file_name = cmds.fileDialog2(fileFilter=script_name + " - JSON File (*.json)", dialogStyle=2, fileMode=1,
                                  okCaption='Import', caption='Importing Transforms for "' + script_name + '"') or []
@@ -732,6 +733,7 @@ def import_trs_transforms():
         file_exists = True
     else:
         file_exists = False
+        pose_file = ''
 
     if file_exists:
         try:
