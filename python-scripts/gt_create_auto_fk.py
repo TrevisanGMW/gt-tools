@@ -51,7 +51,7 @@
 import maya.cmds as cmds
 import logging
 import copy
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
 
 try:
     from shiboken2 import wrapInstance
@@ -67,7 +67,7 @@ except ImportError:
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_create_auto_fk")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 # Script Name
 script_name = "GT - Create FK Control"
@@ -527,7 +527,7 @@ def build_gui_auto_fk():
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/kinInsert.png')
     widget.setWindowIcon(icon)
@@ -609,7 +609,7 @@ def build_gui_help_auto_fk():
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
