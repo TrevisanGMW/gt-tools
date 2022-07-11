@@ -50,7 +50,7 @@ except ModuleNotFoundError as error:
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_retarget_assistant")
-logger.setLevel(20)
+logger.setLevel(logging.INFO)
 
 # General Variables
 SCRIPT_VERSION = "0.0.9"
@@ -1137,9 +1137,10 @@ def get_hik_source(char):
 # Tests
 if __name__ == '__main__':
     # Debug Lines
-    debugging_settings['is_debugging'] = False
+    debugging_settings['is_debugging'] = True
     if debugging_settings.get('is_debugging'):
-        logger.setLevel(10)  # Debug
+        logger.setLevel(logging.DEBUG)
+        logger.debug('Logging Level Set To: ' + str(logger.level))
         debugging_settings['source'] = 'Source_Mocap'
         debugging_settings['target'] = 'Target_Char'
 
