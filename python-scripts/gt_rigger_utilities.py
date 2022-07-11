@@ -24,7 +24,7 @@ import re
 # Logger Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_utilities")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def dist_center_to_center(obj_a, obj_b):
@@ -2814,6 +2814,9 @@ def print_inview_message(part_a, part_b, color_a='FF0000', color_b='FFFFFF'):
 
 # Tests
 if __name__ == '__main__':
+    pass
+    logger.setLevel(logging.DEBUG)
+    output = ''
     # create_slider_control('temp', initial_position='bottom', lock_unused_channels=True)
     # enforce_parent('pSphere1', 'head_offsetCtrl')
     # if cmds.objExists('slider_2dGrp'):
@@ -2827,5 +2830,4 @@ if __name__ == '__main__':
     # toggle_rigging_attr()
     # print_inview_message('Hello', ' World!')
     # create_facial_side_gui()
-    output = ''
-    pass
+    logger.debug(str(output))
