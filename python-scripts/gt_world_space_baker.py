@@ -36,7 +36,7 @@ import logging
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_world_space_baker")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 # Script Name
 script_name = "GT - World Space Baker"
@@ -471,5 +471,6 @@ def bake_world_space_data():
 
 # Build UI
 if __name__ == '__main__':
-    # logger.setLevel(10)  # Debug
+    # logger.setLevel(logging.DEBUG)
+    # logger.debug('Logging Level Set To: ' + str(logger.level))
     build_gui_world_space_baker()
