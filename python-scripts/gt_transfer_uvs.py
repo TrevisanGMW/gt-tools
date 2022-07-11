@@ -42,7 +42,7 @@ import sys
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_transfer_uvs")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 # Script Name
 script_name = 'GT - Transfer UVs'
