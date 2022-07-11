@@ -48,7 +48,7 @@ import re
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_biped_gui")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 # Data Objects
 data_biped = GTBipedRiggerData()
@@ -2121,5 +2121,5 @@ def extract_corrective_proxy_pose():
 
 # Build UI
 if __name__ == '__main__':
-    logger.setLevel(10)
+    # logger.setLevel(logging.DEBUG)
     build_gui_auto_biped_rig()
