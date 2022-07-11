@@ -26,7 +26,6 @@ except ImportError:
 
 from maya import OpenMayaUI
 import maya.cmds as cmds
-import sys
 import re
 
 # Script Name
