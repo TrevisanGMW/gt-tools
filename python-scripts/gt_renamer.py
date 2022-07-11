@@ -10,7 +10,7 @@
  Fixed issue where auto prefix would sometimes raise an error when getting position using xform.
  
  1.2 - 2020-10-17
- Fixed an issue where the manual input for prefixes and sufixes wouldn't work.
+ Fixed an issue where the manual input for prefixes and suffixes wouldn't work.
  
  1.3 - 2020-10-23
  Added feedback to how many objects were renamed. (in view messages)
