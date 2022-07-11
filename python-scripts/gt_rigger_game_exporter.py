@@ -18,9 +18,10 @@ from functools import partial
 
 SCRIPT_VERSION = '1.0.1'
 SCRIPT_NAME = 'GT Rigger - Game Exporter'
+
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_game_exporter")
-logger.setLevel(20)
+logger.setLevel(logging.INFO)
 
 
 def _get_object_namespaces(object_name):
