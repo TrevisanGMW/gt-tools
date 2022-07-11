@@ -86,7 +86,7 @@ import re
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_check_for_updates")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 # Script Version (This Script)
 script_version = '1.7.0'
@@ -653,6 +653,6 @@ def silent_update_check():
 
 # Build GUI
 if __name__ == '__main__':
-    # logger.setLevel(10)  # Debug
+    # logger.setLevel(logging.DEBUG)  # Debug
     build_gui_gt_check_for_updates()
     # silent_update_check()
