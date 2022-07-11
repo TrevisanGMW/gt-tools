@@ -13,7 +13,7 @@ import copy
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_data")
-logger.setLevel(20)  # DEBUG 10, INFO 20, WARNING 30, ERROR 40, CRITICAL 50
+logger.setLevel(logging.INFO)
 
 SCRIPT_VERSION_BASE = '1.9.13'
 SCRIPT_VERSION_FACIAL = '0.0.14'
