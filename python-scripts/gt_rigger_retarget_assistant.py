@@ -20,20 +20,29 @@ Script to help transfer motion capture data to custom rig controls
     v0.0.8 - 2022-03-07
     Added leg stabilization, removed Transfer to IK option
 
-    v0.0.9 - 2022-07-07
+    v0.1.0 - 2022-07-07
     PEP8 cleanup
     Changed "Get Current" option, so it updates both fields
     Added a few utility functions
 
+    v0.1.1 - 2022-07-12
+    Updated finger and spine functions to detect the source joint orientation
+    Added influence slider to "Connect Spine" help menu
+    Added invert rotation checkbox to "Connect Fingers" help menu
+
 """
+from collections import namedtuple
 from functools import partial
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
 from shiboken2 import wrapInstance
+from maya.api.OpenMaya import MVector
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
+import random
+import math
 import sys
 
 try:
@@ -53,13 +62,15 @@ logger = logging.getLogger("gt_rigger_retarget_assistant")
 logger.setLevel(logging.INFO)
 
 # General Variables
-SCRIPT_VERSION = "0.0.9"
+SCRIPT_VERSION = "0.1.1"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
 settings = {'connect_toes': True,
             'connect_spine': True,
+            'spine_influence': 100,
             'connect_fingers': True,
+            'is_finger_inverted': False,
             'leg_stabilization': True,
             'unlock_rotations': False,
             'merge_axis': False,
@@ -72,6 +83,7 @@ toe_ctrl_pairs = {'left_ball_ctrl': '',
                   'right_ball_ctrl': ''}
 
 debugging_settings = {'is_debugging': False,
+                      'reload_scene': False,
                       'source': '',
                       'target': '', }
 
@@ -421,8 +433,10 @@ def switch_to_fk_influence(switch_ctrls):
 
 def _btn_bake_mocap_with_fixes(*args):
     if debugging_settings.get('is_debugging'):
-        hik_character['source'] = debugging_settings.get('source')
-        hik_character['target'] = debugging_settings.get('target')
+        if debugging_settings.get('source'):
+            hik_character['source'] = debugging_settings.get('source')
+        if debugging_settings.get('target'):
+            hik_character['target'] = debugging_settings.get('target')
 
     logger.debug(str(args))
 
@@ -546,7 +560,8 @@ def _btn_bake_mocap_with_fixes(*args):
                 controls_to_bake = controls_to_bake + spine_ctrls
             if spine_offset_nodes:
                 offset_nodes = offset_nodes + spine_offset_nodes
-
+        return
+        # TODO @@@
         # Fingers
         if settings.get('connect_fingers'):
             finger_ctrls, finger_offset_nodes = create_finger_mocap_rig(hik_definition_source)
@@ -676,7 +691,26 @@ def create_finger_mocap_rig(hik_source_definition):
 
                     offset_nodes.append(storage_node)
                     offset_nodes.append(sum_node)
-                    cmds.connectAttr(sum_node + '.output3D', target_ns + '.rotate', force=True)
+
+                    source_orientation = get_joint_orientation(source_bone)
+                    logger.debug(source_orientation)
+
+                    neg_multiply_node = cmds.createNode('multiplyDivide', name=source_bone + '_tempNegOffsetOperation')
+                    if settings.get('is_finger_inverted'):
+                        cmds.setAttr(neg_multiply_node + '.input2X', -1)
+                        cmds.setAttr(neg_multiply_node + '.input2Y', -1)
+                        cmds.setAttr(neg_multiply_node + '.input2Z', -1)
+
+                    cmds.connectAttr(sum_node + '.output3D' + source_orientation.aim_axis[-1],
+                                     neg_multiply_node + '.input1X', force=True)
+                    cmds.connectAttr(sum_node + '.output3D' + source_orientation.up_axis[-1],
+                                     neg_multiply_node + '.input1Y', force=True)
+                    cmds.connectAttr(sum_node + '.output3D' + source_orientation.main_axis[-1],
+                                     neg_multiply_node + '.input1Z', force=True)
+
+                    cmds.connectAttr(neg_multiply_node + '.output', target_ns + '.rotate', force=True)
+
+                    # cmds.connectAttr(sum_node + '.output3D', target_ns + '.rotate', force=True)
 
                     connected_controls.append(target_ns)
         except Exception as e:
@@ -714,7 +748,7 @@ def create_spine_mocap_rig(hik_source_definition):
     elif len(spines) == 3:
         control_pairs[spines[0]] = spine01_ctrl_ns
         control_pairs[spines[1]] = spine02_ctrl_ns
-    elif len(spines) == 4:  # TODO Detect proper orientation and make it adjust it accordingly
+    elif len(spines) == 4:  # TODO Detect proper orientation and make it auto adjust
         control_pairs[spines[0]] = spine01_ctrl_ns
         control_pairs[spines[1]] = spine02_ctrl_ns
         control_pairs[spines[2]] = spine03_ctrl_ns
@@ -741,7 +775,7 @@ def create_spine_mocap_rig(hik_source_definition):
         offset_nodes.append(storage_node)
         offset_nodes.append(sum_node)
 
-        if is_wrong_orientation:
+        if is_wrong_orientation: # @@@
             logger.debug('is_wrong_orientation: ' + str(is_wrong_orientation))
             invert_node = cmds.createNode('multiplyDivide', name=source + '_tempInvertNode')
             cmds.connectAttr(sum_node + '.output3D', invert_node + '.input1', force=True)
@@ -750,7 +784,18 @@ def create_spine_mocap_rig(hik_source_definition):
             cmds.connectAttr(invert_node + '.outputZ', target + '.ry', force=True)
             cmds.setAttr(invert_node + '.input2X', -1)
         else:
-            cmds.connectAttr(sum_node + '.output3D', target + '.rotate', force=True)
+            neg_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempNegNode')
+            influence_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempInfluenceNode')
+            cmds.connectAttr(sum_node + '.output3D', neg_multiply_node + '.input1', force=True)
+            cmds.connectAttr(neg_multiply_node + '.output', influence_multiply_node + '.input1', force=True)
+            cmds.connectAttr(influence_multiply_node + '.outputX', target + '.rx', force=True)
+            cmds.connectAttr(influence_multiply_node + '.outputY', target + '.ry', force=True)
+            cmds.connectAttr(influence_multiply_node + '.outputZ', target + '.rz', force=True)
+            cmds.setAttr(influence_multiply_node + '.input2X', settings.get('spine_influence') * 0.01)
+            cmds.setAttr(influence_multiply_node + '.input2Y', settings.get('spine_influence') * 0.01)
+            cmds.setAttr(influence_multiply_node + '.input2Z', settings.get('spine_influence') * 0.01)
+
+            # cmds.connectAttr(sum_node + '.output3D', target + '.rotate', force=True)
 
         connected_controls.append(target)
 
@@ -857,11 +902,11 @@ def build_gui_mocap_rig():
     help_message_connect_spine = 'This option will replace the data received from HumanIK and transfer the ' \
                                  'rotation directly from the spine joints to the rig controls.\n\n' \
                                  'WARNING: It might sometimes look funny or exaggerated because there is no scale ' \
-                                 'compensation happening.\nTo fix that, compress or expand the entire animation till ' \
-                                 'the desired result is achieved.'
+                                 'compensation happening.\nTo fix that, you can use the influence slider or ' \
+                                 'compress/expand the entire animation till the desired result is achieved.'
     help_title_connect_spine = 'Connect Spine'
 
-    cmds.button(l='?', bgc=help_bgc_color, height=5, c=partial(build_custom_help_window,
+    cmds.button(l='?', bgc=help_bgc_color, height=5, c=partial(build_spine_help_window,
                                                                help_message_connect_spine,
                                                                help_title_connect_spine))
 
@@ -877,10 +922,12 @@ def build_gui_mocap_rig():
     help_message_connect_fingers = 'This option will extract the rotation of the finger joints that were defined ' \
                                    'through the HumanIK definition. If nothing was defined, nothing will be ' \
                                    'transferred. Much like the toe option, this option extracts whatever pose was ' \
-                                   'left under the first frame of your timeline.'
+                                   'left under the first frame of your timeline.\n\nInvert Finger Rotation: ' \
+                                   'Makes the main rotation (usually "Z") rotate in the opposite direction, which ' \
+                                   'can help motion capture skeletons with unexpected orientations become compatible.'
     help_title_connect_fingers = 'Connect Fingers'
 
-    cmds.button(l='?', bgc=help_bgc_color, height=5, c=partial(build_custom_help_window,
+    cmds.button(l='?', bgc=help_bgc_color, height=5, c=partial(build_fingers_help_window,
                                                                help_message_connect_fingers,
                                                                help_title_connect_fingers))
 
@@ -974,6 +1021,9 @@ def build_gui_mocap_rig():
 
     cmds.separator(height=15, style='none')  # Empty Space
 
+    # Get Current - Refresh
+    _btn_target_source_textfield()
+
     # Show and Lock Window
     cmds.showWindow(build_gui_world_space_baker)
     cmds.window(window_name, e=True, sizeable=False)
@@ -983,9 +1033,12 @@ def build_custom_help_window(input_text, help_title='', *args):
     """
     Creates a help window to display the provided text
 
-            Parameters:
-                input_text (string): Text used as help, this is displayed in a scroll fields.
-                help_title (optional, string)
+    Args:
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (optional, string)
+
+    Returns:
+        body_column: Used to add more UI elements in case the help menu needs it
     """
     logger.debug(str(args))
     window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
@@ -1012,6 +1065,8 @@ def build_custom_help_window(input_text, help_title='', *args):
     cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
     cmds.scrollField(help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
 
+    return_column = cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
+
     # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
     cmds.separator(h=10, style='none')
@@ -1032,6 +1087,58 @@ def build_custom_help_window(input_text, help_title='', *args):
         """ Closes help windows """
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+
+    return return_column
+
+
+def build_fingers_help_window(input_text, help_title='', *args):
+    """
+    Creates a help window to display the provided text
+
+    Args:
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (optional, string)
+
+    Returns:
+        body_column: Used to add more UI elements in case the help menu needs it
+    """
+    def invert_finger_orientation(*current_state):
+        logger.debug('is_finger_inverted: ' + str(current_state[0]))
+        sys.stdout.write('\nInvert Finger Rotation Set To : ' + str(current_state[0]))
+        settings['is_finger_inverted'] = current_state[0]
+
+    logger.debug(str(args))
+    column_extra_functions = build_custom_help_window(input_text, help_title=help_title)
+    cmds.rowColumnLayout(column_extra_functions, e=True, nc=1, cw=[(1, 260)], cs=[(1, 30)])
+    cmds.separator(h=10, style='none', p=column_extra_functions)
+    cmds.checkBox(label='Invert Finger Rotation (Opposite Rotate Direction)',
+                  value=settings.get('is_finger_inverted'),
+                  p=column_extra_functions, cc=invert_finger_orientation)
+
+
+def build_spine_help_window(input_text, help_title='', *args):
+    """
+    Creates a help window to display the provided text
+
+    Args:
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (optional, string)
+
+    Returns:
+        body_column: Used to add more UI elements in case the help menu needs it
+    """
+    def set_spine_influence(*current_state):
+        logger.debug('spine_influence: ' + str(current_state[0]))
+        sys.stdout.write('\nSpine Influence Set To : ' + '% 6.2f' % current_state[0])
+        settings['spine_influence'] = current_state[0]
+
+    logger.debug(str(args))
+    column_extra_functions = build_custom_help_window(input_text, help_title=help_title)
+    cmds.rowColumnLayout(column_extra_functions, e=True, nc=1, cw=[(1, 260)], cs=[(1, 30)])
+    cmds.separator(h=13, style='none', p=column_extra_functions)
+    cmds.floatSliderGrp(label='Spine Influence', field=True, minValue=0, maxValue=100, fieldMinValue=0,
+                        fieldMaxValue=10000, value=settings.get('spine_influence'), cw=([1, 70], [2, 70]),
+                        p=column_extra_functions, cc=set_spine_influence)
 
 
 def is_hik_character_valid(char):
@@ -1134,27 +1241,267 @@ def get_hik_source(char):
             return ''
 
 
-# Tests
+def get_orientation(obj, return_type='point'):
+    """
+    Get an objects' orientation WIP
+
+    Args:
+        obj (str)(obj) = The object to get the orientation of.
+        return_type (str) = The desired returned value type. (valid: 'point', 'vector') (default: 'point')
+
+    Returns:
+        output_tuple (tuple):
+    """
+    obj = cmds.ls(obj)[0]
+
+    world_matrix = cmds.xform(obj, q=True, m=True, ws=True)
+    r_axis = cmds.getAttr(obj + '.rotateAxis') or []
+    if r_axis:
+        r_axis = r_axis[0]
+    if any((r_axis[0], r_axis[1], r_axis[2])):
+        logger.info('"' + obj + '" has a modified .rotateAxis which is included in the orientation result')
+
+    if return_type is 'vector':
+        output_tuple = (MVector(world_matrix[0:3]),
+                        MVector(world_matrix[4:7]),
+                        MVector(world_matrix[8:11]))
+    else:
+        output_tuple = (world_matrix[0:3],
+                        world_matrix[4:7],
+                        world_matrix[8:11])
+
+    x_up = MVector(output_tuple[0]) * MVector(1, 0, 0)
+    y_up = MVector(output_tuple[1]) * MVector(0, 1, 0)
+    z_up = MVector(output_tuple[2]) * MVector(0, 0, 1)
+    print('x_up"' + str(x_up))
+    print('y_up"' + str(y_up))
+    print('z_up"' + str(z_up))
+    # print(output_tuple)
+    return output_tuple
+
+
+def dist_center_to_center(obj_a, obj_b):
+    """
+    Calculates the position between the center of one object (A)  to the center of another object (B)
+
+    Args:
+        obj_a (string) : Name of object A
+        obj_b (string) : Name of object B
+
+    Returns:
+        distance (float): A distance value between object A and B. For example : 4.0
+    """
+
+    def dist_position_to_position(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
+        """
+            Calculates the distance between XYZ position A and XYZ position B
+
+            Args:
+                    pos_a_x (float) : Object A Position X
+                    pos_a_y (float) : Object A Position Y
+                    pos_a_z (float) : Object A Position Z
+                    pos_b_x (float) : Object B Position X
+                    pos_b_y (float) : Object B Position Y
+                    pos_b_z (float) : Object B Position Z
+
+            Returns:
+                distance (float): A distance value between object A and B. For example : 4.0
+            """
+        dx = pos_a_x - pos_b_x
+        dy = pos_a_y - pos_b_y
+        dz = pos_a_z - pos_b_z
+        return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+    # WS Center to Center Distance:
+    cmds.select(obj_a, r=True)
+    ws_pos_a = cmds.xform(q=True, ws=True, t=True)
+    cmds.select(obj_b, r=True)
+    ws_pos_b = cmds.xform(q=True, ws=True, t=True)
+    return dist_position_to_position(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
+
+
+def get_joint_orientation(obj, expected_up=(0, 1, 0)):
+    unique_name = '_' + str(random.random())
+    obj_child = cmds.listRelatives(obj, children=True, fullPath=True) or []
+    if obj_child:
+        obj_child = obj_child[0]
+
+    distance_from_child = dist_center_to_center(obj, obj_child)
+
+    temp_loc = cmds.spaceLocator(name=obj + unique_name)[0]
+    temp_loc_grp = cmds.group(world=True, empty=True, name=obj + 'Grp' + unique_name)
+    temp_child_loc = cmds.spaceLocator(name=obj + 'Child' + unique_name)[0]
+    temp_child_loc_grp = cmds.group(world=True, empty=True, name=obj + 'ChildGrp' + unique_name)
+    cmds.parent(temp_loc, temp_loc_grp)
+    cmds.parent(temp_child_loc, temp_child_loc_grp)
+    cmds.delete(cmds.parentConstraint(obj, temp_loc_grp))
+    cmds.delete(cmds.parentConstraint(obj_child, temp_child_loc_grp))
+
+    # Find Aim Axis
+    aim_distance_xyz = {'x': 0, 'y': 0, 'z': 0}
+    aim_distance_state_xyz = {'x': '', 'y': '', 'z': ''}
+    move_distance = distance_from_child * .5
+    # X
+    cmds.move(move_distance, 0, 0, temp_loc, relative=True, os=True)
+    pos_x = dist_center_to_center(temp_loc, obj_child)
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))
+    cmds.move(-move_distance, 0, 0, temp_loc, relative=True, os=True)
+    neg_x = dist_center_to_center(temp_loc, obj_child)
+    aim_distance_x = min([pos_x, neg_x])
+    if aim_distance_x == pos_x:
+        aim_distance_state_xyz['x'] = "+"
+    else:
+        aim_distance_state_xyz['x'] = "-"
+    aim_distance_xyz['x'] = aim_distance_x
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))  # Reset Loc
+    # Y
+    cmds.move(0, move_distance, 0, temp_loc, relative=True, os=True)
+    pos_y = dist_center_to_center(temp_loc, obj_child)
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))
+    cmds.move(0, -move_distance, 0, temp_loc, relative=True, os=True)
+    neg_y = dist_center_to_center(temp_loc, obj_child)
+    aim_distance_y = min([pos_y, neg_y])
+    if aim_distance_y == pos_y:
+        aim_distance_state_xyz['y'] = "+"
+    else:
+        aim_distance_state_xyz['y'] = "-"
+    aim_distance_xyz['y'] = aim_distance_y
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))  # Reset Loc
+    # Z
+    cmds.move(0, 0, move_distance, temp_loc, relative=True, os=True)
+    pos_z = dist_center_to_center(temp_loc, obj_child)
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))
+    cmds.move(0, 0, -move_distance, temp_loc, relative=True, os=True)
+    neg_z = dist_center_to_center(temp_loc, obj_child)
+    aim_distance_z = min([pos_z, neg_z])
+    if aim_distance_z == pos_z:
+        aim_distance_state_xyz['z'] = "+"
+    else:
+        aim_distance_state_xyz['z'] = "-"
+    aim_distance_xyz['z'] = aim_distance_z
+    cmds.delete(cmds.parentConstraint(obj, temp_loc))  # Reset Loc
+
+    orientation_aim_axis = min(aim_distance_xyz, key=aim_distance_xyz.get)
+
+    # Find Up
+    temp_world_up_loc = cmds.spaceLocator(name=obj + 'worldUp' + unique_name)[0]
+    up_distance_xyz = {'x': None, 'y': None, 'z': None}
+    up_distance_state_xyz = {'x': '', 'y': '', 'z': ''}
+    # X
+    if orientation_aim_axis != 'x':
+        cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
+        cmds.move(expected_up[0]*move_distance, expected_up[1]*move_distance, expected_up[2]*move_distance,
+                  temp_world_up_loc, relative=True, os=True)
+        cmds.move(move_distance, 0, 0, temp_loc, relative=True, os=True)
+        pos_x = dist_center_to_center(temp_loc, temp_world_up_loc)
+        cmds.delete(cmds.parentConstraint(obj, temp_loc))
+        cmds.move(-move_distance, 0, 0, temp_loc, relative=True, os=True)
+        neg_x = dist_center_to_center(temp_loc, temp_world_up_loc)
+        up_distance_x = min([pos_x, neg_x])
+        if up_distance_x == pos_x:
+            up_distance_state_xyz['x'] = "+"
+        else:
+            up_distance_state_xyz['x'] = "-"
+        up_distance_xyz['x'] = up_distance_x
+    # Y
+    if orientation_aim_axis != 'y':
+        cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
+        cmds.move(expected_up[0] * move_distance, expected_up[1] * move_distance, expected_up[2] * move_distance,
+                  temp_world_up_loc, relative=True, os=True)
+        cmds.move(0, move_distance, 0, temp_loc, relative=True, os=True)
+        pos_y = dist_center_to_center(temp_loc, temp_world_up_loc)
+        cmds.delete(cmds.parentConstraint(obj, temp_loc))
+        cmds.move(0, -move_distance, 0, temp_loc, relative=True, os=True)
+        neg_y = dist_center_to_center(temp_loc, temp_world_up_loc)
+        up_distance_y = min([pos_y, neg_y])
+        if up_distance_y == pos_y:
+            up_distance_state_xyz['y'] = "+"
+        else:
+            up_distance_state_xyz['y'] = "-"
+        up_distance_xyz['y'] = up_distance_y
+    # Z
+    if orientation_aim_axis != 'z':
+        cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
+        cmds.move(expected_up[0] * move_distance, expected_up[1] * move_distance, expected_up[2] * move_distance,
+                  temp_world_up_loc, relative=True, os=True)
+        cmds.move(0, 0, move_distance, temp_loc, relative=True, os=True)
+        pos_z = dist_center_to_center(temp_loc, temp_world_up_loc)
+        cmds.delete(cmds.parentConstraint(obj, temp_loc))
+        cmds.move(0, 0, -move_distance, temp_loc, relative=True, os=True)
+        neg_z = dist_center_to_center(temp_loc, temp_world_up_loc)
+        up_distance_z = min([pos_z, neg_z])
+        if up_distance_z == pos_z:
+            up_distance_state_xyz['z'] = "+"
+        else:
+            up_distance_state_xyz['z'] = "-"
+        up_distance_xyz['z'] = up_distance_z
+
+    remaining_axis = {}
+    for key in up_distance_xyz:
+        if up_distance_xyz.get(key) is not None:
+            remaining_axis[key] = up_distance_xyz.get(key)
+
+    orientation_up_axis = min(remaining_axis, key=remaining_axis.get)
+    orientation_main_axis = max(remaining_axis, key=remaining_axis.get)
+
+    cmds.delete([temp_loc_grp, temp_child_loc_grp, temp_world_up_loc])
+
+    if aim_distance_state_xyz.get(orientation_aim_axis).startswith('+'):
+        up_distance_state_xyz[orientation_main_axis] = '-'
+    else:
+        up_distance_state_xyz[orientation_main_axis] = '+'
+
+    aim_axis = str(aim_distance_state_xyz.get(orientation_aim_axis)) + str(orientation_aim_axis)
+    up_axis = str(up_distance_state_xyz.get(orientation_up_axis)) + str(orientation_up_axis)
+    main_axis = str(up_distance_state_xyz.get(orientation_main_axis)) + str(orientation_main_axis)
+
+    # Pose Object Setup
+    Orientation = namedtuple('Orientation', ['aim_axis', 'up_axis', 'main_axis'])
+
+    return Orientation(aim_axis=aim_axis, up_axis=up_axis, main_axis=main_axis)
+
+
+# Build GUI / Tests
 if __name__ == '__main__':
     # Debug Lines
     debugging_settings['is_debugging'] = True
     if debugging_settings.get('is_debugging'):
         logger.setLevel(logging.DEBUG)
         logger.debug('Logging Level Set To: ' + str(logger.level))
-        debugging_settings['source'] = 'Source_Mocap'
-        debugging_settings['target'] = 'Target_Char'
 
-        # # Get/Set Camera Pos/Rot
-        # persp_pos = cmds.getAttr('persp.translate')[0]
-        # persp_rot = cmds.getAttr('persp.rotate')[0]
-        # import gt_maya_utilities
-        # gt_maya_utilities.gtu_reload_file()
-        # cmds.viewFit(all=True)
-        # cmds.setAttr('persp.tx', persp_pos[0])
-        # cmds.setAttr('persp.ty', persp_pos[1])
-        # cmds.setAttr('persp.tz', persp_pos[2])
-        # cmds.setAttr('persp.rx', persp_rot[0])
-        # cmds.setAttr('persp.ry', persp_rot[1])
-        # cmds.setAttr('persp.rz', persp_rot[2])
+        # Enforce Pre-defined Character Names
+        # debugging_settings['source'] = 'Source_Mocap'
+        # debugging_settings['target'] = 'Target_Char'
 
+        # Change Default Values
+        settings['connect_toes'] = False
+        settings['connect_spine'] = True
+        settings['connect_fingers'] = False
+        settings['leg_stabilization'] = False
+        settings['unlock_rotations'] = False
+        settings['merge_axis'] = False
+
+        # Get/Set Camera Pos/Rot
+        debugging_settings['reload_scene'] = True
+        if debugging_settings.get('reload_scene'):
+            persp_pos = cmds.getAttr('persp.translate')[0]
+            persp_rot = cmds.getAttr('persp.rotate')[0]
+            import gt_maya_utilities
+            gt_maya_utilities.gtu_reload_file()
+            cmds.viewFit(all=True)
+            cmds.setAttr('persp.tx', persp_pos[0])
+            cmds.setAttr('persp.ty', persp_pos[1])
+            cmds.setAttr('persp.tz', persp_pos[2])
+            cmds.setAttr('persp.rx', persp_rot[0])
+            cmds.setAttr('persp.ry', persp_rot[1])
+            cmds.setAttr('persp.rz', persp_rot[2])
+
+    # Build GUI
     build_gui_mocap_rig()
+    # selection = cmds.ls(selection=True)
+    # for obj in selection:
+    #     output = get_joint_orientation(obj)
+    #
+    #     if output:
+    #         import pprint
+    #         pprint.pprint(output)
