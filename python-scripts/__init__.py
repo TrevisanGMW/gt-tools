@@ -6,7 +6,7 @@ import sys
 import os
 
 # Global Vars
-PACKAGE_VERSION = "1.7.24"
+PACKAGE_VERSION = "1.7.25"
 
 # Initial Setup - Add path and initialize logger
 if __name__ != '__main__':
