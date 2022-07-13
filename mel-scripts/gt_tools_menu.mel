@@ -337,11 +337,28 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
 // -----------------------------------------RIGGING------------------------------------
 menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
 
+    // Auto Rigging Tools
     menuItem 
-    -l ("Auto Biped Rigger") 
+    -l ("Biped Auto Rigger") 
     -c ("python(\"gt_tools.execute_script('gt_rigger_biped_gui', 'build_gui_auto_biped_rig')\");") 
     -ann ("Automated solution for creating a biped rig.") 
     -image "kinReroot.png" ;
+    
+    menuItem 
+    -l ("Biped Rig Interface")
+    -c ("python(\"gt_tools.execute_script('gt_biped_rig_interface', 'build_gui_custom_rig_interface')\");") 
+    -ann ("Custom Rig Interface for GT Biped Auto Rigger.") 
+    // -image "p-add.png" ; //QR_QuickRigTool.png  # animateSnapshot.png
+    -image "animateSnapshot.png" ; //QR_QuickRigTool.png  # animateSnapshot.png
+    
+    menuItem 
+    -l ("Game FBX Exporter")
+    -c ("python(\"gt_tools.execute_script('gt_rigger_game_exporter', 'build_gui_fbx_exporter')\");") 
+    -ann ("Automated solution for exporting real-time FBX files.") 
+    -image "QR_QuickRigTool.png" ;
+    
+    // General Rigging Tools
+    menuItem -divider true ;
     
     menuItem 
     -l ("Connect Attributes") 
@@ -586,7 +603,6 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_to_discord', 'build_gui_maya_to_discord')\");") 
     -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
     -image $mayaToDiscordIcon ;
-    
     
     
     setParent -menu ".." ;
