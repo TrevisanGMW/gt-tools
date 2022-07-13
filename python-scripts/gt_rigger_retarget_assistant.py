@@ -29,6 +29,9 @@ Script to help transfer motion capture data to custom rig controls
     Updated finger and spine functions to detect the source joint orientation
     Added influence slider to "Connect Spine" help menu
     Added invert rotation checkbox to "Connect Fingers" help menu
+    Added invert rotation checkboxes to "Reconnect Spine" help menu
+    Changed the name "Connect Spine" to "Reconnect Spine" for clarity
+    Added HIK properties' node selection button "P"
 
 """
 from collections import namedtuple
@@ -67,8 +70,11 @@ SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
 settings = {'connect_toes': True,
-            'connect_spine': True,
+            'reconnect_spine': True,
             'spine_influence': 100,
+            'is_spine_inverted_x': False,
+            'is_spine_inverted_y': False,
+            'is_spine_inverted_z': False,
             'connect_fingers': True,
             'is_finger_inverted': False,
             'leg_stabilization': True,
@@ -554,14 +560,13 @@ def _btn_bake_mocap_with_fixes(*args):
                 controls_to_bake = controls_to_bake + toe_ctrls
 
         # Spine
-        if settings.get('connect_spine'):
+        if settings.get('reconnect_spine'):
             spine_ctrls, spine_offset_nodes = create_spine_mocap_rig(hik_definition_source)
             if spine_ctrls:
                 controls_to_bake = controls_to_bake + spine_ctrls
             if spine_offset_nodes:
                 offset_nodes = offset_nodes + spine_offset_nodes
-        return
-        # TODO @@@
+
         # Fingers
         if settings.get('connect_fingers'):
             finger_ctrls, finger_offset_nodes = create_finger_mocap_rig(hik_definition_source)
@@ -710,8 +715,6 @@ def create_finger_mocap_rig(hik_source_definition):
 
                     cmds.connectAttr(neg_multiply_node + '.output', target_ns + '.rotate', force=True)
 
-                    # cmds.connectAttr(sum_node + '.output3D', target_ns + '.rotate', force=True)
-
                     connected_controls.append(target_ns)
         except Exception as e:
             logger.debug(str(e))
@@ -742,17 +745,15 @@ def create_spine_mocap_rig(hik_source_definition):
     connected_controls = []
     offset_nodes = []
     control_pairs = {}
-    is_wrong_orientation = False
     if len(spines) == 2:
         control_pairs[spines[0]] = spine02_ctrl_ns
     elif len(spines) == 3:
         control_pairs[spines[0]] = spine01_ctrl_ns
         control_pairs[spines[1]] = spine02_ctrl_ns
-    elif len(spines) == 4:  # TODO Detect proper orientation and make it auto adjust
+    elif len(spines) == 4:
         control_pairs[spines[0]] = spine01_ctrl_ns
         control_pairs[spines[1]] = spine02_ctrl_ns
         control_pairs[spines[2]] = spine03_ctrl_ns
-        is_wrong_orientation = True
 
     control_pairs[spines[-1]] = chest_ctrl_ns
 
@@ -775,27 +776,35 @@ def create_spine_mocap_rig(hik_source_definition):
         offset_nodes.append(storage_node)
         offset_nodes.append(sum_node)
 
-        if is_wrong_orientation: # @@@
-            logger.debug('is_wrong_orientation: ' + str(is_wrong_orientation))
-            invert_node = cmds.createNode('multiplyDivide', name=source + '_tempInvertNode')
-            cmds.connectAttr(sum_node + '.output3D', invert_node + '.input1', force=True)
-            cmds.connectAttr(invert_node + '.outputY', target + '.rz', force=True)
-            cmds.connectAttr(invert_node + '.outputX', target + '.rx', force=True)
-            cmds.connectAttr(invert_node + '.outputZ', target + '.ry', force=True)
-            cmds.setAttr(invert_node + '.input2X', -1)
-        else:
-            neg_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempNegNode')
-            influence_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempInfluenceNode')
-            cmds.connectAttr(sum_node + '.output3D', neg_multiply_node + '.input1', force=True)
-            cmds.connectAttr(neg_multiply_node + '.output', influence_multiply_node + '.input1', force=True)
-            cmds.connectAttr(influence_multiply_node + '.outputX', target + '.rx', force=True)
-            cmds.connectAttr(influence_multiply_node + '.outputY', target + '.ry', force=True)
-            cmds.connectAttr(influence_multiply_node + '.outputZ', target + '.rz', force=True)
-            cmds.setAttr(influence_multiply_node + '.input2X', settings.get('spine_influence') * 0.01)
-            cmds.setAttr(influence_multiply_node + '.input2Y', settings.get('spine_influence') * 0.01)
-            cmds.setAttr(influence_multiply_node + '.input2Z', settings.get('spine_influence') * 0.01)
+        source_orientation = get_joint_orientation(source, expected_up=(1, 0, 0))
+        logger.debug(source_orientation)
 
-            # cmds.connectAttr(sum_node + '.output3D', target + '.rotate', force=True)
+        neg_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempNegNode')
+        influence_multiply_node = cmds.createNode('multiplyDivide', name=source + '_tempInfluenceNode')
+
+        cmds.connectAttr(sum_node + '.output3D' + source_orientation.up_axis[-1],
+                         neg_multiply_node + '.input1X', force=True)
+        cmds.connectAttr(sum_node + '.output3D' + source_orientation.aim_axis[-1],
+                         neg_multiply_node + '.input1Y', force=True)
+        cmds.connectAttr(sum_node + '.output3D' + source_orientation.main_axis[-1],
+                         neg_multiply_node + '.input1Z', force=True)
+
+        if settings.get('is_spine_inverted_x'):
+            cmds.setAttr(neg_multiply_node + '.input2X', -1)
+        if settings.get('is_spine_inverted_y'):
+            cmds.setAttr(neg_multiply_node + '.input2Y', -1)
+        if settings.get('is_spine_inverted_z'):
+            cmds.setAttr(neg_multiply_node + '.input2Z', -1)
+
+        cmds.connectAttr(neg_multiply_node + '.output', influence_multiply_node + '.input1', force=True)
+        cmds.connectAttr(influence_multiply_node + '.outputX', target + '.rx', force=True)
+        cmds.connectAttr(influence_multiply_node + '.outputY', target + '.ry', force=True)
+        cmds.connectAttr(influence_multiply_node + '.outputZ', target + '.rz', force=True)
+        cmds.setAttr(influence_multiply_node + '.input2X', settings.get('spine_influence') * 0.01)
+        cmds.setAttr(influence_multiply_node + '.input2Y', settings.get('spine_influence') * 0.01)
+        cmds.setAttr(influence_multiply_node + '.input2Z', settings.get('spine_influence') * 0.01)
+
+        # cmds.connectAttr(sum_node + '.output3D', target + '.rotate', force=True)
 
         connected_controls.append(target)
 
@@ -837,6 +846,26 @@ def build_gui_mocap_rig():
         _btn_refresh_textfield_hik_data('source', hik_source)
         cmds.textField(hik_source_textfield, e=True, text=hik_source)
 
+    def _btn_select_properties(tf_source, *args):
+        logger.debug(str(args))
+
+        char = cmds.textField(tf_source, q=True, text=True)
+
+        if char:
+            if is_hik_character_valid(char):
+                properties = get_hik_properties_node(char)
+                cmds.AttributeEditor()
+                cmds.select(properties)
+                unique_message = '<' + str(random.random()) + '>'
+                unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">"' + char + "\""
+                unique_message += "</span><span style=\"color:#FFFFFF;\"> HIK Properties node is now selected."
+                cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write('HIK Properties node for "' + char + "\" is now selected.")
+            else:
+                cmds.warning('Unable to select properties. "' + char + "\" doesn't.")
+        else:
+            cmds.warning('Unable to select properties. No HIK definition was provided.')
+
     window_name = "build_gui_mocap_rig"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
@@ -870,7 +899,7 @@ def build_gui_mocap_rig():
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 240)],
                          columnSpacing=[(1, 25), (3, 5)], parent=content_main)
     cmds.separator(height=10, style='none')  # Empty Space
-    cmds.text("First time field frame will be used as neutral pose", bgc=(.3, .3, .3))
+    cmds.text("First time-field frame will be used as neutral pose", bgc=(.3, .3, .3))
 
     # Text Fields and Checkboxes
     help_bgc_color = (.4, .4, .4)
@@ -896,19 +925,19 @@ def build_gui_mocap_rig():
                                                                help_message_connect_toes,
                                                                help_title_connect_toes))
 
-    cmds.checkBox(label='Connect Spine', value=settings.get('connect_spine'),
-                  cc=partial(_btn_refresh_textfield_settings_data, 'connect_spine'))
+    cmds.checkBox(label='Reconnect Spine', value=settings.get('reconnect_spine'),
+                  cc=partial(_btn_refresh_textfield_settings_data, 'reconnect_spine'))
 
-    help_message_connect_spine = 'This option will replace the data received from HumanIK and transfer the ' \
-                                 'rotation directly from the spine joints to the rig controls.\n\n' \
-                                 'WARNING: It might sometimes look funny or exaggerated because there is no scale ' \
-                                 'compensation happening.\nTo fix that, you can use the influence slider or ' \
-                                 'compress/expand the entire animation till the desired result is achieved.'
-    help_title_connect_spine = 'Connect Spine'
+    help_message_reconnect_spine = 'This option will replace the data received from HumanIK and transfer the ' \
+                                   'rotation directly from the spine joints to the rig controls.\n\n' \
+                                   'WARNING: It might sometimes look funny or exaggerated because there is no scale ' \
+                                   'compensation happening.\nTo fix that, you can use the influence slider or ' \
+                                   'compress/expand the entire animation till the desired result is achieved.'
+    help_title_reconnect_spine = 'Reconnect Spine'
 
     cmds.button(l='?', bgc=help_bgc_color, height=5, c=partial(build_spine_help_window,
-                                                               help_message_connect_spine,
-                                                               help_title_connect_spine))
+                                                               help_message_reconnect_spine,
+                                                               help_title_reconnect_spine))
 
     cmds.separator(height=5, style='none')  # Empty Space
     cmds.rowColumnLayout(numberOfColumns=4, columnWidth=checkbox_cw,
@@ -984,28 +1013,28 @@ def build_gui_mocap_rig():
     cmds.separator(height=15, style='none')  # Empty Space
 
     # Target TF
-    cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 120), (2, 135), (3, 75)],
+    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 120), (2, 120), (3, 15)],
                          columnSpacing=[(1, 15), (3, 5)], parent=content_main)
 
     cmds.text('HIK Character / Target:')
     hik_target_textfield = cmds.textField(placeholderText='HIK Target Character',
                                           cc=partial(_btn_refresh_textfield_hik_data),
                                           ann='target')
-    # cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
-    #             c=partial(_btn_target_source_textfield))
+    cmds.button(label="P", backgroundColor=(.3, .3, .3),
+                c=partial(_btn_select_properties, hik_target_textfield))
 
     cmds.separator(height=5, style='none')  # Empty Space
 
     # Source TF
-    cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 120), (2, 135), (3, 75)],
+    cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 120), (2, 120), (3, 15)],
                          columnSpacing=[(1, 15), (3, 5)], parent=content_main)
 
     cmds.text('HIK Mocap / Source:')
     hik_source_textfield = cmds.textField(placeholderText='HIK Source Character',
                                           cc=partial(_btn_refresh_textfield_hik_data),
                                           ann='source')
-    # cmds.button(label="Get Current", backgroundColor=(.3, .3, .3),
-    #             c=partial(_btn_target_source_textfield))
+    cmds.button(label="P", backgroundColor=(.3, .3, .3),
+                c=partial(_btn_select_properties, hik_source_textfield))
 
     #  Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 260), (2, 120)],
@@ -1132,10 +1161,30 @@ def build_spine_help_window(input_text, help_title='', *args):
         sys.stdout.write('\nSpine Influence Set To : ' + '% 6.2f' % current_state[0])
         settings['spine_influence'] = current_state[0]
 
+    def set_spine_inversion(*current_state):
+        logger.debug(current_state[0] + ': ' + str(current_state[1]))
+        dimension = current_state[0].replace('is_spine_inverted_', '')
+        sys.stdout.write('\nInvert Spine ' + dimension.capitalize() + ' Rotation Set To : ' + str(current_state[1]))
+        settings[current_state[0]] = current_state[1]
+
     logger.debug(str(args))
     column_extra_functions = build_custom_help_window(input_text, help_title=help_title)
+    cmds.separator(h=10, style='none', p=column_extra_functions)
     cmds.rowColumnLayout(column_extra_functions, e=True, nc=1, cw=[(1, 260)], cs=[(1, 30)])
-    cmds.separator(h=13, style='none', p=column_extra_functions)
+    column_inversion = cmds.rowColumnLayout(nc=3, cw=[(1, 60), (2, 60), (3, 60)],
+                                            cs=[(1, 10), (2, 30), (3, 30)],
+                                            p=column_extra_functions)
+    cmds.checkBox(label='Invert X',
+                  value=settings.get('is_spine_inverted_x'),
+                  p=column_inversion, cc=partial(set_spine_inversion, 'is_spine_inverted_x'))
+    cmds.checkBox(label='Invert Y',
+                  value=settings.get('is_spine_inverted_y'),
+                  p=column_inversion, cc=partial(set_spine_inversion, 'is_spine_inverted_y'))
+    cmds.checkBox(label='Invert Z',
+                  value=settings.get('is_spine_inverted_z'),
+                  p=column_inversion, cc=partial(set_spine_inversion, 'is_spine_inverted_z'))
+
+    cmds.separator(h=10, style='none', p=column_extra_functions)
     cmds.floatSliderGrp(label='Spine Influence', field=True, minValue=0, maxValue=100, fieldMinValue=0,
                         fieldMaxValue=10000, value=settings.get('spine_influence'), cw=([1, 70], [2, 70]),
                         p=column_extra_functions, cc=set_spine_influence)
@@ -1159,7 +1208,9 @@ def get_hik_properties_node(char):
     if not is_hik_character_valid(char):
         raise Exception("Couldn't find character definition for: \"" + char + '".')
     try:
-        property_node = mel.eval('getProperty2StateFrocmdsharacter("' + char + '")')
+        property_node = mel.eval('catchQuiet(getProperty2StateFrocmdsharacter("' + char + '"))')
+        if property_node == 1:
+            raise Exception("MEL getProperty2State command failed.")
     except Exception as e:
         logger.debug(str(e))
         source_connection = cmds.listConnections(char + '.propertyState', s=True, d=False) or []
@@ -1387,7 +1438,7 @@ def get_joint_orientation(obj, expected_up=(0, 1, 0)):
     temp_world_up_loc = cmds.spaceLocator(name=obj + 'worldUp' + unique_name)[0]
     up_distance_xyz = {'x': None, 'y': None, 'z': None}
     up_distance_state_xyz = {'x': '', 'y': '', 'z': ''}
-    # X
+    # X Up
     if orientation_aim_axis != 'x':
         cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
         cmds.move(expected_up[0]*move_distance, expected_up[1]*move_distance, expected_up[2]*move_distance,
@@ -1403,7 +1454,7 @@ def get_joint_orientation(obj, expected_up=(0, 1, 0)):
         else:
             up_distance_state_xyz['x'] = "-"
         up_distance_xyz['x'] = up_distance_x
-    # Y
+    # Y Up
     if orientation_aim_axis != 'y':
         cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
         cmds.move(expected_up[0] * move_distance, expected_up[1] * move_distance, expected_up[2] * move_distance,
@@ -1419,7 +1470,7 @@ def get_joint_orientation(obj, expected_up=(0, 1, 0)):
         else:
             up_distance_state_xyz['y'] = "-"
         up_distance_xyz['y'] = up_distance_y
-    # Z
+    # Z Up
     if orientation_aim_axis != 'z':
         cmds.delete(cmds.pointConstraint(obj, temp_world_up_loc))
         cmds.move(expected_up[0] * move_distance, expected_up[1] * move_distance, expected_up[2] * move_distance,
@@ -1442,29 +1493,32 @@ def get_joint_orientation(obj, expected_up=(0, 1, 0)):
             remaining_axis[key] = up_distance_xyz.get(key)
 
     orientation_up_axis = min(remaining_axis, key=remaining_axis.get)
-    orientation_main_axis = max(remaining_axis, key=remaining_axis.get)
+    # orientation_main_axis = max(remaining_axis, key=remaining_axis.get)
+    orientation_main_axis = 'xyz'.replace(orientation_up_axis, '').replace(orientation_aim_axis, '')  # Remaining Axis
 
     cmds.delete([temp_loc_grp, temp_child_loc_grp, temp_world_up_loc])
 
     if aim_distance_state_xyz.get(orientation_aim_axis).startswith('+'):
-        up_distance_state_xyz[orientation_main_axis] = '-'
-    else:
         up_distance_state_xyz[orientation_main_axis] = '+'
+    else:
+        up_distance_state_xyz[orientation_main_axis] = '-'
 
     aim_axis = str(aim_distance_state_xyz.get(orientation_aim_axis)) + str(orientation_aim_axis)
     up_axis = str(up_distance_state_xyz.get(orientation_up_axis)) + str(orientation_up_axis)
+
     main_axis = str(up_distance_state_xyz.get(orientation_main_axis)) + str(orientation_main_axis)
 
     # Pose Object Setup
     Orientation = namedtuple('Orientation', ['aim_axis', 'up_axis', 'main_axis'])
 
+    cmds.select(obj)
     return Orientation(aim_axis=aim_axis, up_axis=up_axis, main_axis=main_axis)
 
 
 # Build GUI / Tests
 if __name__ == '__main__':
     # Debug Lines
-    debugging_settings['is_debugging'] = True
+    debugging_settings['is_debugging'] = False
     if debugging_settings.get('is_debugging'):
         logger.setLevel(logging.DEBUG)
         logger.debug('Logging Level Set To: ' + str(logger.level))
@@ -1475,7 +1529,7 @@ if __name__ == '__main__':
 
         # Change Default Values
         settings['connect_toes'] = False
-        settings['connect_spine'] = True
+        settings['reconnect_spine'] = True
         settings['connect_fingers'] = False
         settings['leg_stabilization'] = False
         settings['unlock_rotations'] = False
@@ -1498,10 +1552,3 @@ if __name__ == '__main__':
 
     # Build GUI
     build_gui_mocap_rig()
-    # selection = cmds.ls(selection=True)
-    # for obj in selection:
-    #     output = get_joint_orientation(obj)
-    #
-    #     if output:
-    #         import pprint
-    #         pprint.pprint(output)
