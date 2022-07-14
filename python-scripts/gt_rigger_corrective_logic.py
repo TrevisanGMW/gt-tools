@@ -41,6 +41,9 @@
  Added proxy visibility and locked main group
  Added settings to make the creation of certain correctives optional
 
+ 0.0.11 - 2022-07-13
+ Updated default position of a few of the corrective targets
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
@@ -1197,7 +1200,7 @@ def create_corrective_setup(corrective_data):
                  driver_bound='left_shoulder_jnt',
                  driver_range=[0, 1],
                  driven='left_upperShoulder_driverJnt',
-                 driven_offset=[-18.94, -0.4, 8.87, 0.0, -20.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[-12, -0.8, 9, 0.0, -80.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_shoulder'),
 
             # Right Front Shoulder ------------------------------------------
@@ -1272,7 +1275,7 @@ def create_corrective_setup(corrective_data):
                  driver_bound='right_shoulder_jnt',
                  driver_range=[0, 1],
                  driven='right_upperShoulder_driverJnt',
-                 driven_offset=[18.94, 0.4, -8.87, 0.0, -20.0, 0.0, 1.0, 1.0, 1.0],
+                 driven_offset=[12, 0.8, -9, 0.0, -80.0, 0.0, 1.0, 1.0, 1.0],
                  setup='abduction_shoulder'),
 
 
@@ -2036,13 +2039,13 @@ if __name__ == '__main__':
 
     if debugging:
         pass
-        # try:
-        #     cmds.setAttr('main_ctrl.correctiveVisibility', 1)
-        #     cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
-        #     # cmds.setAttr('rig_setup_grp.v', 1)
-        #     # cmds.setAttr("left_hip_ctrl.rotateX", -90)
-        #     # cmds.setAttr("right_hip_ctrl.rotateX", -90)
-        #     # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
-        #     # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
-        # except Exception as e:
-        #     logger.debug(str(e))
+        try:
+            cmds.setAttr('main_ctrl.correctiveVisibility', 1)
+            cmds.setAttr('main_ctrl.correctiveGoalLocVisibility', 1)
+            # cmds.setAttr('rig_setup_grp.v', 1)
+            # cmds.setAttr("left_hip_ctrl.rotateX", -90)
+            # cmds.setAttr("right_hip_ctrl.rotateX", -90)
+            # cmds.setAttr("left_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+            # cmds.setAttr("right_frontElbow_driverJnt_ctrl.elbowFlexionFollowWristShoulderWristPlane", 0)
+        except Exception as e:
+            logger.debug(str(e))
