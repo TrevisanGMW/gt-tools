@@ -1,7 +1,7 @@
 """
  GT Sphere Types - Sphere Types is a simple reminder for Modeling students that they don't need to only use the
  standard sphere for everything.
- github.com/TrevisanGMW - 2020-11-04
+ github.com/TrevisanGMW/gt-tools -  2020-11-04
  Tested on Maya 2020 - Windows 10
  
  1.1 - 2020-11-22
