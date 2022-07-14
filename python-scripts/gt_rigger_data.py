@@ -16,8 +16,8 @@ logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
 SCRIPT_VERSION_BASE = '1.9.13'
-SCRIPT_VERSION_FACIAL = '0.0.14'
-SCRIPT_VERSION_CORRECTIVE = '0.0.10'
+SCRIPT_VERSION_FACIAL = '0.0.15'
+SCRIPT_VERSION_CORRECTIVE = '0.0.11'
 
 # General Vars
 GRP_SUFFIX = 'grp'
