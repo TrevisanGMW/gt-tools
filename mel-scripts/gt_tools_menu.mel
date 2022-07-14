@@ -159,6 +159,9 @@
 //   Added Retarget Assistant
 //   Added Custom Rig Interface
 //
+//   1.7.25 - 2022-07-14
+//	 Added Extract Curve State
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -270,6 +273,12 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
     -c ("python(\"gt_tools.execute_script('gt_shape_text_to_curve', 'build_gui_generate_text_curve')\");")
     -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
     -image "text.png" ;
+    
+    menuItem 
+    -l ("Extract Curve State") 
+    -c ("python(\"gt_tools.execute_script('gt_shape_extract_state', 'build_gui_curve_shape_state')\");")
+    -ann ("Generates the python command necessary to reshapea curves back to their current state.") 
+    -image "arcLengthDimension.svg" ;
 
 
     // Utility Section
