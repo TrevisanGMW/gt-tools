@@ -1,6 +1,6 @@
 """
  Create Sine output attributes without using third-party plugins or expressions.
- @Guilherme Trevisan - github.com/TrevisanGMW - 2021-01-25
+ github.com/TrevisanGMW/gt-tools - 2021-01-25
 
  1.0 - 2021-01-25
  Initial Release
