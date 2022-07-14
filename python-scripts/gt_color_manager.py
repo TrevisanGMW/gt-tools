@@ -1,7 +1,6 @@
 """
  GT Color Manager - A script for managing the color of many objects at the same time (outliner and other overrides)
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-13
- https://github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools - 2020-11-13
  
  1.1 - 2020-11-16
  Fixed an issue where the color containing rendering space data would be applied to the outliner.

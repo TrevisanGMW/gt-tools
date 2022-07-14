@@ -1,6 +1,6 @@
 """
  GT Check for Updates - This script compares your current GT Tools version with the latest release.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-10 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools - 2020-11-10
  
  1.1 - 2020-11-11
  Fixed a few issues with the color of the UI.

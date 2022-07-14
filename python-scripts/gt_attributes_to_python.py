@@ -1,6 +1,6 @@
 """
- Attributes to Python
- @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2021-12-01
+ GT Attributes to Python
+ github.com/TrevisanGMW/gt-tools - 2021-12-01
 
  0.0.2 - 2022-03-31
  Re-created script after losing it to hard drive corruption
@@ -8,6 +8,10 @@
  0.0.3 - 2022-04-19
  Added option to strip zeroes
  Added auto conversion of "-0"s into "0"s for clarity
+
+ Todo:
+    Create GUI
+    Add Logger
 
 """
 import maya.cmds as cmds

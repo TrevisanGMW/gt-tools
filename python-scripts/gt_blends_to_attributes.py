@@ -1,10 +1,16 @@
-# WIP for script that connects blendshape to a control
+"""
+GT Blends to Attributes
+github.com/TrevisanGMW/gt-tools - 2022-03-17
+
+0.0.1 - 2022-03-17
+Created core functions
+"""
 import maya.cmds as cmds
 
 selection_source = cmds.ls(selection=True)[0]  # First selected object - Geo with BS
 selection_target = cmds.ls(selection=True)[1]  # Second selected object - Curve
 history = cmds.listHistory(selection_source)
-blendshape_node = cmds.ls(history, type ='blendShape')[0]
+blendshape_node = cmds.ls(history, type='blendShape')[0]
 blendshape_names = cmds.listAttr(blendshape_node + '.w', m=True)
 
 modify_range = True
@@ -20,7 +26,7 @@ method = 'includes'
 
 undesired_filter_strings = ['corrective']
 desired_blends = []
-desired_filter_strings = ['nose']
+desired_filter_strings = ['jaw', 'cheek', 'mouth', 'nose']
 filtered_blends = []
 
 # Find desired blends
