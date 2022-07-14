@@ -161,6 +161,7 @@
 //
 //   1.7.25 - 2022-07-14
 //	 Added Extract Curve State
+//	 Added Extract Bound Joints
 //
 //----------------------------------------------------------------------------
 
@@ -379,6 +380,12 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     
     // General Rigging Tools
     menuItem -divider true ;
+    
+    menuItem 
+    -l ("Extract Bound Joints") 
+    -c ("python(\"gt_tools.execute_script('gt_extract_bound_joints', 'build_gui_extract_bound_joints')\");") 
+    -ann ("Generate Python code used to select bound joints.") 
+    -image "smoothSkin.png";
     
     menuItem 
     -l ("Connect Attributes") 
