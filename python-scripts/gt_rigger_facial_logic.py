@@ -1,6 +1,6 @@
 """
  GT Facial Rigger
- github.com/TrevisanGMW - 2021-12-06
+ github.com/TrevisanGMW/gt-tools -  2021-12-06
 
  0.0.1 - 2021-12-10
  Created Facial Controls
@@ -52,12 +52,15 @@
  0.0.15 - 2022-07-13
  Minor Adjustments to 'head_jnt' visibility
 
+ 0.0.16 - 2022-07-14
+ Parented nose and cheek controls initially to the head for when creating without a biped base
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
-     Add nose proxy / control
+     Add main nose control
+     Add nose and cheek automation to side GUI
      Improve tongue scale control system
      Look for existing biped proxy (not only joints) when creating facial proxy
-
 """
 from collections import namedtuple
 from gt_utilities import remove_strings_from_string
@@ -2257,6 +2260,7 @@ def create_facial_controls(facial_data):
 
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('right_cheek_crv'),
                                       _facial_joints_dict.get('right_cheek_jnt')))
+    cmds.parent(left_cheek_ctrl_grp, head_ctrl)
 
     cmds.rotate(-90, 90, 0, _facial_joints_dict.get('right_cheek_jnt'), os=True, relative=True)
     right_cheek_ctrl = cmds.curve(name='right_cheek_' + CTRL_SUFFIX,
@@ -2279,6 +2283,7 @@ def create_facial_controls(facial_data):
     change_viewport_color(right_cheek_ctrl, RIGHT_CTRL_COLOR)
     cmds.parentConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'))
     cmds.scaleConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'))
+    cmds.parent(right_cheek_ctrl_grp, head_ctrl)
 
     # Create Nose Controls -----------------------------------------------------------------------------------
     cmds.parent(_facial_joints_dict.get('left_nose_jnt'), _facial_joints_dict.get('head_jnt'))
@@ -2303,6 +2308,7 @@ def create_facial_controls(facial_data):
     cmds.scaleConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt'))
     lock_hide_default_attr(left_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(left_nose_ctrl, LEFT_CTRL_COLOR)
+    cmds.parent(left_nose_ctrl_grp, head_ctrl)
 
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('right_nose_crv'),
                                       _facial_joints_dict.get('right_nose_jnt')))
@@ -2319,6 +2325,7 @@ def create_facial_controls(facial_data):
     cmds.scaleConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt'))
     lock_hide_default_attr(right_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(right_nose_ctrl, RIGHT_CTRL_COLOR)
+    cmds.parent(right_nose_ctrl_grp, head_ctrl)
 
     # Flesh Eyes Hierarchy
     head_offset_ctrl = 'head_offsetCtrl'
