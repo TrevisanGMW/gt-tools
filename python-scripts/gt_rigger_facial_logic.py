@@ -49,6 +49,9 @@
  Re-added cheek and nose controls
  Added visibility options to proxy controls
 
+ 0.0.15 - 2022-07-13
+ Minor Adjustments to 'head_jnt' visibility
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
      Add nose proxy / control
@@ -2317,9 +2320,6 @@ def create_facial_controls(facial_data):
     lock_hide_default_attr(right_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(right_nose_ctrl, RIGHT_CTRL_COLOR)
 
-    # Visibility Adjustments
-    cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
-
     # Flesh Eyes Hierarchy
     head_offset_ctrl = 'head_offsetCtrl'
     if cmds.objExists(head_offset_ctrl):
@@ -3222,6 +3222,9 @@ def create_facial_controls(facial_data):
 
     # TODO END ------------------------------------------------------------------------------------------------------
 
+    # Visibility Adjustments
+    cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
+
     # Store Proxy as String Attribute
     store_proxy_as_string(head_ctrl, 'facial_proxy_pose', facial_data)
 
@@ -3269,7 +3272,7 @@ def merge_facial_elements():
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    data_facial.debugging = True
+    data_facial.debugging = False
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
@@ -3290,31 +3293,31 @@ if __name__ == '__main__':
     # Core Functions ---------------------------------------------------------------------------------------------
 
     create_facial_proxy(data_facial)
-    # create_facial_controls(data_facial)
-    # merge_facial_elements()
+    create_facial_controls(data_facial)
+    merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
         pass
-        # cmds.select(['root_jnt'], hierarchy=True)
-        # selection = cmds.ls(selection=True)
-        # cmds.skinCluster(selection, 'body_geo', bindMethod=1, toSelectedBones=True, smoothWeights=0.5,
-        #                  maximumInfluences=4)
-        #
-        # from ngSkinTools2 import api as ng_tools_api
-        # from ngSkinTools2.api import InfluenceMappingConfig, VertexTransferMode
-        #
-        # config = InfluenceMappingConfig()
-        # config.use_distance_matching = True
-        # config.use_name_matching = True
-        #
-        # source_file_name = 'C:\\body.json'
-        #
-        # # Import Skin Weights
-        # ng_tools_api.import_json(
-        #     "body_geo",
-        #     file=source_file_name,
-        #     vertex_transfer_mode=VertexTransferMode.vertexId,
-        #     # vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
-        #     influences_mapping_config=config,
-        # )
+        cmds.select(['root_jnt'], hierarchy=True)
+        selection = cmds.ls(selection=True)
+        cmds.skinCluster(selection, 'body_geo', bindMethod=1, toSelectedBones=True, smoothWeights=0.5,
+                         maximumInfluences=4)
+
+        from ngSkinTools2 import api as ng_tools_api
+        from ngSkinTools2.api import InfluenceMappingConfig, VertexTransferMode
+
+        config = InfluenceMappingConfig()
+        config.use_distance_matching = True
+        config.use_name_matching = True
+
+        source_file_name = 'C:\\body.json'
+
+        # Import Skin Weights
+        ng_tools_api.import_json(
+            "body_geo",
+            file=source_file_name,
+            vertex_transfer_mode=VertexTransferMode.vertexId,
+            # vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
+            influences_mapping_config=config,
+        )
