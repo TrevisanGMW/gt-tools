@@ -33,6 +33,10 @@ Script to help transfer motion capture data to custom rig controls
     Changed the name "Connect Spine" to "Reconnect Spine" for clarity
     Added HIK properties' node selection button "P"
 
+    v0.1.2 - 2022-07-13
+    Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
+    Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
+
 """
 from collections import namedtuple
 from functools import partial
@@ -65,7 +69,7 @@ logger = logging.getLogger("gt_rigger_retarget_assistant")
 logger.setLevel(logging.INFO)
 
 # General Variables
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.1.2"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
@@ -730,6 +734,13 @@ def create_spine_mocap_rig(hik_source_definition):
     # Extra Controls
     spine01_ctrl_ns = find_item_no_namespace('spine01_ctrl')[0]
     spine03_ctrl_ns = find_item_no_namespace('spine03_ctrl')[0]
+
+    try:
+        waist_ctrl_switch_ctrl_ns = find_item_no_namespace('waist_ctrl')[0]
+        cmds.setAttr(waist_ctrl_switch_ctrl_ns + '.additionalFKCtrlsAutoRotate', 0)
+        cmds.setAttr(waist_ctrl_switch_ctrl_ns + '.additionalFKCtrlsVisibility', 1)
+    except Exception as e:
+        logger.debug(str(e))
 
     # Delete Keyframes
     for ctrl in [chest_ctrl_ns, spine02_ctrl_ns]:
