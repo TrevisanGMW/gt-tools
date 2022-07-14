@@ -24,7 +24,7 @@ def get_bound_joints(obj):
         logger.warning('Object "' + obj + '" was not found in the scene.')
         return
 
-    history = cmds.listHistory(selection_source) or []
+    history = cmds.listHistory(obj) or []
     skin_clusters = cmds.ls(history, type='skinCluster') or []
 
     if len(skin_clusters) != 0:
