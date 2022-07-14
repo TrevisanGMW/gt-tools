@@ -120,7 +120,7 @@ python_version = sys.version_info.major
 
 
 def gtu_reload_file():
-    """ Reopens the opened file (to revert back any changes done to the file) """
+    """ Reopens the opened file (to revert any changes done to the file) """
     if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
         file_path = cmds.file(query=True, expandName=True)
         if file_path is not None:
