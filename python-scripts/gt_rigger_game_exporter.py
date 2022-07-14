@@ -124,7 +124,7 @@ def _export_fbx(file_path, baked_animation_export=True):
     pre_roll_data = export_pre_roll()
     configure_fbx()
     if baked_animation_export:
-        baked_animation_export()
+        export_baked_animation()
         select_items(pre_roll_data.root)
     else:
         select_items(pre_roll_data.geo, pre_roll_data.root)
