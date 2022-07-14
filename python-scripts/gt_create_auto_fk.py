@@ -1,7 +1,6 @@
 """
-
  GT Auto FK - Creates FK controls and move them to expected hierarchy.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-01-03
+ github.com/TrevisanGMW/gt-tools - 2020-01-03
  
  1.2 - 2020-05-10 
  Fixed an issue where not using a suffix wouldn't build the hierarchy.
