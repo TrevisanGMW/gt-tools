@@ -1,5 +1,5 @@
 """
- Custom Rig Interface for GT Auto Biped Rigger.
+ Custom Rig Interface for GT Biped Auto Rigger
  github.com/TrevisanGMW/gt-tools - 2021-01-05
  
  1.0 - 2021-05-01
