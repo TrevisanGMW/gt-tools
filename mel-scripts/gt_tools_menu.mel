@@ -153,6 +153,12 @@
 //   1.7.22
 //   Added "gtu_generate_udim_previews()"
 //
+//   1.7.23 - 4 2022-07-13
+//   Renamed Auto Biped Rigger to Biped Auto Rigger 
+//   Added Game FBX Expoter
+//   Added Retarget Assistant
+//   Added Custom Rig Interface
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -348,8 +354,13 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -l ("Biped Rig Interface")
     -c ("python(\"gt_tools.execute_script('gt_biped_rig_interface', 'build_gui_custom_rig_interface')\");") 
     -ann ("Custom Rig Interface for GT Biped Auto Rigger.") 
-    // -image "p-add.png" ; //QR_QuickRigTool.png  # animateSnapshot.png
-    -image "animateSnapshot.png" ; //QR_QuickRigTool.png  # animateSnapshot.png
+    -image "animateSnapshot.png" ;
+    
+    menuItem 
+    -l ("Retarget Assistant")
+    -c ("python(\"gt_tools.execute_script('gt_rigger_retarget_assistant', 'build_gui_mocap_rig')\");") 
+    -ann ("Script with HumanIK patches.") 
+    -image "p-add.png" ;
     
     menuItem 
     -l ("Game FBX Exporter")
