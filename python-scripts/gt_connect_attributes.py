@@ -1,6 +1,6 @@
 """
  GT Connect Attributes Script
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-04
+ github.com/TrevisanGMW/gt-tools - 2020-02-04
  1.2 - 2020-02-18 
  Added force connection and some checks.
  
