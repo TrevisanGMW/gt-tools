@@ -347,7 +347,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui([plugin_name])
 
     def toggle_startup_booster_redshift():
-        """ Toggle the auto load checkbox for the Redshift plugin """
+        """ Toggle the load checkbox for the Redshift plugin """
 
         plugin_name = 'redshift4maya'
         refresh_startup_booster_ui([plugin_name])
@@ -362,7 +362,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui([plugin_name])
 
     def toggle_startup_booster_bifrost():
-        """ Toggle the auto load checkbox for the Bifrost plugin """
+        """ Toggle the load checkbox for the Bifrost plugin """
 
         plugin_names = ['bifmeshio', 'bifrostGraph', 'bifrostshellnode', 'bifrostvisplugin', 'Boss', 'mayaVnnPlugin']
 
@@ -379,7 +379,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui(plugin_names)
 
     def toggle_startup_booster_bullet():
-        """ Toggle the auto load checkbox for the Bullet plugin """
+        """ Toggle the load checkbox for the Bullet plugin """
 
         plugin_names = ['AbcBullet', 'bullet']
 
@@ -396,7 +396,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui(plugin_names)
 
     def toggle_startup_booster_mash():
-        """ Toggle the auto load checkbox for the MASH plugin """
+        """ Toggle the load checkbox for the MASH plugin """
 
         plugin_name = 'MASH'
         refresh_startup_booster_ui([plugin_name])
@@ -411,7 +411,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui([plugin_name])
 
     def toggle_startup_booster_xgen():
-        """ Toggle the auto load checkbox for the MASH plugin """
+        """ Toggle the oad checkbox for the MASH plugin """
 
         plugin_name = 'xgenToolkit'
         refresh_startup_booster_ui([plugin_name])
@@ -426,7 +426,7 @@ def build_gui_startup_booster():
         refresh_startup_booster_ui([plugin_name])
 
     def optimize_all_plugins():
-        """ Deactivate auto load for all heavy plugins """
+        """ Deactivate load for all heavy plugins """
 
         refresh_startup_booster_ui()
         plugins = ['mtoa', 'redshift4maya', 'bifmeshio', 'bifrostGraph', 'bifrostshellnode',
