@@ -46,7 +46,8 @@ def get_bound_joints(obj):
 if __name__ == '__main__':
     selection_source = cmds.ls(selection=True)[0]  # First selected object - Geo with skinCluster
     bound_joints = get_bound_joints(selection_source)
-    print(bound_joints)
+    python_select_command = 'cmds.select(' + str(bound_joints) + ')'
+    print(python_select_command)
     # cmds.select(bound_joints, replace=True)
-    # import gt_maya_utilities as gtu
-    # gtu.output_string_to_notepad(bound_joints)
+    import gt_maya_utilities as gtu
+    gtu.output_string_to_notepad(python_select_command)
