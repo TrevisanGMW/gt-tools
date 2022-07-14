@@ -1,6 +1,7 @@
 """
  Inbetween Generator -> Simple script used to create Inbetween Transforms
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-04
+ github.com/TrevisanGMW/gt-tools -  2020-02-04
+
  1.1 - 2020-02-18
  Added Color Picker
 

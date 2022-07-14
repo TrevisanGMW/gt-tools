@@ -2,7 +2,7 @@
  GT Maya to Discord
  Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.
 
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-28 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools -  2020-06-28
  Tested on Maya 2018, 2019, 2020 - Windows 10
 
  1.1 - 2020-07-04

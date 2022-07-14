@@ -1,6 +1,6 @@
 """
  GT Renamer - Script for Quickly Renaming Multiple Objects
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-25
+ github.com/TrevisanGMW/gt-tools - 2020-06-25
  
  1.1 - 2020-08-03
  Fixed little issue when auto adding suffix to objects with multiple shapes.

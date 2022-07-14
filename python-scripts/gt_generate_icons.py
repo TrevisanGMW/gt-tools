@@ -1,6 +1,6 @@
 """
  GT Generate Icons - Generates icons used by GT Tools menus and utilities
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-03 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools -  2020-11-03
  
  1.0 - 2020-11-03
  Initial Release

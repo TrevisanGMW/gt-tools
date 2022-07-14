@@ -1,8 +1,8 @@
 """
- GT Path Manager - A script for quickly repathing many elements in Maya.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-26 - github.com/TrevisanGMW
+ GT Path Manager - A script for quickly re-pathing many elements in Maya.
+ github.com/TrevisanGMW/gt-tools - 2020-08-26
  
- 0.1a - 2020-08-26
+ 0.1 - 2020-08-26
  Created initial setup, added table and icons for file nodes
  
  1.0 - 2020-12-02
@@ -65,6 +65,7 @@ script_version = '1.2.1'
 
 # Python Version
 python_version = sys.version_info.major
+
 
 def maya_main_window():
     """

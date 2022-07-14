@@ -1,5 +1,4 @@
 """
-
  GT Maya Utilities
  github.com/TrevisanGMW - 2020-09-13
  

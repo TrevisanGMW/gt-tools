@@ -1,7 +1,6 @@
 """
-
  GT Mirror Cluster Tool
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-16
+ github.com/TrevisanGMW/gt-tools -  2020-06-16
  
  1.1 - 2020-11-15
  Tweaked the color and text for the title and help menu
