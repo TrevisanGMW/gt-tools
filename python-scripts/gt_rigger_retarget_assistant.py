@@ -1,41 +1,42 @@
 """
 Script to help transfer motion capture data to custom rig controls
+github.com/TrevisanGMW/gt-tools - 2022-02-18
     
-    v0.0.1 - 2022-02-18
-    Initial Test Version
+v0.0.1 - 2022-02-18
+Initial Test Version
 
-    v0.0.3 - 2022-03-02
-    Used parentConstraints to prevent undesired offset rotation
+v0.0.3 - 2022-03-02
+Used parentConstraints to prevent undesired offset rotation
 
-    v0.0.5 - 2022-03-04
-    Simplified the script to avoid errors. It now detects joints and bakes FK and IK in one go
+v0.0.5 - 2022-03-04
+Simplified the script to avoid errors. It now detects joints and bakes FK and IK in one go
 
-    v0.0.6 - 2022-03-06
-    Updated UI and added button with explanations
-    Added custom help UI function
+v0.0.6 - 2022-03-06
+Updated UI and added button with explanations
+Added custom help UI function
 
-    v0.0.7 - 2022-03-07
-    Added a sentence in the UI explaining basic behaviour regarding first frame use
+v0.0.7 - 2022-03-07
+Added a sentence in the UI explaining basic behaviour regarding first frame use
 
-    v0.0.8 - 2022-03-07
-    Added leg stabilization, removed Transfer to IK option
+v0.0.8 - 2022-03-07
+Added leg stabilization, removed Transfer to IK option
 
-    v0.1.0 - 2022-07-07
-    PEP8 cleanup
-    Changed "Get Current" option, so it updates both fields
-    Added a few utility functions
+v0.1.0 - 2022-07-07
+PEP8 cleanup
+Changed "Get Current" option, so it updates both fields
+Added a few utility functions
 
-    v0.1.1 - 2022-07-12
-    Updated finger and spine functions to detect the source joint orientation
-    Added influence slider to "Connect Spine" help menu
-    Added invert rotation checkbox to "Connect Fingers" help menu
-    Added invert rotation checkboxes to "Reconnect Spine" help menu
-    Changed the name "Connect Spine" to "Reconnect Spine" for clarity
-    Added HIK properties' node selection button "P"
+v0.1.1 - 2022-07-12
+Updated finger and spine functions to detect the source joint orientation
+Added influence slider to "Connect Spine" help menu
+Added invert rotation checkbox to "Connect Fingers" help menu
+Added invert rotation checkboxes to "Reconnect Spine" help menu
+Changed the name "Connect Spine" to "Reconnect Spine" for clarity
+Added HIK properties' node selection button "P"
 
-    v0.1.2 - 2022-07-13
-    Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
-    Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
+v0.1.2 - 2022-07-13
+Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
+Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
 
 """
 from collections import namedtuple
