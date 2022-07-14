@@ -1,8 +1,9 @@
 """
 GT Offset Shape - Offsets the CVs of a curve shape
+github.com/TrevisanGMW/gt-tools - 2022-03-16
 
 v0.0.1 - 2022-03-16
-Created main function containing
+Work in progress, core function
 
 
 """
@@ -10,7 +11,7 @@ import maya.cmds as cmds
 import random
 
 
-def offset_curve_shape(curve_transforms, offset_pos=None):#, offset_rot=None, offset_scale=None):
+def offset_curve_shape(curve_transforms, offset_pos=None): #, offset_rot=None, offset_scale=None):
     """
     Offsets curves according to the provided parameters (currently only supporting position)
     Args:

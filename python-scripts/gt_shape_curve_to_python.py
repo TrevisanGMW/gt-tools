@@ -1,6 +1,6 @@
 """
  Python Curve Generator
- @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2020-01-02
+ github.com/TrevisanGMW/gt-tools -  2020-01-02
  
  1.1 - 2020-01-03
  Minor patch adjustments to the script

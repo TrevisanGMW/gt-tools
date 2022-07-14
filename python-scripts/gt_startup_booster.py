@@ -1,6 +1,6 @@
 """
  GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-11-20 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools - 2020-11-20
  
  1.1 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)

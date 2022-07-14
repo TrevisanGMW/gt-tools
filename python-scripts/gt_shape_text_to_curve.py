@@ -1,6 +1,6 @@
 """
- Text Curve Generator -> Simple script used to quickly create text curves
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-09
+ GT Text Curve Generator -> Script used to quickly create text curves
+ github.com/TrevisanGMW/gt-tools -  2020-06-09
  
  1.1 - 2020-06-17
  Changed UI

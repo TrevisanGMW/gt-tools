@@ -1,5 +1,6 @@
 """
 GT Extract Shape State - Outputs the python code containing the current shape data for the selected curves
+github.com/TrevisanGMW/gt-tools - 2021-10-01
 
 v1.0.0 - 2021-10-01
 Initial Release

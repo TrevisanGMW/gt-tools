@@ -1,7 +1,7 @@
 """
  GT Transfer Transforms - Script for transferring Translate, Rotate, and Scale between objects.
  A solution for mirroring poses and set driven keys.
- @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2020-06-07
+ github.com/TrevisanGMW - 2020-06-07
  
  1.1 - 2020-06-09
  Added Copy/Paste TRS options

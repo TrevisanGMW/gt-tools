@@ -1,5 +1,6 @@
 """
 GT Rigger - Game Exporter
+github.com/TrevisanGMW/gt-tools - 2022-02-04
 
 v1.0.0 - Initial Release
 

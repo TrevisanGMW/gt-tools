@@ -1,6 +1,6 @@
 """
  GT Rigger Utilities - Common functions used by the auto rigger scripts
- github.com/TrevisanGMW - 2021-12-10
+ github.com/TrevisanGMW/gt-tools -  2021-12-10
 
  2022-01-31
  Added distalMultiplier attributes to toggle attribute

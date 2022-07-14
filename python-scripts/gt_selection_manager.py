@@ -1,6 +1,6 @@
 """
  GT Selection Manager Script
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-02-19
+ github.com/TrevisanGMW/gt-tools -  2020-02-19
  
  1.0 - 2020-03-05 
  Included Help Button
