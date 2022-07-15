@@ -52,8 +52,9 @@
  0.0.15 - 2022-07-13
  Minor Adjustments to 'head_jnt' visibility
 
- 0.0.16 - 2022-07-14
+ 0.0.16 to 17 - 2022-07-14
  Parented nose and cheek controls initially to the head for when creating without a biped base
+ Added cheek and nose controls to head_ctrl visibility attribute
 
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
@@ -2326,6 +2327,12 @@ def create_facial_controls(facial_data):
     lock_hide_default_attr(right_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(right_nose_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_nose_ctrl_grp, head_ctrl)
+
+    # Head Controls Ctrl Visibility
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_cheek_ctrl_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', right_cheek_ctrl_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_nose_ctrl_grp + '.v')
+    cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', right_nose_ctrl_grp + '.v')
 
     # Flesh Eyes Hierarchy
     head_offset_ctrl = 'head_offsetCtrl'
