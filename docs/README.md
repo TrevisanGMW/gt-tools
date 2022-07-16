@@ -28,6 +28,7 @@
 <ul>
   <li><a href="#-gt-generate-python-curve-">GT Generate Python Curve</a></li>
   <li><a href="#-gt-generate-text-curve-">GT Generate Text Curve</a></li>
+  <li><a href="#-gt-extract-curve-state-">GT Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
@@ -39,6 +40,10 @@
 <h3><b>Rigging:</b></h3>
 <ul>
   <li><a href="#-gt-biped-auto-rigger-">GT Biped Auto Rigger</a></li>
+  <li><a href="#-gt-biped-rig-interface-">GT Biped Rig Interface</a></li>
+  <li><a href="#-gt-retarget-assistant-">GT Retarget Assistant</a></li>
+  <li><a href="#-gt-game-fbx-exporter-">GT Game FBX Exporter</a></li>
+  <li><a href="#-gt-extract-bound-joints-">GT Extract Bound Joints</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
@@ -612,6 +617,27 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<!-- GT Extract Curve State -->
+<div>
+<h1> GT Extract Curve State </h1>
+
+<img src="./media/gt_extract_shape_state.jpg" align="right"
+     alt="GT Extract Curve State GUI">
+
+<p>This script generates the Python code necessary to recreate a curve shape state.</p>
+
+<p><b>How to use it:</b>
+<br>1. Select the curve (or curve's transform) you want to convert to code.
+<br>2. Click on the "Generate" button to generate the code.</p>
+
+<p><b>"Extract State" button:</b><br>Outputs the python code necessary to recreate the current curve shape inside the "Output PYthon Curve" box.</p>
+
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+
+<br>
+
+</div>
+
 <!-- Transfer UVs -->
 <div>
 <h1> GT Transfer UVs </h1>
@@ -656,7 +682,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <p>Script for quickly generating an advanced biped rig.
 <br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
-<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.</p>
+<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github. 
 <br>
 <p>Here are some highlights of what it creates: 
 <ul>
@@ -674,6 +700,8 @@ with the provided prefix "Left Side Tag".</p>
 	<li> Automatic breathing system without using expressions.</li>
 </ul>
 </p>
+
+<p>Tabs: <br>The tabs "Facial", "Corrective" and  "Settings" control optional rigging steps and work in a similar way to the base rig.</p>
 
 <p><h3>Step 1:</h3>
 <b>- Create Proxy:</b><br>
@@ -720,7 +748,7 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 <p><h3>Utilities:</h3>
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
-     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger GUI">
+     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger GUI">
 
 These are utilities and extra functions that you can use after creating your rig.
 <br>
@@ -738,7 +766,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
-     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Example">
+     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -851,8 +879,8 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 <p><h3>Auto Rigger Work Sample:</h3></p>
-<p>Below you can watch a few animations that used GT Auto Biped Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Auto Biped Rigger Home Remedy Promo">
+<p>Below you can watch a few animations that used GT Biped Auto Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Biped Auto Rigger Home Remedy Promo">
 
 <p>
 <ul>
@@ -864,6 +892,99 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <p>Do you want to share your animation here? Send me a message!<br></p>
 
 <br>
+
+</div>
+
+<!-- GT Biped Rig Interface -->
+<div>
+<h1> GT Biped Rig Interface </h1>
+
+<img src="./media/gt_custom_rig_interface.jpg" align="right"
+     alt="GT Biped Rig Interface GUI">
+
+<p>Extra functions and automations for rigs generated using GT Biped Auto Rigger.
+<br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
+
+<p><b>How to use it:</b>
+<br>1. Under "Namespace:" click on "Get" to use the character's namespace.<br>(In case you're not using a namespace, just click on "Clear")
+<br>2. If the character is found, the FK/IK buttons will light up according to the current state.
+<br>3. Use the desired function to animate or pose your character.</p>
+
+
+
+<h3>FK/IK Tab:</h3>
+<ul>
+	<li><p>This is the FK/IK Swticher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
+	</li>
+	<li><b>Auto Key:</b> When transitioning from one system to the other you might want an animation to drive the transition. That's what this button will help you accomplish.<br>
+	<b>Bake:</b> Uses the provided range to bake every frame while rematching one system into the other
+	<br><b>Sparse:</b> Creates the first and last keys necessary to transition from one system to the other.
+	<br><b>Get Selection Range (Button):</b> Gets the range of your current selection (from the timeline).
+	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjuction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
+	</li>
+</ul>
+
+<h3>Pose Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li><b>Mirror:</b> Copies the transform data from one side of the rig into the other, mirroring its current pose.</li>
+	<li><b>Reset Pose:</b> Resets the pose back to the rig default values.</li>
+	<li><b>Import/Export Pose:</b> Allows you to import/export the current pose from/to a file.</li>
+
+</ul>
+
+<h3>Animation Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li>
+		<b>Mirror:</b> Copies the animation data from one side of the rig into the other, mirroring its values.
+	</li>
+	<li>
+		<b>Reset Animation:</b> Deletes keyframes and Resets the pose back to the rig default values.
+	</li>
+	<li>
+		<b>Import/Export Animation:</b> Allows you to import/export the current animation from/to a file.
+	</li>
+</ul>
+
+<h3>Settings Tab:</h3>
+<ul>
+	<p>Overall Settings for this script. These are persistent and will retain their values in between sessions.</p>
+	<li>
+		<b>Allow Multiple Instances:</b> When active, you may open multiple instances of this script. Useful for when animating multiple character in the same scene.
+	</li>
+	<li>
+		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transfered to the default Wrist/Ankle controls or their offset controls.
+	</li>
+	<li>
+		<b>Key FK/IK Influence:</b> Creates a key in the influence values when swtiching between systems (FK/IK).
+	</li>
+	<li>
+		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
+	</li>
+</ul>
+
+
+
+<br>
+
+<!-- GT Extract Bound Joints -->
+<div>
+<h1> GT Extract Bound Joints </h1>
+
+<img src="./media/gt_extract_bound_joints.jpg" align="right"
+     alt="GT Extract Bound Joints GUI">
+
+<p>This script generates the Python code necessary to select all joints influencing a skinCluster node.</p>
+
+<p><b>How to use it:</b>
+<br>1. Select bound meshes or surfaces.
+<br>2. Click on the "Extract Bound Joints" button to generate the code.</p>
+
+<p><b>"Extract Bound Joints" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+
 <br>
 
 </div>
