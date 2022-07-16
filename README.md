@@ -41,7 +41,7 @@ For help on how to use these scripts, click on the “Help” button at the top 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
 Hopefully these scripts are helpful to you as they are to me.
 
-<p><b>Tested using Autodesk Maya 2020 (Windows 10)</b></p>
+<p><b>Tested using Autodesk Maya 2022 (Windows 10)</b></p>
 
 
 <h1> Organization </h1>
@@ -52,9 +52,9 @@ Hopefully these scripts are helpful to you as they are to me.
 <h1> Installation </h1>
 
 <b>TL;DR :</b> Download files, then open "setup.bat". 
-<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
+<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial. (Manual installation is slightly different now, I'll upload a new video soon)
 
-Do you want to use a script but don't want to install the whole package? That's fine too, every script in GT Tools is standalone and will run if you just copy the code and paste it in your script editor.
+It's possible to use most scripts without installing the whole package. Most of them are standalone and will work on their own, but for a better experience it's recommended that you include all scripts. This way you won't miss any dependencies.
 
 PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
 
@@ -83,8 +83,10 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<li>Move all the contents from the folders "mel-scripts" to your scripts folder (usually located under the path below):
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
+	<li>Move all the contents from the folders "mel-scripts" to a folder called "gt_tools" inside your scripts folder (example path below):
+	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
@@ -92,6 +94,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<br>If updating a major version, it's recommended that you uninstall it first before installing to eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
 <h1> Uninstallation </h1>
@@ -113,14 +116,14 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Close Maya (in case it's opened).</li>
 	<li>Navigate to your scripts folder, usually located under the following path:
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Delete all files starting with the prefix "gt_" (use the search bar to quickly select all of them)</li>
+	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
 	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
 	<li>Open Autodesk Maya. </li>
 </ol>
 
 <h1> Frequently Asked Questions </h1>
 <ul>
-	<li><b>How do I update GT Tools to a new version?</b> <br>A: Simply install it again, it will overwrite previous files.</li>
+	<li><b>How do I update GT Tools to a new version?</b> <br>A: Simply uninstall and install it again.</li>
 	<li><b>What do I do if I have multiple "userSetup.mel" files?</b> One inside "maya/####/scripts" and another one inside "maya/scripts"<br>A: The "userSetup.mel" file gets executed when you open Maya, but Maya supports only one file. In case you have two files it will give priority to the file located inside "maya/####/scripts", so manage your initialization commands there.</li>
 	<li><b>Where are the other scripts you had in this repository?</b> <br> A: I moved all other scripts that are not part of GT Tools to another reposity. Here is the link: <a href="https://github.com/TrevisanGMW/maya-scripts">TrevisanGMW/maya-scripts</a> </li>
 </ul>
