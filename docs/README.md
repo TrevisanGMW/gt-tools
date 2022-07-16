@@ -38,7 +38,7 @@
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
-  <li><a href="#-gt-auto-biped-rigger-">GT Auto Biped Rigger</a></li>
+  <li><a href="#-gt-biped-auto-rigger-">GT Biped Auto Rigger</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
@@ -647,15 +647,15 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Auto Biped Rigger -->
+<!-- GT Biped Auto Rigger -->
 <div>
-<h1> GT Auto Biped Rigger </h1>
+<h1> GT Biped Auto Rigger </h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
-     alt="GT Auto Biped Rigger GUI">
+     alt="GT Biped Auto Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to auto manage your geometry, parent it under a group called "geometry_grp".
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
 <br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.</p>
 <br>
 <p>Here are some highlights of what it creates: 
