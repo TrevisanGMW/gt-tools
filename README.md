@@ -94,7 +94,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
-<br>If updating a major version, it's recommended that you uninstall it first before installing to eliminate any unnecessary files.
+<br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
 <h1> Uninstallation </h1>
