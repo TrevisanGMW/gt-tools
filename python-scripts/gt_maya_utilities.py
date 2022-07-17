@@ -137,10 +137,9 @@ def gtu_open_resource_browser():
     """ Opens Maya's Resource Browser """
     try:
         import maya.app.general.resourceBrowser as resourceBrowser
-
         resourceBrowser.resourceBrowser().run()
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
 
 
 def gtu_unlock_default_channels():
@@ -278,9 +277,9 @@ def gtu_uniform_lra_toggle():
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning('The script couldn\'t read or write some LRA states. Open script editor for more info.')
-    except:
-        pass
+            cmds.warning("The script couldn't read or write some LRA states. Open script editor for more info.")
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -414,7 +413,8 @@ def gtu_remove_references():
                 cmds.file(r_file, removeReference=True)
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
         cmds.warning('Not all references were removed. Open the script editor for more information.')
@@ -446,8 +446,9 @@ def gtu_copy_material():
         mel.eval('ConvertSelectionToFaces;')
         cmds.polyClipboard(copy=True, shader=True)
         cmds.inViewMessage(amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True)
-    except:
-        cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
+    except Exception as e:
+        logger.debug(str(e))
+        cmds.warning("Couldn't copy material. Make sure you selected an object or component before copying.")
     cmds.select(selection)
 
 
@@ -455,8 +456,9 @@ def gtu_paste_material():
     """ Copies selected material to clipboard """
     try:
         cmds.polyClipboard(paste=True, shader=True)
-    except:
-        cmds.warning("Couldn\'t paste material. Make sure you copied a material first, "
+    except Exception as e:
+        logger.debug(str(e))
+        cmds.warning("Couldn't paste material. Make sure you copied a material first, "
                      "then selected the target objects or components.")
 
 
@@ -499,8 +501,8 @@ def gtu_move_to_origin():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -564,8 +566,9 @@ def gtu_reset_transforms():
                 if not len(obj_connection_sz) > 0:
                     if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
                         cmds.setAttr(obj + '.scaleZ', 1)
-            except Exception as e:
-                errors = errors + str(e + '\n')
+            except Exception as exception:
+                logger.debug(str(exception))
+                errors += str(exception) + '\n'
 
     try:
         reset_transforms()
@@ -593,7 +596,7 @@ def gtu_reset_joint_sizes():
 
                 if cmds.getAttr(obj + ".v", lock=True) is False:
                     cmds.setAttr(obj + '.v', 1)
-        cmds.jointDisplayScale(1)
+        cmds.jointDisplayScale(desired_size)
 
     except Exception as exception:
         raise exception
