@@ -964,7 +964,51 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	</li>
 </ul>
 
+<!-- GT Retarget Assistant -->
+<div>
+<h1> GT Retarget Assistant </h1>
 
+<img src="./media/gt_retarget_assistant.jpg" align="right"
+     alt="GT Retarget Assistant GUI">
+
+<p>This script applies patches to a HumanIK Mocap character while it's been transfered to a Biped Rig (Created using GT Biped Auto Rigger)
+<br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
+
+<ul>
+	<p><b>Patches:</b></p>
+	<li>
+		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transfering the ball joint motion from the source (mocap) to the target (rig)
+	</li>
+	<li>
+		<b>Reconnect Spine:</b>This option will replace the data received from HumanIK and transfer the rotation directly from the spine joints to the rig controls. 
+		<br>WARNING: It might sometimes look funny or exaggerated because there is no scale compensation happening.
+		To fix that, you can use the influence slider or compress/expand the entire animation till the desired result is achieved. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Connect Fingers:</b>This option will extract the rotation of the finger joints that were defined through the HumanIK definition. If nothing was defined, nothing will be transferred. Much like the toe option, this option extracts whatever pose was left under the first frame of your timeline.<br>Invert Finger Rotation: Makes the main rotation (usually "Z") rotate in the opposite direction, which can help motion capture skeletons with unexpected orientations become compatible. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Leg Stabilization:</b>This option will use the IK rig to collect the correct rotation data from the position of the mocap skeleton. This helps enforce the correct foot placement.
+	</li>
+	<li>
+		<b>Unlock Rotations:</b>WARNING: This option should not be used for all bakes.
+		It will unlock all rotations allowing for the knee and elbow to receive rotation data into any axis. This might be desired in some cases when counter rotation is happening, but keep in mind that the data will lose some precision when transferred to IK,due to plane rotation nature of the IK solver. Consider using the option "Merge FK axis" to re-bake the FK controls back into one single plane rotation.
+	</li>
+	<li>
+		<b>Merge FX Axis:</b>This patch can only be used when "Unlock Rotations" options is active. It transfers the data to IK causing the channels to merge and then transfer it back into FK, making the animation live into only one channel instead of multiple channels.
+		Even though it might look slightly incorrect, it might give you data that is easier to handle, essentially eliminating some counter rotations.
+	</li>
+</ul>
+
+<p><b>HIK Character/Target Text Field </b><br> This is your final rigged character that will receive the animation. </p>
+<p><b>HIK Mocap / Source Text Field </b><br> This is the motion capture skeleton to be sourced into the rig. </p>
+<p><b>"P" (Properties) buttons </b><br> Selects the HumanIK properties of the character found in the text field. </p>
+<p><b>Get Current Target/Source: </b><br>Populates the "HIK Character/Target" and "HIK Mocap / Source" text fields with the same data found under the HumanIK menu. </p>
+<p><b>Bake Mocap with Fixes: </b><br>Bakes the Source character animation into the Target character while applying the active patches to the characters. </p>
+
+<br>
+
+</div>
 
 <br>
 
