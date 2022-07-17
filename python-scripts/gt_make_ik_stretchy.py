@@ -1,6 +1,6 @@
 """
- Make IK Stretchy - Solution for making simple IK systems stretchy.
- @Guilherme Trevisan - github.com/TrevisanGMW - 2020-03-13
+ GT Make IK Stretchy - Solution for making simple IK systems stretchy.
+ github.com/TrevisanGMW/gt-tools -  2020-03-13
 
  1.1 - 2020-06-07
  Fixed random window widthHeight issue.
@@ -62,7 +62,7 @@ script_name = "GT - Make IK Stretchy"
 # Version:
 script_version = "1.5"
 
-#Python Version
+# Python Version
 python_version = sys.version_info.major
 
 # Settings

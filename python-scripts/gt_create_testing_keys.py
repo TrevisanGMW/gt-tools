@@ -1,7 +1,7 @@
 """
 
  GT Create Testing Keys - Script for creating testing keyframes.
- @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2021-01-28
+ github.com/TrevisanGMW/gt-tools -  2021-01-28
  
  It creates a sequence of keyframes on the selected objects using the provided offset. 
  Helpful for when testing controls or painting skin weights.
@@ -12,7 +12,7 @@
  1.1 - 2021-01-29
  Changed way that attributes are updated to account for long hierarchies (changed to setAttr instead of move/xform)
  Added a missing undoInfo(openChunk) function that would break the undo queue
- Udated a few incorrect comments
+ Updated a few incorrect comments
  
  1.2 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
@@ -42,7 +42,7 @@ script_name = "GT - Create Testing Keys"
 # Version:
 script_version = "1.3"
 
-#Python Version
+# Python Version
 python_version = sys.version_info.major
 
 

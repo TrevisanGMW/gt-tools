@@ -1,7 +1,6 @@
 """
-
  GT Render Checklist - Check your Maya scene before submitting to a render farm or simply batch rendering.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-06-11 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools -  2020-06-11
  Tested on Maya 2019, 2020 - Windows 10
  
  When creating a new checklist, change these items:
@@ -66,7 +65,7 @@ script_name = "GT Render Checklist"
 script_version = "1.4.2"
 maya_version = cmds.about(version=True)
 
-#Python Version
+# Python Version
 python_version = sys.version_info.major
 
 # Status Colors

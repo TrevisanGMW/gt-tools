@@ -28,6 +28,7 @@
 <ul>
   <li><a href="#-gt-generate-python-curve-">GT Generate Python Curve</a></li>
   <li><a href="#-gt-generate-text-curve-">GT Generate Text Curve</a></li>
+  <li><a href="#-gt-extract-curve-state-">GT Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
@@ -38,7 +39,11 @@
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
-  <li><a href="#-gt-auto-biped-rigger-">GT Auto Biped Rigger</a></li>
+  <li><a href="#-gt-biped-auto-rigger-">GT Biped Auto Rigger</a></li>
+  <li><a href="#-gt-biped-rig-interface-">GT Biped Rig Interface</a></li>
+  <li><a href="#-gt-retarget-assistant-">GT Retarget Assistant</a></li>
+  <li><a href="#-gt-game-fbx-exporter-">GT Game FBX Exporter</a></li>
+  <li><a href="#-gt-extract-bound-joints-">GT Extract Bound Joints</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
@@ -97,8 +102,10 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<li>Move all the contents from the folders "mel-scripts" to your scripts folder (usually located under the path below):
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
+	<li>Move all the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
+	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
@@ -106,6 +113,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
 
 <h1>Windows Uninstallation</h1>
@@ -127,7 +135,7 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<li>Close Maya (in case it's opened).</li>
 	<li>Navigate to your scripts folder, usually located under the following path:
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Delete all files starting with the prefix "gt_" (use the search bar to quickly select all of them)</li>
+	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
 	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
 	<li>Open Autodesk Maya. </li>
 </ol>
@@ -168,8 +176,10 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<li>Move the contents from the folder "mel-scripts" to your scripts folder (usually located under the path below):
 	<b>"~/Library/Preferences/Autodesk/maya/scripts"</b> (To access the library folder, hold "Command" and click on "Go")</li>
+	<li>Move the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
+	<b>"~/Library/Preferences/Autodesk/maya/scripts/gt_tools"</b> (To access the library folder, hold "Command" and click on "Go")</li>
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
@@ -199,7 +209,7 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Close Maya (in case it's opened).</li>
 	<li>Navigate to your scripts folder, usually located under the following path:
 	<b>"~/Library/Preferences/Autodesk/maya/scripts" (To access the library folder, hold "Command" and click on "Go")</b></li>
-	<li>Delete all files starting with the prefix "gt_"</li>
+	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
 	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
 	<li>Open Autodesk Maya. </li>
 </ol>
@@ -241,8 +251,10 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" and "python-scripts" to your scripts folder (usually located under the path below):
+	<li>Move the contents from the folder "mel-scripts" to your scripts folder (usually located under the path below):
 	<b>"/home/linux/maya/scripts"</b></li>
+	<li>Move the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
+	<b>"/home/linux/maya/scripts/gt_tools"</b></li>
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
@@ -272,7 +284,7 @@ In case you need/want to manually install the scripts. It's easy..
 	<li>Close Maya (in case it's opened).</li>
 	<li>Navigate to your scripts folder, usually located under the following path:
 	<b>"/home/linux/maya/scripts"</b></li>
-	<li>Delete all files starting with the prefix "gt_"</li>
+	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
 	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
 	<li>Open Autodesk Maya. </li>
 </ol>
@@ -605,6 +617,27 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<!-- GT Extract Curve State -->
+<div>
+<h1> GT Extract Curve State </h1>
+
+<img src="./media/gt_extract_shape_state.jpg" align="right"
+     alt="GT Extract Curve State GUI">
+
+<p>This script generates the Python code necessary to recreate a curve shape state.</p>
+
+<p><b>How to use it:</b>
+<br>1. Select the curve (or curve's transform) you want to convert to code.
+<br>2. Click on the "Generate" button to generate the code.</p>
+
+<p><b>"Extract State" button:</b><br>Outputs the python code necessary to recreate the current curve shape inside the "Output PYthon Curve" box.</p>
+
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+
+<br>
+
+</div>
+
 <!-- Transfer UVs -->
 <div>
 <h1> GT Transfer UVs </h1>
@@ -640,16 +673,16 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Auto Biped Rigger -->
+<!-- GT Biped Auto Rigger -->
 <div>
-<h1> GT Auto Biped Rigger </h1>
+<h1> GT Biped Auto Rigger </h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
-     alt="GT Auto Biped Rigger GUI">
+     alt="GT Biped Auto Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to auto manage your geometry, parent it under a group called "geometry_grp".
-<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.</p>
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
+<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github. 
 <br>
 <p>Here are some highlights of what it creates: 
 <ul>
@@ -667,6 +700,8 @@ with the provided prefix "Left Side Tag".</p>
 	<li> Automatic breathing system without using expressions.</li>
 </ul>
 </p>
+
+<p>Tabs: <br>The tabs "Facial", "Corrective" and  "Settings" control optional rigging steps and work in a similar way to the base rig.</p>
 
 <p><h3>Step 1:</h3>
 <b>- Create Proxy:</b><br>
@@ -713,7 +748,7 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 <p><h3>Utilities:</h3>
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
-     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger GUI">
+     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger GUI">
 
 These are utilities and extra functions that you can use after creating your rig.
 <br>
@@ -731,7 +766,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
-     alt="GT Seamless FK/IK Switcher for Auto Biped Rigger Example">
+     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -844,8 +879,8 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 <p><h3>Auto Rigger Work Sample:</h3></p>
-<p>Below you can watch a few animations that used GT Auto Biped Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Auto Biped Rigger Home Remedy Promo">
+<p>Below you can watch a few animations that used GT Biped Auto Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Biped Auto Rigger Home Remedy Promo">
 
 <p>
 <ul>
@@ -857,6 +892,163 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <p>Do you want to share your animation here? Send me a message!<br></p>
 
 <br>
+
+</div>
+
+<!-- GT Biped Rig Interface -->
+<div>
+<h1> GT Biped Rig Interface </h1>
+
+<img src="./media/gt_custom_rig_interface.jpg" align="right"
+     alt="GT Biped Rig Interface GUI">
+
+<p>Extra functions and automations for rigs generated using GT Biped Auto Rigger.
+<br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
+
+<p><b>How to use it:</b>
+<br>1. Under "Namespace:" click on "Get" to use the character's namespace.<br>(In case you're not using a namespace, just click on "Clear")
+<br>2. If the character is found, the FK/IK buttons will light up according to the current state.
+<br>3. Use the desired function to animate or pose your character.</p>
+
+
+
+<h3>FK/IK Tab:</h3>
+<ul>
+	<li><p>This is the FK/IK Swticher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
+	</li>
+	<li><b>Auto Key:</b> When transitioning from one system to the other you might want an animation to drive the transition. That's what this button will help you accomplish.<br>
+	<b>Bake:</b> Uses the provided range to bake every frame while rematching one system into the other
+	<br><b>Sparse:</b> Creates the first and last keys necessary to transition from one system to the other.
+	<br><b>Get Selection Range (Button):</b> Gets the range of your current selection (from the timeline).
+	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjuction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
+	</li>
+</ul>
+
+<h3>Pose Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li><b>Mirror:</b> Copies the transform data from one side of the rig into the other, mirroring its current pose.</li>
+	<li><b>Reset Pose:</b> Resets the pose back to the rig default values.</li>
+	<li><b>Import/Export Pose:</b> Allows you to import/export the current pose from/to a file.</li>
+
+</ul>
+
+<h3>Animation Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li>
+		<b>Mirror:</b> Copies the animation data from one side of the rig into the other, mirroring its values.
+	</li>
+	<li>
+		<b>Reset Animation:</b> Deletes keyframes and Resets the pose back to the rig default values.
+	</li>
+	<li>
+		<b>Import/Export Animation:</b> Allows you to import/export the current animation from/to a file.
+	</li>
+</ul>
+
+<h3>Settings Tab:</h3>
+<ul>
+	<p>Overall Settings for this script. These are persistent and will retain their values in between sessions.</p>
+	<li>
+		<b>Allow Multiple Instances:</b> When active, you may open multiple instances of this script. Useful for when animating multiple character in the same scene.
+	</li>
+	<li>
+		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transfered to the default Wrist/Ankle controls or their offset controls.
+	</li>
+	<li>
+		<b>Key FK/IK Influence:</b> Creates a key in the influence values when swtiching between systems (FK/IK).
+	</li>
+	<li>
+		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
+	</li>
+</ul>
+<br>
+</div>
+
+<!-- GT Retarget Assistant -->
+<div>
+<h1> GT Retarget Assistant </h1>
+
+<img src="./media/gt_retarget_assistant.jpg" align="right"
+     alt="GT Retarget Assistant GUI">
+
+<p>This script applies patches to a HumanIK Mocap character while it's been transfered to a Biped Rig (Created using GT Biped Auto Rigger)
+<br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
+
+<ul>
+	<p><b>Patches:</b></p>
+	<li>
+		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transfering the ball joint motion from the source (mocap) to the target (rig)
+	</li>
+	<li>
+		<b>Reconnect Spine:</b>This option will replace the data received from HumanIK and transfer the rotation directly from the spine joints to the rig controls. 
+		<br>WARNING: It might sometimes look funny or exaggerated because there is no scale compensation happening.
+		To fix that, you can use the influence slider or compress/expand the entire animation till the desired result is achieved. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Connect Fingers:</b>This option will extract the rotation of the finger joints that were defined through the HumanIK definition. If nothing was defined, nothing will be transferred. Much like the toe option, this option extracts whatever pose was left under the first frame of your timeline.<br>Invert Finger Rotation: Makes the main rotation (usually "Z") rotate in the opposite direction, which can help motion capture skeletons with unexpected orientations become compatible. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Leg Stabilization:</b>This option will use the IK rig to collect the correct rotation data from the position of the mocap skeleton. This helps enforce the correct foot placement.
+	</li>
+	<li>
+		<b>Unlock Rotations:</b>WARNING: This option should not be used for all bakes.
+		It will unlock all rotations allowing for the knee and elbow to receive rotation data into any axis. This might be desired in some cases when counter rotation is happening, but keep in mind that the data will lose some precision when transferred to IK,due to plane rotation nature of the IK solver. Consider using the option "Merge FK axis" to re-bake the FK controls back into one single plane rotation.
+	</li>
+	<li>
+		<b>Merge FX Axis:</b>This patch can only be used when "Unlock Rotations" options is active. It transfers the data to IK causing the channels to merge and then transfer it back into FK, making the animation live into only one channel instead of multiple channels.
+		Even though it might look slightly incorrect, it might give you data that is easier to handle, essentially eliminating some counter rotations.
+	</li>
+</ul>
+
+<p><b>HIK Character/Target Text Field </b><br> This is your final rigged character that will receive the animation. </p>
+<p><b>HIK Mocap / Source Text Field </b><br> This is the motion capture skeleton to be sourced into the rig. </p>
+<p><b>"P" (Properties) buttons </b><br> Selects the HumanIK properties of the character found in the text field. </p>
+<p><b>Get Current Target/Source: </b><br>Populates the "HIK Character/Target" and "HIK Mocap / Source" text fields with the same data found under the HumanIK menu. </p>
+<p><b>Bake Mocap with Fixes: </b><br>Bakes the Source character animation into the Target character while applying the active patches to the characters. </p>
+
+<br>
+
+</div>
+
+<!-- GT Game FBX Exporter -->
+<div>
+<h1> GT Game FBX Exporter </h1>
+
+<img src="./media/gt_game_fbx_exporter.jpg" align="right"
+     alt="GT Game FBX Exporter GUI">
+
+<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
+<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
+
+<ul>
+	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
+	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
+	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
+	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be atuomatically stripped from the rig in the export.</li>
+</ul>
+<br>
+
+</div>
+
+<!-- GT Extract Bound Joints -->
+<div>
+<h1> GT Extract Bound Joints </h1>
+
+<img src="./media/gt_extract_bound_joints.jpg" align="right"
+     alt="GT Extract Bound Joints GUI">
+
+<p>This script generates the Python code necessary to select all joints influencing a skinCluster node.</p>
+
+<p><b>How to use it:</b>
+<br>1. Select bound meshes or surfaces.
+<br>2. Click on the "Extract Bound Joints" button to generate the code.</p>
+
+<p><b>"Extract Bound Joints" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+
 <br>
 
 </div>

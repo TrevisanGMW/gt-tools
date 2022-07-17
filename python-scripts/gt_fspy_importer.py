@@ -1,10 +1,10 @@
 """
  GT fSpy Importer - Imports a JSON file exported out of fSpy
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-12-10 - github.com/TrevisanGMW
+ github.com/TrevisanGMW/gt-tools -  2020-12-10
 
  0.1a - 2020-12-10
  Created main function
- Added focal legth calculation
+ Added focal length calculation
 
  1.0 - 2020-12-11
  Initial Release
@@ -42,7 +42,7 @@ script_name = "GT fSpy Importer"
 # Version
 script_version = "1.1"
 
-#Python Version
+# Python Version
 python_version = sys.version_info.major
 
 def build_gui_fspy_importer():

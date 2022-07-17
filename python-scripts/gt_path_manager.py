@@ -1,8 +1,8 @@
 """
- GT Path Manager - A script for quickly repathing many elements in Maya.
- @Guilherme Trevisan - TrevisanGMW@gmail.com - 2020-08-26 - github.com/TrevisanGMW
+ GT Path Manager - A script for quickly re-pathing many elements in Maya.
+ github.com/TrevisanGMW/gt-tools - 2020-08-26
  
- 0.1a - 2020-08-26
+ 0.1 - 2020-08-26
  Created initial setup, added table and icons for file nodes
  
  1.0 - 2020-12-02
@@ -21,6 +21,13 @@
  
  1.2 - 2021-05-11
  Made script compatible with Python 3 (Maya 2022+)
+
+ 1.2.1 - 2022-03-17
+ Fixed issue where error or found icons would look stretched (fixed size now)
+ Organize the code and comments a bit better
+ Changed to semantic versioning
+ Removed unused imports
+ Fixed "Refresh" button width
  
  Todo:
     Add support for Goalem Nodes
@@ -46,8 +53,6 @@ from shiboken2 import wrapInstance
 import maya.OpenMaya as om
 import maya.OpenMayaUI as omui
 import maya.cmds as cmds
-import maya.mel as mel
-import time
 import sys
 import os
 import re
@@ -56,15 +61,16 @@ import re
 script_name = "GT Path Manager" 
 
 # Version
-script_version = '1.2'
+script_version = '1.2.1'
 
 # Python Version
 python_version = sys.version_info.major
 
+
 def maya_main_window():
-    '''
+    """
     Return the Maya main window widget as a Python object
-    '''
+    """
     main_window_ptr = omui.MQtUtil.mainWindow()
     
     if python_version == 3:
@@ -74,14 +80,14 @@ def maya_main_window():
     
     
 def list_reference_pairs():
-    ''' 
+    """
     Returns all references and their paths. Used to get a reference path when the file is not found.
     cmds.referenceQuery would return an error.
     
             Returns:
                 reference_list (list): A list of pairs, containing reference name and reference path
     
-    '''
+    """
     it = om.MItDependencyNodes(om.MFn.kReference)
     ref_nodes = om.MObjectArray()
     while not it.isDone():
@@ -93,25 +99,25 @@ def list_reference_pairs():
         try:
             ref = ref_nodes.__getitem__(i)  
             mfn_ref = om.MFnReference(ref)
-            ref_pairs.append([mfn_ref.absoluteName(), mfn_ref.fileName(False,False,False)])
+            ref_pairs.append([mfn_ref.absoluteName(), mfn_ref.fileName(False, False, False)])
         except:
             pass
     return ref_pairs
   
     
 class GTPathManagerDialog(QtWidgets.QDialog):
-    ''' Main GT Path Manager Class '''
+    """ Main GT Path Manager Class """
     ATTR_ROLE = QtCore.Qt.UserRole
     VALUE_ROLE = QtCore.Qt.UserRole + 1
     
     def __init__(self, parent=maya_main_window()):
-        ''' Create main dialog, set title and run other UI calls '''
+        """ Create main dialog, set title and run other UI calls """
         super(GTPathManagerDialog, self).__init__(parent)
 
         self.setWindowTitle(script_name + ' - (v' + str(script_version) + ')')
         self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.setMinimumWidth(700)
-        self.resize(self.width() + 250,500)
+        self.resize(self.width() + 250, 500)
         
         # Set Icon
         self.setWindowIcon(QtGui.QIcon(':/annotation.png'))
@@ -129,7 +135,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
 
 
     def create_widgets(self):
-        ''' Create Widgets '''
+        """ Create Widgets """
         # Title
         self.title_label = QtWidgets.QLabel(script_name)
         self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); \
@@ -155,7 +161,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.table_wdg.setColumnCount(4)
 
         self.table_wdg.setColumnWidth(0, 22)
-        self.table_wdg.setColumnWidth(1, 80) 
+        self.table_wdg.setColumnWidth(1, 80)
         self.table_wdg.setColumnWidth(3, 280) 
         header_view = self.table_wdg.horizontalHeader()
         header_view.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
@@ -163,7 +169,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.table_wdg.setHorizontalHeaderLabels(["", "Node", "Node Type", "Path"])
 
         self.refresh_btn = QtWidgets.QPushButton("Refresh")
-        self.refresh_btn.setFixedWidth(55)
+        self.refresh_btn.setFixedWidth(75)
         self.start_repair_btn = QtWidgets.QPushButton("Auto Path Repair")
         #self.start_repair_btn.setFixedWidth(120)
         self.search_replace_btn = QtWidgets.QPushButton("Search and Replace")
@@ -172,7 +178,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
 
         
     def create_layout(self):
-        ''' Layout '''
+        """ Layout """
         # Build File Path Layout
         file_path_layout = QtWidgets.QHBoxLayout()        
         file_path_layout.addWidget(self.search_path_label)
@@ -205,7 +211,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         main_layout.addLayout(button_layout)
         
     def create_connections(self):
-        ''' Create Connections '''
+        """ Create Connections """
         self.refresh_btn.clicked.connect(self.refresh_table)
         self.table_wdg.cellChanged.connect(self.on_cell_changed)
         self.table_wdg.cellClicked.connect(self.select_clicked_item)
@@ -219,25 +225,26 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.select_dir_path_btn.clicked.connect(self.show_dir_select_dialog)
             
     def show_dir_select_dialog(self):
-        ''' Invoke open file dialog so the user can select a search directory (Populate filepath_le with user input) '''
+        """ Invoke open file dialog so the user can select a search directory (Populate filepath_le with user input) """
         multiple_filters = "Directories Only (.donotshowfiles)"
-        file_path = cmds.fileDialog2(fileFilter=multiple_filters, dialogStyle=2, fm=3, caption='Select Search Directory', okc='Select Directory')
+        file_path = cmds.fileDialog2(fileFilter=multiple_filters, dialogStyle=2, fm=3,
+                                     caption='Select Search Directory', okc='Select Directory')
 
         if file_path:
             self.filepath_le.setText(file_path[0])
 
 
     def set_cell_changed_connection_enabled(self, enabled):
-        ''' To turn on and off the connection so it doesn't update unnecessarily '''
+        """ To turn on and off the connection so it doesn't update unnecessarily """
         if enabled:
             self.table_wdg.cellChanged.connect(self.on_cell_changed)
         else:
             self.table_wdg.cellChanged.disconnect(self.on_cell_changed)
             
-    def select_clicked_item(self, row, column): 
-        ''' 
+    def select_clicked_item(self, row):
+        """
         Executed when clicking on a table item, it tries to select the node clicked 
-        '''
+        """
         item = self.table_wdg.item(row, 1)
         node_name = self.get_item_value(item)
         try:
@@ -246,18 +253,21 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         except:
             pass
 
+
     def showEvent(self, e):
-        ''' Cause it to refresh when opening. I might have to change this for heavy projects '''
+        """ Cause it to refresh when opening. I might have to change this for heavy projects """
         super(GTPathManagerDialog, self).showEvent(e)
         self.refresh_table 
-        
+
+
     def keyPressEvent(self, e):
-        ''' Key presses should not be passed to the parent '''
+        """ Key presses should not be passed to the parent """
         super(GTPathManagerDialog, self).keyPressEvent(e)
         e.accept()
 
+
     def get_path_items(self, obj):
-        ''' 
+        """
         Get a tuple containing file_path, is_valid_path, obj_type, obj_icon, obj_attr
         
                 Parameters:
@@ -269,7 +279,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     obj_type (string): Type of object. E.g. "file".
                     obj_icon (string): Icon path for the Node Type cell.
                     obj_attr (string): Attribute used to get/set the new path.
-        '''
+        """
         if cmds.objExists(obj):
             file_path = ''
             obj_type = cmds.objectType(obj) or ''
@@ -296,7 +306,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     obj_type = 'Cache File'
                     obj_attr = '.cachePath'
                     path_no_file = cmds.getAttr(obj + obj_attr) or ''
-                    file_path =  path_no_file + '/' + cmds.getAttr(obj + '.cacheName') + '.xml'
+                    file_path = path_no_file + '/' + cmds.getAttr(obj + '.cacheName') + '.xml'
                     file_path = file_path.replace('//', '/')
                     
                 elif obj_type == 'AlembicNode':
@@ -386,7 +396,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                 elif obj_type == 'reference':
                     obj_icon = ':reference.png'
                     obj_type = 'Reference'
-                    obj_attr = '.fileNames' # Not used
+                    obj_attr = '.fileNames'  # Not used
                     try:
                         ref_pairs = list_reference_pairs()
                         r_file = ''
@@ -414,18 +424,17 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         else:
             return None
 
+
     def refresh_table(self, is_repair_attempt=False, is_search_replace=False):
-        ''' 
+        """
         Main Refresh Function
+
+        Args:
+            is_repair_attempt=False (bool): Is attempting to auto repair paths? (Called by the Auto Path Repair Button)
+            is_search_replace=False (bool): Is it doing a search and replace? (Called by the Search and Replace Button)
         
-                Parameters:
-                    is_repair_attempt=False (bool): Is attempting to auto repair paths? (Called by the Auto Path Repair Button)
-                    is_search_replace=False (bool): Is it doing a search and replace? (Called by the Search and Replace Button)
-        
-        '''
-        
-        
-        common_locations = [] # Locations where files were found
+        """
+        common_locations = []  # Locations where files were found
         is_search_dir_valid = False
         if is_repair_attempt:
             search_dir = self.filepath_le.text()
@@ -434,9 +443,9 @@ class GTPathManagerDialog(QtWidgets.QDialog):
             else:
                 cmds.warning('The search directory doesn\'t exist. Please select a valid path and try again.')
         
-        self.set_cell_changed_connection_enabled(False) # So it doesn't update it unecessarly
+        self.set_cell_changed_connection_enabled(False)  # So it doesn't update it unnecessarily
         
-        self.table_wdg.setRowCount(0) # Remove all rows
+        self.table_wdg.setRowCount(0)  # Remove all rows
 
         # Used to detect installed plugins
         node_types = cmds.ls(nodeTypes=True)
@@ -446,9 +455,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         path_nodes = file_nodes
         
         # Available Types
-        available_node_types = ['audio', 'cacheFile', 'AlembicNode', 'gpuCache','BifMeshImportNode',\
-                           'RedshiftProxyMesh','RedshiftVolumeShape','RedshiftNormalMap','RedshiftDomeLight','RedshiftIESLight', \
-                           'MASH_Audio','aiPhotometricLight','aiStandIn','aiVolume', 'imagePlane']
+        available_node_types = ['audio', 'cacheFile', 'AlembicNode', 'gpuCache', 'BifMeshImportNode',
+                                'RedshiftProxyMesh', 'RedshiftVolumeShape', 'RedshiftNormalMap', 'RedshiftDomeLight',
+                                'RedshiftIESLight', 'MASH_Audio', 'aiPhotometricLight', 'aiStandIn', 'aiVolume',
+                                'imagePlane']
         
         # Add Types for Loaded Plugins
         path_node_types = []
@@ -471,15 +481,16 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         # Populate Table
         for i in range(len(path_nodes)):
  
-            ################ Start Directory Search ################
+            # ################ Start Directory Search ################ #
             if is_repair_attempt and is_search_dir_valid:
                 try:
-                    file_items = self.get_path_items(path_nodes[i]) # (path, is_path_valid, node_type_string, icon, node_attr)
+                    # (path, is_path_valid, node_type_string, icon, node_attr)
+                    file_items = self.get_path_items(path_nodes[i])
                     progress_bar_name = 'Searching'
                     query_path = file_items[0]
                     initial_result = os.path.exists(query_path)
-                    query_path = query_path.replace('\\','/') # Format it - The main Query
-                    desired_file = query_path.split('/')[-1] # Extract file name (short_name)
+                    query_path = query_path.replace('\\', '/')  # Format it - The main Query
+                    desired_file = query_path.split('/')[-1]  # Extract file name (short_name)
                     accept_dir = False
                     is_udim_file = False
                     is_image_sequence = False
@@ -487,12 +498,17 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     # Check if using UDIMs or Image Sequences
                     if file_items[2] == 'File':
                         try:
-                            uv_tiling_mode = cmds.getAttr(path_nodes[i] + '.uvTilingMode') # Is it using UDIM?
-                            use_frame_extension = cmds.getAttr(path_nodes[i] + '.useFrameExtension') # Is it an image sequence?
+                            # Is it using UDIM?
+                            uv_tiling_mode = cmds.getAttr(path_nodes[i] + '.uvTilingMode')
+                            # Is it an image sequence?
+                            use_frame_extension = cmds.getAttr(path_nodes[i] + '.useFrameExtension')
                             is_image_sequence = use_frame_extension
                             if uv_tiling_mode != 0:
-                                udim_file_pattern = maya.app.general.fileTexturePathResolver.getFilePatternString(query_path, use_frame_extension, uv_tiling_mode)
-                                query_path = udim_file_pattern#.replace('<UDIM>','1001') Handled later using regex
+                                udim_file_pattern = \
+                                    maya.app.general.fileTexturePathResolver.getFilePatternString(query_path,
+                                                                                                  use_frame_extension,
+                                                                                                  uv_tiling_mode)
+                                query_path = udim_file_pattern
                                 is_udim_file = True
                         except:
                             pass
@@ -506,7 +522,8 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                         accept_dir = True
 
                     is_found = False
-                    if (initial_result != True) and (len(common_locations) != 0): # If common locations are available try them first
+                    # If common locations are available try them first
+                    if (initial_result != True) and (len(common_locations) != 0):
                         for loc in common_locations:
                             formatted_path = loc.replace("\\","/")
                             formatted_path = formatted_path[::-1]
@@ -522,24 +539,26 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     # Full Search/Walk   
                     if (initial_result != True) and (is_found == False):
                         search_count = 0 # How many folders to look into (walk) for the progress bar
-                        for path in os.walk(search_dir): # generates the file names in a directory tree by walking the tree either top-b or b-top
+                        # Generates the file names in a directory tree by walking the tree either top-b or b-top
+                        for path in os.walk(search_dir):
                             search_count += 1 
                         resolved_path = query_path
-
-                        self.make_progress_bar(progress_bar_name, search_count) # make_progress_bar(name, maxVal) - Max value is the number of folders
-                        for path, dirs, files in os.walk(search_dir): # root_dir_path, sub_dirs, files in os.walk(my_dir)
+                        # make_progress_bar(name, maxVal) - Max value is the number of folders
+                        self.make_progress_bar(progress_bar_name, search_count)
+                        # root_dir_path, sub_dirs, files in os.walk(my_dir)
+                        for path, dirs, files in os.walk(search_dir):
                             self.move_progress_bar(progress_bar_name, 1) 
                             path = path.replace('/','\\')
                             
                             # Handle Files
                             if desired_file in files:
-                                resolved_path = (path + '\\' + desired_file).replace('/','\\')
+                                resolved_path = (path + '\\' + desired_file).replace('/', '\\')
                                 common_locations.append(resolved_path) 
                                 is_found = True
                             
                             # Handle Folders (instead of files)
                             if accept_dir and desired_file in dirs:
-                                resolved_path = (path + '\\' + desired_file).replace('/','\\')
+                                resolved_path = (path + '\\' + desired_file).replace('/', '\\')
                                 common_locations.append(resolved_path) 
                                 is_found = True
                                 
@@ -567,10 +586,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                                 file_name = os.path.splitext(desired_file)[0].replace('<f>', '').replace('<F>', '')
                                 extension = os.path.splitext(desired_file)[1]
 
-                                pattern = re.compile(file_name + '\\d+' + extension)   
-                                                            
+                                pattern = re.compile(file_name + '\\d+' + extension)
+
                                 first_found_file = ''
-                                
+
                                 if any(pattern.match(line) for line in files):
                                     lines_to_log = [line for line in files if pattern.match(line)]
                                     first_found_file = lines_to_log[0]
@@ -586,7 +605,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     self.kill_progress_window(progress_bar_name) # Kill progress bar
                 except:
                     self.kill_progress_window(progress_bar_name)    
-            ################ End Directory Search ################
+            # ################ End Directory Search ################ #
 
             # Search and Replace
             if is_search_replace:
@@ -594,7 +613,8 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                     file_items = self.get_path_items(path_nodes[i])
                     old_path = file_items[0]
                     new_path = old_path.replace(self.search_string, self.replace_string)
-                    self.set_attr_enhanced(path_nodes[i], file_items[4], new_path) #(path, is_path_valid, node_type_string, icon, node_attr)
+                    # (path, is_path_valid, node_type_string, icon, node_attr)
+                    self.set_attr_enhanced(path_nodes[i], file_items[4], new_path)
                 except:
                     pass
         
@@ -608,10 +628,12 @@ class GTPathManagerDialog(QtWidgets.QDialog):
             
             if file_items: # (path, is_path_valid, node_type_string, icon, node_attr)
                 if file_items[1]:
-                    self.insert_item(i, 2, file_items[2], None, cmds.objectType(path_nodes[i]), icon_path=file_items[3], editable=False )
+                    self.insert_item(i, 2, file_items[2], None, cmds.objectType(path_nodes[i]),
+                                     icon_path=file_items[3], editable=False )
                     self.insert_icon(i, 0, ':confirm.png')
                 else:
-                    self.insert_item(i, 2, file_items[2], None, cmds.objectType(path_nodes[i]), icon_path=file_items[3], editable=False )
+                    self.insert_item(i, 2, file_items[2], None, cmds.objectType(path_nodes[i]),
+                                     icon_path=file_items[3], editable=False )
                     self.insert_icon(i, 0, ':error.png')
 
                 self.insert_item(i, 3, file_items[0], file_items[4], file_items[0])
@@ -620,7 +642,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         
     def insert_item(self, row, column, node_name, attr, value, icon_path='', editable=True, centered=True):
         item = QtWidgets.QTableWidgetItem(node_name)
-        #item.setBackgroundColor(QtGui.QColor(255,0,0, 10)) Make the background of the cells green/red?
+        # item.setBackgroundColor(QtGui.QColor(255,0,0, 10)) Make the background of the cells green/red?
         self.set_item_value(item, value)
         self.set_item_attr(item, attr)
         
@@ -641,11 +663,12 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         label.setScaledContents(True)
         label.maximumSize()
         label.setPixmap(QtGui.QPixmap(icon_path))
-        
+        label.setFixedSize(35, 35)
+
         layout = QtWidgets.QHBoxLayout(item)
         layout.addWidget(label)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
-        layout.setContentsMargins(0,5,0,5)
+        layout.setContentsMargins(0, 5, 0, 5)
         item.setLayout(layout)
         
         self.table_wdg.setCellWidget(row, column, item)
@@ -721,15 +744,14 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                 raise e             
 
     def set_attr_enhanced(self, obj, attribute, new_value):
-        ''' 
+        """
         Set attribute for the provided object using different methods depending on its type
         
-                Parameters:
-                    obj (string): Name of the node/object.
-                    attribute (string): Name of the attribute to set. E.g. ".cacheFile"
-                    new_value (string): New value to update
-        '''
-        
+        Args:
+            obj (string): Name of the node/object.
+            attribute (string): Name of the attribute to set. E.g. ".cacheFile"
+            new_value (string): New value to update
+        """
         #print(obj + ' ' + attribute  + ' ' + new_value) # Debugging
         
         if cmds.objExists(obj):
@@ -771,24 +793,25 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                         except:
                             return False
                     else:
-                        cmds.warning('Provided reference path : "' + new_value + '" doesn\'t lead to a valid file. Previous path was retained.')
+                        cmds.warning('Provided reference path : "' +
+                                     new_value + '" doesn\'t lead to a valid file. Previous path was retained.')
                 else:
                     cmds.warning('Reference file inaccessible.')
 
     def start_attempt_repair(self):
-        ''' Runs refresh function while searching for files '''
+        """ Runs refresh function while searching for files """
         self.refresh_table(is_repair_attempt=True)
 
         
     def make_progress_bar(self, prog_win_name, max_value):
-        ''' 
+        """
         Create Progress Window 
         
-                Parameters:
-                       prog_win_name (string): Name of the window
-                       max_value (int): The maximum or "ending" value of the progress indicator.
+        Args:
+           prog_win_name (string): Name of the window
+           max_value (int): The maximum or "ending" value of the progress indicator.
         
-        '''
+        """
         if(cmds.window(prog_win_name, q=1, ex=1)):
             cmds.deleteUI(prog_win_name)
         if(cmds.windowPref(prog_win_name, q=1, ex=1)):
@@ -803,19 +826,19 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         cmds.progressBar(prog_win_name + '_progress', edit=True, step=step_size)
 
     def kill_progress_window(self, prog_win_name):
-        ''' 
+        """
         Close progress window in case it exists
         
-                Parameters:
-                       prog_win_name (string): Name of the window
-        '''
+        Args:
+           prog_win_name (string): Name of the window
+        """
         if(cmds.window(prog_win_name, q=1, ex=1)):
             cmds.deleteUI(prog_win_name)
         if(cmds.windowPref(prog_win_name, q=1, ex=1)):
             cmds.windowPref(prog_win_name, r=1)
             
     def build_gui_help_path_manager(self):
-        ''' Creates the Help GUI for GT Path Manager '''
+        """ Creates the Help GUI for GT Path Manager """
         window_name = "build_gui_help_path_manager"
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
@@ -837,34 +860,39 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         # cmds.text(l='Script for managing paths', align="center")
         # cmds.separator(h=15, style='none') # Empty Space
 
-        cmds.text(l='This script displays a list with the name, type and path\n of any common nodes found in Maya.', align="center")
-        cmds.separator(h=10, style='none') # Empty Space
-        cmds.text(l='You can select the node listed by clicking on it or \nchange its name or path by double clicking the cell.', align="center")
+        cmds.text(l='This script displays a list with the name, type and path\n '
+                    'of any common nodes found in Maya.', align="center")
+        cmds.separator(h=10, style='none')  # Empty Space
+        cmds.text(l='You can select the node listed by clicking on it or \nchange its name or path by double '
+                    'clicking the cell.', align="center")
         
-        cmds.separator(h=10, style='none') # Empty Space
-        cmds.text(l='The icon on the left describes the validity of the path.\nIf the file or directory is found in the system it shows\n a green confirm icon otherwise it shows a red icon.', align="center")
+        cmds.separator(h=10, style='none')  # Empty Space
+        cmds.text(l='The icon on the left describes the validity of the path.\nIf the file or directory is found in '
+                    'the system it shows\n a green confirm icon otherwise it shows a red icon.', align="center")
         
-        cmds.separator(h=10, style='none') # Empty Space
+        cmds.separator(h=10, style='none')  # Empty Space
         cmds.text(l='Auto Path Repair', align="center", font='boldLabelFont')
-        cmds.text(l='This function walks through the folders under the\nprovided directory looking for missing files. \nIf it finds a match, the path is updated.', align="center")
-        cmds.separator(h=10, style='none') # Empty Space
+        cmds.text(l='This function walks through the folders under the\nprovided directory looking for missing files. '
+                    '\nIf it finds a match, the path is updated.', align="center")
+        cmds.separator(h=10, style='none')  # Empty Space
         cmds.text(l='Search and Replace', align="center", font='boldLabelFont')
         cmds.text(l='This function allows you to search and replace strings\nin the listed paths.', align="center")
-        cmds.separator(h=10, style='none') # Empty Space
+        cmds.separator(h=10, style='none')  # Empty Space
         cmds.text(l='Refresh', align="center", font='boldLabelFont')
         cmds.text(l='Re-populates the list while re-checking for path validity.', align="center")
-        cmds.separator(h=10, style='none') # Empty Space
+        cmds.separator(h=10, style='none')  # Empty Space
         cmds.text(l='Search Path', align="center", font='boldLabelFont')
         cmds.text(l='A directory path used when looking for missing files.', align="center")
         
-        cmds.separator(h=15, style='none') # Empty Space
+        cmds.separator(h=15, style='none')  # Empty Space
         cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p=main_column)
         cmds.text('Guilherme Trevisan  ')
-        cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1,1,1])
+        cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True,
+                  highlightColor=[1, 1, 1])
         cmds.rowColumnLayout(nc=2, cw=[(1, 140),(2, 140)], cs=[(1,10),(2, 0)], p=main_column)
-        cmds.separator(h=10, style='none') # Empty Space
-        cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1,1,1])
-        cmds.separator(h=7, style='none') # Empty Space
+        cmds.separator(h=10, style='none')  # Empty Space
+        cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
+        cmds.separator(h=7, style='none')  # Empty Space
         
         # Close Button 
         cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1,10)], p=main_column)
@@ -887,13 +915,13 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         widget.setWindowIcon(icon)
         
         def close_help_gui():
-            ''' Closes Help UI in case it's opened. '''
+            """ Closes Help UI in case it's opened. """
             if cmds.window(window_name, exists=True):
                 cmds.deleteUI(window_name, window=True)
 
 
     def build_gui_search_replace_path_manager(self):
-        ''' Creates the GUI for Searching and Replacing Paths '''
+        """ Creates the GUI for Searching and Replacing Paths """
         window_name = "build_gui_search_replace_path_manager"
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
@@ -941,7 +969,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         widget.setWindowIcon(icon)
         
         def apply_search_replace():
-            ''' Runs Search and Replace Function '''
+            """ Runs Search and Replace Function """
             self.search_string = cmds.textField(search_txtfield, q=True, text=True) 
             self.replace_string = cmds.textField(replace_txtfield, q=True, text=True) 
             
@@ -957,12 +985,12 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                 cmds.warning('"Search for" string can\'t be empty.')
         
         def close_snr_gui():
-            ''' Closes Search and Replace GUI in case it's opened. '''
+            """ Closes Search and Replace GUI in case it's opened. """
             if cmds.window(window_name, exists=True):
                 cmds.deleteUI(window_name, window=True)
       
 def try_to_close_gt_path_manager():
-    ''' Attempts to close GT Path Manager '''
+    """ Attempts to close GT Path Manager """
     try:
         gt_path_manager_dialog.close() # pylint: disable=E0601
         gt_path_manager_dialog.deleteLater()
