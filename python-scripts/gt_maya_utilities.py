@@ -99,7 +99,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
 
 try:
     from shiboken2 import wrapInstance
@@ -116,9 +116,6 @@ except ImportError:
 logging.basicConfig()
 logger = logging.getLogger("gt_utilities")
 logger.setLevel(logging.INFO)
-
-# Python Version
-python_version = sys.version_info.major
 
 ''' ____________________________ General Functions ____________________________'''
 
@@ -169,8 +166,8 @@ def gtu_unlock_default_channels():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -210,8 +207,8 @@ def gtu_unhide_default_channels():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -336,10 +333,10 @@ def gtu_uniform_jnt_label_toggle():
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning(
-                'The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
-    except:
-        pass
+            cmds.warning("The script couldn't read or write some \"drawLabel\" states. "
+                         "Open script editor for more info.")
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -347,19 +344,20 @@ def gtu_uniform_jnt_label_toggle():
 def gtu_select_non_unique_objects():
     """ Selects all non-unique objects (objects with the same short name) """
 
-    def get_short_name(obj):
+    def get_short_name(full_name):
         """
             Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-                    Parameters:
-                            obj (string) - object to extract short name
+            Args:
+                full_name (string) - object to extract short name
             """
-        if obj == '':
+        output_short_name = ''
+        if full_name == '':
             return ''
-        split_path = obj.split('|')
+        split_path = full_name.split('|')
         if len(split_path) >= 1:
-            short_name = split_path[len(split_path) - 1]
-        return short_name
+            output_short_name = split_path[len(split_path) - 1]
+        return output_short_name
 
     all_transforms = cmds.ls(type='transform')
     short_names = []
@@ -384,8 +382,9 @@ def gtu_select_non_unique_objects():
 
 def gtu_import_references():
     """ Imports all references """
+    errors = ''
+    r_file = ''
     try:
-        errors = ''
         refs = cmds.ls(rf=True)
         for i in refs:
             try:
@@ -393,7 +392,8 @@ def gtu_import_references():
                 cmds.file(r_file, importReference=True)
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
         cmds.warning('Not all references were imported. Open the script editor for more information.')
@@ -404,8 +404,9 @@ def gtu_import_references():
 
 def gtu_remove_references():
     """ Removes all references """
+    errors = ''
+    r_file = ''
     try:
-        errors = ''
         refs = cmds.ls(rf=True)
         for i in refs:
             try:
@@ -513,7 +514,7 @@ def gtu_move_to_origin():
 def gtu_reset_transforms():
     """
     Reset transforms. 
-    It checks for incomming connections, then set the attribute to 0 if there are none
+    It checks for incoming connections, then set the attribute to 0 if there are none
     It resets transforms, but ignores translate for joints.
     """
     function_name = 'GTU Reset Transforms'
@@ -718,13 +719,12 @@ def gtu_delete_keyframes():
 def gtu_delete_nucleus_nodes():
     """ Deletes all elements related to particles """
     errors = ''
+    function_name = 'GTU Delete Nucleus Nodes'
     try:
-        function_name = 'GTU Delete Nucleus Nodes'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # Without Transform
         emitters = cmds.ls(typ='pointEmitter')
-        instancers = cmds.ls(typ='instancer')
         solvers = cmds.ls(typ='nucleus')
         instancers = cmds.ls(typ='instancer')
 
@@ -829,8 +829,8 @@ def gtu_delete_user_defined_attributes():
 def gtu_combine_curves():
     """ Moves the shape objects of all selected curves under a single group (combining them) """
     errors = ''
+    function_name = 'GTU Combine Curves'
     try:
-        function_name = 'GTU Combine Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         selection = cmds.ls(sl=True, absoluteName=True)
         valid_selection = True
@@ -912,8 +912,8 @@ def gtu_separate_curves():
             short_name = split_path[len(split_path) - 1]
         return short_name
 
+    function_name = 'GTU Separate Curves'
     try:
-        function_name = 'GTU Separate Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         selection = cmds.ls(sl=True)
         valid_selection = True
@@ -966,8 +966,8 @@ def gtu_convert_bif_to_mesh():
     Converts Bifrost geometry to Maya geometry
     """
     errors = ''
+    function_name = 'GTU Convert Bif to Mesh'
     try:
-        function_name = 'GTU Convert Bif to Mesh'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         valid_selection = True
 
@@ -1084,7 +1084,7 @@ def gtu_build_gui_about_gt_tools():
     cmds.text(l='This menu contains sub-menus that have been\n organized to contain related tools.\n '
                 'For example: modeling, rigging, utilities, etc...', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\n'
+    cmds.text(l='All of these items are supplied as is.\nYou alone are responsible for any issues.\n'
                 'Use at your own risk.', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Hopefully these scripts are helpful to you\nas they are to me.', align="center")
@@ -1108,11 +1108,8 @@ def gtu_build_gui_about_gt_tools():
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
 
@@ -1124,8 +1121,8 @@ def gtu_build_gui_about_gt_tools():
 def gtu_delete_all_locators():
     """ Deletes all locators """
     errors = ''
+    function_name = 'GTU Delete All Locators'
     try:
-        function_name = 'GTU Delete All Locators'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # With Transform
