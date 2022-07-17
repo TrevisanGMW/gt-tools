@@ -1399,6 +1399,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <img src="./media/gtu_modeling.jpg" align="right"
      alt="GT Utilities Modeling">
 
+<h3>Preview All UDIMs</h3>
+<p>Generates previews for all file nodes using UDIMs.</p>
+
 <h3>Convert Bif to Mesh</h3>
 <p>Converts selected Bifrost meshes into the standard Maya meshes.<br>(Bif objects are created using Bifrost Graph)</p>
 
