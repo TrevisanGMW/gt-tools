@@ -963,6 +963,8 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
 	</li>
 </ul>
+<br>
+</div>
 
 <!-- GT Retarget Assistant -->
 <div>
@@ -1010,7 +1012,25 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
+<!-- GT Game FBX Exporter -->
+<div>
+<h1> GT Game FBX Exporter </h1>
+
+<img src="./media/gt_game_fbx_exporter.jpg" align="right"
+     alt="GT Game FBX Exporter GUI">
+
+<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
+<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
+
+<ul>
+	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
+	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
+	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
+	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be atuomatically stripped from the rig in the export.</li>
+</ul>
 <br>
+
+</div>
 
 <!-- GT Extract Bound Joints -->
 <div>
