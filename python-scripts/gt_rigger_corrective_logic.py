@@ -1987,7 +1987,7 @@ def merge_corrective_elements():
 
     for obj in necessary_elements:
         if not cmds.objExists(obj):
-            cmds.warning(f'Missing a require element. "{obj}"')
+            cmds.warning('Missing a require element. "' + obj + ' "')
             return
 
     corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
