@@ -1074,7 +1074,7 @@ def create_facial_controls(facial_data):
         cmds.setAttr(trans_loc + '.v', 0)
 
         # Find Skinned Joint
-        skinned_jnt_parent_constraint = cmds.listConnections(end_joint + '.translate',
+        skinned_jnt_parent_constraint = cmds.listConnections(end_joint + '.translate', 
                                                              destination=True, type='parentConstraint')[0]
         skinned_jnt = cmds.listConnections(skinned_jnt_parent_constraint + '.constraintRotateX', type='joint')[0]
         pure_fk_constraint = cmds.parentConstraint(trans_loc, skinned_jnt, mo=True)
@@ -2406,7 +2406,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 1, 0, 0, 0, 18, 1, 1, 1],  # TRS e.g. [T, T, T, R, R, R, S, S, S]
              setup='corner_lip'),
 
-        # Mouth Up In  ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖
+        # Mouth Up In                                         
         Pose(name='left_cornerLip_upIn',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, 5],
@@ -2494,7 +2494,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, -0.05, 0, 0, 0, 0, 1.3, 1, 1],
              setup='inner_corner_lip'),
 
-        # Mouth Down In ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙
+        # Mouth Down In                                       
         Pose(name='left_cornerLip_downIn',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, -5],
@@ -2531,7 +2531,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, -0.5, 0.1, 0, 0, 0, 1, 1, 1],
              setup='inner_corner_lip'),
 
-        # Mouth Down ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+        # Mouth Down                                         
         Pose(name='left_cornerLip_down',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, -5],
@@ -2540,7 +2540,7 @@ def create_facial_controls(facial_data):
              driven_offset=[-0.1, -1.2, 0, 0, 0, -30, 1, 1, 1],
              setup='corner_lip'),
 
-        # Mouth Down Out ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘
+        # Mouth Down Out                                       
         Pose(name='left_cornerLip_downOut',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, -5],
@@ -2570,7 +2570,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 0.1, 0, 0, 0, 0, 1, 1, 1],
              setup='outer_corner_lip'),
 
-        # Mouth Out → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → →
+        # Mouth Out > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >
         Pose(name='left_cornerLip_out',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, 5],
@@ -2579,7 +2579,7 @@ def create_facial_controls(facial_data):
              driven_offset=[1.5, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='outer_corner_lip'),
 
-        # Mouth Up Out ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗
+        # Mouth Up Out                                       
         Pose(name='left_cornerLip_upOut',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, 5],
@@ -2614,7 +2614,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 1.5, 0, 0, 0, 0, 1, 1, 1],
              setup='eyebrow'),
 
-        # Inner Eyebrows Up In  ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖
+        # Inner Eyebrows Up In                                      
         Pose(name='left_innerBrow_upIn',
              driver='left_innerBrow_offset_ctrl',
              driver_range=[0, 5],
@@ -2646,7 +2646,7 @@ def create_facial_controls(facial_data):
              driven_offset=[-1.17, -0.16, 0.06, 0, 0, -7.25, 1, 1, 1],
              setup='inner_eyebrow'),
 
-        # Inner Eyebrows Down In ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙
+        # Inner Eyebrows Down In                                    
         Pose(name='left_innerBrow_downIn',
              driver='left_innerBrow_offset_ctrl',
              driver_range=[0, -5],
@@ -2662,7 +2662,7 @@ def create_facial_controls(facial_data):
              driven_offset=[-1.17, -0.16, 0.06, 0, 0, -23, 1, 1, 1],
              setup='inner_eyebrow'),
 
-        # Inner Eyebrows Down ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+        # Inner Eyebrows Down                                      
         Pose(name='left_innerBrow_down',
              driver='left_innerBrow_offset_ctrl',
              driver_range=[0, -5],
@@ -2681,7 +2681,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 1.5, 0, 0, 0, 0, 1, 1, 1],
              setup='eyebrow'),
 
-        # Mid Eyebrows Down ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+        # Mid Eyebrows Down                                       
         Pose(name='left_midBrow_down',
              driver='left_midBrow_offset_ctrl',
              driver_range=[0, -5],
@@ -2700,7 +2700,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 1.5, 0, 0, 0, 0, 1, 1, 1],
              setup='eyebrow'),
 
-        # Outer EyeBrow Down ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+        # Outer EyeBrow Down                                       
         Pose(name='left_outerBrow_down',
              driver='left_outerBrow_offset_ctrl',
              driver_range=[0, -5],
@@ -2749,7 +2749,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, -1, 0, 0, 0, 0, 1, 1, 1],
              setup='jaw'),
 
-        # Jaw Up Out  ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗ ↗
+        # Jaw Up Out                                        
         Pose(name='jaw_upOut',
              driver='jaw_offset_ctrl',
              driver_range=[0, 5],
@@ -2793,7 +2793,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0.9, -0.25, 0.35, 0, 0, 0, 1, 1, 1],
              setup='jaw'),
 
-        # Jaw Up In  ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖ ↖
+        # Jaw Up In                                      
         Pose(name='jaw_upIn',
              driver='jaw_offset_ctrl',
              driver_range=[0, 5],
@@ -2853,7 +2853,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0.9, 0.3, 0.3, 0, 0, 0, 1, 1, 1],
              setup='inner_jaw'),
 
-        # Jaw Out → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → →
+        # Jaw Out > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >
         Pose(name='jaw_out',
              driver='jaw_offset_ctrl',
              driver_range=[0, -5],
@@ -2869,7 +2869,7 @@ def create_facial_controls(facial_data):
              driven_offset=[-0.9, 0.3, 0.3, 0, 0, 0, 1, 1, 1],
              setup='inner_jaw'),
 
-        # Jaw Down In ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙ ↙
+        # Jaw Down In                                        
         Pose(name='jaw_downIn',
              driver='jaw_offset_ctrl',
              driver_range=[0, -5],
@@ -2878,7 +2878,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, 0, 0, -3, -15, -2.5, 1, 1, 1],
              setup='jaw'),
 
-        # Jaw Down Out ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘ ↘
+        # Jaw Down Out                                        
         Pose(name='jaw_downOut',
              driver='jaw_offset_ctrl',
              driver_range=[0, -5],
@@ -2913,7 +2913,7 @@ def create_facial_controls(facial_data):
              driven_offset=[0, -0.7, 0.27, 0, 0, 0, 1, 1, 1],
              setup='mouth'),
 
-        # Mouth Down  ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+        # Mouth Down                                        
         Pose(name='mouth_down',
              driver='mainMouth_offset_ctrl',
              driver_range=[0, -5],
