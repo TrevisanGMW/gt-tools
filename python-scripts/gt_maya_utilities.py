@@ -97,8 +97,9 @@
 """
 import maya.cmds as cmds
 import maya.mel as mel
+import logging
 import sys
-from maya import OpenMayaUI as omui
+from maya import OpenMayaUI as OpenMayaUI
 
 try:
     from shiboken2 import wrapInstance
@@ -111,9 +112,10 @@ try:
 except ImportError:
     from PySide.QtGui import QIcon, QWidget
 
-
-# Python Version
-python_version = sys.version_info.major
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_utilities")
+logger.setLevel(logging.INFO)
 
 ''' ____________________________ General Functions ____________________________'''
 
@@ -132,10 +134,9 @@ def gtu_open_resource_browser():
     """ Opens Maya's Resource Browser """
     try:
         import maya.app.general.resourceBrowser as resourceBrowser
-
         resourceBrowser.resourceBrowser().run()
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
 
 
 def gtu_unlock_default_channels():
@@ -165,8 +166,8 @@ def gtu_unlock_default_channels():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -206,8 +207,8 @@ def gtu_unhide_default_channels():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -273,9 +274,9 @@ def gtu_uniform_lra_toggle():
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning('The script couldn\'t read or write some LRA states. Open script editor for more info.')
-    except:
-        pass
+            cmds.warning("The script couldn't read or write some LRA states. Open script editor for more info.")
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -332,10 +333,10 @@ def gtu_uniform_jnt_label_toggle():
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning(
-                'The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
-    except:
-        pass
+            cmds.warning("The script couldn't read or write some \"drawLabel\" states. "
+                         "Open script editor for more info.")
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -343,19 +344,20 @@ def gtu_uniform_jnt_label_toggle():
 def gtu_select_non_unique_objects():
     """ Selects all non-unique objects (objects with the same short name) """
 
-    def get_short_name(obj):
+    def get_short_name(full_name):
         """
             Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-                    Parameters:
-                            obj (string) - object to extract short name
+            Args:
+                full_name (string) - object to extract short name
             """
-        if obj == '':
+        output_short_name = ''
+        if full_name == '':
             return ''
-        split_path = obj.split('|')
+        split_path = full_name.split('|')
         if len(split_path) >= 1:
-            short_name = split_path[len(split_path) - 1]
-        return short_name
+            output_short_name = split_path[len(split_path) - 1]
+        return output_short_name
 
     all_transforms = cmds.ls(type='transform')
     short_names = []
@@ -380,8 +382,9 @@ def gtu_select_non_unique_objects():
 
 def gtu_import_references():
     """ Imports all references """
+    errors = ''
+    r_file = ''
     try:
-        errors = ''
         refs = cmds.ls(rf=True)
         for i in refs:
             try:
@@ -389,7 +392,8 @@ def gtu_import_references():
                 cmds.file(r_file, importReference=True)
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
         cmds.warning('Not all references were imported. Open the script editor for more information.')
@@ -400,8 +404,9 @@ def gtu_import_references():
 
 def gtu_remove_references():
     """ Removes all references """
+    errors = ''
+    r_file = ''
     try:
-        errors = ''
         refs = cmds.ls(rf=True)
         for i in refs:
             try:
@@ -409,7 +414,8 @@ def gtu_remove_references():
                 cmds.file(r_file, removeReference=True)
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         cmds.warning("Something went wrong. Maybe you don't have any references to import?")
     if errors != '':
         cmds.warning('Not all references were removed. Open the script editor for more information.')
@@ -441,8 +447,9 @@ def gtu_copy_material():
         mel.eval('ConvertSelectionToFaces;')
         cmds.polyClipboard(copy=True, shader=True)
         cmds.inViewMessage(amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True)
-    except:
-        cmds.warning('Couldn\'t copy material. Make sure you selected an object or component before copying.')
+    except Exception as e:
+        logger.debug(str(e))
+        cmds.warning("Couldn't copy material. Make sure you selected an object or component before copying.")
     cmds.select(selection)
 
 
@@ -450,8 +457,9 @@ def gtu_paste_material():
     """ Copies selected material to clipboard """
     try:
         cmds.polyClipboard(paste=True, shader=True)
-    except:
-        cmds.warning("Couldn\'t paste material. Make sure you copied a material first, "
+    except Exception as e:
+        logger.debug(str(e))
+        cmds.warning("Couldn't paste material. Make sure you copied a material first, "
                      "then selected the target objects or components.")
 
 
@@ -494,8 +502,8 @@ def gtu_move_to_origin():
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -506,7 +514,7 @@ def gtu_move_to_origin():
 def gtu_reset_transforms():
     """
     Reset transforms. 
-    It checks for incomming connections, then set the attribute to 0 if there are none
+    It checks for incoming connections, then set the attribute to 0 if there are none
     It resets transforms, but ignores translate for joints.
     """
     function_name = 'GTU Reset Transforms'
@@ -559,22 +567,26 @@ def gtu_reset_transforms():
                 if not len(obj_connection_sz) > 0:
                     if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
                         cmds.setAttr(obj + '.scaleZ', 1)
-            except Exception as e:
-                errors = errors + str(e + '\n')
+            except Exception as exception:
+                logger.debug(str(exception))
+                errors += str(exception) + '\n'
 
     try:
         reset_transforms()
     except Exception as e:
-        pass
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     if errors != '':
-        cmds.warning('Some objects couldn\'t be reset. Open the script editor for a list of errors.')
+        cmds.warning("Some objects couldn't be reset. Open the script editor for a list of errors.")
 
 
 def gtu_reset_joint_sizes():
-    """ Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one """
+    """
+    Resets the radius attribute back to one in all joints,
+    then changes the global multiplier (jointDisplayScale) back to one
+    """
     try:
         desired_size = 1
         all_joints = cmds.ls(type='joint')
@@ -585,7 +597,7 @@ def gtu_reset_joint_sizes():
 
                 if cmds.getAttr(obj + ".v", lock=True) is False:
                     cmds.setAttr(obj + '.v', 1)
-        cmds.jointDisplayScale(1)
+        cmds.jointDisplayScale(desired_size)
 
     except Exception as exception:
         raise exception
@@ -611,8 +623,8 @@ def gtu_reset_persp_shape_attributes():
             cmds.setAttr('perspShape' + ".preScale", 1)
             cmds.setAttr('perspShape' + ".postScale", 1)
             cmds.setAttr('perspShape' + ".depthOfField", 0)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
 
 """ ____________________________ Delete Functions ____________________________"""
@@ -689,8 +701,8 @@ def gtu_delete_keyframes():
             try:
                 cmds.delete(obj)
                 deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
         message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'keyframe nodes were'
         if deleted_counter == 1:
@@ -707,13 +719,12 @@ def gtu_delete_keyframes():
 def gtu_delete_nucleus_nodes():
     """ Deletes all elements related to particles """
     errors = ''
+    function_name = 'GTU Delete Nucleus Nodes'
     try:
-        function_name = 'GTU Delete Nucleus Nodes'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # Without Transform
         emitters = cmds.ls(typ='pointEmitter')
-        instancers = cmds.ls(typ='instancer')
         solvers = cmds.ls(typ='nucleus')
         instancers = cmds.ls(typ='instancer')
 
@@ -729,7 +740,8 @@ def gtu_delete_nucleus_nodes():
         hair_nodes = cmds.ls(typ='hairSystem')
         nconstraint_nodes = cmds.ls(typ='dynamicConstraint')
 
-        transforms = nparticle_nodes + spring_nodes + particle_nodes + nrigid_nodes + ncloth_nodes + pfxhair_nodes + hair_nodes + nconstraint_nodes
+        transforms = nparticle_nodes + spring_nodes + particle_nodes + nrigid_nodes
+        transforms += ncloth_nodes + pfxhair_nodes + hair_nodes + nconstraint_nodes
 
         # Fields/Solvers Types
         # airField
@@ -747,14 +759,14 @@ def gtu_delete_nucleus_nodes():
                 parent = cmds.listRelatives(obj, parent=True) or []
                 cmds.delete(parent[0])
                 deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
         for obj in no_transforms:
             try:
                 cmds.delete(obj)
                 deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
         message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'objects were'
@@ -766,7 +778,7 @@ def gtu_delete_nucleus_nodes():
 
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured. Open the script editor for more information.')
+        cmds.warning('An error occurred. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -796,8 +808,8 @@ def gtu_delete_user_defined_attributes():
             try:
                 cmds.deleteAttr(obj)
                 deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
         message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'user defined attributes were'
         if deleted_counter == 1:
@@ -817,8 +829,8 @@ def gtu_delete_user_defined_attributes():
 def gtu_combine_curves():
     """ Moves the shape objects of all selected curves under a single group (combining them) """
     errors = ''
+    function_name = 'GTU Combine Curves'
     try:
-        function_name = 'GTU Combine Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         selection = cmds.ls(sl=True, absoluteName=True)
         valid_selection = True
@@ -849,6 +861,7 @@ def gtu_combine_curves():
                                             icon="warning")
             if user_input == 'Yes':
                 for obj in bezier_in_selection:
+                    logger.debug(str(obj))
                     cmds.bezierCurveToNurbs()
 
         if valid_selection:
@@ -866,11 +879,9 @@ def gtu_combine_curves():
             cmds.parent(relative=True, shape=True)
             cmds.delete(selection)
 
-
-
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
     finally:
 
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
@@ -886,22 +897,23 @@ def gtu_separate_curves():
     errors = ''
     acceptable_types = ['nurbsCurve', 'bezierCurve']
 
-    def get_short_name(obj):
+    def get_short_name(full_name):
         """
         Get the name of the objects without its path (Maya returns full path if name is not unique)
 
-                Parameters:
-                        obj (string) - object to extract short name
+        Args:
+            full_name (string) - object to extract short name
         """
-        if obj == '':
+        short_name = ''
+        if full_name == '':
             return ''
-        split_path = obj.split('|')
+        split_path = full_name.split('|')
         if len(split_path) >= 1:
             short_name = split_path[len(split_path) - 1]
         return short_name
 
+    function_name = 'GTU Separate Curves'
     try:
-        function_name = 'GTU Separate Curves'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         selection = cmds.ls(sl=True)
         valid_selection = True
@@ -939,10 +951,9 @@ def gtu_separate_curves():
                 if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
                     cmds.delete(obj)
 
-
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when separating the curves. Open the script editor for more information.')
+        cmds.warning('An error occurred when separating the curves. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -955,8 +966,8 @@ def gtu_convert_bif_to_mesh():
     Converts Bifrost geometry to Maya geometry
     """
     errors = ''
+    function_name = 'GTU Convert Bif to Mesh'
     try:
-        function_name = 'GTU Convert Bif to Mesh'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         valid_selection = True
 
@@ -990,8 +1001,8 @@ def gtu_convert_bif_to_mesh():
                         cmds.rename(mesh_transform[0], 'bifToGeo1')
                         try:
                             cmds.hyperShade(assign='lambert1')
-                        except:
-                            pass
+                        except Exception as e:
+                            logger.debug(str(e))
 
             for bif in bif_graph_objects:
                 bifrost_attributes = cmds.listAttr(bif, fp=True, inUse=True, read=True) or []
@@ -1004,8 +1015,8 @@ def gtu_convert_bif_to_mesh():
                     bif_mesh = cmds.rename(mesh_transform[0], 'bifToGeo1')
                     try:
                         cmds.hyperShade(assign='lambert1')
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.debug(str(e))
 
                     vtx = cmds.ls(bif_mesh + '.vtx[*]', fl=True) or []
                     if len(vtx) == 0:
@@ -1013,14 +1024,14 @@ def gtu_convert_bif_to_mesh():
                             cmds.delete(bif_mesh)
                             # cmds.delete(conversion_node)
                             # cmds.delete(mesh_node)
-                        except:
-                            pass
+                        except Exception as e:
+                            logger.debug(str(e))
     except Exception as e:
         errors += str(e) + '\n'
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
-        cmds.warning('An error occured when converting bif to mesh. Open the script editor for more information.')
+        cmds.warning('An error occurred when converting bif to mesh. Open the script editor for more information.')
         print('######## Errors: ########')
         print(errors)
 
@@ -1031,11 +1042,11 @@ def gtu_convert_bif_to_mesh():
 def gtu_build_gui_about_gt_tools():
     """ Creates "About" window for the GT Tools menu """
 
-    stored_gt_tools_version_exists = cmds.optionVar(exists=("gt_tools_version"))
+    stored_gt_tools_version_exists = cmds.optionVar(exists="gt_tools_version")
 
     # Define Version
     if stored_gt_tools_version_exists:
-        gt_version = cmds.optionVar(q=("gt_tools_version"))
+        gt_version = cmds.optionVar(q="gt_tools_version")
     else:
         gt_version = '?'
 
@@ -1062,21 +1073,19 @@ def gtu_build_gui_about_gt_tools():
 
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='About:', align="center", fn="boldLabelFont")
-    cmds.text(
-        l='This is my collection of scripts for Autodesk Maya.\nThese scripts were created with the aim of automating,\n enhancing or simply filling the missing details of what\n I find lacking in Maya.',
-        align="center")
+    cmds.text(l='This is my collection of scripts for Autodesk Maya.\n'
+                'These scripts were created with the aim of automating,\n e'
+                'nhancing or simply filling the missing details of what\n I find lacking in Maya.', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(
         l='When installed you can find a pull-down menu that\n provides easy access to a variety of related tools.',
         align="center")
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text(
-        l='This menu contains sub-menus that have been\n organized to contain related tools.\n For example: modeling, rigging, utilities, etc...',
-        align="center")
+    cmds.text(l='This menu contains sub-menus that have been\n organized to contain related tools.\n '
+                'For example: modeling, rigging, utilities, etc...', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(
-        l='All of these items are supplied as is.\nYou alone are soley responsible for any issues.\nUse at your own risk.',
-        align="center")
+    cmds.text(l='All of these items are supplied as is.\nYou alone are responsible for any issues.\n'
+                'Use at your own risk.', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Hopefully these scripts are helpful to you\nas they are to me.', align="center")
     cmds.separator(h=15, style='none')  # Empty Space
@@ -1099,11 +1108,8 @@ def gtu_build_gui_about_gt_tools():
     cmds.window(window_name, e=True, s=False)
 
     # Set Window Icon
-    qw = omui.MQtUtil.findWindow(window_name)
-    if python_version == 3:
-        widget = wrapInstance(int(qw), QWidget)
-    else:
-        widget = wrapInstance(long(qw), QWidget)
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
     icon = QIcon(':/question.png')
     widget.setWindowIcon(icon)
 
@@ -1115,8 +1121,8 @@ def gtu_build_gui_about_gt_tools():
 def gtu_delete_all_locators():
     """ Deletes all locators """
     errors = ''
+    function_name = 'GTU Delete All Locators'
     try:
-        function_name = 'GTU Delete All Locators'
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # With Transform
@@ -1128,8 +1134,8 @@ def gtu_delete_all_locators():
                 parent = cmds.listRelatives(obj, parent=True) or []
                 cmds.delete(parent[0])
                 deleted_counter += 1
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
         message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
         is_plural = 'locators were'
@@ -1141,7 +1147,7 @@ def gtu_delete_all_locators():
 
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when deleting locators. Open the script editor for more information.')
+        cmds.warning('An error occurred when deleting locators. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -1151,7 +1157,6 @@ def gtu_delete_all_locators():
 
 def gtu_full_hud_toggle():
     """ Toggles common HUD options so all the common ones are either active or inactive  """
-
     hud_current_state = {}
 
     # 1 - Animation Details
@@ -1160,7 +1165,8 @@ def gtu_full_hud_toggle():
     try:
         from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
         hud_current_state['CachePreferenceHud'] = int(CachePreferenceHud().get_value() or 0)
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         hud_current_state['CachePreferenceHud'] = 0
     # 3 - Camera Names
     hud_current_state['cameraNamesVisibility'] = int(mel.eval('optionVar -q cameraNamesVisibility;'))
@@ -1223,8 +1229,8 @@ def gtu_full_hud_toggle():
         try:
             from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
             CachePreferenceHud().set_value(True)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
         mel.eval('setCameraNamesVisibility(true)')
         mel.eval('setCapsLockVisibility(true)')
         mel.eval('setCurrentContainerVisibility(true)')
@@ -1255,8 +1261,8 @@ def gtu_full_hud_toggle():
         try:
             from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
             CachePreferenceHud().set_value(False)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
         mel.eval('setCurrentContainerVisibility(false)')
         mel.eval('setCurrentFrameVisibility(false)')
         mel.eval('SetEvaluationManagerHUDVisibility(0)')

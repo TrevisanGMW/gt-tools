@@ -136,7 +136,7 @@ def combine_curves_list(curve_list):
 
     except Exception as e:
         errors += str(e) + '\n'
-        cmds.warning('An error occured when combining the curves. Open the script editor for more information.')
+        cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
@@ -314,14 +314,14 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
             mag = calculate_distance(ik_handle_ws_pos[0], ik_handle_ws_pos[1], ik_handle_ws_pos[2], jnt_ws_pos[0],
                                      jnt_ws_pos[1], jnt_ws_pos[2])
             jnt_magnitude_pairs.append([jnt, mag])
-        # Find Lowest Distance
-        curent_jnt = jnt_magnitude_pairs[1:][0]
-        curent_closest = jnt_magnitude_pairs[1:][1]
+        # Find The Lowest Distance
+        current_jnt = jnt_magnitude_pairs[1:][0]
+        current_closest = jnt_magnitude_pairs[1:][1]
         for pair in jnt_magnitude_pairs:
-            if pair[1] < curent_closest:
-                curent_closest = pair[1]
-                curent_jnt = pair[0]
-        end_ik_jnt = curent_jnt
+            if pair[1] < current_closest:
+                current_closest = pair[1]
+                current_jnt = pair[0]
+        end_ik_jnt = current_jnt
 
     distance_one = cmds.distanceDimension(sp=(1, random.random() * 10, 1), ep=(2, random.random() * 10, 2))
     distance_one_transform = cmds.listRelatives(distance_one, parent=True, f=True) or [][0]
@@ -335,7 +335,6 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
     end_loc_one = cmds.rename(distance_one_locators[1], stretchy_name + '_stretchyTerm_end')
 
     distance_nodes = {}  # [distance_node_transform, start_loc, end_loc, ik_handle_joint]
-    index = 0
     for index in range(len(ik_handle_joints)):
         distance_node = cmds.distanceDimension(sp=(1, random.random() * 10, 1), ep=(2, random.random() * 10, 2))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, f=True) or [][0]
@@ -746,7 +745,7 @@ def create_joint_curve(name='jointCurve', scale=1, initial_position=(0, 0, 0)):
     cmds.makeIdentity(curve_crv, apply=True, translate=True, scale=True)
     # Rename Shapes
     for shape in cmds.listRelatives(curve_crv, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(name))
+        cmds.rename(shape, '{0}Shape'.format(name))
     return curve_crv
 
 
@@ -883,7 +882,7 @@ def create_main_control(name):
             name (string): Name of the new control
             
         Returns:
-            main_crv (string): Name of the generated control (in case it was different than what was provided)
+            main_crv (string): Name of the generated control (in case it was different from what was provided)
     
     """
     main_crv_assembly = []
@@ -939,6 +938,7 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
                                         [-0.205, 0.0, -1.0], [-0.409, 0.0, -1.0], [0.0, 0.0, -1.428]], d=1)
         curve_shape = cmds.listRelatives(curve_transform, s=True, f=True)[0]
         curve_shape = cmds.rename(curve_shape, '{0}Shape'.format(curve_transform))
+    logger.debug(str(curve_shape))
     # Set Initial Scale
     cmds.setAttr(curve_transform + '.sx', initial_scale)
     cmds.setAttr(curve_transform + '.sy', initial_scale)
@@ -1132,10 +1132,10 @@ def gtu_uniform_jnt_label_toggle():
         if errors != '':
             print('#### Errors: ####')
             print(errors)
-            cmds.warning(
-                'The script couldn\'t read or write some "drawLabel" states. Open script editor for more info.')
-    except:
-        pass
+            cmds.warning("The script couldn't read or write some \"drawLabel\" states. "
+                         "Open script editor for more info.")
+    except Exception as e:
+        logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -1152,15 +1152,19 @@ def create_shelf_button(command,
     """
     Add a shelf button to the current shelf (according to the provided parameters)
     
-            Parameters:
-                command (str): A string containing the code or command you want the button to run when clicking on it. E.g. "print("Hello World")"
-                label (str): The label of the button. This is the text you see below it.
-                name (str): The name of the button as seen inside the shelf editor.
-                tooltip (str): The help message you get when hovering the button.
-                image (str): The image used for the button (defaults to Python icon if none)
-                label_color (tuple): A tuple containing three floats, these are RGB 0 to 1 values to determine the color of the label.
-                label_bgc_color (tuple): A tuple containing four floats, these are RGBA 0 to 1 values to determine the background of the label.
-                bgc_color (tuple):  A tuple containing three floats, these are RGB 0 to 1 values to determine the background of the icon
+    Args:
+        command (str): A string containing the code or command you want the button to run when clicking on it.
+                       e.g. "print("Hello World")"
+        label (str): The label of the button. This is the text you see below it.
+        name (str): The name of the button as seen inside the shelf editor.
+        tooltip (str): The help message you get when hovering the button.
+        image (str): The image used for the button (defaults to Python icon if none)
+        label_color (tuple): A tuple containing three floats,
+                             these are RGB 0 to 1 values to determine the color of the label.
+        label_bgc_color (tuple): A tuple containing four floats,
+                                 these are RGBA 0 to 1 values to determine the background of the label.
+        bgc_color (tuple): A tuple containing three floats,
+                           these are RGB 0 to 1 values to determine the background of the icon
     
     """
     maya_version = int(cmds.about(v=True))
@@ -1298,23 +1302,23 @@ def toggle_rigging_attr():
         for attr in attributes_arm_switch:
             try:
                 cmds.setAttr(ctrl + '.' + attr, keyable=(not current_state))
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
     # Legs Switch
     for ctrl in controls_legs_switch:
         for attr in attributes_legs_switch:
             try:
                 cmds.setAttr(ctrl + '.' + attr, keyable=(not current_state))
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
     # Main Control
     for attr in attributes_main:
         try:
             cmds.setAttr('main_ctrl' + '.' + attr, keyable=(not current_state))
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
     # Print Feedback
     unique_message = '<' + str(random.random()) + '>'
@@ -1322,7 +1326,8 @@ def toggle_rigging_attr():
     if current_state:
         state_message = 'hidden'
     cmds.inViewMessage(
-        amg=unique_message + '<span style=\"color:#FFFFFF;\">Rigging attributes are now </span><span style=\"color:#FF0000;text-decoration:underline;\">' + state_message + '</span>',
+        amg=unique_message + '<span style=\"color:#FFFFFF;\">Rigging attributes are now </span>'
+                             '<span style=\"color:#FF0000;text-decoration:underline;\">' + state_message + '</span>',
         pos='botLeft', fade=True, alpha=.9)
 
 
@@ -1348,7 +1353,7 @@ def attach_no_ssc_skeleton(duplicated_joints,
                                                 Used to pair with original skeleton
         jnt_suffix (optional, string): The suffix the script expects
                                        to find at the end of every joint
-        swap_names (optional, bool): Whether or not to overwrite the original skeleton (use same name)
+        swap_names (optional, bool): Whether to overwrite the original skeleton (use same name)
         driver_suffix (optional, string) : String added to the original skeleton in case swapping.
                                          This is joint_name + driver_suffix + jnt_suffix
                                          e.g. joint_driver_jnt
@@ -1441,13 +1446,13 @@ def attach_no_ssc_skeleton(duplicated_joints,
 def generate_no_ssc_skeleton(new_suffix='game', jnt_suffix='jnt', skeleton_root='root_jnt'):
     """
     Uses other functions to build a secondary skeleton that doesn't rely
-    on Maya's segment scale compensate system. It insteads bakes the scale
+    on Maya's segment scale compensate system. It instead bakes the scale
     on to the children joints.
 
             Parameters:
                 new_suffix (optional, string): The in-between word used to create a new suffix.
                                                The new one will be new_suffix + "_" + jnt_suffix.
-                                               e.g. myJoint_jnt => myJOint_game_jnt
+                                               e.g. myJoint_jnt => myJoint_game_jnt
                 jnt_suffix (optional, string): The suffix the script expects
                                                to find at the end of every joint
                 skeleton_root (optional, string): Root of the skeleton
@@ -1495,8 +1500,8 @@ def generate_no_ssc_skeleton(new_suffix='game', jnt_suffix='jnt', skeleton_root=
 
 def mimic_segment_scale_compensate(joints_with_ssc, joints_no_ssc):
     """
-    Mimics the behaviour of segment scale compensate tranform system present in Maya
-    transfering the baked values to a secondary joint chain.
+    Mimics the behaviour of segment scale compensate transform system present in Maya
+    transferring the baked values to a secondary joint chain.
     The secondary skeleton is compatible with real-time engines as it calculates and bakes
     scale values directly into the joints.
 
@@ -1538,8 +1543,8 @@ def mimic_segment_scale_compensate(joints_with_ssc, joints_no_ssc):
                                         scale_compensate_multiply_node + '.input1'):
                     cmds.connectAttr(scale_compensate_divide_node + '.output',
                                      scale_compensate_multiply_node + '.input1', f=True)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
     # Try to connect hierarchy divide nodes
     for index in range(len(joints_no_ssc)):
@@ -1549,8 +1554,8 @@ def mimic_segment_scale_compensate(joints_with_ssc, joints_no_ssc):
             try:
                 cmds.connectAttr(scale_compensate_divide_prefix + joint_parent[0] + '.output',
                                  scale_compensate_divide_prefix + joints_no_ssc[index] + '.input1', f=True)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
 
 def create_limit_lock_attributes(obj, lock_attr='lockXY', primary_rotation_channel='Z', ignore_rot=False):
@@ -1704,10 +1709,10 @@ def create_text(text, font='MS Shell Dlg 2'):
 
 def rescale(obj, scale, freeze=True):
     """
-    Sets the scaleXYZ to the provided scale value, then freezes the object so it has a new scale
+    Sets the scaleXYZ to the provided scale value, then freezes the object, so it has a new scale
     Args:
         obj (string) Name of the object, for example "pSphere1"
-        scale (float) The new scale value,, for example 0.5
+        scale (float) The new scale value, for example 0.5
                       (this would cause it to be half of its initial size in case it was previously one)
         freeze: (bool) Determines if the object scale should be frozen after updated
     """
@@ -1966,7 +1971,6 @@ def create_mouth_controls():
     cmds.setAttr(main_mouth_offset_ctrl[1] + '.sz', 0.8)
     cmds.setAttr(in_out_tongue_ctrl[1] + '.rz', 90)
 
-
     half_size_ctrls = [left_upper_outer_lip_ctrl, left_lower_outer_lip_ctrl, left_upper_corner_lip_ctrl,
                        left_lower_corner_lip_ctrl, right_upper_outer_lip_ctrl, right_lower_outer_lip_ctrl,
                        right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl, mid_lower_lip_ctrl,
@@ -2098,7 +2102,7 @@ def create_mouth_controls():
     change_viewport_color(tongue_ctrl[0], (1, 0.35, 0.55))
     change_viewport_color(in_out_tongue_ctrl[0], (1, 0.35, 0.55))
 
-    return (gui_grp, controls)
+    return gui_grp, controls
 
 
 def create_eyebrow_controls():
@@ -2219,7 +2223,7 @@ def create_eyebrow_controls():
     cmds.parent(bg_grp, gui_grp)
     change_outliner_color(bg_grp, (0, 0, 0))
 
-    return (gui_grp, controls)
+    return gui_grp, controls
 
 
 def create_eye_controls():
@@ -2395,7 +2399,7 @@ def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
     Args:
         create_slider_output (tuple): The tuple output returned from the function "create_slider_control"
         offset_by: How much to offset, use positive numbers to make it bigger or negative to make it smaller
-        offset_thickness: Amount to updates the shape curves so it continue to look proportional after the offset.
+        offset_thickness: Amount to update the shape curves, so it continues to look proportional after the offset.
 
     """
     ctrl = create_slider_output[0]
@@ -2439,7 +2443,7 @@ def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
 
 def create_inbetween(obj, offset_suffix='Offset'):
     """
-    Creates a in-between group usually used as offset
+    Creates in-between group usually used as offset
     Args:
         obj: Name of the control or object (string)
         offset_suffix: Suffix used for when creating the control (string)
@@ -2449,7 +2453,7 @@ def create_inbetween(obj, offset_suffix='Offset'):
     """
     obj_parent = cmds.listRelatives(obj, parent=True) or []
     if not obj_parent:
-        cmds.warning('"' + obj + '" doesn\'t have a parent. Script cannot create an in-between group.')
+        cmds.warning('"' + obj + "\" doesn't have a parent. Script cannot create an in-between group.")
         return
 
     offset_grp = cmds.group(
@@ -2471,10 +2475,10 @@ def get_named_attr(object_name, attribute_name):
     Returns:
 
     """
-    if not cmds.objExists(f"{object_name}.{attribute_name}"):
-        logger.warning(f"Couldn't find {object_name}.{attribute_name} in the scene")
+    if not cmds.objExists(object_name + '.' + attribute_name):
+        logger.warning("Couldn't find " + object_name + "." + attribute_name + " in the scene")
         return
-    return cmds.getAttr(f"{object_name}.{attribute_name}")
+    return cmds.getAttr(object_name + '.' + attribute_name)
 
 
 def get_metadata(object_name):
@@ -2485,7 +2489,7 @@ def get_metadata(object_name):
 
     Returns:
         <dict> the metadata
-        if the object doesnt exists, returns None
+        if the object doesn't exist, returns None
     """
     _metadata_string = get_named_attr(object_name, 'metadata')
     if not _metadata_string:
@@ -2500,7 +2504,7 @@ def find_item(name, item_type, log_fail=True):
     Args:
         name: Name of the object to search for
         item_type: Type of the object (to narrow search)
-        log_fail: Whether or not it should log a fail message
+        log_fail: Whether it should log a fail message
 
     Returns: Object name (if found) or NOne if it doesn't exist
 
@@ -2593,22 +2597,23 @@ def create_pin_control(jnt_name, scale_offset, create_offset_grp=True):
     return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
 
-def _get_object_namespaces(objectName):
+def _get_object_namespaces(object_name):
     """
     Returns only the namespace of the object
     Args:
-        objectName (string): Name of the object to extract the namespace from
+        object_name (string): Name of the object to extract the namespace from
     Returns:
         namespaces (string): Extracted namespaces combined into a string (without the name of the object)
                              e.g. Input = "One:Two:pSphere" Output = "One:Two:"
     """
-    namespaces_list = objectName.split(':')
+    namespaces_list = object_name.split(':')
     object_namespace = ''
     for namespace in namespaces_list:
         if namespace != namespaces_list[-1]:
             object_namespace += namespace + ':'
 
     return object_namespace
+
 
 class StripNamespace(object):
     """
@@ -2618,7 +2623,6 @@ class StripNamespace(object):
     due to file referencing.
 
     Usage:
-
         with StripNamespace('someNamespace') as stripped_nodes:
             print cmds.ls(stripped_nodes)
     """
@@ -2628,8 +2632,8 @@ class StripNamespace(object):
         """
         Convenience method to extract the name from uuid
 
-        :type uuid: basestring
-        :rtype: unicode|None
+        type uuid: basestring
+        rtype: unicode|None
         """
         names = cmds.ls(uuid)
         return names[0] if names else None
