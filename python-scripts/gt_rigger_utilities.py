@@ -407,6 +407,7 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
 
     # Constraints
     cmds.pointConstraint(ik_handle_joints[0], start_loc_one)
+    start_loc_condition = None
     for node in distance_nodes:
         if distance_nodes.get(node)[3] == ik_handle_joints[0:][0]:
             start_loc_condition = cmds.pointConstraint(ik_handle_joints[0], distance_nodes.get(node)[1])
@@ -993,7 +994,7 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
 
     curve_rig_grp = cmds.group(name=curve_name + '_setup_grp', world=True, empty=True)
 
-    start_point_on_curve_node = cmds.createNode('pointOnCurveInfo', name=curve_name + '_start_pointOnCurve')
+    cmds.createNode('pointOnCurveInfo', name=curve_name + '_start_pointOnCurve')
 
     # Setup Hierarchy
     cmds.parent(cluster_start[1], start_curve_scale_grp)
