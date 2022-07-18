@@ -199,18 +199,18 @@ def set_fbx_property(name, value):
     try:
         mel.eval(_propString)
     except Exception as e:
-        logger.warning(f"[setFBXProperty] failed to set property {name} to {value}")
-        logger.warning(f"{_propString}")
+        logger.warning("[setFBXProperty] failed to set property " + name + '" to "' + value + '"')
+        logger.warning(str(_propString))
         logger.warning(str(e))
 
 
 def set_fbx_geometry_property(name, value):
-    _fullname = f"FBXProperty Export|IncludeGrp|Geometry|{name}"
+    _fullname = "FBXProperty Export|IncludeGrp|Geometry|" + name
     set_fbx_property(name=_fullname, value=value)
 
 
 def set_fbx_export_property(name, value):
-    _fullname = f"FBXExport{name}"
+    _fullname = "FBXExport" + name
     set_fbx_property(name=_fullname, value=value)
 
 
