@@ -1074,8 +1074,8 @@ def create_facial_controls(facial_data):
         cmds.setAttr(trans_loc + '.v', 0)
 
         # Find Skinned Joint
-        skinned_jnt_parent_constraint = \
-            cmds.listConnections(end_joint + '.translate', destination=True, type='parentConstraint')[0]
+        skinned_jnt_parent_constraint = cmds.listConnections(end_joint + '.translate',
+                                                             destination=True, type='parentConstraint')[0]
         skinned_jnt = cmds.listConnections(skinned_jnt_parent_constraint + '.constraintRotateX', type='joint')[0]
         pure_fk_constraint = cmds.parentConstraint(trans_loc, skinned_jnt, mo=True)
 
@@ -2397,7 +2397,7 @@ def create_facial_controls(facial_data):
 
     poses += [
         # Mouth - Counter Clockwise Starting 12PM -----------------------------------------------------
-        # Mouth Up ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Mouth Up ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='left_cornerLip_up',
              driver='left_cornerLip_offset_ctrl',
              driver_range=[0, 5],
@@ -2605,7 +2605,7 @@ def create_facial_controls(facial_data):
 
     poses += [
         # Inner Eyebrows --------------------------------------------------------------------------------
-        # Inner Eyebrows Up  ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Inner Eyebrows Up  ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='left_innerBrow_up',
              driver='left_innerBrow_offset_ctrl',
              driver_range=[0, 5],
@@ -2672,7 +2672,7 @@ def create_facial_controls(facial_data):
              setup='eyebrow'),
 
         # Mid Eyebrows -----------------------------------------------------------------------------------
-        # Mid Eyebrows Up  ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Mid Eyebrows Up  ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='left_midBrow_up',
              driver='left_midBrow_offset_ctrl',
              driver_range=[0, 5],
@@ -2691,7 +2691,7 @@ def create_facial_controls(facial_data):
              setup='eyebrow'),
 
         # Outer EyeBrow ----------------------------------------------------------------------------------
-        # Outer EyeBrow Up  ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Outer EyeBrow Up  ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='left_outerBrow_up',
              driver='left_outerBrow_offset_ctrl',
              driver_range=[0, 5],
@@ -2712,7 +2712,7 @@ def create_facial_controls(facial_data):
 
     poses += [
         # Misc ----------------------------------------------------------------------------------
-        # Jaw Up  ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Jaw Up  ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='jaw_up',
              driver='jaw_offset_ctrl',
              driver_range=[0, 5],
@@ -2890,7 +2890,7 @@ def create_facial_controls(facial_data):
 
     poses += [
         # Mouth ----------------------------------------------------------------------------------
-        # Mouth Up  ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑ ↑
+        # Mouth Up  ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
         Pose(name='mouth_up',
              driver='mainMouth_offset_ctrl',
              driver_range=[0, 5],
@@ -3267,7 +3267,7 @@ def merge_facial_elements():
     necessary_elements.append(rig_setup_grp)
     for obj in necessary_elements:
         if not cmds.objExists(obj):
-            cmds.warning(f'Missing a require element. "{obj}"')
+            cmds.warning('Missing a require element. "' + obj + '"')
             return
 
     facial_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
