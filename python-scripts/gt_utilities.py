@@ -30,11 +30,11 @@ def remove_numbers(string):
     """
     Removes all numbers (digits) from the provided string
 
-            Parameters:
-                string (string): input string (numbers will be removed from it)
+    Args:
+        string (string): input string (numbers will be removed from it)
 
-            Returns:
-                string (string): output string without numbers (digits)
+    Returns:
+        string (string): output string without numbers (digits)
 
     """
     return ''.join([i for i in string if not i.isdigit()])
