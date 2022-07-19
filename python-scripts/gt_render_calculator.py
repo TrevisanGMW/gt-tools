@@ -28,7 +28,7 @@ except ImportError:
 script_name = "GT - Render Calculator"
 
 # Version
-script_version = "0.0.1"
+script_version = "1.0.0"
 
 
 # Logging Setup
@@ -56,6 +56,8 @@ def calculate_render_time(input_time, num_frames=1, num_machines=1, unit='second
         timedelta_sec = datetime.timedelta(minutes=processed_time)
     elif unit == 'seconds':
         timedelta_sec = datetime.timedelta(seconds=processed_time)
+    elif unit == 'hours':
+        timedelta_sec = datetime.timedelta(hours=processed_time)
     else:
         logger.warning('Unable to determine unit. Using seconds.')
         timedelta_sec = datetime.timedelta(seconds=processed_time)
@@ -78,7 +80,7 @@ def calculate_render_time(input_time, num_frames=1, num_machines=1, unit='second
     logger.debug('minutes: ' + str(minutes))
     logger.debug('seconds: ' + str(seconds))
 
-    output_time = ''
+    output_time = 'Your render will take approximately:\n'
     if years > 0:
         output_time += str(years) + ' year' + ('' if years == 1 else 's') + '\n'
     if months > 0:
@@ -102,9 +104,14 @@ def build_gui_render_calculator():
         Recalculates everything using the data found in the GUI. Created to be used with changeCommand
         """
         logger.debug(str(args))
-        logger.debug(cmds.intSliderGrp(time_per_frame, q=True, value=True))
-        logger.debug(cmds.intSliderGrp(num_of_frames, q=True, value=True))
-        print('recalculating')
+        time_per_frame_out = cmds.intSliderGrp(time_per_frame, q=True, value=True)
+        num_of_frames_out = cmds.intSliderGrp(num_of_frames, q=True, value=True)
+        num_of_machines_out = cmds.intSliderGrp(num_of_machines, q=True, value=True)
+        unit_out = (cmds.optionMenu(unit_option, q=True, value=True).replace('(s)', '') + 's').lower()
+        result = calculate_render_time(time_per_frame_out, num_of_frames_out, num_of_machines_out, unit=unit_out)
+        cmds.scrollField(output_python, e=True, ip=1, it='')  # Bring Back to the Top
+        cmds.scrollField(output_python, edit=True, wordWrap=True, text='', sl=True)
+        cmds.scrollField(output_python, edit=True, wordWrap=True, text=result, sl=True)
 
     def get_timeline_range_num():
         start = cmds.playbackOptions(q=True, min=True)
@@ -149,7 +156,7 @@ def build_gui_render_calculator():
                                        minValue=1, maxValue=999999,
                                        fieldMinValue=1, fieldMaxValue=999999,
                                        value=1, cc=partial(_recalculate_time))
-    cmds.optionMenu(label='', cc=partial(_recalculate_time))
+    unit_option = cmds.optionMenu(label='', cc=partial(_recalculate_time))
     cmds.menuItem(label='Second(s)')
     cmds.menuItem(label='Minute(s)')
     cmds.menuItem(label='Hour(s)')
@@ -160,6 +167,11 @@ def build_gui_render_calculator():
                                       fieldMaxValue=999999, value=get_timeline_range_num(),
                                       cc=partial(_recalculate_time))
     cmds.button('Get Current', height=10, c=_btn_get_current_timeline)
+    cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 55)], p=content_main)
+    num_of_machines = cmds.intSliderGrp(field=True, label='Total Number of Machines: ', cw=[(1, 130), (2, 50), (3, 15)],
+                                        minValue=1, fieldMinValue=1, maxValue=999999,
+                                        fieldMaxValue=999999, value=1,
+                                        cc=partial(_recalculate_time))
     # cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
@@ -176,8 +188,14 @@ def build_gui_render_calculator():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/arcLengthDimension.svg')
+    # icon = QIcon(':/render_chooser.png')
+    # icon = QIcon(':/render_decomposeMatrix.png')
+    # icon = QIcon(':/render_lightInfo.png')
+    # icon = QIcon(':/renderPAssUnlock.png')
+    icon = QIcon(':/render.png')
     widget.setWindowIcon(icon)
+
+    _recalculate_time()
 
     # Main GUI Ends Here =================================================================================
 
@@ -190,10 +208,5 @@ def _open_gt_tools_documentation():
 # Build UI
 if __name__ == "__main__":
     build_gui_render_calculator()
-    time_per_frame_seconds = 600025
-    num_frames = 10
-    num_machines = 25
-    logger.setLevel(logging.DEBUG)
-    output = calculate_render_time(time_per_frame_seconds, num_frames, num_machines)
-    print(output)
+
 
