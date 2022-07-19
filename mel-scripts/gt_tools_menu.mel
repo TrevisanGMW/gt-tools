@@ -159,9 +159,12 @@
 //   Added Retarget Assistant
 //   Added Custom Rig Interface
 //
-//   1.7.25 - 2022-07-14
+//   2.0.0 - 2022-07-14
 //	 Added Extract Curve State
 //	 Added Extract Bound Joints
+//
+//   2.1.0 - 2022-07-19
+//   Added Render Calculator
 //
 //----------------------------------------------------------------------------
 
@@ -630,6 +633,12 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_to_discord', 'build_gui_maya_to_discord')\");") 
     -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
     -image $mayaToDiscordIcon ;
+    
+    menuItem 
+    -l ("Render Calculator") 
+    -c ("python(\"gt_tools.execute_script('gt_render_calculator', 'build_gui_render_calculator')\");") 
+    -ann ("Helps calculate how long it's going to take to render an image sequence.") 
+    -image "render.png" ;
     
     
     setParent -menu ".." ;
