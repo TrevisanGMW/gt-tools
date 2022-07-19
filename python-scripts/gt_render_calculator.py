@@ -5,9 +5,31 @@
  Work in Progress file
 
 """
+from maya import OpenMayaUI as OpenMayaUI
+from functools import partial
 import maya.cmds as cmds
 import logging
 import datetime
+
+
+try:
+    from shiboken2 import wrapInstance
+except ImportError:
+    from shiboken import wrapInstance
+
+try:
+    from PySide2.QtGui import QIcon
+    from PySide2.QtWidgets import QWidget
+except ImportError:
+    from PySide.QtGui import QIcon, QWidget
+
+
+# Script Name
+script_name = "GT - Render Calculator"
+
+# Version
+script_version = "0.0.1"
+
 
 # Logging Setup
 logging.basicConfig()
@@ -15,19 +37,29 @@ logger = logging.getLogger("gt_render_calculator")
 logger.setLevel(logging.INFO)
 
 
-
-def calculate_time(time_per_frame_seconds, num_frames, num_machines):
+def calculate_render_time(input_time, num_frames=1, num_machines=1, unit='seconds'):
     """
-
+    Generates the text describing how long it will take to render an animation
     Args:
-        time_per_frame_seconds:
-        num_frames:
-        num_machines:
+        input_time: Integer value describing time, for example 600 seconds = 10 minutes
+        num_frames (optional, int): Total number of frames (multiplies the input_time parameter)
+        num_machines (optional, int): Total number of computers (divides the input_time parameter)
+        unit (optional, string): Unit used to calculate time, "seconds", "minutes" or "hours" (default: seconds)
 
     Returns:
         output_time (string): A string describing the duration according to the provided input
     """
-    timedelta_sec = datetime.timedelta(seconds=time_per_frame_seconds)
+    processed_time = input_time * num_frames
+    processed_time = int(processed_time/num_machines)
+
+    if unit == 'minutes':
+        timedelta_sec = datetime.timedelta(minutes=processed_time)
+    elif unit == 'seconds':
+        timedelta_sec = datetime.timedelta(seconds=processed_time)
+    else:
+        logger.warning('Unable to determine unit. Using seconds.')
+        timedelta_sec = datetime.timedelta(seconds=processed_time)
+
     # timedelta_sec = datetime.timedelta(seconds=time_per_frame_seconds)
     time = datetime.datetime(1, 1, 1) + timedelta_sec
 
@@ -63,12 +95,92 @@ def calculate_time(time_per_frame_seconds, num_frames, num_machines):
     return output_time
 
 
+def build_gui_render_calculator():
+    """ Builds the main window/GUI"""
+    def _recalculate_time(*args):
+        """
+        Recalculates everything using the data found in the GUI. Created to be used with changeCommand
+        """
+        logger.debug(str(args))
+        print('recalculating')
+
+    def get_timeline_range_num():
+        num_frames = 120
+        return num_frames
+
+    window_name = "build_gui_render_calculator"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name)
+
+    # Main GUI Start Here =================================================================================
+    window_gui_render_calculator = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
+                                               titleBar=True, mnb=False, mxb=False, sizeable=True)
+
+    cmds.window(window_name, e=True, s=True, wh=[1, 1])
+
+    content_main = cmds.columnLayout(adj=True)
+
+    # Title
+    title_bgc_color = (.4, .4, .4)
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 325), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
+                         p=content_main)  # Title Column
+    cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
+    cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
+    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: _open_gt_tools_documentation())
+    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
+
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 45)])
+
+    time_per_frame = cmds.intSliderGrp(field=True, label='Average Time Per Frame: ', cw=[(1, 130), (2, 50), (3, 0)],
+                                       minValue=1, maxValue=9223372036854775807,  fieldMinValue=1,
+                                       value=1, cc=partial(_recalculate_time))
+    cmds.optionMenu(label='', cc=partial(_recalculate_time))
+    cmds.menuItem(label='Second(s)')
+    cmds.menuItem(label='Minute(s)')
+    cmds.menuItem(label='Hour(s)')
+
+    cmds.rowColumnLayout(nc=2, cw=[(1, 250), (2, 90)], cs=[(1, 9)])
+    num_of_frames = cmds.intSliderGrp(field=True, label='Total Number of Frames: ', cw=[(1, 130), (2, 60), (3, 0)],
+                                      minValue=1, fieldMinValue=1, value=get_timeline_range_num(),
+                                      cc=partial(_recalculate_time))
+    # cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
+    cmds.separator(h=10, p=content_main)
+
+    cmds.rowColumnLayout(nc=1, cw=[(1, 390)], cs=[(1, 10)], p=content_main)
+    cmds.text(label='Render Time:')
+    output_python = cmds.scrollField(editable=True, wordWrap=True)
+    cmds.separator(h=10, style='none')  # Empty Space
+
+    # Show and Lock Window
+    cmds.showWindow(window_gui_render_calculator)
+    cmds.window(window_name, e=True, s=False)
+
+    # Set Window Icon
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
+    icon = QIcon(':/arcLengthDimension.svg')
+    widget.setWindowIcon(icon)
+
+    # Main GUI Ends Here =================================================================================
+
+
+def _open_gt_tools_documentation():
+    """ Opens a web browser with GT Tools docs  """
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
+
+
 # Build UI
 if __name__ == "__main__":
-    pass
-    time_per_frame_seconds = 60000001
-    num_frames = 5
-    num_machines = 2
+    build_gui_render_calculator()
+    time_per_frame_seconds = 600025
+    num_frames = 10
+    num_machines = 25
     logger.setLevel(logging.DEBUG)
-    output = calculate_time(time_per_frame_seconds, num_frames, num_machines)
+    output = calculate_render_time(time_per_frame_seconds, num_frames, num_machines)
     print(output)
+
