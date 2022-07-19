@@ -80,19 +80,19 @@ def calculate_render_time(input_time, num_frames=1, num_machines=1, unit='second
     logger.debug('minutes: ' + str(minutes))
     logger.debug('seconds: ' + str(seconds))
 
-    output_time = 'Your render will take approximately:\n'
+    output_time = ''
     if years > 0:
-        output_time += str(years) + ' year' + ('' if years == 1 else 's') + '\n'
+        output_time += ' ' + str(years) + ' year' + ('' if years == 1 else 's') + '\n'
     if months > 0:
-        output_time += str(months) + ' month' + ('' if months == 1 else 's') + '\n'
+        output_time += ' ' + str(months) + ' month' + ('' if months == 1 else 's') + '\n'
     if days > 0:
-        output_time += str(days) + ' day' + ('' if days == 1 else 's') + '\n'
+        output_time += ' ' + str(days) + ' day' + ('' if days == 1 else 's') + '\n'
     if hours > 0:
-        output_time += str(hours) + ' hour' + ('' if hours == 1 else 's') + '\n'
+        output_time += ' ' + str(hours) + ' hour' + ('' if hours == 1 else 's') + '\n'
     if minutes > 0:
-        output_time += str(minutes) + ' minute' + ('' if minutes == 1 else 's') + '\n'
+        output_time += ' ' + str(minutes) + ' minute' + ('' if minutes == 1 else 's') + '\n'
     if seconds > 0:
-        output_time += str(seconds) + ' second' + ('' if seconds == 1 else 's') + '\n'
+        output_time += ' ' + str(seconds) + ' second' + ('' if seconds == 1 else 's') + '\n'
 
     return output_time
 
@@ -107,18 +107,26 @@ def build_gui_render_calculator():
         time_per_frame_out = cmds.intSliderGrp(time_per_frame, q=True, value=True)
         num_of_frames_out = cmds.intSliderGrp(num_of_frames, q=True, value=True)
         num_of_machines_out = cmds.intSliderGrp(num_of_machines, q=True, value=True)
-        unit_out = (cmds.optionMenu(unit_option, q=True, value=True).replace('(s)', '') + 's').lower()
-        result = calculate_render_time(time_per_frame_out, num_of_frames_out, num_of_machines_out, unit=unit_out)
+        unit_out_string = cmds.optionMenu(unit_option, q=True, value=True)
+        unit_out = (unit_out_string.replace('(s)', '') + 's').lower()
+        result = 'Time per frame ' + str(time_per_frame_out) + ' ' + unit_out_string.lower() + '\n'
+        result += 'Frame Count ' + str(num_of_frames_out) + ' frames(s)\n'
+        result += 'Total render time:\n'
+        result += calculate_render_time(time_per_frame_out, num_of_frames_out, num_of_machines_out, unit=unit_out)
+        if num_of_machines_out != 1:
+            result += 'Per computer (Number of computers: ' + str(num_of_machines_out) + ')'
         cmds.scrollField(output_python, e=True, ip=1, it='')  # Bring Back to the Top
         cmds.scrollField(output_python, edit=True, wordWrap=True, text='', sl=True)
         cmds.scrollField(output_python, edit=True, wordWrap=True, text=result, sl=True)
 
     def get_timeline_range_num():
+        """ Returns the timeline range """
         start = cmds.playbackOptions(q=True, min=True)
         end = cmds.playbackOptions(q=True, max=True)
         return end - start + 1
 
     def _btn_get_current_timeline(*args):
+        """ Populates num_of_frames text field with timeline range """
         current_timeline_num = get_timeline_range_num()
         cmds.intSliderGrp(num_of_frames, e=True, value=current_timeline_num)
         logger.debug(str(args))
@@ -172,7 +180,6 @@ def build_gui_render_calculator():
                                         minValue=1, fieldMinValue=1, maxValue=999999,
                                         fieldMaxValue=999999, value=1,
                                         cc=partial(_recalculate_time))
-    # cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
@@ -188,10 +195,6 @@ def build_gui_render_calculator():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    # icon = QIcon(':/render_chooser.png')
-    # icon = QIcon(':/render_decomposeMatrix.png')
-    # icon = QIcon(':/render_lightInfo.png')
-    # icon = QIcon(':/renderPAssUnlock.png')
     icon = QIcon(':/render.png')
     widget.setWindowIcon(icon)
 
