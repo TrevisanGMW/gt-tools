@@ -102,11 +102,21 @@ def build_gui_render_calculator():
         Recalculates everything using the data found in the GUI. Created to be used with changeCommand
         """
         logger.debug(str(args))
+        logger.debug(cmds.intSliderGrp(time_per_frame, q=True, value=True))
+        logger.debug(cmds.intSliderGrp(num_of_frames, q=True, value=True))
         print('recalculating')
 
     def get_timeline_range_num():
-        num_frames = 120
-        return num_frames
+        start = cmds.playbackOptions(q=True, min=True)
+        end = cmds.playbackOptions(q=True, max=True)
+        return end - start + 1
+
+    def _btn_get_current_timeline(*args):
+        current_timeline_num = get_timeline_range_num()
+        cmds.intSliderGrp(num_of_frames, e=True, value=current_timeline_num)
+        logger.debug(str(args))
+        logger.debug(str(current_timeline_num))
+        _recalculate_time()
 
     window_name = "build_gui_render_calculator"
     if cmds.window(window_name, exists=True):
@@ -136,17 +146,20 @@ def build_gui_render_calculator():
     cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 45)])
 
     time_per_frame = cmds.intSliderGrp(field=True, label='Average Time Per Frame: ', cw=[(1, 130), (2, 50), (3, 0)],
-                                       minValue=1, maxValue=9223372036854775807,  fieldMinValue=1,
+                                       minValue=1, maxValue=999999,
+                                       fieldMinValue=1, fieldMaxValue=999999,
                                        value=1, cc=partial(_recalculate_time))
     cmds.optionMenu(label='', cc=partial(_recalculate_time))
     cmds.menuItem(label='Second(s)')
     cmds.menuItem(label='Minute(s)')
     cmds.menuItem(label='Hour(s)')
 
-    cmds.rowColumnLayout(nc=2, cw=[(1, 250), (2, 90)], cs=[(1, 9)])
-    num_of_frames = cmds.intSliderGrp(field=True, label='Total Number of Frames: ', cw=[(1, 130), (2, 60), (3, 0)],
-                                      minValue=1, fieldMinValue=1, value=get_timeline_range_num(),
+    cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 55)], p=content_main)
+    num_of_frames = cmds.intSliderGrp(field=True, label='Total Number of Frames: ', cw=[(1, 130), (2, 50), (3, 15)],
+                                      minValue=1, fieldMinValue=1, maxValue=999999,
+                                      fieldMaxValue=999999, value=get_timeline_range_num(),
                                       cc=partial(_recalculate_time))
+    cmds.button('Get Current', height=10, c=_btn_get_current_timeline)
     # cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
