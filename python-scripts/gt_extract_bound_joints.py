@@ -14,11 +14,13 @@ Added skinCluster check
 1.0.0 - 2022-07-20
 Added Filter non-existent and include mesh checkboxes
 
+1.0.1 - 2022-07-20
+Updated help menu
+
 Todo:
     Add Transfer functions
-    Create checkboxes for settings
-    Write help menu
-
+    Add save as set button
+    Add save to shelf
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -50,6 +52,7 @@ script_version = "1.0.0"
 extract_joints_settings = {'filter_non_existent': True,
                            'include_mesh': True,
                            }
+
 
 # Function for the "Run Code" button
 def run_output_code(out):
@@ -195,6 +198,10 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='This script generates the Python code necessary to select\nall joints influencing a skinCluster node',
               align="left")
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.text(l='Include Non-Existent Filter:', align="left", fn="boldLabelFont")
+    cmds.text(l='Adds a line of code that ignores objects not found in the scene.\n', align="left")
+    cmds.text(l='Include Bound Mesh:', align="left", fn="boldLabelFont")
+    cmds.text(l='Determines if the selected bound mesh will be included in the\nextracted list.\n', align="left")
     cmds.text(l='"Extract Bound Joints" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to reselect the joints', align="left")
     cmds.text(l='inside the "Output Python Curve" box.', align="left")
