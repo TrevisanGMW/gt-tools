@@ -26,6 +26,10 @@
  2022-07-04
  Added validation for creating facial or corrective proxy/rig
 
+ 2022-07-20
+ Fixed spine curve issues when importing world-space proxy data
+ Changed export proxy mode to "world-space" for biped and facial rig
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -780,7 +784,11 @@ def validate_facial_operation(operation):
                 return
         gt_rigger_facial_logic.create_facial_proxy(data_facial)
     elif operation == "create_controls":
-        gt_rigger_facial_logic.create_facial_controls(data_facial)
+        expected_proxy = data_facial.elements_default.get('main_proxy_grp')
+        if cmds.objExists(expected_proxy):
+            gt_rigger_facial_logic.create_facial_controls(data_facial)
+        else:
+            cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
 
 
 def validate_corrective_operation(operation):
@@ -817,7 +825,11 @@ def validate_corrective_operation(operation):
                 return
         gt_rigger_corrective_logic.create_corrective_proxy(data_corrective)
     elif operation == "create_controls":
-        gt_rigger_corrective_logic.create_corrective_setup(data_corrective)
+        expected_proxy = data_corrective.elements_default.get('main_proxy_grp')
+        if cmds.objExists(expected_proxy):
+            gt_rigger_corrective_logic.create_corrective_setup(data_corrective)
+        else:
+            cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
 
 
 def validate_biped_operation(operation):
@@ -1393,11 +1405,13 @@ def define_biped_humanik(character_name):
                          'You might have to assign your joints manually.')
 
 
-def export_biped_proxy_pose():
+def export_biped_proxy_pose(method='world-space'):
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
     Added a variable called "gt_rigger_biped_export_method" after v1.3, so the extraction method can be stored.
 
+    Args:
+        method (optional, string): Method used for the transform extraction. Either "world-space" or "object-space"
     """
     # Validate Proxy and Write file
     is_valid = True
@@ -1429,22 +1443,38 @@ def export_biped_proxy_pose():
 
     if successfully_created_file and is_valid:
         export_dict = {data_biped.proxy_storage_variables.get('script_source'): data_biped.script_version,
-                       data_biped.proxy_storage_variables.get('export_method'): 'object-space'}
+                       data_biped.proxy_storage_variables.get('export_method'): method}
         for obj in data_biped.elements_default:
-            if '_crv' in obj:
-                translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
-                to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
-                export_dict[obj] = to_save
-
-            if obj.endswith('_pivot'):
-                if cmds.objExists(data_biped.elements_default.get(obj)):
+            if method == 'object-space':
+                if '_crv' in obj or 'main_root' in obj:
                     translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
                     rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
                     scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
                     to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
+
+                if obj.endswith('_pivot'):
+                    if cmds.objExists(data_biped.elements_default.get(obj)):
+                        translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
+                        rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
+                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                        to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                        export_dict[obj] = to_save
+            elif method == 'world-space':
+                if '_crv' in obj or 'main_root' in obj:
+                    translate = cmds.xform(data_biped.elements_default.get(obj), q=True, t=True, ws=True)
+                    rotate = cmds.xform(data_biped.elements_default.get(obj), q=True, ro=True, ws=True)
+                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                    to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
+
+                if obj.endswith('_pivot'):
+                    if cmds.objExists(data_biped.elements_default.get(obj)):
+                        translate = cmds.xform(data_biped.elements_default.get(obj), q=True, t=True, ws=True)
+                        rotate = cmds.xform(data_biped.elements_default.get(obj), q=True, ro=True, ws=True)
+                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                        to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
+                        export_dict[obj] = to_save
 
         try:
             with open(pose_file, 'w') as outfile:
@@ -1462,12 +1492,16 @@ def export_biped_proxy_pose():
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
-def export_facial_proxy_pose():
+def export_facial_proxy_pose(method='world-space'):
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
     Added a variable called "gt_rigger_facial_export_method" after v1.3, so the extraction method can be stored.
+
+    Args:
+        method (optional, string): Method used for the transform extraction. Either "world-space" or "object-space"
     """
     # Validate Proxy and Write file
+
     is_valid = True
     successfully_created_file = False
     pose_file = None
@@ -1497,14 +1531,22 @@ def export_facial_proxy_pose():
 
     if successfully_created_file and is_valid:
         export_dict = {data_facial.proxy_storage_variables.get('script_source'): data_facial.script_version,
-                       data_facial.proxy_storage_variables.get('export_method'): 'object-space'}
+                       data_facial.proxy_storage_variables.get('export_method'): method}
         for obj in data_facial.elements_default:
-            if '_crv' in obj or 'main_root' in obj:
-                translate = cmds.getAttr(data_facial.elements_default.get(obj) + '.translate')[0]
-                rotate = cmds.getAttr(data_facial.elements_default.get(obj) + '.rotate')[0]
-                scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
-                to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
-                export_dict[obj] = to_save
+            if method == 'object-space':
+                if '_crv' in obj or 'main_root' in obj:
+                    translate = cmds.getAttr(data_facial.elements_default.get(obj) + '.translate')[0]
+                    rotate = cmds.getAttr(data_facial.elements_default.get(obj) + '.rotate')[0]
+                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
+                    to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
+            elif method == 'world-space':
+                if '_crv' in obj or 'main_root' in obj:
+                    translate = cmds.xform(data_facial.elements_default.get(obj), q=True, t=True, ws=True)
+                    rotate = cmds.xform(data_facial.elements_default.get(obj), q=True, ro=True, ws=True)
+                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
+                    to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
+                    export_dict[obj] = to_save
         try:
             with open(pose_file, 'w') as outfile:
                 json.dump(export_dict, outfile, indent=4)
@@ -1636,10 +1678,11 @@ def import_biped_proxy_pose(debugging=False, debugging_path=''):
                                     set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
                                     set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
 
-                            # Set Transfer Pole Vectors Again
+                            # Set Transfer Pole Vectors and Spine Again
                             for obj in reversed(sorted_pairs):
                                 current_object = obj[0]
-                                if 'knee' in current_object[0] or 'elbow' in current_object[0]:
+                                if 'knee' in current_object[0] or 'elbow' in current_object[0] or \
+                                        current_object[0].startswith('spine'):
                                     if cmds.objExists(current_object[0]):
                                         set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
                                         set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
@@ -1765,19 +1808,59 @@ def import_facial_proxy_pose(debugging=False, debugging_path=''):
                                 cmds.warning('Current proxy was missing elements, a new one was created.')
 
                     if is_valid_file and is_valid_scene:
-                        for proxy in data:
-                            if proxy != script_source and proxy != export_method:
-                                current_object = data.get(proxy)  # Name, T, R, S
+                        if import_method == 'world-space':
+                            reset_proxy(suppress_warning=True, proxy_target='facial')
+                            sorted_pairs = []
+                            for proxy in data:
+                                if proxy != script_source and proxy != export_method:
+                                    current_object = data.get(proxy)  # Name, T, R, S
+                                    if cmds.objExists(current_object[0]):
+                                        long_name = cmds.ls(current_object[0], l=True) or []
+                                        number_of_parents = len(long_name[0].split('|'))
+                                        sorted_pairs.append((current_object, number_of_parents))
+
+                                    sorted_pairs.sort(key=lambda x: x[1], reverse=True)
+
+                            # Scale (Children First)
+                            for obj in sorted_pairs:
+                                current_object = obj[0]
                                 if cmds.objExists(current_object[0]):
-                                    set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                    set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                    set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                    set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                    set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                    set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
                                     set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
                                     set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
                                     set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                            # Translate and Rotate (Parents First)
+                            print(sorted_pairs)
+                            for obj in reversed(sorted_pairs):
+                                current_object = obj[0]
+                                if cmds.objExists(current_object[0]):
+                                    set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                    set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+
+                            # Set brows and eyelids again
+                            for obj in reversed(sorted_pairs):
+                                current_object = obj[0]
+                                print(current_object)
+                                if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
+                                    if cmds.objExists(current_object[0]):
+                                        set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                        set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                        elif import_method == 'world-space':
+                            for proxy in data:
+                                if proxy != script_source and proxy != export_method:
+                                    current_object = data.get(proxy)  # Name, T, R, S
+                                    if cmds.objExists(current_object[0]):
+                                        set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                        set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                        set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                        set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                        set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                        set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                        set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                        set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                        set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                        else:
+                            cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
 
                         if not debugging:
                             unique_message = '<' + str(random.random()) + '>'
@@ -1785,7 +1868,7 @@ def import_facial_proxy_pose(debugging=False, debugging_path=''):
                                 amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
                                                      ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
                                 pos='botLeft', fade=True, alpha=.9)
-                            sys.stdout.write('Pose imported from the file "' + pose_file + '".')
+                            sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
 
                 except Exception as exception:
                     logger.info(str(exception))

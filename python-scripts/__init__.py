@@ -6,7 +6,7 @@ import sys
 import os
 
 # Global Vars
-PACKAGE_VERSION = "2.0.1"
+PACKAGE_VERSION = "2.1.0"
 
 # Initial Setup - Add path and initialize logger
 if __name__ != '__main__':
@@ -39,7 +39,7 @@ def execute_script(import_name, entry_point_function, reload=True):
             logger.warning('"' + import_name + '" was not found.')
             logger.warning('Error: ' + str(e))
             raise e
-    else:
+    else:  # Python 2 and below
         try:
             module = importlib.import_module(import_name)
             if reload:

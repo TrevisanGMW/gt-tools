@@ -8,16 +8,23 @@ Core function
 0.0.2 - 2022-07-14
 Added GUI
 
+0.0.3 - 2022-07-20
+Added skinCluster check
+
+1.0.0 - 2022-07-20
+Added Filter non-existent and include mesh checkboxes
+
+1.0.1 - 2022-07-20
+Updated help menu
+
 Todo:
     Add Transfer functions
-    Create checkboxes for settings
-    Write help menu
-
+    Add save as set button
+    Add save to shelf
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import logging
-import sys
 
 try:
     from shiboken2 import wrapInstance
@@ -39,7 +46,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "0.0.2"
+script_version = "1.0.0"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -83,9 +90,13 @@ def build_gui_extract_bound_joints():
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
-    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)])
-    cmds.rowColumnLayout(nc=1, cw=[(1, 470)], cs=[(1, 0)])
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 70), (2, 15)])
+    filter_non_existent_chk = cmds.checkBox("Include Non-Existent Filter", value=True,
+                                            cc=lambda x: _btn_update_settings())
+    include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=True, cc=lambda x: _btn_update_settings())
+    cmds.rowColumnLayout(nc=1, cw=[(1, 480)], cs=[(1, 15)], p=content_main)
+    cmds.separator(h=15, style='none')  # Empty Space
     cmds.button(l="Extract Bound Joints", bgc=(.6, .6, .6), c=lambda x: _btn_extract_python_curve_shape())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
@@ -97,6 +108,10 @@ def build_gui_extract_bound_joints():
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space
+
+    def _btn_update_settings():
+        extract_joints_settings['filter_non_existent'] = cmds.checkBox(filter_non_existent_chk, q=True, value=True)
+        extract_joints_settings['include_mesh'] = cmds.checkBox(include_mesh_chk, q=True, value=True)
 
     def _btn_extract_python_curve_shape():
         selection = cmds.ls(selection=True) or []
@@ -117,6 +132,10 @@ def build_gui_extract_bound_joints():
             message = '# Joint influences found in "' + transform + '":'
             message += '\nbound_list = '
             bound_joints = get_bound_joints(transform)
+
+            if not bound_joints:
+                cmds.warning('Unable to find skinCluster for "' + transform + '".')
+                return
 
             if extract_joints_settings.get('include_mesh'):
                 bound_joints.insert(0, transform)
@@ -179,6 +198,10 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='This script generates the Python code necessary to select\nall joints influencing a skinCluster node',
               align="left")
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.text(l='Include Non-Existent Filter:', align="left", fn="boldLabelFont")
+    cmds.text(l='Adds a line of code that ignores objects not found in the scene.\n', align="left")
+    cmds.text(l='Include Bound Mesh:', align="left", fn="boldLabelFont")
+    cmds.text(l='Determines if the selected bound mesh will be included in the\nextracted list.\n', align="left")
     cmds.text(l='"Extract Bound Joints" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to reselect the joints', align="left")
     cmds.text(l='inside the "Output Python Curve" box.', align="left")
