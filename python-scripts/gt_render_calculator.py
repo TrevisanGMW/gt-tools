@@ -212,4 +212,3 @@ def _open_gt_tools_documentation():
 if __name__ == "__main__":
     build_gui_render_calculator()
 
-
