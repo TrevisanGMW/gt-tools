@@ -121,17 +121,18 @@ def get_persistent_settings_render_checklist():
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
     # Check if there is anything stored
-    stored_setup_exists = cmds.optionVar(exists=("gt_render_checklist_setup"))
+    stored_setup_exists = cmds.optionVar(exists="gt_render_checklist_setup")
 
     if stored_setup_exists:
         stored_checklist_items = {}
         try:
-            stored_checklist_items = eval(str(cmds.optionVar(q=("gt_render_checklist_setup"))))
+            stored_checklist_items = eval(str(cmds.optionVar(q="gt_render_checklist_setup")))
             for stored_item in stored_checklist_items:
                 for item in checklist_items:
                     if stored_item == item:
                         checklist_items[item][1] = stored_checklist_items.get(stored_item)[1]
-        except:
+        except Exception as e:
+            logger.debug(str(e))
             print("Couldn't load persistent settings, try resetting it in the help menu.")
 
 
@@ -201,7 +202,7 @@ def build_gui_gt_render_checklist():
 
     def create_settings_items(items, items_for_settings, items_with_warnings):
         for item in items:
-            item_id = checklist_items.get(item)[0].lower().replace(" ", "_").replace("-", "_")
+            # item_id = checklist_items.get(item)[0].lower().replace(" ", "_").replace("-", "_")
             cmds.text(l=checklist_items.get(item)[0] + ': ', align="left")
 
             # Items with warnings
@@ -365,29 +366,29 @@ def checklist_generate_report():
     # Save Current Selection For Later
     current_selection = cmds.ls(selection=True)
 
-    report_strings = []
-    report_strings.append(check_frame_rate())
-    report_strings.append(check_scene_units())
-    report_strings.append(check_output_resolution())
-    report_strings.append(check_total_texture_count())
-    report_strings.append(check_network_file_paths())
-    report_strings.append(check_network_reference_paths())
-    report_strings.append(check_unparented_objects())
-    report_strings.append(check_total_triangle_count())
-    report_strings.append(check_total_poly_object_count())
-    report_strings.append(check_shadow_casting_light_count())
-    report_strings.append(check_rs_shadow_casting_light_count())
-    report_strings.append(check_ai_shadow_casting_light_count())
-    report_strings.append(check_default_object_names())
-    report_strings.append(check_objects_assigned_to_lambert1())
-    report_strings.append(check_ngons())
-    report_strings.append(check_non_manifold_geometry())
-    report_strings.append(check_empty_uv_sets())
-    report_strings.append(check_frozen_transforms())
-    report_strings.append(check_animated_visibility())
-    report_strings.append(check_non_deformer_history())
-    report_strings.append(check_textures_color_space())
-    report_strings.append(check_other_network_paths())
+    report_strings = [check_frame_rate(),
+                      check_scene_units(),
+                      check_output_resolution(),
+                      check_total_texture_count(),
+                      check_network_file_paths(),
+                      check_network_reference_paths(),
+                      check_unparented_objects(),
+                      check_total_triangle_count(),
+                      check_total_poly_object_count(),
+                      check_shadow_casting_light_count(),
+                      check_rs_shadow_casting_light_count(),
+                      check_ai_shadow_casting_light_count(),
+                      check_default_object_names(),
+                      check_objects_assigned_to_lambert1(),
+                      check_ngons(),
+                      check_non_manifold_geometry(),
+                      check_empty_uv_sets(),
+                      check_frozen_transforms(),
+                      check_animated_visibility(),
+                      check_non_deformer_history(),
+                      check_textures_color_space(),
+                      check_other_network_paths(),
+                      ]
 
     # Clear Selection
     cmds.selectMode(object=True)
