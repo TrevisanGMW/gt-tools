@@ -2733,34 +2733,58 @@ def orient_offset(obj_name, rot_offset, apply=True):
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
 
-def store_proxy_as_string(target_obj, attr_name, data_obj):
+def store_proxy_as_string(target_obj, attr_name, data_obj, method='world-space'):
     """
     Stores the current proxy as an attribute (string) onto the "target_obj"
     Args:
         target_obj (string): Name of the object to receive the string attribute which contains a JSON description
                              of the proxy pose
         attr_name (string): Name of the string attribute used to store the JSON proxy data
-        data_obj: Object carrying list of proxy elements
+        data_obj: Object carrying list of proxy names
+        method (optional, string): which method is used to generate the data
     """
+
     # Store Facial Proxy
-    export_dict = {data_obj.proxy_storage_variables.get('script_source'): data_obj.script_version,
-                   data_obj.proxy_storage_variables.get('export_method'): 'object-space'}
-    for expected_obj in data_obj.elements_default:
-        if '_crv' in expected_obj or 'main_root' in expected_obj:
-            translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
-            rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
-            scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
-            to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
-            export_dict[expected_obj] = to_save
-        if expected_obj.endswith('_pivot'):
-            if cmds.objExists(data_obj.elements_default.get(expected_obj)):
+    if method == 'object-space':
+        export_dict = {data_obj.proxy_storage_variables.get('script_source'): data_obj.script_version,
+                       data_obj.proxy_storage_variables.get('export_method'): method}
+        for expected_obj in data_obj.elements_default:
+            if '_crv' in expected_obj or 'main_root' in expected_obj:
                 translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
                 rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
                 scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
                 to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
                 export_dict[expected_obj] = to_save
-    cmds.addAttr(target_obj, ln=attr_name, dataType='string')
-    cmds.setAttr(target_obj + '.' + attr_name, json.dumps(export_dict, indent=4), typ='string')
+            if expected_obj.endswith('_pivot'):
+                if cmds.objExists(data_obj.elements_default.get(expected_obj)):
+                    translate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.translate')[0]
+                    rotate = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.rotate')[0]
+                    scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                    to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                    export_dict[expected_obj] = to_save
+        cmds.addAttr(target_obj, ln=attr_name, dataType='string')
+        cmds.setAttr(target_obj + '.' + attr_name, json.dumps(export_dict, indent=4), typ='string')
+    elif method == 'world-space':
+        export_dict = {data_obj.proxy_storage_variables.get('script_source'): data_obj.script_version,
+                       data_obj.proxy_storage_variables.get('export_method'): method}
+        for expected_obj in data_obj.elements_default:
+            if '_crv' in expected_obj or 'main_root' in expected_obj:
+                translate = cmds.xform(data_obj.elements_default.get(expected_obj), q=True, t=True, ws=True)
+                rotate = cmds.xform(data_obj.elements_default.get(expected_obj), q=True, ro=True, ws=True)
+                scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                export_dict[expected_obj] = to_save
+            if expected_obj.endswith('_pivot'):
+                if cmds.objExists(data_obj.elements_default.get(expected_obj)):
+                    translate = cmds.xform(data_obj.elements_default.get(expected_obj), q=True, t=True, ws=True)
+                    rotate = cmds.xform(data_obj.elements_default.get(expected_obj), q=True, ro=True, ws=True)
+                    scale = cmds.getAttr(data_obj.elements_default.get(expected_obj) + '.scale')[0]
+                    to_save = [data_obj.elements_default.get(expected_obj), translate, rotate, scale]
+                    export_dict[expected_obj] = to_save
+        cmds.addAttr(target_obj, ln=attr_name, dataType='string')
+        cmds.setAttr(target_obj + '.' + attr_name, json.dumps(export_dict, indent=4), typ='string')
+    else:
+        cmds.debug('"' + str(method) + '" is not a valid method. Unable to store proxy as string.')
 
 
 def set_unlocked_os_attr(target, attr, value):
@@ -2835,4 +2859,7 @@ if __name__ == '__main__':
     # toggle_rigging_attr()
     # print_inview_message('Hello', ' World!')
     # create_facial_side_gui()
+    data_facial = GTBipedRiggerFacialData()
+    # output = store_proxy_as_string('head_ctrl', 'facial_proxy_pose', data_facial)
+    # output = store_proxy_as_string('head_ctrl', 'facial_proxy_pose', data_facial, method='object-space')
     logger.debug(str(output))
