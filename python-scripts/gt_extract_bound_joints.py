@@ -8,6 +8,9 @@ Core function
 0.0.2 - 2022-07-14
 Added GUI
 
+0.0.3 - 2022-07-20
+Added GUI
+
 Todo:
     Add Transfer functions
     Create checkboxes for settings
@@ -17,7 +20,6 @@ Todo:
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import logging
-import sys
 
 try:
     from shiboken2 import wrapInstance
@@ -39,7 +41,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "0.0.2"
+script_version = "0.0.3"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -117,6 +119,10 @@ def build_gui_extract_bound_joints():
             message = '# Joint influences found in "' + transform + '":'
             message += '\nbound_list = '
             bound_joints = get_bound_joints(transform)
+
+            if not bound_joints:
+                cmds.warning('Unable to find skinCluster for "' + transform + '".')
+                return
 
             if extract_joints_settings.get('include_mesh'):
                 bound_joints.insert(0, transform)
