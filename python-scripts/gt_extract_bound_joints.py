@@ -9,7 +9,10 @@ Core function
 Added GUI
 
 0.0.3 - 2022-07-20
-Added GUI
+Added skinCluster check
+
+1.0.0 - 2022-07-20
+Added Filter non-existent and include mesh checkboxes
 
 Todo:
     Add Transfer functions
@@ -41,13 +44,12 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "0.0.3"
+script_version = "1.0.0"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
                            'include_mesh': True,
                            }
-
 
 # Function for the "Run Code" button
 def run_output_code(out):
@@ -85,9 +87,13 @@ def build_gui_extract_bound_joints():
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
-    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)])
-    cmds.rowColumnLayout(nc=1, cw=[(1, 470)], cs=[(1, 0)])
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 70), (2, 15)])
+    filter_non_existent_chk = cmds.checkBox("Include Non-Existent Filter", value=True,
+                                            cc=lambda x: _btn_update_settings())
+    include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=True, cc=lambda x: _btn_update_settings())
+    cmds.rowColumnLayout(nc=1, cw=[(1, 480)], cs=[(1, 15)], p=content_main)
+    cmds.separator(h=15, style='none')  # Empty Space
     cmds.button(l="Extract Bound Joints", bgc=(.6, .6, .6), c=lambda x: _btn_extract_python_curve_shape())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
@@ -99,6 +105,10 @@ def build_gui_extract_bound_joints():
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space
+
+    def _btn_update_settings():
+        extract_joints_settings['filter_non_existent'] = cmds.checkBox(filter_non_existent_chk, q=True, value=True)
+        extract_joints_settings['include_mesh'] = cmds.checkBox(include_mesh_chk, q=True, value=True)
 
     def _btn_extract_python_curve_shape():
         selection = cmds.ls(selection=True) or []
