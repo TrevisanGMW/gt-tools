@@ -474,34 +474,34 @@ def build_gui_help_gt_render_checklist():
     cmds.separator(h=checklist_spacing, style='none')  # Empty Space
 
     # Create Help List: 
-    font_size = 'smallPlainLabelFont'
-    items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11]  # Allow user to update expected values
-    items_with_warnings = [3, 7, 8, 9, 10, 11]  # Allow users to update warning values too
-
     checklist_items_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(0)[0] + ': returns error if not matching: "' + str(
-                         checklist_items.get(0)[
-                             1]) + '".\n     Examples of custom values:\n     "film" (24fps),\n     "23.976fps",\n     "ntsc" (30fps),\n     "ntscf" (60fps),\n     "29.97fps"' + '\n\n')
+    message = '[X] ' + checklist_items.get(0)[0] + ': returns error if not matching: "' + \
+              str(checklist_items.get(0)[1]) + '".\n     Examples of custom values:\n     ' \
+                                               '"film" (24fps),\n     "23.976fps",\n     "ntsc" (30fps),\n     ' \
+                                               '"ntscf" (60fps),\n     "29.97fps"' + '\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(1)[0] + ': returns error if not matching: "' + str(
-                         checklist_items.get(1)[
-                             1]) + '".\n     Examples of custom values:\n     "mm" (milimeter),\n     "cm" (centimeter),\n     "m" (meter)' + '\n\n')
+    message = '[X] ' + checklist_items.get(1)[0] + ': returns error if not matching: "' + \
+              str(checklist_items.get(1)[1]) + '".\n     Examples of custom values:\n     ' \
+                                               '"mm" (milimeter),\n     "cm" (centimeter),\n     "m" (meter)' + '\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(2)[0] + ': returns error if not: ' + str(checklist_items.get(2)[
-                                                                                                  1]) + '.\n     Please use a comma "," for entering a custom value.\n     Examples of custom values:\n     "1280, 720" (720p),\n     "1920, 1080" (1080p),\n     "2560, 1440" (1440p),\n     "3840, 2160" (4K),\n     "7680, 4320" (8K)\n\n')
+    message = '[X] ' + checklist_items.get(2)[0] + ': returns error if not: ' + str(checklist_items.get(2)[1]) + \
+              '.\n     Please use a comma "," for entering a custom value.\n     Examples of custom values:\n     ' \
+              '"1280, 720" (720p),\n     "1920, 1080" (1080p),\n     "2560, 1440" (1440p),\n     "3840, 2160" (4K),' \
+              '\n     "7680, 4320" (8K)\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(3)[0] + ': error if more than ' + str(
-                         checklist_items.get(3)[1][1]) + '\n     warning if more than ' + str(
-                         checklist_items.get(3)[1][0]) + '.\n    (UDIM tiles are counted as individual textures)\n\n')
+    message = '[X] ' + checklist_items.get(3)[0] + ': error if more than ' + str(checklist_items.get(3)[1][1]) + \
+              '\n     warning if more than ' + str(checklist_items.get(3)[1][0]) + \
+              '.\n    (UDIM tiles are counted as individual textures)\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(4)[0] + ': must start with ' + str(checklist_items.get(4)[
-                                                                                            1]) + '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n\n')
+    message = '[X] ' + checklist_items.get(4)[0] + ': must start with ' + str(checklist_items.get(4)[1]) + \
+              '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   ' \
+              'Use a comma "," to separate multiple paths\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
     message = '[X] ' + checklist_items.get(5)[0] + ': must start with ' + str(checklist_items.get(5)[1]) + \
               '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   ' \
