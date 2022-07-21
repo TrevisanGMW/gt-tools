@@ -36,7 +36,11 @@
     Added import line for fileTexturePathResolver
 
  1.4.3 - 2022-07-18
-    PEP8 Cleanup
+    Some PEP8 Cleanup
+
+ 1.4.4 - 2022-07-21
+    A bit more PEP8 Cleanup
+    Fixed settings issue where the UI would get bigger
 
  Todo:
     Add checks for xgen
@@ -69,7 +73,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Render Checklist"
 
 # Versions
-script_version = "1.4.3"
+script_version = "1.4.4"
 maya_version = cmds.about(version=True)
 
 # Status Colors
@@ -283,7 +287,7 @@ def build_gui_gt_render_checklist():
     cmds.separator(h=8, style='none', p=settings_buttons)
 
     def update_gui_settings():
-        if checklist_settings.get('is_settings_visible') != True:
+        if not checklist_settings.get('is_settings_visible'):
             checklist_settings["is_settings_visible"] = True
 
             cmds.button(settings_btn, e=True, l='Apply', bgc=(.6, .6, .6))
@@ -301,8 +305,6 @@ def build_gui_gt_render_checklist():
 
             # Show Settings Buttons
             cmds.rowColumnLayout(settings_buttons, e=True, h=checklist_settings.get('checklist_buttons_height'))
-
-
         else:
             checklist_settings["is_settings_visible"] = False
             cmds.rowColumnLayout(checklist_column, e=True, h=checklist_settings.get('checklist_column_height'))
@@ -501,9 +503,10 @@ def build_gui_help_gt_render_checklist():
                      it='[X] ' + checklist_items.get(4)[0] + ': must start with ' + str(checklist_items.get(4)[
                                                                                             1]) + '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n\n')
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(5)[0] + ': must start with ' + str(checklist_items.get(5)[
-                                                                                            1]) + '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n\n')
+    message = '[X] ' + checklist_items.get(5)[0] + ': must start with ' + str(checklist_items.get(5)[1]) + \
+              '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   ' \
+              'Use a comma "," to separate multiple paths\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
     cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(6)[
         0] + ': returns error if common objects are\n     found outside hierarchies' + '\n\n')
@@ -533,36 +536,54 @@ def build_gui_help_gt_render_checklist():
                          checklist_items.get(11)[1][1]) + '\n     warning if more than ' + str(
                          checklist_items.get(11)[1][0]) + '.' + '\n\n')
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(12)[
-        0] + ': error if using default names.' + '\n  warning if containing default names.\n    Examples of default names:\n      "pCube1" = Error\n      "pointLight1" = Error\n      "nurbsPlane1" = Error\n      "my_pCube" = Warning\n\n')
+    message = '[X] ' + checklist_items.get(12)[0] + ': error if using default names.' + \
+              '\n  warning if containing default names.\n    Examples of default names:\n      ' \
+              '"pCube1" = Error\n      "pointLight1" = Error\n      "nurbsPlane1" = Error\n      ' \
+              '"my_pCube" = Warning\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(13)[0] + ': error if anything is assigned.\n\n')
+    message = '[X] ' + checklist_items.get(13)[0] + ': error if anything is assigned.\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(14)[
-        0] + ': error if any ngons found.\n     A polygon that is made up of five or more vertices. \n     Anything over a quad (4 sides) is considered an ngon\n\n')
+    message = '[X] ' + checklist_items.get(14)[0] + ': error if any ngons found.\n     ' \
+                                                    'A polygon that is made up of five or more vertices. \n     ' \
+                                                    'Anything over a quad (4 sides) is considered an ngon\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(15)[
-        0] + ': error if is found.\n    A non-manifold geometry is a 3D shape that cannot be\n    unfolded into a 2D surface with all its normals pointing\n    the same direction.\n    For example, objects with faces inside of it.\n\n')
+    message = '[X] ' + checklist_items.get(15)[0] + ': error if is found.\n    A non-manifold geometry is a ' \
+                                                    '3D shape that cannot be\n    unfolded into a 2D surface ' \
+                                                    'with all its normals pointing\n    the same direction.\n   ' \
+                                                    ' For example, objects with faces inside of it.\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(16)[
-        0] + ': error if multiples UV Sets and Empty UV Sets.\n     It ignores objects without UVs if they have only one UV Set.\n\n')
+    message = '[X] ' + checklist_items.get(16)[0] + ': error if multiples UV Sets and Empty UV Sets.\n     ' \
+                                                    'It ignores objects without UVs if they have only one UV Set.\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(17)[
-        0] + ': error if rotation(XYZ) not frozen.' + "\n     It doesn't check objects with incoming connections,\n     for example, animations or rigs." + '\n\n')
+    message = '[X] ' + checklist_items.get(17)[0] + ': error if rotation(XYZ) not frozen.' + \
+              "\n     It doesn't check objects with incoming connections,\n     " \
+              "for example, animations or rigs." + '\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(18)[
-        0] + ': error if animated visibility is found' + '\n     warning if hidden object is found.' + '\n\n')
+    message = '[X] ' + checklist_items.get(18)[0] + ': error if animated visibility is found' + \
+              '\n     warning if hidden object is found.' + '\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(19)[0] + ': error if any non-deformer history found.' + '\n\n')
+    message = '[X] ' + checklist_items.get(19)[0] + ': error if any non-deformer history found.' + '\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it='[X] ' + checklist_items.get(20)[
-        0] + ': error if incorrect color space found.' + '\n     It only checks commonly used nodes for Redshift and Arnold\n     Generally "sRGB" -> float3(color), and "Raw" -> float(value).\n\n')
+    message = '[X] ' + checklist_items.get(20)[0] + ': error if incorrect color space found.' + \
+              '\n     It only checks commonly used nodes for Redshift and Arnold\n     ' \
+              'Generally "sRGB" -> float3(color), and "Raw" -> float(value).\n\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
-    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0,
-                     it='[X] ' + checklist_items.get(21)[0] + ': must start with ' + str(checklist_items.get(21)[
-                                                                                             1]) + '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   Use a comma "," to separate multiple paths\n   This function checks:\n     Audio Nodes, \n     Mash Audio Nodes,\n     nCache Nodes,\n     Maya Fluid Cache Nodes,\n     Arnold Volumes/Standins/Lights,\n     Redshift Proxy/Volume/Normal/Lights,\n     Alembic/BIF/GPU Cache,\n     Golaem Common and Cache Nodes' + '\n')
+    message = '[X] ' + checklist_items.get(21)[0] + ': must start with ' + str(checklist_items.get(21)[1]) + \
+              '\n   This function completely ignore slashes.\n   You may use a list as custom value.\n   ' \
+              'Use a comma "," to separate multiple paths\n   This function checks:\n     Audio Nodes, \n     ' \
+              'Mash Audio Nodes,\n     nCache Nodes,\n     Maya Fluid Cache Nodes,\n     ' \
+              'Arnold Volumes/Standins/Lights,\n     Redshift Proxy/Volume/Normal/Lights,\n     ' \
+              'Alembic/BIF/GPU Cache,\n     Golaem Common and Cache Nodes' + '\n'
+    cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
     cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
 
@@ -612,7 +633,6 @@ def check_frame_rate():
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(0)[1]
     received_value = cmds.currentUnit(query=True, time=True)  # Frame Rate
-    issues_found = 0
 
     if received_value == expected_value:
         cmds.button("status_" + item_id, e=True, bgc=pass_color, l='',
@@ -640,7 +660,8 @@ def check_frame_rate():
             try:
                 cmds.currentUnit(time=expected_value)
                 print("Your " + item_name.lower() + " was changed to " + expected_value)
-            except:
+            except Exception as e:
+                logger.debug(str(e))
                 cmds.warning('Failed to use custom setting "' + str(expected_value) + '"  as your new frame rate.')
             check_frame_rate()
         else:
@@ -662,7 +683,6 @@ def check_scene_units():
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(1)[1]
     received_value = cmds.currentUnit(query=True, linear=True)
-    issues_found = 0
 
     if received_value.lower() == str(expected_value).lower():
         cmds.button("status_" + item_id, e=True, bgc=pass_color, l='',
@@ -690,7 +710,8 @@ def check_scene_units():
             try:
                 cmds.currentUnit(linear=str(expected_value))
                 print("Your " + item_name.lower() + " was changed to " + str(expected_value))
-            except:
+            except Exception as e:
+                logger.debug(str(e))
                 cmds.warning('Failed to use custom setting "' + str(expected_value) + '"  as your new scene unit.')
             check_scene_units()
         else:
@@ -720,7 +741,7 @@ def check_output_resolution():
             expected_value = settings_default_checklist_values[2][1]
 
     received_value = [cmds.getAttr("defaultResolution.width"), cmds.getAttr("defaultResolution.height")]
-    issues_found = 0
+    # issues_found = 0
 
     if str(received_value[0]).replace(' ', '') == str(expected_value[0]).replace(' ', '') and str(
             received_value[1]).replace(' ', '') == str(expected_value[1].replace(' ', '')):
@@ -752,7 +773,8 @@ def check_output_resolution():
                 cmds.setAttr("defaultResolution.height", int(expected_value[1]))
                 print('Your ' + item_name.lower() + ' was changed to "' + str(expected_value[0]) + 'x' + str(
                     expected_value[1]) + '"')
-            except:
+            except Exception as e:
+                logger.debug(str(e))
                 cmds.warning('Failed to use custom setting "' + str(expected_value[0]) + 'x' + str(
                     expected_value[1]) + '" as your new resolution.')
             check_output_resolution()
@@ -761,15 +783,16 @@ def check_output_resolution():
 
     # Return string for report ------------
     if issues_found > 0:
-        string_status = str(issues_found) + " issue found. The expected " + item_name.lower() + ' was "' + str(
-            expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(
-            received_value[1]) + '"'
+        string_status = str(issues_found) + " issue found. The expected " + item_name.lower() + ' was "' + \
+                        str(expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + \
+                        str(received_value[0]) + 'x' + str(received_value[1]) + '"'
     else:
-        string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was "' + str(
-            expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + str(received_value[0]) + 'x' + str(
-            received_value[1]) + '"'
+        string_status = str(issues_found) + " issues found. The expected " + item_name.lower() + ' was "' + \
+                        str(expected_value[0]) + 'x' + str(expected_value[1]) + '" and yours is "' + \
+                        str(received_value[0]) + 'x' + str(received_value[1]) + '"'
     if custom_settings_failed:
-        string_status = "1 issue found. The custom resolution settings provided couldn't be used to check your resolution"
+        string_status = "1 issue found. " \
+                        "The custom resolution settings provided couldn't be used to check your resolution"
         cmds.button("status_" + item_id, e=True, bgc=exception_color, l='',
                     c=lambda args: print_message("The custom value provided couldn't be used to check the resolution.",
                                                  as_warning=True))
@@ -783,11 +806,11 @@ def check_total_texture_count():
     expected_value = checklist_items.get(3)[1]
 
     received_value = 0
-    issues_found = 0
+    # issues_found = 0
 
     # Check Custom Value
     custom_settings_failed = False
-    if isinstance(expected_value[0], int) == False or isinstance(expected_value[1], int) == False:
+    if isinstance(expected_value[0], int) is False or isinstance(expected_value[1], int) is False:
         custom_settings_failed = True
 
     # Count Textures
@@ -804,7 +827,8 @@ def check_total_texture_count():
                                                                                                   use_frame_extension,
                                                                                                   uv_tiling_mode)
                 udim_textures = maya.app.general.fileTexturePathResolver.findAllFilesForPattern(udim_file_pattern, None)
-            except:
+            except Exception as e:
+                logger.debug(str(e))
                 udim_textures = 0
             received_value += len(udim_textures)
         else:
@@ -818,8 +842,10 @@ def check_total_texture_count():
 
     if received_value <= expected_value[1] and received_value > expected_value[0]:
         cmds.button("status_" + item_id, e=True, bgc=warning_color, l='', c=lambda args: warning_total_texture_count())
-        patch_message = 'Your ' + item_name.lower() + ' is "' + str(
-            received_value) + '" which is a high number.\nConsider optimizing. (UDIM tiles are counted as individual textures)'
+        patch_message = 'Your ' + item_name.lower() + ' is "' + str(received_value) + '" which is a high number.' \
+                                                                                      '\nConsider optimizing. (UDIM ' \
+                                                                                      'tiles are counted as ' \
+                                                                                      'unique textures)'
         cancel_button = 'Ignore Warning'
         issues_found = 0
     elif received_value <= expected_value[1]:
@@ -898,8 +924,9 @@ def check_network_file_paths():
     def warning_network_file_paths():
         user_input = cmds.confirmDialog(
             title=item_name,
-            message=str(
-                len(incorrect_file_nodes)) + ' of your file node paths aren\'t pointing to the network drive. \nPlease change their path to a network location. \n\n(Too see a list of nodes, generate a full report)',
+            message=str(len(incorrect_file_nodes)) + ' of your file node paths aren\'t pointing to the network drive. '
+                                                     '\nPlease change their path to a network location. '
+                                                     '\n\n(Too see a list of nodes, generate a full report)',
             button=['OK', 'Ignore Issue'],
             defaultButton='OK',
             cancelButton='Ignore Issue',
@@ -918,7 +945,9 @@ def check_network_file_paths():
     if issues_found > 0:
         string_status = str(issues_found) + ' ' + issue_string + ' found.\n'
         for file_node in incorrect_file_nodes:
-            string_status = string_status + '"' + file_node + '" isn\'t pointing to the the network drive. Your texture files should be sourced from the network.\n'
+            string_status = string_status + '"' + file_node + "\" isn't pointing to the the network drive. " \
+                                                              "Your texture files should be sourced from the " \
+                                                              "network.\n\""
     else:
         string_status = str(issues_found) + ' issues found. All textures were sourced from the network'
     return '\n*** ' + item_name + " ***\n" + string_status
@@ -943,7 +972,8 @@ def check_network_reference_paths():
                         incorrect_reference_nodes.append(ref)
             else:
                 incorrect_reference_nodes.append(ref)
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         print('One of your references is not associated with a reference file!')
 
     if len(incorrect_reference_nodes) == 0:
@@ -962,7 +992,9 @@ def check_network_reference_paths():
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(
-                len(incorrect_reference_nodes)) + ' of your reference paths aren\'t pointing to the network drive. \nPlease change their path to a network location. \n\n(Too see a list of nodes, generate a full report)',
+                len(incorrect_reference_nodes)) + "\" of your reference paths aren't pointing to the network drive. "
+                                                  "\nPlease change their path to a network location."
+                                                  "\n\n(Too see a list of nodes, generate a full report)",
             button=['OK', 'Ignore Issue'],
             defaultButton='OK',
             cancelButton='Ignore Issue',
@@ -981,7 +1013,8 @@ def check_network_reference_paths():
     if issues_found > 0:
         string_status = str(issues_found) + ' ' + issue_string + ' found.\n'
         for file_node in incorrect_reference_nodes:
-            string_status = string_status + '"' + file_node + '" isn\'t pointing to the the network drive. Your references should be sourced from the network.\n'
+            string_status = string_status + '"' + file_node + "\" isn't pointing to the the network drive. " \
+                                                              "Your references should be sourced from the network.\n"
     else:
         string_status = str(issues_found) + ' issues found. All references were sourced from the network'
     return '\n*** ' + item_name + " ***\n" + string_status
@@ -991,7 +1024,7 @@ def check_network_reference_paths():
 def check_unparented_objects():
     item_name = checklist_items.get(6)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
-    expected_value = checklist_items.get(6)[1]
+    # expected_value = checklist_items.get(6)[1]
     unparented_objects = []
 
     # Count Unparented Objects
@@ -1019,7 +1052,9 @@ def check_unparented_objects():
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(
-                len(unparented_objects)) + ' unparented object(s) found in this scene. \nIt\'s likely that these objects need to be part of a hierarchy.\n\n(Too see a list of objects, generate a full report)',
+                len(unparented_objects)) + ' unparented object(s) found in this scene.'
+                                           '\nIt\'s likely that these objects need to be part of a hierarchy.'
+                                           '\n\n(Too see a list of objects, generate a full report)',
             button=['OK', 'Ignore Issue'],
             defaultButton='OK',
             cancelButton='Ignore Issue',
@@ -1038,7 +1073,8 @@ def check_unparented_objects():
     if issues_found > 0:
         string_status = str(issues_found) + ' ' + issue_string + ' found.\n'
         for obj in unparented_objects:
-            string_status = string_status + '"' + obj + '" has no parent or child nodes. It should likely be part of a hierarchy.\n'
+            string_status = string_status + '"' + obj + '" has no parent or child nodes. ' \
+                                                        'It should likely be part of a hierarchy.\n'
         string_status = string_status[:-1]
     else:
         string_status = str(issues_found) + ' issues found. No unparented objects were found.'
@@ -1051,23 +1087,23 @@ def check_total_triangle_count():
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(7)[1][1]
     inbetween_value = checklist_items.get(7)[1][0]
-    unparented_objects = []
+    # unparented_objects = []
 
     # Check Custom Value
     custom_settings_failed = False
-    if isinstance(expected_value, int) == False or isinstance(inbetween_value, int) == False:
+    if isinstance(expected_value, int) is False or isinstance(inbetween_value, int) is False:
         custom_settings_failed = True
 
     all_poly_count = cmds.ls(type="mesh", flatten=True)
     scene_tri_count = 0
-    smoothedObjCount = 0
+    # smoothed_obj_count = 0
 
     for obj in all_poly_count:
         smooth_level = cmds.getAttr(obj + ".smoothLevel")
         smooth_state = cmds.getAttr(obj + ".displaySmoothMesh")
         total_tri_count = cmds.polyEvaluate(obj, t=True)
         total_edge_count = cmds.polyEvaluate(obj, e=True)
-        total_face_count = cmds.polyEvaluate(obj, f=True)
+        # total_face_count = cmds.polyEvaluate(obj, f=True)
 
         if smooth_state > 0 and smooth_level != 0:
             one_subdiv_tri_count = (total_edge_count * 4)
@@ -2683,12 +2719,14 @@ def settings_export_state():
         settings_file = file_name[0]
         successfully_created_file = True
     else:
+        settings_file = None
         successfully_created_file = False
 
     if successfully_created_file:
         try:
             file_handle = open(settings_file, 'w')
         except Exception as e:
+            file_handle = None
             logger.debug(str(e))
             successfully_created_file = False
             cmds.warning("Couldn't write to file. Please make sure the saving location is accessible.")
