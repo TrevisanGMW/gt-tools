@@ -27,7 +27,10 @@
  1.8.0 - 2022-07-07
  Added patch to version
  PEP8 cleanup
- 
+
+ 1.8.1 - 2022-07-21
+ PEP8 cleanup
+
 """
 import maya.cmds as cmds
 import maya.mel as mel
@@ -48,7 +51,7 @@ except ImportError:
 script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "1.8.0"
+script_version = "1.8.1"
 
 settings = {'target_list': [],
             'source_obj': [],
@@ -210,6 +213,7 @@ def build_gui_connect_attributes():
     def print_selection_attributes(operation):
         selection = cmds.ls(selection=True)
         header = ""
+        attr_list = []
         if operation == "keyable" and len(selection) > 0:
             attr_list = cmds.listAttr(selection[0], k=True) or []
             header = '"' + selection[0] + '" keyable attributes: '
@@ -439,6 +443,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
     # Final Check before running
     is_ready_to_connect = True
     target_list = []
+    source_obj = None
     if settings.get("status_single_source_target") is False:
         if settings.get("target_list") == [] or settings.get("source_obj") == []:
             cmds.warning("One of your lists is empty")
@@ -469,6 +474,8 @@ def connect_attributes(source_text_attribute, target_text_attributes):
         # Creates Necessary Nodes
         if settings.get('status_add_input'):
             input_node = cmds.createNode(input_node_type)
+        else:
+            input_node = ''
 
         is_source_attr_checked = False
 
@@ -482,6 +489,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                     source_attr_list = cmds.listAttr(source_obj) or []
                 else:
                     error_occurred = True
+                    source_attr_list = []
                     error_list.append("The source object " + source_obj + " doesn't seem exist")
 
                 # Checks if target object exists
@@ -497,7 +505,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                 else:
                     error_occurred = True
                     if is_source_attr_checked is False:
-                        error = source_obj + " (Source Object) doesn't seem to have an attribute called "
+                        error = str(source_obj) + " (Source Object) doesn't seem to have an attribute called "
                         error += source_text_attribute
                         error_list.append(error)
                     is_source_attr_checked = True
@@ -526,31 +534,33 @@ def connect_attributes(source_text_attribute, target_text_attributes):
 
                         if using_reverse_node:
                             reverse_node = cmds.createNode("reverse")
+                        else:
+                            reverse_node = ''
 
                         # Source to inBetween node
                         node_in_between = cmds.createNode(custom_node)
                         if custom_node == "plusMinusAverage":
-                            if "3" in cmds.getAttr(source_obj + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                            if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "input3D[0]")
                             else:
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "input3D[0].input3Dx")
 
                         elif custom_node == "multiplyDivide":
-                            if "3" in cmds.getAttr(source_obj + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                            if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "input1")
                             else:
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "input1X")
 
                         elif custom_node == "condition":
-                            if "3" in cmds.getAttr(source_obj + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                            if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "colorIfTrue")
                             else:
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  node_in_between + "." + "colorIfTrueR")
 
                         # inBetween node to Target node
@@ -605,6 +615,8 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                                 out_of_input = "output"
                             elif input_node_type == "condition":
                                 out_of_input = "outColor"
+                            else:
+                                out_of_input = ''
 
                             if custom_node == "plusMinusAverage":
                                 cmds.connectAttr(input_node + "." + out_of_input, node_in_between + "." + "input3D[1]")
@@ -618,10 +630,11 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                         if using_reverse_node:
                             reverse_node = cmds.createNode("reverse")
                             # Reverse Input
-                            if "3" in cmds.getAttr(source_obj + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(source_obj + "." + source_text_attribute, reverse_node + "." + "input")
+                            if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
+                                                 reverse_node + "." + "input")
                             else:
-                                cmds.connectAttr(source_obj + "." + source_text_attribute,
+                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                                  reverse_node + "." + "inputX")
                             # Reverse Output
                             if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
@@ -629,7 +642,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                             else:
                                 cmds.connectAttr(reverse_node + "." + "outputX", target_obj + "." + attr)
                         else:
-                            cmds.connectAttr(source_obj + "." + source_text_attribute,
+                            cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
                                              target_obj + "." + attr)  # Simple Connection
 
     # Disconnect Instead          

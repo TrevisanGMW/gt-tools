@@ -62,6 +62,7 @@
   <li><a href="#-gt-startup-booster-">GT Startup Booster</a></li>
   <li><a href="#-gt-fspy-importer-">GT fSpy Importer</a></li>
   <li><a href="#-gt-maya-to-discord-">GT Maya to Discord</a></li>
+  <li><a href="#-gt-render-calculator-">GT Render Calculator</a></li>
 </ul>
 </div>
 
@@ -1569,6 +1570,32 @@ Do not change the resolution of the image file or crop the image or it might not
 <p><b>Limitations: </b>
 <br>Discord has a limit of 8MB for free users and 50MB for paid users for when uploading a file.
 <br>If you get the error "Payload Too Large" it means your file exceeds the limits. Try changing the settings.</p>
+
+<br>
+
+</div>
+
+
+<!-- GT Render Calculator -->
+<div>
+<h1> GT Render Calculator </h1>
+
+<img src="./media/gt_render_calculator.jpg" align="right"
+     alt="GT Render Calculator GUI">
+
+<p>This script helps you calculate the total render time of a task based on how long it takes to render a frame..</p>
+
+<p><b>Average Time Per Frame: </b>
+<br>Integer describing the average time used to render one frame of your animation.<br>The drop-down menu to the right describes the unit used for the provided number. Seconds, minutes or hours.</p>
+
+<p><b>Total Number of Frames: </b>
+<br>The total number of frames to be rendered.
+<br>The "Get Current" button uses the timeline to determine how many frames are likely being rendered using the in and out values.</p>
+
+<p><b>Total Number of Machines: </b>
+<br>The number of computers rendering the same job.
+<br>The render time may vary per machine based on the available setup.</p>
+
 
 <br>
 

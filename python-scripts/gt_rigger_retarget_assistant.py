@@ -38,6 +38,9 @@ v0.1.2 - 2022-07-13
 Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
 Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
 
+v0.1.3 - 2022-07-21
+Updated help text
+
 """
 from collections import namedtuple
 from functools import partial
@@ -1007,12 +1010,12 @@ def build_gui_mocap_rig():
     cmds.checkBox('ch_merge_axis', label='Merge FK Axis', value=settings.get('merge_axis'), en=False,
                   cc=partial(_btn_refresh_textfield_settings_data, 'merge_axis'))
 
-    help_message_merge_fk_axis = 'This option can only be used when both the "Unlock Rotations" and the ' \
-                                 '"Transfer to IK" options are active. It transfers the data to IK causing the ' \
-                                 'channels to merge and then transfer it back into FK, making the animation live ' \
-                                 'into only one channel instead of multiple channels.\nEven though it might look ' \
-                                 'slightly incorrect, it might give you data that is easier to handle, essentially ' \
-                                 'eliminating some counter rotations.'
+    help_message_merge_fk_axis = 'This option can only be used when "Unlock Rotations" is active. ' \
+                                 'It transfers the data to IK causing the channels to merge and then transfer ' \
+                                 'it back into FK, making the animation live into only one channel instead of ' \
+                                 'multiple channels.\nEven though it might look slightly incorrect, it ' \
+                                 'might give you data that is easier to handle, essentially eliminating some ' \
+                                 'counter rotations.'
 
     help_title_merge_fk_axis = 'Merge FK Axis'
 

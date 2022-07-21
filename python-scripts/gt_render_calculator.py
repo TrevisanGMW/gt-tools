@@ -2,7 +2,11 @@
  GT Render Calculator - Script for calculating the time a render will take
  github.com/TrevisanGMW - 2022-07-18
 
- Work in Progress file
+ 1.0.0 - 2022-07-20
+ Initial release
+
+ 1.0.1 - 2022-07-21
+ Updated help link
 
 """
 from maya import OpenMayaUI as OpenMayaUI
@@ -28,7 +32,7 @@ except ImportError:
 script_name = "GT - Render Calculator"
 
 # Version
-script_version = "1.0.0"
+script_version = "1.0.1"
 
 
 # Logging Setup
@@ -205,10 +209,9 @@ def build_gui_render_calculator():
 
 def _open_gt_tools_documentation():
     """ Opens a web browser with GT Tools docs  """
-    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-render-calculator-', absolute=True)
 
 
 # Build UI
 if __name__ == "__main__":
     build_gui_render_calculator()
-
