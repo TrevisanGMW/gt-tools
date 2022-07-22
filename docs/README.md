@@ -99,6 +99,7 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 
 In case you need/want to manually install the scripts. It's also a pretty straightforward process.
 
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -107,12 +108,13 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
 	<li>Move all the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
+<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation" align="right">
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
 </ol>
 
-<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation">
+
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
