@@ -132,7 +132,6 @@ def get_persistent_settings_render_checklist():
     stored_setup_exists = cmds.optionVar(exists="gt_render_checklist_setup")
 
     if stored_setup_exists:
-        stored_checklist_items = {}
         try:
             stored_checklist_items = eval(str(cmds.optionVar(q="gt_render_checklist_setup")))
             for stored_item in stored_checklist_items:
@@ -208,12 +207,12 @@ def build_gui_gt_render_checklist():
     items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 21]  # Allow user to update expected values
     items_with_warnings = [3, 7, 8, 9, 10, 11]  # Allow users to update warning values too
 
-    def create_settings_items(items, items_for_settings, items_with_warnings):
+    def create_settings_items(items, settings_items, warning_items):
         for item in items:
             cmds.text(l=checklist_items.get(item)[0] + ': ', align="left")
 
             # Items with warnings
-            if item in items_with_warnings:
+            if item in warning_items:
                 cmds.textField('settings_warning_' + str(item), tx=checklist_items.get(item)[1][0], h=14,
                                font=font_size)
                 checklist_settings.get('settings_text_fields').append('settings_warning_' + str(item))
@@ -221,8 +220,8 @@ def build_gui_gt_render_checklist():
                 cmds.textField(en=False, h=14)
 
             # Items for settings only
-            if item in items_for_settings:
-                if item not in items_with_warnings:
+            if item in settings_items:
+                if item not in warning_items:
                     if isinstance(checklist_items.get(item)[1], list):
                         combined_values = ''
                         for array_item in checklist_items.get(item)[1]:
@@ -2684,6 +2683,7 @@ def export_report_to_txt(input_list):
 
 # Import Settings
 def settings_import_state():
+    file_handle = None
     file_name = cmds.fileDialog2(fileFilter=script_name + " Settings (*.txt)", dialogStyle=2, fileMode=1,
                                  okCaption='Import', caption='Importing Settings for "' + script_name + '"') or []
 
@@ -2691,6 +2691,7 @@ def settings_import_state():
         settings_file = file_name[0]
         file_exists = True
     else:
+        settings_file = None
         file_exists = False
 
     if file_exists:
@@ -2717,6 +2718,7 @@ def settings_import_state():
 
 # Export Settings
 def settings_export_state():
+    file_handle = None
     file_name = cmds.fileDialog2(fileFilter=script_name + " Settings (*.txt)", dialogStyle=2, okCaption='Export',
                                  caption='Exporting Settings for "' + script_name + '"') or []
 
@@ -2731,7 +2733,6 @@ def settings_export_state():
         try:
             file_handle = open(settings_file, 'w')
         except Exception as e:
-            file_handle = None
             logger.debug(str(e))
             successfully_created_file = False
             cmds.warning("Couldn't write to file. Please make sure the saving location is accessible.")
