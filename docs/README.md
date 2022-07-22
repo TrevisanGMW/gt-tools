@@ -1305,7 +1305,11 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Tick:</b> Time as seen by the sine system.</li>
 	<li><b>Output:</b> Result of the sine operation.</li>
 	<li><b>Abs Output:</b> Aboslute output. (no negative values).</li>
-</ul></p>
+</ul>
+
+Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
+
+</p>
 
 <br><br>
 
@@ -1343,6 +1347,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <h3>Uniform LRA Toggle</h3>
 <p>This utility makes the visibility of the local rotation axis of the selected objects uniform.<br> For example, if two out of three objects have their LRA visible, it makes all of them visible.</p>
+
+<h3>Convert Joints to Mesh</h3>
+<p>Converts selected skeleton to a mesh version of it. Helpful when sending joints into another program that might not support or display joints in the same way Maya does. To use it, select the root joint of your skeleton and run the function. (No need to select all joints, just the root)</p>
 
 <h3>Uniform Joint Label Toggle</h3>
 <p>Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).</p>
