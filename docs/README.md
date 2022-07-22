@@ -22,11 +22,12 @@
   <li><a href="#-gt-path-manager-">GT Path Manager</a></li>
   <li><a href="#-gt-color-manager-">GT Color Manager</a></li>
   <li><a href="#-gt-transfer-transforms-">GT Transfer Transforms</a></li>
+  <li><a href="#-gt-world-space-baker-">GT World Spacce Baker</a></li>
   <li><a href="#-gt-render-checklist-">GT Render Checklist</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
-  <li><a href="#-gt-generate-python-curve-">GT Generate Python Curve</a></li>
+  <li><a href="#-gt-extract-python-curve-">GT Extract Python Curve</a></li>
   <li><a href="#-gt-generate-text-curve-">GT Generate Text Curve</a></li>
   <li><a href="#-gt-extract-curve-state-">GT Extract Curve State</a></li>
 </ul>
@@ -48,7 +49,6 @@
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
-  <li><a href="#-gt-create-ik-leg-">GT Create IK Leg</a></li>
   <li><a href="#-gt-create-testing-keys-">GT Create Testing Keys</a></li>
   <li><a href="#-gt-make-ik-stretchy-">GT Make IK Stretchy</a></li>
   <li><a href="#-gt-add-sine-attributes-">GT Add Sine Attributes</a></li>
@@ -111,6 +111,8 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
 </ol>
+
+<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation">
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
@@ -451,7 +453,7 @@ The icon on the left describes the validity of the path. If the file or director
 <img src="./media/gt_transfer_transforms.jpg" align="right"
      alt="GT Transfer Transforms GUI">
 
-<p>Script for transfering translate, rotate or scale data from one object to antoher.</p>
+<p>Script for transfering translate, rotate or scale data from one object to another.</p>
 
 <p><b>Transfer (Source/Targets): </b><br>1. Select Source 1st<br>- Wireframe Color:  Utilize "Display > Wireframe Color..." to set color.</p>
 
@@ -473,6 +475,32 @@ with the provided prefix "Left Side Tag".</p>
 <br>When importing, it tries to find the same elements to apply the exported data.</p>
 
 <br>
+
+</div>
+
+
+<!-- GT World Space Baker -->
+<div>
+<h1> GT World Space Baker </h1>
+
+<img src="./media/gt_world_space_baker.jpg" align="right"
+     alt="GT World Space Baker GUI">
+
+<p>Script for storing then baking transforms using world-space data.</p>
+
+<p><b>1. Target(s) </b>
+<br>Use "Load Selection" to define targets (objects to extract transform from).</p>
+
+<p><b>2. Animation Range </b>
+<br>Enter animation range (Start & End). That's the range used by the script when extracting or baking transforms</p>
+
+<p><b>3. Extract World Space </b>
+<br>Extract and store transforms; This creates a dictionary with the transforms of the loaded objects throughout the animation range.</p>
+
+<p><b>4. Bake transforms when necessary </b>
+<br>Bake the transforms when necessary. For example, after updating the object's parent into another pose, you bake it forcing the loaded object to go back to the stored position (world-space)</p>
+
+<br><br><br><br>
 
 </div>
 
@@ -570,11 +598,11 @@ with the provided prefix "Left Side Tag".</p>
 <br>
 </div>
 
-<!-- GT Generate Python Curve -->
+<!-- GT Extract Python Curve -->
 <div>
-<h1> GT Generate Python Curve </h1>
+<h1> GT Extract Python Curve </h1>
 
-<img src="./media/gt_generate_python_curve.jpg" align="right"
+<img src="./media/gt_extract_python_curve.jpg" align="right"
      alt="GT Generate Python Curve GUI">
 
 <p>This script generates the Python code necessary to create a selected curve.<br>Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
@@ -1177,42 +1205,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Create IK Leg -->
-<div>
-<h1> GT Create IK Leg </h1>
-
-<img src="./media/gt_create_ik_leg.jpg" align="right"
-     alt="GT Create IK Leg GUI">
-
-<p>This script is no longer part of the GT Tools Menu, I've temporarily removed it so I can make it more user-friendly.<br><br>This script assumes that you are using a simple leg composed of a hip joint, a knee joint an ankle joint and maybe ball and toe joints.<br>In case your setup is different, I suggest you try a different solution. </p>
-
-<p><b>Joint Tag (Suffix) and Ctrl Group Tag (Suffix): </b>
-<br>These two textfields allow you to define what suffix you used for you base skeleton joints and your control groups. 
-<br>(used when creating new names or looking for controls)
-<br>The Ctrl Group Tag is used to define the visibility of the FK system.</p>
-
-<p><b>Custom PVector Ctrl, IK Ctrl and IK Switch:  </b>
-<br>These options allow you to load an already existing control.
-<br>In case you already created curve you could simply load them and the script will use yours instead of creating a new one.</p>
-
-<p><b>Colorize Controls:  </b>
-<br>This option looks for "right_" and "left_" tags and assign colors based on the found tag.</p>
-
-<p><b>Make Stretchy Legs: </b>
-<br>This option creates measure tools to define how to strechy the leg when it goes beyong its current size.
-<br>- Term = What is being compared
-<br>- Condition = Default Size (used for scalling the rig)</p>
-
-<p><b>Use Ball Joint:  </b>
-<br>This option allows you to define whether or not to use a ball joint.</p>
-
-<p><b>Load "Content" Buttons:  </b>
-<br>These buttons allow you to load the necessary objects before running the script.</p>
-
-<br>
-
-</div>
-
 <!-- GT Create Testing Keys -->
 <div>
 <h1> GT Create Testing Keys </h1>
@@ -1313,7 +1305,11 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Tick:</b> Time as seen by the sine system.</li>
 	<li><b>Output:</b> Result of the sine operation.</li>
 	<li><b>Abs Output:</b> Aboslute output. (no negative values).</li>
-</ul></p>
+</ul>
+
+Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
+
+</p>
 
 <br><br>
 
@@ -1351,6 +1347,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <h3>Uniform LRA Toggle</h3>
 <p>This utility makes the visibility of the local rotation axis of the selected objects uniform.<br> For example, if two out of three objects have their LRA visible, it makes all of them visible.</p>
+
+<h3>Convert Joints to Mesh</h3>
+<p>Converts selected skeleton to a mesh version of it. Helpful when sending joints into another program that might not support or display joints in the same way Maya does. To use it, select the root joint of your skeleton and run the function. (No need to select all joints, just the root)</p>
 
 <h3>Uniform Joint Label Toggle</h3>
 <p>Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).</p>

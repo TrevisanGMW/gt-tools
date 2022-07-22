@@ -41,6 +41,7 @@
  1.4.4 - 2022-07-21
     A bit more PEP8 Cleanup
     Fixed settings issue where the UI would get bigger
+    Simplified some expressions
 
  Todo:
     Add checks for xgen
@@ -118,6 +119,9 @@ checklist_settings = {"is_settings_visible": False,
                       "settings_text_fields": []
                       }
 
+CHECKLIST_MAIN_COLUMN_HEIGHT = 345
+CHECKLIST_BUTTONS_COLUMN_HEIGHT = 90
+
 
 def get_persistent_settings_render_checklist():
     """
@@ -128,7 +132,6 @@ def get_persistent_settings_render_checklist():
     stored_setup_exists = cmds.optionVar(exists="gt_render_checklist_setup")
 
     if stored_setup_exists:
-        stored_checklist_items = {}
         try:
             stored_checklist_items = eval(str(cmds.optionVar(q="gt_render_checklist_setup")))
             for stored_item in stored_checklist_items:
@@ -204,13 +207,12 @@ def build_gui_gt_render_checklist():
     items_for_settings = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 21]  # Allow user to update expected values
     items_with_warnings = [3, 7, 8, 9, 10, 11]  # Allow users to update warning values too
 
-    def create_settings_items(items, items_for_settings, items_with_warnings):
+    def create_settings_items(items, settings_items, warning_items):
         for item in items:
-            # item_id = checklist_items.get(item)[0].lower().replace(" ", "_").replace("-", "_")
             cmds.text(l=checklist_items.get(item)[0] + ': ', align="left")
 
             # Items with warnings
-            if item in items_with_warnings:
+            if item in warning_items:
                 cmds.textField('settings_warning_' + str(item), tx=checklist_items.get(item)[1][0], h=14,
                                font=font_size)
                 checklist_settings.get('settings_text_fields').append('settings_warning_' + str(item))
@@ -218,8 +220,8 @@ def build_gui_gt_render_checklist():
                 cmds.textField(en=False, h=14)
 
             # Items for settings only
-            if item in items_for_settings:
-                if item not in items_with_warnings:
+            if item in settings_items:
+                if item not in warning_items:
                     if isinstance(checklist_items.get(item)[1], list):
                         combined_values = ''
                         for array_item in checklist_items.get(item)[1]:
@@ -294,23 +296,25 @@ def build_gui_gt_render_checklist():
 
             # Hide Checklist Items
             checklist_settings["checklist_column_height"] = cmds.rowColumnLayout(checklist_column, q=True, h=True)
+            logger.debug('checklist_column_height: ' + str(checklist_settings.get('checklist_column_height')))
             cmds.rowColumnLayout(checklist_column, e=True, h=1)
 
             # Show Settings Items
-            cmds.rowColumnLayout(settings_column, e=True, h=(checklist_settings.get('checklist_column_height')))
+            cmds.rowColumnLayout(settings_column, e=True, h=CHECKLIST_MAIN_COLUMN_HEIGHT)
 
             # Hide Checklist Buttons
             checklist_settings["checklist_buttons_height"] = cmds.rowColumnLayout(checklist_buttons, q=True, h=True)
+            logger.debug('checklist_buttons_height: ' + str(checklist_settings.get('checklist_buttons_height')))
             cmds.rowColumnLayout(checklist_buttons, e=True, h=1)
 
             # Show Settings Buttons
-            cmds.rowColumnLayout(settings_buttons, e=True, h=checklist_settings.get('checklist_buttons_height'))
+            cmds.rowColumnLayout(settings_buttons, e=True, h=CHECKLIST_BUTTONS_COLUMN_HEIGHT)
         else:
             checklist_settings["is_settings_visible"] = False
-            cmds.rowColumnLayout(checklist_column, e=True, h=checklist_settings.get('checklist_column_height'))
-            cmds.rowColumnLayout(checklist_buttons, e=True, h=checklist_settings.get('checklist_buttons_height'))
             cmds.rowColumnLayout(settings_column, e=True, h=1)
             cmds.rowColumnLayout(settings_buttons, e=True, h=1)
+            cmds.rowColumnLayout(checklist_column, e=True, h=CHECKLIST_MAIN_COLUMN_HEIGHT - 2)
+            cmds.rowColumnLayout(checklist_buttons, e=True, h=CHECKLIST_BUTTONS_COLUMN_HEIGHT - 2)
             cmds.button(settings_btn, e=True, l='Settings', bgc=title_bgc_color)
             settings_apply_changes()
             set_persistent_settings_render_checklist()
@@ -484,7 +488,7 @@ def build_gui_help_gt_render_checklist():
 
     message = '[X] ' + checklist_items.get(1)[0] + ': returns error if not matching: "' + \
               str(checklist_items.get(1)[1]) + '".\n     Examples of custom values:\n     ' \
-                                               '"mm" (milimeter),\n     "cm" (centimeter),\n     "m" (meter)' + '\n\n'
+                                               '"mm" (millimeter),\n     "cm" (centimeter),\n     "m" (meter)' + '\n\n'
     cmds.scrollField(checklist_items_help_scroll_field, e=True, ip=0, it=message)
 
     message = '[X] ' + checklist_items.get(2)[0] + ': returns error if not: ' + str(checklist_items.get(2)[1]) + \
@@ -840,7 +844,7 @@ def check_total_texture_count():
         expected_value[1]) + '".\n (UDIM tiles are counted as individual textures)'
     cancel_button = 'Ignore Issue'
 
-    if received_value <= expected_value[1] and received_value > expected_value[0]:
+    if expected_value[1] >= received_value > expected_value[0]:
         cmds.button("status_" + item_id, e=True, bgc=warning_color, l='', c=lambda args: warning_total_texture_count())
         patch_message = 'Your ' + item_name.lower() + ' is "' + str(received_value) + '" which is a high number.' \
                                                                                       '\nConsider optimizing. (UDIM ' \
@@ -1115,7 +1119,7 @@ def check_total_triangle_count():
         else:
             scene_tri_count += total_tri_count
 
-    if scene_tri_count < expected_value and scene_tri_count > inbetween_value:
+    if expected_value > scene_tri_count > inbetween_value:
         cmds.button("status_" + item_id, e=True, bgc=warning_color, l='', c=lambda args: warning_total_triangle_count())
         issues_found = 0
         patch_message = 'Your scene has ' + str(
@@ -1158,7 +1162,7 @@ def check_total_triangle_count():
             cmds.button("status_" + item_id, e=True, l='')
 
     # Return string for report ------------
-    if scene_tri_count > inbetween_value and scene_tri_count < expected_value:
+    if inbetween_value < scene_tri_count < expected_value:
         string_status = str(issues_found) + ' issues found. Your scene has ' + str(
             scene_tri_count) + ' triangles, which is high. Consider optimizing it if possible.'
     elif scene_tri_count < expected_value:
@@ -1188,7 +1192,7 @@ def check_total_poly_object_count():
 
     all_polymesh = cmds.ls(type="mesh")
 
-    if len(all_polymesh) < expected_value and len(all_polymesh) > inbetween_value:
+    if expected_value > len(all_polymesh) > inbetween_value:
         cmds.button("status_" + item_id, e=True, bgc=warning_color, l='',
                     c=lambda args: warning_total_poly_object_count())
         issues_found = 0
@@ -1230,7 +1234,7 @@ def check_total_poly_object_count():
             cmds.button("status_" + item_id, e=True, l='')
 
     # Return string for report ------------
-    if len(all_polymesh) < expected_value and len(all_polymesh) > inbetween_value:
+    if expected_value > len(all_polymesh) > inbetween_value:
         string_status = str(issues_found) + ' issues found. Your scene contains "' + str(
             len(all_polymesh)) + '" polygon meshes, which is a high number. Consider optimizing it if possible.'
     elif len(all_polymesh) < expected_value:
@@ -1266,7 +1270,7 @@ def check_shadow_casting_light_count():
         if shadow_state == 1:
             shadow_casting_lights.append(light)
 
-    if len(shadow_casting_lights) < expected_value and len(shadow_casting_lights) > inbetween_value:
+    if expected_value > len(shadow_casting_lights) > inbetween_value:
         cmds.button("status_" + item_id, e=True, bgc=warning_color, l='',
                     c=lambda args: warning_shadow_casting_light_count())
         issues_found = 0
@@ -1308,7 +1312,7 @@ def check_shadow_casting_light_count():
             cmds.button("status_" + item_id, e=True, l='')
 
     # Return string for report ------------
-    if len(shadow_casting_lights) < expected_value and len(shadow_casting_lights) > inbetween_value:
+    if expected_value > len(shadow_casting_lights) > inbetween_value:
         string_status = str(issues_found) + ' issues found. Your scene contains "' + str(len(shadow_casting_lights)) + \
                         '" shadow casting lights, which is a high number. Consider optimizing it if possible.'
     elif len(shadow_casting_lights) < expected_value:
@@ -1366,7 +1370,7 @@ def check_rs_shadow_casting_light_count():
                 if rs_shadow_state == 1:
                     rs_shadow_casting_lights.append(rs_light)
 
-        if len(rs_shadow_casting_lights) < expected_value and len(rs_shadow_casting_lights) > inbetween_value:
+        if expected_value > len(rs_shadow_casting_lights) > inbetween_value:
             cmds.button("status_" + item_id, e=True, bgc=warning_color, l='',
                         c=lambda args: warning_rs_shadow_casting_light_count())
             issues_found = 0
@@ -1410,7 +1414,7 @@ def check_rs_shadow_casting_light_count():
                 cmds.button("status_" + item_id, e=True, l='')
 
         # Return string for report ------------
-        if len(rs_shadow_casting_lights) < expected_value and len(rs_shadow_casting_lights) > inbetween_value:
+        if expected_value > len(rs_shadow_casting_lights) > inbetween_value:
             string_status = str(issues_found) + ' issues found. Your scene contains "' + str(
                 len(rs_shadow_casting_lights)) + '" Redshift shadow casting lights, which is a high number. ' \
                                                  'Consider optimizing it if possible.'
@@ -1474,7 +1478,7 @@ def check_ai_shadow_casting_light_count():
             if rs_shadow_state == 1:
                 ai_shadow_casting_lights.append(ai_light)
 
-        if len(ai_shadow_casting_lights) < expected_value and len(ai_shadow_casting_lights) > inbetween_value:
+        if expected_value > len(ai_shadow_casting_lights) > inbetween_value:
             cmds.button("status_" + item_id, e=True, bgc=warning_color, l='',
                         c=lambda args: warning_ai_shadow_casting_light_count())
             issues_found = 0
@@ -1518,7 +1522,7 @@ def check_ai_shadow_casting_light_count():
                 cmds.button("status_" + item_id, e=True, l='')
 
         # Return string for report ------------
-        if len(ai_shadow_casting_lights) < expected_value and len(ai_shadow_casting_lights) > inbetween_value:
+        if expected_value > len(ai_shadow_casting_lights) > inbetween_value:
             string_status = str(issues_found) + ' issues found. Your scene contains "' + str(
                 len(ai_shadow_casting_lights)) + '" Arnold shadow casting lights, which is a high number. ' \
                                                  'Consider optimizing it if possible.'
@@ -2679,6 +2683,7 @@ def export_report_to_txt(input_list):
 
 # Import Settings
 def settings_import_state():
+    file_handle = None
     file_name = cmds.fileDialog2(fileFilter=script_name + " Settings (*.txt)", dialogStyle=2, fileMode=1,
                                  okCaption='Import', caption='Importing Settings for "' + script_name + '"') or []
 
@@ -2686,6 +2691,7 @@ def settings_import_state():
         settings_file = file_name[0]
         file_exists = True
     else:
+        settings_file = None
         file_exists = False
 
     if file_exists:
@@ -2712,6 +2718,7 @@ def settings_import_state():
 
 # Export Settings
 def settings_export_state():
+    file_handle = None
     file_name = cmds.fileDialog2(fileFilter=script_name + " Settings (*.txt)", dialogStyle=2, okCaption='Export',
                                  caption='Exporting Settings for "' + script_name + '"') or []
 
@@ -2726,7 +2733,6 @@ def settings_export_state():
         try:
             file_handle = open(settings_file, 'w')
         except Exception as e:
-            file_handle = None
             logger.debug(str(e))
             successfully_created_file = False
             cmds.warning("Couldn't write to file. Please make sure the saving location is accessible.")
@@ -2768,5 +2774,5 @@ def get_short_name(obj):
 # Build GUI
 get_persistent_settings_render_checklist()
 if __name__ == '__main__':
-    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     build_gui_gt_render_checklist()
