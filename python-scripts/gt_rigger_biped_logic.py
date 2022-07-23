@@ -280,6 +280,10 @@
  1.9.13 - 2022-06-30
  Added "biped_proxy_pose" stored as a string to main_ctrl
 
+ 1.9.14 - 2022-07-23
+ Added logging
+ Some PEP8 Cleanup
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -293,9 +297,15 @@ from gt_rigger_utilities import *
 from gt_rigger_data import *
 from gt_shape_offset import offset_curve_shape
 import maya.cmds as cmds
+import logging
 import random
 import json
 import re
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_rigger_biped_logic")
+logger.setLevel(logging.INFO)
 
 
 def create_proxy(data_biped):
@@ -1665,7 +1675,8 @@ def create_proxy(data_biped):
     cmds.select(d=True)
     unique_message = '<' + str(random.random()) + '>'
     cmds.inViewMessage(
-        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span><span style=\"color:#FFFFFF;\"> was created!</span>',
+        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
+                             'Proxy</span><span style=\"color:#FFFFFF;\"> was created!</span>',
         pos='botLeft', fade=True, alpha=.9)
 
 
@@ -1697,12 +1708,12 @@ def create_controls(data_biped):
                 Parameters:
                     obj_name (string): Name of the object to orient (usually a joint)
                     target (string): Name of the target object (usually the element that will be the child of "obj")
-                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change the
+                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change the
                                           result orientation.
                     proxy_obj (string): The name of the proxy element (used as extra rotation input)
                     aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint. Default: (1, 0, 0)
                     up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint. Default: (0, -1, 0)
-                    brute_force (bool): Creates up and and dir points to determine orientation (Uses proxy object)
+                    brute_force (bool): Creates up and dir points to determine orientation (Uses proxy object)
         """
         if proxy_obj:
             cmds.delete(cmds.orientConstraint(proxy_obj, obj_name, offset=(0, 0, 0)))
@@ -1750,52 +1761,6 @@ def create_controls(data_biped):
             cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
             cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-    # def create_simple_fk_control(jnt_name, scale_offset, create_offset_grp=True):
-    #     """
-    #     Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
-    #
-    #             Parameters:
-    #                 jnt_name (string): Name of the joint that will be controlled
-    #                 scale_offset (float): The scale offset applied to the control before freezing it
-    #                 create_offset_grp (bool): Whether or not an offset group will be created
-    #             Returns:
-    #                 control_name_and_group (tuple): The name of the generated control and the name of its ctrl group
-    #
-    #     """
-    #     fk_ctrl = cmds.curve(name=jnt_name.replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
-    #                          p=[[0.0, 0.0, 0.0], [0.0, 0.897, 0.0], [0.033, 0.901, 0.0], [0.064, 0.914, 0.0],
-    #                             [0.091, 0.935, 0.0], [0.111, 0.961, 0.0], [0.124, 0.992, 0.0], [0.128, 1.025, 0.0],
-    #                             [0.0, 1.025, 0.0], [0.0, 0.897, 0.0], [-0.033, 0.901, 0.0], [-0.064, 0.914, 0.0],
-    #                             [-0.091, 0.935, 0.0], [-0.111, 0.961, 0.0], [-0.124, 0.992, 0.0], [-0.128, 1.025, 0.0],
-    #                             [-0.124, 1.058, 0.0], [-0.111, 1.089, 0.0], [-0.091, 1.116, 0.0], [-0.064, 1.136, 0.0],
-    #                             [-0.033, 1.149, 0.0], [0.0, 1.153, 0.0], [0.033, 1.149, 0.0], [0.064, 1.136, 0.0],
-    #                             [0.091, 1.116, 0.0], [0.111, 1.089, 0.0], [0.124, 1.058, 0.0], [0.128, 1.025, 0.0],
-    #                             [-0.128, 1.025, 0.0], [0.0, 1.025, 0.0], [0.0, 1.153, 0.0]], d=1)
-    #     fk_ctrl_grp = cmds.group(name=fk_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
-    #
-    #     fk_ctrl_offset_grp = ''
-    #     if create_offset_grp:
-    #         fk_ctrl_offset_grp = cmds.group(name=fk_ctrl + 'Offset' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-    #         cmds.parent(fk_ctrl, fk_ctrl_offset_grp)
-    #         cmds.parent(fk_ctrl_offset_grp, fk_ctrl_grp)
-    #     else:
-    #         cmds.parent(fk_ctrl, fk_ctrl_grp)
-    #
-    #     cmds.setAttr(fk_ctrl + '.scaleX', scale_offset)
-    #     cmds.setAttr(fk_ctrl + '.scaleY', scale_offset)
-    #     cmds.setAttr(fk_ctrl + '.scaleZ', scale_offset)
-    #     cmds.makeIdentity(fk_ctrl, apply=True, scale=True)
-    #
-    #     cmds.delete(cmds.parentConstraint(jnt_name, fk_ctrl_grp))
-    #     if 'left_' in jnt_name:
-    #         change_viewport_color(fk_ctrl, LEFT_CTRL_COLOR)
-    #     elif 'right_' in jnt_name:
-    #         change_viewport_color(fk_ctrl, RIGHT_CTRL_COLOR)
-    #
-    #     for shape in cmds.listRelatives(fk_ctrl, s=True, f=True) or []:
-    #         cmds.rename(shape, '{0}Shape'.format(fk_ctrl))
-    #
-    #     return fk_ctrl, fk_ctrl_grp, fk_ctrl_offset_grp
 
     def remove_numbers(string):
         """
@@ -2221,22 +2186,6 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('right_forearm_jnt'), rig_joints.get('right_elbow_jnt'))
     change_viewport_color(rig_joints.get('right_forearm_jnt'), (1, 1, 0))
 
-    # # Left Eye Orient
-    # temp_transform = cmds.group(empty=True, world=True, name=biped_data.elements.get('left_eye_proxy_crv') + '_orient_target')
-    # cmds.delete(cmds.parentConstraint(biped_data.elements.get('left_eye_proxy_crv'), temp_transform))
-    # cmds.parent(temp_transform, biped_data.elements.get('left_eye_proxy_crv'))
-    # cmds.setAttr(temp_transform + '.tz', 1)
-    # orient_to_target(rig_joints.get('left_eye_jnt'), temp_transform, (0,0,0), biped_data.elements.get('left_eye_proxy_crv'))#, (-1,0,0))
-    # cmds.delete(temp_transform)
-
-    # # Right Eye Orient
-    # temp_transform = cmds.group(empty=True, world=True, name=biped_data.elements.get('right_eye_proxy_crv') + '_orient_target')
-    # cmds.delete(cmds.parentConstraint(biped_data.elements.get('right_eye_proxy_crv'), temp_transform))
-    # cmds.parent(temp_transform, biped_data.elements.get('right_eye_proxy_crv'))
-    # cmds.setAttr(temp_transform + '.tz', 1)
-    # orient_to_target(rig_joints.get('right_eye_jnt'), temp_transform, (0,0,0), biped_data.elements.get('right_eye_proxy_crv'))#, (-1,0,0))
-    # cmds.delete(temp_transform)
-
     # ###### Create Organization Groups ######
     # Create Skeleton Group
     skeleton_grp = cmds.group(name=('skeleton_' + GRP_SUFFIX), empty=True, world=True)
@@ -2632,8 +2581,8 @@ def create_controls(data_biped):
     for shape in cmds.listRelatives(main_ctrl, s=True, f=True) or []:
         try:
             cmds.setAttr(shape + '.lineWidth', 3)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(str(e))
 
     change_viewport_color(main_ctrl, (1, 0.171, 0.448))
     main_ctrl_grp = cmds.group(name=main_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
@@ -3563,7 +3512,7 @@ def create_controls(data_biped):
                  niceName='Rotate Order')
     cmds.connectAttr(left_foot_ik_ctrl + '.rotationOrder', left_foot_ik_ctrl + '.rotateOrder', f=True)
 
-    ################# Right Leg FK #################
+    # ################# Right Leg FK #################
 
     # Calculate Scale Offset
     right_leg_scale_offset = 0
@@ -3955,7 +3904,7 @@ def create_controls(data_biped):
     change_viewport_color(left_wrist_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_wrist_ctrl_grp, left_elbow_ctrl)
 
-    ################# Left Fingers FK #################
+    # ################# Left Fingers FK #################
     # Left Fingers Parent
     left_hand_grp = cmds.group(name='left_hand_' + GRP_SUFFIX, empty=True, world=True)
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_hand_grp))
@@ -4297,7 +4246,7 @@ def create_controls(data_biped):
     change_viewport_color(right_wrist_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_wrist_ctrl_grp, right_elbow_ctrl)
 
-    ################# Right Fingers FK #################
+    # ################# Right Fingers FK #################
     # Right Fingers Parent
     right_hand_grp = cmds.group(name='right_hand_' + GRP_SUFFIX, empty=True, world=True)
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_hand_grp))
@@ -5144,7 +5093,7 @@ def create_controls(data_biped):
     change_viewport_color(right_heel_roll_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_heel_roll_ctrl_grp, right_foot_offset_data_grp)
 
-    ####### Left Finger Automation Controls #######
+    # ####### Left Finger Automation Controls #######
     # Left Fingers
     left_fingers_ctrl_a = cmds.curve(name='left_fingers_' + CTRL_SUFFIX,
                                      p=[[0.0, 0.127, -0.509], [0.047, 0.194, -0.474], [0.079, 0.237, -0.449],
@@ -6264,22 +6213,19 @@ def create_controls(data_biped):
     left_ik_finger_chains = []
     for finger in ['thumb', 'index', 'middle', 'ring', 'pinky']:
         left_ik_finger_jnts = []
+        finger_name = rig_joints.get('left_' + finger + '01_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         left_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('left_' + finger + '01_jnt'),
-                                                  name=rig_joints.get('left_' + finger + '01_jnt').replace(JNT_SUFFIX,
-                                                                                                           'ik_' + JNT_SUFFIX),
-                                                  po=True))
+                                                  name=finger_name, po=True))
+        finger_name = rig_joints.get('left_' + finger + '02_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         left_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('left_' + finger + '02_jnt'),
-                                                  name=rig_joints.get('left_' + finger + '02_jnt').replace(JNT_SUFFIX,
-                                                                                                           'ik_' + JNT_SUFFIX),
-                                                  po=True))
+                                                  name=finger_name, po=True))
+        finger_name = rig_joints.get('left_' + finger + '03_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         left_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('left_' + finger + '03_jnt'),
-                                                  name=rig_joints.get('left_' + finger + '03_jnt').replace(JNT_SUFFIX,
-                                                                                                           'ik_' + JNT_SUFFIX),
-                                                  po=True))
+                                                  name=finger_name, po=True))
+        finger_name = rig_joints.get('left_' + finger + '04_jnt')
+        finger_name = finger_name.replace('end' + JNT_SUFFIX.capitalize(), 'ik_' + 'end' + JNT_SUFFIX.capitalize())
         left_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('left_' + finger + '04_jnt'),
-                                                  name=rig_joints.get('left_' + finger + '04_jnt').replace(
-                                                      'end' + JNT_SUFFIX.capitalize(),
-                                                      'ik_' + 'end' + JNT_SUFFIX.capitalize()), po=True))
+                                                  name=finger_name, po=True))
         left_ik_finger_chains.append(left_ik_finger_jnts)
 
     ik_finger_handles = []
@@ -7056,7 +7002,7 @@ def create_controls(data_biped):
     cmds.setAttr(right_fingers_ctrl + '.minScaleZLimitEnable', 1)
     cmds.setAttr(right_fingers_ctrl + '.maxScaleZLimitEnable', 1)
 
-    # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)1
+    # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)
     for obj in right_fingers_list:
         finger_name = remove_numbers(obj[0][0].replace(CTRL_SUFFIX, ''))
         ctrl_offset = obj[0][2]
@@ -7652,7 +7598,7 @@ def create_controls(data_biped):
     setup_shape_switch(left_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'],
                        shape_enum=['Box', 'Flat', 'Pin'])
 
-    # Left Foot In-Between Offset
+    # Left Foot In-Between
     # Offset ctrl was created earlier when creating the original ctrl
     cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(left_foot_offset_ik_ctrl + '.scaleY', .9)
@@ -7998,7 +7944,7 @@ def create_controls(data_biped):
     setup_shape_switch(right_foot_ik_ctrl, attr='controlShape', shape_names=['box', 'flat', 'pin'],
                        shape_enum=['Box', 'Flat', 'Pin'])
 
-    # Right Foot In-Between Offset
+    # Right Foot In-Between
     # Offset ctrl was created earlier when creating the original ctrl
     cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleX', .9)
     cmds.setAttr(right_foot_offset_ik_ctrl + '.scaleY', .9)
