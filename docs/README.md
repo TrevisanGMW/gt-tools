@@ -346,6 +346,16 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Update: </b>This button is only available in case there is a new update available. When clicked it opens the page for you to download the latest version. Simply install it again to update.</p>
 
+<p><b>Semantic Versioning: MAJOR.MINOR.PATCH</b>
+<ul> 
+	<li> MAJOR: Big changes that might be incompatible with older versions. </li>
+	<li> MINOR: Significant changes, like adding new scripts/features. </li>
+	<li> PATCH: Small changes used to fix issues or improve existing scripts. </li>
+</ul>
+
+
+</p>
+
 <br>
 </div>
 
