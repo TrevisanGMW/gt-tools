@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 
 SCRIPT_VERSION_BASE = '1.9.14'
 SCRIPT_VERSION_FACIAL = '0.0.19'
-SCRIPT_VERSION_CORRECTIVE = '0.0.13'
+SCRIPT_VERSION_CORRECTIVE = '0.0.14'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -405,23 +405,24 @@ def get_persistent_settings(data_object):
     try:
         data_object.option_var
         data_object.ignore_keys  # The values in these keys will not get imported (No persistent behaviour)
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         return False
 
     # Check if there is anything stored
-    stored_setup_exists = cmds.optionVar(exists=(data_object.option_var))
+    stored_setup_exists = cmds.optionVar(exists=data_object.option_var)
 
     # The values in these keys will not get imported (No persistent behaviour)
 
     if stored_setup_exists:
-        stored_settings = {}
         try:
-            stored_settings = eval(str(cmds.optionVar(q=(data_object.option_var))))
+            stored_settings = eval(str(cmds.optionVar(q=data_object.option_var)))
             for stored_item in stored_settings:
                 for item in data_object.settings:
                     if stored_item == item and item not in data_object.ignore_keys:
                         data_object.settings[item] = stored_settings.get(stored_item)
-        except:
+        except Exception as e:
+            logger.debug(str(e))
             print("Couldn't load persistent settings. Resetting it might fix the issue.")
             return False
         return True
@@ -445,11 +446,12 @@ def set_persistent_settings(data_object):
     try:
         data_object.option_var
         data_object.settings
-    except:
+    except Exception as e:
+        logger.debug(str(e))
         return False
 
     cmds.optionVar(sv=(data_object.option_var, str(data_object.settings)))
-    if str(cmds.optionVar(q=(data_object.option_var)) == str(data_object.settings)):
+    if str(cmds.optionVar(q=data_object.option_var) == str(data_object.settings)):
         return True
     else:
         return False
