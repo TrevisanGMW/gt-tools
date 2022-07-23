@@ -22,7 +22,7 @@
   <li><a href="#-gt-path-manager-">GT Path Manager</a></li>
   <li><a href="#-gt-color-manager-">GT Color Manager</a></li>
   <li><a href="#-gt-transfer-transforms-">GT Transfer Transforms</a></li>
-  <li><a href="#-gt-world-space-baker-">GT World Spacce Baker</a></li>
+  <li><a href="#-gt-world-space-baker-">GT World Space Baker</a></li>
   <li><a href="#-gt-render-checklist-">GT Render Checklist</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
@@ -99,6 +99,7 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 
 In case you need/want to manually install the scripts. It's also a pretty straightforward process.
 
+
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -107,12 +108,13 @@ In case you need/want to manually install the scripts. It's also a pretty straig
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
 	<li>Move all the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
 	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
+<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation" align="right">
 	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
 	(This command adds the menu when Maya opens)
 	<li>Open Autodesk Maya. </li>
 </ol>
 
-<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation">
+<br>
 
 <h3>Updating</h3>
 <p>Simply install it again. The auto setup will overwrite all files essentially updating them.
@@ -336,13 +338,23 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Latest Release Changelog: </b>Here you can find a list showing all the main changes applied to the three latest versions. The version number can be found on the top left corner and the release date on the top right corner.</p>
 
-<p><b>Auto Check For Updates: </b>This function controls the behaviour of the auto updater. In case active, it will use the interval value to determine if it should check for new releases. The user will only see the update window in case there is an actual update. (This function has no impact in your Maya startup time as it only gets executed only when necessary and it waits for the program to be idle. Click on the button to toggle between Activated/Deactivated</p>
+<p><b>Auto Check For Updates: </b>This function controls the behavior of the auto updater. In case active, it will use the interval value to determine if it should check for new releases. The user will only see the update window in case there is an actual update. (This function has no impact in your Maya startup time as it only gets executed only when necessary and it waits for the program to be idle. Click on the button to toggle between Activated/Deactivated</p>
 
 <p><b>Interval: </b>This is how often the script will auto check for updates. Click on the button to change between the available intervals. (5 day, 15 days, 30 days, 3 months, 6 months, 1 year)</p>
 
 <p><b>Refresh: </b>Checks for updates again.</p>
 
 <p><b>Update: </b>This button is only available in case there is a new update available. When clicked it opens the page for you to download the latest version. Simply install it again to update.</p>
+
+<p><b>Semantic Versioning: MAJOR.MINOR.PATCH</b>
+<ul> 
+	<li> MAJOR: Big changes that might be incompatible with older versions. </li>
+	<li> MINOR: Significant changes, like adding new scripts/features. </li>
+	<li> PATCH: Small changes used to fix issues or improve existing scripts. </li>
+</ul>
+
+
+</p>
 
 <br>
 </div>
@@ -361,7 +373,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Other Tools: </b><br>- Remove First Letter: removes the first letter of a name.<br>If the next character is a number, it will be deleted.<br>- Remove Last Letter: removes the last letter of a name.<br>- U-Case: makes all letters uppercase.<br>- Capitalize: makes the 1st letter of every word uppercase.<br>- L-Case: makes all letters lowercase</p>
 
-<p><b>Rename and Number: </b>Renames selected objects and number them.<br>- Start # : first number when countaing the new names.<br>- Padding : how many zeros before the number. e.g. "001"</p>
+<p><b>Rename and Number: </b>Renames selected objects and number them.<br>- Start # : first number when counting the new names.<br>- Padding : how many zeros before the number. e.g. "001"</p>
 
 <p><b>Prefix and Suffix: </b><br>Prefix: adds a string in front of a name.<br>Suffix: adds a string at the end of a name.<br> - Auto: Uses the provided strings to automatically name objects according to their type or position.<br>1st example: a mesh would automatically receive "_geo"<br>2nd example: an object in positive side of X, would automatically receive "left_: .<br> - Input: uses the provided text as a prefix or suffix.</p>
 
@@ -453,7 +465,7 @@ The icon on the left describes the validity of the path. If the file or director
 <img src="./media/gt_transfer_transforms.jpg" align="right"
      alt="GT Transfer Transforms GUI">
 
-<p>Script for transfering translate, rotate or scale data from one object to another.</p>
+<p>Script for transferring translate, rotate or scale data from one object to another.</p>
 
 <p><b>Transfer (Source/Targets): </b><br>1. Select Source 1st<br>- Wireframe Color:  Utilize "Display > Wireframe Color..." to set color.</p>
 
@@ -471,7 +483,7 @@ with the provided prefix "Left Side Tag".</p>
 <br>As the name suggests, it copy transforms, which populates the text fields, or it pastes transforms from selected fields back to selected objects.</p>
 
 <p><b>Export and Import Transforms: </b>
-<br>Exports a file contaning Translate, Rotate, and Scale data for every selected object.
+<br>Exports a file containing Translate, Rotate, and Scale data for every selected object.
 <br>When importing, it tries to find the same elements to apply the exported data.</p>
 
 <br>
@@ -511,7 +523,7 @@ with the provided prefix "Left Side Tag".</p>
 <img src="./media/gt_render_checklist.gif" align="right"
      alt="GT Render Checklist GUI">
 
-<p>This script performs a series of checks to detect common issues that are often accidently ignored/unnoticed.</p>
+<p>This script performs a series of checks to detect common issues that are often accidentally ignored/unnoticed.</p>
 
 <p><b>Checklist: </b>
 <br>- Operation: Name of the check the script will perform
@@ -545,7 +557,7 @@ with the provided prefix "Left Side Tag".</p>
 		<br>Examples of custom values:"film" (24fps),"23.976fps", "ntsc" (30fps), "ntscf" (60fps), "29.97fps"
 	</li>
 	<li> Scene Units: returns error if not matching expected value, for example "cm".
-		<br>Examples of custom values: "mm" (milimeter), "cm" (centimeter), "m" (meter).
+		<br>Examples of custom values: "mm" (millimeter), "cm" (centimeter), "m" (meter).
 	</li>
 	<li> Output Resolution: returns error if not matching expected value, for example : ['1920', '1080'].
 		<br>Please use a comma "," for entering a custom value. Examples of custom values: "1280, 720" (720p), "1920, 1080" (1080p), "2560, 1440" (1440p), "3840, 2160" (4K), "7680, 4320" (8K)
@@ -638,7 +650,7 @@ with the provided prefix "Left Side Tag".</p>
 <br>2. Type the word you want to create in the "Text:" text field.
 <br>3. Click on the "Generate" button.</p>
 
-<p>You can create multiple curves at the same time by separanting them with commas ",".</p>
+<p>You can create multiple curves at the same time by separating them with commas ",".</p>
 
 <p><b>Current Font: </b><br>Click on the button on its right to change the font</p>
 
@@ -696,7 +708,7 @@ with the provided prefix "Left Side Tag".</p>
 <p><b>Standard Sphere: </b><br>Creates the standard Maya sphere. "Create > Polygon Primitives > Sphere"</p>
 <p><b>Standard Sphere: </b><br>Creates a sphere using a cube. "Create > Polygon Primitives > Cube" then "Mesh > Smooth (2x)"</p>
 <p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Icosahedron, Quads, 1, 1, 1)</p>
-<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Octaheadron, Quads, 2, 1, 1)</p>
+<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Octahedron, Quads, 2, 1, 1)</p>
 
 <br>
 
@@ -812,7 +824,7 @@ These are utilities and extra functions that you can use after creating your rig
 
 <p><h3>Lock Attribute and Follow Object:</h3>
 This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
-<p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibity. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another diretion you can change "Lock YZ" to "Off". </p>
+<p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibility. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another direction you can change "Lock YZ" to "Off". </p>
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
 
 <img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
@@ -832,15 +844,15 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.</li>
 	<li><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.</li>
 	<li><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.</li>
-	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transfered to the base of the IK system.</li>
+	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transferred to the base of the IK system.</li>
 	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
 	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
 </ul></p>
-<p><b>- Finger Automation</b>: To pode the fingers more conviniently, you can use the finger controls. These will automatically rotate all the fingers according to the provided parameters.
+<p><b>- Finger Automation</b>: To pose the fingers more conveniently, you can use the finger controls. These will automatically rotate all the fingers according to the provided parameters.
 <ul>
 	<li><b>Activate System:</b> Simply turn the automatic rotation of the fingers on or off.</li>
 	<li><b>Fist Pose Limit + Finger Name:</b> Determines the rotation considered the fist pose. It limits the rotation of the fingers so it stops at this value.</li>
-	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transfered to the finger. This offset helps create a more natural motion.</li>
+	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transferred to the finger. This offset helps create a more natural motion.</li>
 </ul></p>
 <br>
 
@@ -873,7 +885,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
 </ul></p>
 <br>
-<p><b>- Auto Knuckles Compression:</b>: The auto knucles compression system will make the knuckle joints (thumb01, index01...) move closer to one another as the hand closes in order to prevent gaps between the fingers.
+<p><b>- Auto Knuckles Compression:</b>: The auto knuckles compression system will make the knuckle joints (thumb01, index01...) move closer to one another as the hand closes in order to prevent gaps between the fingers.
 <ul>
 	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
 	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
@@ -895,7 +907,7 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 
 <h3>Settings:</h3>
 <ul>
-	<li><b>Use Real-time Skeleton:</b><br> Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behaviour of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.
+	<li><b>Use Real-time Skeleton:</b><br> Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behavior of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.
 	As this baked version does not yet fully support non-uniform scaling, it's recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application. This will allow you to preserve the stretchy settings even in programs that do not support it.</li>
 </ul>
 
@@ -931,7 +943,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <img src="./media/gt_custom_rig_interface.jpg" align="right"
      alt="GT Biped Rig Interface GUI">
 
-<p>Extra functions and automations for rigs generated using GT Biped Auto Rigger.
+<p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
 <br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
 
 <p><b>How to use it:</b>
@@ -943,13 +955,13 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <h3>FK/IK Tab:</h3>
 <ul>
-	<li><p>This is the FK/IK Swticher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
+	<li><p>This is the FK/IK Switcher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
 	</li>
 	<li><b>Auto Key:</b> When transitioning from one system to the other you might want an animation to drive the transition. That's what this button will help you accomplish.<br>
 	<b>Bake:</b> Uses the provided range to bake every frame while rematching one system into the other
 	<br><b>Sparse:</b> Creates the first and last keys necessary to transition from one system to the other.
 	<br><b>Get Selection Range (Button):</b> Gets the range of your current selection (from the timeline).
-	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjuction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
+	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjunction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
 	</li>
 </ul>
 
@@ -983,10 +995,10 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 		<b>Allow Multiple Instances:</b> When active, you may open multiple instances of this script. Useful for when animating multiple character in the same scene.
 	</li>
 	<li>
-		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transfered to the default Wrist/Ankle controls or their offset controls.
+		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transferred to the default Wrist/Ankle controls or their offset controls.
 	</li>
 	<li>
-		<b>Key FK/IK Influence:</b> Creates a key in the influence values when swtiching between systems (FK/IK).
+		<b>Key FK/IK Influence:</b> Creates a key in the influence values when switching between systems (FK/IK).
 	</li>
 	<li>
 		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
@@ -1002,13 +1014,13 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <img src="./media/gt_retarget_assistant.jpg" align="right"
      alt="GT Retarget Assistant GUI">
 
-<p>This script applies patches to a HumanIK Mocap character while it's been transfered to a Biped Rig (Created using GT Biped Auto Rigger)
+<p>This script applies patches to a HumanIK Mocap character while it's been transferred to a Biped Rig (Created using GT Biped Auto Rigger)
 <br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
 
 <ul>
 	<p><b>Patches:</b></p>
 	<li>
-		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transfering the ball joint motion from the source (mocap) to the target (rig)
+		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transferring the ball joint motion from the source (mocap) to the target (rig)
 	</li>
 	<li>
 		<b>Reconnect Spine:</b>This option will replace the data received from HumanIK and transfer the rotation directly from the spine joints to the rig controls. 
@@ -1055,7 +1067,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
 	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
 	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
-	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be atuomatically stripped from the rig in the export.</li>
+	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be automatically stripped from the rig in the export.</li>
 </ul>
 <br>
 
@@ -1233,7 +1245,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>creating an oscillating movement like a sine function.</p>
 
 <p><b>Use World Space (WS) Values:</b>
-<br>Moves objects as if they were not part of a hierarchy, which mimics the behaviour of the world space.</p>
+<br>Moves objects as if they were not part of a hierarchy, which mimics the behavior of the world space.</p>
 
 <p><b>Delete Previously Created Keys:</b>
 <br>Deletes all keys attached to the selected controls before creating new ones. 
@@ -1274,12 +1286,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.</li>
 	<li><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.</li>
 	<li><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.</li>
-	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transfered to the base of the IK system.</li>
+	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transferred to the base of the IK system.</li>
 	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
 	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
 </ul></p>
 
-<p>By default, the attribute holder termines the stretch, to change this behavior, constraint or parent the object "stretchyTerm_end" to another object.</p>
+<p>By default, the attribute holder determines the stretch, to change this behavior, constraint or parent the object "stretchyTerm_end" to another object.</p>
 
 <br><br>
 
@@ -1304,7 +1316,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Offset:</b> Value added after calculation, offset.</li>
 	<li><b>Tick:</b> Time as seen by the sine system.</li>
 	<li><b>Output:</b> Result of the sine operation.</li>
-	<li><b>Abs Output:</b> Aboslute output. (no negative values).</li>
+	<li><b>Abs Output:</b> Absolute output. (no negative values).</li>
 </ul>
 
 Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
@@ -1330,7 +1342,7 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <h3>Reload File</h3>
 <p>This utility attempts to reload the current scene.
-<br>Realoading means reopening it without attempting to save it first.
+<br>Reloading means reopening it without attempting to save it first.
 <br>It only works if the file was saved at least once.</p>
 
 <h3>Resource Browser</h3>
@@ -1504,7 +1516,7 @@ Do not change the resolution of the image file or crop the image or it might not
 <br>This might be necessary in case the default settings were used inside fSpy. This is because different softwares use different world coordinate systems.</p>
 
 <p><b>Lock Camera </b>
-<br>Locks the generated camera, so you don't accidenty move it.</p>
+<br>Locks the generated camera, so you don't accidentally move it.</p>
 
 <br>
 
@@ -1529,12 +1541,12 @@ Do not change the resolution of the image file or crop the image or it might not
 <p><b>To create one go to: </b>
 <br>"Discord > Server > Server Settings > Webhooks > Create Webhook"
 <br>Give your webhook a name and select what channel it will operate.
-<br>Copy the "Webhook URL" and load it in the setttings for this script.<br>
+<br>Copy the "Webhook URL" and load it in the settings for this script.<br>
 <br>If you're just an user in the server, you'll have to ask the administrator of the server to provide you with a Webhook URL.</p>
 
 <p><b>Send Buttons: </b>
 <br>Send Message Only: Sends only the attached message.
-<br>(Use the textfield above the buttons to type your message)</p>
+<br>(Use the text-field above the buttons to type your message)</p>
 
 <p><b>Send Desktop Screenshot: Sends a screenshot of your desktop. </b>
 <br>(This includes other programs and windows that are open)</p>
