@@ -13,9 +13,12 @@
  Added GUI
  Added logger
 
+ 0.0.5 - 2022-07-22
+ Increased the size of the UI
+ Added "Extract User-Defined Attributes" function
+
  TODO:
     Add options
-    Create "Extra User-Defined Attributes" function
 
 """
 from maya import OpenMayaUI as OpenMayaUI
@@ -43,7 +46,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT Attributes to Python'
 
 # Version:
-script_version = "0.0.4"
+script_version = "0.0.5"
 
 DIMENSIONS = ['x', 'y', 'z']
 DEFAULT_CHANNELS = ['t', 'r', 's']
@@ -183,6 +186,59 @@ def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_plac
         return output
 
 
+def user_attr_to_python(obj_list, printing=True, decimal_place=2, strip_zeroes=True):
+    """
+    Returns a string
+    Args:
+        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+        printing (optional, bool): If active, the function will print the values to the script editor
+        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
+        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
+
+    Returns:
+        Python code with extracted transform values
+
+    """
+    if not obj_list:
+        obj_list = cmds.ls(selection=True)
+    if not obj_list:
+        return
+
+    output = ''
+    if printing:
+        output += ('#' * 80)
+
+    for obj in obj_list:
+        output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
+        data = {}
+        attributes = cmds.listAttr(obj, userDefined=True) or []
+        if not attributes:
+            output += '# No user-defined attributes found on this object.\n'
+        else:
+            for attr in attributes:  # TRS
+                # not cmds.getAttr(obj + '.' + attr, lock=True) # TODO Check if locked
+                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
+                value = cmds.getAttr(obj + '.' + attr)
+                if attr_type == 'double3':
+                    pass
+                elif attr_type == 'string':
+                    output += 'cmds.setAttr("' + obj + '.' + attr + '", "' + str(value) + '", typ="string")\n'
+                else:
+                    output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+
+    # Return / Print
+    if printing:
+        output += ('#' * 80)
+        if output.replace('#', ''):
+            print(output)
+            return output
+        else:
+            print('No data found. Make sure your selection at least one object with user-defined attributes.')
+            return None
+    else:
+        return output
+
+
 # Function for the "Run Code" button
 def run_output_code(out):
     try:
@@ -209,8 +265,8 @@ def build_gui_attr_to_python():
     # Title
     title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 325), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
+    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 430), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
@@ -218,26 +274,28 @@ def build_gui_attr_to_python():
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
 
-    cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 190)], cs=[(1, 10), (2, 5)], p=content_main)
+    default_attr_button_cw = 243
+    cmds.rowColumnLayout(nc=2, cw=[(1, default_attr_button_cw), (2, default_attr_button_cw)],
+                         cs=[(1, 10), (2, 5)], p=content_main)
 
     cmds.button(l="Extract Default Attributes to \"setAttr\"", bgc=(.6, .6, .6),
                 c=lambda x: _btn_extract_attr(attr_type='default'))
     cmds.button(l="Extract Default Attributes to List", bgc=(.6, .6, .6),
                 c=lambda x: _btn_extract_attr(attr_type='list'))
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 386)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.button(l="Extract User-Defined Attributes", bgc=(.6, .6, .6),
-                c=lambda x: _btn_extract_attr(attr_type='user'), en=0)
+                c=lambda x: _btn_extract_attr(attr_type='user'))
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
     # Bottom ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 390)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.text(label='Output Python Code')
-    output_python = cmds.scrollField(editable=True, wordWrap=True)
+    output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space
@@ -246,14 +304,15 @@ def build_gui_attr_to_python():
         selection = cmds.ls(selection=True) or []
 
         if len(selection) == 0:
-            cmds.warning('Make sure you selected at least one curve and try again.')
+            cmds.warning('Make sure you selected at least one object and try again.')
             return
 
         if attr_type == 'list':
             output_python_command = attr_to_list(selection, printing=False, decimal_place=2,
                                                  separate_channels=False, strip_zeroes=True)
         elif attr_type == 'user':
-            output_python_command = 'User-defined output placeholder'  # TODO
+            output_python_command = user_attr_to_python(selection, printing=False,
+                                                        decimal_place=2, strip_zeroes=True)
         else:
             output_python_command = default_attr_to_python(selection, printing=False, use_loop=False,
                                                            decimal_place=2, strip_zeroes=True)
@@ -269,8 +328,8 @@ def build_gui_attr_to_python():
             sys.stdout.write('Attributes for "' + str(selection[0] + '" extracted. '
                                                                      '(Output to Script Editor and GUI)'))
         else:
-            sys.stdout.write('Attributes for ' + str(len(selection)) + ' extracted. '
-                                                                       '(Output to Script Editor and GUI)')
+            sys.stdout.write('Attributes extracted for ' + str(len(selection)) + ' objects. '
+                                                                                 '(Output to Script Editor and GUI)')
         cmds.scrollField(output_python, e=True, ip=1, it='')  # Bring Back to the Top
         cmds.scrollField(output_python, edit=True, wordWrap=True, text='', sl=True)
         cmds.scrollField(output_python, edit=True, wordWrap=True, text=output_python_command, sl=True)
@@ -283,7 +342,7 @@ def build_gui_attr_to_python():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/arcLengthDimension.svg')
+    icon = QIcon(':/attributes.png')
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================
