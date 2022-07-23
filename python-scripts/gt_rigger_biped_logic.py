@@ -107,7 +107,7 @@
  Created a custom help window that takes strings as help inputs to display it to the user
 
  1.7.7 - 2021-10-21
- Changed the behaviour for when creating a real-time skeleton so it overwrites the original skeleton
+ Changed the behavior for when creating a real-time skeleton so it overwrites the original skeleton
 
  1.7.8 - 2021-10-24
  Added aim lines to pole vectors and eye controls
@@ -310,8 +310,8 @@ logger.setLevel(logging.INFO)
 
 def create_proxy(data_biped):
     """
-    Creates a proxy (guide) skeleton used to later generate entire rig 
-    
+    Creates a proxy (guide) skeleton used to later generate entire rig
+
     Args:
         data_biped (GTBipedRiggerData) : Object containing naming and settings for the proxy creation
     """
@@ -1751,7 +1751,7 @@ def create_controls(data_biped):
 
         Args:
             obj_name (string): Name of the object to orient (usually a joint)
-            orient_offset (tuple): A tuple containing three 32b floats, used as a rotate offset to change
+            orient_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change
                                   the result orientation.
             apply (optional, bool): Whether to execute the function
         """
@@ -2011,7 +2011,7 @@ def create_controls(data_biped):
         if 'endJnt' in joint or rig_joints.get('right_toe_jnt') in joint or rig_joints.get('left_toe_jnt') in joint:
             cmds.setAttr(joint + '.radius', .6 * joint_scale_offset)
             add_node_note(joint,
-                          'This is an end joint. This means that this joint shouldn\'t be an influence when skinning.')
+                          "This is an end joint. This means that this joint shouldn't be an influence when skinning.")
             change_outliner_color(joint, (1, 0, 0))
             change_viewport_color(joint, (1, 0, 0))
         # Eye Joints
@@ -2288,10 +2288,9 @@ def create_controls(data_biped):
     cmds.parent(left_wrist_fk_jnt, left_elbow_fk_jnt)
 
     # Right Arms FK/IK
+    right_clavicle_switch_jnt = rig_joints.get('right_clavicle_jnt').replace(JNT_SUFFIX, 'switch_' + JNT_SUFFIX)
     right_clavicle_switch_jnt = cmds.duplicate(rig_joints.get('right_clavicle_jnt'),
-                                               name=rig_joints.get('right_clavicle_jnt').replace(JNT_SUFFIX,
-                                                                                                 'switch_' + JNT_SUFFIX),
-                                               parentOnly=True)[0]
+                                               name=right_clavicle_switch_jnt, parentOnly=True)[0]
     cmds.setAttr(right_clavicle_switch_jnt + '.radius', ik_jnt_scale)
     change_viewport_color(right_clavicle_switch_jnt, ikfk_jnt_color)
     cmds.parent(right_clavicle_switch_jnt, skeleton_grp)
@@ -5184,7 +5183,7 @@ def create_controls(data_biped):
     cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
     cmds.setAttr(left_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
 
-    # ############ Left Fingers Control Behaviour Attributes ############
+    # ############ Left Fingers Control Behavior Attributes ############
     cmds.addAttr(left_fingers_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(left_fingers_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
 
@@ -5339,7 +5338,7 @@ def create_controls(data_biped):
     cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideEnabled', 1)
     cmds.setAttr(right_fingers_abduction_ctrl[0] + '.overrideDisplayType', 1)
 
-    # ########### Right Fingers Control Behaviour Attributes ############
+    # ########### Right Fingers Control Behavior Attributes ############
     cmds.addAttr(right_fingers_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_fingers_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
 
@@ -5450,9 +5449,9 @@ def create_controls(data_biped):
         cmds.connectAttr(ribbon_sur + '.worldMatrix', follicle + '.inputWorldMatrix',
                          force=True)  # Connect transforms to follicle (so it knows where it is)
         cmds.connectAttr(follicle + '.outTranslate', follicle_transform + '.translate',
-                         force=True)  # Connects follicleShape position to its transform (default behaviour)
+                         force=True)  # Connects follicleShape position to its transform (default behavior)
         cmds.connectAttr(follicle + '.outRotate', follicle_transform + '.rotate',
-                         force=True)  # Connects follicleShape rotate to its transform (default behaviour)
+                         force=True)  # Connects follicleShape rotate to its transform (default behavior)
         follicle_transform = cmds.rename(follicle_transform, follicle_data)
         cmds.parent(follicle_transform, spine_ik_grp)
         spine_follicles[follicle_data] = follicle_transform
@@ -6307,17 +6306,17 @@ def create_controls(data_biped):
         limit_condition_node = cmds.createNode('condition', name=finger_name + 'limit')
         multiply_node = cmds.createNode('multiplyDivide', name=finger_name + MULTIPLY_SUFFIX)
 
-        attribute_fist_pose_long = finger_name.replace('left_', '').replace('right_', '').replace('_',
-                                                                                                  '') + 'FistPoseLimit'
-        attribute_fist_pose_nice = 'Fist Pose Limit ' + finger_name.replace('left_', '').replace('right_', '').replace(
-            '_', '').capitalize()
+        attribute_fist_pose_long = finger_name.replace('left_', '').replace('right_', '')
+        attribute_fist_pose_long = attribute_fist_pose_long.replace('_', '') + 'FistPoseLimit'
+        attribute_fist_pose_nice = finger_name.replace('left_', '').replace('right_', '').replace('_', '').capitalize()
+        attribute_fist_pose_nice = 'Fist Pose Limit ' + attribute_fist_pose_nice
         cmds.addAttr(left_fingers_ctrl, ln=attribute_fist_pose_long, at='double', k=True,
                      niceName=attribute_fist_pose_nice)
         cmds.setAttr(left_fingers_ctrl + '.' + attribute_fist_pose_long, -90)
 
         attribute_long_name = finger_name.replace('left_', '').replace('right_', '').replace('_', '') + 'Multiplier'
-        attribute_nice_name = 'Rot Multiplier ' + finger_name.replace('left_', '').replace('right_', '').replace('_',
-                                                                                                                 '').capitalize()
+        attribute_nice_name = finger_name.replace('left_', '').replace('right_', '').replace('_', '').capitalize()
+        attribute_nice_name = 'Rot Multiplier ' + attribute_nice_name
         cmds.addAttr(left_fingers_ctrl, ln=attribute_long_name, at='double', k=True, niceName=attribute_nice_name)
 
         # Set Default Values
@@ -6789,22 +6788,19 @@ def create_controls(data_biped):
     right_ik_finger_chains = []
     for finger in ['thumb', 'index', 'middle', 'ring', 'pinky']:
         right_ik_finger_jnts = []
+        finger_name = rig_joints.get('right_' + finger + '01_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         right_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('right_' + finger + '01_jnt'),
-                                                   name=rig_joints.get('right_' + finger + '01_jnt').replace(JNT_SUFFIX,
-                                                                                                             'ik_' + JNT_SUFFIX),
-                                                   po=True))
+                                                   name=finger_name, po=True))
+        finger_name = rig_joints.get('right_' + finger + '02_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         right_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('right_' + finger + '02_jnt'),
-                                                   name=rig_joints.get('right_' + finger + '02_jnt').replace(JNT_SUFFIX,
-                                                                                                             'ik_' + JNT_SUFFIX),
-                                                   po=True))
+                                                   name=finger_name, po=True))
+        finger_name = rig_joints.get('right_' + finger + '03_jnt').replace(JNT_SUFFIX, 'ik_' + JNT_SUFFIX)
         right_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('right_' + finger + '03_jnt'),
-                                                   name=rig_joints.get('right_' + finger + '03_jnt').replace(JNT_SUFFIX,
-                                                                                                             'ik_' + JNT_SUFFIX),
-                                                   po=True))
+                                                   name=finger_name, po=True))
+        finger_name = rig_joints.get('right_' + finger + '04_jnt')
+        finger_name = finger_name.replace('end' + JNT_SUFFIX.capitalize(), 'ik_' + 'end' + JNT_SUFFIX.capitalize())
         right_ik_finger_jnts.append(cmds.duplicate(rig_joints.get('right_' + finger + '04_jnt'),
-                                                   name=rig_joints.get('right_' + finger + '04_jnt').replace(
-                                                       'end' + JNT_SUFFIX.capitalize(),
-                                                       'ik_' + 'end' + JNT_SUFFIX.capitalize()), po=True))
+                                                   name=finger_name, po=True))
         right_ik_finger_chains.append(right_ik_finger_jnts)
 
     ik_finger_handles = []
@@ -6888,15 +6884,15 @@ def create_controls(data_biped):
 
         attribute_fist_pose_long = finger_name.replace('right_', '').replace('right_', '').replace('_',
                                                                                                    '') + 'FistPoseLimit'
-        attribute_fist_pose_nice = 'Fist Pose Limit ' + finger_name.replace('right_', '').replace('right_', '').replace(
-            '_', '').capitalize()
+        attribute_fist_pose_nice = finger_name.replace('right_', '').replace('right_', '').replace('_', '').capitalize()
+        attribute_fist_pose_nice = 'Fist Pose Limit ' + attribute_fist_pose_nice
         cmds.addAttr(right_fingers_ctrl, ln=attribute_fist_pose_long, at='double', k=True,
                      niceName=attribute_fist_pose_nice)
         cmds.setAttr(right_fingers_ctrl + '.' + attribute_fist_pose_long, -90)
 
         attribute_long_name = finger_name.replace('right_', '').replace('right_', '').replace('_', '') + 'Multiplier'
-        attribute_nice_name = 'Rot Multiplier ' + finger_name.replace('right_', '').replace('right_', '').replace('_',
-                                                                                                                  '').capitalize()
+        attribute_nice_name = finger_name.replace('right_', '').replace('right_', '').replace('_', '').capitalize()
+        attribute_nice_name = 'Rot Multiplier ' + attribute_nice_name
         cmds.addAttr(right_fingers_ctrl, ln=attribute_long_name, at='double', k=True, niceName=attribute_nice_name)
 
         # Set Default Values
@@ -10258,8 +10254,8 @@ def create_controls(data_biped):
                 all_jnts = cmds.ls(type='joint')
                 for jnt in all_jnts:
                     cmds.setAttr(jnt + ".displayLocalAxis", 1)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(str(e))
 
         if debugging_show_fk_fingers:
             cmds.setAttr(left_fingers_ctrl + '.showFkFingerCtrls', 1)
