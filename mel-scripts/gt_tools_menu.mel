@@ -166,6 +166,9 @@
 //   2.1.0 - 2022-07-19
 //   Added Render Calculator
 //
+//   2.2.0 - 2022-07-19
+//   Added Attributes to Python
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -254,11 +257,16 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -image "buttonManip.svg" ;
     
     menuItem 
+    -l ("Attributes to Python") 
+    -c ("python(\"gt_tools.execute_script('gt_attributes_to_python', 'build_gui_attr_to_python')\");") 
+    -ann ("Converts attributes into Python code. TRS Channels or User-defined.") 
+    -image "attributes.png" ;
+    
+    menuItem 
     -l ("Render Checklist") 
     -c ("python(\"gt_tools.execute_script('gt_render_checklist', 'build_gui_gt_render_checklist')\");") 
     -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
     -image "checkboxOn.png" ;
-    
     
     setParent -menu ".." ;
     
