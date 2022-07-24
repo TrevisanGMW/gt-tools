@@ -407,7 +407,7 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     
     menuItem 
     -l ("Morphing Attributes") 
-    -c ("python(\"gt_tools.execute_script('gt_attributes_to_python', 'build_gui_morphing_attributes')\");") 
+    -c ("python(\"gt_tools.execute_script('gt_morphing_attributes', 'build_gui_morphing_attributes')\");") 
     -ann ("Creates attributes to drive selected blend shapes.") 
     -image "blendShape.png";
     
