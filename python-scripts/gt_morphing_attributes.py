@@ -38,17 +38,16 @@ script_name = "GT - Add Morphing Attributes"
 script_version = "0.0.2"
 
 # Settings
-gt_blends_to_attr_settings = {'blend_mesh': '',
+morphing_attr_settings = {'morphing_obj': '',
                               'blend_node': '',
                               'attr_holder': '',
-                              }
+                          }
 
 
-def blends_to_attr():
-    selection_source = cmds.ls(selection=True)[0]  # First selected object - Geo with BS
-    selection_target = cmds.ls(selection=True)[1]  # Second selected object - Curve
-    history = cmds.listHistory(selection_source)
-    blendshape_node = cmds.ls(history, type='blendShape')[0]
+def blends_to_attr(morphing_obj, blend_node, attr_holder):
+    logger.debug(str(morphing_obj))
+    selection_target = attr_holder
+    blendshape_node = blend_node
     blendshape_names = cmds.listAttr(blendshape_node + '.w', m=True)
 
     modify_range = True
@@ -136,32 +135,32 @@ def build_gui_morphing_attributes():
         if blend_node:
             if cmds.objExists(blend_node[0]):
                 sys.stdout.write('"' + str(blend_node[0]) + '" will be used when creating attributes.')
-                gt_blends_to_attr_settings['blend_node'] = blend_node[0]
+                morphing_attr_settings['blend_node'] = blend_node[0]
             else:
                 cmds.warning(error_message)
-                gt_blends_to_attr_settings['blend_node'] = ''
+                morphing_attr_settings['blend_node'] = ''
         else:
             cmds.warning(error_message)
-            gt_blends_to_attr_settings['blend_node'] = ''
+            morphing_attr_settings['blend_node'] = ''
 
     def object_load_handler(operation):
         """
         Function to handle load buttons. It updates the UI to reflect the loaded data.
 
         Args:
-            operation (str): String to determine function ("blend_mesh" or "attr_holder")
+            operation (str): String to determine function ("morphing_obj" or "attr_holder")
         """
         def failed_to_load_source(failed_message="Failed to Load"):
             cmds.button(source_object_status, l=failed_message, e=True, bgc=(1, .4, .4), w=130)
             cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
-            gt_blends_to_attr_settings['blend_mesh'] = ''
+            morphing_attr_settings['morphing_obj'] = ''
 
         def failed_to_load_target(failed_message="Failed to Load"):
             cmds.button(attr_holder_status, l=failed_message, e=True, bgc=(1, .4, .4), w=130)
-            gt_blends_to_attr_settings['attr_holder'] = ''
+            morphing_attr_settings['attr_holder'] = ''
 
         # Blend Mesh
-        if operation == 'blend_mesh':
+        if operation == 'morphing_obj':
             current_selection = cmds.ls(selection=True) or []
             if not current_selection:
                 cmds.warning("Nothing selected. Please select a mesh try again.")
@@ -181,8 +180,8 @@ def build_gui_morphing_attributes():
                     failed_to_load_source()
                     return
                 else:
-                    gt_blends_to_attr_settings['blend_mesh'] = current_selection[0]
-                    cmds.button(source_object_status, l=gt_blends_to_attr_settings.get('blend_mesh'),
+                    morphing_attr_settings['morphing_obj'] = current_selection[0]
+                    cmds.button(source_object_status, l=morphing_attr_settings.get('morphing_obj'),
                                 e=True, bgc=(.6, .8, .6), w=130)
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, append=blendshape_nodes)
@@ -199,59 +198,48 @@ def build_gui_morphing_attributes():
                 failed_to_load_target()
                 return
             elif cmds.objExists(current_selection[0]):
-                gt_blends_to_attr_settings['attr_holder'] = current_selection[0]
-                cmds.button(attr_holder_status, l=gt_blends_to_attr_settings.get('attr_holder'), e=True,
+                morphing_attr_settings['attr_holder'] = current_selection[0]
+                cmds.button(attr_holder_status, l=morphing_attr_settings.get('attr_holder'), e=True,
                             bgc=(.6, .8, .6), w=130)
             else:
                 cmds.warning("Something went wrong, make sure you selected just one object and try again.")
 
     def validate_operation():
         """ Checks elements one last time before running the script """
-        print("validate then run")
-        # is_valid = False
-        # stretchy_name = None
-        # attr_holder = None
-        #
-        # stretchy_prefix = cmds.textField(stretchy_system_prefix, q=True, text=True).replace(' ', '')
-        #
-        # # Name
-        # if stretchy_prefix != '':
-        #     stretchy_name = stretchy_prefix
-        #
-        # # ikHandle
-        # if gt_blends_to_attr_settings.get('ik_handle') == '':
-        #     cmds.warning('Please load an ikHandle first before running the script.')
-        #     is_valid = False
-        # else:
-        #     if cmds.objExists(gt_blends_to_attr_settings.get('ik_handle')):
-        #         is_valid = True
-        #     else:
-        #         cmds.warning('"' + str(gt_blends_to_attr_settings.get('ik_handle')) +
-        #                      "\" couldn't be located. "
-        #                      "Make sure you didn't rename or deleted the object after loading it")
-        #
-        # # Attribute Holder
-        # if is_valid:
-        #     if gt_blends_to_attr_settings.get('attr_holder') != '':
-        #         if cmds.objExists(gt_blends_to_attr_settings.get('attr_holder')):
-        #             attr_holder = gt_blends_to_attr_settings.get('attr_holder')
-        #         else:
-        #             cmds.warning('"' + str(gt_blends_to_attr_settings.get('attr_holder')) +
-        #                          "\" couldn't be located. "
-        #                          "Make sure you didn't rename or deleted the object after loading it. "
-        #                          "A simpler version of the stretchy system was created.")
-        #     else:
-        #         sys.stdout.write(
-        #             'An attribute holder was not provided. A simpler version of the stretchy system was created.')
-        #
+
+        # Morphing Object
+        morphing_obj = morphing_attr_settings.get('morphing_obj')
+        if morphing_obj:
+            if not cmds.objExists(morphing_obj):
+                cmds.warning('Unable to locate morphing object. Please try loading the object again.')
+                return
+        else:
+            cmds.warning('Missing morphing object. Make sure you loaded an object and try again.')
+            return
+
+        # Attribute Holder
+        attr_holder = morphing_attr_settings.get('attr_holder')
+        if attr_holder:
+            if not cmds.objExists(attr_holder):
+                cmds.warning('Unable to locate attribute holder. Please try loading the object again.')
+                return
+        else:
+            cmds.warning('Missing attribute holder. Make sure you loaded an object and try again.')
+            return
+
+        # Blend Shape Node
+        blend_node = morphing_attr_settings.get('blend_node')
+        if blend_node:
+            if not cmds.objExists(blend_node):
+                cmds.warning('Unable to blend shape node. Please try loading the object again.')
+                return
+        else:
+            cmds.warning('Select a blend shape node to be used as source.')
+            return
+
         # # Run Script
-        # if is_valid:
-        #     if stretchy_name:
-        #         make_stretchy_ik(gt_blends_to_attr_settings.get('ik_handle'), stretchy_name=stretchy_name,
-        #                          attribute_holder=attr_holder)
-        #     else:
-        #         make_stretchy_ik(gt_blends_to_attr_settings.get('ik_handle'), stretchy_name='temp',
-        #                          attribute_holder=attr_holder)
+        logger.debug('Main Function Called')
+        # blends_to_attr(morphing_obj, blend_node, attr_holder)
 
     window_name = "build_gui_morphing_attributes"
     if cmds.window(window_name, exists=True):
@@ -277,21 +265,16 @@ def build_gui_morphing_attributes():
     cmds.separator(h=5, style='none')  # Empty Space
 
     # Body ====================
-    body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
     cmds.separator(h=5, style='none')  # Empty Space
-    #
-    # cmds.text('Text Here:')
-    # stretchy_system_prefix = cmds.textField(text='', pht='Text Here (Optional)')
-
-    # cmds.separator(h=10, style='none')  # Empty Space
     cmds.text('1. Deformed Mesh (Source):')
     cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=[(1, 129), (2, 130)], cs=[(1, 10)], p=content_main)
-    cmds.button(l="Load Morphing Object", c=lambda x: object_load_handler("blend_mesh"), w=130)
+    cmds.button(l="Load Morphing Object", c=lambda x: object_load_handler("morphing_obj"), w=130)
     source_object_status = cmds.button(l="Not loaded yet", bgc=(.2, .2, .2), w=130,
-                                   c=lambda x: select_existing_object(gt_blends_to_attr_settings.get('blend_mesh')))
+                                       c=lambda x: select_existing_object(morphing_attr_settings.get('morphing_obj')))
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=5, style='none')  # Empty Space
@@ -307,7 +290,7 @@ def build_gui_morphing_attributes():
     cmds.button(l="Load Attribute Holder", c=lambda x: object_load_handler("attr_holder"), w=130)
     attr_holder_status = cmds.button(l="Not loaded yet", bgc=(.2, .2, .2), w=130,
                                      c=lambda x: select_existing_object(
-                                         gt_blends_to_attr_settings.get('attr_holder')))
+                                         morphing_attr_settings.get('attr_holder')))
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
@@ -426,4 +409,5 @@ def change_outliner_color(obj, rgb_color=(1, 1, 1)):
 
 # Build UI
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
     build_gui_morphing_attributes()
