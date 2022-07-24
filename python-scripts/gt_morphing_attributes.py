@@ -17,9 +17,17 @@ Connected Settings
 Added filter logic
 Added separated text field for undesired filter
 
+1.0.1 - 2022-07-24
+Added undo chunk
+Changed remap node name
+Kept original selection after operation
+Added inView feedback
+Added some docs
+
 TODO:
     Add options to not sort targets
-
+    Add help
+    Add docs
 """
 try:
     from shiboken2 import wrapInstance
@@ -47,7 +55,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Add Morphing Attributes"
 
 # Version:
-script_version = "1.0.0"
+script_version = "1.0.1"
 
 # Settings
 morphing_attr_settings = {'morphing_obj': '',
@@ -69,10 +77,32 @@ morphing_attr_settings = {'morphing_obj': '',
                           }
 
 
-def blends_to_attr(blend_node, attr_holder, undesired_filter_strings, desired_filter_strings,
+def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_filter_strings,
                    desired_method='includes', undesired_method='includes', sort_targets=True,
                    ignore_connected=True, add_separator=True, ignore_case=True,
                    modify_range=True, old_min=0, old_max=1, new_min=0, new_max=10):
+    """
+
+    Args:
+        blend_node (string): Blend shape node used to extract desired morphing targets
+        attr_holder (string): Object to receive attributes (usually a control curve)
+        desired_filter_strings (list): A list of desired strings (targets with these strings will be added)
+        undesired_filter_strings (list): A list of undesired strings (targets with these strings will be ignored)
+        desired_method (string): Method using during filtering "includes", "startswith" or "endswith"
+        undesired_method (string): Method using during filtering "includes", "startswith" or "endswith"
+        sort_targets: If it should sort the list or use the original order
+        ignore_connected: If it should ignore morphing targets that already have an incoming connection
+        add_separator: Added a locked attribute used as a separator
+        ignore_case: If it should ignore the capitalization of the strings when filtering
+        modify_range: If it should remap the range of the target and attribute values
+        old_min: old minimum value (usually, 0)
+        old_max: old maximum value (usually, 1)
+        new_min: new minimum value (usually, 0)
+        new_max: new maximum value (usually, 10)
+
+    Returns:
+        created_attributes (list)
+    """
     custom_separator_attr = ''
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
     filtered_blends = []
@@ -154,7 +184,7 @@ def blends_to_attr(blend_node, attr_holder, undesired_filter_strings, desired_fi
             else:
                 cmds.warning('"' + target + '" already existed on attribute holder. '
                                             'Please check if no previous connections were lost.')
-            remap_node = cmds.createNode('remapValue', name='remap_target_' + target)
+            remap_node = cmds.createNode('remapValue', name='remap_morphing_' + target)
             cmds.setAttr(remap_node + '.inputMax', new_max)
             cmds.setAttr(remap_node + '.inputMin', new_min)
             cmds.setAttr(remap_node + '.outputMax', old_max)
@@ -169,9 +199,10 @@ def blends_to_attr(blend_node, attr_holder, undesired_filter_strings, desired_fi
                                             'Please check if no previous connections were lost')
             cmds.connectAttr(attr_holder + '.' + target, blend_node + '.' + target, force=True)
 
+    return accessible_and_desired_blends
+
 
 def build_gui_morphing_attributes():
-
     def update_settings(*args):
         logger.debug(str(args))
         desired_filter_string = cmds.textField(desired_filter_textfield, q=True, text=True)
@@ -301,17 +332,6 @@ def build_gui_morphing_attributes():
 
     def validate_operation():
         """ Checks elements one last time before running the script """
-
-        # # Morphing Object
-        # morphing_obj = morphing_attr_settings.get('morphing_obj')
-        # if morphing_obj:
-        #     if not cmds.objExists(morphing_obj):
-        #         cmds.warning('Unable to locate morphing object. Please try loading the object again.')
-        #         return
-        # else:
-        #     cmds.warning('Missing morphing object. Make sure you loaded an object and try again.')
-        #     return
-
         update_settings()
 
         # Attribute Holder
@@ -319,20 +339,20 @@ def build_gui_morphing_attributes():
         if attr_holder:
             if not cmds.objExists(attr_holder):
                 cmds.warning('Unable to locate attribute holder. Please try loading the object again.')
-                return
+                return False
         else:
             cmds.warning('Missing attribute holder. Make sure you loaded an object and try again.')
-            return
+            return False
 
         # Blend Shape Node
         blend_node = morphing_attr_settings.get('blend_node')
         if blend_node:
             if not cmds.objExists(blend_node):
                 cmds.warning('Unable to blend shape node. Please try loading the object again.')
-                return
+                return False
         else:
             cmds.warning('Select a blend shape node to be used as source.')
-            return
+            return False
 
         # # Run Script
         logger.debug('Main Function Called')
@@ -346,17 +366,38 @@ def build_gui_morphing_attributes():
             desired_strings = desired_strings.split(',')
         else:
             desired_strings = []
-        blends_to_attr(blend_node, attr_holder, undesired_strings, desired_strings,
-                       desired_method=morphing_attr_settings.get('desired_filter_type'),
-                       undesired_method=morphing_attr_settings.get('undesired_filter_type'),
-                       ignore_connected=morphing_attr_settings.get('ignore_connected'),
-                       add_separator=morphing_attr_settings.get('add_separator'),
-                       ignore_case=morphing_attr_settings.get('ignore_case'),
-                       modify_range=morphing_attr_settings.get('modify_range'),
-                       old_min=morphing_attr_settings.get('old_range_min'),
-                       old_max=morphing_attr_settings.get('old_range_max'),
-                       new_min=morphing_attr_settings.get('new_range_min'),
-                       new_max=morphing_attr_settings.get('new_range_max'))
+
+        current_selection = cmds.ls(selection=True)
+        cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
+        try:
+            blend_attr_list = blends_to_attr(blend_node, attr_holder, desired_strings, undesired_strings,
+                                             desired_method=morphing_attr_settings.get('desired_filter_type'),
+                                             undesired_method=morphing_attr_settings.get('undesired_filter_type'),
+                                             ignore_connected=morphing_attr_settings.get('ignore_connected'),
+                                             add_separator=morphing_attr_settings.get('add_separator'),
+                                             ignore_case=morphing_attr_settings.get('ignore_case'),
+                                             modify_range=morphing_attr_settings.get('modify_range'),
+                                             old_min=morphing_attr_settings.get('old_range_min'),
+                                             old_max=morphing_attr_settings.get('old_range_max'),
+                                             new_min=morphing_attr_settings.get('new_range_min'),
+                                             new_max=morphing_attr_settings.get('new_range_max'))
+
+            message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(len(blend_attr_list))
+            message += ' </span>'
+            is_plural = 'morphing attributes were'
+            if len(blend_attr_list) == 1:
+                is_plural = 'morphing attribute was'
+            message += is_plural + ' created/connected.'
+
+            cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write(str(len(blend_attr_list)) + ' ' + is_plural + ' created/connected.')
+            return True
+        except Exception as e:
+            logger.debug(str(e))
+            return False
+        finally:
+            cmds.undoInfo(closeChunk=True, chunkName=script_name)
+            cmds.select(current_selection)
 
     window_name = "build_gui_morphing_attributes"
     if cmds.window(window_name, exists=True):
