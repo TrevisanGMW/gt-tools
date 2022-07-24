@@ -8,6 +8,13 @@ Create core function
 0.0.2 - 2022-07-23
 Create GUI
 
+0.0.3 - 2022-07-23
+Added settings
+
+TODO:
+    Create filter logic
+    Connect core function
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -35,12 +42,22 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Add Morphing Attributes"
 
 # Version:
-script_version = "0.0.2"
+script_version = "0.0.3"
 
 # Settings
 morphing_attr_settings = {'morphing_obj': '',
-                              'blend_node': '',
-                              'attr_holder': '',
+                          'blend_node': '',
+                          'attr_holder': '',
+                          'filter_string': '',
+                          'filter_type': 'includes',
+                          'filter_undesired': False,
+                          'modify_range': True,
+                          'new_range_min': 0,
+                          'new_range_max': 10,
+                          'old_range_min': 0,
+                          'old_range_max': 1,
+                          'ignore_connected': True,
+                          'add_separator': True,
                           }
 
 
@@ -128,6 +145,57 @@ def blends_to_attr(morphing_obj, blend_node, attr_holder):
 
 
 def build_gui_morphing_attributes():
+
+    def update_settings(*args):
+        logger.debug(str(args))
+        filter_string = cmds.textField(filter_textfield, q=True, text=True)
+        filter_option_string = str(cmds.optionMenu(filter_option, q=True, value=True))
+
+        ignore_connected_value = cmds.checkBox(ignore_connected_chk, q=True,
+                                               value=morphing_attr_settings.get('ignore_connected'))
+        add_separator_value = cmds.checkBox(add_separator_chk, q=True,
+                                            value=morphing_attr_settings.get('add_separator'))
+        modify_range_value = cmds.checkBox(modify_range_chk, q=True,
+                                           value=morphing_attr_settings.get('modify_range'))
+        filter_undesired_value = cmds.checkBox(filter_undesired_chk, q=True,
+                                               value=morphing_attr_settings.get('filter_undesired'))
+
+        old_min_int = cmds.intField(old_min_int_field, q=True, value=True)
+        old_max_int = cmds.intField(old_max_int_field, q=True, value=True)
+        new_min_int = cmds.intField(new_min_int_field, q=True, value=True)
+        new_max_int = cmds.intField(new_max_int_field, q=True, value=True)
+
+        if modify_range_value:
+            cmds.rowColumnLayout(range_column, e=True, en=True)
+        else:
+            cmds.rowColumnLayout(range_column, e=True, en=False)
+
+        if filter_undesired_value:
+            cmds.textField(filter_textfield, e=True, pht='Undesired Filter (Optional)')
+        else:
+            cmds.textField(filter_textfield, e=True, pht='Desired Filter (Optional)')
+
+        morphing_attr_settings['modify_range'] = modify_range_value
+        morphing_attr_settings['ignore_connected'] = ignore_connected_value
+        morphing_attr_settings['add_separator'] = add_separator_value
+        morphing_attr_settings['filter_string'] = filter_string
+        morphing_attr_settings['filter_undesired'] = filter_undesired_value
+        morphing_attr_settings['filter_type'] = filter_option_string.replace(' ', '').lower()
+        morphing_attr_settings['old_range_min'] = old_min_int
+        morphing_attr_settings['old_range_max'] = old_max_int
+        morphing_attr_settings['new_range_min'] = new_min_int
+        morphing_attr_settings['new_range_max'] = new_max_int
+
+        logger.debug('modify_range: ' + str(morphing_attr_settings.get('modify_range')))
+        logger.debug('ignore_connected: ' + str(morphing_attr_settings.get('ignore_connected')))
+        logger.debug('add_separator: ' + str(morphing_attr_settings.get('add_separator')))
+        logger.debug('filter_string: ' + str(morphing_attr_settings.get('filter_string')))
+        logger.debug('filter_undesired: ' + str(morphing_attr_settings.get('filter_undesired')))
+        logger.debug('filter_type: ' + str(morphing_attr_settings.get('filter_type')))
+        logger.debug('old_range_min: ' + str(morphing_attr_settings.get('old_range_min')))
+        logger.debug('old_range_max: ' + str(morphing_attr_settings.get('old_range_max')))
+        logger.debug('new_range_min: ' + str(morphing_attr_settings.get('new_range_min')))
+        logger.debug('new_range_max: ' + str(morphing_attr_settings.get('new_range_max')))
 
     def select_blend_shape_node():
         error_message = "Unable to locate blend shape node. Please try again."
@@ -239,7 +307,7 @@ def build_gui_morphing_attributes():
 
         # # Run Script
         logger.debug('Main Function Called')
-        # blends_to_attr(morphing_obj, blend_node, attr_holder)
+        blends_to_attr(morphing_obj, blend_node, attr_holder)
 
     window_name = "build_gui_morphing_attributes"
     if cmds.window(window_name, exists=True):
@@ -264,9 +332,8 @@ def build_gui_morphing_attributes():
     cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_morphing_attr())
     cmds.separator(h=5, style='none')  # Empty Space
 
-    # Body ====================
+    # 1. Deformed Mesh (Source) ------------------------------------------
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('1. Deformed Mesh (Source):')
     cmds.separator(h=5, style='none')  # Empty Space
@@ -282,6 +349,7 @@ def build_gui_morphing_attributes():
     blend_nodes_scroll_list = cmds.textScrollList(numberOfRows=8, allowMultiSelection=False, height=70,
                                                   selectCommand=select_blend_shape_node)
 
+    # 2. Attribute Holder (Target) ------------------------------------------
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('2. Attribute Holder (Target):')
     cmds.separator(h=5, style='none')  # Empty Space
@@ -294,6 +362,41 @@ def build_gui_morphing_attributes():
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
+    # 3. Settings and Filters ------------------------------------------
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=5)
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.text("3. Settings and Filters")
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 165)], cs=[(1, 10), (2, 5)], p=content_main)
+    filter_textfield = cmds.textField(text='', pht='Desired Filter (Optional)', cc=update_settings)
+    filter_option = cmds.optionMenu(label='', cc=update_settings)
+    cmds.menuItem(label='Includes')
+    cmds.menuItem(label='Starts With')
+    cmds.menuItem(label='Ends With')
+    cmds.separator(h=10, style='none')  # Empty Space
+
+    cmds.rowColumnLayout(nc=2, cw=[(1, 120)], cs=[(1, 30), (2, 5)], p=content_main)
+    ignore_connected_chk = cmds.checkBox("Ignore Connected", cc=update_settings, value=True)
+    add_separator_chk = cmds.checkBox("Add Separator", cc=update_settings, value=True)
+    cmds.separator(h=7, style='none')  # Empty Space
+
+    cmds.rowColumnLayout(nc=2, cw=[(1, 120)], cs=[(1, 30), (2, 5)], p=content_main)
+    modify_range_chk = cmds.checkBox("Modify Range", cc=update_settings, value=True)
+    filter_undesired_chk = cmds.checkBox("Filter Undesired", cc=update_settings)
+    cmds.separator(h=10, style='none')  # Empty Space
+
+    range_column = cmds.rowColumnLayout(nc=4, cw=[(1, 50)], cs=[(1, 30), (2, 5), (3, 30), (4, 5)], p=content_main)
+    cmds.text("Old Min:")
+    old_min_int_field = cmds.intField(width=30, value=morphing_attr_settings.get('old_range_min'), cc=update_settings)
+    cmds.text("Old Max:")
+    old_max_int_field = cmds.intField(width=30, value=morphing_attr_settings.get('old_range_max'), cc=update_settings)
+    cmds.text("New Min:")
+    new_min_int_field = cmds.intField(width=30, value=morphing_attr_settings.get('new_range_min'), cc=update_settings)
+    cmds.text("New Max:")
+    new_max_int_field = cmds.intField(width=30, value=morphing_attr_settings.get('new_range_max'), cc=update_settings)
+
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=7, style='none')  # Empty Space
     cmds.separator(h=5)
     cmds.separator(h=7, style='none')  # Empty Space
