@@ -17,6 +17,9 @@ Added Filter non-existent and include mesh checkboxes
 1.0.1 - 2022-07-20
 Updated help menu
 
+1.0.2 - 2022-07-22
+Increased the size of the output window
+
 Todo:
     Add Transfer functions
     Add save as set button
@@ -46,7 +49,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.0.0"
+script_version = "1.0.2"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -104,7 +107,7 @@ def build_gui_extract_bound_joints():
     # Bottom ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.text(label='Output - Selection Command:')
-    output_python = cmds.scrollField(editable=True, wordWrap=True)
+    output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space

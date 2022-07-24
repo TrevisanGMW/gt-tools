@@ -30,6 +30,10 @@
  Added patch version
  PEP8 General cleanup
 
+ 1.6.2 - 2022-07-14
+ Updated script name
+ Increased the size of the output window
+
 """
 
 import maya.cmds as cmds
@@ -54,10 +58,10 @@ logger = logging.getLogger("gt_shape_curve_to_python")
 logger.setLevel(logging.INFO)
 
 # Script Name
-script_name = "GT - Generate Python Curve"
+script_name = "GT - Extract Python Curve"
 
 # Version:
-script_version = "1.6.1"
+script_version = "1.6.2"
 
 # Default Settings
 close_curve = False
@@ -91,8 +95,8 @@ def build_gui_py_curve():
     # Title
     title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
+    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 430), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
@@ -100,23 +104,23 @@ def build_gui_py_curve():
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 470)], cs=[(1, 10)], p=content_main)
 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)])
+    cmds.rowColumnLayout(nc=1, cw=[(1, 460)], cs=[(1, 70)])
 
-    settings = cmds.checkBoxGrp(columnWidth2=[150, 1], numberOfCheckBoxes=2,
+    settings = cmds.checkBoxGrp(columnWidth2=[260, 1], numberOfCheckBoxes=2,
                                 label1='Add import \"maya.cmds\" ', label2="Force Open", v1=add_import, v2=close_curve)
 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 230)], cs=[(1, 0)])
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.button(l="Generate", bgc=(.6, .6, .6), c=lambda x: generate_python_curve())
+    cmds.button(l="Extract Curve to Python", bgc=(.6, .6, .6), c=lambda x: generate_python_curve())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
     # Bottom ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.text(label='Output Python Curve')
-    output_python = cmds.scrollField(editable=True, wordWrap=True)
+    output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space

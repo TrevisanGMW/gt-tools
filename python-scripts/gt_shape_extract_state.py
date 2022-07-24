@@ -2,16 +2,20 @@
 GT Extract Shape State - Outputs the python code containing the current shape data for the selected curves
 github.com/TrevisanGMW/gt-tools - 2021-10-01
 
-v1.0.0 - 2021-10-01
-Initial Release
+ 1.0.0 - 2021-10-01
+ Initial Release
 
-v1.1.0 - 2022-03-16
-Added GUI and checks
-Added option to print or just return it
+ 1.1.0 - 2022-03-16
+ Added GUI and checks
+ Added option to print or just return it
 
-v1.2.0 - 2022-07-14
-Added GUI
-Added logger
+ 1.2.0 - 2022-07-14
+ Added GUI
+ Added logger
+
+ 1.2.1 - 2022-07-23
+ Increased the size of the main window
+
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -38,7 +42,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Shape State"
 
 # Version
-script_version = "1.2.0"
+script_version = "1.2.1"
 
 
 def extract_python_curve_shape(curve_transforms, printing=False):
@@ -118,8 +122,8 @@ def build_gui_curve_shape_state():
     # Title
     title_bgc_color = (.4, .4, .4)
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 325), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
+    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 430), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
@@ -127,18 +131,17 @@ def build_gui_curve_shape_state():
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)], p=content_main)
-    cmds.rowColumnLayout(nc=1, cw=[(1, 400)], cs=[(1, 10)])
-    cmds.rowColumnLayout(nc=1, cw=[(1, 370)], cs=[(1, 0)])
+    cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 0)])
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Extract State", bgc=(.6, .6, .6), c=lambda x: _btn_extract_python_curve_shape())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
     # Bottom ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 390)], cs=[(1, 10)], p=content_main)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 490)], cs=[(1, 10)], p=content_main)
     cmds.text(label='Output Python Curve')
-    output_python = cmds.scrollField(editable=True, wordWrap=True)
+    output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
     cmds.separator(h=10, style='none')  # Empty Space
