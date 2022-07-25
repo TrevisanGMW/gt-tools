@@ -24,10 +24,17 @@ Kept original selection after operation
 Added inView feedback
 Added some docs
 
-TODO:
-    Add options to not sort targets
-    Add help
-    Add docs
+1.1.0 - 2022-07-24
+Added "Delete Instead" option
+Added "Sort Attributes" option
+Added more feedback
+Renamed "Ignore Uppercase"
+Minor tweaks to the GUI
+
+1.1.1 - 2022-07-24
+Added help
+Repositioned "Delete Instead"
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -55,7 +62,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Add Morphing Attributes"
 
 # Version:
-script_version = "1.0.1"
+script_version = "1.1.0"
 
 # Settings
 morphing_attr_settings = {'morphing_obj': '',
@@ -73,13 +80,14 @@ morphing_attr_settings = {'morphing_obj': '',
                           'old_range_max': 1,
                           'ignore_connected': True,
                           'add_separator': True,
-                          'sort_targets': True,
+                          'sort_attr': True,
+                          'delete_instead': False,
                           }
 
 
 def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_filter_strings,
-                   desired_method='includes', undesired_method='includes', sort_targets=True,
-                   ignore_connected=True, add_separator=True, ignore_case=True,
+                   desired_method='includes', undesired_method='includes', sort_attr=True,
+                   ignore_connected=True, add_separator=True, ignore_case=True, delete_instead=False,
                    modify_range=True, old_min=0, old_max=1, new_min=0, new_max=10):
     """
 
@@ -90,10 +98,11 @@ def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_fi
         undesired_filter_strings (list): A list of undesired strings (targets with these strings will be ignored)
         desired_method (string): Method using during filtering "includes", "startswith" or "endswith"
         undesired_method (string): Method using during filtering "includes", "startswith" or "endswith"
-        sort_targets: If it should sort the list or use the original order
+        sort_attr: If it should sort the list or use the original order
         ignore_connected: If it should ignore morphing targets that already have an incoming connection
         add_separator: Added a locked attribute used as a separator
         ignore_case: If it should ignore the capitalization of the strings when filtering
+        delete_instead: If active, it won't create attributes, but will instead attempt to delete them
         modify_range: If it should remap the range of the target and attribute values
         old_min: old minimum value (usually, 0)
         old_max: old maximum value (usually, 1)
@@ -104,6 +113,7 @@ def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_fi
         created_attributes (list)
     """
     custom_separator_attr = ''
+    remap_morphing_suffix = 'remap_morphing_'
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
     filtered_blends = []
 
@@ -136,6 +146,8 @@ def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_fi
                 accessible_blends.append(blend)
     else:
         accessible_blends = filtered_blends
+    if delete_instead:
+        accessible_blends = filtered_blends
 
     # Find desired blends
     accessible_and_desired_blends = []
@@ -164,17 +176,37 @@ def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_fi
     # Separator Attribute
     current_attributes = cmds.listAttr(attr_holder, userDefined=True) or []
     separator_attr = 'blends'
+    if custom_separator_attr:
+        separator_attr = custom_separator_attr
     if separator_attr in current_attributes or custom_separator_attr in current_attributes:
         add_separator = False
 
-    if len(accessible_and_desired_blends) != 0 and add_separator:
-        if custom_separator_attr:
-            separator_attr = custom_separator_attr
+    if len(accessible_and_desired_blends) != 0 and add_separator and not delete_instead:
         cmds.addAttr(attr_holder, ln=separator_attr, at='enum', en='-------------:', keyable=True)
         cmds.setAttr(attr_holder + '.' + separator_attr, e=True, lock=True)
 
+    # Delete Attributes
+    deleted_attributes = []
+    if delete_instead:
+        for target in accessible_and_desired_blends:
+            if target in current_attributes:
+                if not cmds.getAttr(attr_holder + '.' + target, lock=True):
+                    connections = cmds.listConnections(attr_holder + '.' + target, source=True) or []
+                    if connections and cmds.objectType(connections[0]) == 'remapValue' \
+                            and str(connections[0]).startswith(remap_morphing_suffix):
+                        cmds.delete(connections[0])
+                    cmds.deleteAttr(attr_holder + '.' + target)
+                    deleted_attributes.append(attr_holder + '.' + target)
+        try:
+            cmds.setAttr(attr_holder + '.' + separator_attr, e=True, lock=False)
+            cmds.deleteAttr(attr_holder + '.' + separator_attr)
+            deleted_attributes.append(attr_holder + '.' + separator_attr)
+        except Exception as e:
+            logger.debug(str(e))
+        return deleted_attributes
+
     # Create Blend Drivers
-    if sort_targets:
+    if sort_attr:
         accessible_and_desired_blends.sort()
     for target in accessible_and_desired_blends:
         if modify_range:
@@ -184,7 +216,7 @@ def blends_to_attr(blend_node, attr_holder, desired_filter_strings, undesired_fi
             else:
                 cmds.warning('"' + target + '" already existed on attribute holder. '
                                             'Please check if no previous connections were lost.')
-            remap_node = cmds.createNode('remapValue', name='remap_morphing_' + target)
+            remap_node = cmds.createNode('remapValue', name=remap_morphing_suffix + target)
             cmds.setAttr(remap_node + '.inputMax', new_max)
             cmds.setAttr(remap_node + '.inputMin', new_min)
             cmds.setAttr(remap_node + '.outputMax', old_max)
@@ -210,14 +242,12 @@ def build_gui_morphing_attributes():
         desired_filter_option_string = str(cmds.optionMenu(desired_filter_option, q=True, value=True))
         undesired_filter_option_string = str(cmds.optionMenu(undesired_filter_option, q=True, value=True))
 
-        ignore_connected_value = cmds.checkBox(ignore_connected_chk, q=True,
-                                               value=morphing_attr_settings.get('ignore_connected'))
-        add_separator_value = cmds.checkBox(add_separator_chk, q=True,
-                                            value=morphing_attr_settings.get('add_separator'))
-        modify_range_value = cmds.checkBox(modify_range_chk, q=True,
-                                           value=morphing_attr_settings.get('modify_range'))
-        ignore_case_value = cmds.checkBox(ignore_case_chk, q=True,
-                                          value=morphing_attr_settings.get('ignore_case'))
+        ignore_connected_value = cmds.checkBox(ignore_connected_chk, q=True, value=True)
+        add_separator_value = cmds.checkBox(add_separator_chk, q=True, value=True)
+        modify_range_value = cmds.checkBox(modify_range_chk, q=True, value=True)
+        ignore_case_value = cmds.checkBox(ignore_case_chk, q=True, value=True)
+        delete_instead_value = cmds.checkBox(delete_instead_chk, q=True, value=True)
+        sort_value = cmds.checkBox(sort_chk, q=True, value=True)
 
         old_min_int = cmds.intField(old_min_int_field, q=True, value=True)
         old_max_int = cmds.intField(old_max_int_field, q=True, value=True)
@@ -241,19 +271,24 @@ def build_gui_morphing_attributes():
         morphing_attr_settings['old_range_max'] = old_max_int
         morphing_attr_settings['new_range_min'] = new_min_int
         morphing_attr_settings['new_range_max'] = new_max_int
+        morphing_attr_settings['delete_instead'] = delete_instead_value
+        morphing_attr_settings['sort_attr'] = sort_value
 
+        logger.debug('Updated Settings Called')
         logger.debug('modify_range: ' + str(morphing_attr_settings.get('modify_range')))
         logger.debug('ignore_connected: ' + str(morphing_attr_settings.get('ignore_connected')))
         logger.debug('add_separator: ' + str(morphing_attr_settings.get('add_separator')))
         logger.debug('desired_filter_string: ' + str(morphing_attr_settings.get('desired_filter_string')))
         logger.debug('undesired_filter_string: ' + str(morphing_attr_settings.get('undesired_filter_string')))
         logger.debug('ignore_case: ' + str(morphing_attr_settings.get('ignore_case')))
+        logger.debug('sort_attr: ' + str(morphing_attr_settings.get('sort_attr')))
         logger.debug('desired_filter_type: ' + str(morphing_attr_settings.get('desired_filter_type')))
         logger.debug('undesired_filter_type: ' + str(morphing_attr_settings.get('undesired_filter_type')))
         logger.debug('old_range_min: ' + str(morphing_attr_settings.get('old_range_min')))
         logger.debug('old_range_max: ' + str(morphing_attr_settings.get('old_range_max')))
         logger.debug('new_range_min: ' + str(morphing_attr_settings.get('new_range_min')))
         logger.debug('new_range_max: ' + str(morphing_attr_settings.get('new_range_max')))
+        logger.debug('delete_instead: ' + str(morphing_attr_settings.get('delete_instead')))
 
     def select_blend_shape_node():
         error_message = "Unable to locate blend shape node. Please try again."
@@ -380,18 +415,31 @@ def build_gui_morphing_attributes():
                                              old_min=morphing_attr_settings.get('old_range_min'),
                                              old_max=morphing_attr_settings.get('old_range_max'),
                                              new_min=morphing_attr_settings.get('new_range_min'),
-                                             new_max=morphing_attr_settings.get('new_range_max'))
+                                             new_max=morphing_attr_settings.get('new_range_max'),
+                                             delete_instead=morphing_attr_settings.get('delete_instead'),
+                                             sort_attr=morphing_attr_settings.get('sort_attr'))
 
-            message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(len(blend_attr_list))
-            message += ' </span>'
-            is_plural = 'morphing attributes were'
-            if len(blend_attr_list) == 1:
-                is_plural = 'morphing attribute was'
-            message += is_plural + ' created/connected.'
+            if blend_attr_list:
+                message = '<' + str(random.random()) + '>'
+                message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(len(blend_attr_list))
+                message += ' </span>'
+                is_plural = 'morphing attributes were'
+                if len(blend_attr_list) == 1:
+                    is_plural = 'morphing attribute was'
+                operation_message = ' created/connected.'
+                if morphing_attr_settings.get('delete_instead'):
+                    operation_message = ' deleted.'
+                message += is_plural + operation_message
+                cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+                sys.stdout.write(str(len(blend_attr_list)) + ' ' + is_plural + operation_message)
+                return True
+            else:
+                if morphing_attr_settings.get('delete_instead'):
+                    sys.stdout.write('No attributes were deleted. Review your settings and try again.')
+                else:
+                    sys.stdout.write('No attributes were created. Review your settings and try again.')
 
-            cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write(str(len(blend_attr_list)) + ' ' + is_plural + ' created/connected.')
-            return True
+            return False
         except Exception as e:
             logger.debug(str(e))
             return False
@@ -419,7 +467,7 @@ def build_gui_morphing_attributes():
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
-    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_morphing_attr())
+    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: _open_gt_tools_documentation())
     cmds.separator(h=5, style='none')  # Empty Space
 
     # 1. Deformed Mesh (Source) ------------------------------------------
@@ -473,18 +521,32 @@ def build_gui_morphing_attributes():
     cmds.menuItem(label='Ends With')
     cmds.separator(h=10, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(nc=2, cw=[(1, 110)], cs=[(1, 30), (2, 5)], p=content_main)
-    ignore_connected_chk = cmds.checkBox("Ignore Connected", cc=update_settings,
-                                         value=morphing_attr_settings.get('ignore_connected'))
-    ignore_case_chk = cmds.checkBox("Ignore Filter Case", cc=update_settings,
+    spacing_one = 30
+    spacing_two = 8
+    width_one = 120
+    width_two = width_one
+    cmds.rowColumnLayout(nc=2, cw=[(1, width_one), (2, width_two)],
+                         cs=[(1, spacing_one), (2, spacing_two)], p=content_main)
+    ignore_case_chk = cmds.checkBox("Ignore Uppercase", cc=update_settings,
                                     value=morphing_attr_settings.get('ignore_case'))
-    cmds.separator(h=7, style='none')  # Empty Space
-
-    cmds.rowColumnLayout(nc=2, cw=[(1, 110)], cs=[(1, 30), (2, 5)], p=content_main)
-    modify_range_chk = cmds.checkBox("Modify Range", cc=update_settings,
-                                     value=morphing_attr_settings.get('modify_range'))
     add_separator_chk = cmds.checkBox("Add Separator", cc=update_settings,
                                       value=morphing_attr_settings.get('add_separator'))
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, width_one), (2, width_two)],
+                         cs=[(1, spacing_one), (2, spacing_two)], p=content_main)
+    ignore_connected_chk = cmds.checkBox("Ignore Connected", cc=update_settings,
+                                         value=morphing_attr_settings.get('ignore_connected'))
+    sort_chk = cmds.checkBox("Sort Attributes", cc=update_settings,
+                             value=morphing_attr_settings.get('sort_attr'))
+    cmds.separator(h=7, style='none')  # Empty Space
+
+    cmds.rowColumnLayout(nc=2, cw=[(1, width_one), (2, width_two)],
+                         cs=[(1, spacing_one), (2, spacing_two)], p=content_main)
+    modify_range_chk = cmds.checkBox("Modify Range", cc=update_settings,
+                                     value=morphing_attr_settings.get('modify_range'))
+    delete_instead_chk = cmds.checkBox("Delete Instead", cc=update_settings,
+                                       value=morphing_attr_settings.get('delete_instead'))
+
     cmds.separator(h=10, style='none')  # Empty Space
 
     range_column = cmds.rowColumnLayout(nc=4, cw=[(1, 50)], cs=[(1, 30), (2, 5), (3, 30), (4, 5)], p=content_main)
@@ -519,59 +581,9 @@ def build_gui_morphing_attributes():
     cmds.setFocus(window_name)
 
 
-# Creates Help GUI
-def build_gui_help_morphing_attr():
-    """ Creates GUI for Make Stretchy IK """
-    window_name = "build_gui_help_morphing_attr"
-    if cmds.window(window_name, exists=True):
-        cmds.deleteUI(window_name, window=True)
-
-    cmds.window(window_name, title=script_name + " Help", mnb=False, mxb=False, s=True)
-    cmds.window(window_name, e=True, s=True, wh=[1, 1])
-
-    cmds.columnLayout("main_column", p=window_name)
-
-    # Title Text
-    cmds.separator(h=12, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column")  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")  # Title Column
-    cmds.text(script_name + " Help", bgc=[.4, .4, .4], fn="boldLabelFont", align="center")
-    cmds.separator(h=10, style='none', p="main_column")  # Empty Space
-
-    # Body ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.text(l='Help Place Holder', align="center")
-    cmds.separator(h=5, style='none')  # Empty Space
-
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
-    cmds.text('Guilherme Trevisan  ')
-    cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.separator(h=7, style='none')  # Empty Space
-
-    # Close Button
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
-    cmds.separator(h=8, style='none')
-
-    # Show and Lock Window
-    cmds.showWindow(window_name)
-    cmds.window(window_name, e=True, s=False)
-
-    # Set Window Icon
-    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
-    widget.setWindowIcon(icon)
-
-    def close_help_gui():
-        """ Closes Help Window """
-        if cmds.window(window_name, exists=True):
-            cmds.deleteUI(window_name, window=True)
+def _open_gt_tools_documentation():
+    """ Opens a web browser with the auto rigger docs  """
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-morphing-attributes-', absolute=True)
 
 
 def select_existing_object(obj):

@@ -46,6 +46,7 @@
   <li><a href="#-gt-game-fbx-exporter-">GT Game FBX Exporter</a></li>
   <li><a href="#-gt-extract-bound-joints-">GT Extract Bound Joints</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
+  <li><a href="#-gt-morphing-attributes-">GT Morphing Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
   <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
@@ -1128,6 +1129,68 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
+
+<!-- GT Morphing Attributes -->
+<div>
+<h1> GT Morphing Attributes </h1>
+
+<img src="./media/gt_morphing_attributes.jpg" align="right"
+     alt="GT Morphing Attributes GUI">
+
+
+<p>This script automates the creation of attributes used to drive blend shapes.</p>
+
+<p><b>Load Morphing Object:</b>
+<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes.</p>
+
+<p><b>Blend Shape Nodes:</b>
+<br>Once the morphing object is loaded, this box shows a list of blend shape nodes. Click on the desired node to select it.</p>
+
+<p><b>Load Attribute Holder:</b>
+<br>This is the object to receive the driving attributes. Usually a curve control.</p>
+
+<p><b>Desired Filter:</b>
+<br>Strings in this text field will be included in the list of affected targets. 
+<br>If empty, everything will be included. (multiple strings can be separated using  commas ","</p>
+
+<p><b>Undesired Filter:</b>
+<br>Strings in this text field will be removed from the list of affected targets.
+<br>If empty, filter will not take effect. (multiple strings can be separated using  commas ","</p>
+
+<p><b>Drop-down Menu (Includes, Starts With, Ends With)</b>: 
+<br>These options determine how the desired or undesired strings will be filtered.
+	<ul>
+		<li><b>Includes:</b>  if the string is found in the text, it is accepted.</li>
+		<li><b>Starts With:</b>  If found at the begging of the word, it is included.</li>
+		<li><b>Ends With:</b>  If found at the end of the word, it\'s included.</li>
+	</ul>
+</p>
+
+<p><b>Ignore Uppercase:</b>
+<br>If active, the script will ignore the capitalization of the filter strings.',</p>
+
+<p><b>Add Separator:</b>
+<br>If active, the script will also attempt to create a locked attribute to be used as a separator.
+<br>Example - "Blends: "-------------"</p>
+
+<p><b>Ignore Connected:</b>
+<br>If active, the script will ignore blend targets that already have incoming connections.</p>
+
+<p><b>Sort Attributes:</b>
+<br>If active, the script will sort the list of attributes before creating them.</p>
+
+<p><b>Modify Range:</b>
+<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
+
+<p><b>Modify Range:</b>
+<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
+
+<p><b>Old Min/Max & New Min/Max:</b>
+<br>This values are used for the remapping of the morphing attributes. Blend shapes are usually deactivated when as 0 and activated when at 1. If remapped to min: 0 and max: 10, the range would now be bigger but reflect the same values. For example 7.3 would actually load 0.73 of the blend target.</p>
+
+<br>
+
+</div>
 <!-- GT Mirror Cluster Tool -->
 <div>
 <h1> GT Mirror Cluster Tool </h1>
