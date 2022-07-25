@@ -109,6 +109,9 @@
  Made some functions not protected as they can be helpful in other scripts
  Fixed a little GUI alignment issue
 
+ 1.3.24 - 2022-07-24
+ Updated help link
+
 
  TODO:
     Created flip pose function
@@ -143,7 +146,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.23"
+script_version = "1.3.24"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -1118,7 +1121,7 @@ def build_gui_custom_rig_interface():
 
 def _open_gt_tools_documentation():
     """ Opens a web browser with the auto rigger docs  """
-    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-auto-biped-rigger-', absolute=True)
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-biped-auto-rigger-', absolute=True)
 
 
 def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False, start_time=0, end_time=0,
