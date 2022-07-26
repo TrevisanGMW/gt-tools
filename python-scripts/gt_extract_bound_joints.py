@@ -263,8 +263,8 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='"Output Python Curve" box', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Save to Shelf:', align="left", fn="boldLabelFont")
-    cmds.text(l='Attempts to save the code (or anything written) inside ', align="left")
-    cmds.text(l='"Output Python Curve" box to the shelf as a button.', align="left")
+    cmds.text(l='Saves the code (or anything written) inside ', align="left")
+    cmds.text(l='"Output Python Curve" box to the current shelf as a button.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
