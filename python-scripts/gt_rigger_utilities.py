@@ -8,6 +8,9 @@
  2022-03-22
  Added "enforce_parent" function
 
+ 2022-07-26
+ Added "create_cheek_nose_controls" function
+
 """
 from gt_utilities import make_flat_list
 from gt_rigger_data import *
@@ -1793,8 +1796,8 @@ def create_slider_control(name, initial_position='middle', lock_unused_channels=
     return [ctrl, ctrl_grp]
 
 
-def create_2d_slider_control(name, initial_position_y='middle', initial_position_x='middle', lock_unused_channels=True,
-                             ignore_range=None):
+def create_2d_slider_control(name, initial_position_y='middle', initial_position_x='middle',
+                             lock_unused_channels=True, ignore_range=None):
     """
 
     Args:
@@ -1802,7 +1805,7 @@ def create_2d_slider_control(name, initial_position_y='middle', initial_position
         initial_position_y:  "middle", "top" or "bottom" (string)
         initial_position_x:  "middle", "right" or "left" (string)
         lock_unused_channels:  locks and hides unused channels (TX, TZ, ROT...)
-        ignore_range: TODO
+        ignore_range: "right", "left", "bottom" or "up". 2D Area to be ignored and removed from the available range
 
     Returns:
         ctrl_elements: A list with the control name and control group name
@@ -2227,6 +2230,179 @@ def create_eyebrow_controls():
     return gui_grp, controls
 
 
+def create_cheek_nose_controls():
+    """
+    Dependencies:
+        rescale()
+        create_slider_control()
+        create_2d_slider_control()
+        create_text()
+        force_center_pivot()
+        change_outliner_color()
+        change_viewport_color()
+
+    Returns:
+        control_tuple: A tuple with the parent group name and a list with all generated controls.
+                       E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
+
+    """
+    # Containers
+    controls = []
+    background = []
+
+    # Top Label
+    nose_cheek_crv = create_text('NOSE / CHEEK')
+    left_nose_crv = create_text('LEFT NOSE')
+    right_nose_crv = create_text('RIGHT NOSE')
+    left_cheek_in_out_crv = create_text('IN/OUT')
+    right_cheek_in_out_crv = create_text('IN/OUT')
+    force_center_pivot(nose_cheek_crv)
+    rescale(nose_cheek_crv, 1.75)
+    cmds.setAttr(nose_cheek_crv + '.ty', 7.3)
+    for ctrl in [nose_cheek_crv, left_nose_crv, right_nose_crv, left_cheek_in_out_crv, right_cheek_in_out_crv]:
+        cmds.setAttr(ctrl + '.overrideDisplayType', 2)
+    background.append(nose_cheek_crv)
+    background.append(left_nose_crv)
+    background.append(right_nose_crv)
+    background.append(left_cheek_in_out_crv)
+    background.append(right_cheek_in_out_crv)
+
+    # 1D Controls
+    left_cheek_in_out_ctrl = create_slider_control('left_cheek_in_out_offset_ctrl')
+    right_cheek_in_out_ctrl = create_slider_control('right_cheek_in_out_offset_ctrl')
+
+    # 2D Controls
+    left_cheek_ctrl = create_2d_slider_control('left_cheek_offset_ctrl')
+    right_cheek_ctrl = create_2d_slider_control('right_cheek_offset_ctrl')
+    left_nose_ctrl = create_2d_slider_control('left_nose_offset_ctrl')
+    right_nose_ctrl = create_2d_slider_control('right_nose_offset_ctrl')
+
+    # Reposition / Rescale BG
+    left_nose_crv_tx = 0.05
+    right_nose_crv_tx = -5.3
+    nose_crv_ty = -3.2
+    nose_crv_scale = .5
+    cmds.setAttr(left_nose_crv + '.tx', left_nose_crv_tx)
+    cmds.setAttr(right_nose_crv + '.tx', right_nose_crv_tx)
+    cmds.setAttr(left_nose_crv + '.ty', nose_crv_ty)
+    cmds.setAttr(right_nose_crv + '.ty', nose_crv_ty)
+    rescale(left_nose_crv, nose_crv_scale, freeze=False)
+    rescale(right_nose_crv, nose_crv_scale, freeze=False)
+
+    left_cheek_in_out_crv_tx = 5.35
+    right_cheek_in_out_crv_tx = -8.65
+    cheek_in_out_crv_ty = -5.5
+    cheek_in_out_crv_scale = .55
+    cmds.setAttr(left_cheek_in_out_crv + '.tx', left_cheek_in_out_crv_tx)
+    cmds.setAttr(right_cheek_in_out_crv + '.tx', right_cheek_in_out_crv_tx)
+    cmds.setAttr(left_cheek_in_out_crv + '.ty', cheek_in_out_crv_ty)
+    cmds.setAttr(right_cheek_in_out_crv + '.ty', cheek_in_out_crv_ty)
+    rescale(left_cheek_in_out_crv, cheek_in_out_crv_scale, freeze=False)
+    rescale(right_cheek_in_out_crv, cheek_in_out_crv_scale, freeze=False)
+
+    # Reposition / Rescale Ctrls
+    cheek_tx = 13.5
+    cheek_ty = -1
+    cheek_scale = .75
+    cmds.setAttr(left_cheek_ctrl[1] + '.tx', cheek_tx)
+    cmds.setAttr(right_cheek_ctrl[1] + '.tx', -cheek_tx)
+    cmds.setAttr(left_cheek_ctrl[1] + '.ty', cheek_ty)
+    cmds.setAttr(right_cheek_ctrl[1] + '.ty', cheek_ty)
+    rescale(left_cheek_ctrl[1], cheek_scale, freeze=False)
+    rescale(right_cheek_ctrl[1], cheek_scale, freeze=False)
+
+    nose_tx = 2.5
+    nose_ty = -.6
+    nose_scale = .3
+    cmds.setAttr(left_nose_ctrl[1] + '.tx', nose_tx)
+    cmds.setAttr(right_nose_ctrl[1] + '.tx', -nose_tx)
+    cmds.setAttr(left_nose_ctrl[1] + '.ty', nose_ty)
+    cmds.setAttr(right_nose_ctrl[1] + '.ty', nose_ty)
+    rescale(left_nose_ctrl[1], nose_scale, freeze=False)
+    rescale(right_nose_ctrl[1], nose_scale, freeze=False)
+
+    cheek_in_out_tx = 7
+    cheek_in_out_ty = -.1
+    cheek_in_out_scale = cheek_scale*.8
+    cmds.setAttr(left_cheek_in_out_ctrl[1] + '.tx', cheek_in_out_tx)
+    cmds.setAttr(right_cheek_in_out_ctrl[1] + '.tx', -cheek_in_out_tx)
+    cmds.setAttr(left_cheek_in_out_ctrl[1] + '.ty', cheek_in_out_ty)
+    cmds.setAttr(right_cheek_in_out_ctrl[1] + '.ty', cheek_in_out_ty)
+    rescale(left_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
+    rescale(right_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
+
+    # Determine Grp Order
+    controls.append(left_cheek_ctrl)
+    controls.append(right_cheek_ctrl)
+    controls.append(left_nose_ctrl)
+    controls.append(right_nose_ctrl)
+    controls.append(left_cheek_in_out_ctrl)
+    controls.append(right_cheek_in_out_ctrl)
+
+    # L and R Indicators
+    l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
+                          [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
+                          [11.643, 0.616, 0]], d=1,
+                       name='left_indicator_nose_cheek_crv')
+    r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
+                            [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
+                            [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
+                            [-12.477, 0.616, 0], [-12.318, 0.616, 0], [-12.159, 0.616, 0], [-12.053, 0.616, 0],
+                            [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
+                            [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
+                            [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
+                         name='right_indicator_a_nose_cheek_crv')
+    r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
+                            [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
+                            [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
+                            [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
+                            [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
+                         name='right_indicator_b_nose_cheek_crv')
+
+    r_crv = combine_curves_list([r_crv_a, r_crv_b])
+    cmds.setAttr(l_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(r_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(l_crv + '.ty', 7.3)
+    cmds.setAttr(r_crv + '.ty', 7.3)
+    cmds.setAttr(l_crv + '.tx', 3)
+    cmds.setAttr(r_crv + '.tx', -3)
+    background.append(l_crv)
+    background.append(r_crv)
+
+    # Parent Groups
+    gui_grp = cmds.group(name='cheek_nose_gui_grp', world=True, empty=True)
+    bg_grp = cmds.group(name='cheek_nose_background_grp', world=True, empty=True)
+
+    # General Background
+    eyebrow_bg_crv = cmds.curve(name='cheek_nose_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
+                                                             [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]], d=1)
+
+    cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
+    background.append(eyebrow_bg_crv)
+
+    for obj in controls:
+        cmds.parent(obj[1], gui_grp)
+        if 'left_' in obj[0]:
+            change_viewport_color(obj[0], LEFT_CTRL_COLOR)
+            change_outliner_color(obj[1], (0.21, 0.59, 1))  # Soft Blue
+        elif 'right_' in obj[0]:
+            change_viewport_color(obj[0], RIGHT_CTRL_COLOR)
+            change_outliner_color(obj[1], RIGHT_CTRL_COLOR)
+        else:
+            change_viewport_color(obj[0], CENTER_CTRL_COLOR)
+            change_outliner_color(obj[1], CENTER_CTRL_COLOR)
+
+    for obj in background:
+        cmds.parent(obj, bg_grp)
+        cmds.setAttr(obj + '.overrideEnabled', 1)
+
+    # Background Group
+    cmds.parent(bg_grp, gui_grp)
+    change_outliner_color(bg_grp, (0, 0, 0))
+
+    return gui_grp, controls
+
+
 def create_eye_controls():
     """
     Dependencies:
@@ -2381,7 +2557,8 @@ def create_eye_controls():
     return gui_grp, controls
 
 
-def create_facial_side_gui():
+def create_facial_side_gui(add_nose_cheeks=False):
+    selection = cmds.ls(selection=True)
     parent_grp = cmds.group(empty=True, world=True, name='facial_side_gui_grp')
     eyebrow_ctrls = create_eyebrow_controls()
     eye_ctrls = create_eye_controls()
@@ -2391,6 +2568,13 @@ def create_facial_side_gui():
     cmds.parent(eyebrow_ctrls[0], parent_grp)
     cmds.parent(eye_ctrls[0], parent_grp)
     cmds.parent(mouth_ctrls[0], parent_grp)
+    if add_nose_cheeks:
+        nose_cheek_ctrls = create_cheek_nose_controls()
+        cmds.parent(nose_cheek_ctrls[0], parent_grp)
+        cmds.move(22, nose_cheek_ctrls[0], moveY=True)
+        cmds.move(42, eye_ctrls[0], moveY=True)
+        cmds.move(62, eyebrow_ctrls[0], moveY=True)
+    cmds.select(selection)
     return parent_grp
 
 
@@ -2744,7 +2928,7 @@ def store_proxy_as_string(target_obj, attr_name, data_obj, method='world-space')
         method (optional, string): which method is used to generate the data
     """
 
-    # Store Facial Proxy
+    # Store Proxy
     if method == 'object-space':
         export_dict = {data_obj.proxy_storage_variables.get('script_source'): data_obj.script_version,
                        data_obj.proxy_storage_variables.get('export_method'): method}
@@ -2846,20 +3030,15 @@ if __name__ == '__main__':
     pass
     logger.setLevel(logging.DEBUG)
     output = ''
-    # create_slider_control('temp', initial_position='bottom', lock_unused_channels=True)
-    # enforce_parent('pSphere1', 'head_offsetCtrl')
-    # if cmds.objExists('slider_2dGrp'):
-    #     cmds.delete('slider_2dGrp')
-    # create_slider_control('1d_slider', initial_position='bottom')
-    # output = create_2d_slider_control('slider_2d',
-    #                                   initial_position_y='middle',
-    #                                   initial_position_x='middle',
-    #                                   ignore_range='top')
-    # print(output)
-    # toggle_rigging_attr()
-    # print_inview_message('Hello', ' World!')
-    # create_facial_side_gui()
-    data_facial = GTBipedRiggerFacialData()
-    # output = store_proxy_as_string('head_ctrl', 'facial_proxy_pose', data_facial)
-    # output = store_proxy_as_string('head_ctrl', 'facial_proxy_pose', data_facial, method='object-space')
+    # data_facial = GTBipedRiggerFacialData()
+    try:
+        cmds.delete('facial_side_gui_grp')
+    except:
+        pass
+    try:
+        cmds.delete('cheek_nose_gui_grp')
+    except:
+        pass
+    # create_cheek_nose_controls()
+    create_facial_side_gui(True)
     logger.debug(str(output))
