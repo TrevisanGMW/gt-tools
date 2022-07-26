@@ -24,10 +24,12 @@ Increased the size of the output window
 Added "Save to Shelf" button
 Added "Extract Bound Joints to Selection Sets" button
 
+1.1.1 - 2022-07-26
+Updated help
+Tweaked the UI spacing
+
 Todo:
     Add Transfer functions
-    Add save as set button
-    Add save to shelf
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -54,7 +56,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.1.0"
+script_version = "1.1.1"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -99,7 +101,7 @@ def build_gui_extract_bound_joints():
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 70), (2, 15)])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 60), (2, 35)])
     filter_non_existent_chk = cmds.checkBox("Include Non-Existent Filter", value=True,
                                             cc=lambda x: _btn_update_settings())
     include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=True, cc=lambda x: _btn_update_settings())
@@ -248,13 +250,21 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='Adds a line of code that ignores objects not found in the scene.\n', align="left")
     cmds.text(l='Include Bound Mesh:', align="left", fn="boldLabelFont")
     cmds.text(l='Determines if the selected bound mesh will be included in the\nextracted list.\n', align="left")
-    cmds.text(l='"Extract Bound Joints" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='"Extract Bound Joints to Python" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to reselect the joints', align="left")
     cmds.text(l='inside the "Output Python Curve" box.', align="left")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='"Extract Bound Joints to Selection Sets" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='Saves the bound joints as selection sets instead of Python.'
+                '\nOne set per mesh. (May or may not include mesh, according \nto checkbox settings.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Run Code:', align="left", fn="boldLabelFont")
     cmds.text(l='Attempts to run the code (or anything written) inside ', align="left")
     cmds.text(l='"Output Python Curve" box', align="left")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='Save to Shelf:', align="left", fn="boldLabelFont")
+    cmds.text(l='Attempts to save the code (or anything written) inside ', align="left")
+    cmds.text(l='"Output Python Curve" box to the shelf as a button.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
