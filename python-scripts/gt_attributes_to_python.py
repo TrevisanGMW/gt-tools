@@ -17,12 +17,17 @@
  Increased the size of the UI
  Added "Extract User-Defined Attributes" function
 
+ 0.0.6 - 2022-07-26
+ Added save to shelf
+ Updated help
+
  TODO:
     Add options
 
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
+import maya.mel as mel
 import logging
 import sys
 
@@ -186,14 +191,12 @@ def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_plac
         return output
 
 
-def user_attr_to_python(obj_list, printing=True, decimal_place=2, strip_zeroes=True):
+def user_attr_to_python(obj_list, printing=True):
     """
     Returns a string
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
         printing (optional, bool): If active, the function will print the values to the script editor
-        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
-        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
 
     Returns:
         Python code with extracted transform values
@@ -210,7 +213,6 @@ def user_attr_to_python(obj_list, printing=True, decimal_place=2, strip_zeroes=T
 
     for obj in obj_list:
         output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
-        data = {}
         attributes = cmds.listAttr(obj, userDefined=True) or []
         if not attributes:
             output += '# No user-defined attributes found on this object.\n'
@@ -297,8 +299,24 @@ def build_gui_attr_to_python():
     cmds.text(label='Output Python Code')
     output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 15)], p=content_main)
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
+    cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf())
     cmds.separator(h=10, style='none')  # Empty Space
+
+    def _btn_add_to_shelf():
+        command = cmds.scrollField(output_python, query=True, text=True) or ''
+        if command:
+            create_shelf_button(command,
+                                label='setAttr',
+                                tooltip='Extracted Attributes',
+                                image="editRenderPass.png",
+                                label_color=(0, .84, .81))
+            cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">Python Output Command'
+                                   '</span> was added as a button to your current shelf.',
+                               pos='botLeft', fade=True, alpha=.9)
+        else:
+            cmds.warning('Unable to save to shelf. "Output Python Code" is empty.')
 
     def _btn_extract_attr(attr_type='default'):
         selection = cmds.ls(selection=True) or []
@@ -311,8 +329,7 @@ def build_gui_attr_to_python():
             output_python_command = attr_to_list(selection, printing=False, decimal_place=2,
                                                  separate_channels=False, strip_zeroes=True)
         elif attr_type == 'user':
-            output_python_command = user_attr_to_python(selection, printing=False,
-                                                        decimal_place=2, strip_zeroes=True)
+            output_python_command = user_attr_to_python(selection, printing=False)
         else:
             output_python_command = default_attr_to_python(selection, printing=False, use_loop=False,
                                                            decimal_place=2, strip_zeroes=True)
@@ -377,6 +394,10 @@ def build_gui_help_attr_to_python():
     cmds.text(l='Run Code:', align="left", fn="boldLabelFont")
     cmds.text(l='Attempts to run the code (or anything written) inside ', align="left")
     cmds.text(l='"Output Python Curve" box', align="left")
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.text(l='Save to Shelf:', align="left", fn="boldLabelFont")
+    cmds.text(l='Creates a shelf button with the code (or anything written) inside ', align="left")
+    cmds.text(l='"Output Python Code" box', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
@@ -405,6 +426,60 @@ def build_gui_help_attr_to_python():
     def close_help_gui():
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+
+
+def create_shelf_button(command,
+                        label='',
+                        tooltip='',
+                        image=None,  # Default Python Icon
+                        label_color=(1, 0, 0),  # Default Red
+                        label_bgc_color=(0, 0, 0, 1),  # Default Black
+                        bgc_color=None
+                        ):
+    """
+    Add a shelf button to the current shelf (according to the provided parameters)
+
+    Args:
+        command (str): A string containing the code or command you want the button to run when clicking on it.
+                       e.g. "print("Hello World")"
+        label (str): The label of the button. This is the text you see below it.
+        tooltip (str): The help message you get when hovering the button.
+        image (str): The image used for the button (defaults to Python icon if none)
+        label_color (tuple): A tuple containing three floats,
+                             these are RGB 0 to 1 values to determine the color of the label.
+        label_bgc_color (tuple): A tuple containing four floats,
+                                 these are RGBA 0 to 1 values to determine the background of the label.
+        bgc_color (tuple): A tuple containing three floats,
+                           these are RGB 0 to 1 values to determine the background of the icon
+
+    """
+    maya_version = int(cmds.about(v=True))
+
+    shelf_top_level = mel.eval('$temp=$gShelfTopLevel')
+    if not cmds.tabLayout(shelf_top_level, exists=True):
+        cmds.warning('Shelf is not visible')
+        return
+
+    if not image:
+        image = 'pythonFamily.png'
+
+    shelf_tab = cmds.shelfTabLayout(shelf_top_level, query=True, selectTab=True)
+    shelf_tab = shelf_top_level + '|' + shelf_tab
+
+    # Populate extra arguments according to the current Maya version
+    kwargs = {}
+    if maya_version >= 2009:
+        kwargs['commandRepeatable'] = True
+    if maya_version >= 2011:
+        kwargs['overlayLabelColor'] = label_color
+        kwargs['overlayLabelBackColor'] = label_bgc_color
+        if bgc_color:
+            kwargs['enableBackground'] = bool(bgc_color)
+            kwargs['backgroundColor'] = bgc_color
+
+    return cmds.shelfButton(parent=shelf_tab, label=label, command=command,
+                            imageOverlayLabel=label, image=image, annotation=tooltip,
+                            width=32, height=32, align='center', **kwargs)
 
 
 if __name__ == '__main__':

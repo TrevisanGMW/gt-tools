@@ -15,7 +15,7 @@ logging.basicConfig()
 logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
-SCRIPT_VERSION_BASE = '1.9.14'
+SCRIPT_VERSION_BASE = '1.9.15'
 SCRIPT_VERSION_FACIAL = '0.0.19'
 SCRIPT_VERSION_CORRECTIVE = '0.0.14'
 
@@ -171,7 +171,7 @@ class GTBipedRiggerData:
     debugging_force_new_scene = True  # Forces new instance every time
     debugging_keep_cam_transforms = True  # Keeps camera position
     debugging_import_proxy = True  # Auto Imports Proxy
-    debugging_import_path = 'C:\\template.ppose'  # Path to auto import
+    debugging_import_path = 'C:\\template.ppose_base'  # Path to auto import
     debugging_bind_rig = False  # Auto Binds Rig
     debugging_bind_geo = 'body_geo'  # Name of the geo to bind
     debugging_bind_heatmap = False  # If not using heatmap, then closest distance

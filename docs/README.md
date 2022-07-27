@@ -632,6 +632,7 @@ with the provided prefix "Left Side Tag".</p>
 <p><b>"Generate" button:</b><br>Outputs the python code necessary to create the curve inside the "Output PYthon Curve" box.</p>
 
 <p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+<p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Python Curve" box as a shelf button.</p>
 
 <br>
 
@@ -674,7 +675,8 @@ with the provided prefix "Left Side Tag".</p>
 
 <p><b>"Extract State" button:</b><br>Outputs the python code necessary to recreate the current curve shape inside the "Output PYthon Curve" box.</p>
 
-<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Code" box  </p>
+<p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Python Code" box as a shelf button.</p>
 
 <br>
 
@@ -1087,9 +1089,11 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>1. Select bound meshes or surfaces.
 <br>2. Click on the "Extract Bound Joints" button to generate the code.</p>
 
-<p><b>"Extract Bound Joints" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+<p><b>"Extract Bound Joints to Python" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+<p><b>"Extract Bound Joints to Selection Sets" button:</b><br>Saves the bound joints as selection sets instead of Python. One set per mesh. (May or may not include mesh, according to checkbox settings.</p>
 
-<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Python Curve" box  </p>
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Selection Command" box  </p>
+<p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Selection Command" box as a shelf button.</p>
 
 <br>
 

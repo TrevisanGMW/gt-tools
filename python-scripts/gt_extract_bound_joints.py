@@ -20,13 +20,25 @@ Updated help menu
 1.0.2 - 2022-07-22
 Increased the size of the output window
 
+1.1.0 - 2022-07-26
+Added "Save to Shelf" button
+Added "Extract Bound Joints to Selection Sets" button
+
+1.1.1 - 2022-07-26
+Updated help
+Tweaked the UI spacing
+
+1.1.2 - 2022-07-26
+Fixed a typo
+Removed unnecessary parameter
+
 Todo:
     Add Transfer functions
-    Add save as set button
-    Add save to shelf
+    Add option to include maya.cmds
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
+import maya.mel as mel
 import logging
 
 try:
@@ -49,7 +61,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.0.2"
+script_version = "1.1.2"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -94,13 +106,16 @@ def build_gui_extract_bound_joints():
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 70), (2, 15)])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 60), (2, 35)])
     filter_non_existent_chk = cmds.checkBox("Include Non-Existent Filter", value=True,
                                             cc=lambda x: _btn_update_settings())
     include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=True, cc=lambda x: _btn_update_settings())
-    cmds.rowColumnLayout(nc=1, cw=[(1, 480)], cs=[(1, 15)], p=content_main)
     cmds.separator(h=15, style='none')  # Empty Space
-    cmds.button(l="Extract Bound Joints", bgc=(.6, .6, .6), c=lambda x: _btn_extract_python_curve_shape())
+    cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 10)], p=content_main)
+    cmds.button(l="Extract Bound Joints to Python", bgc=(.6, .6, .6),
+                c=lambda x: _btn_extract_bound_validation('python'))
+    cmds.button(l="Extract Bound Joints to Selection Sets", bgc=(.6, .6, .6),
+                c=lambda x: _btn_extract_bound_validation('set'))
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
@@ -109,14 +124,37 @@ def build_gui_extract_bound_joints():
     cmds.text(label='Output - Selection Command:')
     output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 15)], p=content_main)
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
+    cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf())
     cmds.separator(h=10, style='none')  # Empty Space
 
     def _btn_update_settings():
         extract_joints_settings['filter_non_existent'] = cmds.checkBox(filter_non_existent_chk, q=True, value=True)
         extract_joints_settings['include_mesh'] = cmds.checkBox(include_mesh_chk, q=True, value=True)
 
-    def _btn_extract_python_curve_shape():
+    def _btn_add_to_shelf():
+        command = cmds.scrollField(output_python, query=True, text=True) or ''
+        if command:
+            create_shelf_button(command,
+                                label='bJnts',
+                                tooltip='Extracted joints',
+                                image="smoothSkin.png",
+                                label_color=(.97, 0, 1.7))
+            cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">Current Selection Command'
+                                   '</span> was added as a button to your current shelf.',
+                               pos='botLeft', fade=True, alpha=.9)
+        else:
+            cmds.warning('Unable to save to shelf. "Output - Selection Command" is empty.')
+
+    def _btn_extract_bound_validation(operation_target='python'):
+        """
+        Validation before extracting python or set out of the bound mesh
+        Args:
+            operation_target (optional, string): "python" will output python code into the scrollField,
+                                                 "set" will create selection sets
+
+        """
         selection = cmds.ls(selection=True) or []
 
         if len(selection) == 0:
@@ -130,40 +168,50 @@ def build_gui_extract_bound_joints():
                 if cmds.objectType(shapes[0]) == 'mesh' or cmds.objectType(shapes[0]) == 'nurbsSurface':
                     valid_nodes.append(sel)
 
-        commands = []
-        for transform in valid_nodes:
-            message = '# Joint influences found in "' + transform + '":'
-            message += '\nbound_list = '
-            bound_joints = get_bound_joints(transform)
+        if operation_target == 'python':
+            commands = []
+            for transform in valid_nodes:
+                message = '# Joint influences found in "' + transform + '":'
+                message += '\nbound_list = '
+                bound_joints = get_bound_joints(transform)
 
-            if not bound_joints:
-                cmds.warning('Unable to find skinCluster for "' + transform + '".')
-                return
+                if not bound_joints:
+                    cmds.warning('Unable to find skinCluster for "' + transform + '".')
+                    return
 
-            if extract_joints_settings.get('include_mesh'):
-                bound_joints.insert(0, transform)
+                if extract_joints_settings.get('include_mesh'):
+                    bound_joints.insert(0, transform)
 
-            message += str(bound_joints)
+                message += str(bound_joints)
 
-            if extract_joints_settings.get('filter_non_existent'):
-                message += '\nbound_list = [jnt for jnt in bound_list if cmds.objExists(jnt)]'
+                if extract_joints_settings.get('filter_non_existent'):
+                    message += '\nbound_list = [jnt for jnt in bound_list if cmds.objExists(jnt)]'
 
-            message += '\ncmds.select(bound_list)'
+                message += '\ncmds.select(bound_list)'
 
-            commands.append(message)
+                commands.append(message)
 
-        cmds.scrollField(output_python, edit=True, wordWrap=True, text='', sl=True)
-        command = ''
-        for cmd in commands:
-            command += cmd + '\n\n'
+            cmds.scrollField(output_python, edit=True, wordWrap=True, text='', sl=True)
+            command = ''
+            for cmd in commands:
+                command += cmd + '\n\n'
 
-        print('#' * 80)
-        print(command)
-        print('#' * 80)
+            print('#' * 80)
+            print(command)
+            print('#' * 80)
 
-        cmds.scrollField(output_python, edit=True, wordWrap=True, text=command, sl=True)
-        cmds.scrollField(output_python, e=True, ip=1, it='')  # Bring Back to the Top
-        cmds.setFocus(output_python)
+            cmds.scrollField(output_python, edit=True, wordWrap=True, text=command, sl=True)
+            cmds.scrollField(output_python, e=True, ip=1, it='')  # Bring Back to the Top
+            cmds.setFocus(output_python)
+
+        if operation_target == 'set':
+            for transform in valid_nodes:
+                bound_joints = get_bound_joints(transform)
+                if extract_joints_settings.get('include_mesh'):
+                    bound_joints.insert(0, transform)
+                new_set = cmds.sets(name=transform + "_jointSet", empty=True)
+                for jnt in bound_joints:
+                    cmds.sets(jnt, add=new_set)
 
     # Show and Lock Window
     cmds.showWindow(window_gui_extract_bound_joints)
@@ -205,13 +253,21 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='Adds a line of code that ignores objects not found in the scene.\n', align="left")
     cmds.text(l='Include Bound Mesh:', align="left", fn="boldLabelFont")
     cmds.text(l='Determines if the selected bound mesh will be included in the\nextracted list.\n', align="left")
-    cmds.text(l='"Extract Bound Joints" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='"Extract Bound Joints to Python" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to reselect the joints', align="left")
     cmds.text(l='inside the "Output Python Curve" box.', align="left")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='"Extract Bound Joints to Selection Sets" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='Saves the bound joints as selection sets instead of Python.'
+                '\nOne set per mesh. (May or may not include mesh, according \nto checkbox settings.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.text(l='Run Code:', align="left", fn="boldLabelFont")
     cmds.text(l='Attempts to run the code (or anything written) inside ', align="left")
     cmds.text(l='"Output Python Curve" box', align="left")
+    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='Save to Shelf:', align="left", fn="boldLabelFont")
+    cmds.text(l='Saves the code (or anything written) inside ', align="left")
+    cmds.text(l='"Output Python Curve" box to the current shelf as a button.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
@@ -272,6 +328,60 @@ def get_bound_joints(obj):
         if cmds.objectType(obj) == 'joint':
             joints.append(obj)
     return joints
+
+
+def create_shelf_button(command,
+                        label='',
+                        tooltip='',
+                        image=None,  # Default Python Icon
+                        label_color=(1, 0, 0),  # Default Red
+                        label_bgc_color=(0, 0, 0, 1),  # Default Black
+                        bgc_color=None
+                        ):
+    """
+    Add a shelf button to the current shelf (according to the provided parameters)
+
+    Args:
+        command (str): A string containing the code or command you want the button to run when clicking on it.
+                       e.g. "print("Hello World")"
+        label (str): The label of the button. This is the text you see below it.
+        tooltip (str): The help message you get when hovering the button.
+        image (str): The image used for the button (defaults to Python icon if none)
+        label_color (tuple): A tuple containing three floats,
+                             these are RGB 0 to 1 values to determine the color of the label.
+        label_bgc_color (tuple): A tuple containing four floats,
+                                 these are RGBA 0 to 1 values to determine the background of the label.
+        bgc_color (tuple): A tuple containing three floats,
+                           these are RGB 0 to 1 values to determine the background of the icon
+
+    """
+    maya_version = int(cmds.about(v=True))
+
+    shelf_top_level = mel.eval('$temp=$gShelfTopLevel')
+    if not cmds.tabLayout(shelf_top_level, exists=True):
+        cmds.warning('Shelf is not visible')
+        return
+
+    if not image:
+        image = 'pythonFamily.png'
+
+    shelf_tab = cmds.shelfTabLayout(shelf_top_level, query=True, selectTab=True)
+    shelf_tab = shelf_top_level + '|' + shelf_tab
+
+    # Populate extra arguments according to the current Maya version
+    kwargs = {}
+    if maya_version >= 2009:
+        kwargs['commandRepeatable'] = True
+    if maya_version >= 2011:
+        kwargs['overlayLabelColor'] = label_color
+        kwargs['overlayLabelBackColor'] = label_bgc_color
+        if bgc_color:
+            kwargs['enableBackground'] = bool(bgc_color)
+            kwargs['backgroundColor'] = bgc_color
+
+    return cmds.shelfButton(parent=shelf_tab, label=label, command=command,
+                            imageOverlayLabel=label, image=image, annotation=tooltip,
+                            width=32, height=32, align='center', **kwargs)
 
 
 if __name__ == '__main__':

@@ -284,6 +284,9 @@
  Added logging
  Some PEP8 Cleanup
 
+ 1.9.15 - 2022-07-25
+ Some PEP8 Cleanup
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -1479,176 +1482,157 @@ def create_proxy(data_biped):
                 change_outliner_color(proxy_crv, (.8, .8, 0))
 
     # Create Lines
-    line_list = [
-        create_visualization_line(elements.get('cog_proxy_crv'), elements.get('hip_proxy_crv')),
-    ]
-    line_list.append(
-        create_visualization_line(elements.get('cog_proxy_crv'), elements.get('hip_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('cog_proxy_crv'),
-                                  elements.get('spine01_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('spine01_proxy_crv'),
-                                  elements.get('spine02_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('spine02_proxy_crv'),
-                                  elements.get('spine03_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('spine03_proxy_crv'),
-                                  elements.get('spine04_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('spine04_proxy_crv'),
-                                  elements.get('neck_base_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('neck_base_proxy_crv'),
-                                  elements.get('neck_mid_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('neck_mid_proxy_crv'),
-                                  elements.get('head_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('head_proxy_crv'),
-                                  elements.get('head_end_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('head_proxy_crv'), elements.get('jaw_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('jaw_proxy_crv'),
-                                  elements.get('jaw_end_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('head_proxy_crv'),
-                                  elements.get('left_eye_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('head_proxy_crv'),
-                                  elements.get('right_eye_proxy_crv')))
-    # Left Side
-    line_list.append(
-        create_visualization_line(elements.get('hip_proxy_crv'),
-                                  elements.get('left_hip_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('left_hip_proxy_crv'),
-                                  elements.get('left_knee_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('left_knee_proxy_crv'),
-                                  elements.get('left_ankle_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('left_ankle_proxy_crv'),
-                                  elements.get('left_ball_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('left_ball_proxy_crv'),
-                                  elements.get('left_toe_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('spine04_proxy_crv'),
-                                  elements.get('left_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_clavicle_proxy_crv'),
-                                               elements.get('left_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_shoulder_proxy_crv'),
-                                               elements.get('left_elbow_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('left_elbow_proxy_crv'),
-                                  elements.get('left_wrist_proxy_crv')))
-    # Left Fingers
-    line_list.append(create_visualization_line(elements.get('left_wrist_proxy_crv'),
-                                               elements.get('left_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_thumb01_proxy_crv'),
-                                               elements.get('left_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_thumb02_proxy_crv'),
-                                               elements.get('left_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_thumb03_proxy_crv'),
-                                               elements.get('left_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_wrist_proxy_crv'),
-                                               elements.get('left_index01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_index01_proxy_crv'),
-                                               elements.get('left_index02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_index02_proxy_crv'),
-                                               elements.get('left_index03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_index03_proxy_crv'),
-                                               elements.get('left_index04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_wrist_proxy_crv'),
-                                               elements.get('left_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_middle01_proxy_crv'),
-                                               elements.get('left_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_middle02_proxy_crv'),
-                                               elements.get('left_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_middle03_proxy_crv'),
-                                               elements.get('left_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_wrist_proxy_crv'),
-                                               elements.get('left_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_ring01_proxy_crv'),
-                                               elements.get('left_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_ring02_proxy_crv'),
-                                               elements.get('left_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_ring03_proxy_crv'),
-                                               elements.get('left_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_wrist_proxy_crv'),
-                                               elements.get('left_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_pinky01_proxy_crv'),
-                                               elements.get('left_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_pinky02_proxy_crv'),
-                                               elements.get('left_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('left_pinky03_proxy_crv'),
-                                               elements.get('left_pinky04_proxy_crv')))
-    # Right Side
-    line_list.append(
-        create_visualization_line(elements.get('hip_proxy_crv'),
-                                  elements.get('right_hip_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('right_hip_proxy_crv'),
-                                  elements.get('right_knee_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_knee_proxy_crv'),
-                                               elements.get('right_ankle_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_ankle_proxy_crv'),
-                                               elements.get('right_ball_proxy_crv')))
-    line_list.append(
-        create_visualization_line(elements.get('right_ball_proxy_crv'),
-                                  elements.get('right_toe_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('spine04_proxy_crv'),
-                                               elements.get('right_clavicle_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_clavicle_proxy_crv'),
-                                               elements.get('right_shoulder_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_shoulder_proxy_crv'),
-                                               elements.get('right_elbow_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_elbow_proxy_crv'),
-                                               elements.get('right_wrist_proxy_crv')))
-    # Right Fingers
-    line_list.append(create_visualization_line(elements.get('right_wrist_proxy_crv'),
-                                               elements.get('right_thumb01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_thumb01_proxy_crv'),
-                                               elements.get('right_thumb02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_thumb02_proxy_crv'),
-                                               elements.get('right_thumb03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_thumb03_proxy_crv'),
-                                               elements.get('right_thumb04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_wrist_proxy_crv'),
-                                               elements.get('right_index01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_index01_proxy_crv'),
-                                               elements.get('right_index02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_index02_proxy_crv'),
-                                               elements.get('right_index03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_index03_proxy_crv'),
-                                               elements.get('right_index04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_wrist_proxy_crv'),
-                                               elements.get('right_middle01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_middle01_proxy_crv'),
-                                               elements.get('right_middle02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_middle02_proxy_crv'),
-                                               elements.get('right_middle03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_middle03_proxy_crv'),
-                                               elements.get('right_middle04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_wrist_proxy_crv'),
-                                               elements.get('right_ring01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_ring01_proxy_crv'),
-                                               elements.get('right_ring02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_ring02_proxy_crv'),
-                                               elements.get('right_ring03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_ring03_proxy_crv'),
-                                               elements.get('right_ring04_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_wrist_proxy_crv'),
-                                               elements.get('right_pinky01_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_pinky01_proxy_crv'),
-                                               elements.get('right_pinky02_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_pinky02_proxy_crv'),
-                                               elements.get('right_pinky03_proxy_crv')))
-    line_list.append(create_visualization_line(elements.get('right_pinky03_proxy_crv'),
-                                               elements.get('right_pinky04_proxy_crv')))
+    line_list = [create_visualization_line(elements.get('cog_proxy_crv'),
+                                           elements.get('hip_proxy_crv')),
+                 create_visualization_line(elements.get('cog_proxy_crv'),
+                                           elements.get('hip_proxy_crv')),
+                 create_visualization_line(elements.get('cog_proxy_crv'),
+                                           elements.get('spine01_proxy_crv')),
+                 create_visualization_line(elements.get('spine01_proxy_crv'),
+                                           elements.get('spine02_proxy_crv')),
+                 create_visualization_line(elements.get('spine02_proxy_crv'),
+                                           elements.get('spine03_proxy_crv')),
+                 create_visualization_line(elements.get('spine03_proxy_crv'),
+                                           elements.get('spine04_proxy_crv')),
+                 create_visualization_line(elements.get('spine04_proxy_crv'),
+                                           elements.get('neck_base_proxy_crv')),
+                 create_visualization_line(elements.get('neck_base_proxy_crv'),
+                                           elements.get('neck_mid_proxy_crv')),
+                 create_visualization_line(elements.get('neck_mid_proxy_crv'),
+                                           elements.get('head_proxy_crv')),
+                 create_visualization_line(elements.get('head_proxy_crv'),
+                                           elements.get('head_end_proxy_crv')),
+                 create_visualization_line(elements.get('head_proxy_crv'),
+                                           elements.get('jaw_proxy_crv')),
+                 create_visualization_line(elements.get('jaw_proxy_crv'),
+                                           elements.get('jaw_end_proxy_crv')),
+                 create_visualization_line(elements.get('head_proxy_crv'),
+                                           elements.get('left_eye_proxy_crv')),
+                 create_visualization_line(elements.get('head_proxy_crv'),
+                                           elements.get('right_eye_proxy_crv')),
+                 # Left Side
+                 create_visualization_line(elements.get('hip_proxy_crv'),
+                                           elements.get('left_hip_proxy_crv')),
+                 create_visualization_line(elements.get('left_hip_proxy_crv'),
+                                           elements.get('left_knee_proxy_crv')),
+                 create_visualization_line(elements.get('left_knee_proxy_crv'),
+                                           elements.get('left_ankle_proxy_crv')),
+                 create_visualization_line(elements.get('left_ankle_proxy_crv'),
+                                           elements.get('left_ball_proxy_crv')),
+                 create_visualization_line(elements.get('left_ball_proxy_crv'),
+                                           elements.get('left_toe_proxy_crv')),
+                 create_visualization_line(elements.get('spine04_proxy_crv'),
+                                           elements.get('left_clavicle_proxy_crv')),
+                 create_visualization_line(elements.get('left_clavicle_proxy_crv'),
+                                           elements.get('left_shoulder_proxy_crv')),
+                 create_visualization_line(elements.get('left_shoulder_proxy_crv'),
+                                           elements.get('left_elbow_proxy_crv')),
+                 create_visualization_line(elements.get('left_elbow_proxy_crv'),
+                                           elements.get('left_wrist_proxy_crv')),
+                 # Left Fingers
+                 create_visualization_line(elements.get('left_wrist_proxy_crv'),
+                                           elements.get('left_thumb01_proxy_crv')),
+                 create_visualization_line(elements.get('left_thumb01_proxy_crv'),
+                                           elements.get('left_thumb02_proxy_crv')),
+                 create_visualization_line(elements.get('left_thumb02_proxy_crv'),
+                                           elements.get('left_thumb03_proxy_crv')),
+                 create_visualization_line(elements.get('left_thumb03_proxy_crv'),
+                                           elements.get('left_thumb04_proxy_crv')),
+                 create_visualization_line(elements.get('left_wrist_proxy_crv'),
+                                           elements.get('left_index01_proxy_crv')),
+                 create_visualization_line(elements.get('left_index01_proxy_crv'),
+                                           elements.get('left_index02_proxy_crv')),
+                 create_visualization_line(elements.get('left_index02_proxy_crv'),
+                                           elements.get('left_index03_proxy_crv')),
+                 create_visualization_line(elements.get('left_index03_proxy_crv'),
+                                           elements.get('left_index04_proxy_crv')),
+                 create_visualization_line(elements.get('left_wrist_proxy_crv'),
+                                           elements.get('left_middle01_proxy_crv')),
+                 create_visualization_line(elements.get('left_middle01_proxy_crv'),
+                                           elements.get('left_middle02_proxy_crv')),
+                 create_visualization_line(elements.get('left_middle02_proxy_crv'),
+                                           elements.get('left_middle03_proxy_crv')),
+                 create_visualization_line(elements.get('left_middle03_proxy_crv'),
+                                           elements.get('left_middle04_proxy_crv')),
+                 create_visualization_line(elements.get('left_wrist_proxy_crv'),
+                                           elements.get('left_ring01_proxy_crv')),
+                 create_visualization_line(elements.get('left_ring01_proxy_crv'),
+                                           elements.get('left_ring02_proxy_crv')),
+                 create_visualization_line(elements.get('left_ring02_proxy_crv'),
+                                           elements.get('left_ring03_proxy_crv')),
+                 create_visualization_line(elements.get('left_ring03_proxy_crv'),
+                                           elements.get('left_ring04_proxy_crv')),
+                 create_visualization_line(elements.get('left_wrist_proxy_crv'),
+                                           elements.get('left_pinky01_proxy_crv')),
+                 create_visualization_line(elements.get('left_pinky01_proxy_crv'),
+                                           elements.get('left_pinky02_proxy_crv')),
+                 create_visualization_line(elements.get('left_pinky02_proxy_crv'),
+                                           elements.get('left_pinky03_proxy_crv')),
+                 create_visualization_line(elements.get('left_pinky03_proxy_crv'),
+                                           elements.get('left_pinky04_proxy_crv')),
+                 # Right Side
+
+                 create_visualization_line(elements.get('hip_proxy_crv'),
+                                           elements.get('right_hip_proxy_crv')),
+                 create_visualization_line(elements.get('right_hip_proxy_crv'),
+                                           elements.get('right_knee_proxy_crv')),
+                 create_visualization_line(elements.get('right_knee_proxy_crv'),
+                                           elements.get('right_ankle_proxy_crv')),
+                 create_visualization_line(elements.get('right_ankle_proxy_crv'),
+                                           elements.get('right_ball_proxy_crv')),
+
+                 create_visualization_line(elements.get('right_ball_proxy_crv'),
+                                           elements.get('right_toe_proxy_crv')),
+                 create_visualization_line(elements.get('spine04_proxy_crv'),
+                                           elements.get('right_clavicle_proxy_crv')),
+                 create_visualization_line(elements.get('right_clavicle_proxy_crv'),
+                                           elements.get('right_shoulder_proxy_crv')),
+                 create_visualization_line(elements.get('right_shoulder_proxy_crv'),
+                                           elements.get('right_elbow_proxy_crv')),
+                 create_visualization_line(elements.get('right_elbow_proxy_crv'),
+                                           elements.get('right_wrist_proxy_crv')),
+                 # Right Fingers
+                 create_visualization_line(elements.get('right_wrist_proxy_crv'),
+                                           elements.get('right_thumb01_proxy_crv')),
+                 create_visualization_line(elements.get('right_thumb01_proxy_crv'),
+                                           elements.get('right_thumb02_proxy_crv')),
+                 create_visualization_line(elements.get('right_thumb02_proxy_crv'),
+                                           elements.get('right_thumb03_proxy_crv')),
+                 create_visualization_line(elements.get('right_thumb03_proxy_crv'),
+                                           elements.get('right_thumb04_proxy_crv')),
+                 create_visualization_line(elements.get('right_wrist_proxy_crv'),
+                                           elements.get('right_index01_proxy_crv')),
+                 create_visualization_line(elements.get('right_index01_proxy_crv'),
+                                           elements.get('right_index02_proxy_crv')),
+                 create_visualization_line(elements.get('right_index02_proxy_crv'),
+                                           elements.get('right_index03_proxy_crv')),
+                 create_visualization_line(elements.get('right_index03_proxy_crv'),
+                                           elements.get('right_index04_proxy_crv')),
+                 create_visualization_line(elements.get('right_wrist_proxy_crv'),
+                                           elements.get('right_middle01_proxy_crv')),
+                 create_visualization_line(elements.get('right_middle01_proxy_crv'),
+                                           elements.get('right_middle02_proxy_crv')),
+                 create_visualization_line(elements.get('right_middle02_proxy_crv'),
+                                           elements.get('right_middle03_proxy_crv')),
+                 create_visualization_line(elements.get('right_middle03_proxy_crv'),
+                                           elements.get('right_middle04_proxy_crv')),
+                 create_visualization_line(elements.get('right_wrist_proxy_crv'),
+                                           elements.get('right_ring01_proxy_crv')),
+                 create_visualization_line(elements.get('right_ring01_proxy_crv'),
+                                           elements.get('right_ring02_proxy_crv')),
+                 create_visualization_line(elements.get('right_ring02_proxy_crv'),
+                                           elements.get('right_ring03_proxy_crv')),
+                 create_visualization_line(elements.get('right_ring03_proxy_crv'),
+                                           elements.get('right_ring04_proxy_crv')),
+                 create_visualization_line(elements.get('right_wrist_proxy_crv'),
+                                           elements.get('right_pinky01_proxy_crv')),
+                 create_visualization_line(elements.get('right_pinky01_proxy_crv'),
+                                           elements.get('right_pinky02_proxy_crv')),
+                 create_visualization_line(elements.get('right_pinky02_proxy_crv'),
+                                           elements.get('right_pinky03_proxy_crv')),
+                 create_visualization_line(elements.get('right_pinky03_proxy_crv'),
+                                           elements.get('right_pinky04_proxy_crv'))
+                 ]
 
     lines_grp = cmds.group(name='visualization_lines', empty=True, world=True)
     cmds.setAttr(lines_grp + '.overrideEnabled', 1)
@@ -1690,38 +1674,38 @@ def create_controls(data_biped):
         Replaces "proxy" with "jnt"
         Replaces "endProxy" with "endJnt"
 
-                Parameters:
-                    old_name (string): Name of the proxy element
+        Args:
+            old_name (string): Name of the proxy element
 
-                Returns:
-                    new_name (string): Name of the joint to be created out of the element
+        Returns:
+            new_name (string): Name of the joint to be created out of the element
 
         """
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                   'end' + JNT_SUFFIX.capitalize())
 
-    def orient_to_target(obj_name, target, orient_offset=(0, 0, 0), proxy_obj=None,
+    def orient_to_target(obj_name, target, orientation_offset=(0, 0, 0), proxy_obj=None,
                          aim_vec=(1, 0, 0), up_vec=(0, -1, 0), brute_force=False):
         """
         Orients an object based on a target object
 
-                Parameters:
-                    obj_name (string): Name of the object to orient (usually a joint)
-                    target (string): Name of the target object (usually the element that will be the child of "obj")
-                    orient_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change the
-                                          result orientation.
-                    proxy_obj (string): The name of the proxy element (used as extra rotation input)
-                    aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint. Default: (1, 0, 0)
-                    up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint. Default: (0, -1, 0)
-                    brute_force (bool): Creates up and dir points to determine orientation (Uses proxy object)
+        Args:
+            obj_name (string): Name of the object to orient (usually a joint)
+            target (string): Name of the target object (usually the element that will be the child of "obj")
+            orientation_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change the
+                                  result orientation.
+            proxy_obj (string): The name of the proxy element (used as extra rotation input)
+            aim_vec (tuple): A tuple of floats used for the aim vector of the aim constraint. Default: (1, 0, 0)
+            up_vec (tuple):  A tuple of floats used for the up vector of the aim constraint. Default: (0, -1, 0)
+            brute_force (bool): Creates up and dir points to determine orientation (Uses proxy object)
         """
         if proxy_obj:
             cmds.delete(cmds.orientConstraint(proxy_obj, obj_name, offset=(0, 0, 0)))
             cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-        cmds.setAttr(obj_name + '.rotateX', orient_offset[0])
-        cmds.setAttr(obj_name + '.rotateY', orient_offset[1])
-        cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
+        cmds.setAttr(obj_name + '.rotateX', orientation_offset[0])
+        cmds.setAttr(obj_name + '.rotateY', orientation_offset[1])
+        cmds.setAttr(obj_name + '.rotateZ', orientation_offset[2])
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
         cmds.delete(
@@ -1745,32 +1729,31 @@ def create_controls(data_biped):
 
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-    def orient_offset(obj_name, orient_offset=(0, 0, 0), apply=True):
+    def orient_offset(obj_name, orientation_offset=(0, 0, 0), apply=True):
         """
         Rotates the target then freezes its transformation (used to quickly re-orient an object)
 
         Args:
             obj_name (string): Name of the object to orient (usually a joint)
-            orient_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change
+            orientation_offset (tuple): A tuple containing three 32b floats, used as a rotation offset to change
                                   the result orientation.
             apply (optional, bool): Whether to execute the function
         """
         if apply:
-            cmds.setAttr(obj_name + '.rotateX', orient_offset[0])
-            cmds.setAttr(obj_name + '.rotateY', orient_offset[1])
-            cmds.setAttr(obj_name + '.rotateZ', orient_offset[2])
+            cmds.setAttr(obj_name + '.rotateX', orientation_offset[0])
+            cmds.setAttr(obj_name + '.rotateY', orientation_offset[1])
+            cmds.setAttr(obj_name + '.rotateZ', orientation_offset[2])
             cmds.makeIdentity(obj_name, apply=True, rotate=True)
-
 
     def remove_numbers(string):
         """
         Removes all numbers (digits) from the provided string
 
-                Parameters:
-                    string (string): input string (numbers will be removed from it)
+        Args:
+            string (string): input string (numbers will be removed from it)
 
-                Returns:
-                    string (string): output string without numbers (digits)
+        Returns:
+            string (string): output string without numbers (digits)
         """
         return ''.join([i for i in string if not i.isdigit()])
 
@@ -2055,7 +2038,7 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('right_elbow_jnt'), rig_joints.get('right_shoulder_jnt'))
     cmds.parent(rig_joints.get('right_wrist_jnt'), rig_joints.get('right_elbow_jnt'))
 
-    # Left Hand Hierarchy and Orients
+    # Left-Hand Hierarchy and Orients
     # Left Remove Fingers
     cmds.parent(rig_joints.get('left_wrist_jnt'), world=True)
     cmds.parent(rig_joints.get('left_thumb01_jnt'), world=True)
@@ -2083,7 +2066,7 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('left_ring01_jnt'), rig_joints.get('left_wrist_jnt'))
     cmds.parent(rig_joints.get('left_pinky01_jnt'), rig_joints.get('left_wrist_jnt'))
 
-    # Right Hand Hierarchy and Orients
+    # Right-Hand Hierarchy and Orients
     # Right Remove Fingers
     cmds.parent(rig_joints.get('right_wrist_jnt'), world=True)
     cmds.parent(rig_joints.get('right_thumb01_jnt'), world=True)
@@ -3020,7 +3003,7 @@ def create_controls(data_biped):
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(-90, -90, 0, neck_base_ctrl_grp, os=True, relative=True)
 
-    # Neck Mid Control
+    # Neck-Mid Control
     neck_mid_ctrl = cmds.curve(name=rig_joints.get('neck_mid_jnt').replace(JNT_SUFFIX, '') + CTRL_SUFFIX,
                                p=[[0.0, 0.0, 0.0], [0.0, -1.794, 0.0], [0.067, -1.803, 0.0], [0.128, -1.829, 0.0],
                                   [0.181, -1.869, 0.0], [0.222, -1.922, 0.0], [0.247, -1.984, 0.0], [0.256, -2.05, 0.0],
@@ -4049,7 +4032,7 @@ def create_controls(data_biped):
                  niceName='Rotate Order')
     cmds.connectAttr(left_wrist_ik_ctrl + '.rotationOrder', left_wrist_ik_ctrl + '.rotateOrder', f=True)
 
-    # Left Hand Ctrl Visibility Type
+    # Left-Hand Ctrl Visibility Type
     setup_shape_switch(left_wrist_ik_ctrl)
 
     # Left Wrist In-Between Offset
@@ -4396,7 +4379,7 @@ def create_controls(data_biped):
                  niceName='Rotate Order')
     cmds.connectAttr(right_wrist_ik_ctrl + '.rotationOrder', right_wrist_ik_ctrl + '.rotateOrder', f=True)
 
-    # Right Hand Ctrl Visibility Type
+    # Right-Hand Ctrl Visibility Type
     setup_shape_switch(right_wrist_ik_ctrl)
 
     # Right Wrist In-Between Offset
@@ -4739,7 +4722,6 @@ def create_controls(data_biped):
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 4, left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4768,7 +4750,6 @@ def create_controls(data_biped):
     # Left Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_up_down_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 2.6, left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4823,7 +4804,6 @@ def create_controls(data_biped):
     # Left Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_ball_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 3, left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
 
@@ -4878,7 +4858,6 @@ def create_controls(data_biped):
     # Left Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(left_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(left_foot_scale_offset / 3.5 * -1, left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4938,7 +4917,6 @@ def create_controls(data_biped):
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 4, right_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -4967,7 +4945,6 @@ def create_controls(data_biped):
     # Right Toe Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_up_down_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 2.6, right_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -5026,7 +5003,6 @@ def create_controls(data_biped):
     # Right Ball Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_ball_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(right_foot_scale_offset / 3, right_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
 
@@ -5085,7 +5061,6 @@ def create_controls(data_biped):
     # Right Heel Position and Visibility
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
-    desired_translation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, t=True, ws=True)
     cmds.setAttr(right_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
     cmds.move(-right_foot_scale_offset / 3.5 * -1, right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
@@ -5481,12 +5456,7 @@ def create_controls(data_biped):
     cmds.parent(ik_spine02_jnt, ik_spine01_jnt)
     cmds.parent(ik_spine03_jnt, ik_spine02_jnt)
     cmds.parent(ik_spine04_jnt, ik_spine03_jnt)
-    ik_spine_joints = []
-    ik_spine_joints.append(ik_cog_jnt[0])
-    ik_spine_joints.append(ik_spine01_jnt[0])
-    ik_spine_joints.append(ik_spine02_jnt[0])
-    ik_spine_joints.append(ik_spine03_jnt[0])
-    ik_spine_joints.append(ik_spine04_jnt[0])
+    ik_spine_joints = [ik_cog_jnt[0], ik_spine01_jnt[0], ik_spine02_jnt[0], ik_spine03_jnt[0], ik_spine04_jnt[0]]
 
     # Create Limit Jnt Chain
     cmds.duplicate(ik_cog_jnt, rc=True)
@@ -6057,8 +6027,7 @@ def create_controls(data_biped):
     cmds.addAttr(spine_ribbon_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
     cmds.setAttr(spine_ribbon_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
 
-    cmds.addAttr(spine_ribbon_ctrl, ln="followChestAndHip", at='double', k=True, maxValue=1,
-                 minValue=0)  # , niceName='Auto Rotate Neck Mid')
+    cmds.addAttr(spine_ribbon_ctrl, ln="followChestAndHip", at='double', k=True, maxValue=1, minValue=0)
     cmds.setAttr(spine_ribbon_ctrl + '.followChestAndHip', 1)
 
     spine_follow_reverse_node = cmds.createNode('reverse', name='spine_follow_reverse')
@@ -6296,7 +6265,7 @@ def create_controls(data_biped):
     cmds.parent(left_fingers_ik_grp, ik_solvers_grp)
 
     # Left Auto Fist/Splay Offset
-    # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)
+    # A list of tuples of tuples 1:[thumb, index...],  2: f_01, f_02, f_03,  3: finger_ctrl, ctrl_grp, ctrl_offset
     for obj in left_fingers_list:
         finger_name = remove_numbers(obj[0][0].replace(CTRL_SUFFIX, ''))
 
@@ -6420,7 +6389,7 @@ def create_controls(data_biped):
     cmds.setAttr(left_fingers_ctrl + '.minScaleZLimitEnable', 1)
     cmds.setAttr(left_fingers_ctrl + '.maxScaleZLimitEnable', 1)
 
-    # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)
+    # A list of tuples of tuples 1:[thumb, index...],  2: f_01, f_02, f_03,  3: finger_ctrl, ctrl_grp, ctrl_offset
     for obj in left_fingers_list:
         # Unpack Elements
         finger_name = remove_numbers(obj[0][0].replace(CTRL_SUFFIX, ''))
@@ -10195,11 +10164,10 @@ def create_controls(data_biped):
                 change_viewport_color(annotate_x, (1, 0, 0))
                 change_viewport_color(annotate_y, (0, 1, 0))
                 change_viewport_color(annotate_z, (0, 0, 1))
-                annotation_transforms = []
-                annotation_transforms.append(cmds.listRelatives(annotate, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_x, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_y, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_z, parent=True))
+                annotation_transforms = [cmds.listRelatives(annotate, parent=True),
+                                         cmds.listRelatives(annotate_x, parent=True),
+                                         cmds.listRelatives(annotate_y, parent=True),
+                                         cmds.listRelatives(annotate_z, parent=True)]
                 cmds.parent(ann_holder, obj)
                 cmds.parent(annotate, ann_holder, s=True)
                 cmds.parent(annotate_x, ann_holder, s=True)
@@ -10232,11 +10200,10 @@ def create_controls(data_biped):
                 change_viewport_color(annotate_x, (1, 0, 0))
                 change_viewport_color(annotate_y, (0, 1, 0))
                 change_viewport_color(annotate_z, (0, 0, 1))
-                annotation_transforms = []
-                annotation_transforms.append(cmds.listRelatives(annotate, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_x, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_y, parent=True))
-                annotation_transforms.append(cmds.listRelatives(annotate_z, parent=True))
+                annotation_transforms = [cmds.listRelatives(annotate, parent=True),
+                                         cmds.listRelatives(annotate_x, parent=True),
+                                         cmds.listRelatives(annotate_y, parent=True),
+                                         cmds.listRelatives(annotate_z, parent=True)]
                 cmds.parent(ann_holder, obj)
                 cmds.parent(annotate, ann_holder, s=True)
                 cmds.parent(annotate_x, ann_holder, s=True)
@@ -10321,4 +10288,4 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
 
 # Test it
 if __name__ == '__main__':
-    build_biped_rig(create_rig_ctrls=True, debugging=False)
+    build_biped_rig(create_rig_ctrls=False, debugging=False)

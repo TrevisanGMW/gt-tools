@@ -33,6 +33,10 @@
  1.6.2 - 2022-07-14
  Updated script name
  Increased the size of the output window
+ Updated help
+
+ 1.6.3 - 2022-07-26
+ Added save to shelf
 
 """
 
@@ -61,7 +65,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Python Curve"
 
 # Version:
-script_version = "1.6.2"
+script_version = "1.6.3"
 
 # Default Settings
 close_curve = False
@@ -122,8 +126,26 @@ def build_gui_py_curve():
     cmds.text(label='Output Python Curve')
     output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 15)], p=content_main)
     cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
+    cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf())
     cmds.separator(h=10, style='none')  # Empty Space
+
+    def _btn_add_to_shelf():
+        command = cmds.scrollField(output_python, query=True, text=True) or ''
+        if command:
+            create_shelf_button(command,
+                                label='Crv',
+                                tooltip='Extracted curve',
+                                image="curveBezier.png",
+                                label_color=(0, 0.84, 0.81),
+                                label_bgc_color=(0, 0, 0, 1),
+                                )
+            cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">Current Python Curve Command'
+                                   '</span> was added as a button to your current shelf.',
+                               pos='botLeft', fade=True, alpha=.9)
+        else:
+            cmds.warning('Unable to save to shelf. "Output Python Curve" is empty.')
 
     def generate_python_curve():
 
@@ -243,6 +265,10 @@ def build_gui_help_py_curve():
     cmds.text(l='Attempts to run the code (or anything written) inside ', align="left")
     cmds.text(l='"Output Python Curve" box', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l='Save To Shelf:', align="left", fn="boldLabelFont")
+    cmds.text(l='Saves to shelf as a button the code (or anything written) inside ', align="left")
+    cmds.text(l='"Output Python Curve" box', align="left")
+    cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
     cmds.text('Guilherme Trevisan  ')
     cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
@@ -270,6 +296,60 @@ def build_gui_help_py_curve():
     def close_help_gui():
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+
+
+def create_shelf_button(command,
+                        label='',
+                        tooltip='',
+                        image=None,  # Default Python Icon
+                        label_color=(1, 0, 0),  # Default Red
+                        label_bgc_color=(0, 0, 0, 1),  # Default Black
+                        bgc_color=None
+                        ):
+    """
+    Add a shelf button to the current shelf (according to the provided parameters)
+
+    Args:
+        command (str): A string containing the code or command you want the button to run when clicking on it.
+                       e.g. "print("Hello World")"
+        label (str): The label of the button. This is the text you see below it.
+        tooltip (str): The help message you get when hovering the button.
+        image (str): The image used for the button (defaults to Python icon if none)
+        label_color (tuple): A tuple containing three floats,
+                             these are RGB 0 to 1 values to determine the color of the label.
+        label_bgc_color (tuple): A tuple containing four floats,
+                                 these are RGBA 0 to 1 values to determine the background of the label.
+        bgc_color (tuple): A tuple containing three floats,
+                           these are RGB 0 to 1 values to determine the background of the icon
+
+    """
+    maya_version = int(cmds.about(v=True))
+
+    shelf_top_level = mel.eval('$temp=$gShelfTopLevel')
+    if not cmds.tabLayout(shelf_top_level, exists=True):
+        cmds.warning('Shelf is not visible')
+        return
+
+    if not image:
+        image = 'pythonFamily.png'
+
+    shelf_tab = cmds.shelfTabLayout(shelf_top_level, query=True, selectTab=True)
+    shelf_tab = shelf_top_level + '|' + shelf_tab
+
+    # Populate extra arguments according to the current Maya version
+    kwargs = {}
+    if maya_version >= 2009:
+        kwargs['commandRepeatable'] = True
+    if maya_version >= 2011:
+        kwargs['overlayLabelColor'] = label_color
+        kwargs['overlayLabelBackColor'] = label_bgc_color
+        if bgc_color:
+            kwargs['enableBackground'] = bool(bgc_color)
+            kwargs['backgroundColor'] = bgc_color
+
+    return cmds.shelfButton(parent=shelf_tab, label=label, command=command,
+                            imageOverlayLabel=label, image=image, annotation=tooltip,
+                            width=32, height=32, align='center', **kwargs)
 
 
 # Build UI
