@@ -11,6 +11,9 @@
  2022-07-26
  Added "create_cheek_nose_controls" function
 
+ 2022-07-27
+ Updated "create_cheek_nose_controls" with nose up/down
+
 """
 from gt_utilities import make_flat_list
 from gt_rigger_data import *
@@ -88,11 +91,11 @@ def combine_curves_list(curve_list):
         acceptable_types = ['nurbsCurve', 'bezierCurve']
         bezier_in_selection = []
 
-        for obj in curve_list:
-            shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+        for crv in curve_list:
+            shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
             for shape in shapes:
                 if cmds.objectType(shape) == 'bezierCurve':
-                    bezier_in_selection.append(obj)
+                    bezier_in_selection.append(crv)
                 if cmds.objectType(shape) not in acceptable_types:
                     valid_selection = False
                     cmds.warning('Make sure you selected only curves.')
@@ -112,24 +115,24 @@ def combine_curves_list(curve_list):
                                             dismissString='No',
                                             icon='warning')
             if user_input == 'Yes':
-                for obj in bezier_in_selection:
-                    logger.debug(obj)
+                for bezier in bezier_in_selection:
+                    logger.debug(str(bezier))
                     cmds.bezierCurveToNurbs()
 
         if valid_selection:
             shapes = []
-            for obj in curve_list:
-                extracted_shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+            for crv in curve_list:
+                extracted_shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
                 for ext_shape in extracted_shapes:
                     shapes.append(ext_shape)
 
-            for obj in range(len(curve_list)):
-                cmds.makeIdentity(curve_list[obj], apply=True, rotate=True, scale=True, translate=True)
+            for crv in range(len(curve_list)):
+                cmds.makeIdentity(curve_list[crv], apply=True, rotate=True, scale=True, translate=True)
 
             group = cmds.group(empty=True, world=True, name=curve_list[0])
             cmds.select(shapes[0])
-            for obj in range(1, (len(shapes))):
-                cmds.select(shapes[obj], add=True)
+            for crv in range(1, (len(shapes))):
+                cmds.select(shapes[crv], add=True)
 
             cmds.select(group, add=True)
             cmds.parent(relative=True, shape=True)
@@ -137,8 +140,8 @@ def combine_curves_list(curve_list):
             combined_curve = cmds.rename(group, curve_list[0])
             return combined_curve
 
-    except Exception as e:
-        errors += str(e) + '\n'
+    except Exception as exception:
+        errors += str(exception) + '\n'
         cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
@@ -1146,7 +1149,6 @@ def gtu_uniform_jnt_label_toggle():
 
 def create_shelf_button(command,
                         label='',
-                        name=None,
                         tooltip='',
                         image=None,  # Default Python Icon
                         label_color=(1, 0, 0),  # Default Red
@@ -1160,7 +1162,6 @@ def create_shelf_button(command,
         command (str): A string containing the code or command you want the button to run when clicking on it.
                        e.g. "print("Hello World")"
         label (str): The label of the button. This is the text you see below it.
-        name (str): The name of the button as seen inside the shelf editor.
         tooltip (str): The help message you get when hovering the button.
         image (str): The image used for the button (defaults to Python icon if none)
         label_color (tuple): A tuple containing three floats,
@@ -1335,8 +1336,7 @@ def toggle_rigging_attr():
         pos='botLeft', fade=True, alpha=.9)
 
 
-def attach_no_ssc_skeleton(duplicated_joints,
-                           realtime_root_jnt,
+def attach_no_ssc_skeleton(realtime_root_jnt,
                            current_root_jnt,
                            root_scale_constraint_ctrl,
                            new_skeleton_suffix='game',
@@ -1348,7 +1348,6 @@ def attach_no_ssc_skeleton(duplicated_joints,
     to follow and mimic the scale of the original gt auto biped rigger skeleton
 
     Args:
-        duplicated_joints (list): A list of string containing all generated real-time joints
         realtime_root_jnt (string): The name of the root joint (usually the top parent) of the new skeleton
         current_root_jnt (string): The name of the root joint (usually the top parent) of the current skeleton
         root_scale_constraint_ctrl (string): Control used to drive the scale constraint of the game root joint
@@ -3027,18 +3026,15 @@ def print_inview_message(part_a, part_b, color_a='FF0000', color_b='FFFFFF'):
 
 # Tests
 if __name__ == '__main__':
-    pass
     logger.setLevel(logging.DEBUG)
     output = ''
     # data_facial = GTBipedRiggerFacialData()
-    try:
-        cmds.delete('facial_side_gui_grp')
-    except:
-        pass
-    try:
-        cmds.delete('cheek_nose_gui_grp')
-    except:
-        pass
-    # create_cheek_nose_controls()
-    create_facial_side_gui(True)
+    attempt_to_delete = ['facial_side_gui_grp', 'cheek_nose_gui_grp']
+    for to_delete in attempt_to_delete:
+        try:
+            cmds.delete(to_delete)
+        except Exception as not_deleted:
+            logger.debug(str(not_deleted))
+    create_cheek_nose_controls()
+    # create_facial_side_gui(True)
     logger.debug(str(output))
