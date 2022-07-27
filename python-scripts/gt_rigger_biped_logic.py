@@ -1664,7 +1664,6 @@ def create_proxy(data_biped):
         pos='botLeft', fade=True, alpha=.9)
 
 
-# noinspection PyTypeChecker
 def create_controls(data_biped):
     """ Creates rig using the previously created proxy/guide """
 
@@ -1729,7 +1728,7 @@ def create_controls(data_biped):
 
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
-    def orient_offset(obj_name, orientation_offset=(0, 0, 0), apply=True):
+    def add_orient_offset(obj_name, orientation_offset=(0, 0, 0), apply=True):
         """
         Rotates the target then freezes its transformation (used to quickly re-orient an object)
 
@@ -2596,8 +2595,8 @@ def create_controls(data_biped):
            [2.509, -21.496, 0.0], [2.6, -20.825, 0.0], [-2.61, -20.825, 0.0], [0.0, -20.835, 0.0], [0.0, -23.437, 0.0]],
         d=1)
 
-    orient_offset(cog_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(cog_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(cog_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(cog_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cog_ctrl = combine_curves_list([cog_ctrl_a, cog_ctrl_b])
 
@@ -2687,8 +2686,8 @@ def create_controls(data_biped):
            [0.054, -0.955, 0.0], [0.077, -0.941, 0.0], [0.092, -0.917, 0.0], [0.104, -0.891, 0.0], [0.109, -0.864, 0.0],
            [-0.109, -0.864, 0.0], [0.0, -0.864, 0.0], [0.0, -0.971, 0.0]], d=1)
 
-    orient_offset(hip_ctrl_a, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(hip_ctrl_b, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(hip_ctrl_a, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(hip_ctrl_b, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
 
     hip_ctrl = combine_curves_list([hip_ctrl_a, hip_ctrl_b])
 
@@ -2789,9 +2788,9 @@ def create_controls(data_biped):
                                    [0.123, -1.218, 0.0], [0.138, -1.184, 0.0], [0.143, -1.146, 0.0],
                                    [-0.144, -1.146, 0.0], [0.0, -1.146, 0.0], [0.0, -1.29, 0.0]], d=1)
 
-    orient_offset(spine01_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine01_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine01_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine01_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine01_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine01_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine01_ctrl = combine_curves_list([spine01_ctrl_a, spine01_ctrl_b, spine01_ctrl_c])
 
@@ -2843,9 +2842,9 @@ def create_controls(data_biped):
                                    [0.161, -1.597, 0.0], [0.181, -1.552, 0.0], [0.187, -1.503, 0.0],
                                    [-0.189, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.691, 0.0]], d=1)
 
-    orient_offset(spine02_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine02_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine02_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine02_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine02_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine02_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine02_ctrl = combine_curves_list([spine02_ctrl_a, spine02_ctrl_b, spine02_ctrl_c])
 
@@ -2897,9 +2896,9 @@ def create_controls(data_biped):
                                    [0.138, -1.184, 0.0], [0.143, -1.146, 0.0], [-0.144, -1.146, 0.0],
                                    [0.0, -1.146, 0.0], [0.0, -1.29, 0.0]], d=1)
 
-    orient_offset(spine03_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine03_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine03_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine03_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine03_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine03_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine03_ctrl = combine_curves_list([spine03_ctrl_a, spine03_ctrl_b, spine03_ctrl_c])
 
@@ -2950,9 +2949,9 @@ def create_controls(data_biped):
                                    [0.161, -1.597, 0.0], [0.181, -1.552, 0.0], [0.187, -1.503, 0.0],
                                    [-0.189, -1.503, 0.0], [0.0, -1.503, 0.0], [0.0, -1.691, 0.0]], d=1)
 
-    orient_offset(spine04_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine04_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
-    orient_offset(spine04_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine04_ctrl_a, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine04_ctrl_b, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine04_ctrl_c, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     spine04_ctrl = combine_curves_list([spine04_ctrl_a, spine04_ctrl_b, spine04_ctrl_c])
 
@@ -2986,7 +2985,7 @@ def create_controls(data_biped):
                                    [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0], [0.0, -2.051, 0.0],
                                    [0.0, -2.307, 0.0]], d=1)
 
-    orient_offset(neck_base_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(neck_base_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cmds.setAttr(neck_base_ctrl + '.scaleX', general_scale_offset * .5)
     cmds.setAttr(neck_base_ctrl + '.scaleY', general_scale_offset * .5)
@@ -3015,7 +3014,7 @@ def create_controls(data_biped):
                                   [0.221, -2.179, 0.0], [0.247, -2.116, 0.0], [0.256, -2.05, 0.0], [-0.257, -2.05, 0.0],
                                   [0.0, -2.051, 0.0], [0.0, -2.307, 0.0]], d=1)
 
-    orient_offset(neck_mid_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(neck_mid_ctrl, (90, 0, -90), apply=settings.get('uniform_ctrl_orient'))
 
     cmds.setAttr(neck_mid_ctrl + '.scaleX', general_scale_offset * .3)
     cmds.setAttr(neck_mid_ctrl + '.scaleY', general_scale_offset * .3)
@@ -3039,7 +3038,7 @@ def create_controls(data_biped):
                               [0.0, -0.529, 0.529], [0.0, 0.0, 0.748], [0.0, 0.529, 0.529], [0.0, 0.748, 0.0],
                               [0.0, 0.529, -0.529], [0.0, 0.0, -0.748], [0.0, -0.529, -0.529]], d=3, per=True,
                            k=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-    orient_offset(head_ctrl, (90, 0, 0), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(head_ctrl, (90, 0, 0), apply=settings.get('uniform_ctrl_orient'))
     cmds.setAttr(head_ctrl + '.scaleX', general_scale_offset)
     cmds.setAttr(head_ctrl + '.scaleY', general_scale_offset)
     cmds.setAttr(head_ctrl + '.scaleZ', general_scale_offset)
@@ -3268,7 +3267,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_hip_jnt'), left_hip_ctrl_grp))
 
-    orient_offset(left_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, left_hip_ctrl_grp, os=True, relative=True)
 
@@ -3298,7 +3297,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_knee_jnt'), left_knee_ctrl_grp))
 
-    orient_offset(left_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, left_knee_ctrl_grp, os=True, relative=True)
 
@@ -3361,7 +3360,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_ball_jnt'), left_ball_ctrl_grp))
 
-    orient_offset(left_ball_ctrl, (0, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_ball_ctrl, (0, 0, 90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(-90, -90, 0, left_ball_ctrl_grp, os=True, relative=True)
 
@@ -3521,7 +3520,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_hip_jnt'), right_hip_ctrl_grp))
 
-    orient_offset(right_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_hip_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_hip_ctrl_grp, os=True, relative=True)
 
@@ -3551,7 +3550,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_knee_jnt'), right_knee_ctrl_grp))
 
-    orient_offset(right_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_knee_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_knee_ctrl_grp, os=True, relative=True)
 
@@ -3614,7 +3613,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_ball_jnt'), right_ball_ctrl_grp))
 
-    orient_offset(right_ball_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_ball_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_ball_ctrl_grp, os=True, relative=True)
 
@@ -3781,7 +3780,7 @@ def create_controls(data_biped):
     cmds.makeIdentity(left_clavicle_ctrl, apply=True, rotate=True)
 
     if settings.get('uniform_ctrl_orient'):
-        orient_offset(left_clavicle_ctrl, (-90, 0, 0))
+        add_orient_offset(left_clavicle_ctrl, (-90, 0, 0))
         cmds.rotate(90, 0, 0, left_clavicle_ctrl_grp, os=True, relative=True)
 
     # Left Clavicle General Adjustments
@@ -3818,7 +3817,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_shoulder_jnt'), left_shoulder_ctrl_grp))
 
-    orient_offset(left_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, left_shoulder_ctrl_grp, os=True, relative=True)
 
@@ -3849,7 +3848,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_elbow_ctrl_grp))
 
-    orient_offset(left_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, left_elbow_ctrl_grp, os=True, relative=True)
 
@@ -3879,7 +3878,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ctrl_grp))
 
-    orient_offset(left_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(left_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, left_wrist_ctrl_grp, os=True, relative=True)
 
@@ -4014,7 +4013,7 @@ def create_controls(data_biped):
         cmds.makeIdentity(left_wrist_ik_ctrl, apply=True, rotate=True)
         cmds.delete(cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
     elif settings.get('uniform_ctrl_orient'):
-        orient_offset(left_wrist_ik_ctrl, (-90, 0, 0))
+        add_orient_offset(left_wrist_ik_ctrl, (-90, 0, 0))
         cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_ik_ctrl_grp))
         cmds.rotate(90, 0, 0, left_wrist_ik_ctrl_grp, os=True, relative=True)
     else:
@@ -4122,7 +4121,7 @@ def create_controls(data_biped):
     cmds.makeIdentity(right_clavicle_ctrl, apply=True, rotate=True)
 
     if settings.get('uniform_ctrl_orient'):
-        orient_offset(right_clavicle_ctrl, (-90, 0, 0))
+        add_orient_offset(right_clavicle_ctrl, (-90, 0, 0))
         cmds.rotate(90, 0, 0, right_clavicle_ctrl_grp, os=True, relative=True)
 
     # Right Clavicle General Adjustments
@@ -4159,7 +4158,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_shoulder_jnt'), right_shoulder_ctrl_grp))
 
-    orient_offset(right_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_shoulder_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_shoulder_ctrl_grp, os=True, relative=True)
 
@@ -4192,7 +4191,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_elbow_jnt'), right_elbow_ctrl_grp))
 
-    orient_offset(right_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_elbow_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_elbow_ctrl_grp, os=True, relative=True)
 
@@ -4221,7 +4220,7 @@ def create_controls(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ctrl_grp))
 
-    orient_offset(right_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(right_wrist_ctrl, (0, 0, -90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, right_wrist_ctrl_grp, os=True, relative=True)
 
@@ -4360,7 +4359,7 @@ def create_controls(data_biped):
         cmds.makeIdentity(right_wrist_ik_ctrl, apply=True, rotate=True)
         cmds.delete(cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
     elif settings.get('uniform_ctrl_orient'):
-        orient_offset(right_wrist_ik_ctrl, (-90, 0, 0))
+        add_orient_offset(right_wrist_ik_ctrl, (-90, 0, 0))
         cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_ik_ctrl_grp))
         cmds.rotate(270, 0, 0, right_wrist_ik_ctrl_grp, os=True, relative=True)
         cmds.setAttr(right_wrist_ik_ctrl_grp + '.sx', -1)
@@ -5659,7 +5658,7 @@ def create_controls(data_biped):
     cmds.parent(chest_ribbon_adjustment_ctrl, chest_ribbon_adjustment_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine04_jnt[0], chest_ribbon_adjustment_ctrl_grp))
 
-    orient_offset(chest_ribbon_adjustment_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(chest_ribbon_adjustment_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, chest_ribbon_adjustment_ctrl_grp, os=True, relative=True)
 
@@ -5719,7 +5718,7 @@ def create_controls(data_biped):
     cmds.parent(spine_ribbon_ctrl, spine_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_spine02_jnt[0], spine_ribbon_ctrl_grp))
 
-    orient_offset(spine_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(spine_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, spine_ribbon_ctrl_grp, os=True, relative=True)
 
@@ -5747,7 +5746,7 @@ def create_controls(data_biped):
     cmds.parent(cog_ribbon_ctrl, cog_ribbon_ctrl_grp)
     cmds.delete(cmds.parentConstraint(ribbon_cog_jnt[0], cog_ribbon_ctrl_grp))
 
-    orient_offset(cog_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
+    add_orient_offset(cog_ribbon_ctrl, (90, 0, 90), apply=settings.get('uniform_ctrl_orient'))
     if settings.get('uniform_ctrl_orient'):
         cmds.rotate(0, -90, -90, cog_ribbon_ctrl_grp, os=True, relative=True)
 
@@ -10070,9 +10069,10 @@ def create_controls(data_biped):
     # Creates game skeleton (No Segment Scale Compensate)
     if settings.get('using_no_ssc_skeleton'):
         new_skeleton_suffix = 'game'
-        duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix,
-                                                                    rig_joints_default.get('main_jnt'))
-        attach_no_ssc_skeleton(duplicated_joints, game_root_jnt,
+        duplicated_joints, game_root_jnt = generate_no_ssc_skeleton(new_skeleton_suffix, jnt_suffix='jnt',
+                                                                    skeleton_root=rig_joints_default.get('main_jnt'))
+
+        attach_no_ssc_skeleton(game_root_jnt,
                                rig_joints_default.get('main_jnt'),
                                main_ctrl, new_skeleton_suffix)
 
@@ -10211,7 +10211,7 @@ def create_controls(data_biped):
                 cmds.parent(annotate_z, ann_holder, s=True)
                 for empty_trans in annotation_transforms:
                     cmds.delete(empty_trans)
-                print(ann_holder)
+                logger.debug(str(ann_holder))
 
         if debugging_auto_breathing:
             cmds.setAttr(main_ctrl + '.breathingInfluence', 1)
@@ -10251,7 +10251,7 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
     biped_obj = GTBipedRiggerData()
     biped_obj.debugging = debugging
     biped_obj.debugging_force_new_scene = True
-    # biped_data.settings['using_no_ssc_skeleton'] = False
+    biped_obj.settings['using_no_ssc_skeleton'] = True
     biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
     biped_obj.settings['worldspace_ik_orient'] = False
@@ -10288,4 +10288,4 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
 
 # Test it
 if __name__ == '__main__':
-    build_biped_rig(create_rig_ctrls=False, debugging=False)
+    build_biped_rig(create_rig_ctrls=True, debugging=True)
