@@ -35,6 +35,9 @@
  Increased the size of the output window
  Updated help
 
+ 1.6.3 - 2022-07-26
+ Added save to shelf
+
 """
 
 import maya.cmds as cmds
@@ -62,7 +65,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Python Curve"
 
 # Version:
-script_version = "1.6.2"
+script_version = "1.6.3"
 
 # Default Settings
 close_curve = False
