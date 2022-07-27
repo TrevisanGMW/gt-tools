@@ -28,8 +28,13 @@ Added "Extract Bound Joints to Selection Sets" button
 Updated help
 Tweaked the UI spacing
 
+1.1.2 - 2022-07-26
+Fixed a typo
+Removed unnecessary parameter
+
 Todo:
     Add Transfer functions
+    Add option to include maya.cmds
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -56,7 +61,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.1.1"
+script_version = "1.1.2"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -134,15 +139,13 @@ def build_gui_extract_bound_joints():
             create_shelf_button(command,
                                 label='bJnts',
                                 tooltip='Extracted joints',
-                                image="smoothSkin.png",  # Default Python Icon
-                                label_color=(.97, 0, 1.7),  # Default Red
-                                label_bgc_color=(0, 0, 0, 1),  # Default Black
-                                )
+                                image="smoothSkin.png",
+                                label_color=(.97, 0, 1.7))
             cmds.inViewMessage(amg='<span style=\"color:#FFFF00;\">Current Selection Command'
                                    '</span> was added as a button to your current shelf.',
                                pos='botLeft', fade=True, alpha=.9)
         else:
-            cmds.warning('Unable to save to shelf. "Output- Selection Command" is empty.')
+            cmds.warning('Unable to save to shelf. "Output - Selection Command" is empty.')
 
     def _btn_extract_bound_validation(operation_target='python'):
         """
@@ -329,7 +332,6 @@ def get_bound_joints(obj):
 
 def create_shelf_button(command,
                         label='',
-                        name=None,
                         tooltip='',
                         image=None,  # Default Python Icon
                         label_color=(1, 0, 0),  # Default Red
@@ -343,7 +345,6 @@ def create_shelf_button(command,
         command (str): A string containing the code or command you want the button to run when clicking on it.
                        e.g. "print("Hello World")"
         label (str): The label of the button. This is the text you see below it.
-        name (str): The name of the button as seen inside the shelf editor.
         tooltip (str): The help message you get when hovering the button.
         image (str): The image used for the button (defaults to Python icon if none)
         label_color (tuple): A tuple containing three floats,
