@@ -15,6 +15,10 @@
  Updated "create_cheek_nose_controls" with main nose
  PEP8 Cleanup
 
+ 2022-07-28
+ Updated "create_cheek_nose_controls" with inverted right controls
+ Repositioned nose controls (side GUI)
+
 """
 from gt_utilities import make_flat_list
 from gt_rigger_data import *
@@ -2282,7 +2286,7 @@ def create_cheek_nose_controls():
     # Reposition / Rescale BG
     left_nose_crv_tx = 0.05
     right_nose_crv_tx = -5.3
-    nose_crv_ty = -4.5
+    nose_crv_ty = -5.56
     nose_crv_scale = .5
     cmds.setAttr(left_nose_crv + '.tx', left_nose_crv_tx)
     cmds.setAttr(right_nose_crv + '.tx', right_nose_crv_tx)
@@ -2314,7 +2318,7 @@ def create_cheek_nose_controls():
     rescale(right_cheek_ctrl[1], cheek_scale, freeze=False)
 
     nose_tx = 2.5
-    nose_ty = -2
+    nose_ty = -3
     nose_scale = .25
     cmds.setAttr(left_nose_ctrl[1] + '.tx', nose_tx)
     cmds.setAttr(right_nose_ctrl[1] + '.tx', -nose_tx)
@@ -2335,6 +2339,10 @@ def create_cheek_nose_controls():
     cmds.setAttr(right_cheek_in_out_ctrl[1] + '.ty', cheek_in_out_ty)
     rescale(left_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
     rescale(right_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
+
+    # Invert Right Side
+    for obj in [right_cheek_ctrl, right_nose_ctrl]:
+        cmds.setAttr(obj[1] + '.sx', cmds.getAttr(obj[1] + '.sx')*-1)
 
     # Determine Grp Order
     controls.append(left_cheek_ctrl)
@@ -3042,6 +3050,6 @@ if __name__ == '__main__':
             cmds.delete(to_delete)
         except Exception as not_deleted:
             logger.debug(str(not_deleted))
-    # create_cheek_nose_controls()
+    create_cheek_nose_controls()
     # create_facial_side_gui(True)
     logger.debug(str(output))
