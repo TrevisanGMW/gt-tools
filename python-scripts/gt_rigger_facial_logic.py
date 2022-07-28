@@ -1666,7 +1666,7 @@ def create_facial_controls(facial_data):
     general_head_scale += dist_center_to_center(_facial_joints_dict.get('head_jnt'),
                                                 _facial_joints_dict.get('mid_upper_lip_jnt'))
 
-    facial_gui_grp = create_facial_side_gui()
+    facial_gui_grp = create_facial_side_gui(add_nose_cheeks=True)
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('mid_upper_lip_jnt'), facial_gui_grp))
     cmds.parent(facial_gui_grp, head_ctrl)
     cmds.move(general_head_scale * 2, facial_gui_grp, moveX=True, relative=True)
@@ -2232,6 +2232,7 @@ def create_facial_controls(facial_data):
     cheeks_scale_offset = 0
     cheeks_scale_offset += dist_center_to_center(_facial_joints_dict.get('left_cheek_jnt'),
                                                  _facial_joints_dict.get('right_cheek_jnt'))
+    cheeks_scale = cheeks_scale_offset * .15
 
     # Control Holder
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('left_cheek_crv'),
@@ -2250,18 +2251,17 @@ def create_facial_controls(facial_data):
                                     [0.222, 0.129, 0.636], [0.182, 0.181, 0.636], [0.129, 0.221, 0.636],
                                     [0.066, 0.247, 0.636], [-0.0, 0.257, 0.636], [-0.0, -0.257, 0.636],
                                     [0.001, 0.001, 0.636], [0.257, 0.001, 0.636]], d=1)
-    rescale(left_cheek_ctrl, cheeks_scale_offset * .1)
+    rescale(left_cheek_ctrl, cheeks_scale)
     left_cheek_ctrl_grp = cmds.group(name=left_cheek_ctrl + GRP_SUFFIX.capitalize(),
                                      empty=True, world=True)
     cmds.parent(left_cheek_ctrl, left_cheek_ctrl_grp)
     cmds.delete(cmds.parentConstraint(_facial_joints_dict.get('left_cheek_jnt'), left_cheek_ctrl_grp))
+    cmds.makeIdentity(_facial_joints_dict.get('left_cheek_jnt'), translate=False, rotate=True, scale=False, apply=True)
     change_viewport_color(left_cheek_ctrl, LEFT_CTRL_COLOR)
-    cmds.parentConstraint(left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt'))
-    cmds.scaleConstraint(left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt'))
-
+    cmds.delete(cmds.parentConstraint(left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt')))
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('right_cheek_crv'),
                                       _facial_joints_dict.get('right_cheek_jnt')))
-    cmds.parent(left_cheek_ctrl_grp, head_ctrl)
+    # cmds.parent(left_cheek_ctrl_grp, head_ctrl)
 
     cmds.rotate(-90, 90, 0, _facial_joints_dict.get('right_cheek_jnt'), os=True, relative=True)
     right_cheek_ctrl = cmds.curve(name='right_cheek_' + CTRL_SUFFIX,
@@ -2276,15 +2276,43 @@ def create_facial_controls(facial_data):
                                      [0.222, 0.129, 0.636], [0.182, 0.181, 0.636], [0.129, 0.221, 0.636],
                                      [0.066, 0.247, 0.636], [-0.0, 0.257, 0.636], [-0.0, -0.257, 0.636],
                                      [0.001, 0.001, 0.636], [0.257, 0.001, 0.636]], d=1)
-    rescale(right_cheek_ctrl, cheeks_scale_offset * .1)
-    right_cheek_ctrl_grp = cmds.group(name=right_cheek_ctrl + GRP_SUFFIX.capitalize(),
-                                      empty=True, world=True)
+    rescale(right_cheek_ctrl, cheeks_scale)
+    right_cheek_ctrl_grp = cmds.group(name=right_cheek_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(right_cheek_ctrl, right_cheek_ctrl_grp)
     cmds.delete(cmds.parentConstraint(_facial_joints_dict.get('right_cheek_jnt'), right_cheek_ctrl_grp))
+    cmds.makeIdentity(_facial_joints_dict.get('right_cheek_jnt'), translate=False, rotate=True, scale=False, apply=True)
     change_viewport_color(right_cheek_ctrl, RIGHT_CTRL_COLOR)
-    cmds.parentConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'))
-    cmds.scaleConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'))
+    cmds.delete(cmds.parentConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt')))
     cmds.parent(right_cheek_ctrl_grp, head_ctrl)
+
+    # Create In-between Cheeks - Adjust Right Orientation
+    left_cheek_world = cmds.group(name=left_cheek_ctrl + 'WorldOffset', empty=True, world=True)
+    left_cheek_world_grp = cmds.group(name=left_cheek_ctrl + 'WorldOffset' + GRP_SUFFIX.capitalize(),
+                                      empty=True, world=True)
+
+    cmds.parent(left_cheek_world, left_cheek_world_grp)
+    cmds.delete(cmds.pointConstraint(left_cheek_ctrl, left_cheek_world_grp))
+    cmds.parent(left_cheek_ctrl_grp, left_cheek_world)
+    cmds.parent(left_cheek_world_grp, head_ctrl)
+
+    right_cheek_world = cmds.group(name=right_cheek_ctrl + 'WorldOffset', empty=True, world=True)
+    right_cheek_world_grp = cmds.group(name=right_cheek_ctrl + 'WorldOffset' + GRP_SUFFIX.capitalize(),
+                                       empty=True, world=True)
+
+    cmds.parent(right_cheek_world, right_cheek_world_grp)
+    cmds.delete(cmds.pointConstraint(right_cheek_ctrl, right_cheek_world_grp))
+    cmds.parent(right_cheek_ctrl_grp, right_cheek_world)
+    cmds.parent(right_cheek_world_grp, head_ctrl)
+    cmds.makeIdentity(left_cheek_ctrl_grp, translate=True, rotate=True, scale=True, apply=True)
+    cmds.makeIdentity(right_cheek_ctrl_grp, translate=True, rotate=True, scale=True, apply=True)
+    cmds.setAttr(right_cheek_ctrl_grp + '.sx', -1)
+    cmds.setAttr(right_cheek_ctrl + '.ry', 90)
+    cmds.makeIdentity(right_cheek_ctrl, rotate=True, apply=True)
+    cmds.parentConstraint(left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt'), mo=True)
+    cmds.parentConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'), mo=True)
+
+    # create_inbetween(left_cheek_ctrl)
+    # create_inbetween(right_cheek_ctrl)
 
     # Create Nose Controls -----------------------------------------------------------------------------------
     cmds.parent(_facial_joints_dict.get('left_nose_jnt'), _facial_joints_dict.get('head_jnt'))
@@ -2293,20 +2321,24 @@ def create_facial_controls(facial_data):
     nose_scale_offset = 0
     nose_scale_offset += dist_center_to_center(_facial_joints_dict.get('left_nose_jnt'),
                                                _facial_joints_dict.get('right_nose_jnt'))
+    nose_scale_offset = nose_scale_offset*.4
 
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('left_nose_crv'),
                                       _facial_joints_dict.get('left_nose_jnt')))
 
-    left_nose_ctrl = cmds.circle(name='left_nose_' + CTRL_SUFFIX, normal=[0, 0, 1],
-                                 ch=False, radius=nose_scale_offset * .2)[0]
+    left_nose_ctrl = cmds.curve(p=[[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+                                   [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
+                                   [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5],
+                                   [0.5, 0.5, -0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5]], d=1,
+                                name='left_nose_' + CTRL_SUFFIX)
+    rescale(left_nose_ctrl, nose_scale_offset, freeze=True)
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.rx', 0)
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.ry', 0)
     cmds.setAttr(_facial_joints_dict.get('left_nose_jnt') + '.rz', 0)
     left_nose_ctrl_grp = cmds.group(name=left_nose_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(left_nose_ctrl, left_nose_ctrl_grp)
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('left_nose_jnt'), left_nose_ctrl_grp))
-    cmds.parentConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt'))
-    cmds.scaleConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt'))
+    cmds.delete(cmds.parentConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt')))
     lock_hide_default_attr(left_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(left_nose_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_nose_ctrl_grp, head_ctrl)
@@ -2314,19 +2346,72 @@ def create_facial_controls(facial_data):
     cmds.delete(cmds.parentConstraint(_facial_proxy_dict.get('right_nose_crv'),
                                       _facial_joints_dict.get('right_nose_jnt')))
 
-    right_nose_ctrl = cmds.circle(name='right_nose_' + CTRL_SUFFIX, normal=[0, 0, 1],
-                                  ch=False, radius=nose_scale_offset * .2)[0]
+    right_nose_ctrl = cmds.curve(p=[[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+                                    [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
+                                    [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5],
+                                    [0.5, 0.5, -0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5]], d=1,
+                                 name='right_nose_' + CTRL_SUFFIX)
+    rescale(right_nose_ctrl, nose_scale_offset, freeze=True)
     cmds.setAttr(_facial_joints_dict.get('right_nose_jnt') + '.rx', 0)
     cmds.setAttr(_facial_joints_dict.get('right_nose_jnt') + '.ry', 0)
     cmds.setAttr(_facial_joints_dict.get('right_nose_jnt') + '.rz', 0)
     right_nose_ctrl_grp = cmds.group(name=right_nose_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
     cmds.parent(right_nose_ctrl, right_nose_ctrl_grp)
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('right_nose_jnt'), right_nose_ctrl_grp))
-    cmds.parentConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt'))
-    cmds.scaleConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt'))
+    cmds.delete(cmds.parentConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt')))
     lock_hide_default_attr(right_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(right_nose_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_nose_ctrl_grp, head_ctrl)
+
+    # Create In-between Noses - Adjust Right Orientation TODO @@@
+    left_nose_world = cmds.group(name=left_nose_ctrl + 'WorldOffset', empty=True, world=True)
+    left_nose_world_grp = cmds.group(name=left_nose_ctrl + 'WorldOffset' + GRP_SUFFIX.capitalize(),
+                                     empty=True, world=True)
+
+    cmds.parent(left_nose_world, left_nose_world_grp)
+    cmds.delete(cmds.pointConstraint(left_nose_ctrl, left_nose_world_grp))
+    cmds.parent(left_nose_ctrl_grp, left_nose_world)
+    cmds.parent(left_nose_world_grp, head_ctrl)
+
+    right_nose_world = cmds.group(name=right_nose_ctrl + 'WorldOffset', empty=True, world=True)
+    right_nose_world_grp = cmds.group(name=right_nose_ctrl + 'WorldOffset' + GRP_SUFFIX.capitalize(),
+                                      empty=True, world=True)
+
+    cmds.parent(right_nose_world, right_nose_world_grp)
+    cmds.delete(cmds.pointConstraint(right_nose_ctrl, right_nose_world_grp))
+    cmds.parent(right_nose_ctrl_grp, right_nose_world)
+    cmds.parent(right_nose_world_grp, head_ctrl)
+    cmds.makeIdentity(left_nose_ctrl_grp, translate=True, rotate=True, scale=True, apply=True)
+    cmds.makeIdentity(right_nose_ctrl_grp, translate=True, rotate=True, scale=True, apply=True)
+    cmds.setAttr(right_nose_ctrl_grp + '.sx', -1)
+    cmds.setAttr(right_nose_ctrl + '.ry', 90)
+    cmds.makeIdentity(right_nose_ctrl, rotate=True, apply=True)
+    cmds.parentConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt'), mo=True)
+    cmds.parentConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt'), mo=True)
+
+    # Main Nose Control
+    main_nose_ctrl = cmds.curve(p=[[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+                                   [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
+                                   [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5],
+                                   [0.5, 0.5, -0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5]], d=1,
+                                name='main_nose_' + CTRL_SUFFIX)
+    main_nose_ctrl_grp = cmds.group(name=main_nose_ctrl + GRP_SUFFIX.capitalize(), empty=True, world=True)
+    cmds.parent(main_nose_ctrl, main_nose_ctrl_grp)
+    cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('left_nose_jnt'),
+                                     _facial_joints_dict.get('right_nose_jnt'),
+                                     main_nose_ctrl_grp))
+    lock_hide_default_attr(main_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
+    change_viewport_color(main_nose_ctrl, CENTER_CTRL_COLOR)
+    cmds.parent(main_nose_ctrl_grp, head_ctrl)
+    top_pivot = cmds.xform(main_nose_ctrl + '.cv[0]', q=True, ws=True, t=True)
+    bottom_pivot = cmds.xform(main_nose_ctrl + '.cv[5]', q=True, ws=True, t=True)
+    move_up_distance = (top_pivot[1] - bottom_pivot[1])*.25
+    cmds.move(move_up_distance, main_nose_ctrl, moveY=True, relative=True, objectSpace=True)
+    cmds.move(move_up_distance*2, main_nose_ctrl, moveZ=True, relative=True, objectSpace=True)
+    rescale(main_nose_ctrl, nose_scale_offset*1.5, freeze=True)
+
+    cmds.parent(left_nose_world_grp, main_nose_ctrl)
+    cmds.parent(right_nose_world_grp, main_nose_ctrl)
 
     # Head Controls Ctrl Visibility
     cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_cheek_ctrl_grp + '.v')
@@ -2358,10 +2443,15 @@ def create_facial_controls(facial_data):
                              right_eyelids_ctrls_grp,
                              right_eyelids_data_grp,
                              facial_gui_grp,
-                             left_cheek_ctrl_grp,
-                             right_cheek_ctrl_grp,
-                             left_nose_ctrl_grp,
-                             right_nose_ctrl_grp,
+                             # left_cheek_ctrl_grp,
+                             # right_cheek_ctrl_grp,
+                             left_cheek_world_grp,
+                             right_cheek_world_grp,
+                             # left_nose_ctrl_grp,
+                             # right_nose_ctrl_grp,
+                             # left_nose_world_grp,
+                             # right_nose_world_grp,
+                             main_nose_ctrl_grp,
                              ]
 
     # Check if Head offset control is available for re-parenting
@@ -2382,8 +2472,6 @@ def create_facial_controls(facial_data):
             driven_control = create_inbetween(ctrl[0], 'driver')
             cmds.rename(driven_control, remove_strings_from_string(driven_control, ['invertOrient']))
             cmds.setAttr(ctrl[0] + '.rotateZ', 0)
-    # for ctrl in [left_cheek_ctrl, right_cheek_ctrl, left_nose_ctrl, right_nose_ctrl]:
-    #     print(ctrl) # @@@
 
     # Pose Object Setup
     Pose = namedtuple('Pose', ['name',
@@ -2943,6 +3031,87 @@ def create_facial_controls(facial_data):
              driven_offset=[0, -0.31, -0.05, 0, 0, 0, 1, 0.8, 1],
              setup='mouth'),
 
+        # Cheeks and Nose
+        Pose(name='left_cheek_up',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_upIn',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_cheek'),
+
+        Pose(name='left_cheek_in',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='x',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_downIn',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_cheek'),
+
+        Pose(name='left_cheek_down',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_downOut',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_cheek'),
+
+        Pose(name='left_cheek_out',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='x',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_upOut',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_cheek'),
+
+        # In/Out
+        Pose(name='left_cheek_inward',
+             driver='left_cheek_in_out_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_outward',
+             driver='left_cheek_in_out_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
     ]
 
     # Auto Populate Right Side -------------------------------------------------------------------------------
@@ -3005,6 +3174,7 @@ def create_facial_controls(facial_data):
 
             # Adjust End Loc Position ------------------------------------------------------------------------------
             current_values = {}
+            # logger.debug('"' + driver + '":')
             for char in driver_end_dir:
                 current_attr_value = cmds.getAttr(driver + '.t' + char)
                 current_values[driver + '.t' + char] = current_attr_value
@@ -3016,6 +3186,7 @@ def create_facial_controls(facial_data):
                     offset = abs(offset)
 
                 cmds.setAttr(driver + '.t' + char, offset)
+                # logger.debug('".t' + char + '" set to "' + str(offset))
             cmds.delete(cmds.pointConstraint(driver, loc_end))
             for target, value in current_values.items():
                 cmds.setAttr(target, value)
@@ -3158,8 +3329,8 @@ def create_facial_controls(facial_data):
             cmds.connectAttr(multiply_node_rot + '.output', rot_sum_node + '.input3D[' + str(next_slot_rot) + ']')
 
             # Scale
-            is_scale_available = cmds.objExists(driven + '.jointScale')
-            if is_scale_available:
+            is_custom_scale_available = cmds.objExists(driven + '.jointScale')
+            if is_custom_scale_available:
                 driven_joint = driven.replace('_ctrl', '_jnt')
 
                 if cmds.objectType(driven_joint) != 'plusMinusAverage':
@@ -3213,6 +3384,11 @@ def create_facial_controls(facial_data):
                 next_slot_sca = get_plus_minus_average_available_slot(sca_sum_node)
                 cmds.connectAttr(multiply_node_remove_default + '.output',
                                  sca_sum_node + '.input3D[' + str(next_slot_sca) + ']')
+
+            is_default_scale_available = cmds.objExists(driven + '.sy')
+            if is_default_scale_available and not cmds.getAttr(driven + '.sy', lock=True):
+                print(driven)
+                print(driven + '.sy')
 
         # Driven List Connections End -----------------------------------------------------------------------------
 
@@ -3286,10 +3462,11 @@ def merge_facial_elements():
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    data_facial.debugging = False
+    data_facial.debugging = True
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
+        logger.setLevel(logging.DEBUG)
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
         persp_rot = cmds.getAttr('persp.rotate')[0]
@@ -3305,14 +3482,12 @@ if __name__ == '__main__':
         cmds.setAttr('persp.rz', persp_rot[2])
 
     # Core Functions ---------------------------------------------------------------------------------------------
-
     create_facial_proxy(data_facial)
     create_facial_controls(data_facial)
     merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
-        pass
         cmds.select(['root_jnt'], hierarchy=True)
         selection = cmds.ls(selection=True)
         cmds.skinCluster(selection, 'body_geo', bindMethod=1, toSelectedBones=True, smoothWeights=0.5,
@@ -3331,7 +3506,11 @@ if __name__ == '__main__':
         ng_tools_api.import_json(
             "body_geo",
             file=source_file_name,
-            vertex_transfer_mode=VertexTransferMode.vertexId,
-            # vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
+            # vertex_transfer_mode=VertexTransferMode.vertexId,
+            vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
             influences_mapping_config=config,
         )
+        try:
+            cmds.setAttr("rig_setup_grp.visibility", 1)
+        except Exception as missing:
+            logger.debug(str(missing))
