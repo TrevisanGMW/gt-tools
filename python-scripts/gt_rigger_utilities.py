@@ -12,7 +12,8 @@
  Added "create_cheek_nose_controls" function
 
  2022-07-27
- Updated "create_cheek_nose_controls" with nose up/down
+ Updated "create_cheek_nose_controls" with main nose
+ PEP8 Cleanup
 
 """
 from gt_utilities import make_flat_list
@@ -678,6 +679,7 @@ def get_short_name(obj):
     Returns:
         short_name (string) : Name of the object without its full path
     """
+    short_name = ''
     if obj == '':
         return ''
     split_path = obj.split('|')
@@ -2275,11 +2277,12 @@ def create_cheek_nose_controls():
     right_cheek_ctrl = create_2d_slider_control('right_cheek_offset_ctrl')
     left_nose_ctrl = create_2d_slider_control('left_nose_offset_ctrl')
     right_nose_ctrl = create_2d_slider_control('right_nose_offset_ctrl')
+    main_nose_ctrl = create_2d_slider_control('main_nose_offset_ctrl')
 
     # Reposition / Rescale BG
     left_nose_crv_tx = 0.05
     right_nose_crv_tx = -5.3
-    nose_crv_ty = -3.2
+    nose_crv_ty = -4.5
     nose_crv_scale = .5
     cmds.setAttr(left_nose_crv + '.tx', left_nose_crv_tx)
     cmds.setAttr(right_nose_crv + '.tx', right_nose_crv_tx)
@@ -2311,14 +2314,17 @@ def create_cheek_nose_controls():
     rescale(right_cheek_ctrl[1], cheek_scale, freeze=False)
 
     nose_tx = 2.5
-    nose_ty = -.6
-    nose_scale = .3
+    nose_ty = -2
+    nose_scale = .25
     cmds.setAttr(left_nose_ctrl[1] + '.tx', nose_tx)
     cmds.setAttr(right_nose_ctrl[1] + '.tx', -nose_tx)
     cmds.setAttr(left_nose_ctrl[1] + '.ty', nose_ty)
     cmds.setAttr(right_nose_ctrl[1] + '.ty', nose_ty)
     rescale(left_nose_ctrl[1], nose_scale, freeze=False)
     rescale(right_nose_ctrl[1], nose_scale, freeze=False)
+
+    cmds.setAttr(main_nose_ctrl[1] + '.ty', 1.7)
+    rescale(main_nose_ctrl[1], .3, freeze=False)
 
     cheek_in_out_tx = 7
     cheek_in_out_ty = -.1
@@ -2335,6 +2341,7 @@ def create_cheek_nose_controls():
     controls.append(right_cheek_ctrl)
     controls.append(left_nose_ctrl)
     controls.append(right_nose_ctrl)
+    controls.append(main_nose_ctrl)
     controls.append(left_cheek_in_out_ctrl)
     controls.append(right_cheek_in_out_ctrl)
 
@@ -3035,6 +3042,6 @@ if __name__ == '__main__':
             cmds.delete(to_delete)
         except Exception as not_deleted:
             logger.debug(str(not_deleted))
-    create_cheek_nose_controls()
+    # create_cheek_nose_controls()
     # create_facial_side_gui(True)
     logger.debug(str(output))
