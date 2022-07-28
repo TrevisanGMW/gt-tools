@@ -2311,8 +2311,9 @@ def create_facial_controls(facial_data):
     cmds.parentConstraint(left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt'), mo=True)
     cmds.parentConstraint(right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'), mo=True)
 
-    # create_inbetween(left_cheek_ctrl)
-    # create_inbetween(right_cheek_ctrl)
+    create_inbetween(left_cheek_ctrl)
+    create_inbetween(right_cheek_ctrl)
+    cmds.setAttr(right_cheek_ctrl + '.rz', 0)
 
     # Create Nose Controls -----------------------------------------------------------------------------------
     cmds.parent(_facial_joints_dict.get('left_nose_jnt'), _facial_joints_dict.get('head_jnt'))
@@ -2463,14 +2464,8 @@ def create_facial_controls(facial_data):
                              right_eyelids_ctrls_grp,
                              right_eyelids_data_grp,
                              facial_gui_grp,
-                             # left_cheek_ctrl_grp,
-                             # right_cheek_ctrl_grp,
                              left_cheek_world_grp,
                              right_cheek_world_grp,
-                             # left_nose_ctrl_grp,
-                             # right_nose_ctrl_grp,
-                             # left_nose_world_grp,
-                             # right_nose_world_grp,
                              main_nose_ctrl_grp,
                              ]
 
@@ -3050,88 +3045,223 @@ def create_facial_controls(facial_data):
              driven=['right_lowerOuterLip_ctrl'],
              driven_offset=[0, -0.31, -0.05, 0, 0, 0, 1, 0.8, 1],
              setup='mouth'),
+    ]
 
-        # Cheeks and Nose
+    poses += [
+        # Cheeks  --------------------------------------------------------------------------
         Pose(name='left_cheek_up',
              driver='left_cheek_offset_ctrl',
              driver_range=[0, 5],
              driver_end_dir='y',
              driven=['left_cheek_ctrl'],
              driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek_ws'),
+
+        Pose(name='left_cheek_upIn',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_cheek'),
+
+        Pose(name='left_cheek_in',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='x',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='cheek'),
+
+        Pose(name='left_cheek_downIn',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_cheek'),
+
+        Pose(name='left_cheek_down',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek_ws'),
+
+        Pose(name='left_cheek_downOut',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_cheek_ws'),
+
+        Pose(name='left_cheek_out',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='x',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
+
+        Pose(name='left_cheek_upOut',
+             driver='left_cheek_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_cheek'),
+
+        # In/Out
+        Pose(name='left_cheek_inward',
+             driver='left_cheek_in_out_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
+             setup='cheek_ws'),
+
+        Pose(name='left_cheek_outward',
+             driver='left_cheek_in_out_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['left_cheek_ctrl'],
+             driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
+             setup='cheek_ws'),
+    ]
+
+    poses += [
+        # Noses  --------------------------------------------------------------------------
+        Pose(name='left_nose_up',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='y',
+             driven=['left_nose_ctrl'],
+             driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose_ws'),
+
+        Pose(name='left_nose_upIn',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_nose_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_nose'),
+
+        Pose(name='left_nose_in',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='x',
+             driven=['left_nose_ctrl'],
+             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='left_nose_downIn',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_nose_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_nose'),
+
+        Pose(name='left_nose_down',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['left_nose_ctrl'],
+             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose_ws'),
+
+        Pose(name='left_nose_downOut',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['left_nose_ctrl'],
+             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_nose_ws'),
+
+        Pose(name='left_nose_out',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='x',
+             driven=['left_nose_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='left_nose_upOut',
+             driver='left_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['left_nose_ctrl'],
+             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_nose'),
+
+        # Main Nose -----------
+        # Pose(name='main_nose_up',
+        #      driver='main_nose_offset_ctrl',
+        #      driver_range=[0, 5],
+        #      driver_end_dir='y',
+        #      driven=['main_nose_ctrl'],
+        #      driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='nose_ws'),
         #
-        # Pose(name='left_cheek_upIn',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_upIn',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, 5],
         #      driver_end_dir='xy',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='inner_cheek'),
+        #      setup='inner_nose'),
         #
-        # Pose(name='left_cheek_in',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_in',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, -5],
         #      driver_end_dir='x',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='cheek'),
+        #      setup='nose'),
         #
-        # Pose(name='left_cheek_downIn',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_downIn',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, -5],
         #      driver_end_dir='xy',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='inner_cheek'),
+        #      setup='inner_nose'),
         #
-        # Pose(name='left_cheek_down',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_down',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, -5],
         #      driver_end_dir='y',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='cheek'),
+        #      setup='nose_ws'),
         #
-        # Pose(name='left_cheek_downOut',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_downOut',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, -5],
         #      driver_end_dir='xy',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='outer_cheek'),
+        #      setup='outer_nose_ws'),
         #
-        # Pose(name='left_cheek_out',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_out',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, 5],
         #      driver_end_dir='x',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='cheek'),
+        #      setup='nose'),
         #
-        # Pose(name='left_cheek_upOut',
-        #      driver='left_cheek_offset_ctrl',
+        # Pose(name='main_nose_upOut',
+        #      driver='main_nose_offset_ctrl',
         #      driver_range=[0, 5],
         #      driver_end_dir='xy',
-        #      driven=['left_cheek_ctrl'],
+        #      driven=['main_nose_ctrl'],
         #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='outer_cheek'),
-        #
-        # # In/Out
-        # Pose(name='left_cheek_inward',
-        #      driver='left_cheek_in_out_offset_ctrl',
-        #      driver_range=[0, 5],
-        #      driver_end_dir='y',
-        #      driven=['left_cheek_ctrl'],
-        #      driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
-        #      setup='cheek'),
-        #
-        # Pose(name='left_cheek_outward',
-        #      driver='left_cheek_in_out_offset_ctrl',
-        #      driver_range=[0, -5],
-        #      driver_end_dir='y',
-        #      driven=['left_cheek_ctrl'],
-        #      driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
-        #      setup='cheek'),
+        #      setup='outer_nose'),
+
     ]
 
     # Auto Populate Right Side -------------------------------------------------------------------------------
@@ -3413,7 +3543,7 @@ def create_facial_controls(facial_data):
             cmds.setAttr(target_loc + '.tx', driven_offset[0])
             cmds.setAttr(target_loc + '.ty', driven_offset[1])
             cmds.setAttr(target_loc + '.tz', driven_offset[2])
-            if side == "right":
+            if side == "right" and not setup.endswith('_ws'): # @@@
                 cmds.setAttr(target_loc + '.tx', -driven_offset[0])
                 cmds.setAttr(target_loc + '.ty', -driven_offset[1])
                 cmds.setAttr(target_loc + '.tz', -driven_offset[2])
