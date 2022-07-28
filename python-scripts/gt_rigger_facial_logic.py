@@ -2339,7 +2339,6 @@ def create_facial_controls(facial_data):
     cmds.parent(left_nose_ctrl, left_nose_ctrl_grp)
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('left_nose_jnt'), left_nose_ctrl_grp))
     cmds.delete(cmds.parentConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt')))
-    lock_hide_default_attr(left_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(left_nose_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_nose_ctrl_grp, head_ctrl)
 
@@ -2359,11 +2358,10 @@ def create_facial_controls(facial_data):
     cmds.parent(right_nose_ctrl, right_nose_ctrl_grp)
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('right_nose_jnt'), right_nose_ctrl_grp))
     cmds.delete(cmds.parentConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt')))
-    lock_hide_default_attr(right_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
     change_viewport_color(right_nose_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_nose_ctrl_grp, head_ctrl)
 
-    # Create In-between Noses - Adjust Right Orientation TODO @@@
+    # Create In-between Noses - Adjust Right Orientation
     left_nose_world = cmds.group(name=left_nose_ctrl + 'WorldOffset', empty=True, world=True)
     left_nose_world_grp = cmds.group(name=left_nose_ctrl + 'WorldOffset' + GRP_SUFFIX.capitalize(),
                                      empty=True, world=True)
@@ -2389,6 +2387,12 @@ def create_facial_controls(facial_data):
     cmds.parentConstraint(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt'), mo=True)
     cmds.parentConstraint(right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt'), mo=True)
 
+    # Remove Unnecessary Attributes
+    lock_hide_default_attr(left_nose_ctrl, translate=False, scale=True, rotate=False)
+    lock_hide_default_attr(right_nose_ctrl, translate=False, scale=True, rotate=False)
+    lock_hide_default_attr(left_cheek_ctrl, translate=False, scale=True, rotate=False)
+    lock_hide_default_attr(right_cheek_ctrl, translate=False, scale=True, rotate=False)
+
     # Main Nose Control
     main_nose_ctrl = cmds.curve(p=[[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
                                    [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
@@ -2400,7 +2404,7 @@ def create_facial_controls(facial_data):
     cmds.delete(cmds.pointConstraint(_facial_joints_dict.get('left_nose_jnt'),
                                      _facial_joints_dict.get('right_nose_jnt'),
                                      main_nose_ctrl_grp))
-    lock_hide_default_attr(main_nose_ctrl, translate=False, scale=False, rotate=False)  # Hide Visibility
+    lock_hide_default_attr(main_nose_ctrl, translate=False, scale=False, rotate=False)
     change_viewport_color(main_nose_ctrl, CENTER_CTRL_COLOR)
     cmds.parent(main_nose_ctrl_grp, head_ctrl)
     top_pivot = cmds.xform(main_nose_ctrl + '.cv[0]', q=True, ws=True, t=True)
@@ -2408,10 +2412,26 @@ def create_facial_controls(facial_data):
     move_up_distance = (top_pivot[1] - bottom_pivot[1])*.25
     cmds.move(move_up_distance, main_nose_ctrl, moveY=True, relative=True, objectSpace=True)
     cmds.move(move_up_distance*2, main_nose_ctrl, moveZ=True, relative=True, objectSpace=True)
+    cmds.makeIdentity(main_nose_ctrl, translate=True, rotate=True, scale=True, apply=True)
     rescale(main_nose_ctrl, nose_scale_offset*1.5, freeze=True)
 
     cmds.parent(left_nose_world_grp, main_nose_ctrl)
     cmds.parent(right_nose_world_grp, main_nose_ctrl)
+
+    # Cheek and Nose Scale Attributes
+    scale_attr = 'jointScale'
+    for ctrl, jnt in [(left_nose_ctrl, _facial_joints_dict.get('left_nose_jnt')),
+                      (right_nose_ctrl, _facial_joints_dict.get('right_nose_jnt')),
+                      (left_cheek_ctrl, _facial_joints_dict.get('left_cheek_jnt')),
+                      (right_cheek_ctrl, _facial_joints_dict.get('right_cheek_jnt'))]:
+        cmds.addAttr(ctrl, ln=scale_attr, at='double3', k=True)
+        cmds.addAttr(ctrl, ln=scale_attr + 'X', at='double', k=True, parent=scale_attr, niceName='Scale Joint X')
+        cmds.addAttr(ctrl, ln=scale_attr + 'Y', at='double', k=True, parent=scale_attr, niceName='Scale Joint Y')
+        cmds.addAttr(ctrl, ln=scale_attr + 'Z', at='double', k=True, parent=scale_attr, niceName='Scale Joint Z')
+        cmds.setAttr(ctrl + '.' + scale_attr + 'X', 1)
+        cmds.setAttr(ctrl + '.' + scale_attr + 'Y', 1)
+        cmds.setAttr(ctrl + '.' + scale_attr + 'Z', 1)
+        cmds.connectAttr(ctrl + '.' + scale_attr, jnt + '.scale')
 
     # Head Controls Ctrl Visibility
     cmds.connectAttr(head_ctrl + '.facialCtrlsVisibility', left_cheek_ctrl_grp + '.v')
@@ -3039,79 +3059,79 @@ def create_facial_controls(facial_data):
              driven=['left_cheek_ctrl'],
              driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
              setup='cheek'),
-
-        Pose(name='left_cheek_upIn',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, 5],
-             driver_end_dir='xy',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-             setup='inner_cheek'),
-
-        Pose(name='left_cheek_in',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, -5],
-             driver_end_dir='x',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
-             setup='cheek'),
-
-        Pose(name='left_cheek_downIn',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, -5],
-             driver_end_dir='xy',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-             setup='inner_cheek'),
-
-        Pose(name='left_cheek_down',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, -5],
-             driver_end_dir='y',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
-             setup='cheek'),
-
-        Pose(name='left_cheek_downOut',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, -5],
-             driver_end_dir='xy',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
-             setup='outer_cheek'),
-
-        Pose(name='left_cheek_out',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, 5],
-             driver_end_dir='x',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-             setup='cheek'),
-
-        Pose(name='left_cheek_upOut',
-             driver='left_cheek_offset_ctrl',
-             driver_range=[0, 5],
-             driver_end_dir='xy',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-             setup='outer_cheek'),
-
-        # In/Out
-        Pose(name='left_cheek_inward',
-             driver='left_cheek_in_out_offset_ctrl',
-             driver_range=[0, 5],
-             driver_end_dir='y',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
-             setup='cheek'),
-
-        Pose(name='left_cheek_outward',
-             driver='left_cheek_in_out_offset_ctrl',
-             driver_range=[0, -5],
-             driver_end_dir='y',
-             driven=['left_cheek_ctrl'],
-             driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
-             setup='cheek'),
+        #
+        # Pose(name='left_cheek_upIn',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, 5],
+        #      driver_end_dir='xy',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='inner_cheek'),
+        #
+        # Pose(name='left_cheek_in',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, -5],
+        #      driver_end_dir='x',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='cheek'),
+        #
+        # Pose(name='left_cheek_downIn',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, -5],
+        #      driver_end_dir='xy',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='inner_cheek'),
+        #
+        # Pose(name='left_cheek_down',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, -5],
+        #      driver_end_dir='y',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='cheek'),
+        #
+        # Pose(name='left_cheek_downOut',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, -5],
+        #      driver_end_dir='xy',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='outer_cheek'),
+        #
+        # Pose(name='left_cheek_out',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, 5],
+        #      driver_end_dir='x',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='cheek'),
+        #
+        # Pose(name='left_cheek_upOut',
+        #      driver='left_cheek_offset_ctrl',
+        #      driver_range=[0, 5],
+        #      driver_end_dir='xy',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+        #      setup='outer_cheek'),
+        #
+        # # In/Out
+        # Pose(name='left_cheek_inward',
+        #      driver='left_cheek_in_out_offset_ctrl',
+        #      driver_range=[0, 5],
+        #      driver_end_dir='y',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
+        #      setup='cheek'),
+        #
+        # Pose(name='left_cheek_outward',
+        #      driver='left_cheek_in_out_offset_ctrl',
+        #      driver_range=[0, -5],
+        #      driver_end_dir='y',
+        #      driven=['left_cheek_ctrl'],
+        #      driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
+        #      setup='cheek'),
     ]
 
     # Auto Populate Right Side -------------------------------------------------------------------------------
@@ -3342,6 +3362,7 @@ def create_facial_controls(facial_data):
                 if not driven_sca_source:
                     sca_sum_node = cmds.createNode('plusMinusAverage', name=default_sca_source_sum)
                     cmds.connectAttr(sca_sum_node + '.output3D', driven_joint + '.scale')
+
                 elif cmds.objectType(driven_sca_source[0]) != 'plusMinusAverage':
                     sca_source = cmds.listConnections(driven_joint + '.scale', destination=False,
                                                       plugs=True, skipConversionNodes=True)[0]
@@ -3385,11 +3406,6 @@ def create_facial_controls(facial_data):
                 cmds.connectAttr(multiply_node_remove_default + '.output',
                                  sca_sum_node + '.input3D[' + str(next_slot_sca) + ']')
 
-            is_default_scale_available = cmds.objExists(driven + '.sy')
-            if is_default_scale_available and not cmds.getAttr(driven + '.sy', lock=True):
-                print(driven)
-                print(driven + '.sy')
-
         # Driven List Connections End -----------------------------------------------------------------------------
 
         # Set Initial Locator Position (Pose)
@@ -3410,7 +3426,7 @@ def create_facial_controls(facial_data):
             cmds.setAttr(target_loc + '.sy', driven_offset[7])
             cmds.setAttr(target_loc + '.sz', driven_offset[8])
 
-    # TODO END ------------------------------------------------------------------------------------------------------
+    # END ------------------------------------------------------------------------------------------------------
 
     # Visibility Adjustments
     cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
