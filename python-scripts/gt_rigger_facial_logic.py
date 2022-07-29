@@ -52,14 +52,20 @@
  0.0.15 - 2022-07-13
  Minor Adjustments to 'head_jnt' visibility
 
- 0.0.16 to 17 - 2022-07-14
+ 0.0.16 to 19 - 2022-07-14
  Parented nose and cheek controls initially to the head for when creating without a biped base
  Added cheek and nose controls to head_ctrl visibility attribute
+ Minor fixes and code refactor
+
+ 1.0.0 - 2022-07-28
+ Initial release
+ Finished adding nose and cheek side GUI
+ Connected nose and cheek side GUI
+ Inverted right side nose and cheek controls for mirroring effect
+ Added main nose control
 
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
-     Add main nose control
-     Add nose and cheek automation to side GUI
      Improve tongue scale control system
      Look for existing biped proxy (not only joints) when creating facial proxy
 """
@@ -1475,7 +1481,12 @@ def create_facial_controls(facial_data):
     cmds.move(right_eyebrow_scale * -.7, right_eyebrow_ctrl_grp, moveX=True, relative=True)
     cmds.parent(right_eyebrow_ctrl_grp, head_ctrl)
     # Right Side Invert
-    cmds.rotate(-180, right_eyebrow_ctrl_grp, rotateX=True)
+    cmds.parent(right_eyebrow_ctrl, world=True)
+    # cmds.rotate(-180, right_eyebrow_ctrl_grp, rotateX=True)
+    cmds.setAttr(right_eyebrow_ctrl_grp + '.sx', -1)
+    cmds.setAttr(right_eyebrow_ctrl_grp + '.sy', -1)
+    cmds.parent(right_eyebrow_ctrl, right_eyebrow_ctrl_grp)
+    cmds.setAttr(right_eyebrow_ctrl + '.rz', 0)
     for dimension in ['x', 'y', 'z']:
         cmds.setAttr(right_eyebrow_ctrl + '.s' + dimension, -1)
     cmds.parentConstraint(right_eyebrow_ctrl, right_eyebrow_ctrls_grp, mo=True)
@@ -2416,6 +2427,15 @@ def create_facial_controls(facial_data):
     cmds.makeIdentity(main_nose_ctrl, translate=True, rotate=True, scale=True, apply=True)
     rescale(main_nose_ctrl, nose_scale_offset*1.5, freeze=True)
 
+    main_nose_ctrl_offset_grp = cmds.group(name=main_nose_ctrl + 'Offset' + GRP_SUFFIX.capitalize(),
+                                           empty=True, world=True)
+    cmds.delete(cmds.parentConstraint(main_nose_ctrl_grp, main_nose_ctrl_offset_grp))
+    cmds.parent(main_nose_ctrl_offset_grp, main_nose_ctrl_grp)
+    cmds.parent(main_nose_ctrl, main_nose_ctrl_offset_grp)
+    create_inbetween(left_nose_ctrl)
+    create_inbetween(right_nose_ctrl)
+    cmds.setAttr(right_nose_ctrl + '.rz', 0)
+
     cmds.parent(left_nose_world_grp, main_nose_ctrl)
     cmds.parent(right_nose_world_grp, main_nose_ctrl)
 
@@ -3047,6 +3067,7 @@ def create_facial_controls(facial_data):
              setup='mouth'),
     ]
 
+    cheek_general_offset = 1.5
     poses += [
         # Cheeks  --------------------------------------------------------------------------
         Pose(name='left_cheek_up',
@@ -3054,15 +3075,15 @@ def create_facial_controls(facial_data):
              driver_range=[0, 5],
              driver_end_dir='y',
              driven=['left_cheek_ctrl'],
-             driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
-             setup='cheek_ws'),
+             driven_offset=[0, cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
 
         Pose(name='left_cheek_upIn',
              driver='left_cheek_offset_ctrl',
              driver_range=[0, 5],
              driver_end_dir='xy',
              driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-cheek_general_offset, cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='inner_cheek'),
 
         Pose(name='left_cheek_in',
@@ -3070,7 +3091,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='x',
              driven=['left_cheek_ctrl'],
-             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-cheek_general_offset, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='cheek'),
 
         Pose(name='left_cheek_downIn',
@@ -3078,7 +3099,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='xy',
              driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-cheek_general_offset, -cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='inner_cheek'),
 
         Pose(name='left_cheek_down',
@@ -3086,23 +3107,23 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='y',
              driven=['left_cheek_ctrl'],
-             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
-             setup='cheek_ws'),
+             driven_offset=[0, -cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='cheek'),
 
         Pose(name='left_cheek_downOut',
              driver='left_cheek_offset_ctrl',
              driver_range=[0, -5],
              driver_end_dir='xy',
              driven=['left_cheek_ctrl'],
-             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
-             setup='outer_cheek_ws'),
+             driven_offset=[cheek_general_offset, -cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_cheek'),
 
         Pose(name='left_cheek_out',
              driver='left_cheek_offset_ctrl',
              driver_range=[0, 5],
              driver_end_dir='x',
              driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[cheek_general_offset, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='cheek'),
 
         Pose(name='left_cheek_upOut',
@@ -3110,7 +3131,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, 5],
              driver_end_dir='xy',
              driven=['left_cheek_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[cheek_general_offset, cheek_general_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='outer_cheek'),
 
         # In/Out
@@ -3120,7 +3141,7 @@ def create_facial_controls(facial_data):
              driver_end_dir='y',
              driven=['left_cheek_ctrl'],
              driven_offset=[0, 0, -2, 0, 0, 0, 1, 1, 1],
-             setup='cheek_ws'),
+             setup='cheek'),
 
         Pose(name='left_cheek_outward',
              driver='left_cheek_in_out_offset_ctrl',
@@ -3128,9 +3149,11 @@ def create_facial_controls(facial_data):
              driver_end_dir='y',
              driven=['left_cheek_ctrl'],
              driven_offset=[0, 0, 2, 0, 0, 0, 1, 1, 1],
-             setup='cheek_ws'),
+             setup='cheek'),
     ]
 
+    nose_general_offset = 1.5
+    nose_inner_offset = nose_general_offset * .3
     poses += [
         # Noses  --------------------------------------------------------------------------
         Pose(name='left_nose_up',
@@ -3138,15 +3161,15 @@ def create_facial_controls(facial_data):
              driver_range=[0, 5],
              driver_end_dir='y',
              driven=['left_nose_ctrl'],
-             driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
-             setup='nose_ws'),
+             driven_offset=[0, nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
 
         Pose(name='left_nose_upIn',
              driver='left_nose_offset_ctrl',
              driver_range=[0, 5],
              driver_end_dir='xy',
              driven=['left_nose_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-nose_inner_offset, nose_inner_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='inner_nose'),
 
         Pose(name='left_nose_in',
@@ -3154,7 +3177,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='x',
              driven=['left_nose_ctrl'],
-             driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-nose_inner_offset, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='nose'),
 
         Pose(name='left_nose_downIn',
@@ -3162,7 +3185,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='xy',
              driven=['left_nose_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[-nose_inner_offset, -nose_inner_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='inner_nose'),
 
         Pose(name='left_nose_down',
@@ -3170,23 +3193,23 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='y',
              driven=['left_nose_ctrl'],
-             driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
-             setup='nose_ws'),
+             driven_offset=[0, -nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
 
         Pose(name='left_nose_downOut',
              driver='left_nose_offset_ctrl',
              driver_range=[0, -5],
              driver_end_dir='xy',
              driven=['left_nose_ctrl'],
-             driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
-             setup='outer_nose_ws'),
+             driven_offset=[nose_general_offset, -nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_nose'),
 
         Pose(name='left_nose_out',
              driver='left_nose_offset_ctrl',
              driver_range=[0, 5],
              driver_end_dir='x',
              driven=['left_nose_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[nose_general_offset, 0, 0, 0, 0, 0, 1, 1, 1],
              setup='nose'),
 
         Pose(name='left_nose_upOut',
@@ -3194,73 +3217,73 @@ def create_facial_controls(facial_data):
              driver_range=[0, 5],
              driver_end_dir='xy',
              driven=['left_nose_ctrl'],
-             driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[nose_general_offset, nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
              setup='outer_nose'),
 
         # Main Nose -----------
-        # Pose(name='main_nose_up',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, 5],
-        #      driver_end_dir='y',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[0, 2, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='nose_ws'),
-        #
-        # Pose(name='main_nose_upIn',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, 5],
-        #      driver_end_dir='xy',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='inner_nose'),
-        #
-        # Pose(name='main_nose_in',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, -5],
-        #      driver_end_dir='x',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[-2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='nose'),
-        #
-        # Pose(name='main_nose_downIn',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, -5],
-        #      driver_end_dir='xy',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='inner_nose'),
-        #
-        # Pose(name='main_nose_down',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, -5],
-        #      driver_end_dir='y',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[0, -2, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='nose_ws'),
-        #
-        # Pose(name='main_nose_downOut',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, -5],
-        #      driver_end_dir='xy',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[0, 5, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='outer_nose_ws'),
-        #
-        # Pose(name='main_nose_out',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, 5],
-        #      driver_end_dir='x',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='nose'),
-        #
-        # Pose(name='main_nose_upOut',
-        #      driver='main_nose_offset_ctrl',
-        #      driver_range=[0, 5],
-        #      driver_end_dir='xy',
-        #      driven=['main_nose_ctrl'],
-        #      driven_offset=[2, 0, 0, 0, 0, 0, 1, 1, 1],
-        #      setup='outer_nose'),
+        Pose(name='main_nose_up',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='y',
+             driven=['main_nose_ctrl'],
+             driven_offset=[0, nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='main_nose_upIn',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['main_nose_ctrl'],
+             driven_offset=[-nose_general_offset, nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_nose'),
+
+        Pose(name='main_nose_in',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='x',
+             driven=['main_nose_ctrl'],
+             driven_offset=[-nose_general_offset, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='main_nose_downIn',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['main_nose_ctrl'],
+             driven_offset=[-nose_general_offset, -nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='inner_nose'),
+
+        Pose(name='main_nose_down',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='y',
+             driven=['main_nose_ctrl'],
+             driven_offset=[0, -nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='main_nose_downOut',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, -5],
+             driver_end_dir='xy',
+             driven=['main_nose_ctrl'],
+             driven_offset=[nose_general_offset, -nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_nose'),
+
+        Pose(name='main_nose_out',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='x',
+             driven=['main_nose_ctrl'],
+             driven_offset=[nose_general_offset, 0, 0, 0, 0, 0, 1, 1, 1],
+             setup='nose'),
+
+        Pose(name='main_nose_upOut',
+             driver='main_nose_offset_ctrl',
+             driver_range=[0, 5],
+             driver_end_dir='xy',
+             driven=['main_nose_ctrl'],
+             driven_offset=[nose_general_offset, nose_general_offset, 0, 0, 0, 0, 1, 1, 1],
+             setup='outer_nose'),
 
     ]
 
@@ -3543,7 +3566,7 @@ def create_facial_controls(facial_data):
             cmds.setAttr(target_loc + '.tx', driven_offset[0])
             cmds.setAttr(target_loc + '.ty', driven_offset[1])
             cmds.setAttr(target_loc + '.tz', driven_offset[2])
-            if side == "right" and not setup.endswith('_ws'): # @@@
+            if side == "right" and not setup.endswith(''):
                 cmds.setAttr(target_loc + '.tx', -driven_offset[0])
                 cmds.setAttr(target_loc + '.ty', -driven_offset[1])
                 cmds.setAttr(target_loc + '.tz', -driven_offset[2])
@@ -3656,7 +3679,7 @@ if __name__ == '__main__':
             vertex_transfer_mode=ng_tools_api.VertexTransferMode.closestPoint,
             influences_mapping_config=config,
         )
-        try:
-            cmds.setAttr("rig_setup_grp.visibility", 1)
-        except Exception as missing:
-            logger.debug(str(missing))
+        # try:
+        #     cmds.setAttr("rig_setup_grp.visibility", 1)
+        # except Exception as missing:
+        #     logger.debug(str(missing))
