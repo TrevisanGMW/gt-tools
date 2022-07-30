@@ -82,6 +82,7 @@
        - Unhide Default Channels
        - Uniform LRA Toggle
        - Full Hud Toggle
+       - Select Non-Unique Objects
 
     - Added validation
        - Uniform LRA Toggle
@@ -568,11 +569,15 @@ def select_non_unique_objects():
     cmds.select(non_unique_transforms, r=True)
 
     if len(non_unique_transforms) > 0:
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-            len(non_unique_transforms)) + '</span> non-unique objects were selected.'
+        in_view_message = '<span style=\"color:#FF0000;text-decoration:underline;\">'
+        in_view_message += str(len(non_unique_transforms)) + '</span> non-unique objects were selected.'
+        message = '\n' + str(len(non_unique_transforms)) + ' non-unique objects were found in this scene. ' \
+                                                           'Rename them to avoid conflicts.'
     else:
-        message = 'All objects seem to have unique names in this scene.'
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        in_view_message = 'All objects seem to have unique names in this scene.'
+        message = 'No repeated names found in the scene.'
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    sys.stdout.write(message)
 
 
 def references_import():
