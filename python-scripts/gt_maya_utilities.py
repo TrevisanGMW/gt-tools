@@ -100,6 +100,7 @@
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
+import random
 import sys
 from maya import OpenMayaUI as OpenMayaUI
 
@@ -129,7 +130,7 @@ def force_reload_file():
         if file_path is not None:
             cmds.file(file_path, open=True, force=True)
     else:
-        cmds.warning('File was never saved.')
+        cmds.warning('Unable to force reload. File was never saved.')
 
 
 def open_resource_browser():
@@ -147,6 +148,7 @@ def unlock_default_channels():
     errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True, long=True)
+    selection_short = cmds.ls(selection=True)
     unlocked_counter = 0
     try:
         for obj in selection:
@@ -173,7 +175,8 @@ def unlock_default_channels():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    in_view_message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
+    in_view_message = '<' + str(random.random()) + '>'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
@@ -181,15 +184,20 @@ def unlock_default_channels():
     in_view_message += is_plural + description
 
     cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-    sys.stdout.write(str(unlocked_counter) + ' ' + is_plural + description)
+
+    if unlocked_counter == 1:
+        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
+    else:
+        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
 
 
 def unhide_default_channels():
-    """ Unhides Translate, Rotate, Scale for the selected objects """
+    """ Un-hides Translate, Rotate, Scale for the selected objects """
     function_name = 'GTU Unhide Default Channels'
     errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True, long=True)
+    selection_short = cmds.ls(selection=True)
     unlocked_counter = 0
     try:
         for obj in selection:
@@ -216,16 +224,22 @@ def unhide_default_channels():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
+    in_view_message = '<' + str(random.random()) + '>'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
-    message += is_plural + ' default channels made visible.'
+    description = ' default channels made visible.'
+    in_view_message += is_plural + description
 
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    if unlocked_counter == 1:
+        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
+    else:
+        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
 
 
-def uniform_lra_toggle():
+def toggle_uniform_lra():
     """
     Makes the visibility of the Local Rotation Axis uniform among 
     the selected objects according to the current state of the majority of them.  
@@ -235,10 +249,14 @@ def uniform_lra_toggle():
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
         errors = ''
-        selection = cmds.ls(selection=True)
+        selection = cmds.ls(selection=True, long=True) or []
+        if not selection:
+            cmds.warning('Select at least one object and try again.')
+            return
 
         inactive_lra = []
         active_lra = []
+        operation_result = 'off'
 
         for obj in selection:
             try:
@@ -254,6 +272,7 @@ def uniform_lra_toggle():
             for obj in inactive_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
+                    operation_result = 'on'
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_lra) == 0:
@@ -266,6 +285,7 @@ def uniform_lra_toggle():
             for obj in inactive_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
+                    operation_result = 'on'
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
@@ -274,6 +294,12 @@ def uniform_lra_toggle():
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
                 except Exception as e:
                     errors += str(e) + '\n'
+
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span>LRA Visibility set to: </span>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result + '</span>'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
 
         if errors != '':
             print('#### Errors: ####')
@@ -285,7 +311,7 @@ def uniform_lra_toggle():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def uniform_jnt_label_toggle():
+def toggle_uniform_jnt_label():
     """
     Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.  
     """
@@ -298,6 +324,7 @@ def uniform_jnt_label_toggle():
 
         inactive_label = []
         active_label = []
+        operation_result = 'off'
 
         for obj in joints:
             try:
@@ -313,6 +340,7 @@ def uniform_jnt_label_toggle():
             for obj in inactive_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
+                    operation_result = 'on'
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_label) == 0:
@@ -325,6 +353,7 @@ def uniform_jnt_label_toggle():
             for obj in inactive_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
+                    operation_result = 'on'
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
@@ -333,6 +362,19 @@ def uniform_jnt_label_toggle():
                     cmds.setAttr(obj + '.drawLabel', 0)
                 except Exception as e:
                     errors += str(e) + '\n'
+
+        if len(joints) > 0:
+            in_view_message = '<' + str(random.random()) + '>'
+            in_view_message += '<span>Joint Label Visibility set to: </span>'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result
+            in_view_message += '</span>'
+            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
+        else:
+            unique_message = '<' + str(random.random()) + '>'
+            message = 'No joints found in the scene.'
+            cmds.inViewMessage(amg=unique_message + message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('\n' + message)
 
         if errors != '':
             print('#### Errors: ####')
@@ -343,6 +385,145 @@ def uniform_jnt_label_toggle():
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def toggle_full_hud():
+    """ Toggles common HUD options so all the common ones are either active or inactive  """
+    hud_current_state = {}
+
+    # 1 - Animation Details
+    hud_current_state['animationDetailsVisibility'] = int(mel.eval('optionVar -q animationDetailsVisibility;'))
+    # 2 - Cache
+    try:
+        from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+        hud_current_state['CachePreferenceHud'] = int(CachePreferenceHud().get_value() or 0)
+    except Exception as e:
+        logger.debug(str(e))
+        hud_current_state['CachePreferenceHud'] = 0
+    # 3 - Camera Names
+    hud_current_state['cameraNamesVisibility'] = int(mel.eval('optionVar -q cameraNamesVisibility;'))
+    # 4 - Caps Lock
+    hud_current_state['capsLockVisibility'] = int(mel.eval('optionVar -q capsLockVisibility;'))
+    # 5 - Current Asset
+    hud_current_state['currentContainerVisibility'] = int(mel.eval('optionVar -q currentContainerVisibility;'))
+    # 6 - Current Frame
+    hud_current_state['currentFrameVisibility'] = int(mel.eval('optionVar -q currentFrameVisibility;'))
+    # 7 - Evaluation
+    hud_current_state['evaluationVisibility'] = int(mel.eval('optionVar -q evaluationVisibility;'))
+    # 8 - Focal Length
+    hud_current_state['focalLengthVisibility'] = int(mel.eval('optionVar -q focalLengthVisibility;'))
+    # 9 - Frame Rate
+    hud_current_state['frameRateVisibility'] = int(mel.eval('optionVar -q frameRateVisibility;'))
+    # 10 - HumanIK Details
+    hud_current_state['hikDetailsVisibility'] = int(mel.eval('optionVar -q hikDetailsVisibility;'))
+    # 11 - Material Loading Details
+    hud_current_state['materialLoadingDetailsVisibility'] = int(
+        mel.eval('optionVar -q materialLoadingDetailsVisibility;'))
+    # 12 - Object Details
+    hud_current_state['objectDetailsVisibility'] = int(mel.eval('optionVar -q objectDetailsVisibility;'))
+    # 13 - Origin Axis - Ignored as non-hud element
+    # hud_current_state['originAxesMenuUpdate'] = mel.eval('optionVar -q originAxesMenuUpdate;')
+    # 14 - Particle Count
+    hud_current_state['particleCountVisibility'] = int(mel.eval('optionVar -q particleCountVisibility;'))
+    # 15 - Poly Count
+    hud_current_state['polyCountVisibility'] = int(mel.eval('optionVar -q polyCountVisibility;'))
+    # 16 - Scene Timecode
+    hud_current_state['sceneTimecodeVisibility'] = int(mel.eval('optionVar -q sceneTimecodeVisibility;'))
+    # 17 - Select Details
+    hud_current_state['selectDetailsVisibility'] = int(mel.eval('optionVar -q selectDetailsVisibility;'))
+    # 18 - Symmetry
+    hud_current_state['symmetryVisibility'] = int(mel.eval('optionVar -q symmetryVisibility;'))
+    # 19 - View Axis
+    hud_current_state['viewAxisVisibility'] = int(mel.eval('optionVar -q viewAxisVisibility;'))
+    # 20 - Viewport Renderer
+    hud_current_state['viewportRendererVisibility'] = int(mel.eval('optionVar -q viewportRendererVisibility;'))
+    # ------- Separator -------
+    # 21 - In-view Messages
+    hud_current_state['inViewMessageEnable'] = int(mel.eval('optionVar -q inViewMessageEnable;'))
+    # 22 - In-view Editors
+    hud_current_state['inViewEditorVisible'] = int(mel.eval('optionVar -q inViewEditorVisible;'))
+    # Conditional - XGen Info
+    hud_current_state['xgenHUDVisibility'] = int(mel.eval('optionVar -q xgenHUDVisibility;'))
+
+    # Check if toggle ON or OFF
+    toggle = True
+    count = 0
+    for item_state in hud_current_state:
+        if hud_current_state.get(item_state):
+            count += 1
+    # More than half is on, so OFF else ON (Default)
+    if count > len(hud_current_state) / 2:
+        toggle = False
+
+    # Toggles non-standard hud elements
+    if toggle:
+        mel.eval('setAnimationDetailsVisibility(true)')
+        try:
+            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+            CachePreferenceHud().set_value(True)
+        except Exception as e:
+            logger.debug(str(e))
+        mel.eval('setCameraNamesVisibility(true)')
+        mel.eval('setCapsLockVisibility(true)')
+        mel.eval('setCurrentContainerVisibility(true)')
+        mel.eval('setCurrentFrameVisibility(true)')
+        mel.eval('SetEvaluationManagerHUDVisibility(1)')
+        mel.eval('setFocalLengthVisibility(true)')
+        mel.eval('setFrameRateVisibility(true)')
+        if not hud_current_state.get('hikDetailsVisibility'):
+            cmds.ToggleHikDetails()
+            mel.eval('catchQuiet(setHikDetailsVisibility(true));')
+        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(true)')
+        mel.eval('setObjectDetailsVisibility(true)')
+        mel.eval('setParticleCountVisibility(true)')
+        mel.eval('setPolyCountVisibility(true)')
+        mel.eval('setSceneTimecodeVisibility(true)')
+        mel.eval('setSelectDetailsVisibility(true)')
+        mel.eval('setSymmetryVisibility(true)')
+        mel.eval('setViewAxisVisibility(true)')
+        mel.eval('setViewportRendererVisibility(true)')
+        mel.eval('catchQuiet(setXGenHUDVisibility(true));')
+
+        if not hud_current_state.get('inViewMessageEnable'):
+            cmds.ToggleInViewMessage()
+        if not hud_current_state.get('inViewEditorVisible'):
+            cmds.ToggleInViewEditor()
+    else:
+        mel.eval('setAnimationDetailsVisibility(false)')
+        try:
+            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
+            CachePreferenceHud().set_value(False)
+        except Exception as e:
+            logger.debug(str(e))
+        mel.eval('setCurrentContainerVisibility(false)')
+        mel.eval('setCurrentFrameVisibility(false)')
+        mel.eval('SetEvaluationManagerHUDVisibility(0)')
+        mel.eval('setFocalLengthVisibility(false)')
+        mel.eval('setFrameRateVisibility(false)')
+        if hud_current_state.get('hikDetailsVisibility'):
+            cmds.ToggleHikDetails()
+            mel.eval('catchQuiet(setHikDetailsVisibility(false));')
+            mel.eval('catchQuiet(hikDetailsKeyingMode());')
+        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(false)')
+        mel.eval('setObjectDetailsVisibility(false)')
+        mel.eval('setParticleCountVisibility(false)')
+        mel.eval('setPolyCountVisibility(false)')
+        mel.eval('setSceneTimecodeVisibility(false)')
+        mel.eval('setSelectDetailsVisibility(false)')
+        mel.eval('setViewportRendererVisibility(false)')
+        mel.eval('catchQuiet(setXGenHUDVisibility(false));')
+    # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
+    print("?")
+    # Give feedback
+    operation_result = 'off'
+    if toggle:
+        operation_result = 'on'
+    in_view_message = '<' + str(random.random()) + '>'
+    in_view_message += '<span>Hud Visibility set to: </span>'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result
+    in_view_message += '</span>'
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
 
 
 def select_non_unique_objects():
@@ -1230,134 +1411,6 @@ def build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
 
 
-def toggle_full_hud():
-    """ Toggles common HUD options so all the common ones are either active or inactive  """
-    hud_current_state = {}
-
-    # 1 - Animation Details
-    hud_current_state['animationDetailsVisibility'] = int(mel.eval('optionVar -q animationDetailsVisibility;'))
-    # 2 - Cache
-    try:
-        from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
-        hud_current_state['CachePreferenceHud'] = int(CachePreferenceHud().get_value() or 0)
-    except Exception as e:
-        logger.debug(str(e))
-        hud_current_state['CachePreferenceHud'] = 0
-    # 3 - Camera Names
-    hud_current_state['cameraNamesVisibility'] = int(mel.eval('optionVar -q cameraNamesVisibility;'))
-    # 4 - Caps Lock
-    hud_current_state['capsLockVisibility'] = int(mel.eval('optionVar -q capsLockVisibility;'))
-    # 5 - Current Asset
-    hud_current_state['currentContainerVisibility'] = int(mel.eval('optionVar -q currentContainerVisibility;'))
-    # 6 - Current Frame
-    hud_current_state['currentFrameVisibility'] = int(mel.eval('optionVar -q currentFrameVisibility;'))
-    # 7 - Evaluation
-    hud_current_state['evaluationVisibility'] = int(mel.eval('optionVar -q evaluationVisibility;'))
-    # 8 - Focal Length
-    hud_current_state['focalLengthVisibility'] = int(mel.eval('optionVar -q focalLengthVisibility;'))
-    # 9 - Frame Rate
-    hud_current_state['frameRateVisibility'] = int(mel.eval('optionVar -q frameRateVisibility;'))
-    # 10 - HumanIK Details
-    hud_current_state['hikDetailsVisibility'] = int(mel.eval('optionVar -q hikDetailsVisibility;'))
-    # 11 - Material Loading Details
-    hud_current_state['materialLoadingDetailsVisibility'] = int(
-        mel.eval('optionVar -q materialLoadingDetailsVisibility;'))
-    # 12 - Object Details
-    hud_current_state['objectDetailsVisibility'] = int(mel.eval('optionVar -q objectDetailsVisibility;'))
-    # 13 - Origin Axis - Ignored as non-hud element
-    # hud_current_state['originAxesMenuUpdate'] = mel.eval('optionVar -q originAxesMenuUpdate;')
-    # 14 - Particle Count
-    hud_current_state['particleCountVisibility'] = int(mel.eval('optionVar -q particleCountVisibility;'))
-    # 15 - Poly Count
-    hud_current_state['polyCountVisibility'] = int(mel.eval('optionVar -q polyCountVisibility;'))
-    # 16 - Scene Timecode
-    hud_current_state['sceneTimecodeVisibility'] = int(mel.eval('optionVar -q sceneTimecodeVisibility;'))
-    # 17 - Select Details
-    hud_current_state['selectDetailsVisibility'] = int(mel.eval('optionVar -q selectDetailsVisibility;'))
-    # 18 - Symmetry
-    hud_current_state['symmetryVisibility'] = int(mel.eval('optionVar -q symmetryVisibility;'))
-    # 19 - View Axis
-    hud_current_state['viewAxisVisibility'] = int(mel.eval('optionVar -q viewAxisVisibility;'))
-    # 20 - Viewport Renderer
-    hud_current_state['viewportRendererVisibility'] = int(mel.eval('optionVar -q viewportRendererVisibility;'))
-    # ------- Separator -------
-    # 21 - In-view Messages
-    hud_current_state['inViewMessageEnable'] = int(mel.eval('optionVar -q inViewMessageEnable;'))
-    # 22 - In-view Editors
-    hud_current_state['inViewEditorVisible'] = int(mel.eval('optionVar -q inViewEditorVisible;'))
-    # Conditional - XGen Info
-    hud_current_state['xgenHUDVisibility'] = int(mel.eval('optionVar -q xgenHUDVisibility;'))
-
-    # Check if toggle ON or OFF
-    toggle = True
-    count = 0
-    for item_state in hud_current_state:
-        if hud_current_state.get(item_state):
-            count += 1
-    # More than half is on, so OFF else ON (Default)
-    if count > len(hud_current_state) / 2:
-        toggle = False
-
-    # Toggles non-standard hud elements
-    if toggle:
-        mel.eval('setAnimationDetailsVisibility(true)')
-        try:
-            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
-            CachePreferenceHud().set_value(True)
-        except Exception as e:
-            logger.debug(str(e))
-        mel.eval('setCameraNamesVisibility(true)')
-        mel.eval('setCapsLockVisibility(true)')
-        mel.eval('setCurrentContainerVisibility(true)')
-        mel.eval('setCurrentFrameVisibility(true)')
-        mel.eval('SetEvaluationManagerHUDVisibility(1)')
-        mel.eval('setFocalLengthVisibility(true)')
-        mel.eval('setFrameRateVisibility(true)')
-        if not hud_current_state.get('hikDetailsVisibility'):
-            cmds.ToggleHikDetails()
-            mel.eval('catchQuiet(setHikDetailsVisibility(true));')
-        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(true)')
-        mel.eval('setObjectDetailsVisibility(true)')
-        mel.eval('setParticleCountVisibility(true)')
-        mel.eval('setPolyCountVisibility(true)')
-        mel.eval('setSceneTimecodeVisibility(true)')
-        mel.eval('setSelectDetailsVisibility(true)')
-        mel.eval('setSymmetryVisibility(true)')
-        mel.eval('setViewAxisVisibility(true)')
-        mel.eval('setViewportRendererVisibility(true)')
-        mel.eval('catchQuiet(setXGenHUDVisibility(true));')
-
-        if not hud_current_state.get('inViewMessageEnable'):
-            cmds.ToggleInViewMessage()
-        if not hud_current_state.get('inViewEditorVisible'):
-            cmds.ToggleInViewEditor()
-    else:
-        mel.eval('setAnimationDetailsVisibility(false)')
-        try:
-            from maya.plugin.evaluator.CacheUiHud import CachePreferenceHud
-            CachePreferenceHud().set_value(False)
-        except Exception as e:
-            logger.debug(str(e))
-        mel.eval('setCurrentContainerVisibility(false)')
-        mel.eval('setCurrentFrameVisibility(false)')
-        mel.eval('SetEvaluationManagerHUDVisibility(0)')
-        mel.eval('setFocalLengthVisibility(false)')
-        mel.eval('setFrameRateVisibility(false)')
-        if hud_current_state.get('hikDetailsVisibility'):
-            cmds.ToggleHikDetails()
-            mel.eval('catchQuiet(setHikDetailsVisibility(false));')
-            mel.eval('catchQuiet(hikDetailsKeyingMode());')
-        mel.eval('ToggleMaterialLoadingDetailsHUDVisibility(false)')
-        mel.eval('setObjectDetailsVisibility(false)')
-        mel.eval('setParticleCountVisibility(false)')
-        mel.eval('setPolyCountVisibility(false)')
-        mel.eval('setSceneTimecodeVisibility(false)')
-        mel.eval('setSelectDetailsVisibility(false)')
-        mel.eval('setViewportRendererVisibility(false)')
-        mel.eval('catchQuiet(setXGenHUDVisibility(false));')
-    # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
-
-
 def output_string_to_notepad(string, file_name='tmp'):
     """
     Creates a txt file and writes a list of objects to it (with necessary code used to select it, in Mel and Python)
@@ -1387,8 +1440,8 @@ if __name__ == '__main__':
     # unhide_default_channels()
     # references_import()
     # references_remove()
-    # uniform_lra_toggle()
-    # uniform_jnt_label_toggle()
+    # toggle_uniform_lra()
+    # toggle_uniform_jnt_label()
     # select_non_unique_objects()
     #
     # generate_udim_previews()
