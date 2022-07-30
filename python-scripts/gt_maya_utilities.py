@@ -13,16 +13,16 @@
  Changed the order of the functions to match the menu
  
  2020-11-11
- Updates "import_references" to better handle unloaded references
- Added "remove_references"
- Added "gtu_combine_curves"
- Added "gtu_separate_curves"
+ Updates "references_import" to better handle unloaded references
+ Added "references_remove"
+ Added "curves_combine"
+ Added "curves_separate"
  
  2020-11-13
  Updated combine and separate functions to work with Bezier curves
  
  2020-11-14
- Added "gtu_convert_bif_to_mesh"
+ Added "convert_bif_to_mesh"
  
  2020-11-16
  Added "delete_nucleus_nodes"
@@ -173,14 +173,15 @@ def unlock_default_channels():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
+    in_view_message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
-    message += is_plural + ' default channels unlocked.'
+    description = ' default channels unlocked.'
+    in_view_message += is_plural + description
 
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-    # sys.stdout.write(message)
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    sys.stdout.write(str(unlocked_counter) + ' ' + is_plural + description)
 
 
 def unhide_default_channels():
@@ -383,7 +384,7 @@ def select_non_unique_objects():
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
-def import_references():
+def references_import():
     """ Imports all references """
     errors = ''
     r_file = ''
@@ -405,7 +406,7 @@ def import_references():
         print('#' * 50)
 
 
-def remove_references():
+def references_remove():
     """ Removes all references """
     errors = ''
     r_file = ''
@@ -836,10 +837,47 @@ def delete_unused_nodes():
     print(num_deleted_nodes)
 
 
+def delete_all_locators():
+    """ Deletes all locators """
+    errors = ''
+    function_name = 'GTU Delete All Locators'
+    try:
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+
+        # With Transform
+        locators = cmds.ls(typ='locator')
+
+        deleted_counter = 0
+        for obj in locators:
+            try:
+                parent = cmds.listRelatives(obj, parent=True) or []
+                cmds.delete(parent[0])
+                deleted_counter += 1
+            except Exception as e:
+                logger.debug(str(e))
+
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
+        is_plural = 'locators were'
+        if deleted_counter == 1:
+            is_plural = 'locator was'
+        message += is_plural + ' deleted.'
+
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occurred when deleting locators. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+
+
 """ ____________________________ External Functions ____________________________"""
 
 
-def gtu_combine_curves():
+def curves_combine():
     """ Moves the shape objects of all selected curves under a single group (combining them) """
     errors = ''
     function_name = 'GTU Combine Curves'
@@ -903,7 +941,7 @@ def gtu_combine_curves():
         print(errors)
 
 
-def gtu_separate_curves():
+def curves_separate():
     """
     Moves the shapes instead of a curve to individual transforms (separating curves) 
     """
@@ -974,7 +1012,7 @@ def gtu_separate_curves():
         print(errors)
 
 
-def gtu_convert_bif_to_mesh():
+def convert_bif_to_mesh():
     """
     Converts Bifrost geometry to Maya geometry
     """
@@ -1049,10 +1087,71 @@ def gtu_convert_bif_to_mesh():
         print(errors)
 
 
+def convert_joints_to_mesh(combine_mesh=True):
+    """
+    Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
+    Args:
+        combine_mesh: Combines generated meshes into one
+
+    Returns:
+        A list of generated meshes
+    """
+    selection = cmds.ls(selection=True, type='joint')
+    if len(selection) != 1:
+        cmds.warning('Please selection only the root joint and try again.')
+        return
+    cmds.select(selection[0], replace=True)
+    cmds.select(hierarchy=True)
+    joints = cmds.ls(selection=True, type='joint')
+
+    generated_mesh = []
+    for obj in reversed(joints):
+        if cmds.objExists(obj):
+            joint_name = obj.split('|')[-1]
+            radius = cmds.getAttr(obj + '.radius')
+            joint_sphere = cmds.polySphere(radius=radius * .5,
+                                           subdivisionsAxis=8,
+                                           subdivisionsHeight=8,
+                                           axis=[1, 0, 0],
+                                           name=joint_name + 'JointMesh',
+                                           ch=False)
+            generated_mesh.append(joint_sphere[0])
+            cmds.delete(cmds.parentConstraint(obj, joint_sphere))
+            joint_parent = cmds.listRelatives(obj, parent=True) or []
+            if joint_parent:
+                joint_cone = cmds.polyCone(radius=radius * .5,
+                                           subdivisionsAxis=4,
+                                           name=joint_name + 'BoneMesh',
+                                           ch=False)
+                generated_mesh.append(joint_cone[0])
+                bbox = cmds.exactWorldBoundingBox(joint_cone)
+                bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]
+                cmds.xform(joint_cone, piv=bottom, ws=True)
+                cmds.move(1, joint_cone, moveY=True)
+                cmds.rotate(90, joint_cone, rotateX=True)
+                cmds.rotate(90, joint_cone, rotateY=True)
+                cmds.makeIdentity(joint_cone, rotate=True, apply=True)
+
+                cmds.delete(cmds.parentConstraint(joint_parent, joint_cone))
+                cmds.delete(cmds.aimConstraint(obj, joint_cone))
+
+                child_pos = cmds.xform(obj, t=True, ws=True, query=True)
+                cmds.xform(joint_cone[0] + '.vtx[4]', t=child_pos, ws=True)
+    if combine_mesh:
+        cmds.select(generated_mesh, replace=True)
+        mesh = cmds.polyUnite()
+        cmds.select(clear=True)
+        cmds.delete(mesh, constructionHistory=True)
+        mesh = cmds.rename(mesh[0], selection[0] + 'AsMesh')
+        return [mesh]
+    else:
+        return generated_mesh
+
+
 """ ____________________________ About Window ____________________________"""
 
 
-def gtu_build_gui_about_gt_tools():
+def build_gui_about_gt_tools():
     """ Creates "About" window for the GT Tools menu """
 
     stored_gt_tools_version_exists = cmds.optionVar(exists="gt_tools_version")
@@ -1063,7 +1162,7 @@ def gtu_build_gui_about_gt_tools():
     else:
         gt_version = '?'
 
-    window_name = "gtu_build_gui_about_gt_tools"
+    window_name = "build_gui_about_gt_tools"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
@@ -1131,44 +1230,7 @@ def gtu_build_gui_about_gt_tools():
             cmds.deleteUI(window_name, window=True)
 
 
-def gtu_delete_all_locators():
-    """ Deletes all locators """
-    errors = ''
-    function_name = 'GTU Delete All Locators'
-    try:
-        cmds.undoInfo(openChunk=True, chunkName=function_name)
-
-        # With Transform
-        locators = cmds.ls(typ='locator')
-
-        deleted_counter = 0
-        for obj in locators:
-            try:
-                parent = cmds.listRelatives(obj, parent=True) or []
-                cmds.delete(parent[0])
-                deleted_counter += 1
-            except Exception as e:
-                logger.debug(str(e))
-
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
-        is_plural = 'locators were'
-        if deleted_counter == 1:
-            is_plural = 'locator was'
-        message += is_plural + ' deleted.'
-
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-
-    except Exception as e:
-        errors += str(e) + '\n'
-        cmds.warning('An error occurred when deleting locators. Open the script editor for more information.')
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != '':
-        print('######## Errors: ########')
-        print(errors)
-
-
-def gtu_full_hud_toggle():
+def toggle_full_hud():
     """ Toggles common HUD options so all the common ones are either active or inactive  """
     hud_current_state = {}
 
@@ -1296,67 +1358,6 @@ def gtu_full_hud_toggle():
     # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
 
 
-def gtu_convert_joints_to_mesh(combine_mesh=True):
-    """
-    Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
-    Args:
-        combine_mesh: Combines generated meshes into one
-
-    Returns:
-        A list of generated meshes
-    """
-    selection = cmds.ls(selection=True, type='joint')
-    if len(selection) != 1:
-        cmds.warning('Please selection only the root joint and try again.')
-        return
-    cmds.select(selection[0], replace=True)
-    cmds.select(hierarchy=True)
-    joints = cmds.ls(selection=True, type='joint')
-
-    generated_mesh = []
-    for obj in reversed(joints):
-        if cmds.objExists(obj):
-            joint_name = obj.split('|')[-1]
-            radius = cmds.getAttr(obj + '.radius')
-            joint_sphere = cmds.polySphere(radius=radius * .5,
-                                           subdivisionsAxis=8,
-                                           subdivisionsHeight=8,
-                                           axis=[1, 0, 0],
-                                           name=joint_name + 'JointMesh',
-                                           ch=False)
-            generated_mesh.append(joint_sphere[0])
-            cmds.delete(cmds.parentConstraint(obj, joint_sphere))
-            joint_parent = cmds.listRelatives(obj, parent=True) or []
-            if joint_parent:
-                joint_cone = cmds.polyCone(radius=radius * .5,
-                                           subdivisionsAxis=4,
-                                           name=joint_name + 'BoneMesh',
-                                           ch=False)
-                generated_mesh.append(joint_cone[0])
-                bbox = cmds.exactWorldBoundingBox(joint_cone)
-                bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]
-                cmds.xform(joint_cone, piv=bottom, ws=True)
-                cmds.move(1, joint_cone, moveY=True)
-                cmds.rotate(90, joint_cone, rotateX=True)
-                cmds.rotate(90, joint_cone, rotateY=True)
-                cmds.makeIdentity(joint_cone, rotate=True, apply=True)
-
-                cmds.delete(cmds.parentConstraint(joint_parent, joint_cone))
-                cmds.delete(cmds.aimConstraint(obj, joint_cone))
-
-                child_pos = cmds.xform(obj, t=True, ws=True, query=True)
-                cmds.xform(joint_cone[0] + '.vtx[4]', t=child_pos, ws=True)
-    if combine_mesh:
-        cmds.select(generated_mesh, replace=True)
-        mesh = cmds.polyUnite()
-        cmds.select(clear=True)
-        cmds.delete(mesh, constructionHistory=True)
-        mesh = cmds.rename(mesh[0], selection[0] + 'AsMesh')
-        return [mesh]
-    else:
-        return generated_mesh
-
-
 def output_string_to_notepad(string, file_name='tmp'):
     """
     Creates a txt file and writes a list of objects to it (with necessary code used to select it, in Mel and Python)
@@ -1380,44 +1381,44 @@ def output_string_to_notepad(string, file_name='tmp'):
 # """ ____________________________ Functions Calls ____________________________"""
 if __name__ == '__main__':
     pass
-    force_reload_file()
-    open_resource_browser()
-    unlock_default_channels()
-    unhide_default_channels()
-    import_references()
-    remove_references()
-    uniform_lra_toggle()
-    uniform_jnt_label_toggle()
-    select_non_unique_objects()
-
-    generate_udim_previews()
-    material_copy()
-    material_paste()
-
-    move_pivot_to_top()
-    move_pivot_to_base()
-    move_to_origin()
-
-    reset_joint_display()
-    reset_transforms()
-    reset_persp_shape_attributes()
-
-    delete_namespaces()
-    delete_display_layers()
-    delete_keyframes()
-    delete_nucleus_nodes()
-    delete_user_defined_attributes()
-    delete_unused_nodes()
-
-    # --- Outside Utilities ---
-    gtu_combine_curves()
-    gtu_separate_curves()
-    gtu_convert_bif_to_mesh()
-
-    gtu_build_gui_about_gt_tools()
-
-    # --- Other Functions ---
-    gtu_delete_all_locators()
-    gtu_full_hud_toggle()
-    gtu_convert_joints_to_mesh()
-    output_string_to_notepad('Test')
+    # force_reload_file()
+    # open_resource_browser()
+    # unlock_default_channels()
+    # unhide_default_channels()
+    # references_import()
+    # references_remove()
+    # uniform_lra_toggle()
+    # uniform_jnt_label_toggle()
+    # select_non_unique_objects()
+    #
+    # generate_udim_previews()
+    # material_copy()
+    # material_paste()
+    #
+    # move_pivot_to_top()
+    # move_pivot_to_base()
+    # move_to_origin()
+    #
+    # reset_joint_display()
+    # reset_transforms()
+    # reset_persp_shape_attributes()
+    #
+    # delete_namespaces()
+    # delete_display_layers()
+    # delete_keyframes()
+    # delete_nucleus_nodes()
+    # delete_user_defined_attributes()
+    # delete_unused_nodes()
+    # delete_all_locators()
+    #
+    # # --- Outside Utilities ---
+    # curves_combine()
+    # curves_separate()
+    # convert_bif_to_mesh()
+    #
+    # build_gui_about_gt_tools()
+    #
+    # # --- Other Functions ---
+    # toggle_full_hud()
+    # convert_joints_to_mesh()
+    # output_string_to_notepad('Test')
