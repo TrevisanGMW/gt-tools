@@ -2,83 +2,85 @@
  GT Maya Utilities
  github.com/TrevisanGMW - 2020-09-13
  
- 1.1 - 2020-10-17
+ 2020-10-17
  Added move pivot to bottom/top
  Added copy/paste material
  Added move to origin
  
- 1.2 - 2020-10-21
+ 2020-10-21
  Updated reset transform to better handle translate
  Added Uniform LRA Toggle
  Changed the order of the functions to match the menu
  
- 1.3 - 2020-11-11
- Updates "gtu_import_references" to better handle unloaded references
- Added "gtu_remove_references"
+ 2020-11-11
+ Updates "import_references" to better handle unloaded references
+ Added "remove_references"
  Added "gtu_combine_curves"
  Added "gtu_separate_curves"
  
- 1.4 - 2020-11-13
+ 2020-11-13
  Updated combine and separate functions to work with Bezier curves
  
- 1.5 - 2020-11-14
+ 2020-11-14
  Added "gtu_convert_bif_to_mesh"
  
- 1.6 - 2020-11-16
- Added "gtu_delete_nucleus_nodes"
- Updated "gtu_delete_display_layers" to have inView feedback
- Updated "gtu_delete_keyframes" to have inView feedback
+ 2020-11-16
+ Added "delete_nucleus_nodes"
+ Updated "delete_display_layers" to have inView feedback
+ Updated "delete_keyframes" to have inView feedback
  
- 1.7 - 2020-11-22
+ 2020-11-22
  Updated about window text
  
- 1.8 - 2020-12-03
+ 2020-12-03
  Changed the background color for the title in the "About" window
  Changed the order of a few functions
  Added function to unlock/unhide default channels
  
- 1.9 - 2021-01-05
+ 2021-01-05
  Added Uniform Joint Label Toggle
  
- 2.0 - 2021-02-05
+ 2021-02-05
  Added "Select Non-Unique Objects" Utility
  
- 2.1 - 2021-05-12
+ 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
  Added refresh to combine curves function as they were not automatically updating after re-parenting shapes
  
- 2.2 - 2021-06-25
+ 2021-06-25
  Updated bif to mesh to work with newer versions of bifrost
  Updated bif to mesh to delete empty meshes (objects that weren't geometry)
  Added function to delete all locators
  
- 2.2 - 2021-10-25
+ 2021-10-25
  Updated bif to mesh to work with newer versions of bifrost
  Updated bif to mesh to delete empty meshes (objects that weren't geometry)
  Added function to delete all locators
  
- 2.3 - 2021-10-10
+ 2021-10-10
  Created Full HUD Toggle
  
- 2.4 - 2021-10-10
+ 2021-10-10
  Fixed gtu full hud toggle as it would return an error if xGen was not loaded
   
- 2.5 - 2022-01-04
+ 2022-01-04
  Renamed script to "gt_maya_utilities"
   
- 2.6 - 2022-01-04
+ 2022-01-04
  Renamed script to "gt_maya_utilities"
 
- 2.7 - 2022-06-29
+ 2022-06-29
  Added string to notepad (txt)
  Renamed functions
 
+ 2022-07-30
+ Removed versions
+ Removed prefix "gtu_" from functions
+ Clean up reset transforms
+
  TODO:
-     Add proper error handling to all functions through logging
      New functions:
         Reset Display Type and Color
-        Find/Rename non-unique names - Enforce unique names
-        Remove Custom Colors - select object types, outliner or viewport. Use string to determine a list of types
         Assign lambert to everything function (Maybe assign to object missing shaders)
         Add Unlock all attributes
         Add unhide attributes (provide list?)
@@ -120,7 +122,7 @@ logger.setLevel(logging.INFO)
 ''' ____________________________ General Functions ____________________________'''
 
 
-def gtu_reload_file():
+def force_reload_file():
     """ Reopens the opened file (to revert any changes done to the file) """
     if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
         file_path = cmds.file(query=True, expandName=True)
@@ -130,7 +132,7 @@ def gtu_reload_file():
         cmds.warning('File was never saved.')
 
 
-def gtu_open_resource_browser():
+def open_resource_browser():
     """ Opens Maya's Resource Browser """
     try:
         import maya.app.general.resourceBrowser as resourceBrowser
@@ -139,7 +141,7 @@ def gtu_open_resource_browser():
         logger.debug(str(e))
 
 
-def gtu_unlock_default_channels():
+def unlock_default_channels():
     """ Unlocks Translate, Rotate, Scale for the selected objects """
     function_name = 'GTU Unlock Default Channels'
     errors = ''
@@ -178,9 +180,10 @@ def gtu_unlock_default_channels():
     message += is_plural + ' default channels unlocked.'
 
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    # sys.stdout.write(message)
 
 
-def gtu_unhide_default_channels():
+def unhide_default_channels():
     """ Unhides Translate, Rotate, Scale for the selected objects """
     function_name = 'GTU Unhide Default Channels'
     errors = ''
@@ -221,7 +224,7 @@ def gtu_unhide_default_channels():
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
-def gtu_uniform_lra_toggle():
+def uniform_lra_toggle():
     """
     Makes the visibility of the Local Rotation Axis uniform among 
     the selected objects according to the current state of the majority of them.  
@@ -281,7 +284,7 @@ def gtu_uniform_lra_toggle():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def gtu_uniform_jnt_label_toggle():
+def uniform_jnt_label_toggle():
     """
     Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.  
     """
@@ -341,7 +344,7 @@ def gtu_uniform_jnt_label_toggle():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def gtu_select_non_unique_objects():
+def select_non_unique_objects():
     """ Selects all non-unique objects (objects with the same short name) """
 
     def get_short_name(full_name):
@@ -380,7 +383,7 @@ def gtu_select_non_unique_objects():
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
-def gtu_import_references():
+def import_references():
     """ Imports all references """
     errors = ''
     r_file = ''
@@ -402,7 +405,7 @@ def gtu_import_references():
         print('#' * 50)
 
 
-def gtu_remove_references():
+def remove_references():
     """ Removes all references """
     errors = ''
     r_file = ''
@@ -427,7 +430,7 @@ def gtu_remove_references():
 """ ____________________________ Material Functions ____________________________"""
 
 
-def gtu_generate_udim_previews():
+def generate_udim_previews():
     """ Generates UDIM previews for all file nodes """
     all_file_nodes = cmds.ls(type='file')
     for file_node in all_file_nodes:
@@ -440,7 +443,7 @@ def gtu_generate_udim_previews():
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
-def gtu_copy_material():
+def material_copy():
     """ Copies selected material to clipboard """
     selection = cmds.ls(selection=True)
     try:
@@ -453,7 +456,7 @@ def gtu_copy_material():
     cmds.select(selection)
 
 
-def gtu_paste_material():
+def material_paste():
     """ Copies selected material to clipboard """
     try:
         cmds.polyClipboard(paste=True, shader=True)
@@ -466,7 +469,7 @@ def gtu_paste_material():
 """ ____________________________ Layout Functions ____________________________"""
 
 
-def gtu_move_pivot_to_top():
+def move_pivot_to_top():
     """ Moves pivot point to the top of the boundary box """
     selection = cmds.ls(selection=True)
 
@@ -476,7 +479,7 @@ def gtu_move_pivot_to_top():
         cmds.xform(obj, piv=top, ws=True)
 
 
-def gtu_move_pivot_to_base():
+def move_pivot_to_base():
     """ Moves pivot point to the base of the boundary box """
     selection = cmds.ls(selection=True)
 
@@ -486,7 +489,7 @@ def gtu_move_pivot_to_base():
         cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
 
 
-def gtu_move_to_origin():
+def move_to_origin():
     """ Moves selected objects back to origin """
     function_name = 'GTU Move to Origin'
     errors = ''
@@ -511,19 +514,19 @@ def gtu_move_to_origin():
 """ ____________________________ Reset Functions ____________________________"""
 
 
-def gtu_reset_transforms():
+def reset_transforms():
     """
     Reset transforms. 
     It checks for incoming connections, then set the attribute to 0 if there are none
     It resets transforms, but ignores translate for joints.
     """
     function_name = 'GTU Reset Transforms'
-    errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    output_errors = ''
+    current_selection = cmds.ls(selection=True)
 
-    selection = cmds.ls(selection=True)
-
-    def reset_transforms():
+    def reset_trans(selection):
+        errors = ''
         for obj in selection:
             try:
                 type_check = cmds.listRelatives(obj, children=True) or []
@@ -570,19 +573,20 @@ def gtu_reset_transforms():
             except Exception as exception:
                 logger.debug(str(exception))
                 errors += str(exception) + '\n'
+            return errors
 
     try:
-        reset_transforms()
+        output_errors = reset_trans(current_selection)
     except Exception as e:
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    if errors != '':
+    if output_errors != '':
         cmds.warning("Some objects couldn't be reset. Open the script editor for a list of errors.")
 
 
-def gtu_reset_joint_sizes():
+def reset_joint_display():
     """
     Resets the radius attribute back to one in all joints,
     then changes the global multiplier (jointDisplayScale) back to one
@@ -603,7 +607,7 @@ def gtu_reset_joint_sizes():
         raise exception
 
 
-def gtu_reset_persp_shape_attributes():
+def reset_persp_shape_attributes():
     """
     If persp shape exists (default camera), reset its attributes
     """
@@ -630,7 +634,7 @@ def gtu_reset_persp_shape_attributes():
 """ ____________________________ Delete Functions ____________________________"""
 
 
-def gtu_delete_namespaces():
+def delete_namespaces():
     """Deletes all namespaces in the scene"""
     function_name = 'GTU Delete All Namespaces'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -647,7 +651,7 @@ def gtu_delete_namespaces():
         # Reverse List
         namespaces.sort(key=num_children, reverse=True)  # So it does the children first
 
-        print(namespaces)
+        logger.debug(namespaces)
 
         for namespace in namespaces:
             if namespace not in default_namespaces:
@@ -658,7 +662,7 @@ def gtu_delete_namespaces():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def gtu_delete_display_layers():
+def delete_display_layers():
     """ Deletes all display layers """
     function_name = 'GTU Delete All Display Layers'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -682,7 +686,7 @@ def gtu_delete_display_layers():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def gtu_delete_keyframes():
+def delete_keyframes():
     """Deletes all keyframes. (Doesn't include Set Driven Keys)"""
     function_name = 'GTU Delete All Keyframes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -716,7 +720,7 @@ def gtu_delete_keyframes():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def gtu_delete_nucleus_nodes():
+def delete_nucleus_nodes():
     """ Deletes all elements related to particles """
     errors = ''
     function_name = 'GTU Delete Nucleus Nodes'
@@ -786,7 +790,7 @@ def gtu_delete_nucleus_nodes():
         print(errors)
 
 
-def gtu_delete_user_defined_attributes():
+def delete_user_defined_attributes():
     """ Deletes all User defined attributes for the selected objects. """
     function_name = 'GTU Delete User Defined Attributes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -821,6 +825,15 @@ def gtu_delete_user_defined_attributes():
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def delete_unused_nodes():
+    """
+    Creates a txt file and writes a list of objects to it (with necessary code used to select it, in Mel and Python)
+
+    """
+    num_deleted_nodes = mel.eval('MLdeleteUnused();')
+    print(num_deleted_nodes)
 
 
 """ ____________________________ External Functions ____________________________"""
@@ -1364,46 +1377,47 @@ def output_string_to_notepad(string, file_name='tmp'):
     mel.eval(notepad_command)
 
 
-""" ____________________________ Functions Calls ____________________________"""
+# """ ____________________________ Functions Calls ____________________________"""
 if __name__ == '__main__':
     pass
-    # gtu_reload_file()
-    # gtu_open_resource_browser()
-    # gtu_unlock_default_channels()
-    # gtu_unhide_default_channels()
-    # gtu_import_references()
-    # gtu_remove_references()
-    # gtu_uniform_lra_toggle()
-    # gtu_uniform_jnt_label_toggle()
-    # gtu_select_non_unique_objects()
+    force_reload_file()
+    open_resource_browser()
+    unlock_default_channels()
+    unhide_default_channels()
+    import_references()
+    remove_references()
+    uniform_lra_toggle()
+    uniform_jnt_label_toggle()
+    select_non_unique_objects()
 
-    # gtu_generate_udim_previews()
-    # gtu_copy_material()
-    # gtu_paste_material()
+    generate_udim_previews()
+    material_copy()
+    material_paste()
 
-    # gtu_move_pivot_to_top()
-    # gtu_move_pivot_to_base()
-    # gtu_move_to_origin()
+    move_pivot_to_top()
+    move_pivot_to_base()
+    move_to_origin()
 
-    # gtu_reset_joint_sizes()
-    # gtu_reset_transforms()
-    # gtu_reset_persp_shape_attributes()
+    reset_joint_display()
+    reset_transforms()
+    reset_persp_shape_attributes()
 
-    # gtu_delete_namespaces()
-    # gtu_delete_display_layers()
-    # gtu_delete_keyframes()
-    # gtu_delete_nucleus_nodes()
-    # gtu_delete_user_defined_attributes()
+    delete_namespaces()
+    delete_display_layers()
+    delete_keyframes()
+    delete_nucleus_nodes()
+    delete_user_defined_attributes()
+    delete_unused_nodes()
 
     # --- Outside Utilities ---
-    # gtu_combine_curves()
-    # gtu_separate_curves()
-    # gtu_convert_bif_to_mesh()
+    gtu_combine_curves()
+    gtu_separate_curves()
+    gtu_convert_bif_to_mesh()
 
-    # gtu_build_gui_about_gt_tools()
+    gtu_build_gui_about_gt_tools()
 
     # --- Other Functions ---
-    # gtu_delete_all_locators()
-    # gtu_full_hud_toggle()
-    # gtu_convert_joints_to_mesh()
-    # output_string_to_notepad('Test')
+    gtu_delete_all_locators()
+    gtu_full_hud_toggle()
+    gtu_convert_joints_to_mesh()
+    output_string_to_notepad('Test')
