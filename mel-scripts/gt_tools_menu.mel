@@ -72,17 +72,17 @@
 //	 Added "gt_sphere_types.py" to the uninstaller.
 //	 Created "gt_check_updates.py" to better handle updates.
 //	 Changed the "Check For Updates" button in the main menu to call "gt_check_updates.py" instead of a link.
-//	 Fixed issue where unloaded references wouldn't import when using "import_references" (#15)
-//	 Added"remove_references" (#16)
+//	 Fixed issue where unloaded references wouldn't import when using "references_import" (#15)
+//	 Added"references_remove" (#16)
 //	 Added a missing reload to "gt_tools_menu.mel"
 //
 //	 1.5.5
 //   Started storing changelog directly on github. Everything here is now about this menu specifically.
 //   https://github.com/TrevisanGMW/gt-tools/releases
-//	 Added "gtu_convert_bif_to_mesh"
+//	 Added "convert_bif_to_mesh"
 //
 //   1.5.6
-//   Moved "gtu_convert_bif_to_mesh" to the modeling submenu
+//   Moved "convert_bif_to_mesh" to the modeling submenu
 //   Added "gt_color_manager"
 //
 //   1.5.7
@@ -119,7 +119,7 @@
 //	 Added uniform_jnt_label_toggle to GT Utilities
 //
 //   1.6.6
-//	 Updated icons for "GTU Uniform LRA Toggle" and "GTU Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
+//	 Updated icons for "Uniform LRA Toggle" and "Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
 //
 //   1.6.7
 //	 Added Add Sine Attributes
@@ -132,7 +132,7 @@
 //	 No changes to this menu, only version
 //
 //   1.7.1
-//	 Added GTU Select Non-unique Objects
+//	 Added Select Non-unique Objects
 //
 //   1.7.2
 //   Updated Scripts so they are compatible with Python 3 (Maya 2022+)
@@ -142,7 +142,7 @@
 //   Added "gt_transfer_uvs"
 //
 //   1.7.8
-//   Added "gtu_full_hud_toggle"
+//   Added "toggle_full_hud"
 //
 //   1.7.10
 //   Added optionVar "gt_check_for_updates_interval_days" and set it to 15 in case it doesn't exist (default value)
@@ -299,13 +299,13 @@ menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
     
     menuItem 
     -l ("Combine Curves")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_combine_curves')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'curves_combine')\");")
     -ann ("Combine curves by moving all the shape objects inside one single transform.") 
     -image "nurbsCurve.svg";
     
     menuItem 
     -l ("Separate Curves")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_separate_curves')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'curves_separate')\");")
     -ann ("Separate curves by moving every shape object to their own separated transform.") 
     -image "curveEditor.png";
 
@@ -328,7 +328,7 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
     -image "blinn.svg" ;
 
 
-    // GTU Functions
+    // GT Utility Functions
     menuItem -divider true ;
 
     menuItem
@@ -339,7 +339,7 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
 
         menuItem
     -l ("Convert Bif to Mesh")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_convert_bif_to_mesh')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'convert_bif_to_mesh')\");")
     -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
     -image "nurbsToPolygons.png";
 
@@ -493,7 +493,7 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     	menuItem 
     -l ("Convert Joints to Mesh")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_convert_joints_to_mesh')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'convert_joints_to_mesh')\");")
     -ann ("Converts joints to mesh. (Helpful when sending references to other applications)") 
     -image "HIKCharacterToolSkeleton.png";
     
@@ -506,7 +506,7 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
 	menuItem 
     -l ("Full HUD Toggle")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_full_hud_toggle')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_full_hud')\");")
     -ann ("Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. (Keeps default elements intact when toggling it off)") 
     -image "channelBox.png";
     
@@ -515,13 +515,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Import References")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'import_references')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'references_import')\");")
     -ann ("Imports all references.") 
     -image "reference.svg";
     
     menuItem 
     -l ("Remove References")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'remove_references')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'references_remove')\");")
     -ann ("Removes all references.") 
     -image "referenceProxy.png";
     
@@ -670,7 +670,7 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     -image "defaultOutliner.svg";
     
     menuItem -l "About"  
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_build_gui_about_gt_tools')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'build_gui_about_gt_tools')\");")
     -ann ("Opens about menu.") 
     -image "help.png" ;
     
