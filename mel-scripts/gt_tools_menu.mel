@@ -116,7 +116,7 @@
 //	 Updated Make IK Stretchy
 //
 //   1.6.5
-//	 Added uniform_jnt_label_toggle to GT Utilities
+//	 Added toggle_uniform_jnt_label to GT Utilities
 //
 //   1.6.6
 //	 Updated icons for "Uniform LRA Toggle" and "Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
@@ -481,13 +481,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Uniform LRA Toggle")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'uniform_lra_toggle')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_uniform_lra')\");")
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "srt.png";
 	
 	menuItem 
     -l ("Uniform Joint Label Toggle")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'uniform_jnt_label_toggle')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_uniform_jnt_label')\");")
     -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
     -image "QR_xRay.png";
     
