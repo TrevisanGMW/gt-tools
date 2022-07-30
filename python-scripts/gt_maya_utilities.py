@@ -2,81 +2,91 @@
  GT Maya Utilities
  github.com/TrevisanGMW - 2020-09-13
  
- 2020-10-17
+ - 2020-10-17
  Added move pivot to bottom/top
  Added copy/paste material
  Added move to origin
  
- 2020-10-21
+ - 2020-10-21
  Updated reset transform to better handle translate
  Added Uniform LRA Toggle
  Changed the order of the functions to match the menu
  
- 2020-11-11
+ - 2020-11-11
  Updates "references_import" to better handle unloaded references
  Added "references_remove"
  Added "curves_combine"
  Added "curves_separate"
  
- 2020-11-13
+ - 2020-11-13
  Updated combine and separate functions to work with Bezier curves
  
- 2020-11-14
+ - 2020-11-14
  Added "convert_bif_to_mesh"
  
- 2020-11-16
+ - 2020-11-16
  Added "delete_nucleus_nodes"
  Updated "delete_display_layers" to have inView feedback
  Updated "delete_keyframes" to have inView feedback
  
- 2020-11-22
+ - 2020-11-22
  Updated about window text
  
- 2020-12-03
+ - 2020-12-03
  Changed the background color for the title in the "About" window
  Changed the order of a few functions
  Added function to unlock/unhide default channels
  
- 2021-01-05
+ - 2021-01-05
  Added Uniform Joint Label Toggle
  
- 2021-02-05
+ - 2021-02-05
  Added "Select Non-Unique Objects" Utility
  
- 2021-05-12
+ - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
  Added refresh to combine curves function as they were not automatically updating after re-parenting shapes
  
- 2021-06-25
+ - 2021-06-25
  Updated bif to mesh to work with newer versions of bifrost
  Updated bif to mesh to delete empty meshes (objects that weren't geometry)
  Added function to delete all locators
  
- 2021-10-25
+ - 2021-10-25
  Updated bif to mesh to work with newer versions of bifrost
  Updated bif to mesh to delete empty meshes (objects that weren't geometry)
  Added function to delete all locators
  
- 2021-10-10
+ - 2021-10-10
  Created Full HUD Toggle
  
- 2021-10-10
+ - 2021-10-10
  Fixed gtu full hud toggle as it would return an error if xGen was not loaded
   
- 2022-01-04
+ - 2022-01-04
  Renamed script to "gt_maya_utilities"
   
- 2022-01-04
+ - 2022-01-04
  Renamed script to "gt_maya_utilities"
 
- 2022-06-29
+ - 2022-06-29
  Added string to notepad (txt)
  Renamed functions
 
- 2022-07-30
+ - 2022-07-30
  Removed versions
  Removed prefix "gtu_" from functions
- Clean up reset transforms
+     - Added or updated feedback for:
+       - Force Reload File
+       - Unlock Default Channels
+       - Unhide Default Channels
+       - Uniform LRA Toggle
+       - Full Hud Toggle
+
+    - Added validation
+       - Uniform LRA Toggle
+       - Uniform Joint Label Toggle
+       - Reset Transforms
 
  TODO:
      New functions:
