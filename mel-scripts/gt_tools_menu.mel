@@ -72,8 +72,8 @@
 //	 Added "gt_sphere_types.py" to the uninstaller.
 //	 Created "gt_check_updates.py" to better handle updates.
 //	 Changed the "Check For Updates" button in the main menu to call "gt_check_updates.py" instead of a link.
-//	 Fixed issue where unloaded references wouldn't import when using "gtu_import_references" (#15)
-//	 Added"gtu_remove_references" (#16)
+//	 Fixed issue where unloaded references wouldn't import when using "import_references" (#15)
+//	 Added"remove_references" (#16)
 //	 Added a missing reload to "gt_tools_menu.mel"
 //
 //	 1.5.5
@@ -88,7 +88,7 @@
 //   1.5.7
 //	 Renamed "gt_create_ctrl_auto_fk" to "gt_create_auto_fk"
 //	 Renamed "gt_create_ctrl_simple_IK_leg"	to "gt_create_ik_leg"
-//   Added "gtu_delete_nucleus_nodes"
+//   Added "delete_nucleus_nodes"
 //
 //   1.5.8
 //   Added "gt_startup_booster"
@@ -116,7 +116,7 @@
 //	 Updated Make IK Stretchy
 //
 //   1.6.5
-//	 Added gtu_uniform_jnt_label_toggle to GT Utilities
+//	 Added uniform_jnt_label_toggle to GT Utilities
 //
 //   1.6.6
 //	 Updated icons for "GTU Uniform LRA Toggle" and "GTU Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
@@ -151,7 +151,7 @@
 //   Added World Space Baker
 //
 //   1.7.22
-//   Added "gtu_generate_udim_previews()"
+//   Added "generate_udim_previews()"
 //
 //   1.7.23 - 4 2022-07-13
 //   Renamed Auto Biped Rigger to Biped Auto Rigger 
@@ -333,7 +333,7 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
 
     menuItem
     -l ("Preview All UDIMs")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_generate_udim_previews')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'generate_udim_previews')\");")
     -ann ("Generates UDIM previews for all file nodes.")
     -image "textureToGeom.png";
 
@@ -348,13 +348,13 @@ menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
 
     menuItem
     -l ("Copy Material")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_copy_material')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'material_copy')\");")
     -ann ("Copies material to clipboard.")
     -image "polyBakeSetAssign.png";
 
     menuItem
     -l ("Paste Material")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_paste_material')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'material_paste')\");")
     -ann ("Pastes material from clipboard.") 
     -image "polyBakeSetEdit.png";
 
@@ -457,37 +457,37 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Reload File")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_reload_file')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'force_reload_file')\");")
     -ann ("Reopens the opened file (to revert back any changes done to the file since it was first opened)") 
     -image "openLoadGeneric.png";
     
     menuItem 
     -l ("Resource Browser")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_open_resource_browser')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'open_resource_browser')\");")
     -ann ("Opens Maya's Resource Browser. A good way to find icons or elements you may want to use.") 
     -image "bsd-head.png";
     
     menuItem 
     -l ("Unlock Default Channels")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_unlock_default_channels')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'unlock_default_channels')\");")
     -ann ("Unlocks the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
     -image "Lock_OFF_grey.png";
     
     menuItem 
     -l ("Unhide Default Channels")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_unhide_default_channels')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'unhide_default_channels')\");")
     -ann ("Unhides the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
     -image "RS_filter_list.png";
     
     menuItem 
     -l ("Uniform LRA Toggle")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_uniform_lra_toggle')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'uniform_lra_toggle')\");")
     -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
     -image "srt.png";
 	
 	menuItem 
     -l ("Uniform Joint Label Toggle")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_uniform_jnt_label_toggle')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'uniform_jnt_label_toggle')\");")
     -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
     -image "QR_xRay.png";
     
@@ -500,7 +500,7 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
 	menuItem 
     -l ("Select Non-Unique Objects")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_select_non_unique_objects')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'select_non_unique_objects')\");")
     -ann ("Selects all objects with the same short name. (non-unique objects)") 
     -image "gotoLine.png";
     
@@ -515,13 +515,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Import References")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_import_references')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'import_references')\");")
     -ann ("Imports all references.") 
     -image "reference.svg";
     
     menuItem 
     -l ("Remove References")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_remove_references')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'remove_references')\");")
     -ann ("Removes all references.") 
     -image "referenceProxy.png";
     
@@ -531,19 +531,19 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Move Pivot to Top")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_move_pivot_to_top')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_to_top')\");")
     -ann ("Moves pivot point to the top of the boundingbox of every selected object.") 
     -image "moveLayerUp.png";
     
     menuItem 
     -l ("Move Pivot to Base")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_move_pivot_to_base')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_to_base')\");")
     -ann ("Moves pivot point to the base of the boundingbox of every selected object.") 
     -image "moveLayerDown.png";
     
     menuItem 
     -l ("Move Object to Origin")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_move_to_origin')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_to_origin')\");")
     -ann ("Moves selected objects to origin according to their pivot point.") 
     -image "grid.svg";
 
@@ -552,19 +552,19 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
 
     menuItem 
     -l ("Reset Transforms")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_reset_transforms')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_transforms')\");")
     -ann ("Reset transforms. It checks for incomming connections, then set the attribute to 0 if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)") 
     -image "CenterPivot.png";
     
     menuItem 
     -l ("Reset Joints Display")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_reset_joint_sizes')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_joint_display')\");")
     -ann ("Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one.") 
     -image "kinJoint.png";
     
     menuItem 
     -l ("Reset \"persp\" Camera")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_reset_persp_shape_attributes')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_persp_shape_attributes')\");")
     -ann ("If persp camera exists (default camera), reset its attributes.") 
     -image "camera.svg";
 
@@ -574,25 +574,25 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Delete Namespaces")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_delete_namespaces')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_namespaces')\");")
     -ann ("Deletes all namespaces in the scene.") 
     -image "renamePreset.png";
     
     menuItem 
     -l ("Delete Display Layers")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_delete_display_layers')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_display_layers')\");")
     -ann ("Deletes all display layers.") 
     -image "displayLayer.svg";
 
     menuItem 
     -l ("Delete Nucleus Nodes")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_delete_nucleus_nodes')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_nucleus_nodes')\");")
     -ann ("Deletes all nodes related to particles. (Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)") 
     -image "nParticle.svg";
 
     menuItem 
     -l ("Delete Keyframes")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'gtu_delete_keyframes')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_keyframes')\");")
     -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
     -image "keyIntoclip.png";
 
