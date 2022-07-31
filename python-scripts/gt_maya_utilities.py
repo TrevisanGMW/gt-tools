@@ -83,6 +83,8 @@
        - Uniform LRA Toggle
        - Full Hud Toggle
        - Select Non-Unique Objects
+       - Import References
+       - Remove References
 
     - Added validation
        - Uniform LRA Toggle
@@ -569,12 +571,14 @@ def select_non_unique_objects():
     cmds.select(non_unique_transforms, r=True)
 
     if len(non_unique_transforms) > 0:
-        in_view_message = '<span style=\"color:#FF0000;text-decoration:underline;\">'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
         in_view_message += str(len(non_unique_transforms)) + '</span> non-unique objects were selected.'
         message = '\n' + str(len(non_unique_transforms)) + ' non-unique objects were found in this scene. ' \
                                                            'Rename them to avoid conflicts.'
     else:
-        in_view_message = 'All objects seem to have unique names in this scene.'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'All objects seem to have unique names in this scene.'
         message = 'No repeated names found in the scene.'
     cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     sys.stdout.write(message)
@@ -584,12 +588,15 @@ def references_import():
     """ Imports all references """
     errors = ''
     r_file = ''
+    refs = []
+    refs_imported_counter = 0
     try:
-        refs = cmds.ls(rf=True)
+        refs = cmds.ls(rf=True) or []
         for i in refs:
             try:
                 r_file = cmds.referenceQuery(i, f=True)
                 cmds.file(r_file, importReference=True)
+                refs_imported_counter += 1
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
     except Exception as e:
@@ -600,18 +607,36 @@ def references_import():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        if len(refs) == 0:
+            in_view_message += 'No references in the scene.'
+            sys.stdout.write('No references found in the scene. Nothing was imported.')
+        else:
+            is_plural = 'references were'
+            affected = str(refs_imported_counter)
+            if refs_imported_counter == 1:
+                is_plural = 'reference was'
+                affected = '"' + str(refs[0]) + '"'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+            in_view_message += affected + '</span> ' + is_plural + ' imported.'
+            sys.stdout.write(affected + ' ' + is_plural + ' imported.')
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 def references_remove():
     """ Removes all references """
     errors = ''
     r_file = ''
+    refs = []
+    refs_imported_counter = 0
     try:
         refs = cmds.ls(rf=True)
         for i in refs:
             try:
                 r_file = cmds.referenceQuery(i, f=True)
                 cmds.file(r_file, removeReference=True)
+                refs_imported_counter += 1
             except Exception as e:
                 errors += str(e) + '(' + r_file + ')\n'
     except Exception as e:
@@ -622,6 +647,21 @@ def references_remove():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        if len(refs) == 0:
+            in_view_message += 'No references in the scene.'
+            sys.stdout.write('No references found in the scene. Nothing removed.')
+        else:
+            is_plural = 'references were'
+            affected = str(refs_imported_counter)
+            if refs_imported_counter == 1:
+                is_plural = 'reference was'
+                affected = '"' + str(refs[0]) + '"'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
+            in_view_message += affected + '</span> ' + is_plural + ' removed.'
+            sys.stdout.write(affected + ' ' + is_plural + ' removed.')
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 """ ____________________________ Material Functions ____________________________"""
