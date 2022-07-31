@@ -74,7 +74,8 @@
  Renamed functions
 
  - 2022-07-30
- Removed versions
+ Removed version (only dates now)
+ Made inView messages unique
  Removed prefix "gtu_" from functions
      - Added or updated feedback for:
        - Force Reload File
@@ -91,9 +92,12 @@
        - Uniform Joint Label Toggle
        - Reset Transforms
 
+ - 2022-07-31
+     - Added or updated feedback for:
+       - Generate UDIM Previews
+       
  TODO:
      New functions:
-        Reset Display Type and Color
         Assign lambert to everything function (Maybe assign to object missing shaders)
         Add Unlock all attributes
         Add unhide attributes (provide list?)
@@ -669,14 +673,22 @@ def references_remove():
 
 def generate_udim_previews():
     """ Generates UDIM previews for all file nodes """
+    errors = ''
     all_file_nodes = cmds.ls(type='file')
     for file_node in all_file_nodes:
         try:
             mel.eval('generateUvTilePreview ' + file_node + ';')
         except Exception as e:
-            print(e)
-    message = 'Previews generated for all <span style=\"color:#FF0000;text-decoration:underline;\"> ' \
-              'UDIM</span> file nodes.'
+            errors += str(e) + '\n'
+
+    if errors:
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+
+    unique_message = '<' + str(random.random()) + '>'
+    message = unique_message + 'Previews generated for all <span style=\"color:#FF0000;text-decoration:underline;\"> ' \
+                               'UDIM</span> file nodes.'
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
