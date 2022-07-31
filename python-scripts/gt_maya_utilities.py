@@ -95,7 +95,15 @@
  - 2022-07-31
      - Added or updated feedback for:
        - Generate UDIM Previews
-       
+       - Move Pivot to Top
+       - Move Pivot to Base
+       - Move Object To Origin
+
+    - Added validation
+       - Move Pivot to Top
+       - Move Pivot to Base
+       - Move Object To Origin
+
  TODO:
      New functions:
         Assign lambert to everything function (Maybe assign to object missing shaders)
@@ -718,42 +726,112 @@ def material_paste():
 """ ____________________________ Layout Functions ____________________________"""
 
 
-def move_pivot_to_top():
+def move_pivot_top():
     """ Moves pivot point to the top of the boundary box """
-    selection = cmds.ls(selection=True)
-
+    selection = cmds.ls(selection=True, long=True)
+    selection_short = cmds.ls(selection=True)
+    counter = 0
+    errors = ''
     for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-        top = [(bbox[0] + bbox[3]) / 2, bbox[4], (bbox[2] + bbox[5]) / 2]  # find top
-        cmds.xform(obj, piv=top, ws=True)
+        try:
+            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
+            top = [(bbox[0] + bbox[3]) / 2, bbox[4], (bbox[2] + bbox[5]) / 2]  # find top
+            cmds.xform(obj, piv=top, ws=True)
+            counter += 1
+        except Exception as e:
+            errors += str(e) + '\n'
+
+    if errors:
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+
+    if counter > 0:
+        pivot_pos = 'top'
+        is_plural = 'pivots were'
+        affected = str(counter)
+        if counter == 1:
+            is_plural = 'pivot was'
+            affected = '"' + selection_short[0] + '"'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+        in_view_message += '</span> ' + is_plural + ' moved to the '
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
+        message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
 
 
-def move_pivot_to_base():
+def move_pivot_base():
     """ Moves pivot point to the base of the boundary box """
-    selection = cmds.ls(selection=True)
-
+    selection = cmds.ls(selection=True, long=True)
+    selection_short = cmds.ls(selection=True)
+    counter = 0
+    errors = ''
     for obj in selection:
-        bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-        bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]  # find bottom
-        cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
+        try:
+            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
+            bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]  # find bottom
+            cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
+            counter += 1
+        except Exception as e:
+            errors += str(e) + '\n'
+
+    if errors:
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+
+    if counter > 0:
+        pivot_pos = 'base'
+        is_plural = 'pivots were'
+        affected = str(counter)
+        if counter == 1:
+            is_plural = 'pivot was'
+            affected = '"' + selection_short[0] + '"'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+        in_view_message += '</span> ' + is_plural + ' moved to the '
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
+        message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
 
 
 def move_to_origin():
     """ Moves selected objects back to origin """
     function_name = 'GTU Move to Origin'
-    errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True)
+    selection_short = cmds.ls(selection=True)
+    counter = 0
+    errors = ''
     try:
         for obj in selection:
             try:
                 cmds.move(0, 0, 0, obj, a=True, rpr=True)  # rpr flag moves it according to the pivot
+                counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
         if errors != '':
             print('#### Errors: ####')
             print(errors)
             cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
+
+        if counter > 0:
+            pivot_pos = 'origin'
+            is_plural = 'objects were'
+            affected = str(counter)
+            if counter == 1:
+                is_plural = ' was'
+                affected = '"' + selection_short[0] + '"'
+            in_view_message = '<' + str(random.random()) + '>'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+            in_view_message += '</span> ' + is_plural + ' moved to the '
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
+            message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
+            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write(message)
     except Exception as e:
         logger.debug(str(e))
     finally:
@@ -1515,8 +1593,8 @@ if __name__ == '__main__':
     # material_copy()
     # material_paste()
     #
-    # move_pivot_to_top()
-    # move_pivot_to_base()
+    # move_pivot_top()
+    # move_pivot_base()
     # move_to_origin()
     #
     # reset_joint_display()
