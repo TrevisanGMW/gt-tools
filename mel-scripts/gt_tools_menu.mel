@@ -531,13 +531,13 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     
     menuItem 
     -l ("Move Pivot to Top")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_to_top')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_top')\");")
     -ann ("Moves pivot point to the top of the boundingbox of every selected object.") 
     -image "moveLayerUp.png";
     
     menuItem 
     -l ("Move Pivot to Base")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_to_base')\");")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_base')\");")
     -ann ("Moves pivot point to the base of the boundingbox of every selected object.") 
     -image "moveLayerDown.png";
     
