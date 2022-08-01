@@ -113,6 +113,8 @@
        - Reset Transforms
        - Reset Joint Display
        - Reset "persp" Camera
+       - Combine Curves
+       - Separate Curves
 
      - Added validation
        - Reset Joint Display
@@ -123,6 +125,8 @@
        - Move Pivot to Top
        - Move Pivot to Base
        - Move Object To Origin
+       - Combine Curves
+       - Separate Curves
 
 
  TODO:
@@ -1388,12 +1392,13 @@ def curves_combine():
             cmds.select(group, add=True)
             cmds.parent(relative=True, shape=True)
             cmds.delete(selection)
+            sys.stdout.write('\nSelected curves were combined into: "' + group + '".')
+            cmds.select(group)
 
     except Exception as e:
         errors += str(e) + '\n'
         cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
     finally:
-
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if errors != '':
         print('######## Errors: ########')
@@ -1425,7 +1430,7 @@ def curves_separate():
     function_name = 'GTU Separate Curves'
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        selection = cmds.ls(sl=True)
+        selection = cmds.ls(sl=True, long=True)
         valid_selection = True
 
         curve_shapes = []
@@ -1436,6 +1441,7 @@ def curves_separate():
             cmds.warning('You need to select at least one curve.')
 
         if valid_selection:
+            new_transforms = []
             for obj in selection:
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 for shape in shapes:
@@ -1453,6 +1459,7 @@ def curves_separate():
                         cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
                     group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape', ''))
                     cmds.parent(obj, group, relative=True, shape=True)
+                    new_transforms.append(group)
             else:
                 cmds.warning('The selected curve contains only one shape.')
 
@@ -1460,6 +1467,8 @@ def curves_separate():
                 shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
                 if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
                     cmds.delete(obj)
+            cmds.select(new_transforms)
+            sys.stdout.write('\n' + str(len(curve_shapes)) + ' shapes extracted.')
 
     except Exception as e:
         errors += str(e) + '\n'
