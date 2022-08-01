@@ -1556,7 +1556,7 @@ if __name__ == '__main__':
             persp_pos = cmds.getAttr('persp.translate')[0]
             persp_rot = cmds.getAttr('persp.rotate')[0]
             import gt_maya_utilities
-            gt_maya_utilities.gtu_reload_file()
+            gt_maya_utilities.force_reload_file()
             cmds.viewFit(all=True)
             cmds.setAttr('persp.tx', persp_pos[0])
             cmds.setAttr('persp.ty', persp_pos[1])

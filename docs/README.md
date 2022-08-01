@@ -100,7 +100,6 @@ If you want, you can now delete the downloaded/extracted files (as they have alr
 
 In case you need/want to manually install the scripts. It's also a pretty straightforward process.
 
-
 <ol>
 	<li>Close Maya (in case it's opened).</li>
 	<li>Download the latest release (or clone this repository).</li>
@@ -354,7 +353,6 @@ In case you need/want to manually install the scripts. It's easy..
 	<li> PATCH: Small changes used to fix issues or improve existing scripts. </li>
 </ul>
 
-
 </p>
 
 <br>
@@ -490,7 +488,6 @@ with the provided prefix "Left Side Tag".</p>
 <br>
 
 </div>
-
 
 <!-- GT World Space Baker -->
 <div>
@@ -954,8 +951,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>2. If the character is found, the FK/IK buttons will light up according to the current state.
 <br>3. Use the desired function to animate or pose your character.</p>
 
-
-
 <h3>FK/IK Tab:</h3>
 <ul>
 	<li><p>This is the FK/IK Switcher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
@@ -1133,14 +1128,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-
 <!-- GT Morphing Attributes -->
 <div>
 <h1> GT Morphing Attributes </h1>
 
 <img src="./media/gt_morphing_attributes.jpg" align="right"
      alt="GT Morphing Attributes GUI">
-
 
 <p>This script automates the creation of attributes used to drive blend shapes.</p>
 
@@ -1455,7 +1448,8 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 <p>Moves the selected objects to the center of the grid (0,0,0) origin point.</p>
 
 <h3>Reset Transforms</h3>
-<p>Resets translate, rotate and scale back to zero. For example, you can select all controls of a character and reset its pose.</p>
+<p>Resets translate, rotate and scale back to zero. For example, you can select all controls of a character and reset its pose.
+<br>This pose will not reset translate for joints.</p>
 
 <h3>Reset Joints Display</h3>
 <p>Resets the visibility of all joints. It sets the radius of all joints to one. (Unless the channel is locked) and sets the visibility to "On". It also changes the global joint display scale (multiplier) back to one.</p>
@@ -1653,7 +1647,6 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
-
 <!-- GT Render Calculator -->
 <div>
 <h1> GT Render Calculator </h1>
@@ -1673,7 +1666,6 @@ Do not change the resolution of the image file or crop the image or it might not
 <p><b>Total Number of Machines: </b>
 <br>The number of computers rendering the same job.
 <br>The render time may vary per machine based on the available setup.</p>
-
 
 <br>
 
