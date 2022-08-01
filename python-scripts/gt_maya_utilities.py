@@ -106,9 +106,15 @@
 
  - 2022-08-01
      - Fixed "Reset Transforms" so it works with multiple objects again
+     - Added scale to "Reset "persp" Camera"
      - Added or updated feedback for:
        - Reset Transforms
+       - Reset Joint Display
+       - Reset "persp" Camera
 
+     - Added validation
+       - Reset Joint Display
+       
 
  TODO:
      New functions:
@@ -936,47 +942,90 @@ def reset_transforms():
 
 def reset_joint_display():
     """
-    Resets the radius attribute back to one in all joints,
+    Resets the radius and drawStyle attributes for all joints,
     then changes the global multiplier (jointDisplayScale) back to one
     """
-    try:
-        desired_size = 1
-        all_joints = cmds.ls(type='joint')
-        for obj in all_joints:
+    errors = ''
+    target_radius = 1
+    counter = 0
+    all_joints = cmds.ls(type='joint', long=True)
+    all_joints_short = cmds.ls(type='joint')
+    for obj in all_joints:
+        try:
             if cmds.objExists(obj):
                 if cmds.getAttr(obj + ".radius", lock=True) is False:
                     cmds.setAttr(obj + '.radius', 1)
 
                 if cmds.getAttr(obj + ".v", lock=True) is False:
                     cmds.setAttr(obj + '.v', 1)
-        cmds.jointDisplayScale(desired_size)
 
-    except Exception as exception:
-        raise exception
+                if cmds.getAttr(obj + ".drawStyle", lock=True) is False:
+                    cmds.setAttr(obj + '.drawStyle', 0)
+                counter += 1
+        except Exception as exception:
+            logger.debug(str(exception))
+            errors += str(exception) + '\n'
+    cmds.jointDisplayScale(target_radius)
+
+    if counter > 0:
+        affected = str(counter)
+        is_plural = 'joints had their'
+        if counter == 1:
+            is_plural = 'had its'
+            affected = '"' + all_joints_short[0] + '"'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+        in_view_message += '</span> ' + is_plural + ' display reset.'
+        message = '\n' + affected + ' ' + is_plural + ' "radius", "drawStyle" and "visibility" attributes reset.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+
+    if errors:
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+        cmds.warning('A few joints were not fully reset. Open script editor for more details.')
 
 
 def reset_persp_shape_attributes():
     """
     If persp shape exists (default camera), reset its attributes
     """
-    if cmds.objExists('perspShape'):
-        try:
-            cmds.setAttr('perspShape' + ".focalLength", 35)
-            cmds.setAttr('perspShape' + ".verticalFilmAperture", 0.945)
-            cmds.setAttr('perspShape' + ".horizontalFilmAperture", 1.417)
-            cmds.setAttr('perspShape' + ".lensSqueezeRatio", 1)
-            cmds.setAttr('perspShape' + ".fStop", 5.6)
-            cmds.setAttr('perspShape' + ".focusDistance", 5)
-            cmds.setAttr('perspShape' + ".shutterAngle", 144)
-            cmds.setAttr('perspShape' + ".locatorScale", 1)
-            cmds.setAttr('perspShape' + ".nearClipPlane", 0.100)
-            cmds.setAttr('perspShape' + ".farClipPlane", 10000.000)
-            cmds.setAttr('perspShape' + ".cameraScale", 1)
-            cmds.setAttr('perspShape' + ".preScale", 1)
-            cmds.setAttr('perspShape' + ".postScale", 1)
-            cmds.setAttr('perspShape' + ".depthOfField", 0)
-        except Exception as e:
-            logger.debug(str(e))
+    camera_transform = 'persp'
+    camera_shape = 'perspShape'
+    try:
+        if cmds.objExists(camera_transform):
+            cmds.setAttr(camera_transform + ".sx", 1)
+            cmds.setAttr(camera_transform + ".sy", 1)
+            cmds.setAttr(camera_transform + ".sz", 1)
+    except Exception as e:
+        logger.debug(str(e))
+
+    try:
+        if cmds.objExists(camera_shape):
+            cmds.setAttr(camera_shape + ".focalLength", 35)
+            cmds.setAttr(camera_shape + ".verticalFilmAperture", 0.945)
+            cmds.setAttr(camera_shape + ".horizontalFilmAperture", 1.417)
+            cmds.setAttr(camera_shape + ".lensSqueezeRatio", 1)
+            cmds.setAttr(camera_shape + ".fStop", 5.6)
+            cmds.setAttr(camera_shape + ".focusDistance", 5)
+            cmds.setAttr(camera_shape + ".shutterAngle", 144)
+            cmds.setAttr(camera_shape + ".locatorScale", 1)
+            cmds.setAttr(camera_shape + ".nearClipPlane", 0.100)
+            cmds.setAttr(camera_shape + ".farClipPlane", 10000.000)
+            cmds.setAttr(camera_shape + ".cameraScale", 1)
+            cmds.setAttr(camera_shape + ".preScale", 1)
+            cmds.setAttr(camera_shape + ".postScale", 1)
+            cmds.setAttr(camera_shape + ".depthOfField", 0)
+            cmds.viewFit(allObjects=True)
+            in_view_message = '<' + str(random.random()) + '>'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">"persp"</span> camera '
+            in_view_message += 'attributes were reset.'
+            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('"' + camera_transform + '" camera attributes were reset back to default values.')
+    except Exception as e:
+        print(e)
+        logger.debug(str(e))
 
 
 """ ____________________________ Delete Functions ____________________________"""
