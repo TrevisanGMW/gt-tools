@@ -105,6 +105,8 @@
        - Move Object To Origin
 
  - 2022-08-01
+     - Added "Delete Unused Nodes"
+     - Added "Convert to Locators"
      - Fixed "Reset Transforms" so it works with multiple objects again
      - Added scale to "Reset "persp" Camera"
      - Added or updated feedback for:
@@ -114,7 +116,14 @@
 
      - Added validation
        - Reset Joint Display
-       
+       - Reset Transforms
+       - Reset Joint Display
+
+     = Added more validation
+       - Move Pivot to Top
+       - Move Pivot to Base
+       - Move Object To Origin
+
 
  TODO:
      New functions:
@@ -742,6 +751,11 @@ def move_pivot_top():
     """ Moves pivot point to the top of the boundary box """
     selection = cmds.ls(selection=True, long=True)
     selection_short = cmds.ls(selection=True)
+
+    if not selection:
+        cmds.warning('Nothing selected. Please select at least one object and try again.')
+        return
+
     counter = 0
     errors = ''
     for obj in selection:
@@ -778,6 +792,11 @@ def move_pivot_base():
     """ Moves pivot point to the base of the boundary box """
     selection = cmds.ls(selection=True, long=True)
     selection_short = cmds.ls(selection=True)
+
+    if not selection:
+        cmds.warning('Nothing selected. Please select at least one object and try again.')
+        return
+
     counter = 0
     errors = ''
     for obj in selection:
@@ -816,6 +835,11 @@ def move_to_origin():
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True)
     selection_short = cmds.ls(selection=True)
+
+    if not selection:
+        cmds.warning('Nothing selected. Please select at least one object and try again.')
+        return
+
     counter = 0
     errors = ''
     try:
@@ -863,8 +887,12 @@ def reset_transforms():
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     output_errors = ''
     output_counter = 0
-    current_selection = cmds.ls(selection=True, long=True)
-    current_selection_short = cmds.ls(selection=True)
+    current_selection = cmds.ls(selection=True, long=True) or []
+    current_selection_short = cmds.ls(selection=True) or []
+
+    if not current_selection:
+        cmds.warning('Nothing selected. Please select at least one object and try again.')
+        return
 
     def reset_trans(selection):
         errors = ''
@@ -979,6 +1007,10 @@ def reset_joint_display():
         message = '\n' + affected + ' ' + is_plural + ' "radius", "drawStyle" and "visibility" attributes reset.'
         cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
         sys.stdout.write(message)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'No joints found in this scene.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
     if errors:
         print(('#' * 50) + '\n')
@@ -1035,6 +1067,7 @@ def delete_namespaces():
     """Deletes all namespaces in the scene"""
     function_name = 'GTU Delete All Namespaces'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    counter = 0
     try:
         default_namespaces = ['UI', 'shared']
 
@@ -1053,10 +1086,26 @@ def delete_namespaces():
         for namespace in namespaces:
             if namespace not in default_namespaces:
                 mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+                counter += 1
     except Exception as e:
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    if counter > 0:
+        is_plural = 'namespaces were'
+        if counter == 1:
+            is_plural = 'namespace was'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(counter)
+        in_view_message += '</span> ' + is_plural + ' deleted.'
+        message = '\n' + str(counter) + ' ' + is_plural + ' merged with the "root".'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'No namespaces found in this scene.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 def delete_display_layers():
@@ -1226,11 +1275,25 @@ def delete_user_defined_attributes():
 
 def delete_unused_nodes():
     """
-    Creates a txt file and writes a list of objects to it (with necessary code used to select it, in Mel and Python)
-
+    Deleted unused nodes (such as materials not connected to anything or nodes without any connections)
+    This is done through a Maya MEL function "MLdeleteUnused()" but it's called here again for better feedback.
     """
     num_deleted_nodes = mel.eval('MLdeleteUnused();')
-    print(num_deleted_nodes)
+    logger.debug('Number of unused nodes: ' + str(num_deleted_nodes))
+    if num_deleted_nodes > 0:
+        is_plural = 'unused nodes were'
+        if num_deleted_nodes == 1:
+            is_plural = 'unused node was'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(num_deleted_nodes)
+        in_view_message += '</span> ' + is_plural + ' deleted.'
+        message = '\n' + str(num_deleted_nodes) + ' ' + is_plural + ' deleted. Open'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'No unused nodes found in this scene.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 def delete_all_locators():
@@ -1544,6 +1607,53 @@ def convert_joints_to_mesh(combine_mesh=True):
         return generated_mesh
 
 
+def convert_to_locators():
+    """
+    Converts transforms to locators without deleting them.
+    Essentially places a locator where every transform is.
+    """
+    selection = cmds.ls(selection=True, long=True)
+    selection_short = cmds.ls(selection=True)
+    errors = ''
+    counter = 0
+    if not selection:
+        cmds.warning('Nothing selected. Please select at least one object and try again.')
+        return
+
+    locators_grp = 'transforms_as_locators_grp'
+    if not cmds.objExists(locators_grp):
+        locators_grp = cmds.group(name=locators_grp, world=True, empty=True)
+
+    for obj in selection:
+        try:
+            loc = cmds.spaceLocator(name=obj + '_loc')[0]
+            cmds.parent(loc, locators_grp)
+            cmds.delete(cmds.parentConstraint(obj, loc))
+            cmds.delete(cmds.scaleConstraint(obj, loc))
+            counter += 1
+        except Exception as exception:
+            errors += str(exception) + '\n'
+
+    if errors:
+        print(('#' * 50) + '\n')
+        print(errors)
+        print('#' * 50)
+
+    if counter > 0:
+        affected = str(counter)
+        is_plural = 'locators were'
+        if counter == 1:
+            is_plural = 'locator was'
+            affected = '"' + selection_short[0] + '"'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+        in_view_message += '</span> ' + is_plural + ' created.'
+        message = affected + ' ' + is_plural + ' created. Find them inside the group "' + str(locators_grp) + '".'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+        cmds.select(selection)
+
+
 """ ____________________________ About Window ____________________________"""
 
 
@@ -1649,6 +1759,7 @@ def output_string_to_notepad(string, file_name='tmp'):
 # """ ____________________________ Functions Calls ____________________________"""
 if __name__ == '__main__':
     pass
+    logger.setLevel(logging.DEBUG)
     # force_reload_file()
     # open_resource_browser()
     # unlock_default_channels()
@@ -1683,6 +1794,7 @@ if __name__ == '__main__':
     # curves_combine()
     # curves_separate()
     # convert_bif_to_mesh()
+    # convert_to_locators()
     #
     # build_gui_about_gt_tools()
     #
