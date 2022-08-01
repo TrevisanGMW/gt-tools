@@ -104,6 +104,12 @@
        - Move Pivot to Base
        - Move Object To Origin
 
+ - 2022-08-01
+     - Fixed "Reset Transforms" so it works with multiple objects again
+     - Added or updated feedback for:
+       - Reset Transforms
+
+
  TODO:
      New functions:
         Assign lambert to everything function (Maybe assign to object missing shaders)
@@ -850,10 +856,13 @@ def reset_transforms():
     function_name = 'GTU Reset Transforms'
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     output_errors = ''
-    current_selection = cmds.ls(selection=True)
+    output_counter = 0
+    current_selection = cmds.ls(selection=True, long=True)
+    current_selection_short = cmds.ls(selection=True)
 
     def reset_trans(selection):
         errors = ''
+        counter = 0
         for obj in selection:
             try:
                 type_check = cmds.listRelatives(obj, children=True) or []
@@ -897,17 +906,29 @@ def reset_transforms():
                 if not len(obj_connection_sz) > 0:
                     if cmds.getAttr(obj + '.scaleZ', lock=True) is False:
                         cmds.setAttr(obj + '.scaleZ', 1)
+                counter += 1
             except Exception as exception:
                 logger.debug(str(exception))
                 errors += str(exception) + '\n'
-            return errors
+        return errors, counter
 
     try:
-        output_errors = reset_trans(current_selection)
+        output_errors, output_counter = reset_trans(current_selection)
     except Exception as e:
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    if output_counter > 0:
+        affected = str(output_counter)
+        if output_counter == 1:
+            affected = '"' + current_selection_short[0] + '"'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
+        in_view_message += '</span> transforms were reset.'
+        message = '\n' + affected + ' transforms were reset.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
 
     if output_errors != '':
         cmds.warning("Some objects couldn't be reset. Open the script editor for a list of errors.")
