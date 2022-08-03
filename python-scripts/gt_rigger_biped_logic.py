@@ -4590,10 +4590,11 @@ def create_controls(data_biped):
                                       [-0.237, 0.0, -4.085], [-0.237, 0.0, -4.162], [-0.025, 0.0, -3.966],
                                       [0.237, 0.0, -4.173], [0.237, 0.0, -4.091]], d=1)
 
+    leg_switch_size_divider = 5
     for crv in [left_leg_switch, left_leg_switch_a, left_leg_switch_b, left_leg_switch_c, left_leg_switch_d]:
-        cmds.setAttr(crv + '.scaleX', left_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleY', left_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleZ', left_foot_scale_offset / 6.5)
+        cmds.setAttr(crv + '.scaleX', left_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleY', left_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleZ', left_foot_scale_offset / leg_switch_size_divider)
         cmds.makeIdentity(crv, apply=True, scale=True)
 
     left_leg_switch = combine_curves_list(
@@ -4650,9 +4651,9 @@ def create_controls(data_biped):
                                        [0.237, -0.0, -3.554], [0.237, -0.0, -3.636]], d=1)
 
     for crv in [right_leg_switch, right_leg_switch_a, right_leg_switch_b, right_leg_switch_c, right_leg_switch_d]:
-        cmds.setAttr(crv + '.scaleX', right_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleY', right_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleZ', -right_foot_scale_offset / 6.5)
+        cmds.setAttr(crv + '.scaleX', right_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleY', right_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleZ', -right_foot_scale_offset / leg_switch_size_divider)
         cmds.makeIdentity(crv, apply=True, scale=True)
 
     right_leg_switch = combine_curves_list(
@@ -4855,10 +4856,11 @@ def create_controls(data_biped):
     cmds.makeIdentity(left_heel_roll_ctrl_grp, apply=True, scale=True)
 
     # Left Heel Position and Visibility
+    heel_roll_distance_division = 3
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / 3.5 * -1, left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / heel_roll_distance_division * -1, left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_heel_roll_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_heel_roll_ctrl_grp, left_foot_offset_data_grp)
@@ -5061,7 +5063,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(-right_foot_scale_offset / 3.5 * -1, right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(-right_foot_scale_offset / heel_roll_distance_division * -1, right_heel_roll_ctrl_grp, z=True,
+              relative=True, objectSpace=True)
 
     change_viewport_color(right_heel_roll_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_heel_roll_ctrl_grp, right_foot_offset_data_grp)
