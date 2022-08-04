@@ -4813,7 +4813,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_ball_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / ball_roll_distance_division, left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / ball_roll_distance_division, left_ball_roll_ctrl_grp,
+              x=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_ball_roll_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_ball_roll_ctrl_grp, left_foot_offset_data_grp)
