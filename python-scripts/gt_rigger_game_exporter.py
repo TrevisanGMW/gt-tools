@@ -2,9 +2,14 @@
 GT Rigger - Game Exporter
 github.com/TrevisanGMW/gt-tools - 2022-02-04
 
-v1.0.0 - Initial Release
+v1.0.0 - 2022-02-04
+Initial Release
 
-v1.0.1 - Removed namespaces before exporting
+v1.0.1
+Removed namespaces before exporting
+
+v1.0.2 - 2022-08-04
+Added link to help button sending to documentation
 """
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
@@ -17,7 +22,7 @@ from gt_tools.gt_utilities import make_flat_list
 from collections import namedtuple
 from functools import partial
 
-SCRIPT_VERSION = '1.0.1'
+SCRIPT_VERSION = '1.0.2'
 SCRIPT_NAME = 'GT Rigger - Game Exporter'
 
 logging.basicConfig()
@@ -363,11 +368,6 @@ def _export_fbx_animation(*args):
         _export_fbx(fbx_path, baked_animation_export=True)
 
 
-def _build_gui_help_fbx_exporter(*args):
-    logger.debug(str(*args))
-    cmds.warning('No help yet. It will be here soon')
-
-
 def build_gui_fbx_exporter():
     """Creates simple GUI for FBX Exporter"""
     window_name = "build_gui_fbx_exporter"
@@ -397,7 +397,7 @@ def build_gui_fbx_exporter():
                          parent=content_main)  # Title Column
     cmds.text(" ", backgroundColor=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(SCRIPT_NAME, backgroundColor=title_bgc_color, fn="boldLabelFont", align="left")
-    cmds.button(label="Help", backgroundColor=title_bgc_color, c=partial(_build_gui_help_fbx_exporter))
+    cmds.button(label="Help", backgroundColor=title_bgc_color, c=partial(_open_gt_tools_documentation))
 
     # Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 240)], columnSpacing=[(1, 20)], parent=content_main)
@@ -410,6 +410,12 @@ def build_gui_fbx_exporter():
     # Show and Lock Window
     cmds.showWindow(build_gui_world_space_baker)
     cmds.window(window_name, e=True, sizeable=False)
+
+
+def _open_gt_tools_documentation(*args):
+    """ Opens a web browser with the auto rigger docs  """
+    logger.debug(str(args))
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
 
 
 # Tests
