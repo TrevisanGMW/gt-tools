@@ -549,8 +549,6 @@ def build_gui_auto_biped_rig():
     cmds.text('v' + str(data_facial.script_version), font='tinyBoldLabelFont')
     cmds.text('Corrective: ', font='tinyBoldLabelFont', en=False)
     cmds.text('v' + str(data_corrective.script_version), font='tinyBoldLabelFont')
-    # cmds.separator(h=5, style='none')  # Empty Space
-    # cmds.separator(h=5)  # Empty Space
 
     # ####################################### END TABS #######################################
     cmds.tabLayout(tabs, edit=True, tabLabel=((biped_rigger_tab, 'Biped/Base'),
