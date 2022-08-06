@@ -229,7 +229,7 @@ def configure_fbx():
     _geo_properties = {
         "expHardEdges": "false",
         "TangentsandBinormals": "false",
-        "SmoothMesh": "false",
+        "SmoothMesh": "false",  # True?
         "SelectionSet": "false",
         "BlindData": "false",
         "Instances": "false",
