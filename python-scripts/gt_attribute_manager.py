@@ -9,15 +9,32 @@ Auto create a list of attributes for selected elements.
 Maybe attempt to change the order of the attributes within Maya.
 
 
+Plan:
+
+Attributes (short)
+Vector, Integer, String, Float, Boolean, ENUM?
+Minimum
+Maximum
+Default
+
+_______________
+Search Filter
+Make Keyable, Displayable, Hidden, Delete, Rename, Move?
+
+Rename Nice Name (search and replace?)
+
+
+
 """
 from collections import namedtuple
 import maya.cmds as cmds
 
 
-def add_attributes(target_list, attributes):
+def add_attributes(target_list, attribute_tuples):
     for target_obj in target_list:
-        for attr in attributes:
-            print(attr)
+        for attr in attribute_tuples:
+            print('target_obj: ' + target_obj)
+            print('attr: ' + attr)
             # cmds.addAttr(target_obj, ln=attr, at='double', k=True)
 
 
