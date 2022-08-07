@@ -170,6 +170,9 @@
 //   Added "Attributes to Python"
 //   Added "Morphing Attributes"
 //
+//   2.2.1 - 2022-08-06
+//   Changed "Delete Unused Nodes" Utility Order
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -591,6 +594,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_display_layers')\");")
     -ann ("Deletes all display layers.") 
     -image "displayLayer.svg";
+    
+    menuItem 
+    -l ("Delete Unused Nodes")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_unused_nodes')\");")
+    -ann ("Deletes unused nodes.") 
+    -image "nodeGrapherRemoveNodes.png";
 
     menuItem 
     -l ("Delete Nucleus Nodes")
@@ -603,12 +612,6 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_keyframes')\");")
     -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
     -image "keyIntoclip.png";
-    
-    menuItem 
-    -l ("Delete Unused Nodes")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_unused_nodes')\");")
-    -ann ("Deletes unused nodes.") 
-    -image "nodeGrapherRemoveNodes.png";
 
     setParent -menu ".." ;
     
