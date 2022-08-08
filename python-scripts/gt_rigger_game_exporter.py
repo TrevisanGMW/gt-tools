@@ -10,6 +10,9 @@ Removed namespaces before exporting
 
 v1.0.2 - 2022-08-04
 Added link to help button sending to documentation
+
+v1.0.3 - 2022-08-08
+Changed "SmoothMesh" to true
 """
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
@@ -22,7 +25,7 @@ from gt_tools.gt_utilities import make_flat_list
 from collections import namedtuple
 from functools import partial
 
-SCRIPT_VERSION = '1.0.2'
+SCRIPT_VERSION = '1.0.3'
 SCRIPT_NAME = 'GT Rigger - Game Exporter'
 
 logging.basicConfig()
@@ -229,7 +232,7 @@ def configure_fbx():
     _geo_properties = {
         "expHardEdges": "false",
         "TangentsandBinormals": "false",
-        "SmoothMesh": "false",  # True?
+        "SmoothMesh": "true",
         "SelectionSet": "false",
         "BlindData": "false",
         "Instances": "false",
