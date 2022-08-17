@@ -198,6 +198,9 @@ def unlock_default_channels():
     errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
     selection_short = cmds.ls(selection=True)
     unlocked_counter = 0
     try:
@@ -226,11 +229,12 @@ def unlock_default_channels():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     in_view_message = '<' + str(random.random()) + '>'
-    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
     is_plural = 'objects had their'
     if unlocked_counter == 1:
         is_plural = 'object had its'
     description = ' default channels unlocked.'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter)
+    in_view_message += ' </span>'
     in_view_message += is_plural + description
 
     cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
@@ -247,6 +251,9 @@ def unhide_default_channels():
     errors = ''
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
     selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
     selection_short = cmds.ls(selection=True)
     unlocked_counter = 0
     try:
@@ -422,7 +429,7 @@ def toggle_uniform_jnt_label():
             sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
         else:
             unique_message = '<' + str(random.random()) + '>'
-            message = 'No joints found in the scene.'
+            message = 'No joints found in this scene.'
             cmds.inViewMessage(amg=unique_message + message, pos='botLeft', fade=True, alpha=.9)
             sys.stdout.write('\n' + message)
 
@@ -616,7 +623,7 @@ def select_non_unique_objects():
     else:
         in_view_message = '<' + str(random.random()) + '>'
         in_view_message += 'All objects seem to have unique names in this scene.'
-        message = 'No repeated names found in the scene.'
+        message = 'No repeated names found in this scene.'
     cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     sys.stdout.write(message)
 
@@ -647,8 +654,8 @@ def references_import():
     else:
         in_view_message = '<' + str(random.random()) + '>'
         if len(refs) == 0:
-            in_view_message += 'No references in the scene.'
-            sys.stdout.write('No references found in the scene. Nothing was imported.')
+            in_view_message += 'No references in this scene.'
+            sys.stdout.write('No references found in this scene. Nothing was imported.')
         else:
             is_plural = 'references were'
             affected = str(refs_imported_counter)
@@ -687,8 +694,8 @@ def references_remove():
     else:
         in_view_message = '<' + str(random.random()) + '>'
         if len(refs) == 0:
-            in_view_message += 'No references in the scene.'
-            sys.stdout.write('No references found in the scene. Nothing removed.')
+            in_view_message += 'No references in this scene.'
+            sys.stdout.write('No references found in this scene. Nothing removed.')
         else:
             is_plural = 'references were'
             affected = str(refs_imported_counter)
@@ -1123,13 +1130,18 @@ def delete_display_layers():
             if layer != 'defaultLayer':
                 cmds.delete(layer)
                 deleted_counter += 1
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
-        is_plural = 'layers were'
-        if deleted_counter == 1:
-            is_plural = 'layer was'
-        message += is_plural + ' deleted.'
+        in_view_message = '<' + str(random.random()) + '>'
+        if deleted_counter > 0:
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter)
+            in_view_message += ' </span>'
+            is_plural = 'layers were'
+            if deleted_counter == 1:
+                is_plural = 'layer was'
+            in_view_message += is_plural + ' deleted.'
+        else:
+            in_view_message += 'No display layers found in this scene.'
 
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     except Exception as e:
         cmds.warning(str(e))
     finally:
@@ -1157,13 +1169,18 @@ def delete_keyframes():
                 deleted_counter += 1
             except Exception as e:
                 logger.debug(str(e))
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
-        is_plural = 'keyframe nodes were'
-        if deleted_counter == 1:
-            is_plural = 'keyframe node was'
-        message += is_plural + ' deleted.'
+        in_view_message = '<' + str(random.random()) + '>'
+        if deleted_counter > 0:
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter)
+            in_view_message += ' </span>'
+            is_plural = 'keyframe nodes were'
+            if deleted_counter == 1:
+                is_plural = 'keyframe node was'
+            in_view_message += is_plural + ' deleted.'
+        else:
+            in_view_message += 'No keyframes found in this scene.'
 
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     except Exception as e:
         cmds.warning(str(e))
     finally:
@@ -1222,13 +1239,18 @@ def delete_nucleus_nodes():
             except Exception as e:
                 logger.debug(str(e))
 
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
-        is_plural = 'objects were'
-        if deleted_counter == 1:
-            is_plural = 'object was'
-        message += is_plural + ' deleted.'
+        in_view_message = '<' + str(random.random()) + '>'
+        if deleted_counter > 0:
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter)
+            in_view_message += ' </span>'
+            is_plural = 'objects were'
+            if deleted_counter == 1:
+                is_plural = 'object was'
+            in_view_message += is_plural + ' deleted.'
+        else:
+            in_view_message += 'No nucleus nodes found in this scene.'
 
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
     except Exception as e:
         errors += str(e) + '\n'
