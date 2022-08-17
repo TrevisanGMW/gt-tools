@@ -177,9 +177,9 @@
 
 // Globals 
 python("import gt_tools");
+global string $gMainWindow;
 global string $scriptVersion = "0.0.0";
 $scriptVersion = `python "gt_tools.PACKAGE_VERSION"`;
-global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
 catchQuiet(python("import sys\nimport importlib\npython_version = sys.version_info.major"));
