@@ -170,13 +170,16 @@
 //   Added "Attributes to Python"
 //   Added "Morphing Attributes"
 //
+//   2.2.1 - 2022-08-06
+//   Changed "Delete Unused Nodes" Utility Order
+//
 //----------------------------------------------------------------------------
 
 // Globals 
 python("import gt_tools");
+global string $gMainWindow;
 global string $scriptVersion = "0.0.0";
 $scriptVersion = `python "gt_tools.PACKAGE_VERSION"`;
-global string $gMainWindow;
 string  $installedVersion =  `optionVar -q "gt_tools_version"`;
 
 catchQuiet(python("import sys\nimport importlib\npython_version = sys.version_info.major"));
@@ -591,6 +594,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_display_layers')\");")
     -ann ("Deletes all display layers.") 
     -image "displayLayer.svg";
+    
+    menuItem 
+    -l ("Delete Unused Nodes")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_unused_nodes')\");")
+    -ann ("Deletes unused nodes.") 
+    -image "nodeGrapherRemoveNodes.png";
 
     menuItem 
     -l ("Delete Nucleus Nodes")
@@ -603,12 +612,6 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_keyframes')\");")
     -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
     -image "keyIntoclip.png";
-    
-    menuItem 
-    -l ("Delete Unused Nodes")
-    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_unused_nodes')\");")
-    -ann ("Deletes unused nodes.") 
-    -image "nodeGrapherRemoveNodes.png";
 
     setParent -menu ".." ;
     

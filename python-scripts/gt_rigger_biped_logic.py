@@ -287,6 +287,9 @@
  1.9.15 - 2022-07-25
  Some PEP8 Cleanup
 
+ 1.9.16 to 17 - 2022-08-03
+ Updated feet switch and roll controls transform calculation
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -4590,10 +4593,11 @@ def create_controls(data_biped):
                                       [-0.237, 0.0, -4.085], [-0.237, 0.0, -4.162], [-0.025, 0.0, -3.966],
                                       [0.237, 0.0, -4.173], [0.237, 0.0, -4.091]], d=1)
 
+    leg_switch_size_divider = 4.8
     for crv in [left_leg_switch, left_leg_switch_a, left_leg_switch_b, left_leg_switch_c, left_leg_switch_d]:
-        cmds.setAttr(crv + '.scaleX', left_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleY', left_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleZ', left_foot_scale_offset / 6.5)
+        cmds.setAttr(crv + '.scaleX', left_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleY', left_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleZ', left_foot_scale_offset / leg_switch_size_divider)
         cmds.makeIdentity(crv, apply=True, scale=True)
 
     left_leg_switch = combine_curves_list(
@@ -4650,9 +4654,9 @@ def create_controls(data_biped):
                                        [0.237, -0.0, -3.554], [0.237, -0.0, -3.636]], d=1)
 
     for crv in [right_leg_switch, right_leg_switch_a, right_leg_switch_b, right_leg_switch_c, right_leg_switch_d]:
-        cmds.setAttr(crv + '.scaleX', right_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleY', right_foot_scale_offset / 6.5)
-        cmds.setAttr(crv + '.scaleZ', -right_foot_scale_offset / 6.5)
+        cmds.setAttr(crv + '.scaleX', right_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleY', right_foot_scale_offset / leg_switch_size_divider)
+        cmds.setAttr(crv + '.scaleZ', -right_foot_scale_offset / leg_switch_size_divider)
         cmds.makeIdentity(crv, apply=True, scale=True)
 
     right_leg_switch = combine_curves_list(
@@ -4674,6 +4678,9 @@ def create_controls(data_biped):
 
     # Left Foot Automation Controls
     # Left Toe Roll
+    toe_roll_distance_division = 2.5
+    toe_up_down_distance_division = 1.8
+    ball_roll_distance_division = 2.5
     left_toe_roll_ctrl_a = cmds.curve(name='left_toeRoll_' + CTRL_SUFFIX,
                                       p=[[0.0, -0.095, 0.38], [0.035, -0.145, 0.354], [0.059, -0.177, 0.335],
                                          [0.092, -0.218, 0.312], [0.118, -0.248, 0.286], [0.152, -0.272, 0.254],
@@ -4722,7 +4729,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / 4, left_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / toe_roll_distance_division, left_toe_roll_ctrl_grp,
+              z=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_toe_roll_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_toe_roll_ctrl_grp, left_foot_offset_data_grp)
@@ -4750,7 +4758,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_toe_jnt'), left_toe_up_down_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / 2.6, left_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / toe_up_down_distance_division, left_toe_up_down_ctrl_grp,
+              z=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_toe_up_down_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_toe_up_down_ctrl_grp, left_foot_offset_data_grp)
@@ -4804,7 +4813,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ball_jnt'), left_ball_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / 3, left_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / ball_roll_distance_division, left_ball_roll_ctrl_grp,
+              x=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_ball_roll_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_ball_roll_ctrl_grp, left_foot_offset_data_grp)
@@ -4855,10 +4865,12 @@ def create_controls(data_biped):
     cmds.makeIdentity(left_heel_roll_ctrl_grp, apply=True, scale=True)
 
     # Left Heel Position and Visibility
+    heel_roll_distance_division = 3
     cmds.delete(cmds.pointConstraint(rig_joints.get('left_ankle_jnt'), left_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('left_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(left_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(left_foot_scale_offset / 3.5 * -1, left_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(left_foot_scale_offset / heel_roll_distance_division * -1, left_heel_roll_ctrl_grp,
+              z=True, relative=True, objectSpace=True)
 
     change_viewport_color(left_heel_roll_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_heel_roll_ctrl_grp, left_foot_offset_data_grp)
@@ -4917,7 +4929,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_toe_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(-right_foot_scale_offset / 4, right_toe_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(-right_foot_scale_offset / toe_roll_distance_division, right_toe_roll_ctrl_grp,
+              z=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_toe_roll_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_toe_roll_ctrl_grp, right_foot_offset_data_grp)
@@ -4945,7 +4958,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), right_toe_up_down_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_toe_up_down_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(-right_foot_scale_offset / 2.6, right_toe_up_down_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(-right_foot_scale_offset / toe_up_down_distance_division, right_toe_up_down_ctrl_grp,
+              z=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_toe_up_down_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_toe_up_down_ctrl_grp, right_foot_offset_data_grp)
@@ -5003,7 +5017,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ball_jnt'), right_ball_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_ball_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(right_foot_scale_offset / 3, right_ball_roll_ctrl_grp, x=True, relative=True, objectSpace=True)
+    cmds.move(right_foot_scale_offset / ball_roll_distance_division, right_ball_roll_ctrl_grp,
+              x=True, relative=True, objectSpace=True)
 
     change_viewport_color(right_ball_roll_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_ball_roll_ctrl_grp, right_foot_offset_data_grp)
@@ -5061,7 +5076,8 @@ def create_controls(data_biped):
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), right_heel_roll_ctrl_grp, skip='y'))
     desired_rotation = cmds.xform(elements.get('right_ankle_proxy_crv'), q=True, ro=True)
     cmds.setAttr(right_heel_roll_ctrl_grp + '.ry', desired_rotation[1])
-    cmds.move(-right_foot_scale_offset / 3.5 * -1, right_heel_roll_ctrl_grp, z=True, relative=True, objectSpace=True)
+    cmds.move(-right_foot_scale_offset / heel_roll_distance_division * -1, right_heel_roll_ctrl_grp, z=True,
+              relative=True, objectSpace=True)
 
     change_viewport_color(right_heel_roll_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_heel_roll_ctrl_grp, right_foot_offset_data_grp)

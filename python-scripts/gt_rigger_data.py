@@ -15,9 +15,9 @@ logging.basicConfig()
 logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
-SCRIPT_VERSION_BASE = '1.9.15'
-SCRIPT_VERSION_FACIAL = '1.0.2'
-SCRIPT_VERSION_CORRECTIVE = '0.0.14'
+SCRIPT_VERSION_BASE = '1.9.17'
+SCRIPT_VERSION_FACIAL = '1.0.3'
+SCRIPT_VERSION_CORRECTIVE = '1.0.1'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -128,7 +128,7 @@ class GTBipedRiggerData:
     # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
     elements_list = list(elements)
     for item in elements_list:
-        if item.startswith('left_'):
+        if str(item).startswith('left_'):
             elements[item] = 'left_' + elements.get(item)  # Add "left_" prefix
             elements[item.replace('left_', 'right_')] = elements.get(item).replace('left_', 'right_')  # Add right copy
 
@@ -430,7 +430,7 @@ def get_persistent_settings(data_object):
 
 def set_persistent_settings(data_object):
     """
-    Stores persistent settings for GT Auto Rigger Data objects.
+    Stores persistent settings for GT Rigger Data objects.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
@@ -459,7 +459,7 @@ def set_persistent_settings(data_object):
 
 def reset_persistent_settings(data_object):
     """
-    Resets persistent settings for GT Auto Biped Rigger
+    Resets persistent settings for GT Rigger Data Object
 
     Args:
         data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.

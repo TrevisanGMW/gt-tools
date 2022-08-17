@@ -31,7 +31,11 @@
 
  1.2.2 - 2022-07-22
  Minor PEP8 Cleanup
- 
+
+ 1.2.3 - 2022-08-17
+ Aligned path to the left
+ Added padding to table cells
+
  Todo:
     Add support for Goalem Nodes
         'SimulationCacheProxyManager', 'destinationTerrainFile', accepts_empty=True
@@ -64,7 +68,7 @@ import re
 script_name = "GT Path Manager"
 
 # Version
-script_version = '1.2.2'
+script_version = '1.2.3'
 
 # Logging Setup
 logging.basicConfig()
@@ -171,9 +175,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.table_wdg = QtWidgets.QTableWidget()
         self.table_wdg.setColumnCount(4)
 
-        self.table_wdg.setColumnWidth(0, 22)
+        self.table_wdg.setColumnWidth(0, 65)
         self.table_wdg.setColumnWidth(1, 80)
         self.table_wdg.setColumnWidth(3, 280)
+        self.table_wdg.setStyleSheet("""QTableWidget::item {padding-left: 15px; padding-right: 15px; border: 0px}""")
         header_view = self.table_wdg.horizontalHeader()
         header_view.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
 
@@ -643,13 +648,14 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                                      icon_path=file_items[3], editable=False)
                     self.insert_icon(i, 0, ':error.png')
 
-                self.insert_item(i, 3, file_items[0], file_items[4], file_items[0])
+                # self.insert_item(i, 3, file_items[0], file_items[4], file_items[0]) # @@@
+                self.insert_item(i, 3, file_items[0], file_items[4], file_items[0], centered=False)
 
         self.set_cell_changed_connection_enabled(True)
 
     def insert_item(self, row, column, node_name, attr, value, icon_path='', editable=True, centered=True):
         item = QtWidgets.QTableWidgetItem(node_name)
-        # item.setBackgroundColor(QtGui.QColor(255,0,0, 10)) Make the background of the cells green/red?
+        # item.setBackgroundColor(QtGui.QColor(255,0,0, 10))  # Make the background of the cells green/red?
         self.set_item_value(item, value)
         self.set_item_attr(item, attr)
 
@@ -658,6 +664,10 @@ class GTPathManagerDialog(QtWidgets.QDialog):
 
         if centered:
             item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        # else:
+        #     # item.setTextAlignment(8)
+        #     item.setS
+        #     print(item) ### @@@
 
         if not editable:
             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
