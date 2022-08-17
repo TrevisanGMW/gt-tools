@@ -13,6 +13,9 @@ Added link to help button sending to documentation
 
 v1.0.3 - 2022-08-08
 Changed "SmoothMesh" to true
+
+v1.1.0 - 2022-08-08
+Added option to export everything to FBX file
 """
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
@@ -25,7 +28,7 @@ from gt_tools.gt_utilities import make_flat_list
 from collections import namedtuple
 from functools import partial
 
-SCRIPT_VERSION = '1.0.3'
+SCRIPT_VERSION = '1.1.0'
 SCRIPT_NAME = 'GT Rigger - Game Exporter'
 
 logging.basicConfig()
@@ -405,9 +408,11 @@ def build_gui_fbx_exporter():
     # Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 240)], columnSpacing=[(1, 20)], parent=content_main)
     cmds.separator(height=15, style='none')  # Empty Space
-    cmds.button(label="Export Model FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_model))
+    cmds.button(label="Export Rig FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_model))
     cmds.separator(height=15, style='none')  # Empty Space
     cmds.button(label="Export Animation FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_animation))
+    cmds.separator(height=15, style='none')  # Empty Space
+    cmds.button(label="Export Everything to FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_model))
     cmds.separator(height=15, style='none')  # Empty Space
 
     # Show and Lock Window
