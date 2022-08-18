@@ -128,6 +128,10 @@
        - Combine Curves
        - Separate Curves
 
+ - 2022-08-17
+    - Added feedback for when no elements were affected
+    - Added some more validation
+
 
  TODO:
      New functions:
