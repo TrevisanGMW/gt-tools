@@ -10,28 +10,31 @@
  Added logger
  Added parameters to add_attributes + debug lines
 
-Script would work exactly like the "Add attribute" function, but it would retain the parameters and allow for multiple
+Script would work similar to the "Add attribute" function, but it would retain the parameters and allow for multiple
 variables (separated by commas)
 
-Hide/unhide attributes for selected elements.
-Lock/unlock attributes for selected elements.
-Auto create a list of attributes for selected elements.
-Maybe attempt to change the order of the attributes within Maya.
-
-
-Plan:
-
+GUI Plan:
 Attributes (short)
+NiceName Suffix/Prefix, NiceName Modifier
 Vector, Integer, String, Float, Boolean, ENUM?
 Minimum
 Maximum
 Default
 
-_______________
-Search Filter
+____________
+Affected String Filter
+Hide/unhide attributes for selected elements.
+Lock/unlock attributes for selected elements.
+Auto create a list of attributes for selected elements.
 Make Keyable, Displayable, Hidden, Delete, Rename, Move?
-
+Maybe attempt to change the order of the attributes within Maya.
 Rename Nice Name (search and replace?)
+
+____________
+Export Attributes
+Import Attributes
+
+
 
 """
 # from collections import namedtuple
