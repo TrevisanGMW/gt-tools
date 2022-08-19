@@ -33,6 +33,9 @@
  Added logger
  PEP8 Cleanup
 
+ 1.5.3 - 2022-08-18
+ Updated "rename_and_alphabetize"
+
  
  Todo:
     Add persistent settings for the selection type (Selected, Hierarchy, All)
@@ -71,7 +74,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.5.2"
+script_version = "1.5.3"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',
@@ -1089,29 +1092,6 @@ def rename_add_suffix(obj_list, new_suffix_list):
         renaming_inview_feedback(len(to_rename))
 
 
-def rename_and_alphabetize(obj_list, new_name):
-    """
-    WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
-
-    Args:
-        obj_list (list): a list of objects (strings) to be renamed
-        new_name (string) : Work in Progress
-    """
-    alphabet_array = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S",
-                      "T", "U", "V", "W", "X", "Y", "Z"]
-    print([len(alphabet_array)])
-    current_letter_index = 0
-    multiple_letter_patch = ''
-    multiple_letter_index = 0
-    for obj in obj_list:
-        # object_short_name = get_short_name(obj)
-        new_name_and_letter = new_name + multiple_letter_patch + alphabet_array[current_letter_index]
-        current_letter_index += 1
-        if current_letter_index == 25:
-            multiple_letter_patch = current_letter_index[multiple_letter_index]
-        cmds.rename(obj, new_name_and_letter)
-
-
 def renaming_inview_feedback(number_of_renames):
     """
     Prints an inViewMessage to give feedback to the user about how many objects were renamed.
@@ -1131,7 +1111,63 @@ def renaming_inview_feedback(number_of_renames):
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
+def rename_and_alphabetize(obj_list, new_name, is_lowercase=True):
+    """
+    WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
+
+    Args:
+        obj_list (list): a list of objects (strings) to be renamed
+        new_name (string) : New name (prefix name)
+        is_lowercase (bool, optional) : If the letter should be lowercase or uppercase
+    """
+
+    if new_name == '':
+        cmds.warning('The provided string must not be empty.')
+        return
+
+    def incr_chr(c):
+        return chr(ord(c) + 1) if c != 'Z' else 'A'
+
+    def incr_str(s):
+        l_part = s.rstrip('Z')
+        num_replacements = len(s) - len(l_part)
+        new_s = l_part[:-1] + incr_chr(l_part[-1]) if l_part else 'A'
+        new_s += 'A' * num_replacements
+        return new_s
+
+    errors = ''
+    current_suffix = 'A'
+    to_rename = []
+
+    for obj in obj_list:
+        # object_short_name = get_short_name(obj)
+        new_name_and_letter = new_name + current_suffix
+        if is_lowercase:
+            new_name_and_letter = new_name + current_suffix.lower()
+        current_suffix = incr_str(current_suffix)
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+            to_rename.append([obj, new_name_and_letter])
+            # count += 1
+
+    for pair in reversed(to_rename):
+        if cmds.objExists(pair[0]):
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+
+    if errors != '':
+        print('#' * 80 + '\n')
+        print(errors)
+        print('#' * 80)
+        cmds.warning(gt_renamer_settings.get('error_message'))
+
+    renaming_inview_feedback(len(to_rename))
+
+
 # Run Script
 get_persistent_settings_renamer()
 if __name__ == '__main__':
-    build_gui_renamer()
+    sel = cmds.ls(selection=True)
+    rename_and_alphabetize(sel, 'newNamae_')
+    # build_gui_renamer()
