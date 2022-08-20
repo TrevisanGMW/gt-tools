@@ -648,7 +648,6 @@ class GTPathManagerDialog(QtWidgets.QDialog):
                                      icon_path=file_items[3], editable=False)
                     self.insert_icon(i, 0, ':error.png')
 
-                # self.insert_item(i, 3, file_items[0], file_items[4], file_items[0]) # @@@
                 self.insert_item(i, 3, file_items[0], file_items[4], file_items[0], centered=False)
 
         self.set_cell_changed_connection_enabled(True)
@@ -664,10 +663,6 @@ class GTPathManagerDialog(QtWidgets.QDialog):
 
         if centered:
             item.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-        # else:
-        #     # item.setTextAlignment(8)
-        #     item.setS
-        #     print(item) ### @@@
 
         if not editable:
             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)

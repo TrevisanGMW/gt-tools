@@ -372,7 +372,12 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Other Tools: </b><br>- Remove First Letter: removes the first letter of a name.<br>If the next character is a number, it will be deleted.<br>- Remove Last Letter: removes the last letter of a name.<br>- U-Case: makes all letters uppercase.<br>- Capitalize: makes the 1st letter of every word uppercase.<br>- L-Case: makes all letters lowercase</p>
 
-<p><b>Rename and Number: </b>Renames selected objects and number them.<br>- Start # : first number when counting the new names.<br>- Padding : how many zeros before the number. e.g. "001"</p>
+<p><b>Rename and Number / Letter: </b>Renames selected objects and add a number or a letter to them.
+<br>- Use Source : Keeps the original name and only adds the number/letter.
+<br>- Start # : first number when counting the new names.
+<br>- Padding : how many zeros before the number. e.g. "001".
+<br>- Uppercase : Makes the letter uppercase.
+</p>
 
 <p><b>Prefix and Suffix: </b><br>Prefix: adds a string in front of a name.<br>Suffix: adds a string at the end of a name.<br> - Auto: Uses the provided strings to automatically name objects according to their type or position.<br>1st example: a mesh would automatically receive "_geo"<br>2nd example: an object in positive side of X, would automatically receive "left_: .<br> - Input: uses the provided text as a prefix or suffix.</p>
 

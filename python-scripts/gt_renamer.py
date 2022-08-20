@@ -33,6 +33,14 @@
  Added logger
  PEP8 Cleanup
 
+ 1.5.3 - 2022-08-18
+ Updated "rename_and_letter"
+
+ 1.6.0 - 2022-08-19
+ Changed rename and number to allow the user to keep original names
+ Added rename and letter
+ Adjusted GUI
+
  
  Todo:
     Add persistent settings for the selection type (Selected, Hierarchy, All)
@@ -71,7 +79,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.5.2"
+script_version = "1.6.0"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',
@@ -85,6 +93,7 @@ gt_renamer_settings = {'transform_suffix': '_grp',
                        'center_prefix': 'center_',
                        'def_starting_number': '1',
                        'def_padding_number': '2',
+                       'def_uppercase_letter': '1',
                        'selection_type': '0',
                        'error_message': 'Some objects were not renamed. Open the script editor to see why.',
                        'nodes_to_ignore': ['defaultRenderLayer', 'renderLayerManager', 'defaultLayer', 'layerManager',
@@ -114,7 +123,6 @@ def get_persistent_settings_renamer():
     Checks if persistent settings for GT Renamer exists and transfer them to the settings variables.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
-
     stored_transform_suffix_exists = cmds.optionVar(exists="gt_renamer_transform_suffix")
     stored_mesh_suffix_exists = cmds.optionVar(exists="gt_renamer_mesh_suffix")
     stored_nurbs_crv_suffix_exists = cmds.optionVar(exists="gt_renamer_nurbs_curve_suffix")
@@ -127,6 +135,7 @@ def get_persistent_settings_renamer():
     stored_def_starting_number_exists = cmds.optionVar(exists="gt_renamer_def_starting_number")
     stored_def_padding_number_exists = cmds.optionVar(exists="gt_renamer_def_padding_number")
     stored_selection_type_exists = cmds.optionVar(exists="gt_renamer_selection_type")
+    stored_def_capitalize_exists = cmds.optionVar(exists="gt_renamer_def_uppercase_letter")
 
     if stored_transform_suffix_exists:
         gt_renamer_settings['transform_suffix'] = str(cmds.optionVar(q="gt_renamer_transform_suffix"))
@@ -164,6 +173,13 @@ def get_persistent_settings_renamer():
     if stored_selection_type_exists:
         gt_renamer_settings['selection_type'] = str(cmds.optionVar(q="gt_renamer_selection_type"))
 
+    if stored_def_capitalize_exists:
+        extracted_value = cmds.optionVar(q="gt_renamer_def_uppercase_letter") or ''
+        if 'False' in extracted_value:
+            gt_renamer_settings['def_uppercase_letter'] = '0'
+        else:
+            gt_renamer_settings['def_uppercase_letter'] = '1'
+
 
 def set_persistent_settings_renamer(option_var_name, option_var_string):
     """ 
@@ -175,7 +191,8 @@ def set_persistent_settings_renamer(option_var_name, option_var_string):
         option_var_string (string): string to be stored under the option_var_name
                     
     """
-
+    logger.debug('option_var_name: ' + str(option_var_name))
+    logger.debug('option_var_string: ' + str(option_var_string))
     if option_var_string != '' and option_var_name != '':
         cmds.optionVar(sv=(str(option_var_name), str(option_var_string)))
 
@@ -193,6 +210,7 @@ def reset_persistent_settings_renamer():
     cmds.optionVar(remove='gt_renamer_center_prefix')
     cmds.optionVar(remove='gt_renamer_def_starting_number')
     cmds.optionVar(remove='gt_renamer_def_padding_number')
+    cmds.optionVar(remove='gt_renamer_def_uppercase_letter')
     cmds.optionVar(remove='gt_renamer_selection_type')
 
     for def_value in gt_renamer_settings_default_values:
@@ -261,34 +279,38 @@ def build_gui_renamer():
     # Other Tools ================
     cmds.separator(h=10)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Other Tools')
+    cmds.text('Other Utilities')
     cmds.separator(h=7, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 120), (2, 120)], cs=[(1, 5), (2, 5)], p=body_column)
+    cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 0), (2, 5)], p=body_column)
     cmds.button(l="Remove First Letter", c=lambda x: start_renaming('remove_first_letter'))
     cmds.button(l="Remove Last Letter", c=lambda x: start_renaming('remove_last_letter'))
     cmds.separator(h=7, style='none')  # Empty Space
     cmds.separator(h=7, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=3, cw=[(1, 78), (2, 79), (3, 78)], cs=[(1, 5), (2, 5), (3, 5)], p=body_column)
+    cmds.rowColumnLayout(nc=3, cw=[(1, 85), (2, 85), (3, 85)], cs=[(1, 0), (2, 5), (3, 5)], p=body_column)
     cmds.button(l="U-Case", c=lambda x: start_renaming('uppercase_names'))
     cmds.button(l="Capitalize", c=lambda x: start_renaming('capitalize_names'))
     cmds.button(l="L-Case", c=lambda x: start_renaming('lowercase_names'))
     cmds.separator(h=7, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
 
     # Rename and Number ================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=10)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Rename and Number')
+    cmds.text('Rename and Number / Letter')
     cmds.separator(h=7, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(nc=2, cw=[(1, 80), (2, 150)], cs=[(1, 5), (2, 0)], p=body_column)
+    cmds.rowColumnLayout(nc=3, cw=[(1, 50), (2, 110), (3, 75)], cs=[(1, 5), (2, 0), (3, 10)], p=body_column)
     cmds.text('Rename:')
     rename_number_textfield = cmds.textField(placeholderText='new_name',
                                              enterCommand=lambda x: start_renaming('rename_and_number'))
 
+    use_source_chk = cmds.checkBox(label='Use Source', cc=lambda x: update_rename_number_letter())
+
     cmds.separator(h=7, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(nc=4, cw=[(1, 50), (2, 40), (3, 60), (4, 40)], cs=[(1, 20), (2, 0), (3, 10), (4, 0)],
+    cmds.rowColumnLayout(nc=5,
+                         cw=[(1, 50), (2, 25), (3, 60), (4, 25), (5, 70), (6, 40)],
+                         cs=[(1, 5), (2, 0), (3, 0), (4, 0), (5, 13), (6, 0)],
                          p=body_column)
     cmds.text('Start #:')
     start_number_textfield = cmds.textField(text=gt_renamer_settings.get('def_starting_number'),
@@ -303,9 +325,16 @@ def build_gui_renamer():
                                                   'gt_renamer_def_padding_number',
                                                   cmds.textField(padding_number_textfield, q=True, text=True)))
 
+    uppercase_chk = cmds.checkBox(label='Uppercase', value=int(gt_renamer_settings.get('def_uppercase_letter')),
+                                  cc=lambda x: set_persistent_settings_renamer('gt_renamer_def_uppercase_letter',
+                                                                               cmds.checkBox(uppercase_chk, q=True,
+                                                                                             value=True)))
+
     cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 10)], p=body_column)
     cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 120), (2, 120)], cs=[(1, 7), (2, 5)], p=body_column)
     cmds.button(l="Rename and Number", bgc=(.6, .6, .6), c=lambda x: start_renaming('rename_and_number'))
+    cmds.button(l="Rename and Letter", bgc=(.6, .6, .6), c=lambda x: start_renaming('rename_and_letter'))
     cmds.separator(h=10, style='none')  # Empty Space
 
     # Prefix and Suffix ================
@@ -334,7 +363,7 @@ def build_gui_renamer():
     cmds.separator(h=10, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=6, cw=[(1, 40), (2, 40), (3, 40), (4, 40), (5, 40), (6, 40)],
-                         cs=[(1, 5), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0)], p=body_column)
+                         cs=[(1, 7), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0)], p=body_column)
     cmds.text('Group', font='smallObliqueLabelFont')
     cmds.text('Mesh', font='smallObliqueLabelFont')
     cmds.text('Nurbs', font='smallObliqueLabelFont')
@@ -378,7 +407,7 @@ def build_gui_renamer():
 
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(nc=3, cw=[(1, 80), (2, 80), (3, 80)], cs=[(1, 5), (2, 0), (3, 0)], p=body_column)
+    cmds.rowColumnLayout(nc=3, cw=[(1, 80), (2, 80), (3, 80)], cs=[(1, 7), (2, 0), (3, 0)], p=body_column)
     cmds.text('Left', font='smallObliqueLabelFont')
     cmds.text('Center', font='smallObliqueLabelFont')
     cmds.text('Right', font='smallObliqueLabelFont')
@@ -402,7 +431,7 @@ def build_gui_renamer():
                                                                                              q=True, text=True)))
 
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 120), (2, 120)], cs=[(1, 5), (2, 5)], p=body_column)
+    cmds.rowColumnLayout(nc=2, cw=[(1, 117), (2, 118)], cs=[(1, 7), (2, 5)], p=body_column)
     cmds.button(l="Add Prefix", bgc=(.6, .6, .6), c=lambda x: start_renaming('add_prefix'))
     cmds.button(l="Add Suffix", bgc=(.6, .6, .6), c=lambda x: start_renaming('add_suffix'))
     cmds.separator(h=10, style='none')  # Empty Space
@@ -427,6 +456,11 @@ def build_gui_renamer():
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.button(l="Search and Replace", bgc=(.6, .6, .6), c=lambda x: start_renaming('search_and_replace'))
     cmds.separator(h=15, style='none')  # Empty Space
+
+    def update_rename_number_letter():
+        """ Updates rename text-field for rename and number / letter (it's not used when keeping source)"""
+        is_using_source = cmds.checkBox(use_source_chk, q=True, value=True)
+        cmds.textField(rename_number_textfield, e=True, en=not is_using_source)
 
     def update_prefix_suffix_options():
         """ Updates variables and UI when there is user input (For the prefix and suffix options) """
@@ -499,12 +533,23 @@ def build_gui_renamer():
             rename_search_replace(selection, search_string, replace_string)
         elif operation == 'rename_and_number':
             new_name = cmds.textField(rename_number_textfield, q=True, text=True)
+            using_source = cmds.checkBox(use_source_chk, q=True, value=True)
 
             if cmds.textField(start_number_textfield, q=True, text=True).isdigit() and cmds.textField(
                     padding_number_textfield, q=True, text=True).isdigit():
                 start_number = int(cmds.textField(start_number_textfield, q=True, text=True))
                 padding_number = int(cmds.textField(padding_number_textfield, q=True, text=True))
-                rename_and_number(selection, new_name, start_number, padding_number)
+                rename_and_number(selection, new_name, start_number, padding_number, keep_name=using_source)
+            else:
+                cmds.warning('Start Number and Padding Number must be digits (numbers)')
+        elif operation == 'rename_and_letter':
+            new_name = cmds.textField(rename_number_textfield, q=True, text=True)
+            using_source = cmds.checkBox(use_source_chk, q=True, value=True)
+            uppercase_letter = cmds.checkBox(uppercase_chk, q=True, value=True)
+
+            if cmds.textField(start_number_textfield, q=True, text=True).isdigit() and cmds.textField(
+                    padding_number_textfield, q=True, text=True).isdigit():
+                rename_and_letter(selection, new_name, keep_name=using_source, is_uppercase=uppercase_letter)
             else:
                 cmds.warning('Start Number and Padding Number must be digits (numbers)')
         elif operation == 'add_prefix':
@@ -616,10 +661,13 @@ def build_gui_help_renamer():
 
     cmds.separator(h=10, style='none')  # Empty Space
 
-    cmds.text(l='Rename and Number:', align="center", fn="tinyBoldLabelFont")
-    cmds.text(l='Renames selected objects and number them.', align="left", font='smallPlainLabelFont')
+    cmds.text(l='Rename and Number / Letter:', align="center", fn="tinyBoldLabelFont")
+    cmds.text(l='Renames selected objects and number ro letter them.', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- Use Source: Uses the object\'s name instead of renaming it.',
+              align="left", font='smallPlainLabelFont')
     cmds.text(l='- Start # : first number when counting the new names.', align="left", font='smallPlainLabelFont')
     cmds.text(l='- Padding : how many zeros before the number. e.g. "001"', align="left", font='smallPlainLabelFont')
+    cmds.text(l='- Uppercase : Makes the generated suffix letter uppercase.', align="left", font='smallPlainLabelFont')
     cmds.separator(h=10, style='none')  # Empty Space
 
     cmds.text(l='Prefix and Suffix:', align="center", fn="tinyBoldLabelFont")
@@ -909,7 +957,7 @@ def rename_search_replace(obj_list, search, replace):
         renaming_inview_feedback(len(to_rename))
 
 
-def rename_and_number(obj_list, new_name, start_number, padding_number):
+def rename_and_number(obj_list, new_name, start_number, padding_number, keep_name=False):
     """
     Rename Objects and Add Number (With Padding)
 
@@ -918,35 +966,41 @@ def rename_and_number(obj_list, new_name, start_number, padding_number):
         new_name (string): a new name to rename the objects
         start_number (int): what number to start counting from
         padding_number (int): how many zeroes it will add before numbers
+        keep_name (bool, optional): If active, it keeps the original name instead of using the "new_name" parameter
     """
-    if new_name == '':
+    if not new_name and not keep_name:
         cmds.warning('The provided string must not be empty.')
-    else:
-        to_rename = []
-        count = start_number
-        errors = ''
+        return
 
-        for obj in obj_list:
-            # object_short_name = get_short_name(obj)
+    to_rename = []
+    count = start_number
+    errors = ''
+
+    for obj in obj_list:
+        object_short_name = get_short_name(obj)
+        if keep_name:
+            new_name_and_number = object_short_name + str(count).zfill(padding_number)
+        else:
             new_name_and_number = new_name + str(count).zfill(padding_number)
-            if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
-                to_rename.append([obj, new_name_and_number])
-                count += 1
 
-        for pair in reversed(to_rename):
-            if cmds.objExists(pair[0]):
-                try:
-                    cmds.rename(pair[0], pair[1])
-                except Exception as exception:
-                    errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+            to_rename.append([obj, new_name_and_number])
+            count += 1
 
-        if errors != '':
-            print('#' * 80 + '\n')
-            print(errors)
-            print('#' * 80)
-            cmds.warning(gt_renamer_settings.get('error_message'))
+    for pair in reversed(to_rename):
+        if cmds.objExists(pair[0]):
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
 
-        renaming_inview_feedback(len(to_rename))
+    if errors != '':
+        print('#' * 80 + '\n')
+        print(errors)
+        print('#' * 80)
+        cmds.warning(gt_renamer_settings.get('error_message'))
+
+    renaming_inview_feedback(len(to_rename))
 
 
 def rename_add_prefix(obj_list, new_prefix_list):
@@ -1089,29 +1143,6 @@ def rename_add_suffix(obj_list, new_suffix_list):
         renaming_inview_feedback(len(to_rename))
 
 
-def rename_and_alphabetize(obj_list, new_name):
-    """
-    WIP - Rename Objects and Add Letter (Alphabetical Order) - Work in Progress
-
-    Args:
-        obj_list (list): a list of objects (strings) to be renamed
-        new_name (string) : Work in Progress
-    """
-    alphabet_array = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S",
-                      "T", "U", "V", "W", "X", "Y", "Z"]
-    print([len(alphabet_array)])
-    current_letter_index = 0
-    multiple_letter_patch = ''
-    multiple_letter_index = 0
-    for obj in obj_list:
-        # object_short_name = get_short_name(obj)
-        new_name_and_letter = new_name + multiple_letter_patch + alphabet_array[current_letter_index]
-        current_letter_index += 1
-        if current_letter_index == 25:
-            multiple_letter_patch = current_letter_index[multiple_letter_index]
-        cmds.rename(obj, new_name_and_letter)
-
-
 def renaming_inview_feedback(number_of_renames):
     """
     Prints an inViewMessage to give feedback to the user about how many objects were renamed.
@@ -1131,7 +1162,71 @@ def renaming_inview_feedback(number_of_renames):
         cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
 
 
+def rename_and_letter(obj_list, new_name, is_uppercase=True, keep_name=False):
+    """
+    Rename Objects and Add Letter (Alphabetical Order)
+
+    Args:
+        obj_list (list): a list of objects (strings) to be renamed
+        new_name (string) : New name (prefix name)
+        is_uppercase (bool, optional) : If the letter should be lowercase or uppercase (uppercase = True)
+        keep_name (bool, optional) : Keeps the original name instead of using the provided "new_name" parameter
+    """
+
+    if not new_name and not keep_name:
+        cmds.warning('The provided string must not be empty.')
+        return
+
+    def incr_chr(c):
+        return chr(ord(c) + 1) if c != 'Z' else 'A'
+
+    def incr_str(s):
+        l_part = s.rstrip('Z')
+        num_replacements = len(s) - len(l_part)
+        new_s = l_part[:-1] + incr_chr(l_part[-1]) if l_part else 'A'
+        new_s += 'A' * num_replacements
+        return new_s
+
+    errors = ''
+    current_suffix = 'A'
+    to_rename = []
+
+    for obj in obj_list:
+        object_short_name = get_short_name(obj)
+        if keep_name:
+            new_name_and_letter = object_short_name + current_suffix
+        else:
+            new_name_and_letter = new_name + current_suffix
+
+        if not is_uppercase:
+            new_name_and_letter = new_name + current_suffix.lower()
+        current_suffix = incr_str(current_suffix)
+        if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
+            to_rename.append([obj, new_name_and_letter])
+
+    for pair in reversed(to_rename):
+        if cmds.objExists(pair[0]):
+            try:
+                cmds.rename(pair[0], pair[1])
+            except Exception as exception:
+                errors = errors + '"' + str(pair[0]) + '" : "' + exception[0].rstrip("\n") + '".\n'
+
+    if errors != '':
+        print('#' * 80 + '\n')
+        print(errors)
+        print('#' * 80)
+        cmds.warning(gt_renamer_settings.get('error_message'))
+
+    renaming_inview_feedback(len(to_rename))
+
+
 # Run Script
 get_persistent_settings_renamer()
 if __name__ == '__main__':
     build_gui_renamer()
+    # debugging = False
+    # if debugging:
+    #     logger.setLevel(logging.DEBUG)
+    #     logger.debug('Logging Set to DEBUG MODE')
+    #     sel = cmds.ls(selection=True)
+    #     # rename_and_letter(sel, 'newName_', is_uppercase=True, keep_name=True)
