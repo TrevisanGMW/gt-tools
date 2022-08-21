@@ -43,17 +43,8 @@
 
  1.6.1 - 2022-08-20
  Fixed an issue where shape nodes would cause the generator to advance for "Rename and Letter"
+ Updated help menu
 
- 
- Todo:
-    Add persistent settings for the selection type (Selected, Hierarchy, All)
-    Consider adding more types to auto suffix.
-    Add more direction planes to the auto prefix option.
-    Add alphabetize option (already started; function at the bottom) .
-    Test with more complex scenes using the "all" option.
-    Update help menu.
-    Auto rename shaders and file nodes.
- 
 """
 import maya.cmds as cmds
 import traceback
