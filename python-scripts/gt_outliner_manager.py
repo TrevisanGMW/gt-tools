@@ -9,6 +9,7 @@
 """
 import maya.cmds as cmds
 import logging
+import random
 
 logging.basicConfig()
 logger = logging.getLogger("gt_outliner_manager")
@@ -135,6 +136,15 @@ def outliner_sort(obj_list, sort_operation='name'):
                 issues += str(e) + '\n'
             logger.debug('target_value: ' + str([target_objects.get(target_key)]))
 
+    if sort_operation == 'shuffle':
+        random.shuffle(obj_list)
+        for target_obj in obj_list:
+            try:
+                reorder_front([target_obj])
+            except Exception as e:
+                issues += str(e) + '\n'
+            logger.debug('target_value: ' + str([target_obj]))
+
     if issues:
         print(issues)
 
@@ -145,4 +155,5 @@ if __name__ == '__main__':
     # cmds.reorder(selection[0], front=True)
     # reorder_up(selection)
     # reorder_back(selection)
-    outliner_sort(selection)
+    # outliner_sort(selection)
+    outliner_sort(selection, sort_operation='shuffle')
