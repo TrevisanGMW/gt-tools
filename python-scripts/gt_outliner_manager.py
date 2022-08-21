@@ -95,28 +95,53 @@ def reorder_back(obj_list):
         return False
 
 
-def outliner_sort(target_list):
-    logger.debug('target_list: ' + str(target_list))
+def get_short_name(obj):
+    """
+    Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+    Args:
+        obj (string) : object to extract short name
+
+    Returns:
+        short_name (string) : Name of the object without its full path
+    """
+    short_name = ''
+    if obj == '':
+        return ''
+    split_path = obj.split('|')
+    if len(split_path) >= 1:
+        short_name = split_path[len(split_path) - 1]
+    return short_name
+
+
+def outliner_sort(obj_list, sort_operation='name'):
+    logger.debug('obj_list: ' + str(obj_list))
     issues = ''
 
-    for target_obj in target_list:
-        current_user_attributes = cmds.listAttr(target_obj, userDefined=True) or []
-        print(current_user_attributes)
-        print(target_obj)
-        # for attr in attributes:
-        #     if attr not in current_user_attributes:
-        #         cmds.addAttr(target_obj, ln=attr, at=attr_type, k=True)
-        #     else:
-        #         issue = '\nUnable to add "' + target_obj + '.' + attr + '".'
-        #         issue += ' Object already has an attribute with the same name'
-        #         issues += issue
+    target_objects = {}
+
+    for target_obj in obj_list:
+        short_name = get_short_name(target_obj)
+        print(short_name)
+        target_objects[short_name] = target_obj
+
+    sorted_target = sorted(target_objects, reverse=True)
+
+    if sort_operation == 'name':
+        for target_key in sorted_target:
+            try:
+                reorder_front([target_objects.get(target_key)])
+            except Exception as e:
+                issues += str(e) + '\n'
+            logger.debug('target_value: ' + str([target_objects.get(target_key)]))
 
     if issues:
         print(issues)
 
 
 if __name__ == '__main__':
-    selection = cmds.ls(selection=True)
+    logger.setLevel(logging.DEBUG)
+    selection = cmds.ls(selection=True, long=True)
     # cmds.reorder(selection[0], front=True)
     # reorder_up(selection)
     # reorder_back(selection)
