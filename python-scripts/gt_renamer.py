@@ -41,6 +41,9 @@
  Added rename and letter
  Adjusted GUI
 
+ 1.6.1 - 2022-08-20
+ Fixed an issue where shape nodes would cause the generator to advance for "Rename and Letter"
+
  
  Todo:
     Add persistent settings for the selection type (Selected, Hierarchy, All)
@@ -79,7 +82,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.6.0"
+script_version = "1.6.1"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',
@@ -547,11 +550,8 @@ def build_gui_renamer():
             using_source = cmds.checkBox(use_source_chk, q=True, value=True)
             uppercase_letter = cmds.checkBox(uppercase_chk, q=True, value=True)
 
-            if cmds.textField(start_number_textfield, q=True, text=True).isdigit() and cmds.textField(
-                    padding_number_textfield, q=True, text=True).isdigit():
-                rename_and_letter(selection, new_name, keep_name=using_source, is_uppercase=uppercase_letter)
-            else:
-                cmds.warning('Start Number and Padding Number must be digits (numbers)')
+            rename_and_letter(selection, new_name, keep_name=using_source, is_uppercase=uppercase_letter)
+
         elif operation == 'add_prefix':
             prefix_list = []
             if cmds.radioButton(add_prefix_auto, q=True, select=True):
@@ -1200,10 +1200,11 @@ def rename_and_letter(obj_list, new_name, is_uppercase=True, keep_name=False):
 
         if not is_uppercase:
             new_name_and_letter = new_name + current_suffix.lower()
-        current_suffix = incr_str(current_suffix)
+
         if cmds.objExists(obj) and 'shape' not in cmds.nodeType(obj, inherited=True):
             to_rename.append([obj, new_name_and_letter])
-
+            current_suffix = incr_str(current_suffix)
+    print(to_rename)
     for pair in reversed(to_rename):
         if cmds.objExists(pair[0]):
             try:
@@ -1224,9 +1225,7 @@ def rename_and_letter(obj_list, new_name, is_uppercase=True, keep_name=False):
 get_persistent_settings_renamer()
 if __name__ == '__main__':
     build_gui_renamer()
-    # debugging = False
-    # if debugging:
-    #     logger.setLevel(logging.DEBUG)
-    #     logger.debug('Logging Set to DEBUG MODE')
-    #     sel = cmds.ls(selection=True)
-    #     # rename_and_letter(sel, 'newName_', is_uppercase=True, keep_name=True)
+    # logger.setLevel(logging.DEBUG)
+    # logger.debug('Logging Set to DEBUG MODE')
+    # sel = cmds.ls(selection=True)
+    # rename_and_letter(sel, 'newName_', is_uppercase=True, keep_name=False)
