@@ -115,7 +115,7 @@ def get_short_name(obj):
     return short_name
 
 
-def outliner_sort(obj_list, sort_operation='name'):
+def outliner_sort(obj_list, sort_operation='name', is_ascending=True):
     logger.debug('obj_list: ' + str(obj_list))
     issues = ''
 
@@ -126,7 +126,7 @@ def outliner_sort(obj_list, sort_operation='name'):
         print(short_name)
         target_objects[short_name] = target_obj
 
-    sorted_target = sorted(target_objects, reverse=True)
+    sorted_target = sorted(target_objects, reverse=is_ascending)
 
     if sort_operation == 'name':
         for target_key in sorted_target:
@@ -155,5 +155,5 @@ if __name__ == '__main__':
     # cmds.reorder(selection[0], front=True)
     # reorder_up(selection)
     # reorder_back(selection)
-    # outliner_sort(selection)
-    outliner_sort(selection, sort_operation='shuffle')
+    outliner_sort(selection, is_ascending=True)
+    # outliner_sort(selection, sort_operation='shuffle')
