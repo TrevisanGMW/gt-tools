@@ -115,7 +115,7 @@ def get_short_name(obj):
     return short_name
 
 
-def outliner_sort(obj_list, sort_operation='name', is_ascending=True):
+def outliner_sort(obj_list, sort_operation='name', is_ascending=True, attr='ty'):
     logger.debug('obj_list: ' + str(obj_list))
     issues = ''
 
@@ -123,7 +123,6 @@ def outliner_sort(obj_list, sort_operation='name', is_ascending=True):
 
     for target_obj in obj_list:
         short_name = get_short_name(target_obj)
-        print(short_name)
         target_objects[short_name] = target_obj
 
     sorted_target = sorted(target_objects, reverse=is_ascending)
@@ -145,6 +144,25 @@ def outliner_sort(obj_list, sort_operation='name', is_ascending=True):
                 issues += str(e) + '\n'
             logger.debug('target_value: ' + str([target_obj]))
 
+    if sort_operation == 'attribute':
+        value_dict = {}
+        for target_obj in obj_list:
+            try:
+                value = cmds.getAttr(target_obj + '.' + attr)
+            except Exception as e:
+                logger.debug(str(e))
+                value = 0
+            logger.debug(target_obj + ' ' + str(value))
+            value_dict[target_obj] = value
+
+        sorted_dict = dict(sorted(value_dict.items(), key=lambda item: item[1], reverse=not is_ascending))
+        for key in sorted_dict:
+            try:
+                reorder_front([key])
+            except Exception as e:
+                issues += str(e) + '\n'
+            logger.debug('target_value: ' + str([key]))
+
     if issues:
         print(issues)
 
@@ -155,5 +173,6 @@ if __name__ == '__main__':
     # cmds.reorder(selection[0], front=True)
     # reorder_up(selection)
     # reorder_back(selection)
-    outliner_sort(selection, is_ascending=True)
+    # outliner_sort(selection, is_ascending=True)
     # outliner_sort(selection, sort_operation='shuffle')
+    outliner_sort(selection, sort_operation='attribute', attr='ty', is_ascending=True)
