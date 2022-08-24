@@ -23,6 +23,10 @@
     - Added validate_operation and connected utilities
     - Added Sort by Attribute, custom attribute field and default channel drop-down menu
 
+ 0.4.2 - 2022-08-23
+ Connected Sort by Attribute button, drop-down menu and text-field
+ Added shuffle order button
+
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -48,7 +52,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Outliner Sorter"
 
 # Version:
-script_version = "0.4.1"
+script_version = "0.4.2"
 
 
 def reorder_up(obj_list):
@@ -202,7 +206,6 @@ def outliner_sort(obj_list, sort_operation='name', is_ascending=True, attr='ty')
         print(issues)
 
 
-
 def build_gui_outliner_sorter():
     """ Creates window for Outliner Sorter """
     def validate_operation(operation):
@@ -225,13 +228,19 @@ def build_gui_outliner_sorter():
                 reorder_front(current_selection)
             elif operation == 'reorder_back':
                 reorder_back(current_selection)
+            elif operation == 'sort_attribute':
+                current_attr = cmds.textField(custom_attr_textfield, q=True, text=True) or ''
+                if current_attr.startswith('.'):
+                    current_attr = current_attr[1:]
+                outliner_sort(current_selection, sort_operation='attribute', attr=current_attr, is_ascending=True)
+            elif operation == 'shuffle':
+                outliner_sort(current_selection, sort_operation='shuffle')
 
         except Exception as e:
             logger.debug(str(e))
 
         finally:
             cmds.undoInfo(closeChunk=True, chunkName=script_name)
-            cmds.select(current_selection)
 
     window_name = "build_gui_outliner_sorter"
     if cmds.window(window_name, exists=True):
@@ -269,6 +278,10 @@ def build_gui_outliner_sorter():
     cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
     cmds.button(l="Move Down", c=lambda x: validate_operation("reorder_down"), w=130)
     cmds.button(l="Move Back", c=lambda x: validate_operation("reorder_back"), w=130)
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
+    cmds.button(l="Shuffle", c=lambda x: validate_operation("shuffle"))
+    cmds.button(l="Place Holder", c=lambda x: validate_operation("shuffle"), en=False)
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
@@ -280,25 +293,34 @@ def build_gui_outliner_sorter():
     cmds.text("Sort by Attribute")
     cmds.separator(h=7, style='none')  # Empty Space
 
-    cmds.rowColumnLayout(nc=2, cw=[(1, 165)], cs=[(1, 10), (2, 5)], p=content_main)
-    undesired_filter_textfield = cmds.textField(text='', pht='Custom Attribute (Optional)')
-    undesired_filter_option = cmds.optionMenu(label='')
-    cmds.menuItem(label='translateX')
-    cmds.menuItem(label='translateY')
-    cmds.menuItem(label='translateZ')
-    cmds.menuItem(label='rotateX')
-    cmds.menuItem(label='rotateY')
-    cmds.menuItem(label='rotateZ')
-    cmds.menuItem(label='scaleX')
-    cmds.menuItem(label='scaleY')
-    cmds.menuItem(label='scaleZ')
-    cmds.menuItem(label='visibility')
-    cmds.menuItem(label='custom')
+    def update_sort_attr(*args):
+        menu_option = args[0].replace(' ', '')
+        attr = menu_option[0].lower() + menu_option[1:]
+
+        if attr == 'customAttribute':
+            cmds.textField(custom_attr_textfield, e=True, en=True)
+            cmds.textField(custom_attr_textfield, e=True, text='')
+        else:
+            cmds.textField(custom_attr_textfield, e=True, en=False)
+            cmds.textField(custom_attr_textfield, e=True, text=attr)
+
+    cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
+    sort_attr_option = cmds.optionMenu(label='', cc=update_sort_attr)
+    menu_items = ['Custom Attribute', '',
+                  'Translate X', 'Translate Y', 'Translate Z', '',
+                  'Rotate X', 'Rotate Y', 'Rotate Z',  '',
+                  'Scale X', 'Scale Y', 'Scale Z', ]
+    for item in menu_items:
+        if item == '':
+            cmds.menuItem(divider=True)
+        else:
+            cmds.menuItem(label=item)
+
+    cmds.optionMenu(sort_attr_option, e=True, sl=4)
+    custom_attr_textfield = cmds.textField(text='translateY', pht='Custom Attribute', en=False)
     cmds.separator(h=10, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 265)], cs=[(1, 10)], p=content_main)
-    # cmds.separator(h=7, style='none')  # Empty Space
-    # cmds.separator(h=5)
     cmds.separator(h=7, style='none')  # Empty Space
 
     cmds.button(l="Sort by Attribute", bgc=(.6, .6, .6), c=lambda x: validate_operation('sort_attribute'))
@@ -316,6 +338,11 @@ def build_gui_outliner_sorter():
 
     # Remove the focus from the textfield and give it to the window
     cmds.setFocus(window_name)
+
+
+def _open_gt_tools_documentation():
+    """ Opens a web browser with GT Tools docs  """
+    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
 
 
 if __name__ == '__main__':
