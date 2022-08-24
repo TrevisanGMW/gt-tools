@@ -231,6 +231,12 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -image "renamePreset.png" ;
     
     menuItem 
+    -l ("Outliner Sorter") 
+    -c ("python(\"gt_tools.execute_script('gt_outliner_sorter', 'build_gui_outliner_sorter')\");") 
+    -ann ("Manages the order of the elements in the outliner.") 
+    -image "outliner.png" ;
+    
+    menuItem 
     -l ("Selection Manager") 
     -c ("python(\"gt_tools.execute_script('gt_selection_manager', 'build_gui_selection_manager')\");") 
     -ann ("Manages or creates custom selections.") 
