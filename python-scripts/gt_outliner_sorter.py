@@ -26,6 +26,7 @@
  0.4.2 - 2022-08-23
  Connected Sort by Attribute button, drop-down menu and text-field
  Added shuffle order button
+ Added link opener as help button
 
 """
 from maya import OpenMayaUI as OpenMayaUI
