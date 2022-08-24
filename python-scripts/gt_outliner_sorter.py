@@ -23,10 +23,12 @@
     - Added validate_operation and connected utilities
     - Added Sort by Attribute, custom attribute field and default channel drop-down menu
 
- 0.4.2 - 2022-08-23
+ 0.4.2  to 0.5.1- 2022-08-23
  Connected Sort by Attribute button, drop-down menu and text-field
  Added shuffle order button
  Added link opener as help button
+ Added drop-down menu for ascending/descending
+ Added sort by name
 
 """
 from maya import OpenMayaUI as OpenMayaUI
@@ -53,7 +55,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Outliner Sorter"
 
 # Version:
-script_version = "0.4.2"
+script_version = "0.5.1"
 
 
 def reorder_up(obj_list):
@@ -221,6 +223,10 @@ def build_gui_outliner_sorter():
 
         cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
         try:
+            is_ascending = True
+            if 'Descending' in cmds.optionMenu(ascending_option_menu, q=True, value=True):
+                is_ascending = False
+
             if operation == 'reorder_up':
                 reorder_up(current_selection)
             elif operation == 'reorder_down':
@@ -233,7 +239,10 @@ def build_gui_outliner_sorter():
                 current_attr = cmds.textField(custom_attr_textfield, q=True, text=True) or ''
                 if current_attr.startswith('.'):
                     current_attr = current_attr[1:]
-                outliner_sort(current_selection, sort_operation='attribute', attr=current_attr, is_ascending=True)
+                outliner_sort(current_selection, sort_operation='attribute',
+                              attr=current_attr, is_ascending=is_ascending)
+            elif operation == 'sort_name':
+                outliner_sort(current_selection, sort_operation='name', is_ascending=is_ascending)
             elif operation == 'shuffle':
                 outliner_sort(current_selection, sort_operation='shuffle')
 
@@ -269,7 +278,7 @@ def build_gui_outliner_sorter():
     # 1. Deformed Mesh (Source) ------------------------------------------
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Sort Utilities:')
+    cmds.text('Sort Utilities / Settings:')
     cmds.separator(h=5, style='none')  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
@@ -282,9 +291,19 @@ def build_gui_outliner_sorter():
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
     cmds.button(l="Shuffle", c=lambda x: validate_operation("shuffle"))
-    cmds.button(l="Place Holder", c=lambda x: validate_operation("shuffle"), en=False)
+    ascending_option_menu = cmds.optionMenu(label='')
+    cmds.menuItem(label='   Sort Ascending')
+    cmds.menuItem(label='   Sort Descending')
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
+
+    # Sort by Name ------------------------------------------
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=5)
+    cmds.rowColumnLayout(nc=1, cw=[(1, 265)], cs=[(1, 10)], p=content_main)
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.button(l="Sort by Name", bgc=(.6, .6, .6), c=lambda x: validate_operation('sort_name'))
+    # cmds.separator(h=10, style='none')  # Empty Space
 
     # Sort by Attribute ------------------------------------------
     cmds.rowColumnLayout(nc=1, cw=[(1, 265)], cs=[(1, 10), (2, 5)], p=content_main)
