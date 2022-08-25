@@ -158,6 +158,15 @@ def get_short_name(obj):
 
 
 def outliner_sort(obj_list, sort_operation='name', is_ascending=True, attr='ty'):
+    """
+    Outliner Sorting function: Moves objects up/down to arrange them in a certain order
+    Args:
+        obj_list (list): List of affected objects (strings)
+        sort_operation (string, optional): Name of the sorting operation: "name", "shuffle", "attribute"
+        is_ascending (bool, optional): If active, operation will be ascending, if not descending
+        attr (string, optional): attribute used to extract a value for when sorting by attribute
+
+    """
     logger.debug('obj_list: ' + str(obj_list))
     issues = ''
 
@@ -292,8 +301,8 @@ def build_gui_outliner_sorter():
     cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 10), (2, 5)], p=content_main)
     cmds.button(l="Shuffle", c=lambda x: validate_operation("shuffle"))
     ascending_option_menu = cmds.optionMenu(label='')
-    cmds.menuItem(label='   Sort Ascending')
-    cmds.menuItem(label='   Sort Descending')
+    cmds.menuItem(label='    Sort Ascending')
+    cmds.menuItem(label='    Sort Descending')
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
@@ -366,8 +375,8 @@ def _open_gt_tools_documentation():
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-    selection = cmds.ls(selection=True, long=True)
+    # logger.setLevel(logging.DEBUG)
+    # selection = cmds.ls(selection=True, long=True)
     # cmds.reorder(selection[0], front=True)
     # reorder_up(selection)
     # reorder_back(selection)
