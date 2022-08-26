@@ -18,6 +18,7 @@
 <h3><b>Tools:</b></h3>
 <ul>
   <li><a href="#-gt-renamer-">GT Renamer</a></li>
+  <li><a href="#-gt-outliner-sorter-">GT Outliner Sorter</a></li>
   <li><a href="#-gt-selection-manager-">GT Selection Manager</a></li>
   <li><a href="#-gt-path-manager-">GT Path Manager</a></li>
   <li><a href="#-gt-color-manager-">GT Color Manager</a></li>
@@ -383,6 +384,39 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Search and Replace: </b>Uses the well-known method of search and replace to rename objects.</p>
 <br>
+</div>
+
+<!-- GT Outliner Sorter -->
+<div>
+<h1> GT Renamer </h1>
+<img src="./media/gt_outliner_sorter.jpg" align="right"
+     alt="GT Renamer GUI">
+
+<p>Script for sorting outliner hierarchies. Options will not re-parent objects, only change their order.</p>
+
+<p><b>Utilities / Settings: </b>
+<br>- Move Up: Moves the selected objects up in the hierarchy order.
+<br>- Move Down: Moves the selected objects down in the hierarchy order.
+<br>- Move Front: Moves the selected objects to the top of the hierarchy order.
+<br>- Move Back: Moves the selected objects to the bottom of the hierarchy order.
+<br>- Shuffle: Randomizes the order of the selected objects.</p>
+
+<p><b>Sort Ascending/Descending:</b>
+<br>Determines if the output of the operations will be in an increasing order or decreasing.
+</p>
+
+<p><b>Sort by Name: </b>
+<br>- Re-order selected elements based on their names. For example:
+<br>"Object_B", "Object_C", "Object_A", would become:
+<br>"Object_A", "Object_B", "Object_C"
+<br>This also works with numbers. It reads the letters from left to right.</p>
+
+<p><b>Sort by Attribute: </b>
+<br>- Re-order selected elements based on an attribute. For example:
+<br>"Object_B.ty" = 5, "Object_C.ty" = 10, "Object_A" = 1, would become:
+<br>"Object_C.ty" = 10, "Object_B.ty" = 5, "Object_A" = 1 (matching the order of the values)
+<br>You can also use user-defined/custom attributes by filling the text-field on top of the "Sort by Attribute" button.</p>
+
 </div>
 
 <!-- GT Selection Manager-->
