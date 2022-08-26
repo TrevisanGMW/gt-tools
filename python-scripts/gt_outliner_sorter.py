@@ -30,6 +30,10 @@
  Added drop-down menu for ascending/descending
  Added sort by name
 
+ 1.0.0 - 2022-08-26
+ First released version
+ Removed some unnecessary lines
+
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
@@ -55,7 +59,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Outliner Sorter"
 
 # Version:
-script_version = "0.5.1"
+script_version = "1.0.0"
 
 
 def reorder_up(obj_list):
@@ -376,11 +380,4 @@ def _open_gt_tools_documentation():
 
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
-    # selection = cmds.ls(selection=True, long=True)
-    # cmds.reorder(selection[0], front=True)
-    # reorder_up(selection)
-    # reorder_back(selection)
-    # outliner_sort(selection, is_ascending=True)
-    # outliner_sort(selection, sort_operation='shuffle')
-    # outliner_sort(selection, sort_operation='attribute', attr='ty', is_ascending=True)
     build_gui_outliner_sorter()
