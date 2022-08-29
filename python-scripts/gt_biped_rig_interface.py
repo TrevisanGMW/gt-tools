@@ -87,34 +87,30 @@
  1.3.16 - 2022-02-02
  Changed mirror option to make it compatible with right wrist orientation
 
- 1.3.17 - 2022-02-07
+ 1.3.17 / 1.3.18- 2022-02-07
  Updated "Get Selection Range" function to add one to the end value so it bakes the entire selection
-
- 1.3.18 - 2022-02-07
  Updated "Get Timeline Range" function to add one to the end value so it bakes the entire selection
 
  1.3.19 - 2022-02-07
  Changed the default dictionaries so they don't use offset controls by default
 
- 1.3.20 - 2022-03-17
+ 1.3.20 / 1.3.21 - 2022-03-17
  Fixed a few PEP8 warnings (long lines)
-
- 1.3.21 - 2022-03-17
  Checked to see if using new name for clavicle influence attribute (autoClavicleInfluence -> clavicleInfluence)
 
- 1.3.22 - 2022-06-30
+ 1.3.22 / 1.3.23 - 2022-06-30
  General PEP8 code cleanup
-
- 1.3.23 - 2022-06-30
  Made some functions not protected as they can be helpful in other scripts
  Fixed a little GUI alignment issue
 
  1.3.24 - 2022-07-24
  Updated help link
 
- 1.4.0 / 1.4.1 - 2022-08-29
+ 1.4.0 / 1.4.2 - 2022-08-29
+ Cleaned docs a bit by merging same days
  Added facial side GUI to pose operations
  Added facial controls to pose operations
+ Added correctives to pose operations
  Changed "pose_reset" so it resets scale to 1 instead of 0
 
 
@@ -150,7 +146,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.1"
+script_version = "1.4.3"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -311,6 +307,22 @@ gt_ab_general_ctrls = {  # Fingers Automation
     '_lowerCornerLip_ctrl': [invert_all, not_inverted],
     '_upperOuterLip_ctrl': [invert_all, not_inverted],
     '_lowerOuterLip_ctrl': [invert_all, not_inverted],
+
+    # Corrective Ctrls
+    '_upperShoulder_driverJnt_ctrl': [invert_x, not_inverted],
+    '_backShoulder_driverJnt_ctrl': [invert_x, not_inverted],
+    '_frontShoulder_driverJnt_ctrl': [invert_x, not_inverted],
+
+    '_frontElbow_driverJnt_ctrl': [invert_x, not_inverted],
+    '_wrist_outfit_driverJnt_ctrl': [invert_all, not_inverted],
+    '_upperWrist_driverJnt_ctrl': [invert_z, not_inverted],
+    '_lowerWrist_driverJnt_ctrl': [invert_z, not_inverted],
+
+    '_outerHip_driverJnt_ctrl': [invert_x, not_inverted],
+    '_backHip_driverJnt_ctrl': [invert_x, not_inverted],
+    '_frontHip_driverJnt_ctrl': [invert_x, not_inverted],
+    '_backKnee_driverJnt_ctrl': [invert_x, not_inverted],
+    '_frontKnee_driverJnt_ctrl': [invert_x, not_inverted],
 }
 
 gt_ab_ik_ctrls = {  # Arm
