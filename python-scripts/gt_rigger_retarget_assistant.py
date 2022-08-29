@@ -41,9 +41,6 @@ Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
 v0.4.2 - 2022-07-21
 Updated help text
 
-v0.4.3 - 2022-07-21
-Updated help text
-
 """
 from collections import namedtuple
 from functools import partial
@@ -918,6 +915,14 @@ def build_gui_mocap_rig():
                          columnSpacing=[(1, 25), (3, 5)], parent=content_main)
     cmds.separator(height=10, style='none')  # Empty Space
     cmds.text("First time-field frame will be used as neutral pose", bgc=(.3, .3, .3))
+
+    # cmds.separator(height=15, style='none')  # Empty Space
+    # cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 90), (2, 150)],
+    #                      columnSpacing=[(1, 25)], parent=content_main)
+    # cmds.text('Primary Target: ')
+    # target_option_menu = cmds.optionMenu(label='')
+    # cmds.menuItem(label=' Forward Kinematics (FK)')
+    # cmds.menuItem(label=' Inverse Kinematics (IK)')
 
     # Text Fields and Checkboxes
     help_bgc_color = (.4, .4, .4)
