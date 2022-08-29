@@ -112,15 +112,16 @@
  1.3.24 - 2022-07-24
  Updated help link
 
- 1.4.0 - 2022-08-29
+ 1.4.0 / 1.4.1 - 2022-08-29
+ Added facial side GUI to pose operations
  Added facial controls to pose operations
+ Changed "pose_reset" so it resets scale to 1 instead of 0
 
 
  TODO:
     Created flip pose function
     Add Flip options
     Overwrite keys for animation functions
-    Add Namespace picker (button to the right of the namespace textfield)
     Option to save pose thumbnail when exporting it
     Add option to open multiple instances
 
@@ -149,7 +150,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.0"
+script_version = "1.4.1"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -1456,13 +1457,17 @@ def pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
             for dimension in dimensions:
                 try:
                     if cmds.getAttr(namespace + ctrl + '.' + transform + dimension, lock=True) is False:
-                        cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
+                        if transform == 's':
+                            cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 1)
+                        else:
+                            cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
                 except Exception as e:
                     logger.debug(str(e))
 
     # Special Cases
-    special_case_ctrls = ['left_fingers_ctrl', 'right_fingers_ctrl']
-    for ctrl in special_case_ctrls:
+    # Fingers Default Scale is 2
+    special_case_fingers = ['left_fingers_ctrl', 'right_fingers_ctrl']
+    for ctrl in special_case_fingers:
         if cmds.objExists(namespace + ctrl):
             if cmds.getAttr(namespace + ctrl + '.' + 'sz', lock=True) is False:
                 cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
