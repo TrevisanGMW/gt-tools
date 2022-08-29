@@ -112,6 +112,9 @@
  1.3.24 - 2022-07-24
  Updated help link
 
+ 1.4.0 - 2022-08-29
+ Added facial controls to pose operations
+
 
  TODO:
     Created flip pose function
@@ -146,7 +149,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.3.24"
+script_version = "1.4.0"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -271,6 +274,42 @@ gt_ab_general_ctrls = {  # Fingers Automation
     '_clavicle_ctrl': [not_inverted, not_inverted],
     # Eyes
     '_eye_ctrl': [invert_x, not_inverted],
+    # Facial Side GUI Rig
+    '_innerBrow_offset_ctrl': [not_inverted, not_inverted],
+    '_midBrow_offset_ctrl': [not_inverted, not_inverted],
+    '_outerBrow_offset_ctrl': [not_inverted, not_inverted],
+
+    '_blinkEyelid_ctrl': [not_inverted, not_inverted],
+    '_upperEyelid_offset_ctrl': [not_inverted, not_inverted],
+    '_lowerEyelid_offset_ctrl': [not_inverted, not_inverted],
+
+    '_cheek_offset_ctrl': [not_inverted, not_inverted],
+    '_cheek_in_out_offset_ctrl': [not_inverted, not_inverted],
+    '_nose_offset_ctrl': [not_inverted, not_inverted],
+
+    '_cornerLip_offset_ctrl': [not_inverted, not_inverted],
+    '_upperOuterLip_offset_ctrl': [not_inverted, not_inverted],
+    '_upperCornerLip_offset_ctrl': [not_inverted, not_inverted],
+    '_lowerCornerLip_offset_ctrl': [not_inverted, not_inverted],
+    '_lowerOuterLip_offset_ctrl': [not_inverted, not_inverted],
+
+    # Facial Rig Ctrls
+    '_mainEyebrow_ctrl': [invert_all, invert_y],
+    '_innerBrow_ctrl': [invert_all, invert_y],
+    '_midBrow_ctrl': [invert_all, not_inverted],
+    '_outerBrow_ctrl': [invert_all, not_inverted],
+
+    '_upperEyelid_ctrl': [invert_z, not_inverted],
+    '_lowerEyelid_ctrl': [invert_z, not_inverted],
+
+    '_cheek_ctrl': [invert_z, not_inverted],
+    '_nose_ctrl': [invert_z, not_inverted],
+
+    '_cornerLip_ctrl': [invert_all, not_inverted],
+    '_upperCornerLip_ctrl': [invert_all, not_inverted],
+    '_lowerCornerLip_ctrl': [invert_all, not_inverted],
+    '_upperOuterLip_ctrl': [invert_all, not_inverted],
+    '_lowerOuterLip_ctrl': [invert_all, not_inverted],
 }
 
 gt_ab_ik_ctrls = {  # Arm
@@ -326,6 +365,19 @@ gt_ab_center_ctrls = ['cog_ctrl',
                       'main_eye_ctrl',
                       'left_eye_ctrl',
                       'right_eye_ctrl',
+                      # Facial Side GUI Rig
+                      'main_nose_offset_ctrl',
+                      'mid_upperLip_offset_ctrl',
+                      'mid_lowerLip_offset_ctrl',
+                      'jaw_offset_ctrl',
+                      'tongue_offset_ctrl',
+                      'mainMouth_offset_ctrl',
+                      'inOutTongue_offset_ctrl',
+                      # Facial Rig Ctrls
+                      'main_nose_ctrl',
+                      'mid_upperLip_ctrl',
+                      'mid_lowerLip_ctrl',
+                      'mainMouth_ctrl',
                       ]
 
 gt_custom_rig_interface_settings = {
