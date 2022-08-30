@@ -401,6 +401,8 @@ gt_custom_rig_interface_settings = {
     'allow_multiple_instances': False,
     'offset_target': False,
     'key_influence': False,
+    'mirror_affects_center': False,
+    'flip_affects_center': True,
 }
 
 gt_custom_rig_interface_settings_default = copy.deepcopy(gt_custom_rig_interface_settings)
@@ -715,17 +717,31 @@ def build_gui_custom_rig_interface():
 
         update_stored_settings(is_instance)
 
-    def mirror_fk_ik_pose(source_side='right'):
+    def flip_fk_ik_pose(source_side='right'): #@@@
         """
         Runs a full pose mirror function.
-        
+
         Args:
              source_side (optional, string): Either "right" or "left".
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
-                    namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        pose_flip_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
+                               namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+
+    def mirror_fk_ik_pose(source_side='right'):
+        """
+        Runs a full pose mirror function.
+
+        Args:
+             source_side (optional, string): Either "right" or "left".
+                                            It determines what is the source and what is the target of the mirror.
+        """
+        update_stored_settings()
+        pose_flip_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
+                               namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def mirror_animation(source_side='right'):
         """
@@ -979,25 +995,25 @@ def build_gui_custom_rig_interface():
     # IK Pose Mirror
     cmds.button(l="IK Only >",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
-                                        namespace=cmds.textField(namespace_txt, q=True,
+                c=lambda x: pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'right',
+                                                   namespace=cmds.textField(namespace_txt, q=True,
                                                                  text=True) + namespace_separator))  # R
     cmds.button(l="FK Only >",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
-                                        namespace=cmds.textField(namespace_txt, q=True,
+                c=lambda x: pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'right',
+                                                   namespace=cmds.textField(namespace_txt, q=True,
                                                                  text=True) + namespace_separator))  # R
 
     # FK Pose Mirror
     cmds.button(l="< IK Only",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
-                                        namespace=cmds.textField(namespace_txt, q=True,
+                c=lambda x: pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls], 'left',
+                                                   namespace=cmds.textField(namespace_txt, q=True,
                                                                  text=True) + namespace_separator))  # L
     cmds.button(l="< FK Only",
                 p=pose_mirror_ik_fk_column,
-                c=lambda x: pose_mirror([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
-                                        namespace=cmds.textField(namespace_txt, q=True,
+                c=lambda x: pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_fk_ctrls], 'left',
+                                                   namespace=cmds.textField(namespace_txt, q=True,
                                                                  text=True) + namespace_separator))  # L
 
     # Reset Pose
@@ -1487,7 +1503,7 @@ def pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
                 cmds.setAttr(namespace + ctrl + '.' + 'sz', 2)
 
 
-def pose_mirror(gt_ab_ctrls, source_side, namespace=''):
+def pose_mirror_left_right(gt_ab_ctrls, source_side, namespace=''):
     """
     Mirrors the character pose from one side to the other
 
@@ -1512,9 +1528,7 @@ def pose_mirror(gt_ab_ctrls, source_side, namespace=''):
 
     # Start Mirroring
     if len(available_ctrls) != 0:
-
         errors = []
-
         right_side_objects = []
         left_side_objects = []
 
@@ -1600,6 +1614,30 @@ def pose_mirror(gt_ab_ctrls, source_side, namespace=''):
     else:
         cmds.warning('No controls were found. Please check if a namespace is necessary.')
     cmds.setFocus("MayaWindow")
+
+
+def pose_flip_center(gt_ctrls, namespace='', apply=True):
+    """
+    Mirrors a character pose center controls from one side to the other
+
+    Args:
+        gt_ctrls (list) : A list of center controls. e.g. ["waist_ctrl", "chest_ribbon_ctrl"]
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+        apply (bool, optional): If deactivated, the function will not mirror the elements.
+    """
+
+    if not apply:
+        return
+
+    # Find available Ctrls
+    available_ctrls = []
+    for obj in gt_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+
+    # FLip
+    if len(available_ctrls) != 0:
+        mirror_translate_rotate_values(available_ctrls)
 
 
 def pose_export(namespace=''):
@@ -1800,9 +1838,9 @@ def pose_import(debugging=False, debugging_path='', namespace=''):
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
-def pose_flip(namespace=''):
+def pose_flip(namespace=''): # @@@
     """
-    Flips the current pose (Essentially like a mirror in both sides at te same time)
+    Flips the current pose (Similar to mirror but happening at both sides at the same time)
     Creates a Pose dictionary containing the translation, rotation and scale data from the rig controls
     (used to store a pose)
     
@@ -1810,9 +1848,6 @@ def pose_flip(namespace=''):
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
 
     """
-    # Validate Operation and Write file
-    is_valid = True
-
     # Find Available Controls
     available_ctrls = []
     for obj in gt_ab_ik_ctrls:
@@ -1839,36 +1874,36 @@ def pose_flip(namespace=''):
 
     # No Controls were found
     if len(available_ctrls) == 0:
-        is_valid = False
         cmds.warning('No controls were found. Make sure you are using the correct namespace.')
+        return
 
-    if is_valid:
-        pose_dict = {}
-        for obj in available_ctrls:
-            # Get Pose
-            translate = cmds.getAttr(obj + '.translate')[0]
-            rotate = cmds.getAttr(obj + '.rotate')[0]
-            scale = cmds.getAttr(obj + '.scale')[0]
-            to_save = [obj, translate, rotate, scale]
-            pose_dict[obj] = to_save
+    pose_dict = {}
+    for obj in available_ctrls:
+        # Get Pose
+        translate = cmds.getAttr(obj + '.translate')[0]
+        rotate = cmds.getAttr(obj + '.rotate')[0]
+        scale = cmds.getAttr(obj + '.scale')[0]
+        to_save = [obj, translate, rotate, scale]
+        pose_dict[obj] = to_save
 
-            # Reset Current Pose ?
-            # _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)
+        # Reset Current Pose ?
+        # _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)
 
-            # TODO
-            # Set Pose
-            # for ctrl in pose_dict:
-            #     current_object = pose_dict.get(ctrl) # Name, T, R, S
-            #     if cmds.objExists(namespace + current_object[0]):
-            #         set_unlocked_os_attr(namespace + current_object[0], 'tx', current_object[1][0])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'ty', current_object[1][1])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'tz', current_object[1][2])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'rx', current_object[2][0])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'ry', current_object[2][1])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'rz', current_object[2][2])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'sx', current_object[3][0])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'sy', current_object[3][1])
-            #         set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
+        # TODO
+        # Set Pose
+        # for ctrl in pose_dict:
+        #     current_object = pose_dict.get(ctrl) # Name, T, R, S
+        #     if cmds.objExists(namespace + current_object[0]):
+        #         set_unlocked_os_attr(namespace + current_object[0], 'tx', current_object[1][0])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'ty', current_object[1][1])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'tz', current_object[1][2])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'rx', current_object[2][0])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'ry', current_object[2][1])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'rz', current_object[2][2])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'sx', current_object[3][0])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'sy', current_object[3][1])
+        #         set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
+
 
 
 def anim_reset(namespace=''):
@@ -2377,7 +2412,7 @@ def anim_import(debugging=False, debugging_path='', namespace=''):
 def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
 
     if not obj_list:
-        cmds.warning('Not objects were provided.')
+        logger.info('Provided object list is empty. Ignoring ')
         return False
 
     trans = ''
@@ -2412,12 +2447,14 @@ def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
                 mirror_val = cmds.getAttr(obj + rotation_two) * -1
                 cmds.setAttr(obj + rotation_two, mirror_val)
 
-    cmds.select(obj_list, r=True)
     return True
 
 
 # Build UI
 if __name__ == '__main__':
     build_gui_custom_rig_interface()
-    # selection = cmds.ls(selection=True)
-    # mirror_translate_rotate_values(selection)
+    # print(gt_custom_rig_interface_settings.get('mirror_affects_center'))
+    # gt_custom_rig_interface_settings['mirror_affects_center'] = False
+    # _set_persistent_settings_rig_interface()
+    pose_flip()
+
