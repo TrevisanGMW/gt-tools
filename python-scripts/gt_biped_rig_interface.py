@@ -106,21 +106,19 @@
  1.3.24 - 2022-07-24
  Updated help link
 
- 1.4.0 / 1.4.2 - 2022-08-29
+ 1.4.0 / 1.4.3 - 2022-08-29
  Cleaned docs a bit by merging same days
- Added facial side GUI to pose operations
- Added facial controls to pose operations
- Added correctives to pose operations
+ Added facial side GUI to pose and animation systems
+ Added facial controls to pose and animation systems
+ Added corrective controls to pose and animation systems
  Changed "pose_reset" so it resets scale to 1 instead of 0
-
+ Create Flip pose operation
 
  TODO:
     Created flip pose function
     Add Flip options
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
-    Add option to open multiple instances
-
 """
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
@@ -952,7 +950,7 @@ def build_gui_custom_rig_interface():
 
     cmds.separator(h=5, style='none')  # Empty Space
     pose_title_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)
-    cmds.text('Mirror Pose:', p=pose_title_column)
+    cmds.text('Mirror / Flip Pose:', p=pose_title_column)
     cmds.separator(h=5, style='none', p=pose_title_column)  # Empty Space
 
     mirror_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches, p=pose_management_tab)
@@ -966,6 +964,10 @@ def build_gui_custom_rig_interface():
     cmds.separator(h=btn_margin, style='none')  # Empty Space
     cmds.separator(h=btn_margin, style='none')  # Empty Space
 
+    cmds.button(l="Flip ->", c=lambda x: mirror_fk_ik_pose('right'), p=mirror_pose_column)  # R
+    cmds.button(l="<- Flip", c=lambda x: mirror_fk_ik_pose('left'), p=mirror_pose_column)  # L
+    cmds.separator(h=4, style='none')  # Empty Space
+    cmds.separator(h=4, style='none')  # Empty Space
     cmds.button(l="Mirror ->", c=lambda x: mirror_fk_ik_pose('right'), p=mirror_pose_column)  # R
     cmds.button(l="<- Mirror", c=lambda x: mirror_fk_ik_pose('left'), p=mirror_pose_column)  # L
 
@@ -1000,7 +1002,7 @@ def build_gui_custom_rig_interface():
 
     # Reset Pose
     pose_management_column = cmds.rowColumnLayout(nc=1, cw=[(1, 245)], cs=cs_fk_ik_switches, p=pose_management_tab)
-    cmds.separator(h=15, style='none', p=pose_management_column)  # Empty Space
+    cmds.separator(h=10, style='none', p=pose_management_column)  # Empty Space
     cmds.text('Reset Pose:', p=pose_management_column)  # R
     cmds.separator(h=btn_margin, style='none', p=pose_management_column)  # Empty Space
     cmds.button(l="Reset Back to Default Pose",
@@ -1011,7 +1013,7 @@ def build_gui_custom_rig_interface():
 
     # Export Import Pose
     cmds.separator(h=btn_margin, style='none', p=pose_management_column)  # Empty Space
-    cmds.separator(h=15, style='none', p=pose_management_column)  # Empty Space
+    cmds.separator(h=10, style='none', p=pose_management_column)  # Empty Space
     cmds.text('Import/Export Poses:', p=pose_management_column)
 
     import_export_pose_column = cmds.rowColumnLayout(nc=2, cw=cw_fk_ik_switches, cs=cs_fk_ik_switches,
@@ -2372,6 +2374,50 @@ def anim_import(debugging=False, debugging_path='', namespace=''):
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
+def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
+
+    if not obj_list:
+        cmds.warning('Not objects were provided.')
+        return False
+
+    trans = ''
+    rotation_one = ''
+    rotation_two = ''
+    if mirror_axis == 'x':
+        trans = ".tx"
+        rotation_one = ".ry"
+        rotation_two = ".rz"
+    elif mirror_axis == 'y':
+        trans = ".ty"
+        rotation_one = ".rx"
+        rotation_two = ".rz"
+    elif mirror_axis == 'z':
+        trans = ".tz"
+        rotation_one = ".rx"
+        rotation_two = ".ry"
+
+    for obj in obj_list:
+        if 't' in to_invert:  # Translate
+            lock_check1 = cmds.listAttr(obj + trans, l=True) or []
+            if len(lock_check1) == 0:
+                mirror_val = cmds.getAttr(obj + trans) * -1
+                cmds.setAttr(obj + trans, mirror_val)
+        if 'r' in to_invert:  # Rotate
+            lock_check1 = cmds.listAttr(obj + rotation_one, l=True) or []
+            if len(lock_check1) == 0:
+                mirror_val = cmds.getAttr(obj + rotation_one) * -1
+                cmds.setAttr(obj + rotation_one, mirror_val)
+            lock_check1 = cmds.listAttr(obj + rotation_two, l=True) or []
+            if len(lock_check1) == 0:
+                mirror_val = cmds.getAttr(obj + rotation_two) * -1
+                cmds.setAttr(obj + rotation_two, mirror_val)
+
+    cmds.select(obj_list, r=True)
+    return True
+
+
 # Build UI
 if __name__ == '__main__':
     build_gui_custom_rig_interface()
+    # selection = cmds.ls(selection=True)
+    # mirror_translate_rotate_values(selection)
