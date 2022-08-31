@@ -417,6 +417,8 @@ In case you need/want to manually install the scripts. It's easy..
 <br>"Object_C.ty" = 10, "Object_B.ty" = 5, "Object_A" = 1 (matching the order of the values)
 <br>You can also use user-defined/custom attributes by filling the text-field on top of the "Sort by Attribute" button.</p>
 
+<br>
+
 </div>
 
 <!-- GT Selection Manager-->
