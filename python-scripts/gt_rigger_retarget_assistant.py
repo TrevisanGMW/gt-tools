@@ -11,22 +11,22 @@ Used parentConstraints to prevent undesired offset rotation
 v0.0.5 - 2022-03-04
 Simplified the script to avoid errors. It now detects joints and bakes FK and IK in one go
 
-v0.0.6 - 2022-03-06
+v0.1.0 - 2022-03-06
 Updated UI and added button with explanations
 Added custom help UI function
 
-v0.0.7 - 2022-03-07
+v0.1.1 - 2022-03-07
 Added a sentence in the UI explaining basic behaviour regarding first frame use
 
-v0.0.8 - 2022-03-07
+v0.2.0 - 2022-03-07
 Added leg stabilization, removed Transfer to IK option
 
-v0.1.0 - 2022-07-07
+v0.3.0 - 2022-07-07
 PEP8 cleanup
 Changed "Get Current" option, so it updates both fields
 Added a few utility functions
 
-v0.1.1 - 2022-07-12
+v0.4.0 - 2022-07-12
 Updated finger and spine functions to detect the source joint orientation
 Added influence slider to "Connect Spine" help menu
 Added invert rotation checkbox to "Connect Fingers" help menu
@@ -34,11 +34,11 @@ Added invert rotation checkboxes to "Reconnect Spine" help menu
 Changed the name "Connect Spine" to "Reconnect Spine" for clarity
 Added HIK properties' node selection button "P"
 
-v0.1.2 - 2022-07-13
+v0.4.1 - 2022-07-13
 Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
 Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
 
-v0.1.3 - 2022-07-21
+v0.4.2 - 2022-07-21
 Updated help text
 
 """
@@ -73,7 +73,7 @@ logger = logging.getLogger("gt_rigger_retarget_assistant")
 logger.setLevel(logging.INFO)
 
 # General Variables
-SCRIPT_VERSION = "0.1.2"
+SCRIPT_VERSION = "0.4.3"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
@@ -915,6 +915,14 @@ def build_gui_mocap_rig():
                          columnSpacing=[(1, 25), (3, 5)], parent=content_main)
     cmds.separator(height=10, style='none')  # Empty Space
     cmds.text("First time-field frame will be used as neutral pose", bgc=(.3, .3, .3))
+
+    # cmds.separator(height=15, style='none')  # Empty Space
+    # cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 90), (2, 150)],
+    #                      columnSpacing=[(1, 25)], parent=content_main)
+    # cmds.text('Primary Target: ')
+    # target_option_menu = cmds.optionMenu(label='')
+    # cmds.menuItem(label=' Forward Kinematics (FK)')
+    # cmds.menuItem(label=' Inverse Kinematics (IK)')
 
     # Text Fields and Checkboxes
     help_bgc_color = (.4, .4, .4)

@@ -173,6 +173,10 @@
 //   2.2.1 - 2022-08-06
 //   Changed "Delete Unused Nodes" Utility Order
 //
+//   2.4.1 - 2022-08-31
+//   Added Outliner Sorter
+//   Added "Open File Directory" utlity
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -229,6 +233,12 @@ menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
     -c ("python(\"gt_tools.execute_script('gt_renamer', 'build_gui_renamer')\");") 
     -ann ("Script for renaming multiple objects.") 
     -image "renamePreset.png" ;
+    
+    menuItem 
+    -l ("Outliner Sorter") 
+    -c ("python(\"gt_tools.execute_script('gt_outliner_sorter', 'build_gui_outliner_sorter')\");") 
+    -ann ("Manages the order of the elements in the outliner.") 
+    -image "outliner.png" ;
     
     menuItem 
     -l ("Selection Manager") 
@@ -457,12 +467,22 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
 // -----------------------------------------UTILITIES------------------------------------
 
 menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
-    
+
+    // File Utilities
     menuItem 
     -l ("Reload File")
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'force_reload_file')\");")
-    -ann ("Reopens the opened file (to revert back any changes done to the file since it was first opened)") 
+    -ann ("Forces the re-opening of an opened file. (Changes are ignored)") 
+    -image "openScript.png";
+    
+    menuItem 
+    -l ("Open File Directory")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'open_file_dir')\");")
+    -ann ("Opens the directory where the scene is located.") 
     -image "openLoadGeneric.png";
+        
+    // General
+    menuItem -divider true ;
     
     menuItem 
     -l ("Resource Browser")
