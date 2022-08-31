@@ -132,6 +132,9 @@
     - Added feedback for when no elements were affected
     - Added some more validation
 
+ - 2022-08-31
+    - Added open file directory
+
 
  TODO:
      New functions:
@@ -153,9 +156,11 @@
 """
 import maya.cmds as cmds
 import maya.mel as mel
+import subprocess
 import logging
 import random
 import sys
+import os
 from maya import OpenMayaUI as OpenMayaUI
 
 try:
@@ -174,6 +179,9 @@ logging.basicConfig()
 logger = logging.getLogger("gt_utilities")
 logger.setLevel(logging.INFO)
 
+# Find FileBrowser Path
+FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
+
 ''' ____________________________ General Functions ____________________________'''
 
 
@@ -185,6 +193,31 @@ def force_reload_file():
             cmds.file(file_path, open=True, force=True)
     else:
         cmds.warning('Unable to force reload. File was never saved.')
+
+
+def open_file_dir():
+    """Opens the directory where the Maya file is saved"""
+    def explore_windows(path):
+        """"""
+        # explorer needs forward slashes
+        path = os.path.normpath(path)
+
+        if os.path.isdir(path):
+            subprocess.run([FILEBROWSER_PATH, path])
+        elif os.path.isfile(path):
+            subprocess.run([FILEBROWSER_PATH, '/select,', path])
+
+    if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
+        file_path = cmds.file(query=True, expandName=True)
+        if file_path is not None:
+            try:
+                explore_windows(file_path)
+            except Exception as e:
+                print('Issue: ' + str(e))
+                print(file_path)
+                cmds.warning('Unable to open directory. Path printed to script editor.')
+    else:
+        cmds.warning('Unable to open directory. File was never saved.')
 
 
 def open_resource_browser():
