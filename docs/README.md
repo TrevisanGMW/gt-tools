@@ -388,7 +388,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Outliner Sorter -->
 <div>
-<h1> GT Renamer </h1>
+<h1> GT Outliner Sorter </h1>
 <img src="./media/gt_outliner_sorter.jpg" align="right"
      alt="GT Renamer GUI">
 
