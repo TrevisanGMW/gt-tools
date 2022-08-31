@@ -114,13 +114,11 @@
  Changed "pose_reset" so it resets scale to 1 instead of 0
  Create Flip pose operation
 
- 1.4.4 / 1.4.5 - 2022-08-30
+ 1.4.4 / 1.4.6 - 2022-08-30
  Added "pose_flip_center" function
  Added Flip Pose
 
  TODO:
-    Created flip pose function
-    Add Flip options
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
 """
@@ -148,7 +146,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.5"
+script_version = "1.4.6"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -739,8 +737,7 @@ def build_gui_custom_rig_interface():
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        # pose_flip_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
-        # Add pose_mirror_center here
+        pose_mirror_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
         pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
@@ -1643,6 +1640,34 @@ def pose_flip_center(gt_ctrls, namespace='', apply=True):
         mirror_translate_rotate_values(available_ctrls)
 
 
+def pose_mirror_center(gt_ctrls, namespace='', apply=True):
+    """
+    Mirrors a character pose center controls from one side to the other
+
+    Args:
+        gt_ctrls (list) : A list of center controls. e.g. ["waist_ctrl", "chest_ribbon_ctrl"]
+        namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
+        apply (bool, optional): If deactivated, the function will not mirror the elements.
+    """
+    print('gt_ctrls')
+    print(gt_ctrls)
+    # if not apply:
+    #     return
+    #
+    # Find available Ctrls
+    available_ctrls = []
+    for obj in gt_ctrls:
+        if cmds.objExists(namespace + obj):
+            available_ctrls.append(obj)
+    #
+    # Find Average
+    average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_loc')[0]
+    if len(available_ctrls) != 0:
+        for ctrl in available_ctrls:
+            print(ctrl)
+    #     mirror_translate_rotate_values(available_ctrls)
+
+
 def pose_flip_left_right(gt_ab_ctrls, namespace=''):
     """
     Flips the character pose from one side to the other
@@ -1739,7 +1764,7 @@ def pose_flip_left_right(gt_ab_ctrls, namespace=''):
         # Print Feedback
         unique_message = '<' + str(random.random()) + '>'
         unique_message += '<span style=\"color:#FFFFFF;\">Pose </span>'
-        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> mirrored!</span> Flipped'
+        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> flipped!</span>'
         cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
 
         if len(errors) != 0:
@@ -2571,3 +2596,4 @@ if __name__ == '__main__':
     # print(gt_custom_rig_interface_settings.get('mirror_affects_center'))
     # gt_custom_rig_interface_settings['mirror_affects_center'] = False
     # _set_persistent_settings_rig_interface()
+    # pose_mirror_center(['chest_ribbon_ctrl'])
