@@ -1442,8 +1442,13 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 <br>In case you're using the standalone version of GT Utilities, you'll have to uncomment one of the functions at the bottom of the script.</p>
 
 <h3>Reload File</h3>
-<p>This utility attempts to reload the current scene.
-<br>Reloading means reopening it without attempting to save it first.
+<p>This utility reloads the current Maya file (scene).
+<br>Reloading means re-opening it without attempting to save.
+<br>It only works if the file was saved at least once.</p>
+
+<h3>Open File Directory</h3>
+<p>This utility attempts to open the current Maya file directory.
+<br>In case it fails, the path for the file is printed to the script editor.
 <br>It only works if the file was saved at least once.</p>
 
 <h3>Resource Browser</h3>
