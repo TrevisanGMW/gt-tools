@@ -134,6 +134,7 @@
 
  - 2022-08-31
     - Added open file directory
+    - Updated open file directory to support Mac-OS
 
 
  TODO:
@@ -197,25 +198,38 @@ def force_reload_file():
 
 def open_file_dir():
     """Opens the directory where the Maya file is saved"""
-    def explore_windows(path):
-        """"""
-        # explorer needs forward slashes
-        path = os.path.normpath(path)
+    fail_message = 'Unable to open directory. Path printed to script editor instead.'
 
-        if os.path.isdir(path):
-            subprocess.run([FILEBROWSER_PATH, path])
-        elif os.path.isfile(path):
-            subprocess.run([FILEBROWSER_PATH, '/select,', path])
+    def open_dir(path):
+        """"""
+        if sys.platform == "win32":  # Windows
+            # explorer needs forward slashes
+            path = os.path.normpath(path)
+
+            if os.path.isdir(path):
+                subprocess.run([FILEBROWSER_PATH, path])
+            elif os.path.isfile(path):
+                subprocess.run([FILEBROWSER_PATH, '/select,', path])
+        elif sys.platform == "darwin":  # Mac-OS
+            try:
+                subprocess.call(["open", "-R", path])
+            except Exception as exception:
+                logger.debug(str(exception))
+                print(path)
+                cmds.warning(fail_message)
+        else:  # Linux/Other
+            print(path)
+            cmds.warning(fail_message)
 
     if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
         file_path = cmds.file(query=True, expandName=True)
         if file_path is not None:
             try:
-                explore_windows(file_path)
+                open_dir(file_path)
             except Exception as e:
-                print('Issue: ' + str(e))
+                logger.debug(str(e))
                 print(file_path)
-                cmds.warning('Unable to open directory. Path printed to script editor.')
+                cmds.warning(fail_message)
     else:
         cmds.warning('Unable to open directory. File was never saved.')
 
