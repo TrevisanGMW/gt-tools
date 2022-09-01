@@ -8,14 +8,16 @@
 #
 # 	@Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2021-01-12
 #
-# 	1.0 - 2021-01-12 - Initial Release
+# 	1.0.0 - 2021-01-12 - Initial Release
 #
-# 	1.1 - 2022-03-15 - Changed script target folder to scripts/gt_tools
+# 	1.1.1 - 2022-03-15 - Changed script target folder to scripts/gt_tools
+#
+# 	1.1.2 - 2022-08-31 - Fixed BASEDIR issue
 #
 #######################################
 
 # Set Variables
-BASEDIR=${PWD}
+BASEDIR=$(dirname "$0")
 PYTHONDIR="$BASEDIR/python-scripts"
 MELDIR="$BASEDIR/mel-scripts"
 LIBRARYDIR=~/Library
