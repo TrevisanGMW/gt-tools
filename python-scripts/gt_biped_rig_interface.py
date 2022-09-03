@@ -742,8 +742,13 @@ def build_gui_custom_rig_interface():
              source_side (optional, string): Either "right" or "left".
                                             It determines what is the source and what is the target of the mirror.
         """
-        update_stored_settings()
-        # pose_mirror_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        # ignore_average_operation = ['mainMouth_ctrl', 'head_ctrl', 'neckBase_ctrl', 'neckMid_ctrl',
+        #                             'main_nose_offset_ctrl', 'jaw_offset_ctrl', 'tongue_offset_ctrl',
+        #                             'left_eye_ctrl', 'right_eye_ctrl']
+        # update_stored_settings()
+        # pose_mirror_center(gt_ab_center_ctrls, ignore_average_operation,
+        #                    apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        # @@@ It seems to be updating the offset controls, add a filter here
         pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
@@ -1672,12 +1677,13 @@ def pose_flip_center(gt_ctrls, namespace='', apply=True):
         mirror_translate_rotate_values(available_ctrls)
 
 
-def pose_mirror_center(gt_ctrls, namespace='', apply=True):
+def pose_mirror_center(gt_ctrls, ignore_strings, namespace='', apply=True):
     """
     Mirrors a character pose center controls from one side to the other
 
     Args:
         gt_ctrls (list) : A list of center controls. e.g. ["waist_ctrl", "chest_ribbon_ctrl"]
+        ignore_strings (list): A list of strings to ignore (controls that should not be affected)
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
         apply (bool, optional): If deactivated, the function will not mirror the elements.
     """
@@ -1687,7 +1693,7 @@ def pose_mirror_center(gt_ctrls, namespace='', apply=True):
     # Find available Ctrls
     available_ctrls = []
     for obj in gt_ctrls:
-        if cmds.objExists(namespace + obj):
+        if cmds.objExists(namespace + obj) and obj not in ignore_strings:
             available_ctrls.append(obj)
     #
     # Find Average
