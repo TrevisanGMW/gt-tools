@@ -118,7 +118,13 @@
  Added "pose_flip_center" function
  Added Flip Pose
 
+ 1.4.7 - 2022-09-01
+ Added "pose_mirror_center" function
+ Added mirror center controls option
+ Added flip center controls option
+
  TODO:
+    Find a way to average the center transforms in the correct order (start at the bottom of the hierarchy maybe?)
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
 """
@@ -146,7 +152,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.6"
+script_version = "1.4.7"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -403,7 +409,7 @@ gt_custom_rig_interface_settings = {
     'allow_multiple_instances': False,
     'offset_target': False,
     'key_influence': False,
-    'mirror_affects_center': False,
+    'mirror_affects_center': True,
     'flip_affects_center': True,
 }
 
@@ -719,7 +725,7 @@ def build_gui_custom_rig_interface():
 
         update_stored_settings(is_instance)
 
-    def flip_fk_ik_pose(): #@@@
+    def flip_fk_ik_pose():
         """
         Runs a full pose mirror function.
         """
@@ -728,7 +734,7 @@ def build_gui_custom_rig_interface():
         pose_flip_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls],
                              namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
-    def mirror_fk_ik_pose(source_side='right'):
+    def mirror_fk_ik_pose(source_side='right'):  # @@@
         """
         Runs a full pose mirror function.
 
@@ -737,7 +743,7 @@ def build_gui_custom_rig_interface():
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        pose_mirror_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        # pose_mirror_center(gt_ab_center_ctrls, apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
         pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
@@ -1105,14 +1111,14 @@ def build_gui_custom_rig_interface():
                       value=gt_custom_rig_interface_settings.get('allow_multiple_instances'), ebg=True,
                       cc=lambda x: invert_stored_setting('allow_multiple_instances'), en=is_option_enabled)
 
-        multiple_instances_help_message = 'This option will allow you to open multiple instances of this script. ' \
+        help_message_multiple_instances = 'This option will allow you to open multiple instances of this script. ' \
                                           '(multiple windows)\nThis can be helpful in case you are animating more ' \
                                           'than one character at the same time.\n\nThe extra instance will not ' \
                                           'be allowed to change settings or to set persistent options, so make ' \
                                           'sure to change these in your main (primary) instance of the script.'
-        multiple_instances_help_title = 'Allow Multiple Instances'
-        cmds.button(l='?', bgc=enabled_bgc_color, c=lambda x: build_custom_help_window(multiple_instances_help_message,
-                                                                                       multiple_instances_help_title))
+        help_title_multiple_instances = 'Allow Multiple Instances'
+        cmds.button(l='?', bgc=enabled_bgc_color, c=lambda x: build_custom_help_window(help_message_multiple_instances,
+                                                                                       help_title_multiple_instances))
 
         # Transfer Data to Offset Control
         is_option_enabled = True
@@ -1121,12 +1127,12 @@ def build_gui_custom_rig_interface():
                       value=gt_custom_rig_interface_settings.get('offset_target'), ebg=True,
                       cc=lambda x: invert_stored_setting('offset_target'), en=is_option_enabled)
         ''' TODO, create better description '''
-        offset_target_thumbnail_help_message = 'Use this option to transfer the data to the IK offset control' \
-                                               ' instead of transferring it directly to the IK control.'
-        offset_target_thumbnail_help_title = 'Transfer Data to Offset Control'
+        help_message_transfer_offset = 'Use this option to transfer the data to the IK offset control' \
+                                       ' instead of transferring it directly to the IK control.'
+        help_title_transfer_offset = 'Transfer Data to Offset Control'
         cmds.button(l='?', bgc=enabled_bgc_color,
-                    c=lambda x: build_custom_help_window(offset_target_thumbnail_help_message,
-                                                         offset_target_thumbnail_help_title))
+                    c=lambda x: build_custom_help_window(help_message_transfer_offset,
+                                                         help_title_transfer_offset))
 
         # Key Influence
         is_option_enabled = True
@@ -1135,12 +1141,38 @@ def build_gui_custom_rig_interface():
                       value=gt_custom_rig_interface_settings.get('key_influence'), ebg=True,
                       cc=lambda x: invert_stored_setting('key_influence'), en=is_option_enabled)
 
-        offset_target_thumbnail_help_message = 'Determines whether or not to key a transition between FK/IK' \
-                                               ' when switching with "Auto Key" activated.'
-        offset_target_thumbnail_help_title = 'Key FK IK Influence'
+        help_message_key_influence = 'Determines whether or not to key a transition between FK/IK' \
+                                     ' when switching with "Auto Key" activated.'
+        help_title_key_influence = 'Key FK IK Influence'
         cmds.button(l='?', bgc=enabled_bgc_color,
-                    c=lambda x: build_custom_help_window(offset_target_thumbnail_help_message,
-                                                         offset_target_thumbnail_help_title))
+                    c=lambda x: build_custom_help_window(help_message_key_influence,
+                                                         help_title_key_influence))
+        # Mirror Affects Center
+        is_option_enabled = False  # @@@
+        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
+        cmds.checkBox(label='  Mirror Affects Center Ctrls',
+                      value=gt_custom_rig_interface_settings.get('mirror_affects_center'), ebg=True,
+                      cc=lambda x: invert_stored_setting('mirror_affects_center'), en=is_option_enabled)
+
+        help_message_mirror_center = 'Determines whether or not to average the transforms of the center' \
+                                     ' controls when mirroring. (Currently only affecting poses)'
+        help_title_mirror_center = 'Mirror Affects Center Ctrls'
+        cmds.button(l='?', bgc=enabled_bgc_color,
+                    c=lambda x: build_custom_help_window(help_message_mirror_center,
+                                                         help_title_mirror_center))
+        # Flip Affects Center
+        is_option_enabled = True
+        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
+        cmds.checkBox(label='  Flip Affects Center Ctrls',
+                      value=gt_custom_rig_interface_settings.get('flip_affects_center'), ebg=True,
+                      cc=lambda x: invert_stored_setting('flip_affects_center'), en=is_option_enabled)
+
+        help_message_flip_center = 'Determines whether or not to flip the transforms of the center' \
+                                   ' controls when flipping. (Currently only affecting poses)'
+        help_title_flip_center = 'Flip Affects Center Ctrls'
+        cmds.button(l='?', bgc=enabled_bgc_color,
+                    c=lambda x: build_custom_help_window(help_message_flip_center,
+                                                         help_title_flip_center))
 
         # Export Thumbnail With Pose
         is_option_enabled = False
@@ -1149,17 +1181,17 @@ def build_gui_custom_rig_interface():
                       value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True,
                       cc=lambda x: invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled)
 
-        export_pose_thumbnail_help_message = 'This option will be included in future versions, ' \
-                                             'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
-                                             'file together with your ".pose" file.\nThis extra thumbnail ' \
-                                             'file can be used to quickly understand what you pose looks like ' \
-                                             'before importing it.\n\nThe thumbnail is a screenshot of you active' \
-                                             ' viewport at the moment of exporting the pose. ' \
-                                             'If necessary, export it again to generate another thumbnail.'
-        export_pose_thumbnail_help_title = 'Export Thumbnail with Pose'
+        help_message_thumbnail = 'This option will be included in future versions, ' \
+                                 'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
+                                 'file together with your ".pose" file.\nThis extra thumbnail ' \
+                                 'file can be used to quickly understand what you pose looks like ' \
+                                 'before importing it.\n\nThe thumbnail is a screenshot of you active' \
+                                 ' viewport at the moment of exporting the pose. ' \
+                                 'If necessary, export it again to generate another thumbnail.'
+        help_title_thumbnail = 'Export Thumbnail with Pose'
         cmds.button(l='?', bgc=enabled_bgc_color,
-                    c=lambda x: build_custom_help_window(export_pose_thumbnail_help_message,
-                                                         export_pose_thumbnail_help_title))
+                    c=lambda x: build_custom_help_window(help_message_thumbnail,
+                                                         help_title_thumbnail))
 
         # Reset Persistent Settings
         cmds.separator(h=btn_margin, style='none', p=settings_tab)  # Empty Space
@@ -1649,11 +1681,9 @@ def pose_mirror_center(gt_ctrls, namespace='', apply=True):
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
         apply (bool, optional): If deactivated, the function will not mirror the elements.
     """
-    print('gt_ctrls')
-    print(gt_ctrls)
-    # if not apply:
-    #     return
-    #
+    if not apply:
+        return
+
     # Find available Ctrls
     available_ctrls = []
     for obj in gt_ctrls:
@@ -1661,11 +1691,17 @@ def pose_mirror_center(gt_ctrls, namespace='', apply=True):
             available_ctrls.append(obj)
     #
     # Find Average
-    average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_loc')[0]
     if len(available_ctrls) != 0:
         for ctrl in available_ctrls:
-            print(ctrl)
-    #     mirror_translate_rotate_values(available_ctrls)
+            ctrl_ns = namespace + ctrl
+            mirrored_probe_loc = cmds.spaceLocator(name='mirrored_probe_' + ctrl + '_loc')[0]
+            cmds.delete(cmds.parentConstraint(ctrl_ns, mirrored_probe_loc))
+            mirror_translate_rotate_values([mirrored_probe_loc])
+            average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_' + ctrl + '_loc')[0]
+            cmds.delete(cmds.parentConstraint([ctrl_ns, mirrored_probe_loc], average_probe_loc))
+            cmds.matchTransform(ctrl_ns, average_probe_loc, pos=1, rot=1)
+            cmds.delete(mirrored_probe_loc)
+            cmds.delete(average_probe_loc)
 
 
 def pose_flip_left_right(gt_ab_ctrls, namespace=''):
@@ -1977,73 +2013,6 @@ def pose_import(debugging=False, debugging_path='', namespace=''):
         except Exception as e:
             logger.debug(str(e))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
-
-#
-# def pose_flip(namespace=''): # @@@
-#     """
-#     Flips the current pose (Similar to mirror but happening at both sides at the same time)
-#     Creates a Pose dictionary containing the translation, rotation and scale data from the rig controls
-#     (used to store a pose)
-#
-#     Args:
-#         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-#
-#     """
-#     # Find Available Controls
-#     available_ctrls = []
-#     for obj in gt_ab_ik_ctrls:
-#         if cmds.objExists(namespace + left_prefix + obj):
-#             available_ctrls.append(left_prefix + obj)
-#         if cmds.objExists(namespace + right_prefix + obj):
-#             available_ctrls.append(right_prefix + obj)
-#
-#     for obj in gt_ab_fk_ctrls:
-#         if cmds.objExists(namespace + left_prefix + obj):
-#             available_ctrls.append(left_prefix + obj)
-#         if cmds.objExists(namespace + right_prefix + obj):
-#             available_ctrls.append(right_prefix + obj)
-#
-#     for obj in gt_ab_general_ctrls:
-#         if cmds.objExists(namespace + left_prefix + obj):
-#             available_ctrls.append(left_prefix + obj)
-#         if cmds.objExists(namespace + right_prefix + obj):
-#             available_ctrls.append(right_prefix + obj)
-#
-#     for obj in gt_ab_center_ctrls:
-#         if cmds.objExists(namespace + obj):
-#             available_ctrls.append(obj)
-#
-#     # No Controls were found
-#     if len(available_ctrls) == 0:
-#         cmds.warning('No controls were found. Make sure you are using the correct namespace.')
-#         return
-#
-#     pose_dict = {}
-#     for obj in available_ctrls:
-#         # Get Pose
-#         translate = cmds.getAttr(obj + '.translate')[0]
-#         rotate = cmds.getAttr(obj + '.rotate')[0]
-#         scale = cmds.getAttr(obj + '.scale')[0]
-#         to_save = [obj, translate, rotate, scale]
-#         pose_dict[obj] = to_save
-#
-#         # Reset Current Pose ?
-#         # _pose_reset(gt_ab_ik_ctrls, gt_ab_fk_ctrls, gt_ab_center_ctrls, namespace=namespace)
-#
-#         # TODO
-#         # Set Pose
-#         # for ctrl in pose_dict:
-#         #     current_object = pose_dict.get(ctrl) # Name, T, R, S
-#         #     if cmds.objExists(namespace + current_object[0]):
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'tx', current_object[1][0])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'ty', current_object[1][1])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'tz', current_object[1][2])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'rx', current_object[2][0])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'ry', current_object[2][1])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'rz', current_object[2][2])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'sx', current_object[3][0])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'sy', current_object[3][1])
-#         #         set_unlocked_os_attr(namespace + current_object[0], 'sz', current_object[3][2])
 
 
 def anim_reset(namespace=''):
