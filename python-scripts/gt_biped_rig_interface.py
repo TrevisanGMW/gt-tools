@@ -123,8 +123,11 @@
  Added mirror center controls option
  Added flip center controls option
 
+ 1.4.8 - 2022-09-06
+ Tweaked "pose_mirror_center" to average center controls when mirroring poses
+
  TODO:
-    Find a way to average the center transforms in the correct order (start at the bottom of the hierarchy maybe?)
+    Update "pose_mirror_center" so it averages FK controls
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
 """
@@ -134,6 +137,7 @@ from shiboken2 import wrapInstance
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
+import operator
 import logging
 import random
 import json
@@ -152,7 +156,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.7"
+script_version = "1.4.8"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -358,6 +362,8 @@ gt_ab_fk_ctrls = {  # Arm
     '_knee_ctrl': [invert_all, not_inverted],
     '_ankle_ctrl': [invert_all, not_inverted],
     '_ball_ctrl': [invert_all, not_inverted],
+    '_eye_ctrl': [invert_x, not_inverted],
+
 }
 
 gt_ab_center_ctrls = ['cog_ctrl',
@@ -382,8 +388,6 @@ gt_ab_center_ctrls = ['cog_ctrl',
                       'head_offsetCtrl',
                       'jaw_ctrl',
                       'main_eye_ctrl',
-                      'left_eye_ctrl',
-                      'right_eye_ctrl',
                       # Facial Side GUI Rig
                       'main_nose_offset_ctrl',
                       'mid_upperLip_offset_ctrl',
@@ -397,7 +401,13 @@ gt_ab_center_ctrls = ['cog_ctrl',
                       'mid_upperLip_ctrl',
                       'mid_lowerLip_ctrl',
                       'mainMouth_ctrl',
+                      # New Spine Ctrls
+                      'chest_ctrl',
+                      'chest_global_fk_ctrl',
                       ]
+
+gt_x_zero_ctrls = ['mainMouth_ctrl', 'head_ctrl', 'neckBase_ctrl', 'neckMid_ctrl', 'main_nose_offset_ctrl',
+                   'jaw_offset_ctrl', 'tongue_offset_ctrl', ]
 
 gt_custom_rig_interface_settings = {
     'namespace': '',
@@ -734,7 +744,7 @@ def build_gui_custom_rig_interface():
         pose_flip_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls],
                              namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
-    def mirror_fk_ik_pose(source_side='right'):  # @@@
+    def mirror_fk_ik_pose(source_side='right'):
         """
         Runs a full pose mirror function.
 
@@ -742,15 +752,11 @@ def build_gui_custom_rig_interface():
              source_side (optional, string): Either "right" or "left".
                                             It determines what is the source and what is the target of the mirror.
         """
-        # ignore_average_operation = ['mainMouth_ctrl', 'head_ctrl', 'neckBase_ctrl', 'neckMid_ctrl',
-        #                             'main_nose_offset_ctrl', 'jaw_offset_ctrl', 'tongue_offset_ctrl',
-        #                             'left_eye_ctrl', 'right_eye_ctrl']
-        # update_stored_settings()
-        # pose_mirror_center(gt_ab_center_ctrls, ignore_average_operation,
-        #                    apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
-        # @@@ It seems to be updating the offset controls, add a filter here
+        update_stored_settings()
         pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        pose_mirror_center(gt_ab_center_ctrls, gt_x_zero_ctrls,
+                           apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
 
     def mirror_animation(source_side='right'):
         """
@@ -1153,14 +1159,14 @@ def build_gui_custom_rig_interface():
                     c=lambda x: build_custom_help_window(help_message_key_influence,
                                                          help_title_key_influence))
         # Mirror Affects Center
-        is_option_enabled = False  # @@@
+        is_option_enabled = True
         cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
         cmds.checkBox(label='  Mirror Affects Center Ctrls',
                       value=gt_custom_rig_interface_settings.get('mirror_affects_center'), ebg=True,
                       cc=lambda x: invert_stored_setting('mirror_affects_center'), en=is_option_enabled)
 
         help_message_mirror_center = 'Determines whether or not to average the transforms of the center' \
-                                     ' controls when mirroring. (Currently only affecting poses)'
+                                     ' controls when mirroring. (Experimental)\nCurrently only affecting poses.'
         help_title_mirror_center = 'Mirror Affects Center Ctrls'
         cmds.button(l='?', bgc=enabled_bgc_color,
                     c=lambda x: build_custom_help_window(help_message_mirror_center,
@@ -1173,7 +1179,7 @@ def build_gui_custom_rig_interface():
                       cc=lambda x: invert_stored_setting('flip_affects_center'), en=is_option_enabled)
 
         help_message_flip_center = 'Determines whether or not to flip the transforms of the center' \
-                                   ' controls when flipping. (Currently only affecting poses)'
+                                   ' controls when flipping.\nCurrently only affecting poses'
         help_title_flip_center = 'Flip Affects Center Ctrls'
         cmds.button(l='?', bgc=enabled_bgc_color,
                     c=lambda x: build_custom_help_window(help_message_flip_center,
@@ -1677,37 +1683,145 @@ def pose_flip_center(gt_ctrls, namespace='', apply=True):
         mirror_translate_rotate_values(available_ctrls)
 
 
-def pose_mirror_center(gt_ctrls, ignore_strings, namespace='', apply=True):
+def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     """
     Mirrors a character pose center controls from one side to the other
 
     Args:
         gt_ctrls (list) : A list of center controls. e.g. ["waist_ctrl", "chest_ribbon_ctrl"]
-        ignore_strings (list): A list of strings to ignore (controls that should not be affected)
+        gt_zero_x_ctrls (list): A list of strings to ignore (controls that should not be affected)
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
         apply (bool, optional): If deactivated, the function will not mirror the elements.
     """
+
+    def average_center_transforms(ctrl_name, namespace_string):
+        """
+        Averages a center control by creating a locator and a constraint
+        Args:
+            ctrl_name (string): Name of the control to average
+            namespace_string (string): Namespace (if any)
+        """
+        ctrl_ns = namespace_string + ctrl_name
+        mirrored_probe_loc = cmds.spaceLocator(name='mirrored_probe_' + ctrl_name + '_loc')[0]
+        cmds.delete(cmds.parentConstraint(ctrl_ns, mirrored_probe_loc))
+        mirror_translate_rotate_values([mirrored_probe_loc])
+        average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_' + ctrl_name + '_loc')[0]
+        cmds.delete(cmds.parentConstraint([ctrl_ns, mirrored_probe_loc], average_probe_loc))
+        cmds.matchTransform(ctrl_ns, average_probe_loc, pos=1, rot=1)
+        cmds.delete(mirrored_probe_loc)
+        cmds.delete(average_probe_loc)
+
+    def reset_translate_rotate(objs, namespace_string):
+        for channel in ['x', 'y', 'z']:
+            for target in objs:
+                if not cmds.getAttr(namespace_string + target + '.t' + channel, lock=True):
+                    cmds.setAttr(namespace_string + target + '.t' + channel, 0)
+                if not cmds.getAttr(namespace_string + target + '.r' + channel, lock=True):
+                    cmds.setAttr(namespace_string + target + '.r' + channel, 0)
+
+    # Joints that will be handled separately
+    special_cases = ['jaw_ctrl']
+
+    # Ignore adjustment controls in case they were never used
+    adjustment_ctrls = ['chest_ribbon_adjustment_ctrl', 'spine_ribbon_ctrl', 'waist_ribbon_ctrl']
+    for adj_ctrl in adjustment_ctrls:
+        for dimension in ['x', 'y', 'z']:
+            try:
+                t_value = cmds.getAttr(namespace + adj_ctrl + '.t' + dimension)
+                r_value = cmds.getAttr(namespace + adj_ctrl + '.r' + dimension)
+                if t_value == 0 or r_value == 0:
+                    special_cases.append(adj_ctrl)
+            except Exception as e:
+                logger.debug(str(e))
+
     if not apply:
         return
+
+    for ctrl in gt_zero_x_ctrls:
+        try:
+            cmds.setAttr(namespace + ctrl + '.tx', 0)
+        except Exception as e:
+            logger.debug(str(e))
 
     # Find available Ctrls
     available_ctrls = []
     for obj in gt_ctrls:
-        if cmds.objExists(namespace + obj) and obj not in ignore_strings:
+        if cmds.objExists(namespace + obj) and obj not in gt_zero_x_ctrls and obj not in special_cases:
             available_ctrls.append(obj)
-    #
+
+    # Define ctrl process order
+    ctrls_depth = {}
+    for ctrl in available_ctrls:
+        try:
+            path_length = len(cmds.ls(ctrl, long=True)[0].split('|') or [])
+        except Exception as e:
+            logger.debug(str(e))
+            path_length = 0
+        ctrls_depth[ctrl] = path_length
+
+    sorted_ctrls_depth = sorted(ctrls_depth.items(), key=operator.itemgetter(1))
+
+    # Resets Spine FK Transforms
+    spine_exceptions = ['spine01_ctrl', 'spine02_ctrl', 'spine03_ctrl', 'chest_ctrl', 'chest_global_fk_ctrl']
+    for ctrl in spine_exceptions:
+        for dimension in ['x', 'y', 'z']:
+            try:
+                cmds.setAttr(namespace + ctrl + '.t' + dimension, 0)
+                cmds.setAttr(namespace + ctrl + '.r' + dimension, 0)
+            except Exception as e:
+                logger.debug(str(e))
+
     # Find Average
     if len(available_ctrls) != 0:
-        for ctrl in available_ctrls:
-            ctrl_ns = namespace + ctrl
-            mirrored_probe_loc = cmds.spaceLocator(name='mirrored_probe_' + ctrl + '_loc')[0]
-            cmds.delete(cmds.parentConstraint(ctrl_ns, mirrored_probe_loc))
-            mirror_translate_rotate_values([mirrored_probe_loc])
-            average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_' + ctrl + '_loc')[0]
-            cmds.delete(cmds.parentConstraint([ctrl_ns, mirrored_probe_loc], average_probe_loc))
-            cmds.matchTransform(ctrl_ns, average_probe_loc, pos=1, rot=1)
-            cmds.delete(mirrored_probe_loc)
-            cmds.delete(average_probe_loc)
+        for ctrl_depth in sorted_ctrls_depth:
+            ctrl = ctrl_depth[0]
+            average_center_transforms(ctrl, namespace)
+
+    # Handle Special Cases
+    if not gt_custom_rig_interface_settings.get('offset_target'):
+        # Head Ctrls
+        combined_transform_eye = cmds.spaceLocator(name='combined_eye_probe_loc')[0]
+        combined_transform_head = cmds.spaceLocator(name='combined_head_probe_loc')[0]
+        head_controls = ['head_ctrl', 'head_offsetCtrl']
+        cmds.matchTransform(combined_transform_head, namespace + head_controls[1], pos=1, rot=1)
+        cmds.matchTransform(combined_transform_eye, namespace + 'main_eye_ctrl', pos=1, rot=1)
+        reset_translate_rotate(head_controls, namespace)
+        cmds.matchTransform(namespace + head_controls[0], combined_transform_head, pos=1, rot=1)
+        cmds.matchTransform(namespace + 'main_eye_ctrl', combined_transform_eye, pos=1, rot=1)
+        cmds.delete(combined_transform_head)
+        cmds.delete(combined_transform_eye)
+        average_center_transforms(namespace + 'main_eye_ctrl', namespace)
+        # Chest Ctrls
+        combined_transform_chest = cmds.spaceLocator(name='combined_chest_probe_loc')[0]
+        chest_controls = ['chest_ribbon_ctrl', 'chest_ribbon_offsetCtrl']
+        cmds.matchTransform(combined_transform_chest, namespace + chest_controls[1], pos=1, rot=1)
+        reset_translate_rotate(chest_controls, namespace)
+        cmds.matchTransform(namespace + chest_controls[0], combined_transform_chest, pos=1, rot=1)
+        cmds.delete(combined_transform_chest)
+        # Waist Ctrls
+        combined_transform_waist = cmds.spaceLocator(name='combined_waist_probe_loc')[0]
+        waist_controls = ['waist_ctrl', 'waist_offsetCtrl']
+        cmds.matchTransform(combined_transform_waist, namespace + waist_controls[1], pos=1, rot=1)
+        reset_translate_rotate(waist_controls, namespace)
+        cmds.matchTransform(namespace + waist_controls[0], combined_transform_waist, pos=1, rot=1)
+        cmds.delete(combined_transform_waist)
+        # Pelvis Ctrls
+        combined_transform_pelvis = cmds.spaceLocator(name='combined_pelvis_probe_loc')[0]
+        pelvis_controls = ['pelvis_ctrl', 'pelvis_offsetCtrl']
+        cmds.matchTransform(combined_transform_pelvis, namespace + pelvis_controls[1], pos=1, rot=1)
+        reset_translate_rotate(pelvis_controls, namespace)
+        cmds.matchTransform(namespace + pelvis_controls[0], combined_transform_pelvis, pos=1, rot=1)
+        cmds.delete(combined_transform_pelvis)
+
+    # Jaw Ctrl
+    for dimension in ['y', 'z']:
+        cmds.setAttr(namespace + 'jaw_ctrl.t' + dimension, 0)
+        cmds.setAttr(namespace + 'jaw_ctrl.r' + dimension, 0)
+
+    # Adjustment Controls
+    average_center_transforms(namespace + 'chest_ribbon_adjustment_ctrl', namespace)
+    average_center_transforms(namespace + 'spine_ribbon_ctrl', namespace)
+    average_center_transforms(namespace + 'waist_ribbon_ctrl', namespace)
 
 
 def pose_flip_left_right(gt_ab_ctrls, namespace=''):
@@ -2568,7 +2682,3 @@ def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
 # Build UI
 if __name__ == '__main__':
     build_gui_custom_rig_interface()
-    # print(gt_custom_rig_interface_settings.get('mirror_affects_center'))
-    # gt_custom_rig_interface_settings['mirror_affects_center'] = False
-    # _set_persistent_settings_rig_interface()
-    # pose_mirror_center(['chest_ribbon_ctrl'])
