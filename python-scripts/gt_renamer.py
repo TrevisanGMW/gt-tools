@@ -3,7 +3,7 @@
  github.com/TrevisanGMW/gt-tools - 2020-06-25
  
  1.1 - 2020-08-03
- Fixed little issue when auto adding suffix to objects with multiple shapes.
+ Fixed little issue when auto adding suffix to object with multiple shapes.
  Added persistent settings.
  Fixed "all" option, so functions handles errors when trying to rename readOnly nodes.
  Added list of nodes to ignore.
@@ -45,6 +45,9 @@
  Fixed an issue where shape nodes would cause the generator to advance for "Rename and Letter"
  Updated help menu
 
+ 1.6.2 - 2022-09-06
+ Small PEP8 fixes
+
 """
 import maya.cmds as cmds
 import traceback
@@ -73,7 +76,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.6.1"
+script_version = "1.6.2"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',
@@ -733,6 +736,7 @@ def get_short_name(obj):
     Args:
         obj (string) - object to extract short name
     """
+    short_name = ''
     if obj == '':
         return ''
     split_path = obj.split('|')
@@ -1003,7 +1007,6 @@ def rename_add_prefix(obj_list, new_prefix_list):
         new_prefix_list (list): a list of prefix strings, if just one it assumes that it's a manual input,
                                 if more (3) it automates (usually left, center, right)
     """
-
     auto_prefix = True
     if len(new_prefix_list) == 1:
         auto_prefix = False
