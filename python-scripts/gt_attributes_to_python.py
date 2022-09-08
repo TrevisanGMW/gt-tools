@@ -17,7 +17,7 @@
  Increased the size of the UI
  Added "Extract User-Defined Attributes" function
 
- 0.0.6 - 2022-07-26
+ 1.0.0 - 2022-07-26
  Added save to shelf
  Updated help
 
@@ -51,7 +51,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT Attributes to Python'
 
 # Version:
-script_version = "0.0.5"
+script_version = "1.0.0"
 
 DIMENSIONS = ['x', 'y', 'z']
 DEFAULT_CHANNELS = ['t', 'r', 's']
