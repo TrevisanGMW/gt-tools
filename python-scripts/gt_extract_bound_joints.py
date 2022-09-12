@@ -32,10 +32,11 @@ Tweaked the UI spacing
 Fixed a typo
 Removed unnecessary parameter
 
-1.1.3 - 2022-09-12
+1.1.3 to 1.1.4 - 2022-09-12
 Changed "Include Bound Mesh" to be be inactive by default
 Added option to run bind/unbind skin functions
 Centered Checkbox options a bit better
+Fixed a few issues caused by the latest changes
 
 Todo:
     Add Transfer functions
@@ -66,11 +67,11 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.1.3"
+script_version = "1.1.4"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
-                           'include_mesh': True,
+                           'include_mesh': False,
                            }
 
 
@@ -134,7 +135,9 @@ def build_gui_extract_bound_joints():
                          cs=[(1, 10), (2, 15), (3, 15), (4, 15)],
                          p=content_main)
 
-    cmds.button(l="Run Code", c=lambda x: run_output_code(), bgc=bottom_btn_clr)
+    cmds.button(l="Run Code",
+                c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)),
+                bgc=bottom_btn_clr)
     cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf(), bgc=bottom_btn_clr)
 
     cmds.button(l="Bind Skin", c=lambda x: mel.eval('SmoothBindSkinOptions;'), bgc=bottom_btn_clr)
