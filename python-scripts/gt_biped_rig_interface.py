@@ -12,7 +12,7 @@
  Added mirror IK functions
  Added reset pose function
  Changed it to accept namespaces with or without ":"
-  
+
  1.3 - 2021-10-29
  Changed the name from "Seamless IK/FK Switch" to "Custom Rig Interface"
  Added functions to mirror and reset FK controls
@@ -20,21 +20,21 @@
  Added custom rig name (if not empty, it will display a message describing unique rig target)
  Added system to get and set persistent settings to store the namespace input
  Added warning message reminding user to check their namespace in case elements are not found
- 
+
  1.3.1 - 2021-11-01
  Changed versioning system to semantic to account for patches
  Fixed some typos in the "locked" message for when trying to mirror
  Added scale mirroring functions (fixes finger abduction pose)
  Included curl controls in the mirroring list
- 
+
  1.3.2 - 2021-11-03
  Added IK fingers to mirroring functions
- 
+
  1.3.3 - 2021-11-04
  Added animation import/export functions. (".anim" with ".json" data)
  Changed the pose file extension to ".pose" instead of ".json" to avoid confusion
  Added animation mirroring functions
- 
+
  1.3.4 - 2021-11-08
  Add settings menu
  Made UI aware of FK/IK state
@@ -43,40 +43,40 @@
  Added inView feedback explaining switch information
  Fixed issue where the arm pole vector wouldn't mirror properly
  Added option to reset persistent settings
- 
+
  1.3.5 - 2021-11-10
  Added animation and pose reset
  Updates animation functions to account for tangents and other key properties
- 
+
  1.3.6 - 2021-11-12
  Allowed for multiple instances (in case animating multiple characters)
  Changed icons and assigned an alternative one for extra instances
  Added a missing import for "sys"
- 
+
  1.3.7 - 2021-11-23
  Updated switcher to be compatible with new offset controls
  Added inView message for when auto clavicle is active so the user doesn't think the control is popping
- 
+
  1.3.8 - 2021-11-23
  Included a few missing controls to the pose and animation management control lists
-  
+
  1.3.9 - 2021-11-30
  Updated the script so it works with the new offset controls
  Accounted for new wrist reference control
- 
+
  1.3.10 - 2021-12-01
  Added option to define whether or not to transfer data to offset control or control
- 
+
  1.3.11 - 2021-12-02
  Made most functions private
  Added function to extract rig metadata and update behaviour according to orientation used
- 
+
  1.3.12 - 2021-12-16
  Dropped Python 2 support
 
  1.3.13 - 2022-01-06
  Make uniform FK controls compatible by adding a new FK reference locator
- 
+
  1.3.14 - 2022-01-12
  Added a few missing controls (missing due to name changes)
 
@@ -126,6 +126,9 @@
  1.4.8 - 2022-09-06
  Tweaked "pose_mirror_center" to average center controls when mirroring poses
 
+ 1.4.9 - 2022-09-14
+ Updated "pose_mirror_center" so it works properly with  namespaces
+
  TODO:
     Update "pose_mirror_center" so it averages FK controls
     Overwrite keys for animation functions
@@ -156,7 +159,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.8"
+script_version = "1.4.9"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -590,11 +593,11 @@ def build_gui_custom_rig_interface():
         """
         Extracts the namespace used and stores it as a persistent variable
         This function also calls "update_fk_ik_buttons()" so it updates the UI
-        
+
         Args:
             is_instance (optional, bool): Determine if the settings are supposed to be stored or not.
                                           This is used for secondary instances (multiple windows)
-                                              
+
         """
         gt_custom_rig_interface_settings['namespace'] = cmds.textField(namespace_txt, q=True, text=True)
         gt_custom_rig_interface_settings['auto_key_switch'] = cmds.checkBox(auto_key_switch_chk, q=True, value=True)
@@ -638,7 +641,7 @@ def build_gui_custom_rig_interface():
         """
         Runs the switch function using the parameters provided in the UI
         Also updates the UI to keep track of the FK/IK state.
-        
+
         Args:
              ik_fk_dict (dict): A dictionary containing the elements that are part of the system you want to switch.
              direction (optional, string): Either "fk_to_ik" or "ik_to_fk".
@@ -672,7 +675,7 @@ def build_gui_custom_rig_interface():
         """
         Used for boolean values, it inverts the value, so if True it becomes False and vice-versa.
         It also stores the new values after they are changed so future instances remember it.
-        
+
         Args:
             key_string (string) : Key name, used to determine what bool value to flip
         """
@@ -683,13 +686,13 @@ def build_gui_custom_rig_interface():
     def get_auto_key_current_frame(target_integer_field='start', is_instance=False):
         """
         Gets the current frame and fills an integer field.
-        
+
         Args:
             target_integer_field (optional, string) : Gets the current timeline frame and feeds it into the
             start or end integer field. Can only be "start" or "end". Anything else will be understood as "end".
             is_instance (optional, bool): Allow a bool argument to determine if the settings are supposed to
             be stored or not . This is used for secondary instances (multiple windows)
-        
+
         """
         current_time = cmds.currentTime(q=True)
         if target_integer_field == 'start':
@@ -756,12 +759,13 @@ def build_gui_custom_rig_interface():
         pose_mirror_left_right([gt_ab_general_ctrls, gt_ab_ik_ctrls, gt_ab_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
         pose_mirror_center(gt_ab_center_ctrls, gt_x_zero_ctrls,
+                           namespace=cmds.textField(namespace_txt, q=True, text=True),
                            apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
 
     def mirror_animation(source_side='right'):
         """
         Runs a full pose mirror function.
-        
+
         Args:
              source_side (optional, string): Either "right" or "left".
                                              It determines what is the source and what is the target of the mirror.
@@ -802,7 +806,7 @@ def build_gui_custom_rig_interface():
         cmds.text(help_title + ' Help', bgc=(.4, .4, .4), fn='boldLabelFont', align='center')
         cmds.separator(h=10, style='none', p=main_column)  # Empty Space
 
-        # Body ====================       
+        # Body ====================
         cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
 
         help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')
@@ -810,7 +814,7 @@ def build_gui_custom_rig_interface():
         cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
         cmds.scrollField(help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
 
-        # Close Button 
+        # Close Button
         cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
         cmds.separator(h=10, style='none')
         cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
@@ -1166,7 +1170,8 @@ def build_gui_custom_rig_interface():
                       cc=lambda x: invert_stored_setting('mirror_affects_center'), en=is_option_enabled)
 
         help_message_mirror_center = 'Determines whether or not to average the transforms of the center' \
-                                     ' controls when mirroring. (Experimental)\nCurrently only affecting poses.'
+                                     ' controls when mirroring. (Experimental)\n\nCurrently only affecting poses.' \
+                                     ' \n(FK Spine controls are zeroed)'
         help_title_mirror_center = 'Mirror Affects Center Ctrls'
         cmds.button(l='?', bgc=enabled_bgc_color,
                     c=lambda x: build_custom_help_window(help_message_mirror_center,
@@ -1185,24 +1190,24 @@ def build_gui_custom_rig_interface():
                     c=lambda x: build_custom_help_window(help_message_flip_center,
                                                          help_title_flip_center))
 
-        # Export Thumbnail With Pose
-        is_option_enabled = False
-        cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
-        cmds.checkBox(label='  Export Thumbnail with Pose',
-                      value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True,
-                      cc=lambda x: invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled)
-
-        help_message_thumbnail = 'This option will be included in future versions, ' \
-                                 'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
-                                 'file together with your ".pose" file.\nThis extra thumbnail ' \
-                                 'file can be used to quickly understand what you pose looks like ' \
-                                 'before importing it.\n\nThe thumbnail is a screenshot of you active' \
-                                 ' viewport at the moment of exporting the pose. ' \
-                                 'If necessary, export it again to generate another thumbnail.'
-        help_title_thumbnail = 'Export Thumbnail with Pose'
-        cmds.button(l='?', bgc=enabled_bgc_color,
-                    c=lambda x: build_custom_help_window(help_message_thumbnail,
-                                                         help_title_thumbnail))
+        # # Export Thumbnail With Pose
+        # is_option_enabled = False
+        # cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
+        # cmds.checkBox(label='  Export Thumbnail with Pose',
+        #               value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True,
+        #               cc=lambda x: invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled)
+        #
+        # help_message_thumbnail = 'This option will be included in future versions, ' \
+        #                          'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
+        #                          'file together with your ".pose" file.\nThis extra thumbnail ' \
+        #                          'file can be used to quickly understand what you pose looks like ' \
+        #                          'before importing it.\n\nThe thumbnail is a screenshot of you active' \
+        #                          ' viewport at the moment of exporting the pose. ' \
+        #                          'If necessary, export it again to generate another thumbnail.'
+        # help_title_thumbnail = 'Export Thumbnail with Pose'
+        # cmds.button(l='?', bgc=enabled_bgc_color,
+        #             c=lambda x: build_custom_help_window(help_message_thumbnail,
+        #                                                  help_title_thumbnail))
 
         # Reset Persistent Settings
         cmds.separator(h=btn_margin, style='none', p=settings_tab)  # Empty Space
@@ -1273,7 +1278,7 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
         """
         Performs the switch operation.
         Commands were wrapped into a function to be used during the bake operation.
-        
+
         Args:
             match_only (optional, bool) If active (True) it will only match the pose, but not switch
 
@@ -1452,10 +1457,10 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
 
 def fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, end_time=0, method='sparse'):
     """
-    Calls _fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number. 
+    Calls _fk_ik_switch, but switches (toggles) between FK and IK based on the current influence number.
     It automatically checks the influenceSwitch value attribute and determines what direction to take it.
     "0-0.5":IK and "0.5-1":FK
-    
+
     Args:
         ik_fk_dict (dictionary): A dictionary containing the elements that are part of the system you want to switch.
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
@@ -1489,7 +1494,7 @@ def pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
         ab_fk_ctrls (dict, list) : A list or dictionary of FK controls without their side prefix (e.g. "_wrist_ctrl")
         ab_center_ctrls (dict, list) : A list or dictionary of center controls (full names) (e.g. "spine01_ctrl")
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     """
     available_ctrls = []
     for obj in ab_ik_ctrls:
@@ -1554,7 +1559,7 @@ def pose_mirror_left_right(gt_ab_ctrls, source_side, namespace=''):
         gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
         source_side (string): Source of the pose. "left" or "right"
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     """
     # Merge Dictionaries
     gt_ab_ctrls_dict = {}
@@ -1694,20 +1699,18 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
         apply (bool, optional): If deactivated, the function will not mirror the elements.
     """
 
-    def average_center_transforms(ctrl_name, namespace_string):
+    def average_center_transforms(ctrl_name):
         """
         Averages a center control by creating a locator and a constraint
         Args:
             ctrl_name (string): Name of the control to average
-            namespace_string (string): Namespace (if any)
         """
-        ctrl_ns = namespace_string + ctrl_name
         mirrored_probe_loc = cmds.spaceLocator(name='mirrored_probe_' + ctrl_name + '_loc')[0]
-        cmds.delete(cmds.parentConstraint(ctrl_ns, mirrored_probe_loc))
+        cmds.delete(cmds.parentConstraint(ctrl_name, mirrored_probe_loc))
         mirror_translate_rotate_values([mirrored_probe_loc])
         average_probe_loc = cmds.spaceLocator(name='average_mirror_probe_' + ctrl_name + '_loc')[0]
-        cmds.delete(cmds.parentConstraint([ctrl_ns, mirrored_probe_loc], average_probe_loc))
-        cmds.matchTransform(ctrl_ns, average_probe_loc, pos=1, rot=1)
+        cmds.delete(cmds.parentConstraint([ctrl_name, mirrored_probe_loc], average_probe_loc))
+        cmds.matchTransform(ctrl_name, average_probe_loc, pos=1, rot=1)
         cmds.delete(mirrored_probe_loc)
         cmds.delete(average_probe_loc)
 
@@ -1718,6 +1721,8 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
                     cmds.setAttr(namespace_string + target + '.t' + channel, 0)
                 if not cmds.getAttr(namespace_string + target + '.r' + channel, lock=True):
                     cmds.setAttr(namespace_string + target + '.r' + channel, 0)
+
+    namespace = namespace + ":"
 
     # Joints that will be handled separately
     special_cases = ['jaw_ctrl']
@@ -1753,11 +1758,11 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     ctrls_depth = {}
     for ctrl in available_ctrls:
         try:
-            path_length = len(cmds.ls(ctrl, long=True)[0].split('|') or [])
+            path_length = len(cmds.ls(namespace + ctrl, long=True)[0].split('|') or [])
         except Exception as e:
             logger.debug(str(e))
             path_length = 0
-        ctrls_depth[ctrl] = path_length
+        ctrls_depth[namespace + ctrl] = path_length
 
     sorted_ctrls_depth = sorted(ctrls_depth.items(), key=operator.itemgetter(1))
 
@@ -1775,7 +1780,7 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     if len(available_ctrls) != 0:
         for ctrl_depth in sorted_ctrls_depth:
             ctrl = ctrl_depth[0]
-            average_center_transforms(ctrl, namespace)
+            average_center_transforms(ctrl)
 
     # Handle Special Cases
     if not gt_custom_rig_interface_settings.get('offset_target'):
@@ -1783,14 +1788,15 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
         combined_transform_eye = cmds.spaceLocator(name='combined_eye_probe_loc')[0]
         combined_transform_head = cmds.spaceLocator(name='combined_head_probe_loc')[0]
         head_controls = ['head_ctrl', 'head_offsetCtrl']
+        main_eye_ctrl = "main_eye_ctrl"
         cmds.matchTransform(combined_transform_head, namespace + head_controls[1], pos=1, rot=1)
-        cmds.matchTransform(combined_transform_eye, namespace + 'main_eye_ctrl', pos=1, rot=1)
+        cmds.matchTransform(combined_transform_eye, namespace + main_eye_ctrl, pos=1, rot=1)
         reset_translate_rotate(head_controls, namespace)
         cmds.matchTransform(namespace + head_controls[0], combined_transform_head, pos=1, rot=1)
-        cmds.matchTransform(namespace + 'main_eye_ctrl', combined_transform_eye, pos=1, rot=1)
+        cmds.matchTransform(namespace + main_eye_ctrl, combined_transform_eye, pos=1, rot=1)
         cmds.delete(combined_transform_head)
         cmds.delete(combined_transform_eye)
-        average_center_transforms(namespace + 'main_eye_ctrl', namespace)
+        average_center_transforms(namespace + main_eye_ctrl)
         # Chest Ctrls
         combined_transform_chest = cmds.spaceLocator(name='combined_chest_probe_loc')[0]
         chest_controls = ['chest_ribbon_ctrl', 'chest_ribbon_offsetCtrl']
@@ -1819,9 +1825,9 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
         cmds.setAttr(namespace + 'jaw_ctrl.r' + dimension, 0)
 
     # Adjustment Controls
-    average_center_transforms(namespace + 'chest_ribbon_adjustment_ctrl', namespace)
-    average_center_transforms(namespace + 'spine_ribbon_ctrl', namespace)
-    average_center_transforms(namespace + 'waist_ribbon_ctrl', namespace)
+    average_center_transforms(namespace + 'chest_ribbon_adjustment_ctrl')
+    average_center_transforms(namespace + 'spine_ribbon_ctrl')
+    average_center_transforms(namespace + 'waist_ribbon_ctrl')
 
 
 def pose_flip_left_right(gt_ab_ctrls, namespace=''):
@@ -1941,10 +1947,10 @@ def pose_export(namespace=''):
     """
     Exports a Pose (JSON) file containing the translation, rotation and scale data from the rig controls (pose)
     Added a variable called "gt_auto_biped_export_method" after v1.3, so the extraction method can be stored.
-    
+
     Args:
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     """
     # Validate Operation and Write file
     is_valid = True
@@ -2017,28 +2023,28 @@ def pose_import(debugging=False, debugging_path='', namespace=''):
     Imports a POSE (JSON) file containing the translate, rotate and scale data for the rig controls
     (exported using the "_pose_export" function)
     Uses the imported data to set the translate, rotate and scale position of every control curve
-    
+
     Args:
         debugging (bool): If debugging, the function will attempt to auto load the file provided in the
                           "debugging_path" parameter
         debugging_path (string): Debugging path for the import function
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     TODO
         Check import method to use the proper method when setting attributes.
         Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
-    
+
     """
 
     def set_unlocked_os_attr(target, attr, value):
         """
         Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
-        
+
         Args:
             target (string): Name of the target object (object that will receive transforms)
             attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
             value (float): Value used to set attribute. e.g. 1.5, 2, 5...
-        
+
         """
         try:
             if not cmds.getAttr(target + '.' + attr, lock=True):
@@ -2138,7 +2144,7 @@ def pose_import(debugging=False, debugging_path='', namespace=''):
 def anim_reset(namespace=''):
     """
     Deletes all keyframes and resets pose (Doesn't include Set Driven Keys)
-    
+
     Args:
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     """
@@ -2184,7 +2190,7 @@ def anim_mirror(gt_ab_ctrls, source_side, namespace=''):
         gt_ab_ctrls (list) : A list of dictionaries of controls without their side prefix (e.g. "_wrist_ctrl")
         source_side (string): Source of the pose. "left" or "right"
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     """
 
     def invert_float_list_values(float_list):
@@ -2196,7 +2202,7 @@ def anim_mirror(gt_ab_ctrls, source_side, namespace=''):
 
         Returns:
             inverted_float_list (list): A list of floats with their values inverted
-    
+
         """
 
         inverted_values = []
@@ -2256,7 +2262,7 @@ def anim_mirror(gt_ab_ctrls, source_side, namespace=''):
                         transforms.append([True, False, 'sy'])
                         transforms.append([True, False, 'sz'])
 
-                    # Transfer Right to Left 
+                    # Transfer Right to Left
                     if source_side is 'right':
                         for transform in transforms:
                             if transform[0]:  # Using Transform? Inverted? Name of the Attr
@@ -2431,7 +2437,7 @@ def anim_export(namespace=''):
 
     Args:
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
-    
+
     """
     # Validate Operation and Write file
     is_valid = True
@@ -2521,7 +2527,7 @@ def anim_import(debugging=False, debugging_path='', namespace=''):
     Imports an ANIM (JSON) file containing the translation, rotation and scale keyframe data for the rig controls
     (exported using the "_anim_export" function)
     Uses the imported data to set the translation, rotation and scale of every control curve
-    
+
     Args:
         debugging (bool): If debugging, the function will attempt to load the file provided in the
                           "debugging_path" parameter
