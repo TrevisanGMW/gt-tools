@@ -126,13 +126,18 @@
  1.4.8 - 2022-09-06
  Tweaked "pose_mirror_center" to average center controls when mirroring poses
 
- 1.4.9 - 2022-09-14
- Updated "pose_mirror_center" so it works properly with  namespaces
+ 1.4.9 to 1.4.10 - 2022-09-14
+ Updated leg switcher to reset IK auxiliary controls when switching back
+ Updated "pose_mirror_center" so it works properly with namespaces
+ Removed unused export thumbnail option
+
 
  TODO:
+    Update "pose_mirror_center" to work when controls are not in the center
     Update "pose_mirror_center" so it averages FK controls
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
+
 """
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
@@ -159,7 +164,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.9"
+script_version = "1.4.10"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -211,6 +216,11 @@ left_leg_seamless_dict = {'switch_ctrl': 'left_leg_switch_ctrl',  # Switch Ctrl
                           'mid_ik_reference': 'left_kneeSwitch_loc',
                           'end_ik_reference': 'left_ankleSwitch_loc',  # left_ankleSwitch_loc
                           'incompatible_attr_holder': '',
+                          # Auxiliary Controls
+                          'auxiliary_ik_ankle': 'left_heelRoll_ctrl',
+                          'auxiliary_ik_ball': 'left_ballRoll_ctrl',
+                          'auxiliary_ik_toe': 'left_toeRoll_ctrl',
+                          'auxiliary_ik_ball_jnt': 'left_ball_ik_jnt',
                           }
 
 right_leg_seamless_dict = {'switch_ctrl': 'right_leg_switch_ctrl',  # Switch Ctrl
@@ -228,6 +238,10 @@ right_leg_seamless_dict = {'switch_ctrl': 'right_leg_switch_ctrl',  # Switch Ctr
                            'mid_ik_reference': 'right_kneeSwitch_loc',
                            'end_ik_reference': 'right_ankleSwitch_loc',
                            'incompatible_attr_holder': '',
+                           # Auxiliary Controls
+                           'auxiliary_ik_ankle': 'right_heelRoll_ctrl',
+                           'auxiliary_ik_ball': 'right_ballRoll_ctrl',
+                           'auxiliary_ik_toe': 'right_toeRoll_ctrl',
                            }
 
 seamless_elements_dictionaries = [right_arm_seamless_dict, right_leg_seamless_dict,
@@ -1306,6 +1320,18 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
 
                 if not match_only:
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)
+
+                # Special Cases (Auxiliary Feet Controls) @@@
+                if ik_fk_ns_dict.get("auxiliary_ik_ankle"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ankle") + '.r' + xyz, 0)
+                if ik_fk_ns_dict.get("auxiliary_ik_ball"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ball") + '.r' + xyz, 0)
+                if ik_fk_ns_dict.get("auxiliary_ik_toe"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_toe") + '.r' + xyz, 0)
+
                 return 1
             if direction == 'ik_to_fk':
                 for pair in fk_pairs:
