@@ -131,14 +131,16 @@
  Updated "pose_mirror_center" so it works properly with namespaces
  Removed unused export thumbnail option
 
- 1.5.0 - 2022-09-14
+ 1.5.0 to 1.5.2 - 2022-09-15
  Updated leg switcher to work with auxiliary feet controls when switching
+ Updated keyed controls to include the ball controls (auto key option)
 
  TODO:
     Update "pose_mirror_center" to work when controls are not in the center
     Update "pose_mirror_center" so it averages FK controls
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
+    Fix character offset to legs when flipping/mirroring
 
 """
 from PySide2.QtWidgets import QWidget
@@ -166,7 +168,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.0"
+script_version = "1.5.2"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -445,7 +447,6 @@ gt_custom_rig_interface_settings = {
     'auto_key_method_bake': True,
     'auto_key_start_frame': 1,
     'auto_key_end_frame': 10,
-    'pose_export_thumbnail': False,
     'allow_multiple_instances': False,
     'offset_target': False,
     'key_influence': False,
@@ -988,7 +989,7 @@ def build_gui_custom_rig_interface():
     auto_key_start_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_start_frame')),
                                              p=switch_range_column,
                                              cc=lambda x: update_stored_settings(is_secondary_instance))
-    # cmds.button(l="Get", c=lambda x: get_auto_key_current_frame(), p=switch_range_column, h=5)  # L
+
     cmds.button(l="Get", c=lambda x: get_auto_key_current_frame(), p=switch_range_column, h=5)
     cmds.text('End:', p=switch_range_column)
     auto_key_end_int_field = cmds.intField(value=int(gt_custom_rig_interface_settings.get('auto_key_end_frame')),
@@ -1189,6 +1190,7 @@ def build_gui_custom_rig_interface():
         cmds.button(l='?', bgc=enabled_bgc_color,
                     c=lambda x: build_custom_help_window(help_message_key_influence,
                                                          help_title_key_influence))
+
         # Mirror Affects Center
         is_option_enabled = True
         cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
@@ -1216,25 +1218,6 @@ def build_gui_custom_rig_interface():
         cmds.button(l='?', bgc=enabled_bgc_color,
                     c=lambda x: build_custom_help_window(help_message_flip_center,
                                                          help_title_flip_center))
-
-        # # Export Thumbnail With Pose
-        # is_option_enabled = False
-        # cmds.text(' ', bgc=(enabled_bgc_color if is_option_enabled else disabled_bgc_color), h=20)  # Tiny Empty Space
-        # cmds.checkBox(label='  Export Thumbnail with Pose',
-        #               value=gt_custom_rig_interface_settings.get('pose_export_thumbnail'), ebg=True,
-        #               cc=lambda x: invert_stored_setting('pose_export_thumbnail'), en=is_option_enabled)
-        #
-        # help_message_thumbnail = 'This option will be included in future versions, ' \
-        #                          'thank you for your patience.\n\nExports a thumbnail ".jpg" ' \
-        #                          'file together with your ".pose" file.\nThis extra thumbnail ' \
-        #                          'file can be used to quickly understand what you pose looks like ' \
-        #                          'before importing it.\n\nThe thumbnail is a screenshot of you active' \
-        #                          ' viewport at the moment of exporting the pose. ' \
-        #                          'If necessary, export it again to generate another thumbnail.'
-        # help_title_thumbnail = 'Export Thumbnail with Pose'
-        # cmds.button(l='?', bgc=enabled_bgc_color,
-        #             c=lambda x: build_custom_help_window(help_message_thumbnail,
-        #                                                  help_title_thumbnail))
 
         # Reset Persistent Settings
         cmds.separator(h=btn_margin, style='none', p=settings_tab)  # Empty Space
@@ -1334,7 +1317,7 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                 if not match_only:
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)
 
-                # Special Cases (Auxiliary Feet Controls) @@@
+                # Special Cases (Auxiliary Feet Controls)
                 if ik_fk_ns_dict.get("auxiliary_roll_ankle"):
                     for xyz in ["x", "y", "z"]:
                         cmds.setAttr(ik_fk_ns_dict.get("auxiliary_roll_ankle") + '.r' + xyz, 0)
@@ -1473,6 +1456,8 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                                                      attribute=channel + dimension)  # Wrist IK Ctrl
                                     cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time,
                                                      attribute=channel + dimension)  # PVec Elbow IK Ctrl
+                                    cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_ik_ball'), time=current_time,
+                                                     attribute=channel + dimension)  # Toe Full IK Control
 
                         if direction == 'ik_to_fk':
                             for channel in ['t', 'r']:
@@ -1483,6 +1468,8 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                                                      attribute=channel + dimension)  # Wrist FK Ctrl
                                     cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time,
                                                      attribute=channel + dimension)  # Elbow FK Ctrl
+                                    cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_fk_ball'), time=current_time,
+                                                     attribute=channel + dimension)  # Ball FK Ctrl
                         current_time += 1
                     switch()
                     if gt_custom_rig_interface_settings.get('key_influence'):
