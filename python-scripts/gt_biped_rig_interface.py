@@ -127,10 +127,12 @@
  Tweaked "pose_mirror_center" to average center controls when mirroring poses
 
  1.4.9 to 1.4.10 - 2022-09-14
- Updated leg switcher to reset IK auxiliary controls when switching back
+ Updated leg switcher to reset IK auxiliary controls when switching
  Updated "pose_mirror_center" so it works properly with namespaces
  Removed unused export thumbnail option
 
+ 1.5.0 - 2022-09-14
+ Updated leg switcher to work with auxiliary feet controls when switching
 
  TODO:
     Update "pose_mirror_center" to work when controls are not in the center
@@ -164,15 +166,15 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.4.10"
+script_version = "1.5.0"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
                           'end_ik_ctrl': 'left_wrist_ik_ctrl',  # IK Elements
                           'pvec_ik_ctrl': 'left_elbow_ik_ctrl',
-                          'base_ik_jnt': 'left_fkShoulderOffsetRef_loc',
-                          'mid_ik_jnt': 'left_fkElbowOffsetRef_loc',
-                          'end_ik_jnt': 'left_fkWristOffsetRef_loc',
+                          'base_ik_ref': 'left_fkShoulderOffsetRef_loc',
+                          'mid_ik_ref': 'left_fkElbowOffsetRef_loc',
+                          'end_ik_ref': 'left_fkWristOffsetRef_loc',
                           'base_fk_ctrl': 'left_shoulder_ctrl',  # FK Elements
                           'mid_fk_ctrl': 'left_elbow_ctrl',
                           'end_fk_ctrl': 'left_wrist_ctrl',
@@ -187,9 +189,9 @@ left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
 right_arm_seamless_dict = {'switch_ctrl': 'right_arm_switch_ctrl',  # Switch Ctrl
                            'end_ik_ctrl': 'right_wrist_ik_ctrl',  # IK Elements
                            'pvec_ik_ctrl': 'right_elbow_ik_ctrl',
-                           'base_ik_jnt': 'right_fkShoulderOffsetRef_loc',
-                           'mid_ik_jnt': 'right_fkElbowOffsetRef_loc',
-                           'end_ik_jnt': 'right_fkWristOffsetRef_loc',
+                           'base_ik_ref': 'right_fkShoulderOffsetRef_loc',
+                           'mid_ik_ref': 'right_fkElbowOffsetRef_loc',
+                           'end_ik_ref': 'right_fkWristOffsetRef_loc',
                            'base_fk_ctrl': 'right_shoulder_ctrl',  # FK Elements
                            'mid_fk_ctrl': 'right_elbow_ctrl',
                            'end_fk_ctrl': 'right_wrist_ctrl',
@@ -204,9 +206,9 @@ right_arm_seamless_dict = {'switch_ctrl': 'right_arm_switch_ctrl',  # Switch Ctr
 left_leg_seamless_dict = {'switch_ctrl': 'left_leg_switch_ctrl',  # Switch Ctrl
                           'end_ik_ctrl': 'left_foot_ik_ctrl',  # IK Elements
                           'pvec_ik_ctrl': 'left_knee_ik_ctrl',
-                          'base_ik_jnt': 'left_fkHipOffsetRef_loc',
-                          'mid_ik_jnt': 'left_fkKneeOffsetRef_loc',
-                          'end_ik_jnt': 'left_fkAnkleOffsetRef_loc',
+                          'base_ik_ref': 'left_fkHipOffsetRef_loc',
+                          'mid_ik_ref': 'left_fkKneeOffsetRef_loc',
+                          'end_ik_ref': 'left_fkAnkleOffsetRef_loc',
                           'base_fk_ctrl': 'left_hip_ctrl',  # FK Elements
                           'mid_fk_ctrl': 'left_knee_ctrl',
                           'end_fk_ctrl': 'left_ankle_ctrl',
@@ -214,21 +216,26 @@ left_leg_seamless_dict = {'switch_ctrl': 'left_leg_switch_ctrl',  # Switch Ctrl
                           'mid_fk_jnt': 'left_knee_fk_jnt',
                           'end_fk_jnt': 'left_ankle_fk_jnt',
                           'mid_ik_reference': 'left_kneeSwitch_loc',
-                          'end_ik_reference': 'left_ankleSwitch_loc',  # left_ankleSwitch_loc
+                          'end_ik_reference': 'left_ankleSwitch_loc',
                           'incompatible_attr_holder': '',
                           # Auxiliary Controls
-                          'auxiliary_ik_ankle': 'left_heelRoll_ctrl',
-                          'auxiliary_ik_ball': 'left_ballRoll_ctrl',
-                          'auxiliary_ik_toe': 'left_toeRoll_ctrl',
+                          'auxiliary_roll_ankle': 'left_heelRoll_ctrl',
+                          'auxiliary_roll_ball': 'left_ballRoll_ctrl',
+                          'auxiliary_roll_toe': 'left_toeRoll_ctrl',
+                          'auxiliary_roll_up_down_toe': 'left_toe_upDown_ctrl',
                           'auxiliary_ik_ball_jnt': 'left_ball_ik_jnt',
+                          'auxiliary_fk_ball': 'left_ball_ctrl',
+                          'auxiliary_ik_ball': 'left_toe_ik_ctrl',
+                          'auxiliary_roll_ball_ref': 'left_fkBallOffsetRef_loc',
+                          'auxiliary_fk_ball_ref': 'left_ikBallOffsetRef_loc',
                           }
 
 right_leg_seamless_dict = {'switch_ctrl': 'right_leg_switch_ctrl',  # Switch Ctrl
                            'end_ik_ctrl': 'right_foot_ik_ctrl',  # IK Elements
                            'pvec_ik_ctrl': 'right_knee_ik_ctrl',
-                           'base_ik_jnt': 'right_fkHipOffsetRef_loc',
-                           'mid_ik_jnt': 'right_fkKneeOffsetRef_loc',
-                           'end_ik_jnt': 'right_fkAnkleOffsetRef_loc',
+                           'base_ik_ref': 'right_fkHipOffsetRef_loc',
+                           'mid_ik_ref': 'right_fkKneeOffsetRef_loc',
+                           'end_ik_ref': 'right_fkAnkleOffsetRef_loc',
                            'base_fk_ctrl': 'right_hip_ctrl',  # FK Elements
                            'mid_fk_ctrl': 'right_knee_ctrl',
                            'end_fk_ctrl': 'right_ankle_ctrl',
@@ -239,9 +246,15 @@ right_leg_seamless_dict = {'switch_ctrl': 'right_leg_switch_ctrl',  # Switch Ctr
                            'end_ik_reference': 'right_ankleSwitch_loc',
                            'incompatible_attr_holder': '',
                            # Auxiliary Controls
-                           'auxiliary_ik_ankle': 'right_heelRoll_ctrl',
-                           'auxiliary_ik_ball': 'right_ballRoll_ctrl',
-                           'auxiliary_ik_toe': 'right_toeRoll_ctrl',
+                           'auxiliary_roll_ankle': 'right_heelRoll_ctrl',
+                           'auxiliary_roll_ball': 'right_ballRoll_ctrl',
+                           'auxiliary_roll_toe': 'right_toeRoll_ctrl',
+                           'auxiliary_roll_up_down_toe': 'right_toe_upDown_ctrl',
+                           'auxiliary_ik_ball_jnt': 'right_ball_ik_jnt',
+                           'auxiliary_fk_ball': 'right_ball_ctrl',
+                           'auxiliary_ik_ball': 'right_toe_ik_ctrl',
+                           'auxiliary_roll_ball_ref': 'right_fkBallOffsetRef_loc',
+                           'auxiliary_fk_ball_ref': 'right_ikBallOffsetRef_loc',
                            }
 
 seamless_elements_dictionaries = [right_arm_seamless_dict, right_leg_seamless_dict,
@@ -1305,9 +1318,9 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
             for obj in ik_fk_dict:
                 ik_fk_ns_dict[obj] = namespace + ik_fk_dict.get(obj)
 
-            fk_pairs = [[ik_fk_ns_dict.get('base_ik_jnt'), ik_fk_ns_dict.get('base_fk_ctrl')],
-                        [ik_fk_ns_dict.get('mid_ik_jnt'), ik_fk_ns_dict.get('mid_fk_ctrl')],
-                        [ik_fk_ns_dict.get('end_ik_jnt'), ik_fk_ns_dict.get('end_fk_ctrl')]]
+            fk_pairs = [[ik_fk_ns_dict.get('base_ik_ref'), ik_fk_ns_dict.get('base_fk_ctrl')],
+                        [ik_fk_ns_dict.get('mid_ik_ref'), ik_fk_ns_dict.get('mid_fk_ctrl')],
+                        [ik_fk_ns_dict.get('end_ik_ref'), ik_fk_ns_dict.get('end_fk_ctrl')]]
 
             if direction == 'fk_to_ik':
                 if ik_fk_dict.get('end_ik_reference') != '':
@@ -1322,15 +1335,27 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 1)
 
                 # Special Cases (Auxiliary Feet Controls) @@@
-                if ik_fk_ns_dict.get("auxiliary_ik_ankle"):
+                if ik_fk_ns_dict.get("auxiliary_roll_ankle"):
                     for xyz in ["x", "y", "z"]:
-                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ankle") + '.r' + xyz, 0)
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_roll_ankle") + '.r' + xyz, 0)
+                if ik_fk_ns_dict.get("auxiliary_roll_ball"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_roll_ball") + '.r' + xyz, 0)
+                if ik_fk_ns_dict.get("auxiliary_roll_toe"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_roll_toe") + '.r' + xyz, 0)
+                if ik_fk_ns_dict.get("auxiliary_roll_up_down_toe"):
+                    for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_roll_up_down_toe") + '.t' + xyz, 0)
                 if ik_fk_ns_dict.get("auxiliary_ik_ball"):
                     for xyz in ["x", "y", "z"]:
+                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ball") + '.t' + xyz, 0)
                         cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ball") + '.r' + xyz, 0)
-                if ik_fk_ns_dict.get("auxiliary_ik_toe"):
-                    for xyz in ["x", "y", "z"]:
-                        cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_toe") + '.r' + xyz, 0)
+
+                # Transfer from FK to IK Ball
+                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_fk_ball_ref')):
+                    cmds.matchTransform(ik_fk_ns_dict.get('auxiliary_ik_ball'),
+                                        ik_fk_ns_dict.get('auxiliary_fk_ball_ref'), pos=1, rot=1)
 
                 return 1
             if direction == 'ik_to_fk':
@@ -1339,6 +1364,12 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                     pass
                 if not match_only:
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)
+
+                # Transfer from IK to FK Ball
+                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_roll_ball_ref')):
+                    cmds.matchTransform(ik_fk_ns_dict.get('auxiliary_fk_ball'),
+                                        ik_fk_ns_dict.get('auxiliary_roll_ball_ref'), pos=1, rot=1)
+
                 return 0
         except Exception as e:
             cmds.warning(
