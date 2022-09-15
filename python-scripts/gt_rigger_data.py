@@ -15,7 +15,7 @@ logging.basicConfig()
 logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
-SCRIPT_VERSION_BASE = '1.9.17'
+SCRIPT_VERSION_BASE = '1.10.0'
 SCRIPT_VERSION_FACIAL = '1.0.3'
 SCRIPT_VERSION_CORRECTIVE = '1.0.1'
 
@@ -123,6 +123,8 @@ class GTBipedRiggerData:
         'left_elbow_ik_reference': 'elbowSwitch_loc',
         'left_wrist_ik_reference': 'wristSwitch_loc',
         'left_shoulder_ik_reference': 'shoulderSwitch_loc',
+        'left_ball_ik_reference': 'ikBallOffsetRef_loc',
+        'left_ball_fk_reference': 'fkBallOffsetRef_loc',
     }
 
     # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
