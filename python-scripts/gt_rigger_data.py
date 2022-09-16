@@ -5,6 +5,9 @@ github.com/TrevisanGMW - 2021-12-10
 2022-06-28
 Added facial and corrective classes
 
+2022-09-15
+Added ball ctrl reference loc to GTBipedRiggerData
+
 """
 import maya.cmds as cmds
 import logging
