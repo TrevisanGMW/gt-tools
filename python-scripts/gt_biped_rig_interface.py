@@ -135,6 +135,9 @@
  Updated leg switcher to work with auxiliary feet controls when switching
  Updated keyed controls to include the ball controls (auto key option)
 
+ 1.5.3 - 2022-09-16
+ Added clean-up step to the "mirror_pose_center" average ctrl operation
+
  TODO:
     Update "pose_mirror_center" to work when controls are not in the center
     Update "pose_mirror_center" so it averages FK controls
@@ -168,7 +171,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.2"
+script_version = "1.5.3"
 
 # FK/IK Switcher Elements
 left_arm_seamless_dict = {'switch_ctrl': 'left_arm_switch_ctrl',  # Switch Ctrl
@@ -1828,50 +1831,66 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
 
     # Handle Special Cases
     if not gt_custom_rig_interface_settings.get('offset_target'):
-        # Head Ctrls
-        combined_transform_eye = cmds.spaceLocator(name='combined_eye_probe_loc')[0]
-        combined_transform_head = cmds.spaceLocator(name='combined_head_probe_loc')[0]
-        head_controls = ['head_ctrl', 'head_offsetCtrl']
-        main_eye_ctrl = "main_eye_ctrl"
-        cmds.matchTransform(combined_transform_head, namespace + head_controls[1], pos=1, rot=1)
-        cmds.matchTransform(combined_transform_eye, namespace + main_eye_ctrl, pos=1, rot=1)
-        reset_translate_rotate(head_controls, namespace)
-        cmds.matchTransform(namespace + head_controls[0], combined_transform_head, pos=1, rot=1)
-        cmds.matchTransform(namespace + main_eye_ctrl, combined_transform_eye, pos=1, rot=1)
-        cmds.delete(combined_transform_head)
-        cmds.delete(combined_transform_eye)
-        average_center_transforms(namespace + main_eye_ctrl)
-        # Chest Ctrls
-        combined_transform_chest = cmds.spaceLocator(name='combined_chest_probe_loc')[0]
-        chest_controls = ['chest_ribbon_ctrl', 'chest_ribbon_offsetCtrl']
-        cmds.matchTransform(combined_transform_chest, namespace + chest_controls[1], pos=1, rot=1)
-        reset_translate_rotate(chest_controls, namespace)
-        cmds.matchTransform(namespace + chest_controls[0], combined_transform_chest, pos=1, rot=1)
-        cmds.delete(combined_transform_chest)
-        # Waist Ctrls
-        combined_transform_waist = cmds.spaceLocator(name='combined_waist_probe_loc')[0]
-        waist_controls = ['waist_ctrl', 'waist_offsetCtrl']
-        cmds.matchTransform(combined_transform_waist, namespace + waist_controls[1], pos=1, rot=1)
-        reset_translate_rotate(waist_controls, namespace)
-        cmds.matchTransform(namespace + waist_controls[0], combined_transform_waist, pos=1, rot=1)
-        cmds.delete(combined_transform_waist)
-        # Pelvis Ctrls
-        combined_transform_pelvis = cmds.spaceLocator(name='combined_pelvis_probe_loc')[0]
-        pelvis_controls = ['pelvis_ctrl', 'pelvis_offsetCtrl']
-        cmds.matchTransform(combined_transform_pelvis, namespace + pelvis_controls[1], pos=1, rot=1)
-        reset_translate_rotate(pelvis_controls, namespace)
-        cmds.matchTransform(namespace + pelvis_controls[0], combined_transform_pelvis, pos=1, rot=1)
-        cmds.delete(combined_transform_pelvis)
+        combined_transform_eye = "combined_eye_probe_loc"
+        combined_transform_head = "combined_head_probe_loc"
+        combined_transform_chest = "combined_chest_probe_loc"
+        combined_transform_waist = "combined_waist_probe_loc"
+        combined_transform_pelvis = "combined_pelvis_probe_loc"
+        probes = [combined_transform_eye, combined_transform_head,
+                  combined_transform_chest, combined_transform_waist,
+                  combined_transform_pelvis]
+        try:
+            # Head Ctrls
+            combined_transform_eye = cmds.spaceLocator(name=combined_transform_eye)[0]
+            combined_transform_head = cmds.spaceLocator(name=combined_transform_head)[0]
+            head_controls = ['head_ctrl', 'head_offsetCtrl']
+            main_eye_ctrl = "main_eye_ctrl"
+            cmds.matchTransform(combined_transform_head, namespace + head_controls[1], pos=1, rot=1)
+            cmds.matchTransform(combined_transform_eye, namespace + main_eye_ctrl, pos=1, rot=1)
+            reset_translate_rotate(head_controls, namespace)
+            cmds.matchTransform(namespace + head_controls[0], combined_transform_head, pos=1, rot=1)
+            cmds.matchTransform(namespace + main_eye_ctrl, combined_transform_eye, pos=1, rot=1)
+            cmds.delete(combined_transform_head)
+            cmds.delete(combined_transform_eye)
+            average_center_transforms(namespace + main_eye_ctrl)
+            # Chest Ctrls
+            combined_transform_chest = cmds.spaceLocator(name=combined_transform_chest)[0]
+            chest_controls = ['chest_ribbon_ctrl', 'chest_ribbon_offsetCtrl']
+            cmds.matchTransform(combined_transform_chest, namespace + chest_controls[1], pos=1, rot=1)
+            reset_translate_rotate(chest_controls, namespace)
+            cmds.matchTransform(namespace + chest_controls[0], combined_transform_chest, pos=1, rot=1)
+            cmds.delete(combined_transform_chest)
+            # Waist Ctrls
+            combined_transform_waist = cmds.spaceLocator(name=combined_transform_waist)[0]
+            waist_controls = ['waist_ctrl', 'waist_offsetCtrl']
+            cmds.matchTransform(combined_transform_waist, namespace + waist_controls[1], pos=1, rot=1)
+            reset_translate_rotate(waist_controls, namespace)
+            cmds.matchTransform(namespace + waist_controls[0], combined_transform_waist, pos=1, rot=1)
+            cmds.delete(combined_transform_waist)
+            # Pelvis Ctrls
+            combined_transform_pelvis = cmds.spaceLocator(name=combined_transform_pelvis)[0]
+            pelvis_controls = ['pelvis_ctrl', 'pelvis_offsetCtrl']
+            cmds.matchTransform(combined_transform_pelvis, namespace + pelvis_controls[1], pos=1, rot=1)
+            reset_translate_rotate(pelvis_controls, namespace)
+            cmds.matchTransform(namespace + pelvis_controls[0], combined_transform_pelvis, pos=1, rot=1)
+            cmds.delete(combined_transform_pelvis)
 
-    # Jaw Ctrl
-    for dimension in ['y', 'z']:
-        cmds.setAttr(namespace + 'jaw_ctrl.t' + dimension, 0)
-        cmds.setAttr(namespace + 'jaw_ctrl.r' + dimension, 0)
+            # Jaw Ctrl
+            for dimension in ['y', 'z']:
+                cmds.setAttr(namespace + 'jaw_ctrl.t' + dimension, 0)
+                cmds.setAttr(namespace + 'jaw_ctrl.r' + dimension, 0)
 
-    # Adjustment Controls
-    average_center_transforms(namespace + 'chest_ribbon_adjustment_ctrl')
-    average_center_transforms(namespace + 'spine_ribbon_ctrl')
-    average_center_transforms(namespace + 'waist_ribbon_ctrl')
+            # Adjustment Controls
+            average_center_transforms(namespace + 'chest_ribbon_adjustment_ctrl')
+            average_center_transforms(namespace + 'spine_ribbon_ctrl')
+            average_center_transforms(namespace + 'waist_ribbon_ctrl')
+
+        except Exception as e:
+            logger.debug(str(e))
+        finally:  # Clean-up in case it fails
+            for obj in probes:
+                if cmds.objExists(obj):
+                    cmds.delete(obj)
 
 
 def pose_flip_left_right(gt_ab_ctrls, namespace=''):
