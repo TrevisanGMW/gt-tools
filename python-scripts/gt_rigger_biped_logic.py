@@ -290,6 +290,9 @@
  1.9.16 to 17 - 2022-08-03
  Updated feet switch and roll controls transform calculation
 
+ 1.10.0 - 2022-09-14
+ Added feet switcher reference locators
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -9799,6 +9802,27 @@ def create_controls(data_biped):
     cmds.delete(cmds.parentConstraint(left_wrist_ik_ctrl, left_wrist_ref_loc))
     cmds.parent(left_wrist_ref_loc, left_wrist_fk_jnt)
     cmds.setAttr(left_wrist_ref_loc + '.v', 0)
+
+    # Ball Ctrl Reference
+    left_ball_fk_ref_loc = cmds.spaceLocator(name=elements_default.get('left_ball_fk_reference'))[0]
+    cmds.delete(cmds.parentConstraint(left_ball_ctrl, left_ball_fk_ref_loc))
+    cmds.parent(left_ball_fk_ref_loc, left_ball_ik_jnt)
+    cmds.setAttr(left_ball_fk_ref_loc + '.v', 0)
+
+    right_ball_fk_ref_loc = cmds.spaceLocator(name=elements_default.get('right_ball_fk_reference'))[0]
+    cmds.delete(cmds.parentConstraint(right_ball_ctrl, right_ball_fk_ref_loc))
+    cmds.parent(right_ball_fk_ref_loc, right_ball_ik_jnt)
+    cmds.setAttr(right_ball_fk_ref_loc + '.v', 0)
+
+    left_ball_ik_ref_loc = cmds.spaceLocator(name=elements_default.get('left_ball_ik_reference'))[0]
+    cmds.delete(cmds.parentConstraint(left_toe_full_ctrl, left_ball_ik_ref_loc))
+    cmds.parent(left_ball_ik_ref_loc, left_ball_fk_jnt)
+    cmds.setAttr(left_ball_ik_ref_loc + '.v', 0)
+
+    right_ball_ik_ref_loc = cmds.spaceLocator(name=elements_default.get('right_ball_ik_reference'))[0]
+    cmds.delete(cmds.parentConstraint(right_toe_full_ctrl, right_ball_ik_ref_loc))
+    cmds.parent(right_ball_ik_ref_loc, right_ball_fk_jnt)
+    cmds.setAttr(right_ball_ik_ref_loc + '.v', 0)
 
     # Uniform FK Offset Reference
     switch_ref_locators = []

@@ -32,6 +32,12 @@ Tweaked the UI spacing
 Fixed a typo
 Removed unnecessary parameter
 
+1.1.3 to 1.1.4 - 2022-09-12
+Changed "Include Bound Mesh" to be be inactive by default
+Added option to run bind/unbind skin functions
+Centered Checkbox options a bit better
+Fixed a few issues caused by the latest changes
+
 Todo:
     Add Transfer functions
     Add option to include maya.cmds
@@ -61,11 +67,11 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Bound Joints"
 
 # Version
-script_version = "1.1.2"
+script_version = "1.1.4"
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
-                           'include_mesh': True,
+                           'include_mesh': False,
                            }
 
 
@@ -106,10 +112,10 @@ def build_gui_extract_bound_joints():
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 500)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=5, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 60), (2, 35)])
+    cmds.rowColumnLayout(nc=2, cw=[(1, 200)], cs=[(1, 55), (2, 50)])
     filter_non_existent_chk = cmds.checkBox("Include Non-Existent Filter", value=True,
                                             cc=lambda x: _btn_update_settings())
-    include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=True, cc=lambda x: _btn_update_settings())
+    include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=False, cc=lambda x: _btn_update_settings())
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 10)], p=content_main)
     cmds.button(l="Extract Bound Joints to Python", bgc=(.6, .6, .6),
@@ -124,9 +130,18 @@ def build_gui_extract_bound_joints():
     cmds.text(label='Output - Selection Command:')
     output_python = cmds.scrollField(editable=True, wordWrap=True, height=200)
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 15)], p=content_main)
-    cmds.button(l="Run Code", c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)))
-    cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf())
+    bottom_btn_clr = (.3, .3, .3)
+    cmds.rowColumnLayout(nc=4, cw=[(1, 110), (2, 110), (3, 110), (4, 110)],
+                         cs=[(1, 10), (2, 15), (3, 15), (4, 15)],
+                         p=content_main)
+
+    cmds.button(l="Run Code",
+                c=lambda x: run_output_code(cmds.scrollField(output_python, query=True, text=True)),
+                bgc=bottom_btn_clr)
+    cmds.button(l="Save to Shelf", c=lambda x: _btn_add_to_shelf(), bgc=bottom_btn_clr)
+
+    cmds.button(l="Bind Skin", c=lambda x: mel.eval('SmoothBindSkinOptions;'), bgc=bottom_btn_clr)
+    cmds.button(l="Unbind Skin", c=lambda x: mel.eval('DetachSkin;'), bgc=bottom_btn_clr)
     cmds.separator(h=10, style='none')  # Empty Space
 
     def _btn_update_settings():
