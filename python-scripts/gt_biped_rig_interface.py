@@ -144,6 +144,10 @@
  Minor updates to settings order
  Updates to pose_mirror_center and pose_mirror_left_right
 
+ 1.5.5 - 2022-09-21
+ Fixed Flip Pose issue where it wouldn't work with namespaces
+ Added full IK toe ctrl to contro list
+
  TODO:
     Update "pose_mirror_center" to work when controls are not in the center
     Overwrite keys for animation functions
@@ -175,7 +179,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.4"
+script_version = "1.5.5"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -404,6 +408,7 @@ biped_ik_ctrls = {  # Arm
     '_foot_ik_ctrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
     '_foot_ik_offsetCtrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
     '_knee_ik_ctrl': [invert_x, not_inverted],
+    '_toe_ik_ctrl': [invert_x, invert_yz],
 }
 
 biped_ik_ctrls_default = copy.deepcopy(biped_ik_ctrls)
@@ -796,9 +801,11 @@ def build_gui_custom_rig_interface():
         Runs a full pose mirror function.
         """
         update_stored_settings()
-        pose_flip_center(biped_center_ctrls, apply=gt_custom_rig_interface_settings.get('flip_affects_center'))
         pose_flip_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls],
                              namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
+        pose_flip_center(biped_center_ctrls,
+                         namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
+                         apply=gt_custom_rig_interface_settings.get('flip_affects_center'))
 
     def mirror_fk_ik_pose(source_side='right'):
         """
@@ -812,7 +819,7 @@ def build_gui_custom_rig_interface():
         pose_mirror_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls], source_side,
                                namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
         pose_mirror_center(biped_center_ctrls, gt_x_zero_ctrls,
-                           namespace=cmds.textField(namespace_txt, q=True, text=True),
+                           namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
                            apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
 
     def mirror_animation(source_side='right'):
@@ -1630,6 +1637,10 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
 
     """
+    # Defined namespace
+    if not namespace.endswith(':'):
+        namespace = namespace + ":"
+
     # Merge Dictionaries
     biped_ctrls_dict = {}
     for ctrl_dict in biped_ctrls:
@@ -1741,7 +1752,6 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
 
         # Mirror Referenced objects
         for ref_objs in has_reference:
-            print(ref_objs)
             # mirror_with_world_reference(source, target, world
             mirror_with_world_reference(ref_objs,
                                         has_reference.get(ref_objs)[0],
@@ -1766,15 +1776,15 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
                                  'mirrored!</span> ' + source_message,
             pos='botLeft', fade=True, alpha=.9)
 
-        # if len(errors) != 0:
-        #     if len(errors) == 1:
-        #         is_plural = 'attribute was'
-        #     else:
-        #         is_plural = 'attributes were'
-        #     for error in errors:
-        #         print(str(error))
-        #     sys.stdout.write(
-        #         str(len(errors)) + ' locked ' + is_plural + ' ignored. (Open Script Editor to see a list)\n')
+        if len(errors) != 0:
+            if len(errors) == 1:
+                is_plural = 'attribute was'
+            else:
+                is_plural = 'attributes were'
+            for error in errors:
+                print(str(error))
+            sys.stdout.write(
+                str(len(errors)) + ' locked ' + is_plural + ' ignored. (Open Script Editor to see a list)\n')
     else:
         cmds.warning('No controls were found. Please check if a namespace is necessary.')
     cmds.setFocus("MayaWindow")
@@ -1789,7 +1799,6 @@ def pose_flip_center(gt_ctrls, namespace='', apply=True):
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
         apply (bool, optional): If deactivated, the function will not mirror the elements.
     """
-
     if not apply:
         return
 
@@ -1797,11 +1806,12 @@ def pose_flip_center(gt_ctrls, namespace='', apply=True):
     available_ctrls = []
     for obj in gt_ctrls:
         if cmds.objExists(namespace + obj):
-            available_ctrls.append(obj)
+            available_ctrls.append(namespace + obj)
 
-    # FLip
+    # Flip
     if len(available_ctrls) != 0:
         mirror_translate_rotate_values(available_ctrls)
+        logger.debug(available_ctrls)
 
 
 def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
@@ -1860,7 +1870,8 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
                     cmds.setAttr(namespace_string + target + '.r' + channel, 0)
 
     # Defined namespace
-    namespace = namespace + ":"
+    if not namespace.endswith(':'):
+        namespace = namespace + ":"
 
     # Define Mirroring World-Space
     character_ws = namespace + character_world_space
@@ -1919,27 +1930,30 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
             except Exception as e:
                 logger.debug(str(e))
 
-    # Store and Reset - Main and Direction Ctrls @@@
-    # main_ctrl_ref_grp = namespace + 'main_ctrl_ref_grp'
-    # direction_ref_loc = namespace + left_ik_foot_ctrl + 'refLoc'
-    # main_ctrl_ref_grp = cmds.spaceLocator(name=main_ctrl_ref_grp)[0]
-    # direction_ref_loc = cmds.spaceLocator(name=direction_ref_loc)[0]
-    # cmds.delete(cmds.parentConstraint(namespace + main_ctrl, main_ctrl_ref_grp))
-    # cmds.delete(cmds.parentConstraint(namespace + direction_ctrl, direction_ref_loc))
-    # reset_translate_rotate([direction_ctrl, main_ctrl], namespace)
+    # Store and Reset - Main and Direction Ctrls
+    main_ctrl_ref_loc = namespace + 'main_ctrl_ref_loc'
+    direction_ref_loc = namespace + 'direction_ctrl_ref_loc'
+    waist_ref_loc = namespace + 'waist_ctrl_ref_loc'
+    main_ctrl_ref_loc = cmds.spaceLocator(name=main_ctrl_ref_loc)[0]
+    direction_ref_loc = cmds.spaceLocator(name=direction_ref_loc)[0]
+    waist_ref_loc = cmds.spaceLocator(name=waist_ref_loc)[0]
+    cmds.delete(cmds.parentConstraint(namespace + main_ctrl, main_ctrl_ref_loc))
+    cmds.delete(cmds.parentConstraint(namespace + direction_ctrl, direction_ref_loc))
+    cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_ref_loc))
+    reset_translate_rotate([direction_ctrl, main_ctrl], namespace)
 
     # Store Mirrored Feet Reference @@@
-    waist_space_ref_grp = 'waist_space_ref_grp'
-    left_foot_reference_loc = namespace + left_ik_foot_ctrl + 'refLoc'
-    right_foot_reference_loc = namespace + right_ik_foot_ctrl + 'refLoc'
-    waist_space_ref_grp = cmds.spaceLocator(name=waist_space_ref_grp)[0]
-    left_foot_reference_loc = cmds.spaceLocator(name=left_foot_reference_loc)[0]
-    right_foot_reference_loc = cmds.spaceLocator(name=right_foot_reference_loc)[0]
-    cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))  # waist_offsetCtrl
-    cmds.delete(cmds.parentConstraint(namespace + left_ik_foot_ctrl, left_foot_reference_loc))
-    cmds.delete(cmds.parentConstraint(namespace + right_ik_foot_ctrl, right_foot_reference_loc))
-    cmds.parent(left_foot_reference_loc, waist_space_ref_grp)
-    cmds.parent(right_foot_reference_loc, waist_space_ref_grp)
+    # waist_space_ref_grp = 'waist_space_ref_grp'
+    # left_foot_reference_loc = namespace + left_ik_foot_ctrl + 'refLoc'
+    # right_foot_reference_loc = namespace + right_ik_foot_ctrl + 'refLoc'
+    # waist_space_ref_grp = cmds.spaceLocator(name=waist_space_ref_grp)[0]
+    # left_foot_reference_loc = cmds.spaceLocator(name=left_foot_reference_loc)[0]
+    # right_foot_reference_loc = cmds.spaceLocator(name=right_foot_reference_loc)[0]
+    # cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))  # waist_offsetCtrl
+    # cmds.delete(cmds.parentConstraint(namespace + left_ik_foot_ctrl, left_foot_reference_loc))
+    # cmds.delete(cmds.parentConstraint(namespace + right_ik_foot_ctrl, right_foot_reference_loc))
+    # cmds.parent(left_foot_reference_loc, waist_space_ref_grp)
+    # cmds.parent(right_foot_reference_loc, waist_space_ref_grp)
 
     # Find Average
     if len(available_ctrls) != 0:
@@ -2009,14 +2023,15 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
 
         # Match Feet @@@
         # cmds.duplicate(waist_space_ref_grp)  # Testing
-        cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))
-        cmds.matchTransform(namespace + left_ik_foot_ctrl, left_foot_reference_loc, pos=1, rot=1)
-        cmds.matchTransform(namespace + right_ik_foot_ctrl, right_foot_reference_loc, pos=1, rot=1)
+        # cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))
+        # cmds.matchTransform(namespace + left_ik_foot_ctrl, left_foot_reference_loc, pos=1, rot=1)
+        # cmds.matchTransform(namespace + right_ik_foot_ctrl, right_foot_reference_loc, pos=1, rot=1)
+        cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=1)
 
-        # Delete Feet Reference Elements
-        for obj in [waist_space_ref_grp, left_foot_reference_loc, right_foot_reference_loc]:
-            if cmds.objExists(obj):
-                cmds.delete(obj)
+        # # Delete Feet Reference Elements
+        # for obj in [waist_space_ref_grp, left_foot_reference_loc, right_foot_reference_loc]:
+        #     if cmds.objExists(obj):
+        #         cmds.delete(obj)
 
 
 def pose_flip_left_right(biped_ctrls, namespace=''):
@@ -2028,6 +2043,10 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
 
     """
+    # Defined namespace
+    if not namespace.endswith(':'):
+        namespace = namespace + ":"
+
     # Merge Dictionaries
     biped_ctrls_dict = {}
     for ctrl_dict in biped_ctrls:
@@ -2106,7 +2125,7 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
                             else:
                                 errors.append(namespace + right_obj + ' "' + transform[2] + '" is locked.')
 
-        # Apply Mirror Operation
+        # Apply Flip Operation
         for left_obj in left_data:
             cmds.setAttr(left_obj, left_data.get(left_obj))
         for right_obj in right_data:
@@ -2895,7 +2914,7 @@ def mirror_with_world_reference(source, target, world):
         cmds.delete(cmds.parentConstraint(source, source_loc))
         cmds.delete(cmds.parentConstraint(world, world_loc))
         cmds.parent(source_loc, world_loc)
-        mirror_translate_rotate_values([source_loc])  # @@@
+        mirror_translate_rotate_values([source_loc])
         cmds.matchTransform(target, source_loc, pos=1, rot=1)
     except Exception as e:
         logger.debug((str(e)))
