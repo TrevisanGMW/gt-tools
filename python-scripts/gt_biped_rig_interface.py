@@ -144,9 +144,10 @@
  Minor updates to settings order
  Updates to pose_mirror_center and pose_mirror_left_right
 
- 1.5.5 - 2022-09-21
+ 1.5.5 to 1.5.6- 2022-09-21
  Fixed Flip Pose issue where it wouldn't work with namespaces
- Added full IK toe ctrl to contro list
+ Added full IK toe ctrl to control list
+ Tweaked order of the pose mirror operation and matched main and direction controls
 
  TODO:
     Update "pose_mirror_center" to work when controls are not in the center
@@ -179,7 +180,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.5"
+script_version = "1.5.6"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -407,6 +408,8 @@ biped_ik_ctrls = {  # Arm
     '_toe_upDown_ctrl': [invert_x, not_inverted],
     '_foot_ik_ctrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
     '_foot_ik_offsetCtrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
+    # '_foot_ik_ctrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
+    # '_foot_ik_offsetCtrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
     '_knee_ik_ctrl': [invert_x, not_inverted],
     '_toe_ik_ctrl': [invert_x, invert_yz],
 }
@@ -801,11 +804,11 @@ def build_gui_custom_rig_interface():
         Runs a full pose mirror function.
         """
         update_stored_settings()
-        pose_flip_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls],
-                             namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
         pose_flip_center(biped_center_ctrls,
                          namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
                          apply=gt_custom_rig_interface_settings.get('flip_affects_center'))
+        pose_flip_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls],
+                             namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def mirror_fk_ik_pose(source_side='right'):
         """
@@ -816,11 +819,11 @@ def build_gui_custom_rig_interface():
                                             It determines what is the source and what is the target of the mirror.
         """
         update_stored_settings()
-        pose_mirror_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls], source_side,
-                               namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
         pose_mirror_center(biped_center_ctrls, gt_x_zero_ctrls,
                            namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator,
                            apply=gt_custom_rig_interface_settings.get('mirror_affects_center'))
+        pose_mirror_left_right([biped_general_ctrls, biped_ik_ctrls, biped_fk_ctrls], source_side,
+                               namespace=cmds.textField(namespace_txt, q=True, text=True) + namespace_separator)
 
     def mirror_animation(source_side='right'):
         """
@@ -1752,7 +1755,6 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
 
         # Mirror Referenced objects
         for ref_objs in has_reference:
-            # mirror_with_world_reference(source, target, world
             mirror_with_world_reference(ref_objs,
                                         has_reference.get(ref_objs)[0],
                                         has_reference.get(ref_objs)[1])
@@ -1931,9 +1933,12 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
                 logger.debug(str(e))
 
     # Store and Reset - Main and Direction Ctrls
-    main_ctrl_ref_loc = namespace + 'main_ctrl_ref_loc'
-    direction_ref_loc = namespace + 'direction_ctrl_ref_loc'
-    waist_ref_loc = namespace + 'waist_ctrl_ref_loc'
+    main_ctrl_ref_loc = 'main_ctrl_temp_ref_loc'
+    direction_ref_loc = 'direction_ctrl_temp_ref_loc'
+    waist_ref_loc = 'waist_ctrl_temp_ref_loc'
+    for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:  # Delete if present
+        if cmds.objExists(obj):
+            cmds.delete(obj)
     main_ctrl_ref_loc = cmds.spaceLocator(name=main_ctrl_ref_loc)[0]
     direction_ref_loc = cmds.spaceLocator(name=direction_ref_loc)[0]
     waist_ref_loc = cmds.spaceLocator(name=waist_ref_loc)[0]
@@ -1941,19 +1946,6 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     cmds.delete(cmds.parentConstraint(namespace + direction_ctrl, direction_ref_loc))
     cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_ref_loc))
     reset_translate_rotate([direction_ctrl, main_ctrl], namespace)
-
-    # Store Mirrored Feet Reference @@@
-    # waist_space_ref_grp = 'waist_space_ref_grp'
-    # left_foot_reference_loc = namespace + left_ik_foot_ctrl + 'refLoc'
-    # right_foot_reference_loc = namespace + right_ik_foot_ctrl + 'refLoc'
-    # waist_space_ref_grp = cmds.spaceLocator(name=waist_space_ref_grp)[0]
-    # left_foot_reference_loc = cmds.spaceLocator(name=left_foot_reference_loc)[0]
-    # right_foot_reference_loc = cmds.spaceLocator(name=right_foot_reference_loc)[0]
-    # cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))  # waist_offsetCtrl
-    # cmds.delete(cmds.parentConstraint(namespace + left_ik_foot_ctrl, left_foot_reference_loc))
-    # cmds.delete(cmds.parentConstraint(namespace + right_ik_foot_ctrl, right_foot_reference_loc))
-    # cmds.parent(left_foot_reference_loc, waist_space_ref_grp)
-    # cmds.parent(right_foot_reference_loc, waist_space_ref_grp)
 
     # Find Average
     if len(available_ctrls) != 0:
@@ -2021,17 +2013,15 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
                 if cmds.objExists(obj):
                     cmds.delete(obj)
 
-        # Match Feet @@@
-        # cmds.duplicate(waist_space_ref_grp)  # Testing
-        # cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_space_ref_grp))
-        # cmds.matchTransform(namespace + left_ik_foot_ctrl, left_foot_reference_loc, pos=1, rot=1)
-        # cmds.matchTransform(namespace + right_ik_foot_ctrl, right_foot_reference_loc, pos=1, rot=1)
-        cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=1)
+        # Match Waist Position
+        cmds.matchTransform(namespace + main_ctrl, main_ctrl_ref_loc, pos=True, rot=True)
+        cmds.matchTransform(namespace + direction_ctrl, direction_ref_loc, pos=True, rot=True)
+        cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=True)
 
         # # Delete Feet Reference Elements
-        # for obj in [waist_space_ref_grp, left_foot_reference_loc, right_foot_reference_loc]:
-        #     if cmds.objExists(obj):
-        #         cmds.delete(obj)
+        for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:
+            if cmds.objExists(obj):
+                cmds.delete(obj)
 
 
 def pose_flip_left_right(biped_ctrls, namespace=''):
@@ -2893,7 +2883,7 @@ def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
     return True
 
 
-def mirror_with_world_reference(source, target, world):
+def mirror_with_world_reference(source, target, world, world_matching_rot=True):
     """
     Attempts to mirror an objects while using a transforms as world reference
 
@@ -2901,6 +2891,7 @@ def mirror_with_world_reference(source, target, world):
         source (string): source element to be mirrored
         target (string): target element to receive the mirrored data
         world (string): world object
+        world_matching_rot (bool, optional):
 
     Dependency:
         mirror_translate_rotate_values
@@ -2912,7 +2903,10 @@ def mirror_with_world_reference(source, target, world):
         source_loc = cmds.spaceLocator(name=source_loc)[0]
         world_loc = cmds.spaceLocator(name=world_loc)[0]
         cmds.delete(cmds.parentConstraint(source, source_loc))
-        cmds.delete(cmds.parentConstraint(world, world_loc))
+        if world_matching_rot:
+            cmds.delete(cmds.parentConstraint(world, world_loc))
+        else:
+            cmds.delete(cmds.pointConstraint(world, world_loc))
         cmds.parent(source_loc, world_loc)
         mirror_translate_rotate_values([source_loc])
         cmds.matchTransform(target, source_loc, pos=1, rot=1)
