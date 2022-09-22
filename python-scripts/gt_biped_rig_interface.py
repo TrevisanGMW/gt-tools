@@ -144,13 +144,16 @@
  Minor updates to settings order
  Updates to pose_mirror_center and pose_mirror_left_right
 
- 1.5.5 to 1.5.6- 2022-09-21
+ 1.5.5 to 1.5.6 - 2022-09-21
  Fixed Flip Pose issue where it wouldn't work with namespaces
  Added full IK toe ctrl to control list
  Tweaked order of the pose mirror operation and matched main and direction controls
 
+ 1.5.7 - 2022-09-22
+ Removed offset transfer when mirror
+ Removed a few unused variables
+
  TODO:
-    Update "pose_mirror_center" to work when controls are not in the center
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
 
@@ -180,7 +183,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.6"
+script_version = "1.5.7"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -304,7 +307,7 @@ invert_all = (True, True, True)
 # Dictionary Pattern:
 # Key: Control name (if not in the center, remove prefix)
 # Value: A list with two tuples. [(Is Translate XYZ inverted?), (Is Rotate XYZ inverted?), Is mirroring scale?]
-# Value Example: '_fingers_ctrl': [not_inverted, not_inverted, True] =
+# Value Example: '_fingers_ctrl': [not_inverted, not_inverted, True]
 # Not inverting Translate XYZ. Not inverting Rotate XYZ. Yes, Mirroring scale.
 biped_general_ctrls = {  # Fingers Automation
     '_fingers_ctrl': [not_inverted, not_inverted, True],
@@ -406,10 +409,10 @@ biped_ik_ctrls = {  # Arm
     '_ballRoll_ctrl': [invert_x, not_inverted],
     '_toeRoll_ctrl': [invert_x, not_inverted],
     '_toe_upDown_ctrl': [invert_x, not_inverted],
+    # Extra Tuple: (world object, transform source)
     '_foot_ik_ctrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
     '_foot_ik_offsetCtrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
-    # '_foot_ik_ctrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
-    # '_foot_ik_offsetCtrl': [invert_x, invert_yz, False, ('waist_offsetCtrl', '_foot_ik_offsetCtrl')],
+
     '_knee_ik_ctrl': [invert_x, not_inverted],
     '_toe_ik_ctrl': [invert_x, invert_yz],
 }
@@ -427,7 +430,6 @@ biped_fk_ctrls = {  # Arm
     '_ankle_ctrl': [invert_all, not_inverted],
     '_ball_ctrl': [invert_all, not_inverted],
     '_eye_ctrl': [invert_x, not_inverted],
-
 }
 
 biped_center_ctrls = ['cog_ctrl',
@@ -473,21 +475,15 @@ biped_center_ctrls = ['cog_ctrl',
 gt_x_zero_ctrls = ['mainMouth_ctrl', 'head_ctrl', 'neckBase_ctrl', 'neckMid_ctrl', 'main_nose_offset_ctrl',
                    'jaw_offset_ctrl', 'tongue_offset_ctrl', ]
 
-# Asset Names for Mirroring (Center) @@@
-character_world_space = "waist_ctrl"
+# Asset Names for Mirroring (Center)
 jaw_ctrl = "jaw_ctrl"
 main_eye_ctrl = "main_eye_ctrl"
 head_controls = ['head_ctrl', 'head_offsetCtrl']
-chest_controls = ['chest_ribbon_ctrl', 'chest_ribbon_offsetCtrl']
 waist_controls = ['waist_ctrl', 'waist_offsetCtrl']
-pelvis_controls = ['pelvis_ctrl', 'pelvis_offsetCtrl']
 spine_fk_ctrls = ['spine01_ctrl', 'spine02_ctrl', 'spine03_ctrl', 'chest_ctrl', 'chest_global_fk_ctrl']
 spine_ik_adjustment_ctrls = ['chest_ribbon_adjustment_ctrl', 'spine_ribbon_ctrl', 'waist_ribbon_ctrl']
-left_ik_foot_ctrl = 'left_foot_ik_ctrl'
-right_ik_foot_ctrl = 'right_foot_ik_ctrl'
 direction_ctrl = 'direction_ctrl'
 main_ctrl = 'main_ctrl'
-offset_ctrls_suffix = '_offsetCtrl'
 
 
 # Manage Persistent Settings
@@ -1651,11 +1647,14 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
 
     # Remove Offset
     to_reset = []
-    if not gt_custom_rig_interface_settings.get('offset_target'):
-        for ctrl in biped_ik_offset_ctrls:
-            if ctrl in biped_ctrls_dict:
-                del biped_ctrls_dict[ctrl]
-                to_reset.append(namespace + ctrl)
+    # if not gt_custom_rig_interface_settings.get('offset_target'):
+    for ctrl in biped_ik_offset_ctrls:
+        if ctrl in biped_ctrls_dict:
+            del biped_ctrls_dict[ctrl]
+            offset_prefix = 'left'
+            if source_side == 'left':
+                offset_prefix = 'right'
+            to_reset.append(namespace + offset_prefix + ctrl)
 
     # Find available Ctrls
     available_ctrls = []
@@ -1710,7 +1709,8 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
                         transforms.append([True, False, 'sz'])
 
                     if len(operation) > 3:  # Has Reference Transform (Different Operation)
-                        # Source, Target, WorldObject
+                        # Tuple: (World Object, Original Source, Alternative Target)
+                        # Expected Order: Source, Target, WorldObject
                         if source_side == 'left':
                             has_reference[namespace + 'left' + operation[3][1]] = [namespace + right_obj,
                                                                                    namespace + operation[3][0]]
@@ -1755,6 +1755,7 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
 
         # Mirror Referenced objects
         for ref_objs in has_reference:
+            print(has_reference)
             mirror_with_world_reference(ref_objs,
                                         has_reference.get(ref_objs)[0],
                                         has_reference.get(ref_objs)[1])
@@ -1875,11 +1876,6 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     if not namespace.endswith(':'):
         namespace = namespace + ":"
 
-    # Define Mirroring World-Space
-    character_ws = namespace + character_world_space
-    if not cmds.objExists(character_ws):
-        character_ws = ""
-
     # Joints that will be handled separately
     special_cases = [jaw_ctrl]
 
@@ -1953,75 +1949,15 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
             ctrl = ctrl_depth[0]
             average_center_transforms(ctrl)
 
-    # Handle Special Cases
-    if not gt_custom_rig_interface_settings.get('offset_target'):
-        combined_transform_eye = "combined_eye_probe_loc"
-        combined_transform_head = "combined_head_probe_loc"
-        combined_transform_chest = "combined_chest_probe_loc"
-        combined_transform_waist = "combined_waist_probe_loc"
-        combined_transform_pelvis = "combined_pelvis_probe_loc"
-        probes = [combined_transform_eye, combined_transform_head,
-                  combined_transform_chest, combined_transform_waist,
-                  combined_transform_pelvis]
-        try:
-            # Head Ctrls
-            combined_transform_eye = cmds.spaceLocator(name=combined_transform_eye)[0]
-            combined_transform_head = cmds.spaceLocator(name=combined_transform_head)[0]
-            cmds.matchTransform(combined_transform_head, namespace + head_controls[1], pos=1, rot=1)
-            cmds.matchTransform(combined_transform_eye, namespace + main_eye_ctrl, pos=1, rot=1)
-            reset_translate_rotate(head_controls, namespace)
-            cmds.matchTransform(namespace + head_controls[0], combined_transform_head, pos=1, rot=1)
-            cmds.matchTransform(namespace + main_eye_ctrl, combined_transform_eye, pos=1, rot=1)
-            cmds.delete(combined_transform_head)
-            cmds.delete(combined_transform_eye)
-            average_center_transforms(namespace + main_eye_ctrl)
+    # Match Waist Position
+    cmds.matchTransform(namespace + main_ctrl, main_ctrl_ref_loc, pos=True, rot=True)
+    cmds.matchTransform(namespace + direction_ctrl, direction_ref_loc, pos=True, rot=True)
+    cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=True)
 
-            # Chest Ctrls
-            combined_transform_chest = cmds.spaceLocator(name=combined_transform_chest)[0]
-            cmds.matchTransform(combined_transform_chest, namespace + chest_controls[1], pos=1, rot=1)
-            reset_translate_rotate(chest_controls, namespace)
-            cmds.matchTransform(namespace + chest_controls[0], combined_transform_chest, pos=1, rot=1)
-            cmds.delete(combined_transform_chest)
-
-            # Waist Ctrls
-            combined_transform_waist = cmds.spaceLocator(name=combined_transform_waist)[0]
-            cmds.matchTransform(combined_transform_waist, namespace + waist_controls[1], pos=1, rot=1)
-            reset_translate_rotate(waist_controls, namespace)
-            cmds.matchTransform(namespace + waist_controls[0], combined_transform_waist, pos=1, rot=1)
-            cmds.delete(combined_transform_waist)
-
-            # Pelvis Ctrls
-            combined_transform_pelvis = cmds.spaceLocator(name=combined_transform_pelvis)[0]
-            cmds.matchTransform(combined_transform_pelvis, namespace + pelvis_controls[1], pos=1, rot=1)
-            reset_translate_rotate(pelvis_controls, namespace)
-            cmds.matchTransform(namespace + pelvis_controls[0], combined_transform_pelvis, pos=1, rot=1)
-            cmds.delete(combined_transform_pelvis)
-
-            # Jaw Ctrl
-            for dimension in ['y', 'z']:
-                cmds.setAttr(namespace + jaw_ctrl + '.t' + dimension, 0)
-                cmds.setAttr(namespace + jaw_ctrl + '.r' + dimension, 0)
-
-            # Adjustment Controls
-            for ctrl in spine_ik_adjustment_ctrls:
-                average_center_transforms(namespace + ctrl, character_ws)
-
-        except Exception as e:
-            logger.debug(str(e))
-        finally:  # Clean-up in case it fails
-            for obj in probes:
-                if cmds.objExists(obj):
-                    cmds.delete(obj)
-
-        # Match Waist Position
-        cmds.matchTransform(namespace + main_ctrl, main_ctrl_ref_loc, pos=True, rot=True)
-        cmds.matchTransform(namespace + direction_ctrl, direction_ref_loc, pos=True, rot=True)
-        cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=True)
-
-        # # Delete Feet Reference Elements
-        for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:
-            if cmds.objExists(obj):
-                cmds.delete(obj)
+    # # Delete Feet Reference Elements
+    for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:
+        if cmds.objExists(obj):
+            cmds.delete(obj)
 
 
 def pose_flip_left_right(biped_ctrls, namespace=''):
@@ -2034,7 +1970,7 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
 
     """
     # Defined namespace
-    if not namespace.endswith(':'):
+    if not namespace.endswith(":"):
         namespace = namespace + ":"
 
     # Merge Dictionaries
