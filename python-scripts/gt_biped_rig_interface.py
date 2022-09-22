@@ -149,9 +149,10 @@
  Added full IK toe ctrl to control list
  Tweaked order of the pose mirror operation and matched main and direction controls
 
- 1.5.7 - 2022-09-22
+ 1.5.7 to 1.5.9 - 2022-09-22
  Removed offset transfer when mirror
  Removed a few unused variables
+ Tweaked flip operation to be more stable with world-space feet
 
  TODO:
     Overwrite keys for animation functions
@@ -183,7 +184,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.7"
+script_version = "1.5.9"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -195,7 +196,7 @@ gt_custom_rig_interface_settings = {
     'allow_multiple_instances': False,
     'offset_target': False,
     'key_influence': False,
-    'mirror_affects_center': False,
+    'mirror_affects_center': True,
     'flip_affects_center': True,
 }
 
@@ -1755,7 +1756,6 @@ def pose_mirror_left_right(biped_ctrls, source_side, namespace=''):
 
         # Mirror Referenced objects
         for ref_objs in has_reference:
-            print(has_reference)
             mirror_with_world_reference(ref_objs,
                                         has_reference.get(ref_objs)[0],
                                         has_reference.get(ref_objs)[1])
@@ -1864,14 +1864,6 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
                 if cmds.objExists(to_del):
                     cmds.delete(to_del)
 
-    def reset_translate_rotate(objs, namespace_string):
-        for channel in ['x', 'y', 'z']:
-            for target in objs:
-                if not cmds.getAttr(namespace_string + target + '.t' + channel, lock=True):
-                    cmds.setAttr(namespace_string + target + '.t' + channel, 0)
-                if not cmds.getAttr(namespace_string + target + '.r' + channel, lock=True):
-                    cmds.setAttr(namespace_string + target + '.r' + channel, 0)
-
     # Defined namespace
     if not namespace.endswith(':'):
         namespace = namespace + ":"
@@ -1978,6 +1970,14 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
     for ctrl_dict in biped_ctrls:
         biped_ctrls_dict.update(ctrl_dict)
 
+    # Remove Offset
+    to_reset = []
+    # if not gt_custom_rig_interface_settings.get('offset_target'):
+    for ctrl in biped_ik_offset_ctrls:
+        if ctrl in biped_ctrls_dict:
+            del biped_ctrls_dict[ctrl]
+            to_reset.append(namespace + ctrl)
+
     # Find available Ctrls
     available_ctrls = []
     for obj in biped_ctrls_dict:
@@ -1987,6 +1987,7 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
             available_ctrls.append(right_prefix + obj)
 
     # Start Mirroring
+    has_reference = {}
     left_data = {}
     right_data = {}
     if len(available_ctrls) != 0:
@@ -2025,6 +2026,13 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
                         transforms.append([True, False, 'sy'])
                         transforms.append([True, False, 'sz'])
 
+                    # Has Reference Transform (Different Operation)
+                    if len(operation) > 3 and not gt_custom_rig_interface_settings.get('flip_affects_center'):
+                        # Source, Target, WorldObject
+                        has_reference[namespace + left_obj] = [namespace + right_obj]
+                        has_reference[namespace + right_obj] = [namespace + left_obj]
+                        transforms = []
+
                     # Extract Right
                     for transform in transforms:
                         if transform[0]:  # Using Transform?
@@ -2051,11 +2059,40 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
                             else:
                                 errors.append(namespace + right_obj + ' "' + transform[2] + '" is locked.')
 
+        # Store and Reset - Main and Direction Ctrls
+        waist_ref_loc = 'waist_ctrl_temp_ref_loc'
+        if cmds.objExists(waist_ref_loc):  # Delete if present
+            cmds.delete(waist_ref_loc)
+        waist_ref_loc = cmds.spaceLocator(name=waist_ref_loc)[0]
+        cmds.delete(cmds.pointConstraint(namespace + waist_controls[1], waist_ref_loc))
+
+        # # Extract Data From Controls with Reference
+        reference_loc_pairs = []
+        for ref_objs in has_reference:
+            temp_loc = cmds.spaceLocator(name=ref_objs + 'temp_loc')[0]
+            cmds.delete(cmds.parentConstraint(has_reference.get(ref_objs)[0], temp_loc))
+            cmds.parent(temp_loc, waist_ref_loc)
+            # (locator, target)
+            reference_loc_pairs.append((temp_loc, ref_objs))
+            print(ref_objs)
+
+        for loc_pair in reference_loc_pairs:
+            locator = loc_pair[0]
+            target = loc_pair[1]
+            # mirror_with_world_reference(waist_ref_loc, locator, waist_ref_loc)
+            mirror_translate_rotate_values([locator])
+            cmds.matchTransform(target, locator, pos=1, rot=1)
+            cmds.delete(locator)
+
         # Apply Flip Operation
         for left_obj in left_data:
             cmds.setAttr(left_obj, left_data.get(left_obj))
         for right_obj in right_data:
             cmds.setAttr(right_obj, right_data.get(right_obj))
+
+        # # Delete Feet Reference Elements
+        if cmds.objExists(waist_ref_loc):  # Delete if present
+            cmds.delete(waist_ref_loc)
 
         # Print Feedback
         unique_message = '<' + str(random.random()) + '>'
@@ -2069,7 +2106,8 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
             else:
                 is_plural = 'attributes were'
             for error in errors:
-                print(str(error))
+                # print(str(error))
+                pass
             sys.stdout.write(
                 str(len(errors)) + ' locked ' + is_plural + ' ignored. (Open Script Editor to see a list)\n')
     else:
@@ -2819,19 +2857,21 @@ def mirror_translate_rotate_values(obj_list, mirror_axis='x', to_invert='tr'):
     return True
 
 
-def mirror_with_world_reference(source, target, world, world_matching_rot=True):
+def mirror_with_world_reference(source, target, world, world_matching_rot=True, keep_locators=False):
     """
     Attempts to mirror an objects while using a transforms as world reference
 
     Args:
-        source (string): source element to be mirrored
+        source (string): source of the original transform
         target (string): target element to receive the mirrored data
         world (string): world object
-        world_matching_rot (bool, optional):
+        world_matching_rot (bool, optional): if inactive, rotation will be ignored when matching world locator
+        keep_locators (bool, optional): If active, locators won't be deleted
 
     Dependency:
         mirror_translate_rotate_values
 
+    Return: reference_locators_list
     """
     source_loc = source + 'refLoc'
     world_loc = world + 'refLoc'
@@ -2849,12 +2889,29 @@ def mirror_with_world_reference(source, target, world, world_matching_rot=True):
     except Exception as e:
         logger.debug((str(e)))
     finally:
-        for to_delete in [source_loc, world_loc]:
-            if cmds.objExists(to_delete):
-                cmds.delete(to_delete)
+        if not keep_locators:
+            for to_delete in [source_loc, world_loc]:
+                if cmds.objExists(to_delete):
+                    cmds.delete(to_delete)
+        return [source_loc, world_loc]
+
+
+def reset_translate_rotate(objs, namespace_string=''):
+    """
+    Resets non-locked Translate and Rotate channels
+    Args:
+        objs (list): list of objects to reset
+        namespace_string (string, optional): namespace
+    """
+    for channel in ['x', 'y', 'z']:
+        for target in objs:
+            if not cmds.getAttr(namespace_string + target + '.t' + channel, lock=True):
+                cmds.setAttr(namespace_string + target + '.t' + channel, 0)
+            if not cmds.getAttr(namespace_string + target + '.r' + channel, lock=True):
+                cmds.setAttr(namespace_string + target + '.r' + channel, 0)
 
 
 # Build UI
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)  # @@@
+    # logger.setLevel(logging.DEBUG)
     build_gui_custom_rig_interface()
