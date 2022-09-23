@@ -154,6 +154,10 @@
  Removed a few unused variables
  Tweaked flip operation to be more stable with world-space feet
 
+ 1.5.10 - 2022-09-23
+ Added traceback to some logger lines
+ Fixed issue where the hand would complain of a missing control even when using a correct namespace
+
  TODO:
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
@@ -165,6 +169,7 @@ from shiboken2 import wrapInstance
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
+import traceback
 import operator
 import logging
 import random
@@ -184,7 +189,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.9"
+script_version = "1.5.10"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -1368,7 +1373,7 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                         cmds.setAttr(ik_fk_ns_dict.get("auxiliary_ik_ball") + '.r' + xyz, 0)
 
                 # Transfer from FK to IK Ball
-                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_fk_ball_ref')):
+                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_fk_ball_ref') or ''):
                     cmds.matchTransform(ik_fk_ns_dict.get('auxiliary_ik_ball'),
                                         ik_fk_ns_dict.get('auxiliary_fk_ball_ref'), pos=1, rot=1)
 
@@ -1381,15 +1386,16 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                     cmds.setAttr(ik_fk_ns_dict.get('switch_ctrl') + '.influenceSwitch', 0)
 
                 # Transfer from IK to FK Ball
-                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_roll_ball_ref')):
+                if cmds.objExists(ik_fk_ns_dict.get('auxiliary_roll_ball_ref') or ''):
                     cmds.matchTransform(ik_fk_ns_dict.get('auxiliary_fk_ball'),
                                         ik_fk_ns_dict.get('auxiliary_roll_ball_ref'), pos=1, rot=1)
 
                 return 0
         except Exception as e:
-            cmds.warning(
-                'An error occurred. Please check if a namespace is necessary or if a control was deleted.     '
-                'Error: ' + str(e))
+            tb = traceback.format_exc()
+            logger.debug(str(tb))
+            cmds.warning('An error occurred. Please check if a namespace is necessary or if a '
+                         'control was deleted.     Error: ' + str(e))
 
     def print_inview_feedback():
         """
@@ -1558,6 +1564,8 @@ def fk_ik_switch_auto(ik_fk_dict, namespace='', keyframe=False, start_time=0, en
         else:
             cmds.warning('Switch control was not found. Please check if a namespace is necessary.')
     except Exception as e:
+        tb = traceback.format_exc()
+        logger.debug(tb)
         cmds.warning('An error occurred. Please check if a namespace is necessary.     Error: ' + str(e))
 
 
@@ -1616,6 +1624,8 @@ def pose_reset(ab_ik_ctrls, ab_fk_ctrls, ab_center_ctrls, namespace=''):
                         else:
                             cmds.setAttr(namespace + ctrl + '.' + transform + dimension, 0)
                 except Exception as e:
+                    tb = traceback.format_exc()
+                    logger.debug(tb)
                     logger.debug(str(e))
 
     # Special Cases
@@ -2106,8 +2116,7 @@ def pose_flip_left_right(biped_ctrls, namespace=''):
             else:
                 is_plural = 'attributes were'
             for error in errors:
-                # print(str(error))
-                pass
+                print(str(error))
             sys.stdout.write(
                 str(len(errors)) + ' locked ' + is_plural + ' ignored. (Open Script Editor to see a list)\n')
     else:
@@ -2913,5 +2922,5 @@ def reset_translate_rotate(objs, namespace_string=''):
 
 # Build UI
 if __name__ == '__main__':
-    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     build_gui_custom_rig_interface()
