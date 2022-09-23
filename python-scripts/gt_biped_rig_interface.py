@@ -1494,8 +1494,10 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                                                      attribute=channel + dimension)  # Wrist IK Ctrl
                                     cmds.setKeyframe(namespace + ik_fk_dict.get('pvec_ik_ctrl'), time=current_time,
                                                      attribute=channel + dimension)  # PVec Elbow IK Ctrl
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_ik_ball'), time=current_time,
-                                                     attribute=channel + dimension)  # Toe Full IK Control
+                                    if ik_fk_dict.get('auxiliary_ik_ball'):
+                                        cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_ik_ball'),
+                                                         time=current_time,
+                                                         attribute=channel + dimension)  # Toe Full IK Control
 
                         if direction == 'ik_to_fk':
                             for channel in ['t', 'r']:
@@ -1506,8 +1508,10 @@ def fk_ik_switch(ik_fk_dict, direction='fk_to_ik', namespace='', keyframe=False,
                                                      attribute=channel + dimension)  # Wrist FK Ctrl
                                     cmds.setKeyframe(namespace + ik_fk_dict.get('mid_fk_ctrl'), time=current_time,
                                                      attribute=channel + dimension)  # Elbow FK Ctrl
-                                    cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_fk_ball'), time=current_time,
-                                                     attribute=channel + dimension)  # Ball FK Ctrl
+                                    if ik_fk_dict.get('auxiliary_fk_ball'):
+                                        cmds.setKeyframe(namespace + ik_fk_dict.get('auxiliary_fk_ball'),
+                                                         time=current_time,
+                                                         attribute=channel + dimension)  # Ball FK Ctrl
                         current_time += 1
                     switch()
                     if gt_custom_rig_interface_settings.get('key_influence'):
