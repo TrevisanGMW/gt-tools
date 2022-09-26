@@ -2926,5 +2926,5 @@ def reset_translate_rotate(objs, namespace_string=''):
 
 # Build UI
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.DEBUG)
     build_gui_custom_rig_interface()
