@@ -293,6 +293,9 @@
  1.10.0 - 2022-09-14
  Added feet switcher reference locators
 
+ 1.10.1 - 2022-09-26
+ Fixed an issue where the right leg feet would be generated broken
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -3592,9 +3595,8 @@ def create_controls(data_biped):
     temp_transform = cmds.group(name=right_ankle_ctrl + '_rotExtraction', empty=True, world=True)
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_toe_jnt'), temp_transform))
     cmds.delete(cmds.pointConstraint(rig_joints.get('right_ankle_jnt'), temp_transform, skip=['x', 'z']))
-    cmds.delete(
-        cmds.aimConstraint(temp_transform, right_ankle_ctrl, offset=(0, 0, 0), aimVector=(0, 1, 0), upVector=(1, 0, 0),
-                           worldUpType='vector', worldUpVector=(0, -1, 0)))
+    cmds.delete(cmds.aimConstraint(temp_transform, right_ankle_ctrl, offset=(0, 0, 0), aimVector=(0, 1, 0),
+                                   upVector=(1, 0, 0), worldUpType='vector', worldUpVector=(0, -1, 0)))
     cmds.delete(temp_transform)
     cmds.makeIdentity(right_ankle_ctrl, apply=True, rotate=True)
     cmds.parent(right_ankle_ctrl_grp, right_knee_ctrl)
@@ -3729,13 +3731,13 @@ def create_controls(data_biped):
     right_foot_offset_ik_ctrl = cmds.duplicate(right_foot_ik_ctrl, renameChildren=True,
                                                name=right_foot_ik_ctrl.replace('_' + CTRL_SUFFIX,
                                                                                '_offset' + CTRL_SUFFIX.capitalize()))[0]
-    right_foot_offset_ik_ctrl_grp = \
-        cmds.duplicate(right_foot_ik_ctrl, po=True, name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[
-            0]  # group command generates junk data
-    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,
+    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
+                                                   name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[0]
+
+    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
                                                 name=right_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(),
-                                                                                       'Data'))[
-        0]  # group command generates junk data
+                                                                                       'Data'))[0]
+
     cmds.parent(right_foot_offset_data_grp, right_foot_offset_ik_ctrl_grp)
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_ik_ctrl_grp))
     cmds.delete(cmds.parentConstraint(right_foot_ik_ctrl, right_foot_offset_data_grp))
@@ -7372,39 +7374,6 @@ def create_controls(data_biped):
     # ################# IK Controls #################
     # ################# Left Leg IK Controls ################
 
-    # - WIP - @@@ # - WIP - ########################################################################
-    # Left Leg IK
-
-    # left_leg_rp_ik_handle = cmds.ikHandle(n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt,
-    #                                       sol='ikRPsolver')
-    # cmds.poleVectorConstraint(left_knee_ik_ctrl, left_leg_rp_ik_handle[0])
-    #
-    # # Force IK offset not to pop when FK - TODO Experiment with forced offset
-    # # cmds.matchTransform(rig_joints.get('left_hip_jnt'), left_hip_ik_jnt, pos=1, rot=1)
-    # # cmds.matchTransform(rig_joints.get('left_knee_jnt'), left_hip_ik_jnt, pos=1, rot=1)
-    # cmds.parent(left_ankle_ctrl_grp, world=True)
-    # cmds.parent(left_ball_ctrl_grp, world=True)
-    # cmds.matchTransform(left_hip_ctrl_grp, left_hip_ik_jnt, pos=1, rot=1)
-    # if settings.get('uniform_ctrl_orient'):
-    #     cmds.rotate(-90, -90, 0, left_hip_ctrl_grp, os=True, relative=True)
-    # cmds.matchTransform(left_knee_ctrl_grp, left_knee_ik_jnt, pos=1, rot=1)
-    # if settings.get('uniform_ctrl_orient'):
-    #     cmds.rotate(0, -90, -90, left_knee_ctrl_grp, os=True, relative=True)
-    # cmds.matchTransform(left_ankle_ctrl_grp, left_ankle_ik_jnt, pos=1, rot=1)
-    # if settings.get('uniform_ctrl_orient'):
-    #     cmds.rotate(0, -90, -90, left_ankle_ctrl_grp, os=True, relative=True)
-    # cmds.parent(left_ankle_ctrl_grp, left_knee_ctrl)
-    # cmds.parent(left_ball_ctrl_grp, left_ankle_ctrl)
-    #
-    # cmds.matchTransform(left_ball_ik_jnt, left_ball_fk_jnt, pos=1, rot=1)
-    # cmds.matchTransform(left_toe_ik_jnt, left_toe_fk_jnt, pos=1, rot=1)
-    #
-    # left_leg_ball_ik_handle = cmds.ikHandle(n='left_footBall_SC_ikHandle', sj=left_ankle_ik_jnt, ee=left_ball_ik_jnt,
-    #                                         sol='ikSCsolver')
-    # left_leg_toe_ik_handle = cmds.ikHandle(n='left_footToe_SC_ikHandle', sj=left_ball_ik_jnt, ee=left_toe_ik_jnt,
-    #                                        sol='ikSCsolver')
-    # - WIP - ########################################################################
-
     # Left Leg IK
     left_leg_rp_ik_handle = cmds.ikHandle(n='left_footAnkle_RP_ikHandle', sj=left_hip_ik_jnt, ee=left_ankle_ik_jnt,
                                           sol='ikRPsolver')
@@ -7747,10 +7716,32 @@ def create_controls(data_biped):
 
     # ################# Right Leg IK Controls #################
     # Right Leg IK
+
     right_leg_rp_ik_handle = cmds.ikHandle(n='right_footAnkle_RP_ikHandle', sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt,
                                            sol='ikRPsolver')
+
+    # In case ball joint is inverted, undo ikHandle and invert knee's preferredAngleZ
+    right_ball_probe_start = cmds.xform(right_ball_ik_jnt, q=True, ws=True, t=True)
+    right_ball_probe_end = cmds.xform(right_ball_fk_jnt, q=True, ws=True, t=True)
+    right_ball_probe = cmds.createNode('distanceBetween', name='distanceBetween_temp_right_ball_probe')
+    cmds.setAttr(right_ball_probe + '.point1X', right_ball_probe_start[0])
+    cmds.setAttr(right_ball_probe + '.point1Y', right_ball_probe_start[1])
+    cmds.setAttr(right_ball_probe + '.point1Z', right_ball_probe_start[2])
+    cmds.setAttr(right_ball_probe + '.point2X', right_ball_probe_end[0])
+    cmds.setAttr(right_ball_probe + '.point2Y', right_ball_probe_end[1])
+    cmds.setAttr(right_ball_probe + '.point2Z', right_ball_probe_end[2])
+
+    if cmds.getAttr(right_ball_probe + '.distance') > 0.01:
+        cmds.delete(right_leg_rp_ik_handle)
+        cmds.setAttr(right_knee_ik_jnt + ".preferredAngleZ", 90)
+        right_leg_rp_ik_handle = cmds.ikHandle(n=right_leg_rp_ik_handle[0],
+                                               sj=right_hip_ik_jnt,
+                                               ee=right_ankle_ik_jnt,
+                                               sol='ikRPsolver')
+
     right_leg_ball_ik_handle = cmds.ikHandle(n='right_footBall_SC_ikHandle', sj=right_ankle_ik_jnt,
                                              ee=right_ball_ik_jnt, sol='ikSCsolver')
+
     right_leg_toe_ik_handle = cmds.ikHandle(n='right_footToe_SC_ikHandle', sj=right_ball_ik_jnt, ee=right_toe_ik_jnt,
                                             sol='ikSCsolver')
     cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
@@ -10145,7 +10136,7 @@ def create_controls(data_biped):
         # Case Specific Debugging Options
         debugging_auto_breathing = False  # Auto activates breathing Time
         debugging_display_lra = False
-        debugging_ikfk_jnts_visible = False
+        debugging_ikfk_jnts_visible = True
         debugging_offset_ctrls_visible = False
         debugging_annotate = False
         debugging_show_fk_fingers = False
