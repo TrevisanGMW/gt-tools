@@ -293,8 +293,9 @@
  1.10.0 - 2022-09-14
  Added feet switcher reference locators
 
- 1.10.1 - 2022-09-26
+ 1.10.1 to 1.10.2 - 2022-09-26
  Fixed an issue where the right leg feet would be generated broken
+ Updated pole vector to be taken in consideration while generating right leg
 
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
@@ -7717,7 +7718,8 @@ def create_controls(data_biped):
     # ################# Right Leg IK Controls #################
     # Right Leg IK
 
-    right_leg_rp_ik_handle = cmds.ikHandle(n='right_footAnkle_RP_ikHandle', sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt,
+    right_leg_rp_ik_handle = cmds.ikHandle(n='right_footAnkle_RP_ikHandle',
+                                           sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt,
                                            sol='ikRPsolver')
 
     # In case ball joint is inverted, undo ikHandle and invert knee's preferredAngleZ
@@ -7730,6 +7732,8 @@ def create_controls(data_biped):
     cmds.setAttr(right_ball_probe + '.point2X', right_ball_probe_end[0])
     cmds.setAttr(right_ball_probe + '.point2Y', right_ball_probe_end[1])
     cmds.setAttr(right_ball_probe + '.point2Z', right_ball_probe_end[2])
+
+    cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
 
     if cmds.getAttr(right_ball_probe + '.distance') > 0.01:
         cmds.delete(right_leg_rp_ik_handle)
@@ -7744,7 +7748,6 @@ def create_controls(data_biped):
 
     right_leg_toe_ik_handle = cmds.ikHandle(n='right_footToe_SC_ikHandle', sj=right_ball_ik_jnt, ee=right_toe_ik_jnt,
                                             sol='ikSCsolver')
-    cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
 
     # Right Foot Automation Setup
     right_foot_pivot_grp = cmds.group(name='right_foot_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
