@@ -2,31 +2,31 @@
 Script to help transfer motion capture data to custom rig controls
 github.com/TrevisanGMW/gt-tools - 2022-02-18
     
-v0.0.1 - 2022-02-18
+0.0.1 - 2022-02-18
 Initial Test Version
 
-v0.0.3 - 2022-03-02
+0.0.3 - 2022-03-02
 Used parentConstraints to prevent undesired offset rotation
 
-v0.0.5 - 2022-03-04
+0.0.5 - 2022-03-04
 Simplified the script to avoid errors. It now detects joints and bakes FK and IK in one go
 
-v0.1.0 - 2022-03-06
+0.1.0 - 2022-03-06
 Updated UI and added button with explanations
 Added custom help UI function
 
-v0.1.1 - 2022-03-07
+0.1.1 - 2022-03-07
 Added a sentence in the UI explaining basic behaviour regarding first frame use
 
-v0.2.0 - 2022-03-07
+0.2.0 - 2022-03-07
 Added leg stabilization, removed Transfer to IK option
 
-v0.3.0 - 2022-07-07
+0.3.0 - 2022-07-07
 PEP8 cleanup
 Changed "Get Current" option, so it updates both fields
 Added a few utility functions
 
-v0.4.0 - 2022-07-12
+0.4.0 - 2022-07-12
 Updated finger and spine functions to detect the source joint orientation
 Added influence slider to "Connect Spine" help menu
 Added invert rotation checkbox to "Connect Fingers" help menu
@@ -34,12 +34,15 @@ Added invert rotation checkboxes to "Reconnect Spine" help menu
 Changed the name "Connect Spine" to "Reconnect Spine" for clarity
 Added HIK properties' node selection button "P"
 
-v0.4.1 - 2022-07-13
+0.4.1 - 2022-07-13
 Deactivated "waist_ctrl.additionalFKCtrlsAutoRotate" when reconnecting spine
 Activated "waist_ctrl.additionalFKCtrlsVisibility" when reconnecting spine
 
-v0.4.2 - 2022-07-21
+0.4.2 to 0.4.3 - 2022-07-21
 Updated help text
+
+0.4.4 - 2022-09-23
+Updated toe transfer rig to transfer data to FK and also IK toe controls
 
 """
 from collections import namedtuple
@@ -73,7 +76,7 @@ logger = logging.getLogger("gt_rigger_retarget_assistant")
 logger.setLevel(logging.INFO)
 
 # General Variables
-SCRIPT_VERSION = "0.4.3"
+SCRIPT_VERSION = "0.4.4"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
@@ -94,7 +97,10 @@ hik_character = {'source': '',
                  'target': ''}
 
 toe_ctrl_pairs = {'left_ball_ctrl': '',
-                  'right_ball_ctrl': ''}
+                  'right_ball_ctrl': '',
+                  'left_toe_ik_ctrl': '',
+                  'right_toe_ik_ctrl': '',
+                  }
 
 debugging_settings = {'is_debugging': False,
                       'reload_scene': False,
@@ -248,6 +254,9 @@ def change_outliner_color(obj, rgb_color=(1, 1, 1)):
 
 
 def create_toe_mocap_rig():
+    """
+    Creates an interactive toe rig to transfer the animation data from the mocap rig to the target rig
+    """
     if cmds.objExists(MOCAP_RIG_GRP):
         warning = "This rig seems to already be connected to a mocap rig. Please delete it before creating a new one."
         cmds.warning(warning)
@@ -311,10 +320,8 @@ def create_toe_mocap_rig():
         cmds.delete(cmds.parentConstraint(ctrl_ns, mocap_ctrl_grp))
         cmds.parent(mocap_ctrl, mocap_ctrl_grp)
 
-        # if side == 'right':
-        #     cmds.setAttr(mocap_data_loc + '.rx', -360)
-
         cmds.parentConstraint(multiplied_mocap_data_loc, ctrl_ns, mo=True)
+        # cmds.parentConstraint(multiplied_mocap_data_loc, ctrl_ns, mo=True) ###
         ankle_ctrl_ns = find_item_no_namespace(side + '_ankle_ctrl')[0]
 
         cmds.parentConstraint(ankle_ctrl_ns, mocap_ctrl_grp, mo=True)
@@ -492,6 +499,8 @@ def _btn_bake_mocap_with_fixes(*args):
 
     toe_ctrl_pairs['left_ball_ctrl'] = left_toe_jnt[0]
     toe_ctrl_pairs['right_ball_ctrl'] = right_toe_jnt[0]
+    toe_ctrl_pairs['left_toe_ik_ctrl'] = left_toe_jnt[0]
+    toe_ctrl_pairs['right_toe_ik_ctrl'] = right_toe_jnt[0]
 
     if settings.get('unlock_rotations'):
         to_unlock_rotations = ['left_knee_ctrl', 'right_knee_ctrl',
