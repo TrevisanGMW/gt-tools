@@ -293,9 +293,10 @@
  1.10.0 - 2022-09-14
  Added feet switcher reference locators
 
- 1.10.1 to 1.10.2 - 2022-09-26
+ 1.10.1 to 1.10.3 - 2022-09-26
  Fixed an issue where the right leg feet would be generated broken
  Updated pole vector to be taken in consideration while generating right leg
+ Fixed an issue where the finger controls would have unexpected rotation
 
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
@@ -305,6 +306,7 @@
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
     Fix "Use Real-time Skeleton" option (broken after new UI setup)
+    Move all constraints to another group?
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -3732,10 +3734,10 @@ def create_controls(data_biped):
     right_foot_offset_ik_ctrl = cmds.duplicate(right_foot_ik_ctrl, renameChildren=True,
                                                name=right_foot_ik_ctrl.replace('_' + CTRL_SUFFIX,
                                                                                '_offset' + CTRL_SUFFIX.capitalize()))[0]
-    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
+    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,  # group command generates junk data
                                                    name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[0]
 
-    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
+    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,  # group command generates junk data
                                                 name=right_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(),
                                                                                        'Data'))[0]
 
@@ -5235,11 +5237,13 @@ def create_controls(data_biped):
     # Position
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_fingers_ctrl_grp))
     cmds.move(left_wrist_scale_offset * 2.3, left_fingers_ctrl_grp, x=True, relative=True, objectSpace=True)
-    cmds.setAttr(left_fingers_ctrl_grp + '.rotateX', 0)
 
     # Hierarchy
     change_viewport_color(left_fingers_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_fingers_ctrl_grp, left_hand_grp)
+
+    # Rotation
+    cmds.rotate(90, left_fingers_ctrl_grp, rotateX=True, relative=True)
 
     # Right Finger Automation Controls
     # Right Fingers
@@ -5392,11 +5396,13 @@ def create_controls(data_biped):
     # Position
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_fingers_ctrl_grp))
     cmds.move(-right_wrist_scale_offset * 2.3, right_fingers_ctrl_grp, x=True, relative=True, objectSpace=True)
-    cmds.setAttr(right_fingers_ctrl_grp + '.rotateX', -180)
 
     # Hierarchy
     change_viewport_color(right_fingers_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_fingers_ctrl_grp, right_hand_grp)
+
+    # Rotation
+    cmds.rotate(90, right_fingers_ctrl_grp, rotateX=True, relative=True)
 
     # ################ ======= Rig Mechanics ======= #################
 
