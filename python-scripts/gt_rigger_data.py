@@ -382,6 +382,7 @@ class GTBipedRiggerCorrectiveData:
     proxy_storage_variables = {'file_extension': 'ppose_corrective',
                                'script_source': 'gt_rigger_corrective_version',
                                'export_method': 'gt_rigger_corrective_export_method',
+                               'source_object_name': 'main_ctrl',
                                'attr_name': 'corrective_proxy_pose'}
 
     # Debugging Vars
