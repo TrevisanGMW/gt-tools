@@ -298,6 +298,9 @@
  Updated pole vector to be taken in consideration while generating right leg
  Fixed an issue where the finger controls would have unexpected rotation
 
+ 1.10.4 - 2022-09-27
+ Added missing option "simplify_spine" to metadata
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -305,7 +308,6 @@
     Make scale system and breathing system optional
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
-    Fix "Use Real-time Skeleton" option (broken after new UI setup)
     Move all constraints to another group?
 """
 from gt_rigger_utilities import *
@@ -10128,6 +10130,7 @@ def create_controls(data_biped):
     metadata_dict = {'worldspace_ik_orient': settings.get('worldspace_ik_orient'),
                      'uniform_ctrl_orient': settings.get('uniform_ctrl_orient'),
                      'using_no_ssc_skeleton': settings.get('using_no_ssc_skeleton'),
+                     'simplify_spine': settings.get('simplify_spine'),
                      'skeleton_root': str(rig_joints_default.get('main_jnt')),
                      }
     cmds.setAttr(main_ctrl + '.metadata', json.dumps(metadata_dict, indent=4), typ='string')
