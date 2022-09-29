@@ -8,6 +8,9 @@ Added facial and corrective classes
 2022-09-15
 Added ball ctrl reference loc to GTBipedRiggerData
 
+2022-09-08
+Added source_object_name to proxy_storage_variables to represent control carrying metadata
+
 """
 import maya.cmds as cmds
 import logging
@@ -18,7 +21,7 @@ logging.basicConfig()
 logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
-SCRIPT_VERSION_BASE = '1.10.3'
+SCRIPT_VERSION_BASE = '1.10.4'
 SCRIPT_VERSION_FACIAL = '1.0.3'
 SCRIPT_VERSION_CORRECTIVE = '1.0.1'
 
@@ -168,6 +171,7 @@ class GTBipedRiggerData:
     proxy_storage_variables = {'file_extension': 'ppose_base',
                                'script_source': 'gt_rigger_biped_version',
                                'export_method': 'gt_rigger_biped_export_method',
+                               'source_object_name': 'main_ctrl',
                                'attr_name': 'biped_proxy_pose'}
 
     # Debugging Vars
@@ -273,6 +277,7 @@ class GTBipedRiggerFacialData:
     proxy_storage_variables = {'file_extension': 'ppose_facial',
                                'script_source': 'gt_rigger_facial_version',
                                'export_method': 'gt_rigger_facial_export_method',
+                               'source_object_name': 'head_ctrl',
                                'attr_name': 'facial_proxy_pose'}
 
     # Debugging Vars
