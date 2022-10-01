@@ -8,8 +8,10 @@ Added facial and corrective classes
 2022-09-15
 Added ball ctrl reference loc to GTBipedRiggerData
 
-2022-09-08
+2022-09-30
 Added source_object_name to proxy_storage_variables to represent control carrying metadata
+Added GTBipedRiggerRebuildData class to carry information about the rebuilder
+Added "auto_merge" option for facial/corrective
 
 """
 import maya.cmds as cmds
@@ -22,8 +24,9 @@ logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
 SCRIPT_VERSION_BASE = '1.10.4'
-SCRIPT_VERSION_FACIAL = '1.0.3'
-SCRIPT_VERSION_CORRECTIVE = '1.0.1'
+SCRIPT_VERSION_FACIAL = '1.0.4'
+SCRIPT_VERSION_CORRECTIVE = '1.0.2'
+SCRIPT_VERSION_REBUILD = '0.0.3'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -148,6 +151,7 @@ class GTBipedRiggerData:
                          'uniform_ctrl_orient': True,
                          'worldspace_ik_orient': False,
                          'simplify_spine': True,
+                         'auto_merge': True,
                          }
 
         self.elements_default = copy.deepcopy(self.elements)
@@ -256,7 +260,9 @@ class GTBipedRiggerFacialData:
     # Store Default Values
     def __init__(self):
         self.settings = {'find_pre_existing_elements': True,
-                         'setup_nose_cheek': False}
+                         'setup_nose_cheek': False,
+                         'auto_merge': False,
+                         }
 
         self.elements_default = copy.deepcopy(self.elements)
         self.settings_default = copy.deepcopy(self.settings)
@@ -297,37 +303,37 @@ class GTBipedRiggerCorrectiveData:
 
     # Loaded Elements Dictionary
     elements = {  # Pre Existing Elements
-                'main_proxy_grp': 'rigger_corrective_proxy' + '_' + GRP_SUFFIX,
-                'main_root': 'rigger_corrective_proxy' + '_' + PROXY_SUFFIX,
+        'main_proxy_grp': 'rigger_corrective_proxy' + '_' + GRP_SUFFIX,
+        'main_root': 'rigger_corrective_proxy' + '_' + PROXY_SUFFIX,
 
-                # Wrists
-                'left_main_wrist_crv': 'mainWrist_' + PROXY_SUFFIX,
-                'left_upper_wrist_crv': 'upperWrist_' + PROXY_SUFFIX,
-                'left_lower_wrist_crv': 'lowerWrist_' + PROXY_SUFFIX,
+        # Wrists
+        'left_main_wrist_crv': 'mainWrist_' + PROXY_SUFFIX,
+        'left_upper_wrist_crv': 'upperWrist_' + PROXY_SUFFIX,
+        'left_lower_wrist_crv': 'lowerWrist_' + PROXY_SUFFIX,
 
-                # Knees
-                'left_main_knee_crv': 'mainKnee_' + PROXY_SUFFIX,
-                'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
-                'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
+        # Knees
+        'left_main_knee_crv': 'mainKnee_' + PROXY_SUFFIX,
+        'left_back_knee_crv': 'backKnee_' + PROXY_SUFFIX,
+        'left_front_knee_crv': 'frontKnee_' + PROXY_SUFFIX,
 
-                # Hips
-                'left_main_hip_crv': 'mainHip_' + PROXY_SUFFIX,
-                'left_back_hip_crv': 'backHip_' + PROXY_SUFFIX,
-                'left_front_hip_crv': 'frontHip_' + PROXY_SUFFIX,
-                'left_outer_hip_crv': 'outerHip_' + PROXY_SUFFIX,
-                # 'left_inner_hip_crv': 'innerHip_' + PROXY_SUFFIX,
+        # Hips
+        'left_main_hip_crv': 'mainHip_' + PROXY_SUFFIX,
+        'left_back_hip_crv': 'backHip_' + PROXY_SUFFIX,
+        'left_front_hip_crv': 'frontHip_' + PROXY_SUFFIX,
+        'left_outer_hip_crv': 'outerHip_' + PROXY_SUFFIX,
+        # 'left_inner_hip_crv': 'innerHip_' + PROXY_SUFFIX,
 
-                # Elbows
-                'left_main_elbow_crv': 'mainElbow_' + PROXY_SUFFIX,
-                'left_front_elbow_crv': 'frontElbow_' + PROXY_SUFFIX,
+        # Elbows
+        'left_main_elbow_crv': 'mainElbow_' + PROXY_SUFFIX,
+        'left_front_elbow_crv': 'frontElbow_' + PROXY_SUFFIX,
 
-                # Shoulders
-                'left_main_shoulder_crv': 'mainShoulder_' + PROXY_SUFFIX,
-                'left_back_shoulder_crv': 'backShoulder_' + PROXY_SUFFIX,
-                'left_front_shoulder_crv': 'frontShoulder_' + PROXY_SUFFIX,
-                'left_upper_shoulder_crv': 'upperShoulder_' + PROXY_SUFFIX,
-                # 'left_lower_shoulder_crv': 'lowerShoulder_' + PROXY_SUFFIX,
-                }
+        # Shoulders
+        'left_main_shoulder_crv': 'mainShoulder_' + PROXY_SUFFIX,
+        'left_back_shoulder_crv': 'backShoulder_' + PROXY_SUFFIX,
+        'left_front_shoulder_crv': 'frontShoulder_' + PROXY_SUFFIX,
+        'left_upper_shoulder_crv': 'upperShoulder_' + PROXY_SUFFIX,
+        # 'left_lower_shoulder_crv': 'lowerShoulder_' + PROXY_SUFFIX,
+    }
 
     # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
     elements_list = list(elements)
@@ -359,6 +365,7 @@ class GTBipedRiggerCorrectiveData:
                          'setup_shoulders': True,
                          'setup_knees': True,
                          'setup_hips': True,
+                         'auto_merge': False,
                          }
 
         self.elements_default = copy.deepcopy(self.elements)
@@ -396,6 +403,158 @@ class GTBipedRiggerCorrectiveData:
     debugging_bind_geo = 'body_geo'  # Name of the geo to bind
     debugging_bind_heatmap = False  # If not using heatmap, then closest distance
     debugging_post_code = True  # Runs code found at the end of the create controls command
+
+
+class GTBipedRiggerRebuildData:
+    # Version:
+    script_version = SCRIPT_VERSION_REBUILD
+
+    # Permanent Settings
+    option_var = 'gt_biped_rigger_rebuild_setup'
+    ignore_keys = ['']  # Not to be stored
+
+    # Expected Controls (Used for Shape and Custom Attr Extraction) - Right side auto-populated
+    controls = [  # Unique Controls
+                  'main_ctrl',
+                  'direction_ctrl',
+                  'waist_offsetCtrl',
+                  'waist_ctrl',
+                  'pelvis_offsetCtrl',
+                  'pelvis_ctrl',
+
+                  # Head Controls
+                  'head_offsetCtrl',
+                  'head_ctrl',
+                  'jaw_ctrl',
+                  'neckMid_ctrl',
+                  'neckBase_ctrl',
+                  'main_eye_ctrl',
+                  'left_eye_ctrl',
+
+                  # Facial Controls
+                  'baseTongue_ctrl',
+                  'midTongue_ctrl',
+                  'tipTongue_ctrl',
+                  'mid_upperLip_ctrl',
+                  'mid_lowerLip_ctrl',
+                  'left_upperOuterLip_ctrl',
+                  'left_lowerOuterLip_ctrl',
+                  'left_upperCornerLip_ctrl',
+                  'left_lowerCornerLip_ctrl',
+                  'left_cornerLip_ctrl',
+                  'mainMouth_ctrl',
+                  'left_cheek_ctrl',
+                  'left_nose_ctrl',
+                  'main_nose_ctrl',
+                  'left_upperEyelid_ctrl',
+                  'left_lowerEyelid_ctrl',
+                  'left_innerBrow_ctrl',
+                  'left_midBrow_ctrl',
+                  'left_outerBrow_ctrl',
+                  'left_mainEyebrow_ctrl',
+                  # Side GUI
+                  'tongue_offset_ctrl',
+                  'inOutTongue_offset_ctrl',
+                  'jaw_offset_ctrl',
+                  'left_lowerOuterLip_offset_ctrl',
+                  'left_lowerCornerLip_offset_ctrl',
+                  'mid_lowerLip_offset_ctrl',
+                  'mid_upperLip_offset_ctrl',
+                  'left_upperOuterLip_offset_ctrl',
+                  'left_upperCornerLip_offset_ctrl',
+                  'left_cornerLip_offset_ctrl',
+                  'mainMouth_offset_ctrl',
+                  'left_cheek_offset_ctrl',
+                  'left_cheek_in_out_offset_ctrl',
+                  'left_nose_offset_ctrl',
+                  'main_nose_offset_ctrl',
+                  'left_blinkEyelid_ctrl',
+                  'left_upperEyelid_offset_ctrl',
+                  'left_lowerEyelid_offset_ctrl',
+                  'left_innerBrow_offset_ctrl',
+                  'left_outerBrow_offset_ctrl',
+                  'left_midBrow_offset_ctrl',
+
+
+                  # IK Controls
+                  'left_foot_ik_offsetCtrl',
+                  'left_foot_ik_ctrl',
+                  'left_knee_ik_ctrl',
+                  'left_wrist_ik_offsetCtrl',
+                  'left_wrist_ik_ctrl',
+                  'left_elbow_ik_ctrl',
+                  'chest_ribbon_ctrl',
+                  'chest_ribbon_offsetCtrl',
+                  'waist_ribbon_ctrl',
+                  'spine_ribbon_ctrl',
+                  'chest_ribbon_adjustment_ctrl',
+
+                  # FK Controls
+                  'spine01_ctrl',
+                  'spine02_ctrl',
+                  'spine03_ctrl',
+                  'chest_ctrl',
+                  'chest_global_fk_ctrl',
+                  'left_clavicle_ctrl',
+                  'left_shoulder_ctrl',
+                  'left_elbow_ctrl',
+                  'left_wrist_ctrl',
+                  'left_hip_ctrl',
+                  'left_knee_ctrl',
+                  'left_ankle_ctrl',
+                  'left_ball_ctrl',
+
+                  # Fingers
+                  'left_fingers_ctrl',
+                  # FK Fingers
+                  'left_middle02_ctrl',
+                  'left_pinky02_ctrl',
+                  'left_middle01_ctrl',
+                  'left_index01_ctrl',
+                  'left_pinky03_ctrl',
+                  'left_index02_ctrl',
+                  'left_ring02_ctrl',
+                  'left_pinky01_ctrl',
+                  'left_ring01_ctrl',
+                  'left_index03_ctrl',
+                  'left_ring03_ctrl',
+                  'left_middle03_ctrl',
+                  'left_thumb03_ctrl',
+                  'left_thumb02_ctrl',
+                  'left_thumb01_ctrl',
+                  # IK Fingers
+                  'left_thumb_ik_ctrl',
+                  'left_index_ik_ctrl',
+                  'left_middle_ik_ctrl',
+                  'left_ring_ik_ctrl',
+                  'left_pinky_ik_ctrl',
+
+                  # Scale Controls
+                  'left_ball_scaleCtrl',
+                  'left_ankle_scaleCtrl',
+                  'left_knee_scaleCtrl',
+                  'left_hip_scaleCtrl',
+                  'left_clavicle_scaleCtrl',
+                  'neckBase_scaleCtrl',
+                  'neckMid_scaleCtrl',
+                  'left_shoulder_scaleCtrl',
+                  'left_elbow_scaleCtrl',
+                  'left_wrist_scaleCtrl',
+                ]
+
+    # Auto Populate Control Names (Copy from Left to Right) + Add prefixes
+    for item in controls:
+        if item.startswith('left_'):
+            controls.append(item.replace('left_', 'right_'))
+
+    # Store Default Values
+    def __init__(self):
+        self.settings = {}  # 'setup_one': True,
+        self.settings_default = copy.deepcopy(self.settings)
+
+    # Reset Persistent Settings Variables
+    gui_module = 'gt_rigger_biped_gui'
+    entry_function = 'build_gui_auto_biped_rig()'
 
 
 # Manage Persistent Settings
