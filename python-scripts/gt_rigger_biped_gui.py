@@ -436,6 +436,21 @@ def build_gui_auto_biped_rig():
                 c=lambda x: build_custom_help_window(simplify_spine_custom_help_message,
                                                      simplify_spine_custom_help_title))
 
+    # Auto Merge Facial/Corrective
+    is_option_enabled = True
+    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(label='  Auto Merge Facial/Corrective', value=data_biped.settings.get('auto_merge'),
+                  ebg=True, cc=lambda x: _invert_stored_setting('auto_merge', data_biped),
+                  en=is_option_enabled)
+
+    auto_merge_custom_help_message = 'If active, this option will automatically attempt to merge facial or ' \
+                                     'corrective components to the biped/base.'
+    auto_merge_custom_help_title = 'Auto Merge Facial or Corrective'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(auto_merge_custom_help_message,
+                                                     auto_merge_custom_help_title))
+
     # # ####################################### FACIAL SETTINGS ##########################################
     # cmds.separator(h=10, style='none', p=settings_tab)  # Empty Space
     # cmds.text('  Facial Settings:', font='boldLabelFont', p=settings_tab)
@@ -791,7 +806,9 @@ def validate_facial_operation(operation):
     elif operation == "create_controls":
         expected_proxy = data_facial.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
+            data_facial.settings['auto_merge'] = data_biped.settings.get('auto_merge')
             gt_rigger_facial_logic.create_facial_controls(data_facial)
+
         else:
             cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
 
@@ -832,6 +849,7 @@ def validate_corrective_operation(operation):
     elif operation == "create_controls":
         expected_proxy = data_corrective.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
+            data_corrective.settings['auto_merge'] = data_biped.settings.get('auto_merge')
             gt_rigger_corrective_logic.create_corrective_setup(data_corrective)
         else:
             cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
