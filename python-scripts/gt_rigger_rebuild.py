@@ -5,14 +5,16 @@ github.com/TrevisanGMW/gt-tools - 2022-09-28
 0.0.1 - 2022-09-28
 Created initial setup
 
-0.0.2 - 2022-09-29
-Added control shape extraction
+0.0.2 to 0.0.3 - 2022-09-30
+Added initial control shape extraction
+Added data object (control list)
 
 TODO
     Add bound joint extraction
     Add skin weights extraction
     Add control custom attributes extraction
-
+    Add corrective and facial reference position
+    Add side GUI, fingers and feet positioning
 """
 from gt_rigger_game_exporter import find_main_ctrl
 from gt_rigger_biped_gui import *
@@ -28,6 +30,9 @@ import re
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_rebuild")
 logger.setLevel(logging.INFO)
+
+# Data Object
+data_rebuild = GTBipedRiggerRebuildData()
 
 
 def extract_metadata(data_object):
@@ -61,21 +66,19 @@ def transfer_biped_base_settings(data_object, metadata):
             data_object.settings[option] = metadata.get(option)
 
 
-def extract_python_curve_shape(curve_transforms, printing=False):
+def extract_python_curve_shape_data(curve_transforms):
     """
     Extracts the Python code necessary to reshape
     Args:
         curve_transforms (list of strings): Transforms carrying curve shapes inside them (nurbs or bezier)
-        printing: Whether to print the extracted python code. If False it will only return the code.
 
     Returns:
         python_string (string): Python code with the current state of the selected curves (their shape)
 
-    Copied from "gt_shape_extract_shape"
+    Modified version of the function from "gt_shape_extract_shape"
     """
-    result = ''
-    if printing:
-        result += ('#' * 80)
+    result = {}
+
     for crv in curve_transforms:
         valid_types = ['nurbsCurve', 'bezierCurve']
         accepted_shapes = []
@@ -87,28 +90,15 @@ def extract_python_curve_shape(curve_transforms, printing=False):
                 accepted_shapes.append(shape)
 
         # Extract CVs into Python code:
-        # print(accepted_shapes)
         for shape in accepted_shapes:
-            curve_data = zip(cmds.ls('%s.cv[*]' % shape, flatten=True), cmds.getAttr(shape + '.cv[*]'))
-            curve_data_list = list(curve_data)
-            # Assemble command:
+            extracted_crv_data = zip(cmds.ls('%s.cv[*]' % shape, flatten=True), cmds.getAttr(shape + '.cv[*]'))
+            curve_data_list = list(extracted_crv_data)
             if curve_data_list:
-                result += '# Curve data for "' + str(shape).split('|')[-1] + '":\n'
-                result += 'for cv in ' + str(curve_data_list) + ':\n'
-                result += '    cmds.xform(cv[0], os=True, t=cv[1])\n\n'
+                result[str(shape).split('|')[-1]] = curve_data_list
 
-    if result.endswith('\n\n\n'):  # Removes unnecessary spaces at the end
-        result = result[:-2]
+    # if result.endswith('\n\n\n'):  # Removes unnecessary spaces at the end
+    #     result = result[:-2]
 
-    # Return / Print
-    if printing:
-        result += ('#' * 80)
-        if result.replace('#', ''):
-            print(result)
-            return result
-        else:
-            print('No data found. Make sure your selection contains nurbs or bezier curves.')
-            return None
     else:
         return result
 
@@ -126,12 +116,18 @@ if __name__ == '__main__':
     #
     # transfer_biped_base_settings(data_biped, biped_metadata)
 
-    proxy_elements = data_biped.elements_default # Doesn't work, create ctrl list
     found_controls = []
-    for proxy in proxy_elements:
-        potential_ctrl = proxy.replace('_proxy_crv', '_ctrl')
-        if cmds.objExists(potential_ctrl):
-            found_controls.append(potential_ctrl)
+    for control in data_rebuild.controls:
+        if cmds.objExists(control):
+            found_controls.append(control)
 
-    curve_commands = extract_python_curve_shape(found_controls)
-
+    extracted_curves = extract_python_curve_shape_data(found_controls)
+    # extracted_curves = extract_python_curve_shape_data([curves_to_extract])
+    # print(len(curve_commands))
+    for key in extracted_curves:
+        curve_data = extracted_curves.get(key)
+        for cv in curve_data:
+            try:
+                cmds.xform(cv[0], os=True, t=cv[1])
+            except Exception as e:
+                logger.debug(str(e))
