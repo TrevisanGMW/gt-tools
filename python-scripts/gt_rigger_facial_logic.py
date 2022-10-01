@@ -70,6 +70,10 @@
  1.0.2 - 2022-07-28
  Added main nose control to head visibility attribute
 
+ 1.0.3 - 2022-09-30
+ Added option to auto merge facial rig with base/biped
+ Added suppress warning option to "merge_corrective_elements"
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
      Improve tongue scale control system
@@ -3599,6 +3603,10 @@ def create_facial_controls(facial_data):
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_facial_proxy_dict.get('main_proxy_grp'))
 
+    # Auto Merge
+    if facial_data.settings.get('auto_merge'):
+        merge_facial_elements(supress_warning=True)
+
     # ------------------------------------- Debugging -------------------------------------
     if facial_data.debugging:
         try:
@@ -3610,7 +3618,12 @@ def create_facial_controls(facial_data):
             print(e)
 
 
-def merge_facial_elements():
+def merge_facial_elements(supress_warning=False):
+    """
+    Attempts to merge facial rig elements with base/biped rig
+    Args:
+        supress_warning (bool, optional): Ignores failed attempts instead of showing the user a warning message
+    """
     necessary_elements = []
     facial_rig_grp = 'facial_rig_grp'
     skeleton_grp = 'skeleton_grp'
@@ -3620,7 +3633,8 @@ def merge_facial_elements():
     necessary_elements.append(rig_setup_grp)
     for obj in necessary_elements:
         if not cmds.objExists(obj):
-            cmds.warning('Missing a require element. "' + obj + '"')
+            if not supress_warning:
+                cmds.warning('Missing a require element. "' + obj + '"')
             return
 
     facial_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
@@ -3639,7 +3653,7 @@ def merge_facial_elements():
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    data_facial.debugging = True
+    data_facial.debugging = False
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
@@ -3661,7 +3675,7 @@ if __name__ == '__main__':
     # Core Functions ---------------------------------------------------------------------------------------------
     create_facial_proxy(data_facial)
     create_facial_controls(data_facial)
-    merge_facial_elements()
+    # merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
