@@ -1679,7 +1679,12 @@ def create_proxy(data_biped):
 
 
 def create_controls(data_biped):
-    """ Creates rig using the previously created proxy/guide """
+    """
+    Creates rig using the previously created proxy/guide
+
+    Args:
+        data_biped: biped_data object
+    """
 
     def rename_proxy(old_name):
         """
