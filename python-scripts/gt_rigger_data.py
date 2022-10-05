@@ -13,6 +13,9 @@ Added source_object_name to proxy_storage_variables to represent control carryin
 Added GTBipedRiggerRebuildData class to carry information about the rebuilder
 Added "auto_merge" option for facial/corrective
 
+2022-10-05
+Added placeholder variables to rebuild object
+
 """
 import maya.cmds as cmds
 import logging
@@ -26,7 +29,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_VERSION_BASE = '1.10.4'
 SCRIPT_VERSION_FACIAL = '1.0.4'
 SCRIPT_VERSION_CORRECTIVE = '1.0.2'
-SCRIPT_VERSION_REBUILD = '0.0.3'
+SCRIPT_VERSION_REBUILD = '0.0.5'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -413,9 +416,17 @@ class GTBipedRiggerRebuildData:
     option_var = 'gt_biped_rigger_rebuild_setup'
     ignore_keys = ['']  # Not to be stored
 
+    rig_root = 'rig_grp'
+    skeleton_grp = 'skeleton_grp'
+    main_ctrl = 'main_ctrl'
+    extracted_proxy_json = None
+    extracted_biped_metadata = None
+    extracted_shape_data = None
+    extracted_custom_attr = None
+
     # Expected Controls (Used for Shape and Custom Attr Extraction) - Right side auto-populated
     controls = [  # Unique Controls
-                  'main_ctrl',
+                  main_ctrl,
                   'direction_ctrl',
                   'waist_offsetCtrl',
                   'waist_ctrl',
@@ -474,7 +485,6 @@ class GTBipedRiggerRebuildData:
                   'left_innerBrow_offset_ctrl',
                   'left_outerBrow_offset_ctrl',
                   'left_midBrow_offset_ctrl',
-
 
                   # IK Controls
                   'left_foot_ik_offsetCtrl',
@@ -551,10 +561,6 @@ class GTBipedRiggerRebuildData:
     def __init__(self):
         self.settings = {}  # 'setup_one': True,
         self.settings_default = copy.deepcopy(self.settings)
-
-    # Reset Persistent Settings Variables
-    gui_module = 'gt_rigger_biped_gui'
-    entry_function = 'build_gui_auto_biped_rig()'
 
 
 # Manage Persistent Settings
