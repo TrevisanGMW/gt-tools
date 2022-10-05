@@ -95,12 +95,34 @@ def extract_python_curve_shape_data(curve_transforms):
             curve_data_list = list(extracted_crv_data)
             if curve_data_list:
                 result[str(shape).split('|')[-1]] = curve_data_list
-
-    # if result.endswith('\n\n\n'):  # Removes unnecessary spaces at the end
-    #     result = result[:-2]
-
     else:
         return result
+
+
+def apply_python_curve_shape_data(extracted_curves):
+    """
+    Applies JSON data extracted from curves using  extract_python_curve_shape_data
+    Args:
+        extracted_curves (json, dict): JSON data extracted using "extract_python_curve_shape_data"
+    """
+    errors = ''
+    for key in extracted_curves:
+        curve_data = extracted_curves.get(key)
+        for cv in curve_data:
+            try:
+                cmds.xform(cv[0], os=True, t=cv[1])
+            except Exception as e:
+                error = str(e)
+                if ".cv" in str(e):
+                    error = error.split('.')[0]
+                if error not in errors:
+                    errors += error + '\n'
+
+    if errors:
+        print("*" * 80)
+        print("Errors when updating shapes:")
+        print(errors)
+    # logger.debug(str(e))
 
 
 # Run
@@ -121,13 +143,8 @@ if __name__ == '__main__':
         if cmds.objExists(control):
             found_controls.append(control)
 
-    extracted_curves = extract_python_curve_shape_data(found_controls)
-    # extracted_curves = extract_python_curve_shape_data([curves_to_extract])
-    # print(len(curve_commands))
-    for key in extracted_curves:
-        curve_data = extracted_curves.get(key)
-        for cv in curve_data:
-            try:
-                cmds.xform(cv[0], os=True, t=cv[1])
-            except Exception as e:
-                logger.debug(str(e))
+    # extracted_curves = extract_python_curve_shape_data(found_controls)
+
+    apply_python_curve_shape_data(extracted_curves)
+
+
