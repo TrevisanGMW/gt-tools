@@ -10327,7 +10327,7 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
     import gt_rigger_biped_gui
     if biped_obj.debugging_import_proxy:
         gt_rigger_biped_gui.import_biped_proxy_pose(debugging=biped_obj.debugging_import_proxy,
-                                                    debugging_path=biped_obj.debugging_import_path)
+                                                    source_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
