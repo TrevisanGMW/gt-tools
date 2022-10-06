@@ -168,10 +168,11 @@ def rebuild_biped_rig(data_rebuild_object):
     if cmds.objExists(data_rebuild_object.rig_root):
         rig_root = data_rebuild_object.rig_root
     else:  # In case default rig root doesn't exist, try to find using skeleton_grp
-        skeleton_grp_parent = cmds.listRelatives(data_rebuild_object.skeleton_grp, allParents=True) or []
-        print(skeleton_grp_parent)
-        if skeleton_grp_parent:
-            rig_root = skeleton_grp_parent[0]
+        if cmds.objExists(data_rebuild_object.skeleton_grp):
+            skeleton_grp_parent = cmds.listRelatives(data_rebuild_object.skeleton_grp, allParents=True) or []
+            print(skeleton_grp_parent)
+            if skeleton_grp_parent:
+                rig_root = skeleton_grp_parent[0]
 
     # Couldn't delete the rig, cancel operation
     if not rig_root:
@@ -180,7 +181,8 @@ def rebuild_biped_rig(data_rebuild_object):
         cmds.delete(rig_root)
 
     print("Rebuild proxy")
-    # create_proxy(biped_obj)
+    create_proxy(data_biped)
+    import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_proxy_json)
     print("Import proxy")
     print("Rebuild Rig")
 
