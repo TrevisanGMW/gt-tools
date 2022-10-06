@@ -12,6 +12,9 @@ Added data object (control list)
 0.0.4 to 0.0.5 - 2022-10-05
 Separated extract, re-build and transfer into their own functions
 
+0.0.6 - 2022-10-05
+Added control generation to rebuild function
+Added more debug prints to current functions
 
 TODO
     Add bound joint extraction
@@ -73,7 +76,7 @@ def transfer_biped_base_settings(data_object, metadata):
     to_transfer = ['using_no_ssc_skeleton', 'uniform_ctrl_orient', 'worldspace_ik_orient', 'simplify_spine']
     for option in to_transfer:
         if metadata.get(option) is not None:
-            logger.debug(str(option) + ': ' + str(metadata.get(option)))
+            # logger.debug(str(option) + ': ' + str(metadata.get(option)))
             data_object.settings[option] = metadata.get(option)
 
 
@@ -137,6 +140,8 @@ def apply_python_curve_shape_data(extracted_shapes):
 
 def extract_current_rig_data(data_rebuild_object):
     # Find Available Controls
+    logger.debug("*** EXTRACTING CURRENT RIG:")
+    logger.debug("searching for available controls...")
     found_controls = []
     for control in data_rebuild.controls:
         if cmds.objExists(control):
@@ -147,30 +152,33 @@ def extract_current_rig_data(data_rebuild_object):
         return False
 
     # Extract Proxy Data
+    logger.debug("extracting proxy position...")
     extracted_proxy_json = extract_metadata(data_biped)  # Re-build proxy
     data_rebuild_object.extracted_proxy_json = extracted_proxy_json
 
     # Extract Rig Settings
+    logger.debug("extracting settings (metadata)...")
     if find_item(name=data_rebuild_object.main_ctrl, item_type='transform', log_fail=False):
         extracted_biped_metadata = get_metadata(data_rebuild_object.main_ctrl)  # Find previous settings
         data_rebuild_object.extracted_biped_metadata = extracted_biped_metadata
 
     # Extract Shapes
+    logger.debug("extracting control shapes...")
     data_rebuild_object.extracted_shape_data = extract_python_curve_shape_data(found_controls)
 
 
 def rebuild_biped_rig(data_rebuild_object):
-    print("Run tear down script")
-    print("Delete current")
+    logger.debug("*** REBUILDING RIG:")
+    logger.debug("running tearing down script...")
 
     # Delete current
+    logger.debug("deleting current rig...")
     rig_root = ''
     if cmds.objExists(data_rebuild_object.rig_root):
         rig_root = data_rebuild_object.rig_root
     else:  # In case default rig root doesn't exist, try to find using skeleton_grp
         if cmds.objExists(data_rebuild_object.skeleton_grp):
             skeleton_grp_parent = cmds.listRelatives(data_rebuild_object.skeleton_grp, allParents=True) or []
-            print(skeleton_grp_parent)
             if skeleton_grp_parent:
                 rig_root = skeleton_grp_parent[0]
 
@@ -180,24 +188,31 @@ def rebuild_biped_rig(data_rebuild_object):
     else:
         cmds.delete(rig_root)
 
-    print("Rebuild proxy")
+    # Rebuild Proxy
+    logger.debug("recreating/importing proxy...")
     create_proxy(data_biped)
     import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_proxy_json)
-    print("Import proxy")
-    print("Rebuild Rig")
+
+    # Rebuild Controls
+    logger.debug("recreating controls...")
+    validate_biped_operation('create_controls')
+    return True
 
 
 def transfer_current_rig_data(data_rebuild_object):
+    logger.debug("*** TRANSFERRING DATA TO NEW RIG:")
+
     # Transfer Base Settings
     if data_rebuild_object.extracted_proxy_json and data_rebuild_object.extracted_biped_metadata:
+        logger.debug("transferring previous settings (metadata)...")
         transfer_biped_base_settings(data_biped, data_rebuild_object.extracted_biped_metadata)
 
     # Transfer Shape Data
     if data_rebuild_object.extracted_shape_data:
-        print("Yes")
+        logger.debug("transferring shape data...")
         apply_python_curve_shape_data(data_rebuild_object.extracted_shape_data)
 
-    print("Run set up script")
+    logger.debug("running set-up script...")
 
 
 # Run
