@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_VERSION_BASE = '1.10.4'
 SCRIPT_VERSION_FACIAL = '1.0.4'
 SCRIPT_VERSION_CORRECTIVE = '1.0.2'
-SCRIPT_VERSION_REBUILD = '0.0.6'
+SCRIPT_VERSION_REBUILD = '0.0.7'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -167,8 +167,8 @@ class GTBipedRiggerData:
             name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                                'end' + JNT_SUFFIX.capitalize())
             joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
-    joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
-    joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
+    # joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
+    # joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
 
     # Reset Persistent Settings Variables
     gui_module = 'gt_rigger_biped_gui'
@@ -186,7 +186,6 @@ class GTBipedRiggerData:
     debugging_auto_recreate = True  # Auto deletes proxy/rig before creating
     debugging_force_new_scene = True  # Forces new instance every time
     debugging_keep_cam_transforms = True  # Keeps camera position
-    debugging_import_proxy = True  # Auto Imports Proxy
     debugging_import_path = 'C:\\template.ppose_base'  # Path to auto import
     debugging_bind_rig = False  # Auto Binds Rig
     debugging_bind_geo = 'body_geo'  # Name of the geo to bind
@@ -381,8 +380,8 @@ class GTBipedRiggerCorrectiveData:
             name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                                'end' + JNT_SUFFIX.capitalize())
             joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
-    joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
-    joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
+    # joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
+    # joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
 
     # Reset Persistent Settings Variables
     gui_module = 'gt_rigger_biped_gui'
