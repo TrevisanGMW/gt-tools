@@ -167,8 +167,8 @@ class GTBipedRiggerData:
             name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                                'end' + JNT_SUFFIX.capitalize())
             joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
-    # joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
-    # joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
+    joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
+    joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
 
     # Reset Persistent Settings Variables
     gui_module = 'gt_rigger_biped_gui'
@@ -380,8 +380,6 @@ class GTBipedRiggerCorrectiveData:
             name = elements.get(obj).replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),
                                                                                'end' + JNT_SUFFIX.capitalize())
             joints_default[obj.replace('_crv', '_' + JNT_SUFFIX).replace('_proxy', '')] = name
-    # joints_default['left_forearm_jnt'] = 'left_forearm_jnt'
-    # joints_default['right_forearm_jnt'] = 'right_forearm_jnt'
 
     # Reset Persistent Settings Variables
     gui_module = 'gt_rigger_biped_gui'
