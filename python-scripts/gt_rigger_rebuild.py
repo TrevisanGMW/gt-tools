@@ -16,6 +16,9 @@ Separated extract, re-build and transfer into their own functions
 Added control generation to rebuild function
 Added more debug prints to current functions
 
+0.0.7 - 2022-10-06
+Added user-defined attributes extraction and transfer
+
 TODO
     Add bound joint extraction
     Add skin weights extraction
@@ -138,9 +141,59 @@ def apply_python_curve_shape_data(extracted_shapes):
         print(errors)
 
 
+def extract_user_defined_attr(obj_list):
+    """
+    Extracts user defined attributes and stored them in a dictionary
+    Args:
+        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+
+    Returns:
+        dictionary with extracted values
+
+    """
+    if not obj_list:
+        obj_list = cmds.ls(selection=True)
+    if not obj_list:
+        return
+
+    output = {}
+
+    for obj in obj_list:
+
+        attributes = cmds.listAttr(obj, userDefined=True) or []
+
+        if attributes:
+            for attr in attributes:  # TRS
+                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
+                value = cmds.getAttr(obj + '.' + attr)
+                if attr_type == 'double3':
+                    pass
+                elif attr_type == 'string':
+                    output[obj + '.' + attr] = 'cmds.setAttr("' + obj + '.' + attr + '", """' + \
+                                               str(value) + '""", typ="string")\n'
+                else:
+                    output[obj + '.' + attr] = 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+    return output
+
+
+def apply_user_defined_attr(user_defined_dict):
+    for key in user_defined_dict:
+        try:
+            if cmds.objExists(key):
+                if not cmds.getAttr(key, lock=True) and not cmds.listConnections(key, source=True, destination=False):
+                    eval(user_defined_dict.get(key))
+        except Exception as e:
+            logger.debug(str(e))
+
+
 def extract_current_rig_data(data_rebuild_object):
+    """
+    Extracts data from current rig
+    Args:
+       data_rebuild_object (GTBipedRiggerRebuildData): data object used to store extracted data
+    """
     # Find Available Controls
-    logger.debug("*** EXTRACTING CURRENT RIG:")
+    logger.debug("*_*_* EXTRACTING CURRENT RIG:")
     logger.debug("searching for available controls...")
     found_controls = []
     for control in data_rebuild.controls:
@@ -166,9 +219,18 @@ def extract_current_rig_data(data_rebuild_object):
     logger.debug("extracting control shapes...")
     data_rebuild_object.extracted_shape_data = extract_python_curve_shape_data(found_controls)
 
+    # Extract Custom Attr
+    logger.debug("extracting control shapes...")
+    data_rebuild_object.extracted_custom_attr = extract_user_defined_attr(found_controls)
+
 
 def rebuild_biped_rig(data_rebuild_object):
-    logger.debug("*** REBUILDING RIG:")
+    """
+    Deletes old rig and recreates it using the extracted data
+    Args:
+        data_rebuild_object (GTBipedRiggerRebuildData): extracted data stored in rebuild object
+    """
+    logger.debug("*_*_* REBUILDING RIG:")
     logger.debug("running tearing down script...")
 
     # Delete current
@@ -200,7 +262,12 @@ def rebuild_biped_rig(data_rebuild_object):
 
 
 def transfer_current_rig_data(data_rebuild_object):
-    logger.debug("*** TRANSFERRING DATA TO NEW RIG:")
+    """
+    Transfer data back to a rig after it's generated
+    Args:
+        data_rebuild_object (GTBipedRiggerRebuildData): extracted data stored in rebuild object
+    """
+    logger.debug("*_*_* TRANSFERRING DATA TO NEW RIG:")
 
     # Transfer Base Settings
     if data_rebuild_object.extracted_proxy_json and data_rebuild_object.extracted_biped_metadata:
@@ -212,16 +279,27 @@ def transfer_current_rig_data(data_rebuild_object):
         logger.debug("transferring shape data...")
         apply_python_curve_shape_data(data_rebuild_object.extracted_shape_data)
 
+    # Transfer User-defined Attributes
+    apply_user_defined_attr(data_rebuild_object.extracted_custom_attr)
+
     logger.debug("running set-up script...")
 
 
-# Run
-if __name__ == '__main__':
-    # data_biped = GTBipedRiggerData()
-    # data_facial = GTBipedRiggerFacialData()
-    # data_corrective = GTBipedRiggerCorrectiveData()
-
-    logger.setLevel(logging.DEBUG)
+def validate_rebuild(character_template=''):
+    """
+    Validate operation and rebuild rig
+    Args:
+        character_template (string, optional): Path to a character template
+    """
+    # Using current loaded rig
+    if not find_item(name=data_rebuild.main_ctrl, item_type='transform', log_fail=False) and not character_template:
+        cmds.warning('"Load a template or a character file before rebuilding. ' +
+                     '(Unable to find "' + data_rebuild.main_ctrl + '")')
+        return
+    # Using saved template
+    if character_template:
+        if os.path.exists(character_template):
+            pass  # Add logic for loading template here
 
     # Extract Data to Rebuild Object
     extract_current_rig_data(data_rebuild)
@@ -231,3 +309,22 @@ if __name__ == '__main__':
 
     # Transfer Data to Rebuilt Rig
     transfer_current_rig_data(data_rebuild)
+
+
+# Run
+if __name__ == '__main__':
+    # data_biped = GTBipedRiggerData()
+    # data_facial = GTBipedRiggerFacialData()
+    # data_corrective = GTBipedRiggerCorrectiveData()
+
+    logger.setLevel(logging.DEBUG)
+    validate_rebuild()
+
+    # found_controls = []
+    # for control in data_rebuild.controls:
+    #     if cmds.objExists(control):
+    #         found_controls.append(control)
+    # out = extract_user_defined_attr(found_controls)
+    # import pprint
+    # pprint.pprint(out)
+
