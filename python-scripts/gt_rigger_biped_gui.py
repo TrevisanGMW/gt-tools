@@ -33,8 +33,11 @@
  2022-07-22
  Added import/export options to corrective system
 
- 2022-10-05
+ 2022-10-06
  Added file and json import options to "import_biped_proxy_pose"
+ Added file and json import options to "import_facial_proxy_pose"
+ Added file and json import options to "import_corrective_proxy_pose"
+ Removed a few unnecessary print statements
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -1811,7 +1814,6 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
             else:
                 with open(pose_file) as json_file:
                     data = json.load(json_file)
-                    print(data)
                     import_biped_proxy_pose_json(data)
 
         except Exception as exception:
@@ -1821,7 +1823,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
-def import_facial_proxy_pose(debugging=False, debugging_path=''):
+def import_facial_proxy_pose(source_path=None, source_dict=None):
     """
     Imports a JSON file containing the translation, rotation and scale data for every proxy curve
     (exported using the "export_proxy_pose" function)
@@ -1833,147 +1835,152 @@ def import_facial_proxy_pose(debugging=False, debugging_path=''):
     Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
 
     Args:
-        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
-                          "debugging_path" parameter
-        debugging_path (string): Debugging path for the import function
+        source_path (string, optional): Source path for the import function. If provided, file dialog is ignored.
+        source_dict (dict, optional): JSON containing proxy data
 
     """
+    def import_facial_proxy_pose_json(json_data):
+        try:
+            is_valid_file = True
+            import_method = 'world-space'
 
-    pose_file = None
+            if not json_data.get(script_source):
+                is_valid_file = False
+                cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
+            else:
+                import_version = float(re.sub("[^0-9]", "", str(json_data.get(script_source))))
+                logger.debug(str(import_version))
+
+            if json_data.get(export_method):
+                import_method = json_data.get(export_method)
+                logger.debug(str(import_method))
+
+            is_valid_scene = True
+            # Check for existing rig or conflicting names
+            undesired_elements = ['facial_rig_grp']
+            for jnt in data_facial.joints_default:
+                undesired_elements.append(data_facial.joints_default.get(jnt))
+            for obj in undesired_elements:
+                if cmds.objExists(obj) and is_valid_scene:
+                    is_valid_scene = False
+                    cmds.warning(
+                        '"' + obj + '" found in the scene. This means that you either already created a '
+                                    'rig or you have conflicting names on your objects. '
+                                    '(Click on "Help" for more details)')
+
+            if is_valid_scene:
+                # Check for Proxy
+                proxy_exists = True
+
+                proxy_elements = []
+                for proxy in data_facial.elements_default:
+                    if '_crv' in proxy or 'main_root' in proxy:
+                        proxy_elements.append(data_facial.elements.get(proxy))
+                for obj in proxy_elements:
+                    if not cmds.objExists(obj) and proxy_exists:
+                        proxy_exists = False
+                        delete_proxy(suppress_warning=True, proxy_target='facial')
+                        validate_facial_operation('create_proxy')
+                        cmds.warning('Current proxy was missing elements, a new one was created.')
+
+            if is_valid_file and is_valid_scene:
+                if import_method == 'world-space':
+                    reset_proxy(suppress_warning=True, proxy_target='facial')
+                    sorted_pairs = []
+                    for proxy in json_data:
+                        if proxy != script_source and proxy != export_method:
+                            current_object = json_data.get(proxy)  # Name, T, R, S
+                            if cmds.objExists(current_object[0]):
+                                long_name = cmds.ls(current_object[0], l=True) or []
+                                number_of_parents = len(long_name[0].split('|'))
+                                sorted_pairs.append((current_object, number_of_parents))
+
+                            sorted_pairs.sort(key=lambda x: x[1], reverse=True)
+
+                    # Scale (Children First)
+                    for obj in sorted_pairs:
+                        current_object = obj[0]
+                        if cmds.objExists(current_object[0]):
+                            set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                            set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                            set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                    # Translate and Rotate (Parents First)
+                    for obj in reversed(sorted_pairs):
+                        current_object = obj[0]
+                        if cmds.objExists(current_object[0]):
+                            set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                            set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+
+                    # Set brows and eyelids again
+                    for obj in reversed(sorted_pairs):
+                        current_object = obj[0]
+                        if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
+                            if cmds.objExists(current_object[0]):
+                                set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                elif import_method == 'world-space':
+                    for proxy in json_data:
+                        if proxy != script_source and proxy != export_method:
+                            current_object = json_data.get(proxy)  # Name, T, R, S
+                            if cmds.objExists(current_object[0]):
+                                set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                else:
+                    cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
+
+                if not source_path_exists:
+                    unique_message = '<' + str(random.random()) + '>'
+                    cmds.inViewMessage(
+                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
+                                             ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                        pos='botLeft', fade=True, alpha=.9)
+                    sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
+
+        except Exception as e:
+            logger.info(str(e))
+            cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
+                         'file. (Click on "Help" for more info)')
+
     _proxy_storage = data_facial.proxy_storage_variables
     script_source = _proxy_storage.get('script_source')
     export_method = _proxy_storage.get('export_method')
     file_extension = _proxy_storage.get('file_extension')
     script_name = data_facial.script_name
 
-    if not debugging:
+    source_path_exists = False
+    if source_path:
+        if os.path.isfile(source_path):
+            source_path_exists = True
+    if source_dict:  # JSON doesn't need a file
+        source_path_exists = True
+
+    if not source_path_exists:
         file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
         file_filter += script_name + ' - JSON File (*.json)'
         file_name = cmds.fileDialog2(fileFilter=file_filter,
                                      dialogStyle=2, fileMode=1, okCaption='Import',
                                      caption='Importing Proxy Pose for "' + script_name + '"') or []
     else:
-        file_name = [debugging_path]
+        file_name = [source_path]
 
     if len(file_name) > 0:
         pose_file = file_name[0]
-        file_exists = True
-    else:
-        file_exists = False
-
-    if file_exists:
         try:
-            with open(pose_file) as json_file:
-                data = json.load(json_file)
-                try:
-                    is_valid_file = True
+            if source_dict:
+                import_facial_proxy_pose_json(source_dict)
+            else:
+                with open(pose_file) as json_file:
+                    data = json.load(json_file)
+                    import_facial_proxy_pose_json(data)
 
-                    if not data.get(script_source):
-                        is_valid_file = False
-                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
-                    else:
-                        import_version = float(re.sub("[^0-9]", "", str(data.get(script_source))))
-                        logger.debug(str(import_version))
-
-                    if data.get(export_method):
-                        import_method = data.get(export_method)
-                        logger.debug(str(import_method))
-
-                    is_valid_scene = True
-                    # Check for existing rig or conflicting names
-                    undesired_elements = ['facial_rig_grp']
-                    for jnt in data_facial.joints_default:
-                        undesired_elements.append(data_facial.joints_default.get(jnt))
-                    for obj in undesired_elements:
-                        if cmds.objExists(obj) and is_valid_scene:
-                            is_valid_scene = False
-                            cmds.warning(
-                                '"' + obj + '" found in the scene. This means that you either already created a '
-                                            'rig or you have conflicting names on your objects. '
-                                            '(Click on "Help" for more details)')
-
-                    if is_valid_scene:
-                        # Check for Proxy
-                        proxy_exists = True
-
-                        proxy_elements = []
-                        for proxy in data_facial.elements_default:
-                            if '_crv' in proxy or 'main_root' in proxy:
-                                proxy_elements.append(data_facial.elements.get(proxy))
-                        for obj in proxy_elements:
-                            if not cmds.objExists(obj) and proxy_exists:
-                                proxy_exists = False
-                                delete_proxy(suppress_warning=True, proxy_target='facial')
-                                validate_facial_operation('create_proxy')
-                                cmds.warning('Current proxy was missing elements, a new one was created.')
-
-                    if is_valid_file and is_valid_scene:
-                        if import_method == 'world-space':
-                            reset_proxy(suppress_warning=True, proxy_target='facial')
-                            sorted_pairs = []
-                            for proxy in data:
-                                if proxy != script_source and proxy != export_method:
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        long_name = cmds.ls(current_object[0], l=True) or []
-                                        number_of_parents = len(long_name[0].split('|'))
-                                        sorted_pairs.append((current_object, number_of_parents))
-
-                                    sorted_pairs.sort(key=lambda x: x[1], reverse=True)
-
-                            # Scale (Children First)
-                            for obj in sorted_pairs:
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-
-                            # Translate and Rotate (Parents First)
-                            print(sorted_pairs)
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                    set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-
-                            # Set brows and eyelids again
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                print(current_object)
-                                if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                        set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-                        elif import_method == 'world-space':
-                            for proxy in data:
-                                if proxy != script_source and proxy != export_method:
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                        set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                        set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                        set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                        set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                        set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                        set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                        set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                        set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-                        else:
-                            cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
-
-                        if not debugging:
-                            unique_message = '<' + str(random.random()) + '>'
-                            cmds.inViewMessage(
-                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                                pos='botLeft', fade=True, alpha=.9)
-                            sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
-
-                except Exception as exception:
-                    logger.info(str(exception))
-                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                                 'file. (Click on "Help" for more info)')
         except Exception as exception:
             file_exists = False
             logger.debug(exception)
@@ -1981,7 +1988,7 @@ def import_facial_proxy_pose(debugging=False, debugging_path=''):
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
-def import_corrective_proxy_pose(debugging=False, debugging_path=''):
+def import_corrective_proxy_pose(source_path=None, source_dict=None):
     """
     Imports a JSON file containing the translation, rotation and scale data for every proxy curve
     (exported using the "export_proxy_pose" function)
@@ -1993,151 +2000,153 @@ def import_corrective_proxy_pose(debugging=False, debugging_path=''):
     Exporting using the export button uses "setAttr", extract functions will use "xform" instead.
 
     Args:
-        debugging (bool): If debugging, the function will attempt to autoload the file provided in the
-                          "debugging_path" parameter
-        debugging_path (string): Debugging path for the import function
-
+        source_path (string, optional): Source path for the import function. If provided, file dialog is ignored.
+        source_dict (dict, optional): JSON containing proxy data
     """
+    def import_corrective_proxy_pose_json(json_data):
+        import_method = 'world-space'
+        try:
+            is_valid_file = True
 
-    pose_file = None
+            if not json_data.get(script_source):
+                is_valid_file = False
+                cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
+            else:
+                import_version = float(re.sub("[^0-9]", "", str(json_data.get(script_source))))
+                logger.debug(str(import_version))
+
+            if json_data.get(export_method):
+                import_method = json_data.get(export_method)
+                logger.debug(str(import_method))
+
+            is_valid_scene = True
+            # Check for existing rig or conflicting names
+            undesired_elements = ['facial_rig_grp']
+            for jnt in data_corrective.joints_default:
+                undesired_elements.append(data_corrective.joints_default.get(jnt))
+            for obj in undesired_elements:
+                if cmds.objExists(obj) and is_valid_scene:
+                    is_valid_scene = False
+                    cmds.warning(
+                        '"' + obj + '" found in the scene. This means that you either already created a '
+                                    'rig or you have conflicting names on your objects. '
+                                    '(Click on "Help" for more details)')
+
+            if is_valid_scene:
+                # Check for Proxy
+                proxy_exists = True
+
+                proxy_elements = []
+                for proxy in data_corrective.elements_default:
+                    if '_crv' in proxy or 'main_root' in proxy:
+                        proxy_elements.append(data_corrective.elements.get(proxy))
+                for obj in proxy_elements:
+                    if not cmds.objExists(obj) and proxy_exists:
+                        proxy_exists = False
+                        delete_proxy(suppress_warning=True, proxy_target='corrective')
+                        validate_corrective_operation('create_proxy')
+                        cmds.warning('Current proxy was missing elements, a new one was created.')
+
+            if is_valid_file and is_valid_scene:
+                if import_method == 'world-space':
+                    reset_proxy(suppress_warning=True, proxy_target='corrective')
+                    sorted_pairs = []
+                    for proxy in json_data:
+                        if proxy != script_source and proxy != export_method:
+                            current_object = json_data.get(proxy)  # Name, T, R, S
+                            if cmds.objExists(current_object[0]):
+                                long_name = cmds.ls(current_object[0], l=True) or []
+                                number_of_parents = len(long_name[0].split('|'))
+                                sorted_pairs.append((current_object, number_of_parents))
+
+                            sorted_pairs.sort(key=lambda x: x[1], reverse=True)
+
+                    # Scale (Children First)
+                    for obj in sorted_pairs:
+                        current_object = obj[0]
+                        if cmds.objExists(current_object[0]):
+                            set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                            set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                            set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+
+                    # Translate and Rotate (Parents First)
+                    for obj in reversed(sorted_pairs):
+                        current_object = obj[0]
+                        if cmds.objExists(current_object[0]):
+                            set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                            set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+
+                    # Set brows and eyelids again
+                    for obj in reversed(sorted_pairs):
+                        current_object = obj[0]
+                        if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
+                            if cmds.objExists(current_object[0]):
+                                set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
+                                set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                elif import_method == 'world-space':
+                    for proxy in json_data:
+                        if proxy != script_source and proxy != export_method:
+                            current_object = json_data.get(proxy)  # Name, T, R, S
+                            if cmds.objExists(current_object[0]):
+                                set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
+                                set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
+                                set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
+                                set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
+                                set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
+                                set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
+                                set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
+                                set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
+                                set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                else:
+                    cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
+
+                if not source_path_exists:
+                    unique_message = '<' + str(random.random()) + '>'
+                    cmds.inViewMessage(
+                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
+                                             ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
+                        pos='botLeft', fade=True, alpha=.9)
+                    sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
+
+        except Exception as e:
+            logger.info(str(e))
+            cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
+                         'file. (Click on "Help" for more info)')
+
     _proxy_storage = data_corrective.proxy_storage_variables
     script_source = _proxy_storage.get('script_source')
     export_method = _proxy_storage.get('export_method')
     file_extension = _proxy_storage.get('file_extension')
     script_name = data_corrective.script_name
 
-    if not debugging:
+    source_path_exists = False
+    if source_path:
+        if os.path.isfile(source_path):
+            source_path_exists = True
+    if source_dict:  # JSON doesn't need a file
+        source_path_exists = True
+
+    if not source_path_exists:
         file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
         file_filter += script_name + ' - JSON File (*.json)'
         file_name = cmds.fileDialog2(fileFilter=file_filter,
                                      dialogStyle=2, fileMode=1, okCaption='Import',
                                      caption='Importing Proxy Pose for "' + script_name + '"') or []
     else:
-        file_name = [debugging_path]
+        file_name = [source_path]
 
     if len(file_name) > 0:
         pose_file = file_name[0]
-        file_exists = True
-    else:
-        file_exists = False
-
-    if file_exists:
         try:
-            with open(pose_file) as json_file:
-                data = json.load(json_file)
-                try:
-                    is_valid_file = True
+            if source_dict:
+                import_corrective_proxy_pose_json(source_dict)
+            else:
+                with open(pose_file) as json_file:
+                    data = json.load(json_file)
+                    import_corrective_proxy_pose_json(data)
 
-                    if not data.get(script_source):
-                        is_valid_file = False
-                        cmds.warning("Imported file doesn't seem to be compatible or is missing data.")
-                    else:
-                        import_version = float(re.sub("[^0-9]", "", str(data.get(script_source))))
-                        logger.debug(str(import_version))
-
-                    if data.get(export_method):
-                        import_method = data.get(export_method)
-                        logger.debug(str(import_method))
-
-                    is_valid_scene = True
-                    # Check for existing rig or conflicting names
-                    undesired_elements = ['facial_rig_grp']
-                    for jnt in data_corrective.joints_default:
-                        undesired_elements.append(data_corrective.joints_default.get(jnt))
-                    for obj in undesired_elements:
-                        if cmds.objExists(obj) and is_valid_scene:
-                            is_valid_scene = False
-                            cmds.warning(
-                                '"' + obj + '" found in the scene. This means that you either already created a '
-                                            'rig or you have conflicting names on your objects. '
-                                            '(Click on "Help" for more details)')
-
-                    if is_valid_scene:
-                        # Check for Proxy
-                        proxy_exists = True
-
-                        proxy_elements = []
-                        for proxy in data_corrective.elements_default:
-                            if '_crv' in proxy or 'main_root' in proxy:
-                                proxy_elements.append(data_corrective.elements.get(proxy))
-                        for obj in proxy_elements:
-                            if not cmds.objExists(obj) and proxy_exists:
-                                proxy_exists = False
-                                delete_proxy(suppress_warning=True, proxy_target='corrective')
-                                validate_corrective_operation('create_proxy')
-                                cmds.warning('Current proxy was missing elements, a new one was created.')
-
-                    if is_valid_file and is_valid_scene:
-                        if import_method == 'world-space':
-                            reset_proxy(suppress_warning=True, proxy_target='corrective')
-                            sorted_pairs = []
-                            for proxy in data:
-                                if proxy != script_source and proxy != export_method:
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        long_name = cmds.ls(current_object[0], l=True) or []
-                                        number_of_parents = len(long_name[0].split('|'))
-                                        sorted_pairs.append((current_object, number_of_parents))
-
-                                    sorted_pairs.sort(key=lambda x: x[1], reverse=True)
-
-                            # Scale (Children First)
-                            for obj in sorted_pairs:
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                    set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                    set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-
-                            # Translate and Rotate (Parents First)
-                            print(sorted_pairs)
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                if cmds.objExists(current_object[0]):
-                                    set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                    set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-
-                            # Set brows and eyelids again
-                            for obj in reversed(sorted_pairs):
-                                current_object = obj[0]
-                                print(current_object)
-                                if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                        set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-                        elif import_method == 'world-space':
-                            for proxy in data:
-                                if proxy != script_source and proxy != export_method:
-                                    current_object = data.get(proxy)  # Name, T, R, S
-                                    if cmds.objExists(current_object[0]):
-                                        set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                        set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                        set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                        set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                        set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                        set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                        set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                        set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                        set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
-                        else:
-                            cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
-
-                        if not debugging:
-                            unique_message = '<' + str(random.random()) + '>'
-                            cmds.inViewMessage(
-                                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                                     ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                                pos='botLeft', fade=True, alpha=.9)
-                            sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
-
-                except Exception as exception:
-                    logger.info(str(exception))
-                    cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                                 'file. (Click on "Help" for more info)')
         except Exception as exception:
-            file_exists = False
             logger.debug(exception)
-            logger.debug('File exists:', str(file_exists))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
