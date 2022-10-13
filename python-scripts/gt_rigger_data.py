@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_VERSION_BASE = '1.10.4'
 SCRIPT_VERSION_FACIAL = '1.0.4'
 SCRIPT_VERSION_CORRECTIVE = '1.0.2'
-SCRIPT_VERSION_REBUILD = '0.0.7'
+SCRIPT_VERSION_REBUILD = '0.0.8'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -416,10 +416,18 @@ class GTBipedRiggerRebuildData:
     rig_root = 'rig_grp'
     skeleton_grp = 'skeleton_grp'
     main_ctrl = 'main_ctrl'
-    extracted_proxy_json = None
-    extracted_biped_metadata = None
+    # Shapes, Attributes
     extracted_shape_data = None
     extracted_custom_attr = None
+    # Base Biped
+    extracted_base_proxy_json = None
+    extracted_base_metadata = None
+    # Facial
+    extracted_facial_proxy_json = None
+    extracted_facial_metadata = None
+    # Facial
+    extracted_corrective_proxy_json = None
+    extracted_corrective_metadata = None
 
     # Expected Controls (Used for Shape and Custom Attr Extraction) - Right side auto-populated
     controls = [  # Unique Controls
