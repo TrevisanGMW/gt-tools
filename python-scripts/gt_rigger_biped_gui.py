@@ -144,7 +144,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_biped_operation('create_proxy'))
+                        command=lambda: validate_biped_operation('create_biped_proxy'))
 
     # Step 2
     cmds.separator(h=5, style='none')  # Empty Space
@@ -176,7 +176,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_biped_operation('create_controls'))
+                        command=lambda: validate_biped_operation('create_biped_rig'))
 
     # Step 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
@@ -222,7 +222,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s facial shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_facial_operation('create_proxy'))
+                        command=lambda: validate_facial_operation('create_facial_proxy'))
 
     # Step 2 - Facial
     cmds.separator(h=5, style='none')  # Empty Space
@@ -254,7 +254,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_facial_operation('create_controls'))
+                        command=lambda: validate_facial_operation('create_facial_rig'))
 
     # Step 4 - Facial
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
@@ -289,7 +289,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s facial shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_corrective_operation('create_proxy'))
+                        command=lambda: validate_corrective_operation('create_corrective_proxy'))
 
     # Step 2 - Corrective
     cmds.separator(h=5, style='none')  # Empty Space
@@ -321,7 +321,7 @@ def build_gui_auto_biped_rig():
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_corrective_operation('create_controls'))
+                        command=lambda: validate_corrective_operation('create_corrective_rig'))
 
     # Step 4 - Corrective
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
@@ -781,7 +781,7 @@ def validate_facial_operation(operation):
     Validates the necessary objects before executing desired function (Facial Rig)
     
     Args:
-        operation (string): Name of the desired operation. e.g. "create_proxy" or "create_controls"
+        operation (string): Name of the desired operation. e.g. "create_biped_proxy" or "create_biped_rig"
 
     """
     if operation == "merge":
@@ -797,7 +797,7 @@ def validate_facial_operation(operation):
                                      '(Click on "Help" for more details)')
             return
 
-    if operation == "create_proxy":
+    if operation == "create_facial_proxy":
         # Check if proxy exists in the scene
         proxy_elements = [data_facial.elements_default.get('main_proxy_grp')]
         for proxy in data_facial.elements_default:
@@ -809,7 +809,7 @@ def validate_facial_operation(operation):
                                          'Delete current proxy or generate a rig before creating a new one.')
                 return
         gt_rigger_facial_logic.create_facial_proxy(data_facial)
-    elif operation == "create_controls":
+    elif operation == "create_facial_rig":
         expected_proxy = data_facial.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
             data_facial.settings['auto_merge'] = data_biped.settings.get('auto_merge')
@@ -824,7 +824,7 @@ def validate_corrective_operation(operation):
     Validates the necessary objects before executing desired function (Corrective Rig)
 
     Args:
-        operation (string): Name of the desired operation. e.g. "create_proxy" or "create_controls"
+        operation (string): Name of the desired operation. e.g. "create_biped_proxy" or "create_biped_rig"
 
     """
     if operation == "merge":
@@ -840,7 +840,7 @@ def validate_corrective_operation(operation):
                                      '(Click on "Help" for more details)')
             return
 
-    if operation == "create_proxy":
+    if operation == "create_corrective_proxy":
         # Check if proxy exists in the scene
         proxy_elements = [data_corrective.elements_default.get('main_proxy_grp')]
         for proxy in data_corrective.elements_default:
@@ -852,7 +852,7 @@ def validate_corrective_operation(operation):
                                          'Delete current proxy or generate a rig before creating a new one.')
                 return
         gt_rigger_corrective_logic.create_corrective_proxy(data_corrective)
-    elif operation == "create_controls":
+    elif operation == "create_corrective_rig":
         expected_proxy = data_corrective.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
             data_corrective.settings['auto_merge'] = data_biped.settings.get('auto_merge')
@@ -866,7 +866,7 @@ def validate_biped_operation(operation):
     Validates the necessary objects before executing desired function (Biped/Base Rig)
 
     Args:
-        operation (string): Name of the desired operation. e.g. "create_proxy" or "create_controls"
+        operation (string): Name of the desired operation. e.g. "create_biped_proxy" or "create_biped_rig"
 
     """
 
@@ -877,7 +877,7 @@ def validate_biped_operation(operation):
             cmds.loadPlugin(plugin, qt=False)
 
     is_valid = True
-    if operation == 'create_proxy':
+    if operation == 'create_biped_proxy':
         # Starts new instance (clean scene)
         if data_biped.debugging and data_biped.debugging_force_new_scene:
             persp_pos = cmds.getAttr('persp.translate')[0]
@@ -928,7 +928,7 @@ def validate_biped_operation(operation):
             cmds.undoInfo(openChunk=True, chunkName=function_name)
             cmds.refresh(suspend=True)
             try:
-                create_proxy(data_biped)
+                create_biped_proxy(data_biped)
             except Exception as e:
                 cmds.warning(str(e))
             finally:
@@ -940,7 +940,7 @@ def validate_biped_operation(operation):
                 data_biped.debugging_import_path):
             import_biped_proxy_pose(source_path=data_biped.debugging_import_path)
 
-    elif operation == 'create_controls':
+    elif operation == 'create_biped_rig':
         # Starts new instance (clean scene)
         if data_biped.debugging and data_biped.debugging_force_new_scene:
             persp_pos = cmds.getAttr('persp.translate')[0]
@@ -962,7 +962,7 @@ def validate_biped_operation(operation):
                     cmds.delete('rig_grp')
                 if cmds.objExists(data_biped.elements.get('main_proxy_grp')):
                     cmds.delete(data_biped.elements.get('main_proxy_grp'))
-                create_proxy(data_biped)
+                create_biped_proxy(data_biped)
                 # Debugging (Auto imports proxy)
                 if data_biped.debugging_import_proxy and os.path.exists(data_biped.debugging_import_path):
                     import_biped_proxy_pose(source_path=data_biped.debugging_import_path)
@@ -990,12 +990,12 @@ def validate_biped_operation(operation):
         if is_valid:
             function_name = 'GT Auto Biped - Create Rig'
             if data_biped.debugging:
-                create_controls(data_biped)
+                create_biped_rig(data_biped)
             else:
                 cmds.undoInfo(openChunk=True, chunkName=function_name)
                 cmds.refresh(suspend=True)
                 try:
-                    create_controls(data_biped)
+                    create_biped_rig(data_biped)
                 except Exception as e:
                     raise e
                 finally:
@@ -1717,7 +1717,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
                         delete_proxy(suppress_warning=True)
-                        validate_biped_operation('create_proxy')
+                        validate_biped_operation('create_biped_proxy')
                         cmds.warning('Current proxy was missing elements, a new one was created.')
 
             if is_valid_file and is_valid_scene:
@@ -1880,7 +1880,7 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
                         delete_proxy(suppress_warning=True, proxy_target='facial')
-                        validate_facial_operation('create_proxy')
+                        validate_facial_operation('create_facial_proxy')
                         cmds.warning('Current proxy was missing elements, a new one was created.')
 
             if is_valid_file and is_valid_scene:
@@ -2044,7 +2044,7 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
                         delete_proxy(suppress_warning=True, proxy_target='corrective')
-                        validate_corrective_operation('create_proxy')
+                        validate_corrective_operation('create_corrective_proxy')
                         cmds.warning('Current proxy was missing elements, a new one was created.')
 
             if is_valid_file and is_valid_scene:
