@@ -19,6 +19,9 @@ Added more debug prints to current functions
 0.0.7 - 2022-10-06
 Added user-defined attributes extraction and transfer
 
+0.0.8 - 2022-10-13
+Added facial and corrective proxy extraction
+
 TODO
     Add bound joint extraction
     Add skin weights extraction
@@ -44,7 +47,7 @@ if not data_biped:  # Create one in case not already available
     data_biped = GTBipedRiggerData()
 
 
-def extract_metadata(data_object):
+def extract_proxy_metadata(data_object):
     """ Extracts Rig Metadata """
     proxy_source_obj_name = data_object.proxy_storage_variables.get('source_object_name')
     proxy_attr_name = data_object.proxy_storage_variables.get('attr_name')
@@ -202,18 +205,35 @@ def extract_current_rig_data(data_rebuild_object):
 
     # Missing Main Ctrl - Exit
     if data_rebuild_object.main_ctrl not in found_controls:
+        cmds.warning("Missing ")
         return False
 
-    # Extract Proxy Data
-    logger.debug("extracting proxy position...")
-    extracted_proxy_json = extract_metadata(data_biped)  # Re-build proxy
-    data_rebuild_object.extracted_proxy_json = extracted_proxy_json
+    # -------- Base / Biped --------
+    # Extract Base Proxy Data
+    logger.debug("extracting base proxy transforms...")
+    extracted_base_proxy_json = extract_proxy_metadata(data_biped)  # Re-build base proxy
+    data_rebuild_object.extracted_base_proxy_json = extracted_base_proxy_json
 
-    # Extract Rig Settings
+    # Extract Base Rig Settings
     logger.debug("extracting settings (metadata)...")
-    if find_item(name=data_rebuild_object.main_ctrl, item_type='transform', log_fail=False):
-        extracted_biped_metadata = get_metadata(data_rebuild_object.main_ctrl)  # Find previous settings
-        data_rebuild_object.extracted_biped_metadata = extracted_biped_metadata
+    extracted_biped_metadata = get_metadata(data_rebuild_object.main_ctrl)  # Find previous settings
+    data_rebuild_object.extracted_base_metadata = extracted_biped_metadata
+
+    # -------- Facial --------
+    facial_proxy_source = data_facial.proxy_storage_variables.get('source_object_name')
+    facial_proxy_attr = data_facial.proxy_storage_variables.get('attr_name')
+    if cmds.objExists(facial_proxy_source + '.' + facial_proxy_attr):
+        logger.debug("extracting facial proxy transforms...")
+        extracted_facial_proxy_json = extract_proxy_metadata(data_facial)  # Re-build base proxy
+        data_rebuild_object.extracted_facial_proxy_json = extracted_facial_proxy_json
+
+    # -------- Corrective --------
+    corrective_proxy_source = data_corrective.proxy_storage_variables.get('source_object_name')
+    corrective_proxy_attr = data_corrective.proxy_storage_variables.get('attr_name')
+    if cmds.objExists(corrective_proxy_source + '.' + corrective_proxy_attr):
+        logger.debug("extracting corrective proxy transforms...")
+        extracted_corrective_proxy_json = extract_proxy_metadata(data_corrective)  # Re-build base proxy
+        data_rebuild_object.extracted_corrective_proxy_json = extracted_corrective_proxy_json
 
     # Extract Shapes
     logger.debug("extracting control shapes...")
@@ -253,7 +273,7 @@ def rebuild_biped_rig(data_rebuild_object):
     # Rebuild Proxy
     logger.debug("recreating/importing proxy...")
     create_proxy(data_biped)
-    import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_proxy_json)
+    import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_base_proxy_json)
 
     # Rebuild Controls
     logger.debug("recreating controls...")
@@ -270,9 +290,9 @@ def transfer_current_rig_data(data_rebuild_object):
     logger.debug("*_*_* TRANSFERRING DATA TO NEW RIG:")
 
     # Transfer Base Settings
-    if data_rebuild_object.extracted_proxy_json and data_rebuild_object.extracted_biped_metadata:
+    if data_rebuild_object.extracted_base_proxy_json and data_rebuild_object.extracted_base_metadata:
         logger.debug("transferring previous settings (metadata)...")
-        transfer_biped_base_settings(data_biped, data_rebuild_object.extracted_biped_metadata)
+        transfer_biped_base_settings(data_biped, data_rebuild_object.extracted_base_metadata)
 
     # Transfer Shape Data
     if data_rebuild_object.extracted_shape_data:
@@ -318,7 +338,11 @@ if __name__ == '__main__':
     # data_corrective = GTBipedRiggerCorrectiveData()
 
     logger.setLevel(logging.DEBUG)
-    validate_rebuild()
+    # validate_rebuild()
+
+    print(data_rebuild.extracted_corrective_proxy_json)
+    extract_current_rig_data(data_rebuild)
+    print(data_rebuild.extracted_corrective_proxy_json)
 
     # found_controls = []
     # for control in data_rebuild.controls:
@@ -327,4 +351,3 @@ if __name__ == '__main__':
     # out = extract_user_defined_attr(found_controls)
     # import pprint
     # pprint.pprint(out)
-
