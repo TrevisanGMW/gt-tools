@@ -48,6 +48,9 @@
  Added an auto merge check at the end of the create correctives function
  Added suppress warning option to "merge_corrective_elements"
 
+ 1.0.3 = 2022-10-13
+ Updated "store_proxy_as_string" parameters to match new pattern
+
 """
 from collections import namedtuple
 from gt_rigger_utilities import *
@@ -1952,7 +1955,7 @@ def create_corrective_setup(corrective_data):
             cmds.setAttr(obj + '.overrideDisplayType', 1)
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(main_ctrl, 'corrective_proxy_pose', corrective_data)
+    store_proxy_as_string(corrective_data)
 
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
