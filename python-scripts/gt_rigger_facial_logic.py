@@ -74,6 +74,10 @@
  Added option to auto merge facial rig with base/biped
  Added suppress warning option to "merge_corrective_elements"
 
+ 1.0.4 - 2022-10-13
+ Removed unnecessary print statement
+ Updated "store_proxy_as_string" parameters to match new pattern
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
      Improve tongue scale control system
@@ -1501,7 +1505,6 @@ def create_facial_controls(facial_data):
         cmds.setAttr(right_eyebrow_ctrl + '.s' + dimension, -1)
     cmds.parentConstraint(right_eyebrow_ctrl, right_eyebrow_ctrls_grp, mo=True)
     change_viewport_color(right_eyebrow_ctrl, (1, .2, 1))
-    print(right_eyebrow_ctrls_grp)
 
     # ####################################### Eyelids #######################################
 
@@ -3597,7 +3600,7 @@ def create_facial_controls(facial_data):
     cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(head_ctrl, 'facial_proxy_pose', facial_data)
+    store_proxy_as_string(facial_data)
 
     # Delete Proxy
     if cmds.objExists(_facial_proxy_dict.get('main_proxy_grp')):
