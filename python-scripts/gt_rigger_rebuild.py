@@ -19,8 +19,9 @@ Added more debug prints to current functions
 0.0.7 - 2022-10-06
 Added user-defined attributes extraction and transfer
 
-0.0.8 - 2022-10-13
+0.0.8 to 0.0.9 - 2022-10-13
 Added facial and corrective proxy extraction
+Added facial and corrective rebuild steps
 
 TODO
     Add bound joint extraction
@@ -32,6 +33,8 @@ TODO
 from gt_rigger_biped_gui import *
 from gt_rigger_utilities import *
 from gt_rigger_data import *
+from gt_rigger_facial_logic import create_facial_proxy
+from gt_rigger_corrective_logic import create_corrective_proxy
 import maya.cmds as cmds
 import logging
 import json
@@ -270,14 +273,35 @@ def rebuild_biped_rig(data_rebuild_object):
     else:
         cmds.delete(rig_root)
 
-    # Rebuild Proxy
-    logger.debug("recreating/importing proxy...")
-    create_proxy(data_biped)
+    # -------- Rebuild Base / Biped --------
+    logger.debug("recreating/importing base proxy...")
+    create_biped_proxy(data_biped)
     import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_base_proxy_json)
 
-    # Rebuild Controls
-    logger.debug("recreating controls...")
-    validate_biped_operation('create_controls')
+    # Rebuild Base Rig
+    logger.debug("recreating base rig...")
+    validate_biped_operation('create_biped_rig')
+
+    # -------- Rebuild Facial --------
+    if data_rebuild_object.extracted_facial_proxy_json:
+        logger.debug("recreating/importing facial proxy...")
+        create_facial_proxy(data_facial)
+        import_facial_proxy_pose(source_dict=data_rebuild_object.extracted_facial_proxy_json)
+
+    # Rebuild Facial Rig
+    logger.debug("recreating facial rig...")
+    validate_facial_operation('create_facial_rig')
+
+    # -------- Rebuild Corrective --------
+    if data_rebuild_object.extracted_corrective_proxy_json:
+        logger.debug("recreating/importing corrective proxy...")
+        create_corrective_proxy(data_corrective)
+        import_corrective_proxy_pose(source_dict=data_rebuild_object.extracted_corrective_proxy_json)
+
+    # Rebuild Facial Rig
+    logger.debug("recreating facial rig...")
+    validate_corrective_operation('create_corrective_rig')
+
     return True
 
 
@@ -289,11 +313,6 @@ def transfer_current_rig_data(data_rebuild_object):
     """
     logger.debug("*_*_* TRANSFERRING DATA TO NEW RIG:")
 
-    # Transfer Base Settings
-    if data_rebuild_object.extracted_base_proxy_json and data_rebuild_object.extracted_base_metadata:
-        logger.debug("transferring previous settings (metadata)...")
-        transfer_biped_base_settings(data_biped, data_rebuild_object.extracted_base_metadata)
-
     # Transfer Shape Data
     if data_rebuild_object.extracted_shape_data:
         logger.debug("transferring shape data...")
@@ -303,6 +322,26 @@ def transfer_current_rig_data(data_rebuild_object):
     apply_user_defined_attr(data_rebuild_object.extracted_custom_attr)
 
     logger.debug("running set-up script...")
+
+
+def update_general_settings(data_rebuild_object):
+    """
+    Transfer previous settings to data object so new rig is generated with the same options
+    Forces auto merge to be active
+    Args:
+        data_rebuild_object (GTBipedRiggerRebuildData): extracted data stored in rebuild object
+    """
+    logger.debug("*_*_* UPDATING GENERAL RIGGING SETTINGS:")
+
+    # Transfer Base Settings
+    if data_rebuild_object.extracted_base_proxy_json and data_rebuild_object.extracted_base_metadata:
+        logger.debug("transferring previous settings (metadata)...")
+        transfer_biped_base_settings(data_biped, data_rebuild_object.extracted_base_metadata)
+
+    # Force Auto Merging
+    data_biped.settings['auto_merge'] = True
+    data_facial.settings['auto_merge'] = True
+    data_corrective.settings['auto_merge'] = True
 
 
 def validate_rebuild(character_template=''):
@@ -324,7 +363,10 @@ def validate_rebuild(character_template=''):
     # Extract Data to Rebuild Object
     extract_current_rig_data(data_rebuild)
 
-    # Rebuild RIG if data is available
+    # Transferring Settings
+    update_general_settings(data_rebuild)
+
+    # Rebuild RiG if data is available
     rebuild_biped_rig(data_rebuild)
 
     # Transfer Data to Rebuilt Rig
@@ -338,11 +380,11 @@ if __name__ == '__main__':
     # data_corrective = GTBipedRiggerCorrectiveData()
 
     logger.setLevel(logging.DEBUG)
-    # validate_rebuild()
+    validate_rebuild()
 
-    print(data_rebuild.extracted_corrective_proxy_json)
-    extract_current_rig_data(data_rebuild)
-    print(data_rebuild.extracted_corrective_proxy_json)
+    # print(data_rebuild.extracted_corrective_proxy_json)
+    # extract_current_rig_data(data_rebuild)
+    # print(data_rebuild.extracted_corrective_proxy_json)
 
     # found_controls = []
     # for control in data_rebuild.controls:
