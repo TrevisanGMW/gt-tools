@@ -301,6 +301,11 @@
  1.10.4 - 2022-09-27
  Added missing option "simplify_spine" to metadata
 
+ 1.11.0 to 1.11.1- 2022-10-13
+ Renamed main functions
+ Updated validate operations
+ Updated "store_proxy_as_string" parameters to match new pattern
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -325,7 +330,7 @@ logger = logging.getLogger("gt_rigger_biped_logic")
 logger.setLevel(logging.INFO)
 
 
-def create_proxy(data_biped):
+def create_biped_proxy(data_biped):
     """
     Creates a proxy (guide) skeleton used to later generate entire rig
 
@@ -1678,7 +1683,7 @@ def create_proxy(data_biped):
         pos='botLeft', fade=True, alpha=.9)
 
 
-def create_controls(data_biped):
+def create_biped_rig(data_biped):
     """
     Creates rig using the previously created proxy/guide
 
@@ -9945,7 +9950,7 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(main_ctrl, 'biped_proxy_pose', data_biped)
+    store_proxy_as_string(data_biped)
 
     # Delete Proxy
     cmds.delete(elements.get('main_proxy_grp'))
@@ -10287,7 +10292,7 @@ def create_controls(data_biped):
     # End of Create Base Rig Controls
 
 
-def build_biped_rig(create_rig_ctrls=True, debugging=True):
+def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
     """
     Creates a rig without the GUI. Helpful for when debugging or changing the rig.
     Args:
@@ -10320,7 +10325,7 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
             cmds.setAttr('persp.rz', persp_rot[2])
 
     # Create Proxy
-    create_proxy(biped_obj)
+    create_biped_proxy(biped_obj)
 
     # Use Proxy Template
     biped_obj.debugging_import_proxy = True
@@ -10330,9 +10335,9 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
 
     # Create Controls
     if create_rig_ctrls:
-        create_controls(biped_obj)
+        create_biped_rig(biped_obj)
 
 
 # Test it
 if __name__ == '__main__':
-    build_biped_rig(create_rig_ctrls=True, debugging=True)
+    build_test_biped_rig(create_rig_ctrls=True, debugging=True)
