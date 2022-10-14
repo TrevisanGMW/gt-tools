@@ -2931,16 +2931,16 @@ def orient_offset(obj_name, rot_offset, apply=True):
         cmds.makeIdentity(obj_name, apply=True, rotate=True)
 
 
-def store_proxy_as_string(target_obj, attr_name, data_obj, method='world-space'):
+def store_proxy_as_string(data_obj, method='world-space'):
     """
     Stores the current proxy as an attribute (string) onto the "target_obj"
     Args:
-        target_obj (string): Name of the object to receive the string attribute which contains a JSON description
-                             of the proxy pose
-        attr_name (string): Name of the string attribute used to store the JSON proxy data
         data_obj: Object carrying list of proxy names
         method (optional, string): which method is used to generate the data
     """
+
+    target_obj = data_obj.proxy_storage_variables.get('source_object_name')
+    attr_name = data_obj.proxy_storage_variables.get('attr_name')
 
     # Store Proxy
     if method == 'object-space':

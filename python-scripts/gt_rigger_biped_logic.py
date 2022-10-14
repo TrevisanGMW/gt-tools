@@ -293,8 +293,18 @@
  1.10.0 - 2022-09-14
  Added feet switcher reference locators
 
- 1.10.1 - 2022-09-26
+ 1.10.1 to 1.10.3 - 2022-09-26
  Fixed an issue where the right leg feet would be generated broken
+ Updated pole vector to be taken in consideration while generating right leg
+ Fixed an issue where the finger controls would have unexpected rotation
+
+ 1.10.4 - 2022-09-27
+ Added missing option "simplify_spine" to metadata
+
+ 1.11.0 to 1.11.1- 2022-10-13
+ Renamed main functions
+ Updated validate operations
+ Updated "store_proxy_as_string" parameters to match new pattern
 
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
@@ -303,7 +313,7 @@
     Make scale system and breathing system optional
     Add more roll joints (upper part of the arm, legs, etc)
     Add option to auto create proxy geo
-    Fix "Use Real-time Skeleton" option (broken after new UI setup)
+    Move all constraints to another group?
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -320,7 +330,7 @@ logger = logging.getLogger("gt_rigger_biped_logic")
 logger.setLevel(logging.INFO)
 
 
-def create_proxy(data_biped):
+def create_biped_proxy(data_biped):
     """
     Creates a proxy (guide) skeleton used to later generate entire rig
 
@@ -1673,8 +1683,13 @@ def create_proxy(data_biped):
         pos='botLeft', fade=True, alpha=.9)
 
 
-def create_controls(data_biped):
-    """ Creates rig using the previously created proxy/guide """
+def create_biped_rig(data_biped):
+    """
+    Creates rig using the previously created proxy/guide
+
+    Args:
+        data_biped: biped_data object
+    """
 
     def rename_proxy(old_name):
         """
@@ -3731,10 +3746,10 @@ def create_controls(data_biped):
     right_foot_offset_ik_ctrl = cmds.duplicate(right_foot_ik_ctrl, renameChildren=True,
                                                name=right_foot_ik_ctrl.replace('_' + CTRL_SUFFIX,
                                                                                '_offset' + CTRL_SUFFIX.capitalize()))[0]
-    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
+    right_foot_offset_ik_ctrl_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,  # group command generates junk data
                                                    name=right_foot_offset_ik_ctrl + GRP_SUFFIX.capitalize())[0]
 
-    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True, # group command generates junk data
+    right_foot_offset_data_grp = cmds.duplicate(right_foot_ik_ctrl, po=True,  # group command generates junk data
                                                 name=right_foot_offset_ik_ctrl.replace(CTRL_SUFFIX.capitalize(),
                                                                                        'Data'))[0]
 
@@ -5234,11 +5249,13 @@ def create_controls(data_biped):
     # Position
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_fingers_ctrl_grp))
     cmds.move(left_wrist_scale_offset * 2.3, left_fingers_ctrl_grp, x=True, relative=True, objectSpace=True)
-    cmds.setAttr(left_fingers_ctrl_grp + '.rotateX', 0)
 
     # Hierarchy
     change_viewport_color(left_fingers_ctrl, LEFT_CTRL_COLOR)
     cmds.parent(left_fingers_ctrl_grp, left_hand_grp)
+
+    # Rotation
+    cmds.rotate(90, left_fingers_ctrl_grp, rotateX=True, relative=True)
 
     # Right Finger Automation Controls
     # Right Fingers
@@ -5391,11 +5408,13 @@ def create_controls(data_biped):
     # Position
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_fingers_ctrl_grp))
     cmds.move(-right_wrist_scale_offset * 2.3, right_fingers_ctrl_grp, x=True, relative=True, objectSpace=True)
-    cmds.setAttr(right_fingers_ctrl_grp + '.rotateX', -180)
 
     # Hierarchy
     change_viewport_color(right_fingers_ctrl, RIGHT_CTRL_COLOR)
     cmds.parent(right_fingers_ctrl_grp, right_hand_grp)
+
+    # Rotation
+    cmds.rotate(90, right_fingers_ctrl_grp, rotateX=True, relative=True)
 
     # ################ ======= Rig Mechanics ======= #################
 
@@ -7717,7 +7736,8 @@ def create_controls(data_biped):
     # ################# Right Leg IK Controls #################
     # Right Leg IK
 
-    right_leg_rp_ik_handle = cmds.ikHandle(n='right_footAnkle_RP_ikHandle', sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt,
+    right_leg_rp_ik_handle = cmds.ikHandle(n='right_footAnkle_RP_ikHandle',
+                                           sj=right_hip_ik_jnt, ee=right_ankle_ik_jnt,
                                            sol='ikRPsolver')
 
     # In case ball joint is inverted, undo ikHandle and invert knee's preferredAngleZ
@@ -7730,6 +7750,8 @@ def create_controls(data_biped):
     cmds.setAttr(right_ball_probe + '.point2X', right_ball_probe_end[0])
     cmds.setAttr(right_ball_probe + '.point2Y', right_ball_probe_end[1])
     cmds.setAttr(right_ball_probe + '.point2Z', right_ball_probe_end[2])
+
+    cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
 
     if cmds.getAttr(right_ball_probe + '.distance') > 0.01:
         cmds.delete(right_leg_rp_ik_handle)
@@ -7744,7 +7766,6 @@ def create_controls(data_biped):
 
     right_leg_toe_ik_handle = cmds.ikHandle(n='right_footToe_SC_ikHandle', sj=right_ball_ik_jnt, ee=right_toe_ik_jnt,
                                             sol='ikSCsolver')
-    cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
 
     # Right Foot Automation Setup
     right_foot_pivot_grp = cmds.group(name='right_foot_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
@@ -9929,7 +9950,7 @@ def create_controls(data_biped):
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(main_ctrl, 'biped_proxy_pose', data_biped)
+    store_proxy_as_string(data_biped)
 
     # Delete Proxy
     cmds.delete(elements.get('main_proxy_grp'))
@@ -10119,6 +10140,7 @@ def create_controls(data_biped):
     metadata_dict = {'worldspace_ik_orient': settings.get('worldspace_ik_orient'),
                      'uniform_ctrl_orient': settings.get('uniform_ctrl_orient'),
                      'using_no_ssc_skeleton': settings.get('using_no_ssc_skeleton'),
+                     'simplify_spine': settings.get('simplify_spine'),
                      'skeleton_root': str(rig_joints_default.get('main_jnt')),
                      }
     cmds.setAttr(main_ctrl + '.metadata', json.dumps(metadata_dict, indent=4), typ='string')
@@ -10270,7 +10292,7 @@ def create_controls(data_biped):
     # End of Create Base Rig Controls
 
 
-def build_biped_rig(create_rig_ctrls=True, debugging=True):
+def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
     """
     Creates a rig without the GUI. Helpful for when debugging or changing the rig.
     Args:
@@ -10303,20 +10325,19 @@ def build_biped_rig(create_rig_ctrls=True, debugging=True):
             cmds.setAttr('persp.rz', persp_rot[2])
 
     # Create Proxy
-    create_proxy(biped_obj)
+    create_biped_proxy(biped_obj)
 
     # Use Proxy Template
     biped_obj.debugging_import_proxy = True
     import gt_rigger_biped_gui
     if biped_obj.debugging_import_proxy:
-        gt_rigger_biped_gui.import_biped_proxy_pose(debugging=biped_obj.debugging_import_proxy,
-                                                    debugging_path=biped_obj.debugging_import_path)
+        gt_rigger_biped_gui.import_biped_proxy_pose(source_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
-        create_controls(biped_obj)
+        create_biped_rig(biped_obj)
 
 
 # Test it
 if __name__ == '__main__':
-    build_biped_rig(create_rig_ctrls=True, debugging=True)
+    build_test_biped_rig(create_rig_ctrls=True, debugging=True)

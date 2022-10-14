@@ -180,9 +180,6 @@ logging.basicConfig()
 logger = logging.getLogger("gt_utilities")
 logger.setLevel(logging.INFO)
 
-# Find FileBrowser Path
-FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
-
 ''' ____________________________ General Functions ____________________________'''
 
 
@@ -204,12 +201,13 @@ def open_file_dir():
         """"""
         if sys.platform == "win32":  # Windows
             # explorer needs forward slashes
+            filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
             path = os.path.normpath(path)
 
             if os.path.isdir(path):
-                subprocess.run([FILEBROWSER_PATH, path])
+                subprocess.run([filebrowser_path, path])
             elif os.path.isfile(path):
-                subprocess.run([FILEBROWSER_PATH, '/select,', path])
+                subprocess.run([filebrowser_path, '/select,', path])
         elif sys.platform == "darwin":  # Mac-OS
             try:
                 subprocess.call(["open", "-R", path])

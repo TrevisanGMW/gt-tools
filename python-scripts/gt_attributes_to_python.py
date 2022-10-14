@@ -21,6 +21,9 @@
  Added save to shelf
  Updated help
 
+ 1.0.1 - 2022-10-06
+ Added triple quote to string attributes
+
  TODO:
     Add options
 
@@ -51,7 +54,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT Attributes to Python'
 
 # Version:
-script_version = "1.0.0"
+script_version = "1.0.1"
 
 DIMENSIONS = ['x', 'y', 'z']
 DEFAULT_CHANNELS = ['t', 'r', 's']
@@ -224,7 +227,7 @@ def user_attr_to_python(obj_list, printing=True):
                 if attr_type == 'double3':
                     pass
                 elif attr_type == 'string':
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", "' + str(value) + '", typ="string")\n'
+                    output += 'cmds.setAttr("' + obj + '.' + attr + '", """' + str(value) + '""", typ="string")\n'
                 else:
                     output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
 

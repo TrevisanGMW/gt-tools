@@ -41,8 +41,15 @@
  Added proxy visibility and locked main group
  Added settings to make the creation of certain correctives optional
 
- 0.0.11 - 2022-07-13
+ 1.0.1 - 2022-07-13
  Updated default position of a few of the corrective targets
+
+ 1.0.2 - 2022-09-30
+ Added an auto merge check at the end of the create correctives function
+ Added suppress warning option to "merge_corrective_elements"
+
+ 1.0.3 = 2022-10-13
+ Updated "store_proxy_as_string" parameters to match new pattern
 
 """
 from collections import namedtuple
@@ -1948,11 +1955,15 @@ def create_corrective_setup(corrective_data):
             cmds.setAttr(obj + '.overrideDisplayType', 1)
 
     # Store Proxy as String Attribute
-    store_proxy_as_string(main_ctrl, 'corrective_proxy_pose', corrective_data)
+    store_proxy_as_string(corrective_data)
 
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
+
+    # Auto Merge
+    if corrective_data.settings.get('auto_merge'):
+        merge_corrective_elements(supress_warning=True)
 
     # ###################################### Debugging #######################################
     if corrective_data.debugging:
@@ -1971,8 +1982,12 @@ def create_corrective_setup(corrective_data):
             logger.debug(exception)
 
 
-def merge_corrective_elements():
-    """ Merges corrective elements with pre-existing biped rig """
+def merge_corrective_elements(supress_warning=False):
+    """
+    Merges corrective elements with pre-existing biped rig
+    Args:
+        supress_warning(bool, optional): If active, function will fail quietly instead of displaying a warning
+    """
     necessary_elements = []
 
     corrective_rig_grp = 'corrective_rig_grp'
@@ -1987,7 +2002,8 @@ def merge_corrective_elements():
 
     for obj in necessary_elements:
         if not cmds.objExists(obj):
-            cmds.warning('Missing a require element. "' + obj + ' "')
+            if not supress_warning:
+                cmds.warning('Missing a require element. "' + obj + ' "')
             return
 
     corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
