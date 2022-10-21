@@ -863,10 +863,8 @@ def create_facial_controls(facial_data):
     if not cmds.objExists(_preexisting_dict.get('jaw_jnt')):
         cmds.matchTransform(_facial_joints_dict.get('jaw_jnt'), _facial_proxy_dict.get('jaw_crv'), pos=1, rot=1)
         cmds.makeIdentity(_facial_joints_dict.get('jaw_jnt'), apply=True, rotate=True)
-        jaw_end_jnt = cmds.duplicate(_facial_joints_dict.get('jaw_jnt'),
-                                     name=_facial_joints_dict.get('jaw_jnt').replace(JNT_SUFFIX,
-                                                                                     'end' + JNT_SUFFIX.capitalize()))[
-            0]
+        jaw_end_jnt = _facial_joints_dict.get('jaw_jnt').replace(JNT_SUFFIX, 'end' + JNT_SUFFIX.capitalize())[0]
+        jaw_end_jnt = cmds.duplicate(_facial_joints_dict.get('jaw_jnt'), name=jaw_end_jnt)
         cmds.delete(cmds.pointConstraint(_facial_proxy_dict.get('mid_upper_lip_crv'), jaw_end_jnt))
         cmds.parent(jaw_end_jnt, _facial_joints_dict.get('jaw_jnt'))
         cmds.setAttr(jaw_end_jnt + '.ty', 0)
