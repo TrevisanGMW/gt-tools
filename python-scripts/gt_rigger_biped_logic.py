@@ -2577,6 +2577,8 @@ def create_biped_rig(data_biped):
     arms_automation_grp = cmds.group(name='armsAutomation_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(arms_automation_grp, (1, .65, .45))
 
+    constraints_automation_grp = cmds.group(name='baseConstraints_grp', world=True, empty=True)
+
     # Main Ctrl
     main_ctrl = create_main_control(name='main_' + CTRL_SUFFIX)
     main_ctrl_scale = cmds.xform(elements.get('main_crv'), q=True, ws=True, scale=True)
@@ -8943,6 +8945,7 @@ def create_biped_rig(data_biped):
     cmds.parent(finger_automation_grp, rig_setup_grp)
     cmds.parent(spine_automation_grp, rig_setup_grp)
     cmds.parent(foot_automation_grp, rig_setup_grp)
+    cmds.parent(constraints_automation_grp, general_automation_grp)
 
     # Scale Constraints
     main_skeleton_constraint = cmds.scaleConstraint(main_ctrl, skeleton_grp)
@@ -9666,6 +9669,9 @@ def create_biped_rig(data_biped):
     cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl_data)
     cmds.setAttr(right_hand_sc_ik_handle[0] + '.v', 0)
 
+    # Re-parent Constraints @@@
+    reparent_constraints(rig_joints_default.get('main_jnt'), constraints_automation_grp)
+
     # ################# Bulletproof Controls #################
     lock_hide_default_attr(cog_ctrl, translate=False, rotate=False)
     lock_hide_default_attr(spine01_ctrl, translate=False, rotate=False)
@@ -10128,6 +10134,9 @@ def create_biped_rig(data_biped):
                                rig_joints_default.get('main_jnt'),
                                main_ctrl, new_skeleton_suffix)
 
+        # Re-parent Constraints @@@
+        reparent_constraints(rig_joints_default.get('main_jnt'), constraints_automation_grp) # Main joint is now Game
+
     # ################ Store Created Joints #################
     rig_joints_default['left_forearm_jnt'] = left_forearm_jnt
     rig_joints_default['right_forearm_jnt'] = right_forearm_jnt
@@ -10304,7 +10313,7 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
     biped_obj = GTBipedRiggerData()
     biped_obj.debugging = debugging
     biped_obj.debugging_force_new_scene = True
-    biped_obj.settings['using_no_ssc_skeleton'] = True
+    biped_obj.settings['using_no_ssc_skeleton'] = False
     biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
     biped_obj.settings['worldspace_ik_orient'] = False
