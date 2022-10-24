@@ -78,11 +78,12 @@
  Removed unnecessary print statement
  Updated "store_proxy_as_string" parameters to match new pattern
 
- 1.0.5 - 2022-10-24
+ 1.0.5 to 1.0.6 - 2022-10-24
  Fixed small issue where the head wouldn't be generated when not using a base rig
+ Moved base constraints to a render setup group
 
  TODO:
-     Polish mouth up poses (rotation is unpredictable at the moment)
+     Polish mouth up poses (rotation is a bit unpredictable at the moment)
      Improve tongue scale control system
      Look for existing biped proxy (not only joints) when creating facial proxy
 """
@@ -811,13 +812,18 @@ def create_facial_controls(facial_data):
     general_automation_grp = cmds.group(name='facialAutomation_grp', world=True, empty=True)
     change_outliner_color(general_automation_grp, (1, .65, .45))
 
-    mouth_automation_grp = cmds.group(name='mouthAutomation_grp', world=True, empty=True)
+    mouth_automation_grp = cmds.group(name='facialMouthAutomation_grp', world=True, empty=True)
     change_outliner_color(mouth_automation_grp, (1, .65, .45))
+
+    pose_automation_grp = cmds.group(name='facialPoseAutomation_grp', world=True, empty=True)
+    base_constraints_grp = cmds.group(name='facialBaseConstraints_grp', world=True, empty=True)
 
     cmds.parent(skeleton_grp, rig_grp)
     cmds.parent(controls_grp, rig_grp)
     cmds.parent(rig_setup_grp, rig_grp)
     cmds.parent(general_automation_grp, rig_setup_grp)
+    cmds.parent(pose_automation_grp, general_automation_grp)
+    cmds.parent(base_constraints_grp, general_automation_grp)
     cmds.parent(mouth_automation_grp, rig_setup_grp)
 
     # # Mouth Scale
@@ -3401,7 +3407,7 @@ def create_facial_controls(facial_data):
         main_driven_parent_grp = cmds.listRelatives(main_driven_parent, parent=True)[0]
         cmds.delete(cmds.parentConstraint(main_driven_parent, target_loc))
         enforce_parent(target_loc, main_driven_parent_grp)
-        enforce_parent(distance_transform, general_automation_grp)
+        enforce_parent(distance_transform, pose_automation_grp)
 
         for dimension in ['X', 'Y', 'Z']:
             cmds.setAttr(target_loc + '.localScale' + dimension, .2)
@@ -3420,7 +3426,7 @@ def create_facial_controls(facial_data):
             distance_range_node = cmds.rename(distance_range, range_sampler)
             distance_range_transform = cmds.listRelatives(distance_range_node, parent=True)[0]
             distance_range_transform = cmds.rename(distance_range_transform, range_sampler.replace('Node', 'Transform'))
-            cmds.parent(distance_range_transform, general_automation_grp)
+            cmds.parent(distance_range_transform, pose_automation_grp)
             cmds.parent(loc_range_start, main_driver_parent)
             cmds.parent(loc_range_end, main_driver_parent)
             cmds.setAttr(loc_range_start + '.v', 0)
@@ -3596,9 +3602,15 @@ def create_facial_controls(facial_data):
             cmds.setAttr(target_loc + '.sz', driven_offset[8])
 
     # END ------------------------------------------------------------------------------------------------------
+    # Move Constraints to Constraints Group
+    constraints_parent = _facial_joints_dict.get('head_jnt')
+    if cmds.objExists(constraints_parent):
+        reparent_constraints(constraints_parent, base_constraints_grp)
 
     # Visibility Adjustments
     cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
+    cmds.setAttr(general_automation_grp + ".v", 0)
+    cmds.setAttr(mouth_automation_grp + ".v", 0)
 
     # Store Proxy as String Attribute
     store_proxy_as_string(facial_data)
@@ -3615,7 +3627,6 @@ def create_facial_controls(facial_data):
     if facial_data.debugging:
         try:
             pass
-
             cmds.setAttr("head_ctrl.showOffsetCtrl", 1)
 
         except Exception as e:
@@ -3679,7 +3690,7 @@ if __name__ == '__main__':
     # Core Functions ---------------------------------------------------------------------------------------------
     create_facial_proxy(data_facial)
     create_facial_controls(data_facial)
-    # merge_facial_elements()
+    merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
