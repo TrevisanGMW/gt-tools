@@ -78,6 +78,9 @@
  Removed unnecessary print statement
  Updated "store_proxy_as_string" parameters to match new pattern
 
+ 1.0.5 - 2022-10-24
+ Fixed small issue where the head wouldn't be generated when not using a base rig
+
  TODO:
      Polish mouth up poses (rotation is unpredictable at the moment)
      Improve tongue scale control system
@@ -863,8 +866,8 @@ def create_facial_controls(facial_data):
     if not cmds.objExists(_preexisting_dict.get('jaw_jnt')):
         cmds.matchTransform(_facial_joints_dict.get('jaw_jnt'), _facial_proxy_dict.get('jaw_crv'), pos=1, rot=1)
         cmds.makeIdentity(_facial_joints_dict.get('jaw_jnt'), apply=True, rotate=True)
-        jaw_end_jnt = _facial_joints_dict.get('jaw_jnt').replace(JNT_SUFFIX, 'end' + JNT_SUFFIX.capitalize())[0]
-        jaw_end_jnt = cmds.duplicate(_facial_joints_dict.get('jaw_jnt'), name=jaw_end_jnt)
+        jaw_end_jnt = _facial_joints_dict.get('jaw_jnt').replace(JNT_SUFFIX, 'end' + JNT_SUFFIX.capitalize())
+        jaw_end_jnt = cmds.duplicate(_facial_joints_dict.get('jaw_jnt'), name=jaw_end_jnt)[0]
         cmds.delete(cmds.pointConstraint(_facial_proxy_dict.get('mid_upper_lip_crv'), jaw_end_jnt))
         cmds.parent(jaw_end_jnt, _facial_joints_dict.get('jaw_jnt'))
         cmds.setAttr(jaw_end_jnt + '.ty', 0)
