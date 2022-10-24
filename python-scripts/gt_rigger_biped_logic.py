@@ -306,6 +306,10 @@
  Updated validate operations
  Updated "store_proxy_as_string" parameters to match new pattern
 
+ 1.11.2 to 1.11.3 - 2022-10-21
+ Re-parent all root constraints to rig setup > general automation > base constraints
+ Locked main proxy group to avoid double transformations
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -1661,6 +1665,9 @@ def create_biped_proxy(data_biped):
             cmds.parent(obj, lines_grp)
 
     cmds.parent(lines_grp, elements.get('main_proxy_grp'))
+
+    # Lock Root Proxy Group to avoid Double Transforms
+    lock_hide_default_attr(elements.get('main_proxy_grp'), visibility=False)
 
     cmds.addAttr(elements.get('main_crv'), ln="proxyOptions", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(elements.get('main_crv') + '.proxyOptions', lock=True)
