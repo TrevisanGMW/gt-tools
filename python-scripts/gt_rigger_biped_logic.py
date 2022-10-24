@@ -310,6 +310,9 @@
  Re-parent all root constraints to rig setup > general automation > base constraints
  Locked main proxy group to avoid double transformations
 
+ 1.12.0 - 2022-10-24
+ Elimited ikSolvers group (moved relevant elements to their own automation group)
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -2206,10 +2209,7 @@ def create_biped_rig(data_biped):
     cmds.parent(rig_joints.get('main_jnt'), skeleton_grp)
     # Rig Setup Group
     rig_setup_grp = cmds.group(name='rig_setup_' + GRP_SUFFIX, empty=True, world=True)
-    ik_solvers_grp = cmds.group(name='ikSolvers_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(rig_setup_grp, (1, .26, .26))
-    change_outliner_color(ik_solvers_grp, (1, 1, .35))
-    cmds.parent(ik_solvers_grp, rig_setup_grp)
 
     # Set Preferred Angles
     cmds.setAttr(rig_joints.get('left_hip_jnt') + '.preferredAngleZ', 90)
@@ -2583,6 +2583,9 @@ def create_biped_rig(data_biped):
 
     arms_automation_grp = cmds.group(name='armsAutomation_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(arms_automation_grp, (1, .65, .45))
+
+    finger_automation_grp = cmds.group(name='fingersAutomation_' + GRP_SUFFIX, empty=True, world=True)
+    change_outliner_color(finger_automation_grp, (1, .65, .45))
 
     constraints_automation_grp = cmds.group(name='baseConstraints_grp', world=True, empty=True)
 
@@ -6310,7 +6313,7 @@ def create_biped_rig(data_biped):
         cmds.setAttr(ik_finger_ctrl + '.sz', lock=True, keyable=False)
         cmds.setAttr(ik_finger_ctrl + '.v', lock=True, keyable=False)
 
-    cmds.parent(left_fingers_ik_grp, ik_solvers_grp)
+    cmds.parent(left_fingers_ik_grp, finger_automation_grp)
 
     # Left Auto Fist/Splay Offset
     # A list of tuples of tuples 1:[thumb, index...],  2: f_01, f_02, f_03,  3: finger_ctrl, ctrl_grp, ctrl_offset
@@ -6886,7 +6889,7 @@ def create_biped_rig(data_biped):
         cmds.setAttr(ik_finger_ctrl + '.sz', lock=True, keyable=False)
         cmds.setAttr(ik_finger_ctrl + '.v', lock=True, keyable=False)
 
-    cmds.parent(right_fingers_ik_grp, ik_solvers_grp)
+    cmds.parent(right_fingers_ik_grp, finger_automation_grp)
 
     # Right Auto Fist/Splay Offset
     # A list of tuples of tuples 1:[thumb, index...],  2:(f_01, f_02, f_03),  3:(finger_ctrl, ctrl_grp, ctrl_offset)
@@ -8119,7 +8122,7 @@ def create_biped_rig(data_biped):
     left_arm_rp_ik_handle = cmds.ikHandle(n='left_armWrist_RP_ikHandle', sj=left_shoulder_ik_jnt, ee=left_wrist_ik_jnt,
                                           sol='ikRPsolver')
     cmds.poleVectorConstraint(left_elbow_ik_ctrl, left_arm_rp_ik_handle[0])
-    cmds.parent(left_arm_rp_ik_handle[0], ik_solvers_grp)
+    cmds.parent(left_arm_rp_ik_handle[0], arms_automation_grp)
     cmds.pointConstraint(left_wrist_offset_ik_ctrl, left_arm_rp_ik_handle[0])
 
     cmds.select(d=True)
@@ -8452,7 +8455,7 @@ def create_biped_rig(data_biped):
     right_arm_rp_ik_handle = cmds.ikHandle(n='right_armWrist_RP_ikHandle', sj=right_shoulder_ik_jnt,
                                            ee=right_wrist_ik_jnt, sol='ikRPsolver')
     cmds.poleVectorConstraint(right_elbow_ik_ctrl, right_arm_rp_ik_handle[0])
-    cmds.parent(right_arm_rp_ik_handle[0], ik_solvers_grp)
+    cmds.parent(right_arm_rp_ik_handle[0], arms_automation_grp)
     cmds.pointConstraint(right_wrist_offset_ik_ctrl, right_arm_rp_ik_handle[0])
 
     cmds.select(d=True)
@@ -8925,11 +8928,11 @@ def create_biped_rig(data_biped):
                     cmds.setAttr(child + '.overrideDisplayType', 1)
 
     # Finger Automation System Hierarchy
-    finger_automation_grp = cmds.group(name='fingersAutomation_' + GRP_SUFFIX, empty=True, world=True)
-    cmds.parent(left_fingers_abduction_ctrl[2], finger_automation_grp)
-    cmds.parent(right_fingers_abduction_ctrl[2], finger_automation_grp)
-    change_outliner_color(finger_automation_grp, (1, .65, .45))
-    cmds.setAttr(finger_automation_grp + '.inheritsTransform', 0)
+    finger_shape_automation_grp = cmds.group(name='fingersRotateShape_' + GRP_SUFFIX, empty=True, world=True)
+    cmds.parent(left_fingers_abduction_ctrl[2], finger_shape_automation_grp)
+    cmds.parent(right_fingers_abduction_ctrl[2], finger_shape_automation_grp)
+    cmds.setAttr(finger_shape_automation_grp + '.inheritsTransform', 0)
+    cmds.parent(finger_shape_automation_grp, finger_automation_grp)
 
     # Spine Automation System Hierarchy
     change_outliner_color(spine_automation_grp, (1, .65, .45))
@@ -8960,10 +8963,16 @@ def create_biped_rig(data_biped):
     cmds.scaleConstraint(main_ctrl, rig_setup_grp)
 
     # Hierarchy Adjustments and Color
-    cmds.setAttr(rig_setup_grp + '.v', 0)
+    # cmds.setAttr(rig_setup_grp + '.v', 0)
     cmds.setAttr(left_clavicle_switch_jnt + '.v', 0)
     cmds.setAttr(right_clavicle_switch_jnt + '.v', 0)
     cmds.setAttr(hip_switch_jnt + '.v', 0)
+    cmds.setAttr(general_automation_grp + '.v', 0)
+    cmds.setAttr(stretchy_system_grp + '.v', 0)
+    cmds.setAttr(arms_automation_grp + '.v', 0)
+    cmds.setAttr(finger_automation_grp + '.v', 0)
+    cmds.setAttr(spine_automation_grp + '.v', 0)
+    cmds.setAttr(foot_automation_grp + '.v', 0)
 
     cmds.parent(geometry_grp, rig_grp)
     cmds.parent(skeleton_grp, rig_grp)
@@ -9779,7 +9788,6 @@ def create_biped_rig(data_biped):
     lock_hide_default_attr(rig_grp, visibility=False)
     lock_hide_default_attr(foot_automation_grp, visibility=False)
     lock_hide_default_attr(stretchy_system_grp, visibility=False)
-    lock_hide_default_attr(ik_solvers_grp, visibility=False)
 
     # Spine Ribbon
     lock_hide_default_attr(cog_ribbon_ctrl, translate=False, rotate=False)
