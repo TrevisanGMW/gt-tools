@@ -310,8 +310,11 @@
  Re-parent all root constraints to rig setup > general automation > base constraints
  Locked main proxy group to avoid double transformations
 
- 1.12.0 - 2022-10-24
- Elimited ikSolvers group (moved relevant elements to their own automation group)
+ 1.12.0 to 1.12.2 - 2022-10-24
+ Eliminated ikSolvers group (moved relevant elements to their own automation group)
+ Updated base skeleton constraint extraction root object
+ Created joint automation group
+ Moved skeleton and rig setup scale constraints to base constraints group
 
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
@@ -2207,6 +2210,9 @@ def create_biped_rig(data_biped):
     skeleton_grp = cmds.group(name=('skeleton_' + GRP_SUFFIX), empty=True, world=True)
     change_outliner_color(skeleton_grp, (.75, .45, .95))  # Purple (Like a joint)
     cmds.parent(rig_joints.get('main_jnt'), skeleton_grp)
+    # Create Joints Automation Group
+    joint_automation_grp = cmds.group(name=('jointAutomation_' + GRP_SUFFIX), empty=True, world=True)
+    change_outliner_color(joint_automation_grp, (.75, .45, .95))  # Purple (Like a joint)
     # Rig Setup Group
     rig_setup_grp = cmds.group(name='rig_setup_' + GRP_SUFFIX, empty=True, world=True)
     change_outliner_color(rig_setup_grp, (1, .26, .26))
@@ -2232,7 +2238,7 @@ def create_biped_rig(data_biped):
                                               parentOnly=True)[0]
     cmds.setAttr(left_clavicle_switch_jnt + '.radius', ik_jnt_scale)
     change_viewport_color(left_clavicle_switch_jnt, ikfk_jnt_color)
-    cmds.parent(left_clavicle_switch_jnt, skeleton_grp)
+    cmds.parent(left_clavicle_switch_jnt, joint_automation_grp)
     left_clavicle_switch_constraint = cmds.parentConstraint(rig_joints.get('left_clavicle_jnt'),
                                                             left_clavicle_switch_jnt)
     cmds.setAttr(left_clavicle_switch_constraint[0] + '.interpType', 0)
@@ -2306,7 +2312,7 @@ def create_biped_rig(data_biped):
                                                name=right_clavicle_switch_jnt, parentOnly=True)[0]
     cmds.setAttr(right_clavicle_switch_jnt + '.radius', ik_jnt_scale)
     change_viewport_color(right_clavicle_switch_jnt, ikfk_jnt_color)
-    cmds.parent(right_clavicle_switch_jnt, skeleton_grp)
+    cmds.parent(right_clavicle_switch_jnt, joint_automation_grp)
     right_clavicle_switch_constraint = cmds.parentConstraint(rig_joints.get('right_clavicle_jnt'),
                                                              right_clavicle_switch_jnt)
     cmds.setAttr(right_clavicle_switch_constraint[0] + '.interpType', 0)
@@ -2380,7 +2386,7 @@ def create_biped_rig(data_biped):
                                     parentOnly=True)[0]
     cmds.setAttr(hip_switch_jnt + '.radius', ik_jnt_scale)
     change_viewport_color(hip_switch_jnt, ikfk_jnt_color)
-    cmds.parent(hip_switch_jnt, skeleton_grp)
+    cmds.parent(hip_switch_jnt, joint_automation_grp)
     hip_switch_constraint = cmds.parentConstraint(rig_joints.get('hip_jnt'), hip_switch_jnt)
     cmds.setAttr(hip_switch_constraint[0] + '.interpType', 0)
 
@@ -5525,7 +5531,7 @@ def create_biped_rig(data_biped):
 
     spine_stretchy_elements = make_stretchy_ik(ik_spine_constraint_handle[0], 'spine', cog_ctrl)
 
-    cmds.parent(ik_spine_constraint_joints[0], skeleton_grp)
+    cmds.parent(ik_spine_constraint_joints[0], joint_automation_grp)
     cmds.parentConstraint(rig_joints.get('cog_jnt'), ik_spine_constraint_joints[0])
 
     # Change Stretchy System to be compatible with other controls
@@ -6072,7 +6078,7 @@ def create_biped_rig(data_biped):
 
     for jnt in [ik_cog_jnt[0], fk_cog_jnt[0], ribbon_cog_jnt[0], ribbon_spine02_jnt[0], ribbon_spine04_jnt[0]]:
         cmds.setAttr(jnt + '.v', 0)
-        cmds.parent(jnt, skeleton_grp)
+        cmds.parent(jnt, joint_automation_grp)
 
     # Ribbon Middle Follow Attribute
     cmds.addAttr(spine_ribbon_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
@@ -6226,7 +6232,7 @@ def create_biped_rig(data_biped):
                                           po=True)
     cmds.setAttr(left_ik_wrist_switch[0] + '.v', 0)
     change_viewport_color(left_ik_wrist_switch[0], ik_jnt_color)
-    cmds.parent(left_ik_wrist_switch, skeleton_grp)
+    cmds.parent(left_ik_wrist_switch, joint_automation_grp)
     cmds.parentConstraint(rig_joints.get('left_wrist_jnt'), left_ik_wrist_switch)
 
     left_ik_finger_chains = []
@@ -6802,7 +6808,7 @@ def create_biped_rig(data_biped):
                                            po=True)
     cmds.setAttr(right_ik_wrist_switch[0] + '.v', 0)
     change_viewport_color(right_ik_wrist_switch[0], ik_jnt_color)
-    cmds.parent(right_ik_wrist_switch, skeleton_grp)
+    cmds.parent(right_ik_wrist_switch, joint_automation_grp)
     cmds.parentConstraint(rig_joints.get('right_wrist_jnt'), right_ik_wrist_switch)
 
     right_ik_finger_chains = []
@@ -8351,7 +8357,7 @@ def create_biped_rig(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_forearm_grp))
 
-    cmds.parent(left_forearm_grp, skeleton_grp)
+    cmds.parent(left_forearm_grp, joint_automation_grp)
     cmds.pointConstraint([rig_joints.get('left_elbow_jnt'), rig_joints.get('left_wrist_jnt')], left_forearm_grp)
     cmds.setAttr(left_forearm_jnt + '.tx', 0)
     cmds.setAttr(left_forearm_jnt + '.ty', 0)
@@ -8397,7 +8403,7 @@ def create_biped_rig(data_biped):
     cmds.setAttr(left_wrist_twist_sample_jnt + '.rotateOrder', 1)
     cmds.parent(left_wrist_twist_sample_jnt, left_elbow_twist_sample_jnt)
     cmds.pointConstraint(rig_joints.get('left_wrist_jnt'), left_wrist_twist_sample_jnt)
-    cmds.parent(left_elbow_twist_sample_jnt, skeleton_grp)
+    cmds.parent(left_elbow_twist_sample_jnt, joint_automation_grp)
     cmds.parentConstraint(rig_joints.get('left_elbow_jnt'), left_elbow_twist_sample_jnt)
     left_wrist_aim_loc = cmds.spaceLocator(name=rig_joints.get('left_wrist_jnt').replace(JNT_SUFFIX, 'twistLoc'))[0]
     cmds.delete(cmds.parentConstraint(left_wrist_twist_sample_jnt, left_wrist_aim_loc))
@@ -8695,7 +8701,7 @@ def create_biped_rig(data_biped):
 
     cmds.delete(cmds.parentConstraint(rig_joints.get('right_elbow_jnt'), right_forearm_grp))
 
-    cmds.parent(right_forearm_grp, skeleton_grp)
+    cmds.parent(right_forearm_grp, joint_automation_grp)
     cmds.pointConstraint([rig_joints.get('right_elbow_jnt'), rig_joints.get('right_wrist_jnt')], right_forearm_grp)
     cmds.orientConstraint(rig_joints.get('right_elbow_jnt'), right_forearm_grp)
     cmds.setAttr(right_forearm_jnt + '.tx', 0)
@@ -8746,7 +8752,7 @@ def create_biped_rig(data_biped):
     cmds.setAttr(right_wrist_twist_sample_jnt + '.rotateOrder', 1)
     cmds.parent(right_wrist_twist_sample_jnt, right_elbow_twist_sample_jnt)
     cmds.pointConstraint(rig_joints.get('right_wrist_jnt'), right_wrist_twist_sample_jnt)
-    cmds.parent(right_elbow_twist_sample_jnt, skeleton_grp)
+    cmds.parent(right_elbow_twist_sample_jnt, joint_automation_grp)
     cmds.parentConstraint(rig_joints.get('right_elbow_jnt'), right_elbow_twist_sample_jnt)
     right_wrist_aim_loc = cmds.spaceLocator(name=rig_joints.get('right_wrist_jnt').replace(JNT_SUFFIX, 'twistLoc'))[0]
     cmds.delete(cmds.parentConstraint(right_wrist_twist_sample_jnt, right_wrist_aim_loc))
@@ -8960,10 +8966,10 @@ def create_biped_rig(data_biped):
     # Scale Constraints
     main_skeleton_constraint = cmds.scaleConstraint(main_ctrl, skeleton_grp)
     cmds.setAttr(main_skeleton_constraint[0] + '.v', 0)
-    cmds.scaleConstraint(main_ctrl, rig_setup_grp)
+    rig_setup_scale_constraint = cmds.scaleConstraint(main_ctrl, rig_setup_grp)
+    cmds.parent(rig_setup_scale_constraint, constraints_automation_grp)
 
     # Hierarchy Adjustments and Color
-    # cmds.setAttr(rig_setup_grp + '.v', 0)
     cmds.setAttr(left_clavicle_switch_jnt + '.v', 0)
     cmds.setAttr(right_clavicle_switch_jnt + '.v', 0)
     cmds.setAttr(hip_switch_jnt + '.v', 0)
@@ -8978,6 +8984,7 @@ def create_biped_rig(data_biped):
     cmds.parent(skeleton_grp, rig_grp)
     cmds.parent(controls_grp, rig_grp)
     cmds.parent(rig_setup_grp, rig_grp)
+    cmds.parent(joint_automation_grp, rig_setup_grp)
 
     cmds.setAttr(main_ctrl + '.sx', k=False)
     cmds.setAttr(main_ctrl + '.sz', k=False)
@@ -9560,8 +9567,8 @@ def create_biped_rig(data_biped):
     # Organize Auto Clavicle System
     cmds.setAttr(left_clavicle_auto_jnt + ".v", 0)
     cmds.setAttr(right_clavicle_auto_jnt + ".v", 0)
-    cmds.parent(left_clavicle_auto_jnt, skeleton_grp)
-    cmds.parent(right_clavicle_auto_jnt, skeleton_grp)
+    cmds.parent(left_clavicle_auto_jnt, joint_automation_grp)
+    cmds.parent(right_clavicle_auto_jnt, joint_automation_grp)
 
     auto_clavicle_grp = cmds.group(name='autoClavicle_grp', empty=True, world=True)
     cmds.parent(left_auto_clavicle_sc_ik_handle_grp, auto_clavicle_grp)
@@ -9684,9 +9691,6 @@ def create_biped_rig(data_biped):
     # cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl)
     cmds.parent(right_hand_sc_ik_handle[0], right_wrist_offset_ik_ctrl_data)
     cmds.setAttr(right_hand_sc_ik_handle[0] + '.v', 0)
-
-    # Re-parent Constraints @@@
-    reparent_constraints(rig_joints_default.get('main_jnt'), constraints_automation_grp)
 
     # ################# Bulletproof Controls #################
     lock_hide_default_attr(cog_ctrl, translate=False, rotate=False)
@@ -9954,9 +9958,9 @@ def create_biped_rig(data_biped):
                                            rig_joints.get('spine03_jnt'),
                                            ], new_spine_02_jnt))
 
-        cmds.parent(rig_joints.get('spine01_jnt'), skeleton_grp)
-        cmds.parent(rig_joints.get('spine02_jnt'), skeleton_grp)
-        cmds.parent(rig_joints.get('spine03_jnt'), skeleton_grp)
+        cmds.parent(rig_joints.get('spine01_jnt'), joint_automation_grp)
+        cmds.parent(rig_joints.get('spine02_jnt'), joint_automation_grp)
+        cmds.parent(rig_joints.get('spine03_jnt'), joint_automation_grp)
         cmds.parent(new_spine_02_jnt, rig_joints.get('cog_jnt'))
         cmds.parent(rig_joints.get('spine04_jnt'), new_spine_02_jnt)
         cmds.parentConstraint(rig_joints.get('spine02_jnt'), new_spine_02_jnt, mo=True)
@@ -9969,6 +9973,9 @@ def create_biped_rig(data_biped):
     # Move Pelvis under Root
     cmds.parent(rig_joints.get('hip_jnt'), rig_joints.get('main_jnt'))
     cmds.parent(rig_joints.get('cog_jnt'), rig_joints.get('hip_jnt'))
+
+    # Re-parent Constraints
+    reparent_constraints(skeleton_grp, constraints_automation_grp)
 
     # Store Proxy as String Attribute
     store_proxy_as_string(data_biped)
