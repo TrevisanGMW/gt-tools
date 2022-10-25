@@ -78,9 +78,10 @@
  Removed unnecessary print statement
  Updated "store_proxy_as_string" parameters to match new pattern
 
- 1.0.5 to 1.0.6 - 2022-10-24
+ 1.0.5 to 1.0.7 - 2022-10-24
  Fixed small issue where the head wouldn't be generated when not using a base rig
  Moved base constraints to a render setup group
+ Updated merge function to account for new joint automation setup
 
  TODO:
      Polish mouth up poses (rotation is a bit unpredictable at the moment)
@@ -806,14 +807,16 @@ def create_facial_controls(facial_data):
     change_outliner_color(controls_grp, (1, 0.47, 0.18))
 
     rig_setup_grp = cmds.group(name=face_prefix + 'rig_setup_' + GRP_SUFFIX, empty=True, world=True)
-    cmds.setAttr(rig_setup_grp + '.v', 0)
+    # cmds.setAttr(rig_setup_grp + '.v', 0)
     change_outliner_color(rig_setup_grp, (1, .26, .26))
 
     general_automation_grp = cmds.group(name='facialAutomation_grp', world=True, empty=True)
     change_outliner_color(general_automation_grp, (1, .65, .45))
+    cmds.setAttr(general_automation_grp + ".v", 0)
 
     mouth_automation_grp = cmds.group(name='facialMouthAutomation_grp', world=True, empty=True)
     change_outliner_color(mouth_automation_grp, (1, .65, .45))
+    cmds.setAttr(mouth_automation_grp + ".v", 0)
 
     pose_automation_grp = cmds.group(name='facialPoseAutomation_grp', world=True, empty=True)
     base_constraints_grp = cmds.group(name='facialBaseConstraints_grp', world=True, empty=True)
@@ -3609,8 +3612,6 @@ def create_facial_controls(facial_data):
 
     # Visibility Adjustments
     cmds.setAttr(_facial_joints_dict.get('head_jnt') + ".drawStyle", 2)
-    cmds.setAttr(general_automation_grp + ".v", 0)
-    cmds.setAttr(mouth_automation_grp + ".v", 0)
 
     # Store Proxy as String Attribute
     store_proxy_as_string(facial_data)
@@ -3652,14 +3653,30 @@ def merge_facial_elements(supress_warning=False):
                 cmds.warning('Missing a require element. "' + obj + '"')
             return
 
+    # In case rig was generated, then imported
+    separated_head_root = 'headRoot_jnt'
+    if cmds.objExists(separated_head_root):
+        root_parent = cmds.listRelatives(separated_head_root, parent=True) or []
+        if root_parent and root_parent[0] == 'facial_skeleton_grp':
+            try:
+                cmds.parent(separated_head_root, skeleton_grp)
+            except Exception as e:
+                logger.debug(str(e))
+
     facial_joints = cmds.listRelatives('facial_skeleton_grp', children=True)
     facial_rig_setup_grps = cmds.listRelatives('facial_rig_setup_grp', children=True)
-    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint')
+    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint') or []
 
-    for jnt in facial_joints:
-        cmds.parent(jnt, skeleton_grp)
     for grp in facial_rig_setup_grps:
         cmds.parent(grp, rig_setup_grp)
+    joint_automation_grp = 'jointAutomation_grp'
+    if not cmds.objExists(joint_automation_grp):
+        for jnt in facial_joints:
+            cmds.parent(jnt, skeleton_grp)
+    else:
+        for jnt in facial_joints:
+            cmds.parent(jnt, joint_automation_grp)
+            cmds.reorder(joint_automation_grp, back=True)
     for constraint in rig_setup_scale_constraints:
         cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
