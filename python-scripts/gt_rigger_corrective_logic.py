@@ -48,8 +48,13 @@
  Added an auto merge check at the end of the create correctives function
  Added suppress warning option to "merge_corrective_elements"
 
- 1.0.3 = 2022-10-13
+ 1.0.3 - 2022-10-13
  Updated "store_proxy_as_string" parameters to match new pattern
+
+ 1.0.4 - 2022-10-26
+ Locked transform channels for the main proxy group
+ Moved base constraints to a render setup group
+ Moved joints to rig setup according to new pattern
 
 """
 from collections import namedtuple
@@ -99,6 +104,7 @@ def create_corrective_proxy(corrective_data):
         cmds.setAttr(shape + '.lineWidth', 3)
 
     # Main Group Attribute Setup
+    lock_hide_default_attr(main_grp, visibility=False)
     lock_hide_default_attr(main_root, visibility=False)
     cmds.addAttr(main_root, ln="proxyVisibility", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(main_root + '.proxyVisibility', e=True, lock=True)
@@ -2009,7 +2015,7 @@ def merge_corrective_elements(supress_warning=False):
     corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
     corrective_ctrls = cmds.listRelatives('corrective_controls_grp', children=True) or []
     rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True) or []
-    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint')
+    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint') or []
 
     for jnt in corrective_joints:
         cmds.parent(jnt, skeleton_grp)
