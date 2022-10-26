@@ -38,6 +38,11 @@
  Added file and json import options to "import_facial_proxy_pose"
  Added file and json import options to "import_corrective_proxy_pose"
  Removed a few unnecessary print statements
+
+ 2022-10-24
+ Fixed select skinning for base rig (missing spine joint when simplifying)
+ Added temporary select skinning joints hack for facial and corrective rigs
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -1041,6 +1046,7 @@ def select_skinning_joints_biped():
                 if parent != 'skeleton_grp':
                     skinning_joints.append(data_biped.joints_default.get(obj))
         cmds.select(skinning_joints)
+        # Hacks - Make sure to do it properly later:
         if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
             for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
                 try:
@@ -1048,6 +1054,12 @@ def select_skinning_joints_biped():
                 except Exception as e:
                     logger.debug(e)
                     pass
+        if 'spine_jnt' not in skinning_joints:
+            try:
+                cmds.select('spine_jnt', add=True)
+            except Exception as e:
+                logger.debug(e)
+                pass
 
 
 def select_skinning_joints_facial():
