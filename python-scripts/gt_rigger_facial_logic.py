@@ -83,8 +83,9 @@
  Moved base constraints to a render setup group
  Updated merge function to account for new joint automation setup
 
- 1.0.8 - 2022-10-26
+ 1.0.8 to 1.0.9 - 2022-10-26
  Updated cheek proxy to fix a mirroring issue
+ Fixed an issue with initial translate value for the mid lip goals
 
  TODO:
      Polish mouth up poses (rotation is a bit unpredictable at the moment)
@@ -2718,7 +2719,7 @@ def create_facial_controls(facial_data):
              driver_range=[0, -5],
              driver_end_dir='xy',
              driven=['mid_lowerLip_ctrl'],  # MID LOWER LIP
-             driven_offset=[0, 0.1, 0, 0, 0, 0, 1, 1, 1],
+             driven_offset=[0, -0.1, 0, 0, 0, 0, 1, 1, 1],
              setup='outer_corner_lip'),
 
         # Mouth Out > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >
@@ -3590,7 +3591,7 @@ def create_facial_controls(facial_data):
         # Driven List Connections End -----------------------------------------------------------------------------
 
         # Set Initial Locator Position (Pose)
-        if len(driven_offset):
+        if len(driven_offset):  # Translate
             cmds.setAttr(target_loc + '.tx', driven_offset[0])
             cmds.setAttr(target_loc + '.ty', driven_offset[1])
             cmds.setAttr(target_loc + '.tz', driven_offset[2])
@@ -3598,11 +3599,13 @@ def create_facial_controls(facial_data):
                 cmds.setAttr(target_loc + '.tx', -driven_offset[0])
                 cmds.setAttr(target_loc + '.ty', -driven_offset[1])
                 cmds.setAttr(target_loc + '.tz', -driven_offset[2])
-        if len(driven_offset) > 3:
+            if 'Lip' in driven_list[0] and driven_list[0].startswith('mid_'):  # Mid Lip (Mirror Y)
+                cmds.setAttr(target_loc + '.ty', -driven_offset[1])
+        if len(driven_offset) > 3:  # Rotate
             cmds.setAttr(target_loc + '.rx', driven_offset[3])
             cmds.setAttr(target_loc + '.ry', driven_offset[4])
             cmds.setAttr(target_loc + '.rz', driven_offset[5])
-        if len(driven_offset) > 6:
+        if len(driven_offset) > 6:  # Scale
             cmds.setAttr(target_loc + '.sx', driven_offset[6])
             cmds.setAttr(target_loc + '.sy', driven_offset[7])
             cmds.setAttr(target_loc + '.sz', driven_offset[8])
@@ -3688,7 +3691,7 @@ def merge_facial_elements(supress_warning=False):
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    data_facial.debugging = True
+    data_facial.debugging = False
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
