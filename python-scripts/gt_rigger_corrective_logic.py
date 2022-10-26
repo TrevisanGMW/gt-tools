@@ -51,10 +51,11 @@
  1.0.3 - 2022-10-13
  Updated "store_proxy_as_string" parameters to match new pattern
 
- 1.0.4 to 1.0.5- 2022-10-26
+ 1.0.4 to 1.0.6- 2022-10-26
  Locked transform channels for the main proxy group
  Moved base constraints to a render setup group
  Moved joints to rig setup according to new pattern
+ Updated visibility for some generated joints
 
 """
 from collections import namedtuple
@@ -753,6 +754,7 @@ def create_corrective_setup(corrective_data):
     if _corrective_settings.get("setup_hips") and dependencies_hips:
         pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
         pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
+        cmds.setAttr(pelvis_driver_jnt + '.drawStyle', 2)
         # cmds.parent(pelvis_driver_jnt, world=True)
         cmds.parent(pelvis_driver_jnt, skeleton_grp)
         # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('right_main_hip_jnt'))
@@ -788,6 +790,7 @@ def create_corrective_setup(corrective_data):
     if _corrective_settings.get("setup_shoulders") and dependencies_shoulders:
         left_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
         left_scapula_driver_jnt = cmds.duplicate(left_scapula_jnt, name='left_scapula_driverJnt', po=True)[0]
+        cmds.setAttr(left_scapula_driver_jnt + '.drawStyle', 2)
         cmds.parent(left_scapula_driver_jnt, skeleton_grp)
         cmds.parentConstraint(left_scapula_jnt, left_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('left_back_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
@@ -798,6 +801,7 @@ def create_corrective_setup(corrective_data):
 
         right_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('right_shoulder_jnt'), parent=True)[0]
         right_scapula_driver_jnt = cmds.duplicate(right_scapula_jnt, name='right_scapula_driverJnt', po=True)[0]
+        cmds.setAttr(right_scapula_driver_jnt + '.drawStyle', 2)
         cmds.parent(right_scapula_driver_jnt, skeleton_grp)
         cmds.parentConstraint(right_scapula_jnt, right_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('right_back_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
@@ -1373,6 +1377,7 @@ def create_corrective_setup(corrective_data):
                 change_viewport_color(dir_loc, (1, 0, 1))
                 change_viewport_color(rot_angle_parent, (1, 1, 1))
                 change_viewport_color(dir_jnt, (1, 1, 1))
+                cmds.setAttr(rot_angle_parent + '.v', 0)
 
                 cmds.delete(cmds.parentConstraint(dir_jnt, dir_loc))
                 cmds.move(-dir_value, dir_loc, moveY=True, relative=True, objectSpace=True)
@@ -2047,7 +2052,7 @@ def merge_corrective_elements(supress_warning=False):
 # Test it
 if __name__ == '__main__':
     data_corrective = GTBipedRiggerCorrectiveData()
-    data_corrective.debugging = True
+    data_corrective.debugging = False
     debugging = data_corrective.debugging
 
     # data_corrective.settings['setup_wrists'] = False
