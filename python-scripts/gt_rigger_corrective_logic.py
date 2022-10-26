@@ -51,11 +51,12 @@
  1.0.3 - 2022-10-13
  Updated "store_proxy_as_string" parameters to match new pattern
 
- 1.0.4 to 1.0.6- 2022-10-26
+ 1.0.4 to 1.0.7- 2022-10-26
  Locked transform channels for the main proxy group
  Moved base constraints to a render setup group
  Moved joints to rig setup according to new pattern
  Updated visibility for some generated joints
+ Added clear selection at the end of ctrl and merge operations
 
 """
 from collections import namedtuple
@@ -2001,6 +2002,9 @@ def create_corrective_setup(corrective_data):
         except Exception as exception:
             logger.debug(exception)
 
+    # Clear Selection
+    cmds.select(clear=True)
+
 
 def merge_corrective_elements(supress_warning=False):
     """
@@ -2047,6 +2051,7 @@ def merge_corrective_elements(supress_warning=False):
         cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
     cmds.delete(corrective_rig_grp)
+    cmds.select(clear=True)
 
 
 # Test it
