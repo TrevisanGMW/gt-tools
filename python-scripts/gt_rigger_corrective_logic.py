@@ -51,7 +51,7 @@
  1.0.3 - 2022-10-13
  Updated "store_proxy_as_string" parameters to match new pattern
 
- 1.0.4 - 2022-10-26
+ 1.0.4 to 1.0.5- 2022-10-26
  Locked transform channels for the main proxy group
  Moved base constraints to a render setup group
  Moved joints to rig setup according to new pattern
@@ -647,11 +647,15 @@ def create_corrective_setup(corrective_data):
     automation_grp = cmds.group(name='correctiveAutomation_grp', world=True, empty=True)
     change_outliner_color(automation_grp, (1, .65, .45))
 
+    base_constraints_grp = cmds.group(name='correctiveBaseConstraints_grp', world=True, empty=True)
+
     cmds.parent(skeleton_grp, rig_grp)
     cmds.parent(controls_grp, rig_grp)
     cmds.parent(rig_setup_grp, rig_grp)
     cmds.parent(automation_grp, rig_setup_grp)
     cmds.setAttr(rig_setup_grp + '.v', 0)
+    cmds.setAttr(automation_grp + '.v', 0)
+    cmds.parent(base_constraints_grp, automation_grp)
 
     # Create Driver Joints
     _cor_joints_dict = {}
@@ -1963,6 +1967,11 @@ def create_corrective_setup(corrective_data):
     # Store Proxy as String Attribute
     store_proxy_as_string(corrective_data)
 
+    # Clean Base Skeleton Constraints
+    original_skeleton_group = 'skeleton_grp'
+    if cmds.objExists(original_skeleton_group):
+        reparent_constraints(original_skeleton_group, base_constraints_grp)
+
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
@@ -2017,12 +2026,18 @@ def merge_corrective_elements(supress_warning=False):
     rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True) or []
     rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint') or []
 
-    for jnt in corrective_joints:
-        cmds.parent(jnt, skeleton_grp)
-    for ctrl in corrective_ctrls:
-        cmds.parent(ctrl, direction_ctrl)
     for grp in rig_setup_grps:
         cmds.parent(grp, rig_setup_grp)
+    joint_automation_grp = 'jointAutomation_grp'
+    if not cmds.objExists(joint_automation_grp):
+        for jnt in corrective_joints:
+            cmds.parent(jnt, skeleton_grp)
+    else:
+        for jnt in corrective_joints:
+            cmds.parent(jnt, joint_automation_grp)
+            cmds.reorder(joint_automation_grp, back=True)
+    for ctrl in corrective_ctrls:
+        cmds.parent(ctrl, direction_ctrl)
     for constraint in rig_setup_scale_constraints:
         cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
@@ -2057,7 +2072,7 @@ if __name__ == '__main__':
 
     create_corrective_proxy(data_corrective)
     create_corrective_setup(data_corrective)
-    # merge_corrective_elements()
+    merge_corrective_elements()
 
     if debugging:
         pass
