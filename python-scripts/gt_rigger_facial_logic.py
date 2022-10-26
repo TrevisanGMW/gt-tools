@@ -83,6 +83,9 @@
  Moved base constraints to a render setup group
  Updated merge function to account for new joint automation setup
 
+ 1.0.8 - 2022-10-26
+ Updated cheek proxy to fix a mirroring issue
+
  TODO:
      Polish mouth up poses (rotation is a bit unpredictable at the moment)
      Improve tongue scale control system
@@ -620,7 +623,7 @@ def create_facial_proxy(facial_data):
     right_cheek_proxy_crv_grp = cmds.group(empty=True, world=True, name=right_cheek_proxy_crv + GRP_SUFFIX.capitalize())
     cmds.parent(right_cheek_proxy_crv, right_cheek_proxy_crv_grp)
     cmds.move(-4, 148, 12, right_cheek_proxy_crv_grp)
-    cmds.rotate(135, 0, -90, right_cheek_proxy_crv_grp)
+    cmds.rotate(45, 0, -270, right_cheek_proxy_crv_grp)
     cmds.parent(right_cheek_proxy_crv_grp, main_root)
     change_viewport_color(right_cheek_proxy_crv, (.6, .3, .6))
     proxy_curves.append(right_cheek_proxy_crv)
@@ -3685,7 +3688,7 @@ def merge_facial_elements(supress_warning=False):
 
 if __name__ == '__main__':
     data_facial = GTBipedRiggerFacialData()
-    data_facial.debugging = False
+    data_facial.debugging = True
     debugging = data_facial.debugging
     # Camera Debugging -------------------------------------------------------------------------------------------
     if data_facial.debugging:
@@ -3707,7 +3710,7 @@ if __name__ == '__main__':
     # Core Functions ---------------------------------------------------------------------------------------------
     create_facial_proxy(data_facial)
     create_facial_controls(data_facial)
-    merge_facial_elements()
+    # merge_facial_elements()
 
     # Bind Debugging ---------------------------------------------------------------------------------------------
     if data_facial.debugging:
