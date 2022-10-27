@@ -158,6 +158,9 @@
  Added traceback to some logger lines
  Fixed issue where the hand would complain of a missing control even when using a correct namespace
 
+ 1.5.11 - 2022-10-27
+ Fixed an issue where locators would be left in the scene if the pose mirror functioned failed
+
  TODO:
     Overwrite keys for animation functions
     Option to save pose thumbnail when exporting it
@@ -189,7 +192,7 @@ script_name = 'GT Custom Rig Interface'
 unique_rig = ''  # If provided, it will be used in the window title
 
 # Version:
-script_version = "1.5.10"
+script_version = "1.5.11"
 
 # Script General Settings:
 gt_custom_rig_interface_settings = {
@@ -1944,26 +1947,30 @@ def pose_mirror_center(gt_ctrls, gt_zero_x_ctrls, namespace='', apply=True):
     main_ctrl_ref_loc = cmds.spaceLocator(name=main_ctrl_ref_loc)[0]
     direction_ref_loc = cmds.spaceLocator(name=direction_ref_loc)[0]
     waist_ref_loc = cmds.spaceLocator(name=waist_ref_loc)[0]
-    cmds.delete(cmds.parentConstraint(namespace + main_ctrl, main_ctrl_ref_loc))
-    cmds.delete(cmds.parentConstraint(namespace + direction_ctrl, direction_ref_loc))
-    cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_ref_loc))
-    reset_translate_rotate([direction_ctrl, main_ctrl], namespace)
 
-    # Find Average
-    if len(available_ctrls) != 0:
-        for ctrl_depth in sorted_ctrls_depth:
-            ctrl = ctrl_depth[0]
-            average_center_transforms(ctrl)
+    try:
+        cmds.delete(cmds.parentConstraint(namespace + main_ctrl, main_ctrl_ref_loc))
+        cmds.delete(cmds.parentConstraint(namespace + direction_ctrl, direction_ref_loc))
+        cmds.delete(cmds.parentConstraint(namespace + waist_controls[1], waist_ref_loc))
+        reset_translate_rotate([direction_ctrl, main_ctrl], namespace)
 
-    # Match Waist Position
-    cmds.matchTransform(namespace + main_ctrl, main_ctrl_ref_loc, pos=True, rot=True)
-    cmds.matchTransform(namespace + direction_ctrl, direction_ref_loc, pos=True, rot=True)
-    cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=True)
+        # Find Average
+        if len(available_ctrls) != 0:
+            for ctrl_depth in sorted_ctrls_depth:
+                ctrl = ctrl_depth[0]
+                average_center_transforms(ctrl)
 
-    # # Delete Feet Reference Elements
-    for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:
-        if cmds.objExists(obj):
-            cmds.delete(obj)
+        # Match Waist Position
+        cmds.matchTransform(namespace + main_ctrl, main_ctrl_ref_loc, pos=True, rot=True)
+        cmds.matchTransform(namespace + direction_ctrl, direction_ref_loc, pos=True, rot=True)
+        cmds.matchTransform(namespace + waist_controls[0], waist_ref_loc, pos=True)
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        # Delete Feet Reference Elements
+        for obj in [waist_ref_loc, direction_ref_loc, main_ctrl_ref_loc]:
+            if cmds.objExists(obj):
+                cmds.delete(obj)
 
 
 def pose_flip_left_right(biped_ctrls, namespace=''):
