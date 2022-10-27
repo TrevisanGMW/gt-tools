@@ -19,6 +19,9 @@
  Updated "create_cheek_nose_controls" with inverted right controls
  Repositioned nose controls (side GUI)
 
+ 2022-10-20
+ Added "reparent_constraints"
+
 """
 from gt_utilities import make_flat_list
 from gt_rigger_data import *
@@ -3037,6 +3040,37 @@ def print_inview_message(part_a, part_b, color_a='FF0000', color_b='FFFFFF'):
     unique_message += '<span style=\"color:#' + color_a + ';text-decoration:underline;\">' + part_a + '</span>'
     unique_message += '<span style=\"color:#' + color_b + ';\">' + part_b + '</span>'
     cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+
+
+def reparent_constraints(constraints_parent, target):
+    """
+    Moves all found constraints to another target object
+
+    Args:
+        constraints_parent (string): Root (top parent) where constraints can be found. e.g. "root_jnt"
+        target (string): Name of the object that constraints will be parented to. Usually a group
+    """
+    if not cmds.objExists(constraints_parent):
+        cmds.warning('Unable to find constraints root: "' + constraints_parent + '"')
+        return
+
+    if not cmds.objExists(target):
+        cmds.warning('Unable to find constraints target object: "' + target + '"')
+        return
+
+    constraint_types = ['parentConstraint', 'pointConstraint', 'orientConstraint',
+                        'scaleConstraint', 'aimConstraint', 'poleVectorConstraint']
+    constraints_found = []
+    cmds.select(constraints_parent)
+    cmds.select(hierarchy=True)
+    selected_objects = cmds.ls(selection=True)
+
+    for constraint in constraint_types:
+        found_objects = cmds.ls(selected_objects, type=constraint) or []
+        constraints_found += found_objects
+
+    for constraint in constraints_found:
+        enforce_parent(constraint, target)
 
 
 # Tests

@@ -48,8 +48,15 @@
  Added an auto merge check at the end of the create correctives function
  Added suppress warning option to "merge_corrective_elements"
 
- 1.0.3 = 2022-10-13
+ 1.0.3 - 2022-10-13
  Updated "store_proxy_as_string" parameters to match new pattern
+
+ 1.0.4 to 1.0.7- 2022-10-26
+ Locked transform channels for the main proxy group
+ Moved base constraints to a render setup group
+ Moved joints to rig setup according to new pattern
+ Updated visibility for some generated joints
+ Added clear selection at the end of ctrl and merge operations
 
 """
 from collections import namedtuple
@@ -99,6 +106,7 @@ def create_corrective_proxy(corrective_data):
         cmds.setAttr(shape + '.lineWidth', 3)
 
     # Main Group Attribute Setup
+    lock_hide_default_attr(main_grp, visibility=False)
     lock_hide_default_attr(main_root, visibility=False)
     cmds.addAttr(main_root, ln="proxyVisibility", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(main_root + '.proxyVisibility', e=True, lock=True)
@@ -641,11 +649,15 @@ def create_corrective_setup(corrective_data):
     automation_grp = cmds.group(name='correctiveAutomation_grp', world=True, empty=True)
     change_outliner_color(automation_grp, (1, .65, .45))
 
+    base_constraints_grp = cmds.group(name='correctiveBaseConstraints_grp', world=True, empty=True)
+
     cmds.parent(skeleton_grp, rig_grp)
     cmds.parent(controls_grp, rig_grp)
     cmds.parent(rig_setup_grp, rig_grp)
     cmds.parent(automation_grp, rig_setup_grp)
     cmds.setAttr(rig_setup_grp + '.v', 0)
+    cmds.setAttr(automation_grp + '.v', 0)
+    cmds.parent(base_constraints_grp, automation_grp)
 
     # Create Driver Joints
     _cor_joints_dict = {}
@@ -743,6 +755,7 @@ def create_corrective_setup(corrective_data):
     if _corrective_settings.get("setup_hips") and dependencies_hips:
         pelvis_jnt = cmds.listRelatives(_preexisting_dict.get('right_hip_jnt'), parent=True)[0]
         pelvis_driver_jnt = cmds.duplicate(pelvis_jnt, name='pelvis_driverJnt', po=True)[0]
+        cmds.setAttr(pelvis_driver_jnt + '.drawStyle', 2)
         # cmds.parent(pelvis_driver_jnt, world=True)
         cmds.parent(pelvis_driver_jnt, skeleton_grp)
         # cmds.parentConstraint(pelvis_jnt, _cor_joints_dict.get('right_main_hip_jnt'))
@@ -778,6 +791,7 @@ def create_corrective_setup(corrective_data):
     if _corrective_settings.get("setup_shoulders") and dependencies_shoulders:
         left_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('left_shoulder_jnt'), parent=True)[0]
         left_scapula_driver_jnt = cmds.duplicate(left_scapula_jnt, name='left_scapula_driverJnt', po=True)[0]
+        cmds.setAttr(left_scapula_driver_jnt + '.drawStyle', 2)
         cmds.parent(left_scapula_driver_jnt, skeleton_grp)
         cmds.parentConstraint(left_scapula_jnt, left_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('left_back_shoulder_jnt'), _cor_joints_dict.get('left_main_shoulder_jnt'))
@@ -788,6 +802,7 @@ def create_corrective_setup(corrective_data):
 
         right_scapula_jnt = cmds.listRelatives(_preexisting_dict.get('right_shoulder_jnt'), parent=True)[0]
         right_scapula_driver_jnt = cmds.duplicate(right_scapula_jnt, name='right_scapula_driverJnt', po=True)[0]
+        cmds.setAttr(right_scapula_driver_jnt + '.drawStyle', 2)
         cmds.parent(right_scapula_driver_jnt, skeleton_grp)
         cmds.parentConstraint(right_scapula_jnt, right_scapula_driver_jnt)
         cmds.parent(_cor_joints_dict.get('right_back_shoulder_jnt'), _cor_joints_dict.get('right_main_shoulder_jnt'))
@@ -1363,6 +1378,7 @@ def create_corrective_setup(corrective_data):
                 change_viewport_color(dir_loc, (1, 0, 1))
                 change_viewport_color(rot_angle_parent, (1, 1, 1))
                 change_viewport_color(dir_jnt, (1, 1, 1))
+                cmds.setAttr(rot_angle_parent + '.v', 0)
 
                 cmds.delete(cmds.parentConstraint(dir_jnt, dir_loc))
                 cmds.move(-dir_value, dir_loc, moveY=True, relative=True, objectSpace=True)
@@ -1957,6 +1973,11 @@ def create_corrective_setup(corrective_data):
     # Store Proxy as String Attribute
     store_proxy_as_string(corrective_data)
 
+    # Clean Base Skeleton Constraints
+    original_skeleton_group = 'skeleton_grp'
+    if cmds.objExists(original_skeleton_group):
+        reparent_constraints(original_skeleton_group, base_constraints_grp)
+
     # Delete Proxy
     if cmds.objExists(_corrective_proxy_dict.get('main_proxy_grp')):
         cmds.delete(_corrective_proxy_dict.get('main_proxy_grp'))
@@ -1980,6 +2001,9 @@ def create_corrective_setup(corrective_data):
 
         except Exception as exception:
             logger.debug(exception)
+
+    # Clear Selection
+    cmds.select(clear=True)
 
 
 def merge_corrective_elements(supress_warning=False):
@@ -2009,24 +2033,31 @@ def merge_corrective_elements(supress_warning=False):
     corrective_joints = cmds.listRelatives('corrective_skeleton_grp', children=True) or []
     corrective_ctrls = cmds.listRelatives('corrective_controls_grp', children=True) or []
     rig_setup_grps = cmds.listRelatives('corrective_rig_setup_grp', children=True) or []
-    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint')
+    rig_setup_scale_constraints = cmds.listRelatives(rig_setup_grp, children=True, type='scaleConstraint') or []
 
-    for jnt in corrective_joints:
-        cmds.parent(jnt, skeleton_grp)
-    for ctrl in corrective_ctrls:
-        cmds.parent(ctrl, direction_ctrl)
     for grp in rig_setup_grps:
         cmds.parent(grp, rig_setup_grp)
+    joint_automation_grp = 'jointAutomation_grp'
+    if not cmds.objExists(joint_automation_grp):
+        for jnt in corrective_joints:
+            cmds.parent(jnt, skeleton_grp)
+    else:
+        for jnt in corrective_joints:
+            cmds.parent(jnt, joint_automation_grp)
+            cmds.reorder(joint_automation_grp, back=True)
+    for ctrl in corrective_ctrls:
+        cmds.parent(ctrl, direction_ctrl)
     for constraint in rig_setup_scale_constraints:
         cmds.reorder(constraint, back=True)  # Keeps constraint at the bottom
 
     cmds.delete(corrective_rig_grp)
+    cmds.select(clear=True)
 
 
 # Test it
 if __name__ == '__main__':
     data_corrective = GTBipedRiggerCorrectiveData()
-    data_corrective.debugging = True
+    data_corrective.debugging = False
     debugging = data_corrective.debugging
 
     # data_corrective.settings['setup_wrists'] = False
@@ -2051,7 +2082,7 @@ if __name__ == '__main__':
 
     create_corrective_proxy(data_corrective)
     create_corrective_setup(data_corrective)
-    # merge_corrective_elements()
+    merge_corrective_elements()
 
     if debugging:
         pass

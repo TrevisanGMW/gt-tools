@@ -44,6 +44,10 @@ Updated help text
 0.4.4 - 2022-09-23
 Updated toe transfer rig to transfer data to FK and also IK toe controls
 
+0.5.0 to 0.5.1 - 2022-10-21
+Added finger option to use only main finger rotation (ignore twist/up rotations)
+Added unnecessary finger control connections to deletion step (after baking)
+
 """
 from collections import namedtuple
 from functools import partial
@@ -76,7 +80,7 @@ logger = logging.getLogger("gt_rigger_retarget_assistant")
 logger.setLevel(logging.INFO)
 
 # General Variables
-SCRIPT_VERSION = "0.4.4"
+SCRIPT_VERSION = "0.5.1"
 SCRIPT_NAME = 'Retarget Assistant'
 MOCAP_RIG_GRP = 'mocap_rig_assistant_grp'
 
@@ -88,6 +92,7 @@ settings = {'connect_toes': True,
             'is_spine_inverted_z': False,
             'connect_fingers': True,
             'is_finger_inverted': False,
+            'is_finger_only_main': False,
             'leg_stabilization': True,
             'unlock_rotations': False,
             'merge_axis': False,
@@ -591,7 +596,7 @@ def _btn_bake_mocap_with_fixes(*args):
                 controls_to_bake = controls_to_bake + finger_ctrls
             if finger_offset_nodes:
                 offset_nodes = offset_nodes + finger_offset_nodes
-
+                print(finger_offset_nodes)
         # Bake
         cmds.currentTime(start_time)
         if controls_to_bake:
@@ -695,6 +700,7 @@ def create_finger_mocap_rig(hik_source_definition):
 
                 target_ns = find_item_no_namespace(target)
                 if target_ns:
+
                     target_ns = target_ns[0]
 
                     source_bone_rx = cmds.getAttr(source_bone + '.rx')
@@ -711,9 +717,6 @@ def create_finger_mocap_rig(hik_source_definition):
                     cmds.connectAttr(storage_node + '.output', sum_node + '.input3D[1]')
                     cmds.connectAttr(source_bone + '.rotate', sum_node + '.input3D[0]')
 
-                    offset_nodes.append(storage_node)
-                    offset_nodes.append(sum_node)
-
                     source_orientation = get_joint_orientation(source_bone)
                     logger.debug(source_orientation)
 
@@ -723,15 +726,20 @@ def create_finger_mocap_rig(hik_source_definition):
                         cmds.setAttr(neg_multiply_node + '.input2Y', -1)
                         cmds.setAttr(neg_multiply_node + '.input2Z', -1)
 
-                    cmds.connectAttr(sum_node + '.output3D' + source_orientation.aim_axis[-1],
-                                     neg_multiply_node + '.input1X', force=True)
-                    cmds.connectAttr(sum_node + '.output3D' + source_orientation.up_axis[-1],
-                                     neg_multiply_node + '.input1Y', force=True)
+                    if not settings.get('is_finger_only_main'):
+                        cmds.connectAttr(sum_node + '.output3D' + source_orientation.aim_axis[-1],
+                                         neg_multiply_node + '.input1X', force=True)
+                        cmds.connectAttr(sum_node + '.output3D' + source_orientation.up_axis[-1],
+                                         neg_multiply_node + '.input1Y', force=True)
                     cmds.connectAttr(sum_node + '.output3D' + source_orientation.main_axis[-1],
                                      neg_multiply_node + '.input1Z', force=True)
 
                     cmds.connectAttr(neg_multiply_node + '.output', target_ns + '.rotate', force=True)
 
+                    # Store for return
+                    offset_nodes.append(storage_node)
+                    offset_nodes.append(sum_node)
+                    offset_nodes.append(neg_multiply_node)
                     connected_controls.append(target_ns)
         except Exception as e:
             logger.debug(str(e))
@@ -1168,6 +1176,11 @@ def build_fingers_help_window(input_text, help_title='', *args):
         sys.stdout.write('\nInvert Finger Rotation Set To : ' + str(current_state[0]))
         settings['is_finger_inverted'] = current_state[0]
 
+    def invert_finger_only_z(*current_state):
+        logger.debug('is_finger_only_main: ' + str(current_state[0]))
+        sys.stdout.write('\nUse Only Main Finger Rotation Set To : ' + str(current_state[0]))
+        settings['is_finger_only_main'] = current_state[0]
+
     logger.debug(str(args))
     column_extra_functions = build_custom_help_window(input_text, help_title=help_title)
     cmds.rowColumnLayout(column_extra_functions, e=True, nc=1, cw=[(1, 260)], cs=[(1, 30)])
@@ -1175,6 +1188,10 @@ def build_fingers_help_window(input_text, help_title='', *args):
     cmds.checkBox(label='Invert Finger Rotation (Opposite Rotate Direction)',
                   value=settings.get('is_finger_inverted'),
                   p=column_extra_functions, cc=invert_finger_orientation)
+    cmds.separator(h=5, style='none', p=column_extra_functions)
+    cmds.checkBox(label='Use Only Main Finger Rotation (Ignore Twist/Up)',
+                  value=settings.get('is_finger_only_main'),
+                  p=column_extra_functions, cc=invert_finger_only_z)
 
 
 def build_spine_help_window(input_text, help_title='', *args):

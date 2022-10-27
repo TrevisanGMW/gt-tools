@@ -38,6 +38,11 @@
  Added file and json import options to "import_facial_proxy_pose"
  Added file and json import options to "import_corrective_proxy_pose"
  Removed a few unnecessary print statements
+
+ 2022-10-24
+ Fixed select skinning for base rig (missing spine joint when simplifying)
+ Added temporary select skinning joints hack for facial and corrective rigs
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -262,7 +267,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_facial(), en=0)
+    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_facial())
     cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
 
     # Utilities - Facial
@@ -329,7 +334,7 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_biped(), en=False)
+    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_corrective())
     cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
 
     # Utilities - Corrective
@@ -1041,6 +1046,7 @@ def select_skinning_joints_biped():
                 if parent != 'skeleton_grp':
                     skinning_joints.append(data_biped.joints_default.get(obj))
         cmds.select(skinning_joints)
+        # Hacks - Make sure to do it properly later:
         if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
             for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
                 try:
@@ -1048,39 +1054,51 @@ def select_skinning_joints_biped():
                 except Exception as e:
                     logger.debug(e)
                     pass
+        if 'spine_jnt' not in skinning_joints:
+            try:
+                cmds.select('spine_jnt', add=True)
+            except Exception as e:
+                logger.debug(e)
+                pass
 
 
 def select_skinning_joints_facial():
     """ Selects joints that should be used during the skinning process """
 
-    # Check for existing rig
-    is_valid = True
-    desired_elements = []
-    for jnt in data_biped.joints_default:
-        desired_elements.append(data_biped.joints_default.get(jnt))
-    for obj in desired_elements:
-        if not cmds.objExists(obj) and is_valid:
-            is_valid = False
-            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
-                                     '(Click on "Help" for more details)')
+    joints = ['baseTongue_jnt', 'midTongue_jnt', 'tipTongue_jnt', 'left_upperCornerLip_jnt', 'left_lowerCornerLip_jnt',
+              'left_upperOuterLip_jnt', 'left_lowerOuterLip_jnt', 'mid_lowerLip_jnt', 'mid_upperLip_jnt',
+              'right_upperOuterLip_jnt', 'right_lowerOuterLip_jnt', 'right_lowerCornerLip_jnt',
+              'right_upperCornerLip_jnt', 'right_cheek_jnt', 'right_nose_jnt', 'left_nose_jnt', 'left_cheek_jnt',
+              'left_outerBrow_jnt', 'left_midBrow_jnt', 'left_innerBrow_jnt', 'right_innerBrow_jnt',
+              'right_midBrow_jnt', 'right_outerBrow_jnt', 'right_upperEyelid_jnt', 'right_lowerEyelid_jnt',
+              'left_upperEyelid_jnt', 'left_lowerEyelid_jnt']
 
-    if is_valid:
-        skinning_joints = []
-        for obj in data_biped.joints_default:
-            if '_end' + JNT_SUFFIX.capitalize() not in data_biped.joints_default.get(obj) \
-                    and '_toe' not in data_biped.joints_default.get(obj) \
-                    and 'root_' not in data_biped.joints_default.get(obj) \
-                    and 'driver' not in data_biped.joints_default.get(obj):
-                parent = cmds.listRelatives(data_biped.joints_default.get(obj), parent=True)[0] or ''
-                if parent != 'skeleton_grp':
-                    skinning_joints.append(data_biped.joints_default.get(obj))
-        cmds.select(skinning_joints)
-        if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
-            for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
-                try:
-                    cmds.select(obj, add=True)
-                except Exception as e:
-                    logger.debug(str(e))
+    cmds.select(clear=True)
+    for jnt in joints:
+        if cmds.objExists(jnt):
+            try:
+                cmds.select(jnt, add=True)
+            except Exception as e:
+                logger.debug(str(e))
+
+
+def select_skinning_joints_corrective():
+    """ Selects joints that should be used during the skinning process """
+
+    joints = ['right_wrist_outfit_jnt', 'right_upperWrist_jnt', 'right_lowerWrist_jnt', 'right_frontElbow_jnt',
+              'right_frontShoulder_jnt', 'right_backShoulder_jnt', 'right_upperShoulder_jnt', 'left_frontShoulder_jnt',
+              'left_backShoulder_jnt', 'left_upperShoulder_jnt', 'left_frontElbow_jnt', 'left_upperWrist_jnt',
+              'left_lowerWrist_jnt', 'left_wrist_outfit_jnt', 'left_backHip_jnt', 'left_outerHip_jnt',
+              'left_frontHip_jnt', 'right_backHip_jnt', 'right_outerHip_jnt', 'right_frontHip_jnt',
+              'right_frontKnee_jnt', 'right_backKnee_jnt', 'left_backKnee_jnt', 'left_frontKnee_jnt']
+
+    cmds.select(clear=True)
+    for jnt in joints:
+        if cmds.objExists(jnt):
+            try:
+                cmds.select(jnt, add=True)
+            except Exception as e:
+                logger.debug(str(e))
 
 
 def reset_proxy(suppress_warning=False, proxy_target='base'):
