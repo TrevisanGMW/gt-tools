@@ -317,6 +317,12 @@
  Moved skeleton and rig setup scale constraints to base constraints group
  Added a second check to flip right ankle in case it's collapsed
 
+ 1.12.4 to 1.12.5 - 2022-10-27
+ Updated ankle proxy to follow hip by default
+ Changed ankle constraint to not affect "Y"
+ Updated some of the proxy attributes to be hidden
+ Added proxy heel visualization lines
+
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
@@ -1177,17 +1183,33 @@ def create_biped_proxy(data_biped):
     cmds.transformLimits(right_ankle_proxy_crv, ry=(-80, 80), ery=(1, 1))
 
     # Main Control
-    cmds.setAttr(main_crv + '.translate', l=True, k=False, channelBox=False)
-    cmds.setAttr(main_crv + '.rotate', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.tx', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.ty', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.tz', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.rx', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.ry', l=True, k=False, channelBox=False)
+    cmds.setAttr(main_crv + '.rz', l=True, k=False, channelBox=False)
 
     # Other Center Joints
     cmds.setAttr(head_end_proxy_crv + '.ry', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine01_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine02_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine03_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine01_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine02_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(spine03_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.rx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.ry', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.rz', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.rx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.ry', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.rz', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.rx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.ry', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.rz', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.sx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.sy', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine01_proxy_crv + '.sz', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.sx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.sy', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine02_proxy_crv + '.sz', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.sx', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.sy', l=True, k=False, channelBox=False)
+    cmds.setAttr(spine03_proxy_crv + '.sz', l=True, k=False, channelBox=False)
     cmds.setAttr(spine04_proxy_crv + '.ry', l=True, k=False, channelBox=False)
     cmds.setAttr(spine04_proxy_crv + '.rz', l=True, k=False, channelBox=False)
     cmds.setAttr(neck_base_proxy_crv + '.ry', l=True, k=False, channelBox=False)
@@ -1222,31 +1244,22 @@ def create_biped_proxy(data_biped):
     cmds.setAttr(spine03_proxy_grp + '.v', l=True, k=False, channelBox=False)
 
     # Arms
-    cmds.setAttr(left_shoulder_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(right_shoulder_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_shoulder_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(right_shoulder_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+    lock_hide_default_attr(left_shoulder_proxy_crv, translate=False, visibility=False)
+    lock_hide_default_attr(right_shoulder_proxy_crv, translate=False, visibility=False)
 
+    lock_hide_default_attr(left_elbow_proxy_crv, rotate=False, translate=False, visibility=False)
+    lock_hide_default_attr(right_elbow_proxy_crv, rotate=False, translate=False, visibility=False)
     cmds.setAttr(left_elbow_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
     cmds.setAttr(right_elbow_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_elbow_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(right_elbow_proxy_crv + '.scale', l=True, k=False, channelBox=False)
 
     # Legs
-    # cmds.setAttr(right_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
-    # cmds.setAttr(left_hip_proxy_crv + '.tz', l=True, k=False, channelBox=False)
+    lock_hide_default_attr(right_hip_proxy_crv, translate=False, visibility=False)
+    lock_hide_default_attr(left_hip_proxy_crv, translate=False, visibility=False)
 
-    cmds.setAttr(right_hip_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_hip_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-
-    cmds.setAttr(right_hip_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_hip_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-
-    cmds.setAttr(right_knee_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_knee_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-
-    cmds.setAttr(right_knee_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_knee_proxy_crv + '.scale', l=True, k=False, channelBox=False)
+    lock_hide_default_attr(right_knee_proxy_crv, rotate=False, translate=False, visibility=False)
+    lock_hide_default_attr(left_knee_proxy_crv, rotate=False, translate=False, visibility=False)
+    cmds.setAttr(right_knee_proxy_crv + '.rotate', l=True, k=False, channelBox=False)  # Retain channel visibility
+    cmds.setAttr(left_knee_proxy_crv + '.rotate', l=True, k=False, channelBox=False)  # Retain channel visibility
 
     # Feet
     cmds.setAttr(right_ball_proxy_crv + '.rz', l=True, k=False, channelBox=False)
@@ -1261,7 +1274,7 @@ def create_biped_proxy(data_biped):
     cmds.setAttr(left_toe_proxy_crv + '.rx', l=True, k=False, channelBox=False)
     cmds.setAttr(left_toe_proxy_crv + '.rz', l=True, k=False, channelBox=False)
 
-    # Special Cases
+    # Special Cases --------------------
     if settings.get('proxy_limits'):
         cmds.setAttr(left_ball_proxy_crv + '.ty', l=True, k=False, channelBox=False)
         cmds.setAttr(left_toe_proxy_crv + '.ty', l=True, k=False, channelBox=False)
@@ -1285,6 +1298,17 @@ def create_biped_proxy(data_biped):
 
         cmds.setAttr(jaw_proxy_crv + '.tx', l=True, k=False, channelBox=False)
         cmds.setAttr(jaw_end_proxy_crv + '.tx', l=True, k=False, channelBox=False)
+
+    # Lock Knee Unstable Channels
+    for knee_ctrl in [right_knee_proxy_crv, left_knee_proxy_crv]:
+        cmds.addAttr(knee_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(knee_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+        cmds.addAttr(knee_ctrl, ln='lockUnstableChannel', at='bool', k=True)
+        cmds.setAttr(knee_ctrl + '.lockUnstableChannel', 1)
+        cmds.setAttr(knee_ctrl + '.minTransXLimit', 0)
+        cmds.setAttr(knee_ctrl + '.maxTransXLimit', 0)
+        cmds.connectAttr(knee_ctrl + '.lockUnstableChannel', knee_ctrl + '.minTransXLimitEnable', f=True)
+        cmds.connectAttr(knee_ctrl + '.lockUnstableChannel', knee_ctrl + '.maxTransXLimitEnable', f=True)
 
     # Set Loc Visibility
     cmds.setAttr(left_knee_upvec_loc[0] + '.v', 0)
@@ -1332,15 +1356,15 @@ def create_biped_proxy(data_biped):
     cmds.addAttr(left_ankle_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(left_ankle_proxy_crv + '.proxyControl', e=True, lock=True)
     cmds.addAttr(left_ankle_proxy_crv, ln="followHip", at="bool", keyable=True)
-    cmds.setAttr(left_ankle_proxy_crv + '.followHip', 0)
-    constraint = cmds.pointConstraint(left_hip_proxy_crv, left_ankle_proxy_grp, maintainOffset=True)
+    cmds.setAttr(left_ankle_proxy_crv + '.followHip', 1)
+    constraint = cmds.pointConstraint(left_hip_proxy_crv, left_ankle_proxy_grp, maintainOffset=True, skip='y')
     cmds.connectAttr(left_ankle_proxy_crv + '.followHip', constraint[0] + '.w0')
 
     cmds.addAttr(right_ankle_proxy_crv, ln="proxyControl", at='enum', en='-------------:', keyable=True)
     cmds.setAttr(right_ankle_proxy_crv + '.proxyControl', e=True, lock=True)
     cmds.addAttr(right_ankle_proxy_crv, ln="followHip", at="bool", keyable=True)
-    cmds.setAttr(right_ankle_proxy_crv + '.followHip', 0)
-    constraint = cmds.pointConstraint(right_hip_proxy_crv, right_ankle_proxy_grp, maintainOffset=True)
+    cmds.setAttr(right_ankle_proxy_crv + '.followHip', 1)
+    constraint = cmds.pointConstraint(right_hip_proxy_crv, right_ankle_proxy_grp, maintainOffset=True, skip='y')
     cmds.connectAttr(right_ankle_proxy_crv + '.followHip', constraint[0] + '.w0')
 
     # Store new names into settings in case they were modified
@@ -1598,6 +1622,8 @@ def create_biped_proxy(data_biped):
                                            elements.get('left_pinky03_proxy_crv')),
                  create_visualization_line(elements.get('left_pinky03_proxy_crv'),
                                            elements.get('left_pinky04_proxy_crv')),
+                 create_visualization_line(elements.get('left_ankle_proxy_crv'),
+                                           elements.get('left_heel_proxy_pivot')),
                  # Right Side
 
                  create_visualization_line(elements.get('hip_proxy_crv'),
@@ -1659,7 +1685,9 @@ def create_biped_proxy(data_biped):
                  create_visualization_line(elements.get('right_pinky02_proxy_crv'),
                                            elements.get('right_pinky03_proxy_crv')),
                  create_visualization_line(elements.get('right_pinky03_proxy_crv'),
-                                           elements.get('right_pinky04_proxy_crv'))
+                                           elements.get('right_pinky04_proxy_crv')),
+                 create_visualization_line(elements.get('right_ankle_proxy_crv'),
+                                           elements.get('right_heel_proxy_pivot'))
                  ]
 
     lines_grp = cmds.group(name='visualization_lines', empty=True, world=True)
@@ -10173,7 +10201,7 @@ def create_biped_rig(data_biped):
                                rig_joints_default.get('main_jnt'),
                                main_ctrl, new_skeleton_suffix)
 
-        # Re-parent Constraints @@@
+        # Re-parent Constraints
         reparent_constraints(rig_joints_default.get('main_jnt'), constraints_automation_grp) # Main joint is now Game
 
     # ################ Store Created Joints #################
@@ -10388,4 +10416,4 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
 
 # Test it
 if __name__ == '__main__':
-    build_test_biped_rig(create_rig_ctrls=True, debugging=True)
+    build_test_biped_rig(create_rig_ctrls=False, debugging=True)
