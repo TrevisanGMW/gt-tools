@@ -310,20 +310,19 @@
  Re-parent all root constraints to rig setup > general automation > base constraints
  Locked main proxy group to avoid double transformations
 
- 1.12.0 to 1.12.2 - 2022-10-24
+ 1.12.0 to 1.12.3 - 2022-10-24
  Eliminated ikSolvers group (moved relevant elements to their own automation group)
  Updated base skeleton constraint extraction root object
  Created joint automation group
  Moved skeleton and rig setup scale constraints to base constraints group
+ Added a second check to flip right ankle in case it's collapsed
 
  TODO Biped Rigger:
     Transfer scale information from ik spine limit spine to spines
     Add option to leave all lock translation attributes off
     Allow Knee Pole Vector offset to be controlled by the hip_ctrl instead of the direction_ctrl only (with influence %)
-    Make scale system and breathing system optional
-    Add more roll joints (upper part of the arm, legs, etc)
+    Add twist joints option (upper and lower arm, legs, etc)
     Add option to auto create proxy geo
-    Move all constraints to another group?
 """
 from gt_rigger_utilities import *
 from gt_rigger_data import *
@@ -7759,9 +7758,9 @@ def create_biped_rig(data_biped):
                                            sol='ikRPsolver')
 
     # In case ball joint is inverted, undo ikHandle and invert knee's preferredAngleZ
+    right_ball_probe = cmds.createNode('distanceBetween', name='distanceBetween_temp_right_ball_probe')
     right_ball_probe_start = cmds.xform(right_ball_ik_jnt, q=True, ws=True, t=True)
     right_ball_probe_end = cmds.xform(right_ball_fk_jnt, q=True, ws=True, t=True)
-    right_ball_probe = cmds.createNode('distanceBetween', name='distanceBetween_temp_right_ball_probe')
     cmds.setAttr(right_ball_probe + '.point1X', right_ball_probe_start[0])
     cmds.setAttr(right_ball_probe + '.point1Y', right_ball_probe_start[1])
     cmds.setAttr(right_ball_probe + '.point1Z', right_ball_probe_start[2])
@@ -7770,14 +7769,32 @@ def create_biped_rig(data_biped):
     cmds.setAttr(right_ball_probe + '.point2Z', right_ball_probe_end[2])
 
     cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
-
-    if cmds.getAttr(right_ball_probe + '.distance') > 0.01:
+    first_ball_probe_sample = cmds.getAttr(right_ball_probe + '.distance')
+    if first_ball_probe_sample > 0.01:
         cmds.delete(right_leg_rp_ik_handle)
         cmds.setAttr(right_knee_ik_jnt + ".preferredAngleZ", 90)
         right_leg_rp_ik_handle = cmds.ikHandle(n=right_leg_rp_ik_handle[0],
                                                sj=right_hip_ik_jnt,
                                                ee=right_ankle_ik_jnt,
                                                sol='ikRPsolver')
+    # Test again (in case it's a false positive)
+    right_ball_probe_start = cmds.xform(right_ball_ik_jnt, q=True, ws=True, t=True)
+    right_ball_probe_end = cmds.xform(right_ball_fk_jnt, q=True, ws=True, t=True)
+    cmds.setAttr(right_ball_probe + '.point1X', right_ball_probe_start[0])
+    cmds.setAttr(right_ball_probe + '.point1Y', right_ball_probe_start[1])
+    cmds.setAttr(right_ball_probe + '.point1Z', right_ball_probe_start[2])
+    cmds.setAttr(right_ball_probe + '.point2X', right_ball_probe_end[0])
+    cmds.setAttr(right_ball_probe + '.point2Y', right_ball_probe_end[1])
+    cmds.setAttr(right_ball_probe + '.point2Z', right_ball_probe_end[2])
+    second_ball_probe_sample = cmds.getAttr(right_ball_probe + '.distance')
+    if first_ball_probe_sample < second_ball_probe_sample:
+        cmds.delete(right_leg_rp_ik_handle)
+        cmds.setAttr(right_knee_ik_jnt + ".preferredAngleZ", -90)
+        right_leg_rp_ik_handle = cmds.ikHandle(n=right_leg_rp_ik_handle[0],
+                                               sj=right_hip_ik_jnt,
+                                               ee=right_ankle_ik_jnt,
+                                               sol='ikRPsolver')
+    cmds.delete(right_ball_probe)
 
     right_leg_ball_ik_handle = cmds.ikHandle(n='right_footBall_SC_ikHandle', sj=right_ankle_ik_jnt,
                                              ee=right_ball_ik_jnt, sol='ikSCsolver')
