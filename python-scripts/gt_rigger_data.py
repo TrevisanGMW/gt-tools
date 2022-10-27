@@ -27,7 +27,7 @@ logger = logging.getLogger("gt_rigger_data")
 logger.setLevel(logging.INFO)
 
 # Versions
-SCRIPT_VERSION_BASE = '1.12.5'
+SCRIPT_VERSION_BASE = '1.12.6'
 SCRIPT_VERSION_FACIAL = '1.0.9'
 SCRIPT_VERSION_CORRECTIVE = '1.0.7'
 SCRIPT_VERSION_REBUILD = '0.0.9'
@@ -150,7 +150,6 @@ class GTBipedRiggerData:
     # Store Default Values
     def __init__(self):
         self.settings = {'using_no_ssc_skeleton': False,
-                         'proxy_limits': False,
                          'offer_heel_roll_positioning': True,
                          'uniform_ctrl_orient': True,
                          'worldspace_ik_orient': False,

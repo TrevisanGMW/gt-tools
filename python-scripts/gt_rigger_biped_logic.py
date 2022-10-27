@@ -317,7 +317,7 @@
  Moved skeleton and rig setup scale constraints to base constraints group
  Added a second check to flip right ankle in case it's collapsed
 
- 1.12.4 to 1.12.5 - 2022-10-27
+ 1.12.4 to 1.12.6 - 2022-10-27
  Updated ankle proxy to follow hip by default
  Changed ankle constraint to not affect "Y"
  Updated some of the proxy attributes to be hidden
@@ -810,9 +810,7 @@ def create_biped_proxy(data_biped):
     cmds.setAttr(left_heel_proxy_crv + '.followAnkle', 1)
     constraint = cmds.pointConstraint(left_ankle_proxy_crv, left_heel_proxy_grp, skip='y')
     cmds.connectAttr(left_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
-    cmds.setAttr(left_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(left_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
+    lock_hide_default_attr(left_heel_proxy_crv, translate=False)
 
     # ################# Right Leg #################
     # Right Hip
@@ -860,9 +858,7 @@ def create_biped_proxy(data_biped):
     cmds.setAttr(right_heel_proxy_crv + '.followAnkle', 1)
     constraint = cmds.pointConstraint(right_ankle_proxy_crv, right_heel_proxy_grp, skip='y')
     cmds.connectAttr(right_heel_proxy_crv + '.followAnkle', constraint[0] + '.w0')
-    cmds.setAttr(right_heel_proxy_crv + '.rotate', l=True, k=False, channelBox=False)
-    cmds.setAttr(right_heel_proxy_crv + '.scale', l=True, k=False, channelBox=False)
-    cmds.setAttr(right_heel_proxy_crv + '.v', l=True, k=False, channelBox=False)
+    lock_hide_default_attr(right_heel_proxy_crv, translate=False)
 
     # Assemble Hierarchy
     cmds.parent(root_proxy_grp, main_crv)
@@ -1275,40 +1271,51 @@ def create_biped_proxy(data_biped):
     cmds.setAttr(left_toe_proxy_crv + '.rz', l=True, k=False, channelBox=False)
 
     # Special Cases --------------------
-    if settings.get('proxy_limits'):
-        cmds.setAttr(left_ball_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(left_toe_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(right_ball_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(right_toe_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-
-        cmds.setAttr(cog_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine01_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine01_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine02_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine02_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine03_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine03_proxy_crv + '.ty', l=True, k=False, channelBox=False)
-        cmds.setAttr(spine04_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-
-        cmds.setAttr(neck_base_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(neck_mid_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-
-        cmds.setAttr(head_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(head_end_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-
-        cmds.setAttr(jaw_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-        cmds.setAttr(jaw_end_proxy_crv + '.tx', l=True, k=False, channelBox=False)
-
+    # Keep Grounded
+    for to_lock_ty in [left_ball_proxy_crv, left_toe_proxy_crv, right_ball_proxy_crv, right_toe_proxy_crv]:
+        cmds.addAttr(to_lock_ty, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(to_lock_ty + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+        cmds.addAttr(to_lock_ty, ln='lockTranslateY', at='bool', k=True, niceName="Keep Grounded")
+        cmds.setAttr(to_lock_ty + '.lockTranslateY', 0)
+        cmds.setAttr(to_lock_ty + '.minTransYLimit', 0)
+        cmds.setAttr(to_lock_ty + '.maxTransYLimit', 0)
+        cmds.connectAttr(to_lock_ty + '.lockTranslateY', to_lock_ty + '.minTransYLimitEnable', f=True)
+        cmds.connectAttr(to_lock_ty + '.lockTranslateY', to_lock_ty + '.maxTransYLimitEnable', f=True)
+    # Lock TY and TX
+    for to_lock_tyx in [spine01_proxy_crv, spine02_proxy_crv, spine03_proxy_crv]:
+        cmds.addAttr(to_lock_tyx, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(to_lock_tyx + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+        cmds.addAttr(to_lock_tyx, ln='lockTranslateYX', at='bool', k=True)
+        cmds.setAttr(to_lock_tyx + '.lockTranslateYX', 0)
+        cmds.setAttr(to_lock_tyx + '.minTransYLimit', 0)
+        cmds.setAttr(to_lock_tyx + '.maxTransYLimit', 0)
+        cmds.setAttr(to_lock_tyx + '.minTransXLimit', 0)
+        cmds.setAttr(to_lock_tyx + '.maxTransXLimit', 0)
+        cmds.connectAttr(to_lock_tyx + '.lockTranslateYX', to_lock_tyx + '.minTransYLimitEnable', f=True)
+        cmds.connectAttr(to_lock_tyx + '.lockTranslateYX', to_lock_tyx + '.maxTransYLimitEnable', f=True)
+        cmds.connectAttr(to_lock_tyx + '.lockTranslateYX', to_lock_tyx + '.minTransXLimitEnable', f=True)
+        cmds.connectAttr(to_lock_tyx + '.lockTranslateYX', to_lock_tyx + '.maxTransXLimitEnable', f=True)
+    # TX (Keep Symmetrical)
+    for to_lock_tx in [spine04_proxy_crv, cog_proxy_crv, neck_base_proxy_crv, neck_mid_proxy_crv,
+                       head_proxy_crv, head_end_proxy_crv, jaw_proxy_crv, jaw_end_proxy_crv]:
+        cmds.addAttr(to_lock_tx, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
+        cmds.setAttr(to_lock_tx + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
+        cmds.addAttr(to_lock_tx, ln='lockTranslateX', at='bool', k=True)
+        cmds.setAttr(to_lock_tx + '.lockTranslateX', 0)
+        cmds.setAttr(to_lock_tx + '.minTransXLimit', 0)
+        cmds.setAttr(to_lock_tx + '.maxTransXLimit', 0)
+        cmds.connectAttr(to_lock_tx + '.lockTranslateX', to_lock_tx + '.minTransXLimitEnable', f=True)
+        cmds.connectAttr(to_lock_tx + '.lockTranslateX', to_lock_tx + '.maxTransXLimitEnable', f=True)
     # Lock Knee Unstable Channels
     for knee_ctrl in [right_knee_proxy_crv, left_knee_proxy_crv]:
         cmds.addAttr(knee_ctrl, ln=CUSTOM_ATTR_SEPARATOR, at='enum', en='-------------:', keyable=True)
         cmds.setAttr(knee_ctrl + '.' + CUSTOM_ATTR_SEPARATOR, lock=True)
-        cmds.addAttr(knee_ctrl, ln='lockUnstableChannel', at='bool', k=True)
-        cmds.setAttr(knee_ctrl + '.lockUnstableChannel', 1)
+        cmds.addAttr(knee_ctrl, ln='lockTranslateX', at='bool', k=True, niceName="Lock Unstable Channel")
+        cmds.setAttr(knee_ctrl + '.lockTranslateX', 1)  # Active by default
         cmds.setAttr(knee_ctrl + '.minTransXLimit', 0)
         cmds.setAttr(knee_ctrl + '.maxTransXLimit', 0)
-        cmds.connectAttr(knee_ctrl + '.lockUnstableChannel', knee_ctrl + '.minTransXLimitEnable', f=True)
-        cmds.connectAttr(knee_ctrl + '.lockUnstableChannel', knee_ctrl + '.maxTransXLimitEnable', f=True)
+        cmds.connectAttr(knee_ctrl + '.lockTranslateX', knee_ctrl + '.minTransXLimitEnable', f=True)
+        cmds.connectAttr(knee_ctrl + '.lockTranslateX', knee_ctrl + '.maxTransXLimitEnable', f=True)
 
     # Set Loc Visibility
     cmds.setAttr(left_knee_upvec_loc[0] + '.v', 0)
@@ -10381,7 +10388,6 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
     biped_obj.debugging = debugging
     biped_obj.debugging_force_new_scene = True
     biped_obj.settings['using_no_ssc_skeleton'] = False
-    biped_obj.settings['proxy_limits'] = True
     biped_obj.settings['uniform_ctrl_orient'] = True
     biped_obj.settings['worldspace_ik_orient'] = False
     biped_obj.settings['simplify_spine'] = True
