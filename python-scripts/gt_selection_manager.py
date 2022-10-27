@@ -37,6 +37,9 @@
  Refactored big portion of the script
  Fixed issue with the selection of outliner colors
 
+ 1.7.1 - 2022-10-26
+ Updated selection variable name from "selectedObjects" to "selected_objects"
+
  To Do:
  Add Selection base on Shader name, Texture, TRS
  Add choice between transform and shape for outliner color
@@ -68,7 +71,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Selection Manager"
 
 # Version:
-script_version = "1.7.0"
+script_version = "1.7.1"
 
 gt_sel_manager = {'use_contains_string': False,  # Active Functions
                   'use_contains_no_string': False,
@@ -747,8 +750,8 @@ def export_to_txt(export_list):
     string_for_list = "\n# ".join(export_list)
 
     select_command = "# Python command to select it:\n\n" \
-                     "import maya.cmds as cmds\nselectedObjects = ['" + string_for_python + \
-                     "'] \ncmds.select(selectedObjects)\n\n\n\'\'\'\n" \
+                     "import maya.cmds as cmds\nselected_objects = ['" + string_for_python + \
+                     "'] \ncmds.select(selected_objects)\n\n\n\'\'\'\n" \
                      "// Mel command to select it\nselect -r " + string_for_mel + \
                      "\n\n\'\'\'\n\n\n# List of Objects:\n# " + string_for_list
 
