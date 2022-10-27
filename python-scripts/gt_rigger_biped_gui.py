@@ -43,6 +43,10 @@
  Fixed select skinning for base rig (missing spine joint when simplifying)
  Added temporary select skinning joints hack for facial and corrective rigs
 
+ 2022-10-27
+ Removed proxy limiting option (implemented as attributes directly onto proxy controls)
+ Fixed an issue where the base version wouldn't update
+
 """
 from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
@@ -381,22 +385,22 @@ def build_gui_auto_biped_rig():
                 c=lambda x: build_custom_help_window(realtime_custom_help_message,
                                                      realtime_custom_help_title))
 
-    # Limit Proxy Movement
-    is_option_enabled = True
-    current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Limit Proxy Movement', value=data_biped.settings.get('proxy_limits'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('proxy_limits', data_biped),
-                  en=is_option_enabled)
-
-    proxy_limit_custom_help_message = 'Unlocks transforms for feet and spine proxy elements. ' \
-                                      'This allows for more unconventional character shapes, but makes' \
-                                      ' the auto rigger less robust. If this is your first time using it, ' \
-                                      'you might want to keep the limits active.'
-    proxy_limit_custom_help_title = 'Limit Proxy Movement'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(proxy_limit_custom_help_message,
-                                                     proxy_limit_custom_help_title))
+    # # Limit Proxy Movement
+    # is_option_enabled = True
+    # current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
+    # cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    # cmds.checkBox(label='  Limit Proxy Movement', value=data_biped.settings.get('proxy_limits'),
+    #               ebg=True, cc=lambda x: _invert_stored_setting('proxy_limits', data_biped),
+    #               en=is_option_enabled)
+    #
+    # proxy_limit_custom_help_message = 'Unlocks transforms for feet and spine proxy elements. ' \
+    #                                   'This allows for more unconventional character shapes, but makes' \
+    #                                   ' the auto rigger less robust. If this is your first time using it, ' \
+    #                                   'you might want to keep the limits active.'
+    # proxy_limit_custom_help_title = 'Limit Proxy Movement'
+    # cmds.button(label='?', bgc=current_bgc_color,
+    #             c=lambda x: build_custom_help_window(proxy_limit_custom_help_message,
+    #                                                  proxy_limit_custom_help_title))
 
     # Force Uniform Control Orientation
     is_option_enabled = True
