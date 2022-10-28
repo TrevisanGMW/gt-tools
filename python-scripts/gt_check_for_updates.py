@@ -32,6 +32,9 @@
  Changed a few variable names
  Added output message for when changing auto check or interval values
 
+ 1.7.1 - 2022-10-27
+ Fixed an issue where it wouldn't be able to make an HTTP request on Maya 2023+
+
     Debugging Lines:
         # GT Tools Version Query/Overwrite
         cmds.optionVar(q=("gt_tools_version"))
@@ -78,6 +81,7 @@ from datetime import datetime
 from json import loads
 import maya.utils as utils
 import maya.cmds as cmds
+import traceback
 import threading
 import logging
 import sys
@@ -89,7 +93,7 @@ logger = logging.getLogger("gt_check_for_updates")
 logger.setLevel(logging.INFO)
 
 # Script Version (This Script)
-script_version = '1.7.0'
+script_version = '1.7.1'
 gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
 gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 
@@ -312,6 +316,7 @@ def build_gui_gt_check_for_updates():
             
             # Retrieve Latest Version
             response_list = get_github_release(gt_tools_latest_release_api)
+            logger.debug(response_list)
 
             gt_check_for_updates['latest_version'] = response_list[0].get('tag_name') or "v0.0.0"
             
@@ -377,6 +382,7 @@ def build_gui_gt_check_for_updates():
                 published_at = response_list[0].get('published_at').split('T')[0]
             except Exception as e:
                 logger.debug(str(e))
+                logger.debug(traceback.format_exc())
             
             cmds.scrollField(output_scroll_field, e=True, clear=True)
             cmds.scrollField(output_scroll_field, e=True, ip=0, it=(response_list[0].get('tag_name') +
@@ -510,10 +516,15 @@ def get_github_release(github_api):
                 if path_part != host_out:
                     repo += '/' + path_part
             return host_out, repo
-            
+
+    # In case it fails
+    logger.debug('python_version: ' + str(python_version))
+    error_content_dict = {'body': 'Error requesting latest release.',
+                          'tag_name': 'v0.0.0'}
     # Starts Here
     if python_version == 3:
         try:
+            import http.client
             host, path = parse_github_api(github_api)
             connection = http.client.HTTPSConnection(host)
             connection.request("GET", path, headers={'Content-Type': 'application/json; charset=UTF-8',
@@ -524,20 +535,18 @@ def get_github_release(github_api):
             return [content, response.status, response.reason]
         except Exception as e:
             logger.debug(str(e))
-            error_content_dict = {'body': 'Error requesting latest release.',
-                                  'tag_name': 'v0.0.0'}
-            return [error_content_dict, 0, 'Error']
-    else:
-        try:
-            http_obj = Http()
-            response, content = http_obj.request(github_api)
-            response_content_dict = loads(content) 
-            return [response_content_dict, response.status, response.reason]
-        except Exception as e:
-            logger.debug(str(e))
-            error_content_dict = {'body': 'Error requesting latest release.',
-                                  'tag_name': 'v0.0.0'}
-            return [error_content_dict, 0, 'Error']
+            logger.debug(traceback.format_exc())
+    # Try old method
+    try:
+        http_obj = Http()
+        response, content = http_obj.request(github_api)
+        response_content_dict = loads(content)
+        return [response_content_dict, response.status, response.reason]
+    except Exception as e:
+        logger.debug(str(e))
+        logger.debug(traceback.format_exc())
+
+    return [error_content_dict, 0, 'Error']
         
 
 def silent_update_check():
