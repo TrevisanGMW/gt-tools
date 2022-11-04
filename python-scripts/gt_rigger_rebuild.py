@@ -28,6 +28,9 @@ Added functionary to extract default channels (TRS+V)
 Added transform extraction (for the position of a few controls)
 Renamed extract and set attribute functions
 
+0.0.12 - 2022-11-04
+Added "evaluate_python_string" to be used in teardown and setup actions
+
 TODO
     Add bound joint extraction
     Add skin weights extraction
@@ -41,6 +44,7 @@ from gt_rigger_data import *
 from gt_rigger_facial_logic import create_facial_proxy
 from gt_rigger_corrective_logic import create_corrective_proxy
 import maya.cmds as cmds
+import traceback
 import logging
 import json
 
@@ -53,6 +57,21 @@ logger.setLevel(logging.INFO)
 data_rebuild = GTBipedRiggerRebuildData()
 if not data_biped:  # Create one in case not already available
     data_biped = GTBipedRiggerData()
+
+
+def evaluate_python_string(py_string):
+    """
+    Executes provided string python code
+
+    Args
+        python_string (string): Python code to be executed. e.g. "print("hello world")"
+    """
+    try:
+        exec(py_string)
+    except Exception as e:
+        cmds.warning("Something is wrong with your code!")
+        logger.debug(str(e))
+        logger.debug(traceback.format_exc())
 
 
 def extract_proxy_metadata(data_object):
@@ -418,7 +437,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     validate_rebuild()
-
+    # evaluate_python_string("cmds.sphere()")
     # print(data_rebuild.extracted_corrective_proxy_json)
     # extract_current_rig_data(data_rebuild)
     # print(data_rebuild.extracted_corrective_proxy_json)
