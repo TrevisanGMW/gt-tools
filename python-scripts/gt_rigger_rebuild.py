@@ -28,8 +28,12 @@ Added functionary to extract default channels (TRS+V)
 Added transform extraction (for the position of a few controls)
 Renamed extract and set attribute functions
 
-0.0.12 - 2022-11-04
+0.0.12 to 0.0.13 - 2022-11-04
 Added "evaluate_python_string" to be used in teardown and setup actions
+Added teardown and setup script execution
+
+UI Idea:
+ [X]   <STEP-NAME>  <STEP-STATUS>  <MESSAGE>  <HELP-?>
 
 TODO
     Add bound joint extraction
@@ -59,19 +63,30 @@ if not data_biped:  # Create one in case not already available
     data_biped = GTBipedRiggerData()
 
 
-def evaluate_python_string(py_string):
+def evaluate_python_string(py_string, custom_error_message=None):
     """
     Executes provided string python code
 
-    Args
-        python_string (string): Python code to be executed. e.g. "print("hello world")"
+    Args:
+        py_string (string): Python code to be executed. e.g. "print("hello world")"
+        custom_error_message (string, optional): If provided, this string will be used as a warning for when an error
+                                                 occurs during the code execution
+
+    Returns:
+        operation_result (bool): True if there were no errors, False if an error occurred during execution
     """
     try:
         exec(py_string)
+        return True
     except Exception as e:
-        cmds.warning("Something is wrong with your code!")
+        if custom_error_message:
+            cmds.warning(custom_error_message)
+        else:
+            cmds.warning("An error occurred while executing string python code. "
+                         "(Open script editor for more information)")
         logger.debug(str(e))
         logger.debug(traceback.format_exc())
+        return False
 
 
 def extract_proxy_metadata(data_object):
@@ -288,7 +303,7 @@ def extract_current_rig_data(data_rebuild_object):
     logger.debug("extracting control shapes...")
     data_rebuild_object.extracted_custom_attr = extract_dict_attributes(found_controls)
 
-    # Extract Default Channel Attr @@@
+    # Extract Default Channel Attributes
     transforms_to_store = []
     for obj in data_rebuild.transforms_to_store:
         if cmds.objExists(obj):
@@ -299,6 +314,10 @@ def extract_current_rig_data(data_rebuild_object):
                                                                            default_channels=True,
                                                                            user_defined=False)
 
+    # Extract Teardown/Setup scripts @@@
+    data_rebuild_object.extracted_teardown_script = "print('test teardown script')"
+    data_rebuild_object.extracted_setup_script = "print('test setup script')"
+
 
 def rebuild_biped_rig(data_rebuild_object):
     """
@@ -307,7 +326,12 @@ def rebuild_biped_rig(data_rebuild_object):
         data_rebuild_object (GTBipedRiggerRebuildData): extracted data stored in rebuild object
     """
     logger.debug("*_*_* REBUILDING RIG:")
-    logger.debug("running tearing down script...")
+    logger.debug("running teardown script...")
+    if data_rebuild_object.extracted_teardown_script:
+        error_message = "An error occurred while executing teardown script. "
+        error_message += "(Open script editor for more information)"
+        evaluate_python_string(data_rebuild_object.extracted_teardown_script,
+                               custom_error_message=error_message)
 
     # Delete current
     logger.debug("deleting current rig...")
@@ -376,7 +400,12 @@ def transfer_current_rig_data(data_rebuild_object):
     # Transfer Stored Transforms
     set_dict_attributes(data_rebuild_object.extracted_transform_data)
 
-    logger.debug("running set-up script...")
+    logger.debug("running setup script...")
+    if data_rebuild_object.extracted_setup_script:
+        error_message = "An error occurred while executing rig setup script. "
+        error_message += "(Open script editor for more information)"
+        evaluate_python_string(data_rebuild_object.extracted_setup_script,
+                               custom_error_message=error_message)
 
 
 def update_general_settings(data_rebuild_object):
