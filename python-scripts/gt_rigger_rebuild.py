@@ -23,6 +23,11 @@ Added user-defined attributes extraction and transfer
 Added facial and corrective proxy extraction
 Added facial and corrective rebuild steps
 
+0.0.10 to 0.0.11 - 2022-11-03
+Added functionary to extract default channels (TRS+V)
+Added transform extraction (for the position of a few controls)
+Renamed extract and set attribute functions
+
 TODO
     Add bound joint extraction
     Add skin weights extraction
@@ -147,14 +152,16 @@ def apply_python_curve_shape_data(extracted_shapes):
         print(errors)
 
 
-def extract_user_defined_attr(obj_list):
+def extract_dict_attributes(obj_list, default_channels=False, user_defined=True):
     """
-    Extracts user defined attributes and stored them in a dictionary
+    Extracts attributes and stored them in a dictionary
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+        default_channels (bool, optional) If it should include default channels (TRS)
+        user_defined (bool, optional) If it should include user-defined attributes
 
     Returns:
-        dictionary with extracted values
+        dictionary with extracted values. Key = "object.attribute" Value = "attributeValue"
 
     """
     if not obj_list:
@@ -164,30 +171,46 @@ def extract_user_defined_attr(obj_list):
 
     output = {}
 
-    for obj in obj_list:
+    # Default channels (TRS+V)
+    if default_channels:
+        for obj in obj_list:
+            for channel in ["t", "r", "s"]:  # TRS
+                for axis in ["x", "y", "z"]:  # XYZ
+                    value = cmds.getAttr(obj + '.' + channel + axis)
+                    output[obj + '.' + channel + axis] = str(value)
+            visible = cmds.getAttr(obj + '.v')  # Visibility
+            output[obj + '.v'] = str(visible)
 
-        attributes = cmds.listAttr(obj, userDefined=True) or []
-
-        if attributes:
-            for attr in attributes:  # TRS
-                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
-                value = cmds.getAttr(obj + '.' + attr)
-                if attr_type == 'double3':
-                    pass
-                elif attr_type == 'string':
-                    output[obj + '.' + attr] = 'cmds.setAttr("' + obj + '.' + attr + '", """' + \
-                                               str(value) + '""", typ="string")\n'
-                else:
-                    output[obj + '.' + attr] = 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+    # User-defined
+    if user_defined:
+        for obj in obj_list:
+            attributes = cmds.listAttr(obj, userDefined=True) or []
+            if attributes:
+                for attr in attributes:  # TRS
+                    attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
+                    value = cmds.getAttr(obj + '.' + attr)
+                    if attr_type != 'double3':
+                        output[obj + '.' + attr] = str(value)
     return output
 
 
-def apply_user_defined_attr(user_defined_dict):
+def set_dict_attributes(user_defined_dict):
+    """
+    Sets attributes found in a dictionary
+
+    Args:
+        user_defined_dict (dict): Dictionary where the key is the object and its attribute and
+                                  the value is the value to set. Key = "object.attribute" Value = "attributeValue"
+    """
     for key in user_defined_dict:
         try:
             if cmds.objExists(key):
                 if not cmds.getAttr(key, lock=True) and not cmds.listConnections(key, source=True, destination=False):
-                    eval(user_defined_dict.get(key))
+                    attr_type = cmds.getAttr(key, typ=True)
+                    if attr_type != 'string':
+                        eval('cmds.setAttr("' + key + '", ' + user_defined_dict.get(key) + ')')
+                    else:
+                        eval('cmds.setAttr("' + key + '", """' + user_defined_dict.get(key) + '""", typ="string")')
         except Exception as e:
             logger.debug(str(e))
 
@@ -211,7 +234,7 @@ def extract_current_rig_data(data_rebuild_object):
         cmds.warning("Missing ")
         return False
 
-    # -------- Base / Biped --------
+    # -------- Base / Biped Proxy --------
     # Extract Base Proxy Data
     logger.debug("extracting base proxy transforms...")
     extracted_base_proxy_json = extract_proxy_metadata(data_biped)  # Re-build base proxy
@@ -222,7 +245,7 @@ def extract_current_rig_data(data_rebuild_object):
     extracted_biped_metadata = get_metadata(data_rebuild_object.main_ctrl)  # Find previous settings
     data_rebuild_object.extracted_base_metadata = extracted_biped_metadata
 
-    # -------- Facial --------
+    # -------- Facial Proxy --------
     facial_proxy_source = data_facial.proxy_storage_variables.get('source_object_name')
     facial_proxy_attr = data_facial.proxy_storage_variables.get('attr_name')
     if cmds.objExists(facial_proxy_source + '.' + facial_proxy_attr):
@@ -230,7 +253,7 @@ def extract_current_rig_data(data_rebuild_object):
         extracted_facial_proxy_json = extract_proxy_metadata(data_facial)  # Re-build base proxy
         data_rebuild_object.extracted_facial_proxy_json = extracted_facial_proxy_json
 
-    # -------- Corrective --------
+    # -------- Corrective Proxy --------
     corrective_proxy_source = data_corrective.proxy_storage_variables.get('source_object_name')
     corrective_proxy_attr = data_corrective.proxy_storage_variables.get('attr_name')
     if cmds.objExists(corrective_proxy_source + '.' + corrective_proxy_attr):
@@ -244,7 +267,18 @@ def extract_current_rig_data(data_rebuild_object):
 
     # Extract Custom Attr
     logger.debug("extracting control shapes...")
-    data_rebuild_object.extracted_custom_attr = extract_user_defined_attr(found_controls)
+    data_rebuild_object.extracted_custom_attr = extract_dict_attributes(found_controls)
+
+    # Extract Default Channel Attr @@@
+    transforms_to_store = []
+    for obj in data_rebuild.transforms_to_store:
+        if cmds.objExists(obj):
+            transforms_to_store.append(obj)
+    # if data_rebuild_object.settings.get("extract_pose"):
+    #     transforms_to_store += found_controls
+    data_rebuild_object.extracted_transform_data = extract_dict_attributes(transforms_to_store,
+                                                                           default_channels=True,
+                                                                           user_defined=False)
 
 
 def rebuild_biped_rig(data_rebuild_object):
@@ -319,7 +353,9 @@ def transfer_current_rig_data(data_rebuild_object):
         apply_python_curve_shape_data(data_rebuild_object.extracted_shape_data)
 
     # Transfer User-defined Attributes
-    apply_user_defined_attr(data_rebuild_object.extracted_custom_attr)
+    set_dict_attributes(data_rebuild_object.extracted_custom_attr)
+    # Transfer Stored Transforms
+    set_dict_attributes(data_rebuild_object.extracted_transform_data)
 
     logger.debug("running set-up script...")
 
@@ -366,7 +402,7 @@ def validate_rebuild(character_template=''):
     # Transferring Settings
     update_general_settings(data_rebuild)
 
-    # Rebuild RiG if data is available
+    # Rebuild Rig if data is available
     rebuild_biped_rig(data_rebuild)
 
     # Transfer Data to Rebuilt Rig
@@ -380,6 +416,7 @@ if __name__ == '__main__':
     # data_corrective = GTBipedRiggerCorrectiveData()
 
     logger.setLevel(logging.DEBUG)
+
     validate_rebuild()
 
     # print(data_rebuild.extracted_corrective_proxy_json)
@@ -390,6 +427,6 @@ if __name__ == '__main__':
     # for control in data_rebuild.controls:
     #     if cmds.objExists(control):
     #         found_controls.append(control)
-    # out = extract_user_defined_attr(found_controls)
+    # out = extract_dict_attributes(found_controls)
     # import pprint
     # pprint.pprint(out)
