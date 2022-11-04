@@ -16,6 +16,9 @@ Added "auto_merge" option for facial/corrective
 2022-10-05
 Added placeholder variables to rebuild object
 
+2022-11-03
+Added "transforms_to_store" to rebuild data
+
 """
 import maya.cmds as cmds
 import logging
@@ -30,7 +33,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_VERSION_BASE = '1.12.6'
 SCRIPT_VERSION_FACIAL = '1.0.9'
 SCRIPT_VERSION_CORRECTIVE = '1.0.7'
-SCRIPT_VERSION_REBUILD = '0.0.9'
+SCRIPT_VERSION_REBUILD = '0.0.11'
 
 # General Vars
 GRP_SUFFIX = 'grp'
@@ -419,6 +422,7 @@ class GTBipedRiggerRebuildData:
     # Shapes, Attributes
     extracted_shape_data = None
     extracted_custom_attr = None
+    extracted_transform_data = None
     # Base Biped
     extracted_base_proxy_json = None
     extracted_base_metadata = None
@@ -561,6 +565,17 @@ class GTBipedRiggerRebuildData:
     for item in controls:
         if item.startswith('left_'):
             controls.append(item.replace('left_', 'right_'))
+
+    # Expected Transform Names to retain TRS+V information
+    transforms_to_store = ['left_heelRoll_ctrl_grp',
+                           'left_ballRoll_ctrl_grp',
+                           'left_toe_upDown_ctrl_grp',
+                           'left_toeRoll_ctrl_grp']
+
+    # Auto Populate Right Side
+    for item in transforms_to_store:
+        if item.startswith('left_'):
+            transforms_to_store.append(item.replace('left_', 'right_'))
 
     # Store Default Values
     def __init__(self):
