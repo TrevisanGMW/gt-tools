@@ -57,6 +57,7 @@ from gt_rigger_data import *
 import gt_generate_icons
 import gt_rigger_corrective_logic
 import gt_rigger_facial_logic
+import gt_rigger_rebuild
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -569,8 +570,24 @@ def build_gui_auto_biped_rig():
     cmds.button(label='Reset Persistent Settings', bgc=current_bgc_color,
                 c=lambda x: _reset_persistent_settings_validation([data_biped, data_facial, data_corrective]))
 
+    cmds.separator(h=135, style='none')  # Empty Space
+
+    # Temporary Rebuild Button (To be replaced with Full UI
+    cmds.rowColumnLayout(nc=2, cw=[(1, 220), (2, 20)], cs=[(1, 10)], p=settings_tab)
+    cmds.button(label='Rebuild Rig', bgc=(.34, .34, .34),
+                c=lambda x: rebuild_rig())
+    rebuild_custom_help_title = 'Rebuild Rig'
+    rebuild_custom_help_message = 'Temporary button used to rebuild the rig. (Experimental)\n' \
+                                  'It currently runs through the entire rebuild operation, extracting proxy for ' \
+                                  'base, face and correctives. It also saved the curve shapes, user-defined ' \
+                                  'attributes and other rig settings. Later versions will allow for step exclusion ' \
+                                  'and debugging options.'
+    cmds.button(label='?', bgc=current_bgc_color,
+                c=lambda x: build_custom_help_window(rebuild_custom_help_message,
+                                                     rebuild_custom_help_title))
+
     # Versions:
-    cmds.separator(h=180, style='none')  # Empty Space
+    cmds.separator(h=10, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=6, cw=[(1, 35), (2, 35), (3, 35), (4, 35), (5, 50), (6, 35)],
                          cs=[(1, 10), (2, 0), (3, 7), (4, 0), (5, 7)], p=settings_tab)
     cmds.text('Biped: ', font='tinyBoldLabelFont', en=False)
@@ -993,7 +1010,7 @@ def validate_biped_operation(operation):
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
                 cmds.warning('"' + obj + '" is missing. '
-                             'Create a new proxy and make sure NOT to rename or delete any of its elements.')
+                                         'Create a new proxy and make sure NOT to rename or delete any of its elements.')
 
         # If valid, create rig
         if is_valid:
@@ -1699,6 +1716,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
         source_path (string, optional): Source path for the import function. If provided, file dialog is ignored.
         source_dict (dict, optional): JSON containing proxy data
     """
+
     def import_biped_proxy_pose_json(json_data):
         import_method = 'object-space'
         try:
@@ -1861,6 +1879,7 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
         source_dict (dict, optional): JSON containing proxy data
 
     """
+
     def import_facial_proxy_pose_json(json_data):
         try:
             is_valid_file = True
@@ -2025,6 +2044,7 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
         source_path (string, optional): Source path for the import function. If provided, file dialog is ignored.
         source_dict (dict, optional): JSON containing proxy data
     """
+
     def import_corrective_proxy_pose_json(json_data):
         import_method = 'world-space'
         try:
@@ -2491,6 +2511,13 @@ def extract_corrective_proxy_pose():
         except Exception as exception:
             logger.info(str(exception))
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
+
+
+def rebuild_rig():
+    """
+    A button call for rig rebuild (Temporary)
+    """
+    gt_rigger_rebuild.validate_rebuild()
 
 
 # Build UI
