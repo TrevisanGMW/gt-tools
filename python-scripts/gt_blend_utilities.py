@@ -40,3 +40,19 @@ def delete_blends_target(blend_node, target_name):
         if blendshape_names[i] == target_name:
             cmds.removeMultiInstance(blend_node + ".weight[" + str(i) + "]", b=True)
             cmds.removeMultiInstance(blend_node + ".inputTarget[0].inputTargetGroup[" + str(i) + "]", b=True)
+
+
+def delete_blend_node(obj):
+    """
+    Deletes any blend shape nodes found under the history of the provided object
+
+    Args:
+        obj (String): name of the object. e.g. "pSphere1"
+    """
+    history = cmds.listHistory(obj)
+    for node in history:
+        if cmds.objectType(node) == "blendShape":
+            cmds.delete(node)
+
+
+# selection = cmds.ls(selection=True)
