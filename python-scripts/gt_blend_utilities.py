@@ -1,3 +1,17 @@
+"""
+ GT Blend Utilities
+ github.com/TrevisanGMW/gt-tools - 2020-11-15
+
+ 0.0.1 to 0.0.2 - 2020-11-15
+ Added "delete_blends_target"
+ Added "delete_blends_targets"
+ Added "delete_all_blend_targets"
+
+ TODO:
+    Add search/replace renamer
+    Add error handling
+
+"""
 import maya.cmds as cmds
 import logging
 
@@ -10,7 +24,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "0.0.1"
+script_version = "0.0.2"
 
 
 def delete_blends_targets(blend_node):
@@ -54,7 +68,7 @@ def delete_blends_target(blend_node, target_name):
             cmds.removeMultiInstance(blend_node + ".inputTarget[0].inputTargetGroup[" + str(i) + "]", b=True)
 
 
-def delete_blend_node(obj):
+def delete_blend_nodes(obj):
     """
     Deletes any blend shape nodes found under the history of the provided object
 
@@ -70,4 +84,4 @@ def delete_blend_node(obj):
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     first_selection = cmds.ls(selection=True)[0]
-    delete_blend_node(first_selection)
+    delete_blend_nodes(first_selection)
