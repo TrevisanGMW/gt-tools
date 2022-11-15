@@ -1,4 +1,16 @@
 import maya.cmds as cmds
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_blend_utilities")
+logger.setLevel(logging.INFO)
+
+# Script Name
+script_name = "GT - Blend Utilities"
+
+# Version:
+script_version = "0.0.1"
 
 
 def delete_blends_targets(blend_node):
@@ -55,4 +67,7 @@ def delete_blend_node(obj):
             cmds.delete(node)
 
 
-# selection = cmds.ls(selection=True)
+if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
+    first_selection = cmds.ls(selection=True)[0]
+    delete_blend_node(first_selection)
