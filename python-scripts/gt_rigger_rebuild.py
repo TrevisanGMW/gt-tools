@@ -33,7 +33,7 @@ Added "evaluate_python_string" to be used in teardown and setup actions
 Added teardown and setup script execution
 
 UI Idea:
- [X]   <STEP-NAME>  <STEP-STATUS>  <MESSAGE>  <HELP-?>
+ [<Activation>]   <STEP-NAME>  <STEP-STATUS>  <HELP-?>
 
 TODO
     Add bound joint extraction
@@ -42,15 +42,16 @@ TODO
     Add corrective and facial reference position
     Add side GUI, fingers and feet positioning
 """
-from gt_rigger_biped_gui import *
 from gt_rigger_utilities import *
 from gt_rigger_data import *
 from gt_rigger_facial_logic import create_facial_proxy
 from gt_rigger_corrective_logic import create_corrective_proxy
+import gt_rigger_biped_gui as rigger_gui
 import maya.cmds as cmds
 import traceback
 import logging
 import json
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -59,8 +60,10 @@ logger.setLevel(logging.INFO)
 
 # Data Object
 data_rebuild = GTBipedRiggerRebuildData()
-if not data_biped:  # Create one in case not already available
-    data_biped = GTBipedRiggerData()
+# if not data_biped:  # Create one in case not already available
+data_biped = GTBipedRiggerData()
+data_facial = GTBipedRiggerFacialData()
+data_corrective = GTBipedRiggerCorrectiveData()
 
 
 def evaluate_python_string(py_string, custom_error_message=None):
@@ -352,32 +355,32 @@ def rebuild_biped_rig(data_rebuild_object):
 
     # -------- Rebuild Base / Biped --------
     logger.debug("recreating/importing base proxy...")
-    create_biped_proxy(data_biped)
-    import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_base_proxy_json)
+    rigger_gui.create_biped_proxy(data_biped)
+    rigger_gui.import_biped_proxy_pose(source_dict=data_rebuild_object.extracted_base_proxy_json)
 
     # Rebuild Base Rig
     logger.debug("recreating base rig...")
-    validate_biped_operation('create_biped_rig')
+    rigger_gui.validate_biped_operation('create_biped_rig')
 
     # -------- Rebuild Facial --------
     if data_rebuild_object.extracted_facial_proxy_json:
         logger.debug("recreating/importing facial proxy...")
         create_facial_proxy(data_facial)
-        import_facial_proxy_pose(source_dict=data_rebuild_object.extracted_facial_proxy_json)
+        rigger_gui.import_facial_proxy_pose(source_dict=data_rebuild_object.extracted_facial_proxy_json)
 
     # Rebuild Facial Rig
     logger.debug("recreating facial rig...")
-    validate_facial_operation('create_facial_rig')
+    rigger_gui.validate_facial_operation('create_facial_rig')
 
     # -------- Rebuild Corrective --------
     if data_rebuild_object.extracted_corrective_proxy_json:
         logger.debug("recreating/importing corrective proxy...")
         create_corrective_proxy(data_corrective)
-        import_corrective_proxy_pose(source_dict=data_rebuild_object.extracted_corrective_proxy_json)
+        rigger_gui.import_corrective_proxy_pose(source_dict=data_rebuild_object.extracted_corrective_proxy_json)
 
     # Rebuild Facial Rig
     logger.debug("recreating facial rig...")
-    validate_corrective_operation('create_corrective_rig')
+    rigger_gui.validate_corrective_operation('create_corrective_rig')
 
     return True
 
