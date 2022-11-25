@@ -62,7 +62,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Add Morphing Attributes"
 
 # Version:
-script_version = "1.1.0"
+script_version = "1.1.1"
 
 # Settings
 morphing_attr_settings = {'morphing_obj': '',
