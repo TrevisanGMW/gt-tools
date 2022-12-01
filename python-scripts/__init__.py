@@ -6,7 +6,7 @@ import sys
 import os
 
 # Global Vars
-PACKAGE_VERSION = "2.4.9"
+PACKAGE_VERSION = "2.4.10"
 
 # Initial Setup - Add path and initialize logger
 if __name__ != '__main__':
@@ -61,6 +61,11 @@ def execute_script(import_name, entry_point_function, reload=True):
         logger.warning('Error: ' + str(e))
         cmds.warning("Failed to execute entry point. Make sure the correct functions is being called.")
         return False
+
+
+def reload_package():
+    from gt_tools import gt_utilities
+    gt_utilities.unload_packages(silent=True, packages=['gt_tools'])
 
 
 if __name__ == '__main__':
