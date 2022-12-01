@@ -713,7 +713,7 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     menuItem 
     -l "Re-Build Menu" 
-    -c ("rehash; source \"gt_tools_menu.mel\" ;") 
+    -c ("rehash; source \"gt_tools_menu.mel\"; python(\"gt_tools.reload_package()\");") 
     -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") 
     -image "refresh.png" ;
     
