@@ -81,7 +81,9 @@ def delete_blend_nodes(obj):
             cmds.delete(node)
 
 
+# def get_selection_blend_node(obj)
+
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     first_selection = cmds.ls(selection=True)[0]
-    delete_blend_nodes(first_selection)
+    # delete_blend_nodes(first_selection)
