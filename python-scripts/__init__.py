@@ -64,10 +64,14 @@ def execute_script(import_name, entry_point_function, reload=True):
 
 
 def reload_package():
+    """
+    Unload modules starting with the name "gt_tools" - So they are reloaded when called
+    """
     from gt_tools import gt_utilities
-    gt_utilities.unload_packages(silent=True, packages=['gt_tools'])
+    gt_utilities.unload_packages(silent=False, packages=["gt_tools"])
 
 
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
     print('Logger Level: ', logger.level)
+    reload_package()

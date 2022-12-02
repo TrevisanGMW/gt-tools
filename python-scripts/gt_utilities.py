@@ -71,10 +71,10 @@ def unload_packages(silent=True, packages=None):
 
     # construct reload list
     reload_list = []
-    for i in sys.modules.keys():
+    for module in sys.modules.keys():
         for package in packages:
-            if i.startswith(package):
-                reload_list.append(i)
+            if module.startswith(package):
+                reload_list.append(module)
 
     # unload everything
     for item in reload_list:
