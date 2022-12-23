@@ -6,7 +6,7 @@ import sys
 import os
 
 # Global Vars
-PACKAGE_VERSION = "2.4.9"
+PACKAGE_VERSION = "2.5.0"
 
 # Initial Setup - Add path and initialize logger
 if __name__ != '__main__':
@@ -63,6 +63,15 @@ def execute_script(import_name, entry_point_function, reload=True):
         return False
 
 
+def reload_package():
+    """
+    Unload modules starting with the name "gt_tools" - So they are reloaded when called
+    """
+    from gt_tools import gt_utilities
+    gt_utilities.unload_packages(silent=False, packages=["gt_tools"])
+
+
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
     print('Logger Level: ', logger.level)
+    reload_package()

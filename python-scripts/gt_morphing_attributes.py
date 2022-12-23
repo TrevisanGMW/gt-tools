@@ -1,5 +1,5 @@
 """
-GT Blends to Attributes
+GT Morphing to Attributes (a.k.a. Blend Shapes to Attributes)
 github.com/TrevisanGMW/gt-tools - 2022-03-17
 
 0.0.1 - 2022-03-17
@@ -35,6 +35,10 @@ Minor tweaks to the GUI
 Added help
 Repositioned "Delete Instead"
 
+1.1.2 - 2022-12-23
+Small change to the system out text behaviour when selecting a blend shape
+Updated icon
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -62,7 +66,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Add Morphing Attributes"
 
 # Version:
-script_version = "1.1.0"
+script_version = "1.1.2"
 
 # Settings
 morphing_attr_settings = {'morphing_obj': '',
@@ -295,7 +299,7 @@ def build_gui_morphing_attributes():
         blend_node = cmds.textScrollList(blend_nodes_scroll_list, q=True, selectItem=True) or []
         if blend_node:
             if cmds.objExists(blend_node[0]):
-                sys.stdout.write('"' + str(blend_node[0]) + '" will be used when creating attributes.')
+                sys.stdout.write('"' + str(blend_node[0]) + '" will be used when creating attributes.\n')
                 morphing_attr_settings['blend_node'] = blend_node[0]
             else:
                 cmds.warning(error_message)
@@ -574,7 +578,7 @@ def build_gui_morphing_attributes():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/ikSCsolver.svg')
+    icon = QIcon(':/blendShape.png')
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window

@@ -177,6 +177,9 @@
 //   Added Outliner Sorter
 //   Added "Open File Directory" utlity
 //
+//   2.4.10 - 2022-12-23
+//   Added morphing utilities
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -423,6 +426,12 @@ menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
     -c ("python(\"gt_tools.execute_script('gt_morphing_attributes', 'build_gui_morphing_attributes')\");") 
     -ann ("Creates attributes to drive selected blend shapes.") 
     -image "blendShape.png";
+    
+    menuItem 
+    -l ("Morphing Utilities") 
+    -c ("python(\"gt_tools.execute_script('gt_morphing_utilities', 'build_gui_morphing_utilities')\");") 
+    -ann ("Morphing utilities (Blend Shapes).") 
+    -image "falloff_blend.png";
     
     menuItem 
     -l ("Mirror Cluster Tool") 
@@ -713,7 +722,7 @@ menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
     
     menuItem 
     -l "Re-Build Menu" 
-    -c ("rehash; source \"gt_tools_menu.mel\" ;") 
+    -c ("rehash; source \"gt_tools_menu.mel\"; python(\"gt_tools.reload_package()\");") 
     -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") 
     -image "refresh.png" ;
     

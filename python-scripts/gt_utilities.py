@@ -2,7 +2,17 @@
  GT Utilities - Helpful general functions
  github.com/TrevisanGMW - 2022-01-04
 
+ 2022-11-30
+ Added unload_packages
+
 """
+import sys
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_utilities")
+logger.setLevel(logging.INFO)
 
 
 def make_flat_list(*args):
@@ -53,3 +63,31 @@ def remove_strings_from_string(input_string, undesired_string_list):
     for undesired in undesired_string_list:
         input_string = input_string.replace(undesired, '')
     return input_string
+
+
+def unload_packages(silent=True, packages=None):
+    if packages is None:
+        packages = []
+
+    # construct reload list
+    reload_list = []
+    for module in sys.modules.keys():
+        for package in packages:
+            if module.startswith(package):
+                reload_list.append(module)
+
+    # unload everything
+    for item in reload_list:
+        try:
+            if sys.modules[item] is not None:
+                del (sys.modules[item])
+                if not silent:
+                    print("Unloaded: %s" % item)
+        except Exception as e:
+            logger.debug(str(e))
+            print("Failed to unload: %s" % item)
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    unload_packages()

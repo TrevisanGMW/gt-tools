@@ -48,6 +48,9 @@
  1.6.2 - 2022-09-06
  Small PEP8 fixes
 
+ 1.6.3 - 2022-12-23
+ Changed "Other Utilities" spacing
+
 """
 import maya.cmds as cmds
 import traceback
@@ -76,7 +79,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.6.2"
+script_version = "1.6.3"
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',
@@ -281,8 +284,8 @@ def build_gui_renamer():
     cmds.rowColumnLayout(nc=2, cw=[(1, 130), (2, 130)], cs=[(1, 0), (2, 5)], p=body_column)
     cmds.button(l="Remove First Letter", c=lambda x: start_renaming('remove_first_letter'))
     cmds.button(l="Remove Last Letter", c=lambda x: start_renaming('remove_last_letter'))
-    cmds.separator(h=7, style='none')  # Empty Space
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=4, style='none')  # Empty Space
+    cmds.separator(h=4, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 85), (2, 85), (3, 85)], cs=[(1, 0), (2, 5), (3, 5)], p=body_column)
     cmds.button(l="U-Case", c=lambda x: start_renaming('uppercase_names'))
     cmds.button(l="Capitalize", c=lambda x: start_renaming('capitalize_names'))

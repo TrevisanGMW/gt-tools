@@ -177,7 +177,7 @@ except ImportError:
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("gt_utilities")
+logger = logging.getLogger("gt_maya_utilities")
 logger.setLevel(logging.INFO)
 
 ''' ____________________________ General Functions ____________________________'''
