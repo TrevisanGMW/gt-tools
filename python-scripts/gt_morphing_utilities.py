@@ -12,6 +12,9 @@
  Added search and replace
  Added window icon
 
+ 1.0.0 - 2022-12-23
+ Initial release (basic utilities)
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -39,8 +42,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "0.0.4"
-
+script_version = "1.0.0"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -139,6 +141,26 @@ def rename_blend_target(blend_shape, target, new_name):
     return new_name
 
 
+def search_replace_blend_targets(blend_node, search_string, replace_string):
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    pairs_to_rename = {}
+    logger.debug("search_string:" + search_string)
+    logger.debug("replace_string:" + replace_string)
+    for i in range(len(blendshape_names)):
+        blend = blendshape_names[i]
+        if search_string in blend:
+            pairs_to_rename[blend] = blend.replace(search_string, replace_string)
+
+    number_operations = 0
+    for key, value in pairs_to_rename.items():
+        try:
+            rename_blend_target(blend_node, key, value)
+            number_operations += 1
+        except Exception as exc:
+            logger.debug(str(exc))
+    return number_operations
+
+
 def build_gui_morphing_utilities():
     def update_settings(*args):
         logger.debug(str(args))
@@ -205,7 +227,7 @@ def build_gui_morphing_utilities():
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, append=blendshape_nodes)
 
-    def validate_operation():
+    def _validate_search_replace():
         """ Checks elements one last time before running the script """
         update_settings()
 
@@ -216,7 +238,7 @@ def build_gui_morphing_utilities():
                 cmds.warning('Unable to blend shape node. Please try loading the object again.')
                 return False
         else:
-            cmds.warning('Select a blend shape node to be used as source.')
+            cmds.warning('Select a blend shape node to be used as target.')
             return False
 
         # # Run Script
@@ -227,8 +249,8 @@ def build_gui_morphing_utilities():
         current_selection = cmds.ls(selection=True)
         cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
         try:
-            print("Script run called")  # TODO @@@
-            rename_blend_target("blendShape1", "pSphere2", "my_new_name")
+            num_affected = search_replace_blend_targets(blend_node, search_string, replace_string)
+            operation_inview_feedback(num_affected, action="renamed")
             return True
         except Exception as e:
             logger.debug(str(e))
@@ -322,7 +344,7 @@ def build_gui_morphing_utilities():
     cmds.separator(h=5)
     cmds.separator(h=7, style='none')  # Empty Space
 
-    cmds.button(l="Rename Morphing Targets", bgc=(.6, .6, .6), c=lambda x: validate_operation())
+    cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
     cmds.separator(h=10, style='none')  # Empty Space
 
     # Show and Lock Window
@@ -389,12 +411,6 @@ if __name__ == '__main__':
     debugging = False
     if debugging:
         logger.setLevel(logging.DEBUG)
-        morphing_util_settings['morphing_obj'] = 'source_obj'
+        morphing_util_settings['morphing_obj'] = 'target_obj'
         morphing_util_settings['blend_node'] = 'blendShape1'
     build_gui_morphing_utilities()
-    # def get_selection_blend_node(obj)
-
-    # if __name__ == '__main__':
-    #     logger.setLevel(logging.DEBUG)
-    #     first_selection = cmds.ls(selection=True)[0]
-    #     # delete_blend_nodes(first_selection)
