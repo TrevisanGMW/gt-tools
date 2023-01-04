@@ -47,6 +47,7 @@
   <li><a href="#-gt-game-fbx-exporter-">GT Game FBX Exporter</a></li>
   <li><a href="#-gt-extract-bound-joints-">GT Extract Bound Joints</a></li>
   <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
+  <li><a href="#-gt-morphing-utilities-">GT Morphing Utilities</a></li>
   <li><a href="#-gt-morphing-attributes-">GT Morphing Attributes</a></li>
   <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
   <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
@@ -1168,6 +1169,40 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 
 </div>
+
+<!-- GT Morphing Utilities -->
+<div>
+<h1> GT Morphing Utilities </h1>
+
+<img src="./media/gt_morphing_utilities.jpg" align="right"
+     alt="GT Morphing Attributes GUI">
+
+<p>This script offers utilities to handle blend shape nodes and targets.</p>
+
+<p><b>Delete All Blend Shape Nodes:</b>
+<br>Deletes all nodes of the type "blendShape" found in the opened Maya scene.</p>
+
+<p><b>Delete All Blend Shape Targets:</b>
+<br>Deletes all targets found inside the scene's blend shape nodes, but leave the nodes behind.</p>
+
+<p><b>Load Morphing Object:</b>
+<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes found under the selected object.</p>
+
+<p><b>Blend Shape Nodes:</b>
+<br>A list of the blend shape nodes found under the selected object.</p>
+
+<p><b>Search and Replace Target Names:</b>
+<br>Allows you to search and replace strings used on blend shape target names (only the selected blend shape target will be affected).
+	<ul>
+		<li><b>Search:</b>  If the string is found in the text, it is replaced. (case sensitive)</li>
+		<li><b>Replace:</b>  If found, the string is replace with the text provided here.</li>
+	</ul>
+</p>
+
+<p><b>Search and Replace Target Names:</b>
+<br>Runs search and replace operation.</p>
+
+<br>
 
 <!-- GT Morphing Attributes -->
 <div>
