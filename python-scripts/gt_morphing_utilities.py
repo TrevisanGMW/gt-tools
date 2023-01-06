@@ -364,7 +364,6 @@ def build_gui_morphing_utilities():
 def _open_gt_tools_documentation():
     """ Opens a web browser with the auto rigger docs  """
     cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-morphing-utilities-', absolute=True)
-    # TODO: Create documentation @@@
 
 
 def select_existing_object(obj):
