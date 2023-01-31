@@ -2,8 +2,9 @@
  GT Orient Joints - Script for orienting multiple joints in a more predictable way
  github.com/TrevisanGMW/gt-tools - 2023-01-19
 
- 0.0.1 - 2023-01-19
+ 0.0.1 to 0.0.4 - 2023-01-19
  Initial GUI
+
 
 """
 
@@ -33,7 +34,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Orient Joints"
 
 # Version:
-script_version = "0.0.2"
+script_version = "0.0.4"
 
 
 # Renamer UI ============================================================================
@@ -60,29 +61,45 @@ def build_gui_orient_joints():
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_orient_joints())
-    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
+    cmds.separator(h=7, style='none', p=content_main)  # Empty Space
 
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.rowColumnLayout(nc=2, cw=[(1, 100), (2, 130)], cs=[(1, 45)])
-    selection_type_rc = cmds.radioCollection()
-    selection_type_selected = cmds.radioButton(label='Selected', select=True)
-    selection_type_hierarchy = cmds.radioButton(label='Hierarchy')
+
+    cmds.text('Utilities:')
+    cmds.separator(h=7, style='none')  # Empty Space
+
+    # Utilities ================
+    util_btn_width = 130
+    cmds.rowColumnLayout(nc=2, cw=[(1, util_btn_width), (2, util_btn_width)],
+                         cs=[(1, 0), (2, 5)], p=body_column)
+    cmds.button(l="Show Axis", c=lambda x: validate_operation("axis_show"), w=100)
+    cmds.button(l="Hide Axis", c=lambda x: validate_operation("axis_hide"), w=100)
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.button(l="Copy Parent", c=lambda x: validate_operation("copy_parent"), w=100)
+    cmds.button(l="Copy World", c=lambda x: validate_operation("copy_world"), w=100)
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=5, style='none')  # Empty Space
 
-    # Prefix and Suffix ================
+    # Orientation Settings ================
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 0)], p=body_column)
     cmds.separator(h=10)
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Orientation Settings:')
     cmds.separator(h=7, style='none')  # Empty Space
 
+    cmds.rowColumnLayout(nc=3, cw=[(1, 75), (2, 89)], cs=[(1, 0)], p=body_column)
+    cmds.text('Target:')
+    selection_type_rc = cmds.radioCollection()
+    selection_type_selected = cmds.radioButton(label='Selected', select=True)
+    selection_type_hierarchy = cmds.radioButton(label='Hierarchy')
+    cmds.separator(h=5, style='none', p=body_column)  # Empty Space
+
     rb_axis_width = 45
     cmds.rowColumnLayout(nc=5, cw=[(1, 75), (2, rb_axis_width), (3, rb_axis_width), (4, rb_axis_width)],
-                         cs=[(1, 0), (2, 0), (3, 0), (4, 0)],
-                         p=body_column)
+                         cs=[(1, 0), (2, 0), (3, 0), (4, 0)], p=body_column)
     cmds.text('Aim Axis:')
     cmds.radioCollection()
     cmds.radioButton(label='X', select=True)
@@ -110,10 +127,10 @@ def build_gui_orient_joints():
     cmds.menuItem(label='+')
     cmds.menuItem(label='-')
 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 10)], p=body_column)
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.button(l="Orient Joints", bgc=(.6, .6, .6), c=lambda x: validate_and_run())
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 0)], p=body_column)
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.button(l="Orient Joints", bgc=(.6, .6, .6), c=lambda x: validate_operation('orient_joint'))
+    cmds.separator(h=10, style='none')  # Empty Space
 
     # Show and Lock Window
     cmds.showWindow(window_gui_renamer)
