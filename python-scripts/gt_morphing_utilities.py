@@ -15,6 +15,9 @@
  1.0.0 - 2022-12-23
  Initial release (basic utilities)
 
+ 1.0.1 - 2023-01-05
+
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -42,7 +45,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.0.0"
+script_version = "1.0.1"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -135,6 +138,53 @@ def delete_all_blend_nodes():
     return removed_num
 
 
+def duplicate_flip_blend_target(blend_node, target_name, symmetry_axis='x', mirror_direction='-'):
+    """
+        Duplicates and mirror targets matching the provided name
+        Args:
+            blend_node (string) Name of the blend shape node
+            target_name (string) Name of the blend shape target to delete
+            symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
+            mirror_direction (string, optional) Mirror direction (default "-" negative) - Can only be "-" or "+"
+        """
+    cmds.select(d=True)  # Deselect
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+
+    mirror_dir = 0  # 0=negative,1=positive
+    if mirror_direction == '+':
+        mirror_dir = 1
+
+    for i in range(len(blendshape_names)):
+        if blendshape_names[i] == target_name:
+            cmds.blendShape(blend_node, e=True,
+                            # flipTarget=[(0, i)],  # list of base and target pairs (0=base shape index)
+                            t=('pSphere1', 1, 'pSphere1', 1.0))
+            # cmds.blendShape(blend_node, e=True,
+
+            #                 flipTarget=[(0, i)],  # list of base and target pairs (0=base shape index)
+            #                 mirrorDirection=mirror_dir,
+            #                 symmetrySpace=1,  # 0=topological, 1=object, 2=UV
+            #                 symmetryAxis=symmetry_axis)
+
+            # # mirror target
+            # cmds.blendShape(bls, e=True,
+            #                 mirrorTarget=[(0, new_target_index)],  # list of base and target pairs (0=base shape index)
+            #                 mirrorDirection=0,  # 0=negative,1=positive
+            #                 symmetrySpace=1,  # 0=topological, 1=object, 2=UV
+            #                 symmetryAxis='x',  # for object symmetrySpace
+            #                 )
+    # removed_num = 0
+    # for node in cmds.ls(typ="blendShape") or []:
+    #     if cmds.objectType(node) == "blendShape":
+    #         cmds.delete(node)
+    #         removed_num += 1
+    # return removed_num
+    # flip target
+
+
+# duplicate_flip_blend_target('blendShape1', 'pSphere2')
+
+
 def rename_blend_target(blend_shape, target, new_name):
     """ Renames the provided blend shape target """
     cmds.aliasAttr(new_name, blend_shape + '.' + target)
@@ -173,7 +223,7 @@ def build_gui_morphing_utilities():
         logger.debug('Updated Settings Called')
         logger.debug('search_string: ' + str(morphing_util_settings.get('search_string')))
         logger.debug('replace_string: ' + str(morphing_util_settings.get('replace_string')))
-  
+
     def select_blend_shape_node():
         error_message = "Unable to locate blend shape node. Please try again."
         blend_node = cmds.textScrollList(blend_nodes_scroll_list, q=True, selectItem=True) or []
@@ -195,6 +245,7 @@ def build_gui_morphing_utilities():
         Args:
             operation (str): String to determine function ("morphing_obj" or "attr_holder")
         """
+
         def failed_to_load_source(failed_message="Failed to Load"):
             cmds.button(source_object_status, l=failed_message, e=True, bgc=(1, .4, .4), w=130)
             cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
@@ -403,6 +454,26 @@ def operation_inview_feedback(number_of_changes, action="affected"):
     else:
         message += '</span><span style=\"color:#FFFFFF;\"> elements were ' + action + '.</span>'
     cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+
+
+def set_targets_value(blend_node, value):
+    """
+    Set the value of all targets found in the blend shape node
+    Args:
+        blend_node (string): Name of the blend shape node
+        value (float): Value to update the blend shape targets (e.g. 0.5) - Default range is 0 to 1
+
+    """
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    errors = []
+    for target in blendshape_names:
+        try:
+            cmds.setAttr(blend_node + "." + target, value)
+        except Exception as e:
+            errors.append(str(e))
+    if errors:
+        for error in errors:
+            print(error)
 
 
 # Build UI
