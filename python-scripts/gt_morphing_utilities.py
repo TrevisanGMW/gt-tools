@@ -15,7 +15,10 @@
  1.0.0 - 2022-12-23
  Initial release (basic utilities)
 
- 1.0.1 - 2023-01-05
+ 1.0.1 to 1.1.1 - 2023-02-13
+ Added "get_target_mesh", "bake_current_state", "set_targets_value"
+ Added set all target values button and floatField
+ Added Extract Targets at current values button
 
 
 """
@@ -45,7 +48,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.0.1"
+script_version = "1.1.1"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -140,6 +143,7 @@ def delete_all_blend_nodes():
 
 def duplicate_flip_blend_target(blend_node, target_name, symmetry_axis='x', mirror_direction='-'):
     """
+        WIP
         Duplicates and mirror targets matching the provided name
         Args:
             blend_node (string) Name of the blend shape node
@@ -180,9 +184,6 @@ def duplicate_flip_blend_target(blend_node, target_name, symmetry_axis='x', mirr
     #         removed_num += 1
     # return removed_num
     # flip target
-
-
-# duplicate_flip_blend_target('blendShape1', 'pSphere2')
 
 
 def rename_blend_target(blend_shape, target, new_name):
@@ -278,12 +279,8 @@ def build_gui_morphing_utilities():
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, append=blendshape_nodes)
 
-    def _validate_search_replace():
-        """ Checks elements one last time before running the script """
-        update_settings()
-
-        # Blend Shape Node
-        blend_node = morphing_util_settings.get('blend_node')
+    def _validate_current_blend_settings(blend_node):
+        """Checks if basic elements are available before running targeted operations"""
         if blend_node:
             if not cmds.objExists(blend_node):
                 cmds.warning('Unable to blend shape node. Please try loading the object again.')
@@ -291,9 +288,19 @@ def build_gui_morphing_utilities():
         else:
             cmds.warning('Select a blend shape node to be used as target.')
             return False
+        return True
+
+    def _validate_search_replace():
+        """ Checks elements one last time before running the script """
+        update_settings()
+
+        blend_node = morphing_util_settings.get('blend_node')
+        is_valid = _validate_current_blend_settings(blend_node)
+        if not is_valid:
+            return is_valid
 
         # # Run Script
-        logger.debug('Main Function Called')
+        logger.debug('Search and Replace Function Called')
         replace_string = morphing_util_settings.get('replace_string').replace(' ', '')
         search_string = morphing_util_settings.get('search_string').replace(' ', '')
 
@@ -317,6 +324,23 @@ def build_gui_morphing_utilities():
     def _delete_all_blend_nodes_btn():
         removed_num = delete_all_blend_nodes()
         operation_inview_feedback(removed_num, action="deleted")
+
+    def _validate_set_target_values():
+        """Validate set targets and run operation"""
+        blend_node = morphing_util_settings.get('blend_node')
+        is_valid = _validate_current_blend_settings(blend_node)
+        if not is_valid:
+            return is_valid
+        new_target_value = cmds.floatField(set_target_value, q=True, value=True)
+        set_targets_value(blend_node, new_target_value)
+
+    def _validate_extract_current_targets():
+        """Validate set targets and run operation"""
+        blend_node = morphing_util_settings.get('blend_node')
+        is_valid = _validate_current_blend_settings(blend_node)
+        if not is_valid:
+            return is_valid
+        bake_current_state(blend_node)
 
     window_name = "build_gui_morphing_utilities"
     if cmds.window(window_name, exists=True):
@@ -391,11 +415,19 @@ def build_gui_morphing_utilities():
     undesired_filter_textfield = cmds.textField(text='', pht='Text to Replace', cc=update_settings)
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.separator(h=7, style='none')  # Empty Space
-    cmds.separator(h=5)
-    cmds.separator(h=7, style='none')  # Empty Space
 
+    cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=5)
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 180), (2, 70)], cs=[(1, 10), (2, 10)], p=content_main)
+    cmds.button(l="Set All Target Values To", bgc=(.6, .6, .6), c=lambda x: _validate_set_target_values())
+    set_target_value = cmds.floatField(value=1, precision=1)
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
+    cmds.button(l="Extract Targets At Current Values", bgc=(.6, .6, .6),
+                c=lambda x: _validate_extract_current_targets())
     cmds.separator(h=10, style='none')  # Empty Space
 
     # Show and Lock Window
@@ -476,6 +508,54 @@ def set_targets_value(blend_node, value):
             print(error)
 
 
+def bake_current_state(blend_node):
+    """
+    Extracts targets as independent meshes (Not referenced by the blend shape node in any way)
+    Args:
+        blend_node (string) : Name of the blend shape node to use in the operation
+    TODO:
+        Add lock and connection checks
+    """
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    errors = []
+    target_values = {}
+    target_mesh = get_target_mesh(blend_node)
+    for target in blendshape_names:  # Store original values
+        try:
+            value = cmds.getAttr(blend_node + "." + target)
+            target_values[target] = value
+            cmds.setAttr(blend_node + "." + target, 0)  # Temporarily
+        except Exception as e:
+            errors.append(str(e))
+    for target in blendshape_names:  # Bake shapes
+        try:
+            value = target_values.get(target)
+            cmds.setAttr(blend_node + "." + target, value)
+            new_suffix = "_" + str(int(value*100)) + "pct"
+            cmds.duplicate(target_mesh, name=target_mesh + "_" + target + new_suffix)
+            cmds.setAttr(blend_node + "." + target, 0)
+        except Exception as e:
+            errors.append(str(e))
+    for target in blendshape_names:  # Bring back original values
+        try:
+            value = target_values.get(target)
+            cmds.setAttr(blend_node + "." + target, value)
+        except Exception as e:
+            errors.append(str(e))
+    if errors:
+        for error in errors:
+            print(error)
+
+
+def get_target_mesh(blend_node):
+    if cmds.objectType(blend_node) != "blendShape":
+        cmds.warning("Provided node \"" + str(blend_node) + "\" is not a blend shape node.")
+        return
+    target_mesh = cmds.listConnections(blend_node + ".outputGeometry") or []
+    if len(target_mesh) > 0:
+        return target_mesh[0]
+
+
 # Build UI
 if __name__ == '__main__':
     debugging = False
@@ -484,3 +564,4 @@ if __name__ == '__main__':
         morphing_util_settings['morphing_obj'] = 'target_obj'
         morphing_util_settings['blend_node'] = 'blendShape1'
     build_gui_morphing_utilities()
+    # duplicate_flip_blend_target('blendShape1', 'pSphere2')  # Test
