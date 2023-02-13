@@ -32,6 +32,10 @@ Renamed extract and set attribute functions
 Added "evaluate_python_string" to be used in teardown and setup actions
 Added teardown and setup script execution
 
+0.0.14 - 2023-01-10
+Un-parented objects found inside geometry_grp before rebuilding
+
+
 UI Idea:
  [<Activation>]   <STEP-NAME>  <STEP-STATUS>  <HELP-?>
 
@@ -316,8 +320,7 @@ def extract_current_rig_data(data_rebuild_object):
     data_rebuild_object.extracted_transform_data = extract_dict_attributes(transforms_to_store,
                                                                            default_channels=True,
                                                                            user_defined=False)
-
-    # Extract Teardown/Setup scripts @@@
+    # Extract Teardown/Setup Scripts TODO @@@
     data_rebuild_object.extracted_teardown_script = "print('test teardown script')"
     data_rebuild_object.extracted_setup_script = "print('test setup script')"
 
@@ -335,6 +338,12 @@ def rebuild_biped_rig(data_rebuild_object):
         error_message += "(Open script editor for more information)"
         evaluate_python_string(data_rebuild_object.extracted_teardown_script,
                                custom_error_message=error_message)
+
+    # Un-parent geometry
+    geometry_objects = []
+    if cmds.objExists("geometry_grp"):
+        geometry_objects = cmds.listRelatives("geometry_grp", children=True)
+    world_unparent(geometry_objects)
 
     # Delete current
     logger.debug("deleting current rig...")
@@ -460,6 +469,45 @@ def validate_rebuild(character_template=''):
     transfer_current_rig_data(data_rebuild)
 
 
+def world_unparent(obj_list):
+    """
+    Tries to parent list of objects to the world removing them from whatever hierarchy they might be in
+
+    Args:
+        obj_list (list): A list of strings with the name of the objects to un-parent.
+    """
+    for obj in obj_list:
+        try:
+            cmds.parent(obj, world=True)
+        except Exception as e:
+            logger.deubg(str(e))
+
+
+def validate_extract_gui():
+    """
+    Validate operation and rebuild rig
+    """
+    # Using current loaded rig
+    if not find_item(name=data_rebuild.main_ctrl, item_type='transform', log_fail=False):
+        cmds.warning('"Load a template or a character file before rebuilding. ' +
+                     '(Unable to find "' + data_rebuild.main_ctrl + '")')
+        return
+
+    # Extract Data to Rebuild Object
+    extract_current_rig_data(data_rebuild)
+
+    # Transferring Settings
+    update_general_settings(data_rebuild)
+
+    print(data_rebuild)
+
+    # # Rebuild Rig if data is available
+    # rebuild_biped_rig(data_rebuild)
+    #
+    # # Transfer Data to Rebuilt Rig
+    # transfer_current_rig_data(data_rebuild)
+
+
 # Run
 if __name__ == '__main__':
     # data_biped = GTBipedRiggerData()
@@ -469,6 +517,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     validate_rebuild()
+    # validate_extract_gui()
     # evaluate_python_string("cmds.sphere()")
     # print(data_rebuild.extracted_corrective_proxy_json)
     # extract_current_rig_data(data_rebuild)
