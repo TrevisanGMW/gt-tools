@@ -304,8 +304,7 @@ def duplicate_blend_target(blend_node, blend_index):
 
 def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis='x'):
     """
-        WIP
-        Duplicates and mirror targets matching the provided name
+        Duplicates and flip targets matching the provided name
         Args:
             blend_node (string) Name of the blend shape node
             target_name (string) Name of the blend shape target to duplicate and flip
@@ -331,6 +330,59 @@ def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, sy
                         flipTarget=[(0, duplicate_target_index)],
                         symmetryAxis=symmetry_axis,
                         symmetrySpace=1)  # 0=topological, 1=object, 2=UV
+        if duplicate_name:
+            rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
+        else:
+            new_name = duplicate_target_name.replace('Copy', 'Flipped')
+            rename_blend_target(blend_node, duplicate_target_name, new_name)
+
+    # Return Generated Targets
+    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
+    for blend in blendshape_names_new_only:
+        try:
+            cmds.setAttr(blend_node + "." + blend, 0)
+        except Exception as e:
+            logger.debug(str(e))
+    return blendshape_names_new_only
+
+
+def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
+                                  symmetry_axis='x', mirror_direction="-"):
+    """
+        Duplicates and mirror targets matching the provided name
+        Args:
+            blend_node (string) Name of the blend shape node
+            target_name (string) Name of the blend shape target to duplicate and flip
+            duplicate_name (optional, string): New name for the duplicated target
+            symmetry_axis (optional, string) Which axis to use when mirroring (default: x)
+            mirror_direction (optional, string): Direction of the mirror operation (either "+" or "-") - Default "-"
+        """
+    cmds.select(d=True)  # Deselect
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+
+    mirror_dir = 0  # 0=negative,1=positive
+    if mirror_direction == '+':
+        mirror_dir = 1
+
+    duplicate_target_index = get_target_index(blend_node, target_name)
+    duplicate_blend_target(blend_node, duplicate_target_index)
+
+    # Get Newly Generated Targets
+    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
+
+    duplicate_target_name = ""
+    if blendshape_names_new_only:
+        duplicate_target_name = blendshape_names_new_only[0]
+    if duplicate_target_name:
+        duplicate_target_index = get_target_index(blend_node, duplicate_target_name)
+        cmds.blendShape(blend_node, e=True,
+                        mirrorTarget=[(0, duplicate_target_index)],
+                        mirrorDirection=mirror_dir,  # 0=negative,1=positive
+                        symmetrySpace=1,  # 0=topological, 1=object, 2=UV
+                        symmetryAxis=symmetry_axis,  # for object symmetrySpace
+                        )
         if duplicate_name:
             rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
         else:
