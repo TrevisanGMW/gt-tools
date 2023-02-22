@@ -20,6 +20,10 @@
  Added set all target values button and floatField
  Added Extract Targets at current values button
 
+ 1.1.2 to 1.2.0 - 2023-02-21
+ Updated duplicate functions and added a few helper functions
+ Created add_target function (requires an extracted mesh)
+
 
 """
 try:
@@ -35,6 +39,7 @@ except ImportError:
 
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
+import maya.mel as mel
 import logging
 import random
 import sys
@@ -48,7 +53,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.1.1"
+script_version = "1.1.2"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -141,49 +146,220 @@ def delete_all_blend_nodes():
     return removed_num
 
 
-def duplicate_flip_blend_target(blend_node, target_name, symmetry_axis='x', mirror_direction='-'):
+def get_target_index(blend_shape_node, target):
+    """
+    Get the target index of the specified target found in blend_shape_node
+    Args:
+        blend_shape_node (string): Name of the blend shape node
+        target (string): Name of the target
+    Returns:
+        Integer of the index number for the target
+    """
+    # Get attribute alias
+    alias_list = cmds.aliasAttr(blend_shape_node, q=True)
+    alias_index = alias_list.index(target)
+    alias_attr = alias_list[alias_index + 1]
+    target_index = int(alias_attr.split('[')[-1].split(']')[0])
+    return target_index
+
+
+def get_target_list(blend_shape_node):
+    """
+    Args:
+        blend_shape_node (string) : Name of the blend shape node
+    Returns:
+         the target list for the input blend_shape_node
+    """
+
+    # Get attribute alias
+    target_list = cmds.listAttr(blend_shape_node + '.w', m=True) or []
+    return target_list
+
+
+def get_next_available_target_index(blend_shape_node):
+    """
+    Get the next available blend_shape_node target index
+    Args:
+        blend_shape_node (string): Name of blend shape node to get the next available target index
+    Returns:
+        Int of the next available index
+    """
+    # Get blend_shape_node target list
+    target_list = get_target_list(blend_shape_node)
+    if not target_list:
+        return 0
+
+    # Create next index
+    last_index = get_target_index(blend_shape_node, target_list[-1])
+    next_index = last_index + 1
+    return next_index
+
+
+def get_target_name(blend_shape_node, target_geo):
+    """
+    Get blend_shape_node target alias for specified target geometry
+    Args:
+        blend_shape_node (string): Blend Shape node to get target name
+        target_geo (string): BlendShape target geometry to get alia name
+    Returns:
+        String of the target alias
+    """
+    # Get Target Shapes
+    target_shape = []
+    non_intermediate_shapes = cmds.listRelatives(target_geo, shapes=True, noIntermediate=True, path=True)
+    if non_intermediate_shapes:
+        target_shape.extend(non_intermediate_shapes)
+
+    if not target_shape:
+        target_shape = cmds.ls(cmds.listRelatives(target_geo, allDescendents=True, path=True),
+                               shapes=True, noIntermediate=True)
+    # Find Target Connection
+    target_conn = cmds.listConnections(target_shape, shapes=True, destination=True,
+                                       source=False, plugs=False, connections=True)
+    target_conn_ind = target_conn.index(blend_shape_node)
+    target_conn_attr = target_conn[target_conn_ind - 1]
+    target_conn_plug = cmds.listConnections(target_conn_attr, sh=True, p=True, d=True, s=False)[0]
+
+    # Get Target Index
+    target_ind = int(target_conn_plug.split('.')[2].split('[')[1].split(']')[0])
+    # Get Target Alias
+    target_alias = cmds.aliasAttr(blend_shape_node + '.weight[' + str(target_ind) + ']', q=True)
+    return target_alias
+
+
+def add_target(blend_shape_node, target=None, base_mesh='',
+               target_index=-1, target_alias='',
+               target_weight=1.0, topology_check=False):
+    """
+    Add a new target to the provided blend shape node
+    Args:
+        blend_shape_node (string): Name of blend_shape_node to use
+        target (optional, string): New blend shape target geometry (if empty, base is used)
+        base_mesh (optional, string): blend shape base_mesh geometry. If empty, use first connection on base_mesh geo
+        target_index (optional, int): The target index. If "-1", use next available index.
+        target_alias (optional, string):  Define the target alias (nickname)
+        target_weight (optional, float): Set initial target weight value
+        topology_check (optional, bool): If active, check topology before creating
+    Returns:
+        Name of the newly created target with its blend shape node as prefix. E.g. "blendShape1.myTarget"
+    """
+    # Get Base Geometry
+    if not target:
+        target = get_blend_mesh(blend_shape_node)
+    if not base_mesh:
+        base_mesh = get_blend_mesh(blend_shape_node)
+        logger.debug("base_mesh: " + str(base_mesh))
+
+    # Get Target Index
+    if target_index < 0:
+        target_index = get_next_available_target_index(blend_shape_node)
+        logger.debug("target_index: " + str(target_index))
+
+    # Add Target
+    cmds.blendShape(blend_shape_node, e=True, t=(base_mesh, target_index, target, 1.0), topologyCheck=topology_check)
+
+    # Get Current Target Name
+    target_name = get_target_name(blend_shape_node, target)
+
+    # Update Target Alias
+    if target_alias:
+        target_index = get_target_index(blend_shape_node, target_name)
+        cmds.aliasAttr(target_alias, blend_shape_node + '.weight[' + str(target_index) + ']')
+        target_name = target_alias
+
+    if target_weight:
+        cmds.setAttr(blend_shape_node + '.' + target_name, target_weight)
+    return blend_shape_node + '.' + target_name
+
+
+def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis='x'):
     """
         WIP
         Duplicates and mirror targets matching the provided name
         Args:
             blend_node (string) Name of the blend shape node
-            target_name (string) Name of the blend shape target to delete
+            target_name (string) Name of the blend shape target to duplicate and flip
+            duplicate_name (optional, string): New name for the duplicated target
             symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
-            mirror_direction (string, optional) Mirror direction (default "-" negative) - Can only be "-" or "+"
         """
     cmds.select(d=True)  # Deselect
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
 
-    mirror_dir = 0  # 0=negative,1=positive
-    if mirror_direction == '+':
-        mirror_dir = 1
-
     for i in range(len(blendshape_names)):
         if blendshape_names[i] == target_name:
+            # add_target(blend_node, None, base_mesh='', target_index=-1, target_alias='aff', target_weight=1,
+            #            topology_check=False)  # Requires extracted mesh
+
+            # Hack to Enforce Selection - Pattern used for when selecting blend target using shape editor
+            cmds.optionVar(rm="blendShapeEditorTreeViewSelection")
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))  # Empty strings (Matching output pattern)
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", "0"))
+            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
+            mel.eval("blendShapeEditorDuplicateTargets")
+
+    # Get Newly Generated Targets
+    updated_blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+    new_blendshape_names = list(set(updated_blendshape_names) - set(blendshape_names))
+    for i in range(len(updated_blendshape_names)):
+        if updated_blendshape_names[i] in new_blendshape_names:
             cmds.blendShape(blend_node, e=True,
-                            # flipTarget=[(0, i)],  # list of base and target pairs (0=base shape index)
-                            t=('pSphere1', 1, 'pSphere1', 1.0))
-            # cmds.blendShape(blend_node, e=True,
+                            flipTarget=[(0, i)],  # list of base_mesh and target pairs (0=base_mesh shape index)
+                            symmetryAxis=symmetry_axis,
+                            symmetrySpace=1)  # 0=topological, 1=object, 2=UV
+            if duplicate_name:
+                rename_blend_target(blend_node, updated_blendshape_names[i], duplicate_name)
+            else:
+                new_name = updated_blendshape_names[i].replace('Copy', 'Flipped')
+                rename_blend_target(blend_node, updated_blendshape_names[i], new_name)
+    # Return Generated Targets
+    updated_blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+    new_blendshape_names = list(set(updated_blendshape_names) - set(blendshape_names))
+    return new_blendshape_names
 
-            #                 flipTarget=[(0, i)],  # list of base and target pairs (0=base shape index)
-            #                 mirrorDirection=mirror_dir,
-            #                 symmetrySpace=1,  # 0=topological, 1=object, 2=UV
-            #                 symmetryAxis=symmetry_axis)
 
-            # # mirror target
-            # cmds.blendShape(bls, e=True,
-            #                 mirrorTarget=[(0, new_target_index)],  # list of base and target pairs (0=base shape index)
-            #                 mirrorDirection=0,  # 0=negative,1=positive
-            #                 symmetrySpace=1,  # 0=topological, 1=object, 2=UV
-            #                 symmetryAxis='x',  # for object symmetrySpace
-            #                 )
-    # removed_num = 0
-    # for node in cmds.ls(typ="blendShape") or []:
-    #     if cmds.objectType(node) == "blendShape":
-    #         cmds.delete(node)
-    #         removed_num += 1
-    # return removed_num
-    # flip target
+def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis='x'):
+    """
+    Duplicate targets that match
+    Args:
+        blend_node (string): Name of the blend shape node to be used in the operation
+        search_string (string): Only targets with this provided string will be included in the operation
+        replace_string (optional, string): If provided, a search and replace operation will happen on the string to
+                                    determine the new name of the flipped target. For example, if search is "Right" and
+                                    replace is "Left", a target named "eyeBlinkRight" will be renamed "eyeBlinkLeft".
+                                    If not provided, new targets will have a suffix "_Flipped"
+        symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
+    """
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    pairs_to_rename = {}
+    logger.debug("search_string:" + search_string)
+    logger.debug("replace_string:" + str(replace_string))
+
+    for i in range(len(blendshape_names)):
+        blend = blendshape_names[i]
+        if search_string in blend:
+            if replace_string:
+                new_name = blend.replace(search_string, replace_string)
+            else:
+                new_name = replace_string
+            pairs_to_rename[blend] = new_name
+
+    number_operations = 0
+    for key, value in pairs_to_rename.items():
+        try:
+            duplicate_flip_blend_target(blend_node, key, duplicate_name=value, symmetry_axis='x')
+            number_operations += 1
+        except Exception as exc:
+            logger.debug(str(exc))
+    return number_operations
 
 
 def rename_blend_target(blend_shape, target, new_name):
@@ -519,7 +695,7 @@ def bake_current_state(blend_node):
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
     errors = []
     target_values = {}
-    target_mesh = get_target_mesh(blend_node)
+    target_mesh = get_blend_mesh(blend_node)
     for target in blendshape_names:  # Store original values
         try:
             value = cmds.getAttr(blend_node + "." + target)
@@ -547,7 +723,7 @@ def bake_current_state(blend_node):
             print(error)
 
 
-def get_target_mesh(blend_node):
+def get_blend_mesh(blend_node):
     if cmds.objectType(blend_node) != "blendShape":
         cmds.warning("Provided node \"" + str(blend_node) + "\" is not a blend shape node.")
         return
@@ -564,4 +740,4 @@ if __name__ == '__main__':
         morphing_util_settings['morphing_obj'] = 'target_obj'
         morphing_util_settings['blend_node'] = 'blendShape1'
     build_gui_morphing_utilities()
-    # duplicate_flip_blend_target('blendShape1', 'pSphere2')  # Test
+    # duplicate_flip_filtered_targets("blendShape1", "Left", "Right")
