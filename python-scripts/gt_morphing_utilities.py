@@ -24,7 +24,6 @@
  Updated duplicate functions and added a few helper functions
  Created add_target function (requires an extracted mesh)
 
-
 """
 try:
     from shiboken2 import wrapInstance
@@ -53,7 +52,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.1.2"
+script_version = "1.2.0"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -337,6 +336,8 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
                                     replace is "Left", a target named "eyeBlinkRight" will be renamed "eyeBlinkLeft".
                                     If not provided, new targets will have a suffix "_Flipped"
         symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
+    Returns:
+        Number of operations (Total number of flipped targets)
     """
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
     pairs_to_rename = {}
@@ -466,7 +467,7 @@ def build_gui_morphing_utilities():
             return False
         return True
 
-    def _validate_search_replace():
+    def _validate_search_replace(operation="default"):
         """ Checks elements one last time before running the script """
         update_settings()
 
@@ -480,18 +481,34 @@ def build_gui_morphing_utilities():
         replace_string = morphing_util_settings.get('replace_string').replace(' ', '')
         search_string = morphing_util_settings.get('search_string').replace(' ', '')
 
-        current_selection = cmds.ls(selection=True)
-        cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
-        try:
-            num_affected = search_replace_blend_targets(blend_node, search_string, replace_string)
-            operation_inview_feedback(num_affected, action="renamed")
-            return True
-        except Exception as e:
-            logger.debug(str(e))
-            return False
-        finally:
-            cmds.undoInfo(closeChunk=True, chunkName=script_name)
-            cmds.select(current_selection)
+        if operation == "default":
+            current_selection = cmds.ls(selection=True)
+            cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
+            try:
+                num_affected = search_replace_blend_targets(blend_node, search_string, replace_string)
+                operation_inview_feedback(num_affected, action="renamed")
+                return True
+            except Exception as e:
+                logger.debug(str(e))
+                return False
+            finally:
+                cmds.undoInfo(closeChunk=True, chunkName=script_name)
+                cmds.select(current_selection)
+        elif operation == "flip":
+            current_selection = cmds.ls(selection=True)
+            cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
+            try:
+                if not replace_string:
+                    replace_string = None
+                num_affected = duplicate_flip_filtered_targets(blend_node, search_string, replace_string)
+                operation_inview_feedback(num_affected, action="flipped")
+                return True
+            except Exception as e:
+                logger.debug(str(e))
+                return False
+            finally:
+                cmds.undoInfo(closeChunk=True, chunkName=script_name)
+                cmds.select(current_selection)
 
     def _delete_all_blend_targets_btn():
         removed_num = delete_all_blend_targets()
@@ -594,6 +611,9 @@ def build_gui_morphing_utilities():
 
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
+    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.button(l="Search, Replace and Flip Filtered Targets", bgc=(.6, .6, .6),
+                c=lambda x: _validate_search_replace("flip"))
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=5)
     cmds.separator(h=10, style='none')  # Empty Space
@@ -740,4 +760,3 @@ if __name__ == '__main__':
         morphing_util_settings['morphing_obj'] = 'target_obj'
         morphing_util_settings['blend_node'] = 'blendShape1'
     build_gui_morphing_utilities()
-    # duplicate_flip_filtered_targets("blendShape1", "Left", "Right")
