@@ -25,6 +25,9 @@
  Created add_target function (requires an extracted mesh)
  Renamed search and replace while flipping button
 
+ 1.2.2 - 2023-02-22
+ Fixed an issue where search replace while duplicating and flipping wouldn't work properly
+
 """
 try:
     from shiboken2 import wrapInstance
@@ -53,7 +56,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.2.1"
+script_version = "1.2.2"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -272,6 +275,33 @@ def add_target(blend_shape_node, target=None, base_mesh='',
     return blend_shape_node + '.' + target_name
 
 
+def duplicate_blend_target(blend_node, blend_index):
+    """
+    Duplicate a blend target based on its index
+    Args:
+        blend_node (string): Blend shape node
+        blend_index (int): Index of the blend target
+    """
+    # Hack to Enforce Selection - Pattern used for when selecting blend target using shape editor
+    selected_blend = blend_node + "." + str(blend_index) + "/"
+    cmds.optionVar(rm="blendShapeEditorTreeViewSelection")
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))  # Empty strings (Matching output pattern)
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", selected_blend))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", selected_blend))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", selected_blend))
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", "0"))  # 0
+    cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", selected_blend))
+    logger.debug(str(cmds.optionVar(q="blendShapeEditorTreeViewSelection")))
+    mel.eval("blendShapeEditorDuplicateTargets")
+    cmds.optionVar(rm="blendShapeEditorTreeViewSelection")
+
+
 def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis='x'):
     """
         WIP
@@ -285,45 +315,37 @@ def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, sy
     cmds.select(d=True)  # Deselect
     blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
 
-    for i in range(len(blendshape_names)):
-        if blendshape_names[i] == target_name:
-            # add_target(blend_node, None, base_mesh='', target_index=-1, target_alias='aff', target_weight=1,
-            #            topology_check=False)  # Requires extracted mesh
-
-            # Hack to Enforce Selection - Pattern used for when selecting blend target using shape editor
-            cmds.optionVar(rm="blendShapeEditorTreeViewSelection")
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))  # Empty strings (Matching output pattern)
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", ""))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", "0"))
-            cmds.optionVar(sva=("blendShapeEditorTreeViewSelection", blend_node + "." + str(i) + "/"))
-            mel.eval("blendShapeEditorDuplicateTargets")
+    duplicate_target_index = get_target_index(blend_node, target_name)
+    duplicate_blend_target(blend_node, duplicate_target_index)
 
     # Get Newly Generated Targets
-    updated_blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
-    new_blendshape_names = list(set(updated_blendshape_names) - set(blendshape_names))
-    for i in range(len(updated_blendshape_names)):
-        if updated_blendshape_names[i] in new_blendshape_names:
-            cmds.blendShape(blend_node, e=True,
-                            flipTarget=[(0, i)],  # list of base_mesh and target pairs (0=base_mesh shape index)
-                            symmetryAxis=symmetry_axis,
-                            symmetrySpace=1)  # 0=topological, 1=object, 2=UV
-            if duplicate_name:
-                rename_blend_target(blend_node, updated_blendshape_names[i], duplicate_name)
-            else:
-                new_name = updated_blendshape_names[i].replace('Copy', 'Flipped')
-                rename_blend_target(blend_node, updated_blendshape_names[i], new_name)
+    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
+
+    duplicate_target_name = ""
+    if blendshape_names_new_only:
+        duplicate_target_name = blendshape_names_new_only[0]
+    if duplicate_target_name:
+        duplicate_target_index = get_target_index(blend_node, duplicate_target_name)
+        cmds.blendShape(blend_node, e=True,
+                        flipTarget=[(0, duplicate_target_index)],
+                        symmetryAxis=symmetry_axis,
+                        symmetrySpace=1)  # 0=topological, 1=object, 2=UV
+        if duplicate_name:
+            rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
+        else:
+            new_name = duplicate_target_name.replace('Copy', 'Flipped')
+            rename_blend_target(blend_node, duplicate_target_name, new_name)
+
     # Return Generated Targets
-    updated_blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
-    new_blendshape_names = list(set(updated_blendshape_names) - set(blendshape_names))
-    return new_blendshape_names
+    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
+    for blend in blendshape_names_new_only:
+        try:
+            cmds.setAttr(blend_node + "." + blend, 0)
+        except Exception as e:
+            logger.debug(str(e))
+    return blendshape_names_new_only
 
 
 def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis='x'):
@@ -357,7 +379,7 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
     number_operations = 0
     for key, value in pairs_to_rename.items():
         try:
-            duplicate_flip_blend_target(blend_node, key, duplicate_name=value, symmetry_axis='x')
+            duplicate_flip_blend_target(blend_node, key, duplicate_name=value, symmetry_axis=symmetry_axis)
             number_operations += 1
         except Exception as exc:
             logger.debug(str(exc))
