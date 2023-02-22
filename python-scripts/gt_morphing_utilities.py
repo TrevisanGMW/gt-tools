@@ -20,9 +20,10 @@
  Added set all target values button and floatField
  Added Extract Targets at current values button
 
- 1.1.2 to 1.2.0 - 2023-02-21
+ 1.1.2 to 1.2.1 - 2023-02-21
  Updated duplicate functions and added a few helper functions
  Created add_target function (requires an extracted mesh)
+ Renamed search and replace while flipping button
 
 """
 try:
@@ -52,7 +53,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.2.0"
+script_version = "1.2.1"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -612,7 +613,7 @@ def build_gui_morphing_utilities():
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.button(l="Search, Replace and Flip Filtered Targets", bgc=(.6, .6, .6),
+    cmds.button(l="Search, Replace While Duplicating and Flipping ", bgc=(.6, .6, .6),
                 c=lambda x: _validate_search_replace("flip"))
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=5)
