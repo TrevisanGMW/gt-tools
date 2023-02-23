@@ -136,6 +136,9 @@
     - Added open file directory
     - Updated open file directory to support Mac-OS
 
+ - 2023-02-23
+    - Updated namespace delete function to allow for only selected elements
+    - Added Set Joint Name as Label
 
  TODO:
      New functions:
@@ -179,6 +182,24 @@ except ImportError:
 logging.basicConfig()
 logger = logging.getLogger("gt_maya_utilities")
 logger.setLevel(logging.INFO)
+
+''' ____________________________ Helper Functions ____________________________'''
+
+def get_short_name(full_name):
+    """
+        Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+        Args:
+            full_name (string) - object to extract short name
+        """
+    output_short_name = ''
+    if full_name == '':
+        return ''
+    split_path = full_name.split('|')
+    if len(split_path) >= 1:
+        output_short_name = split_path[len(split_path) - 1]
+    return output_short_name
+
 
 ''' ____________________________ General Functions ____________________________'''
 
@@ -635,21 +656,6 @@ def toggle_full_hud():
 def select_non_unique_objects():
     """ Selects all non-unique objects (objects with the same short name) """
 
-    def get_short_name(full_name):
-        """
-            Get the name of the objects without its path (Maya returns full path if name is not unique)
-
-            Args:
-                full_name (string) - object to extract short name
-            """
-        output_short_name = ''
-        if full_name == '':
-            return ''
-        split_path = full_name.split('|')
-        if len(split_path) >= 1:
-            output_short_name = split_path[len(split_path) - 1]
-        return output_short_name
-
     all_transforms = cmds.ls(type='transform')
     short_names = []
     non_unique_transforms = []
@@ -675,6 +681,48 @@ def select_non_unique_objects():
         message = 'No repeated names found in this scene.'
     cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     sys.stdout.write(message)
+
+
+def set_joint_name_as_label():
+    """
+    Transfer the selected joint name to
+    """
+
+    selection_joints = cmds.ls(selection=True, typ="joint") or []
+
+    if not selection_joints:
+        cmds.warning("No joints found in selection. Select joints and try again.")
+        return
+
+    function_name = 'GTU Set Joint Name as Label'
+    counter = 0
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        for joint in selection_joints:
+            short_name = get_short_name(joint)
+            cmds.setAttr(joint + '.side', 0)  # Center (No Extra String)
+            cmds.setAttr(joint + '.type', 18)  # Other
+            cmds.setAttr(joint + '.otherType', short_name, typ="string")
+            counter += 1
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    if counter > 0:
+        is_plural = 'labels were'
+        if counter == 1:
+            is_plural = 'label was'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(counter)
+        in_view_message += '</span> joint ' + is_plural + ' updated.'
+        message = '\n' + str(counter) + ' joint ' + is_plural + ' updated.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'No labels were updated.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 def references_import():
@@ -1123,17 +1171,32 @@ def reset_persp_shape_attributes():
 """ ____________________________ Delete Functions ____________________________"""
 
 
-def delete_namespaces():
-    """Deletes all namespaces in the scene"""
+def delete_namespaces(object_list=None):
+    """
+    Deletes all namespaces in the scene
+    Args:
+        object_list (optional, list) A list of objects to affect. If not provided, entire scene is used instead.
+    Returns:
+        Number of namespaces deleted (int)
+    """
+    counter = 0
+    if object_list:
+        for obj in object_list:
+            if ":" in obj:
+                namespace = obj.split(":")[0]
+                cmds.namespace(removeNamespace=namespace, mergeNamespaceWithRoot=True)
+                counter += 1
+        return counter
+
     function_name = 'GTU Delete All Namespaces'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     counter = 0
     try:
         default_namespaces = ['UI', 'shared']
 
-        def num_children(namespace):
+        def num_children(ns):
             """Used as a sort key, this will sort namespaces by how many children they have."""
-            return namespace.count(':')
+            return ns.count(':')
 
         namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if
                       namespace not in default_namespaces]
@@ -1849,6 +1912,7 @@ if __name__ == '__main__':
     # toggle_uniform_lra()
     # toggle_uniform_jnt_label()
     # select_non_unique_objects()
+    set_joint_name_as_label()
     #
     # generate_udim_previews()
     # material_copy()
