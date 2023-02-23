@@ -995,7 +995,7 @@ def build_custom_help_window(input_text, help_title='', *args):
 
 # Build UI
 if __name__ == '__main__':
-    debugging = True
+    debugging = False
     if debugging:
         logger.setLevel(logging.DEBUG)
         morphing_util_settings['morphing_obj'] = 'target_obj'
