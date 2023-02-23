@@ -25,8 +25,12 @@
  Created add_target function (requires an extracted mesh)
  Renamed search and replace while flipping button
 
- 1.2.2 - 2023-02-22
+ 1.2.2 to 1.3.2 - 2023-02-22
  Fixed an issue where search replace while duplicating and flipping wouldn't work properly
+ Added duplicate and mirror function
+ Added duplicate and mirror button
+ Added operation help buttons
+ Added mirror direction and symmetry axis drop-down menus
 
 """
 try:
@@ -56,7 +60,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Blend Utilities"
 
 # Version:
-script_version = "1.2.2"
+script_version = "1.3.2"
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',
@@ -386,7 +390,7 @@ def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
         if duplicate_name:
             rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
         else:
-            new_name = duplicate_target_name.replace('Copy', 'Flipped')
+            new_name = duplicate_target_name.replace('Copy', 'Mirrored')
             rename_blend_target(blend_node, duplicate_target_name, new_name)
 
     # Return Generated Targets
@@ -402,7 +406,7 @@ def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
 
 def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis='x'):
     """
-    Duplicate targets that match
+    Duplicate targets that match search string and flip them
     Args:
         blend_node (string): Name of the blend shape node to be used in the operation
         search_string (string): Only targets with this provided string will be included in the operation
@@ -432,6 +436,49 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
     for key, value in pairs_to_rename.items():
         try:
             duplicate_flip_blend_target(blend_node, key, duplicate_name=value, symmetry_axis=symmetry_axis)
+            number_operations += 1
+        except Exception as exc:
+            logger.debug(str(exc))
+    return number_operations
+
+
+def duplicate_mirror_filtered_targets(blend_node, search_string, replace_string=None,
+                                      symmetry_axis='x', mirror_direction="-"):
+    """
+    Duplicate targets that match the search string and mirror them
+    Args:
+        blend_node (string): Name of the blend shape node to be used in the operation
+        search_string (string): Only targets with this provided string will be included in the operation
+        replace_string (optional, string): If provided, a search and replace operation will happen on the string to
+                                    determine the new name of the flipped target. For example, if search is "Right" and
+                                    replace is "Left", a target named "eyeBlinkRight" will be renamed "eyeBlinkLeft".
+                                    If not provided, new targets will have a suffix "_Flipped"
+        symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
+        mirror_direction (optional, string): Direction of the mirror operation (default "-")
+    Returns:
+        Number of operations (Total number of flipped targets)
+    """
+    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    pairs_to_rename = {}
+    logger.debug("search_string:" + search_string)
+    logger.debug("replace_string:" + str(replace_string))
+
+    for i in range(len(blendshape_names)):
+        blend = blendshape_names[i]
+        if search_string in blend:
+            if replace_string:
+                new_name = blend.replace(search_string, replace_string)
+            else:
+                new_name = replace_string
+            pairs_to_rename[blend] = new_name
+
+    number_operations = 0
+    for key, value in pairs_to_rename.items():
+        try:
+            duplicate_mirror_blend_target(blend_node, key,
+                                          duplicate_name=value,
+                                          symmetry_axis=symmetry_axis,
+                                          mirror_direction=mirror_direction)
             number_operations += 1
         except Exception as exc:
             logger.debug(str(exc))
@@ -570,13 +617,34 @@ def build_gui_morphing_utilities():
                 cmds.undoInfo(closeChunk=True, chunkName=script_name)
                 cmds.select(current_selection)
         elif operation == "flip":
+            symmetry_axis = cmds.optionMenu(symmetry_option_menu, q=True, value=True)
             current_selection = cmds.ls(selection=True)
             cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
             try:
                 if not replace_string:
                     replace_string = None
-                num_affected = duplicate_flip_filtered_targets(blend_node, search_string, replace_string)
-                operation_inview_feedback(num_affected, action="flipped")
+                num_affected = duplicate_flip_filtered_targets(blend_node, search_string, replace_string,
+                                                               symmetry_axis=symmetry_axis)
+                operation_inview_feedback(num_affected, action="duplicated and flipped")
+                return True
+            except Exception as e:
+                logger.debug(str(e))
+                return False
+            finally:
+                cmds.undoInfo(closeChunk=True, chunkName=script_name)
+                cmds.select(current_selection)
+        elif operation == "mirror":
+            symmetry_axis = cmds.optionMenu(symmetry_option_menu, q=True, value=True)
+            mirror_direction = cmds.optionMenu(mirror_option_menu, q=True, value=True)
+            current_selection = cmds.ls(selection=True)
+            cmds.undoInfo(openChunk=True, chunkName=script_name)  # Start undo chunk
+            try:
+                if not replace_string:
+                    replace_string = None
+                num_affected = duplicate_mirror_filtered_targets(blend_node, search_string, replace_string,
+                                                                 symmetry_axis=symmetry_axis,
+                                                                 mirror_direction=mirror_direction)
+                operation_inview_feedback(num_affected, action="duplicated and mirrored")
                 return True
             except Exception as e:
                 logger.debug(str(e))
@@ -687,8 +755,44 @@ def build_gui_morphing_utilities():
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
     cmds.separator(h=10, style='none')  # Empty Space
-    cmds.button(l="Search, Replace While Duplicating and Flipping ", bgc=(.6, .6, .6),
+    cmds.text("Search & Replace With Operations:")
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 120), (2, 120)], cs=[(1, 15), (2, 15)], p=content_main)
+
+    mirror_option_menu = cmds.optionMenu(label='Mirror Direction:')
+    cmds.menuItem(label='-')
+    cmds.menuItem(label='+')
+    symmetry_option_menu = cmds.optionMenu(label='Symmetry Axis:')
+    cmds.menuItem(label='x')
+    cmds.menuItem(label='y')
+    cmds.menuItem(label='z')
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 245), (2, 15)], cs=[(1, 10)], p=content_main)
+    cmds.button(l="Search, Replace While Duplicating and Flipping ",
                 c=lambda x: _validate_search_replace("flip"))
+    flip_help_message = 'This option duplicates filtered targets and flips them. \nIt uses the "Search" text-field ' \
+                        'as a filter, which means that only targets containing the provided string are be used in the' \
+                        ' operation. If empty, all targets will be used.\nThe same "Search" field is used to rename' \
+                        ' the filtered targets using the "Replace" string in the search/replace operation. ' \
+                        'If "Replace" is not provided, an extra suffix "_Flipped" automatically added to the end of ' \
+                        'the new targets to avoid conflicting names.'
+    flip_help_title = "Duplicate and Flip"
+    cmds.button(l="?", bgc=(.3, .3, .3), height=15,
+                c=lambda x: build_custom_help_window(flip_help_message, flip_help_title))
+    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 245), (2, 15)], cs=[(1, 10)], p=content_main)
+    cmds.button(l="Search, Replace While Duplicating and Mirroring ",
+                c=lambda x: _validate_search_replace("mirror"))
+    mirror_help_message = 'This option duplicates filtered targets and mirrors them. \nIt uses the "Search"' \
+                          ' text-field as a filter, which means that only targets containing the provided string are' \
+                          ' be used in the operation. If empty, all targets will be used.\nThe same "Search" field is' \
+                          ' used to rename the filtered targets using the "Replace" string in the search/replace ' \
+                          'operation. If "Replace" is not provided, an extra suffix "_Flipped" automatically added to' \
+                          ' the end of the new targets to avoid conflicting names.'
+    mirror_help_title = "Duplicate and Mirror"
+    cmds.button(l="?", bgc=(.3, .3, .3), height=15,
+                c=lambda x: build_custom_help_window(mirror_help_message, mirror_help_title))
+    cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
     cmds.separator(h=10, style='none')  # Empty Space
     cmds.separator(h=5)
     cmds.separator(h=10, style='none')  # Empty Space
@@ -827,9 +931,71 @@ def get_blend_mesh(blend_node):
         return target_mesh[0]
 
 
+def build_custom_help_window(input_text, help_title='', *args):
+    """
+    Creates a help window to display the provided text
+
+    Args:
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (optional, string)
+
+    Returns:
+        body_column: Used to add more UI elements in case the help menu needs it
+    """
+    logger.debug(str(args))
+    window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
+    if cmds.window(window_name, exists=True):
+        cmds.deleteUI(window_name, window=True)
+
+    cmds.window(window_name, title=help_title + " Help", mnb=False, mxb=False, s=True)
+    cmds.window(window_name, e=True, s=True, wh=[1, 1])
+
+    main_column = cmds.columnLayout(p=window_name)
+
+    # Title Text
+    cmds.separator(h=12, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column)  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)  # Title Column
+    cmds.text(help_title + ' Help', bgc=(.4, .4, .4), fn='boldLabelFont', align='center')
+    cmds.separator(h=10, style='none', p=main_column)  # Empty Space
+
+    # Body ====================
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
+
+    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')
+
+    cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
+    cmds.scrollField(help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
+
+    return_column = cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
+
+    # Close Button
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
+    cmds.separator(h=10, style='none')
+    cmds.button(l='OK', h=30, c=lambda x: close_help_gui())
+    cmds.separator(h=8, style='none')
+
+    # Show and Lock Window
+    cmds.showWindow(window_name)
+    cmds.window(window_name, e=True, s=False)
+
+    # Set Window Icon
+    qw = OpenMayaUI.MQtUtil.findWindow(window_name)
+    widget = wrapInstance(int(qw), QWidget)
+    icon = QIcon(':/question.png')
+    widget.setWindowIcon(icon)
+
+    def close_help_gui():
+        """ Closes help windows """
+        if cmds.window(window_name, exists=True):
+            cmds.deleteUI(window_name, window=True)
+
+    return return_column
+
+
 # Build UI
 if __name__ == '__main__':
-    debugging = False
+    debugging = True
     if debugging:
         logger.setLevel(logging.DEBUG)
         morphing_util_settings['morphing_obj'] = 'target_obj'
