@@ -180,6 +180,9 @@
 //   2.4.10 - 2022-12-23
 //   Added morphing utilities
 //
+//   2.5.5 - 2023-02-23
+//   Added set joint name as label
+//
 //----------------------------------------------------------------------------
 
 // Globals 
@@ -522,6 +525,12 @@ menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
     -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_uniform_jnt_label')\");")
     -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
     -image "QR_xRay.png";
+        
+	menuItem 
+    -l ("Set Joint Name as Label")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'set_joint_name_as_label')\");")
+    -ann ("Set the label of the selected joints to be the same as their short name.") 
+    -image "falloff_transfer.png";
         
 	menuItem 
     -l ("Select Non-Unique Objects")
