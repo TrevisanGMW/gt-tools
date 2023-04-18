@@ -1,0 +1,748 @@
+//----------------------------------------------------------------------------
+//
+//   GT Menu Script - Creates a menu to call scripts from the GT Tools Package
+//   @Guilherme Trevisan - github.com/TrevisanGMW/gt-tools - 2020-03-03
+//	 
+//   1.2 - 2020-03-13
+//   Added new scripts
+//
+//   1.3 - 2020-06-07
+//   Updated the names of many scripts
+//   Added a new category called "Shapes", and added new scripts to it.
+//
+//   1.4 - 2020-06-17
+//	 Added Mirror Cluster Tool
+//   Updated help dialog
+//   Added icons
+//
+//   1.4.1 - 2020-06-24
+//	 Added Render Farm Checklist
+//
+//   1.4.2 - 2020-06-26
+//	 Added Renamer
+//
+//   1.4.3 - 2020-07-17
+//	 Added Maya to Discord
+//
+//   1.4.4 ~ 1.4.5 - 2020-07-25
+//	 Updated Render Farm Checklist
+//   Added new category
+//
+//   1.4.6 - 2020-09-13
+//	 Added GT Utilities
+//
+//   1.4.7 - 2020-10-17
+//	 Minor fixes for the renamer script
+//   Added new utilities to GT Utilities
+//
+//   1.4.8 - 2020-10-21
+//   Added Uniform LRA Toggle
+//   Organized GT Utilities
+//   About menu build using Python now (It was moved to be inside the GT Utilities)
+//
+//   1.4.9 - 2020-10-23
+//   Added icons to the main menu
+//   Updated GT Renamer
+//
+//   1.5.0 - 2020-10-25
+//   Fixed a few issues in GT Maya to Discord
+//   Updated GT Selection Manager
+//
+//   1.5.1 - 2020-10-30
+//   Minor updates
+//
+//   1.5.2 - 2020-11-03
+//   Updated UI and added new functions to GT Maya to Discord
+//   Added icon generator to main menu
+//   Changed the name of a few scripts
+//   Forced scripts to reload after import
+//
+//   1.5.3 - 2020-11-08
+//   Updated script package to include setup.bat
+//   Updated  "gt_menu.mel" to generate icons when file is missing.
+//   Added Modeling submenu.
+//   Added "gt_sphere_types.py".
+//   Moved the copy/paste material functions to the modeling submenu.
+//
+//	 1.5.4
+//	 Updated "Check for Updates" link.
+//	 Fixed a typo in the "setup.bat"
+//	 Fixed "Check for Updates" link to match the new repo name.
+//	 Patched the uninstaller so it can be used from different drive letter.
+//	 Added "gt_sphere_types.py" to the uninstaller.
+//	 Created "gt_check_updates.py" to better handle updates.
+//	 Changed the "Check For Updates" button in the main menu to call "gt_check_updates.py" instead of a link.
+//	 Fixed issue where unloaded references wouldn't import when using "references_import" (#15)
+//	 Added"references_remove" (#16)
+//	 Added a missing reload to "gt_tools_menu.mel"
+//
+//	 1.5.5
+//   Started storing changelog directly on github. Everything here is now about this menu specifically.
+//   https://github.com/TrevisanGMW/gt-tools/releases
+//	 Added "convert_bif_to_mesh"
+//
+//   1.5.6
+//   Moved "convert_bif_to_mesh" to the modeling submenu
+//   Added "gt_color_manager"
+//
+//   1.5.7
+//	 Renamed "gt_create_ctrl_auto_fk" to "gt_create_auto_fk"
+//	 Renamed "gt_create_ctrl_simple_IK_leg"	to "gt_create_ik_leg"
+//   Added "delete_nucleus_nodes"
+//
+//   1.5.8
+//   Added "gt_startup_booster"
+//
+//   1.5.9
+//   Added "gt_path_manager"
+//   Retired "gt_replace_reference_paths"
+//
+//   1.6.0
+//   Moved uniform LRA toggle up to have all reference functions close to one another
+//   Added Unlock Default Channels
+//   Added Unhide Default Channels
+//
+//   1.6.1
+//   Added a separator between utilities related to references
+//   Added a silent auto update checker
+//
+//   1.6.2
+//   Added fSpy Importer
+//   Added icon management for fSpy Importer
+//
+//   1.6.3
+//   Added Auto Biped Rigger
+//   Removed Create IK Leg
+//	 Updated Make IK Stretchy
+//
+//   1.6.5
+//	 Added toggle_uniform_jnt_label to GT Utilities
+//
+//   1.6.6
+//	 Updated icons for "Uniform LRA Toggle" and "Uniform Label Toggle" to avoid MacOS/Linux compatibility issues
+//
+//   1.6.7
+//	 Added Add Sine Attributes
+//
+//
+//   1.6.9
+//	 Added GT Create Testing Keys
+//
+//   1.7.0
+//	 No changes to this menu, only version
+//
+//   1.7.1
+//	 Added Select Non-unique Objects
+//
+//   1.7.2
+//   Updated Scripts so they are compatible with Python 3 (Maya 2022+)
+//   Fixed issue where GT Path Manager would sometimes not open
+//
+//   1.7.3
+//   Added "gt_transfer_uvs"
+//
+//   1.7.8
+//   Added "toggle_full_hud"
+//
+//   1.7.10
+//   Added optionVar "gt_check_for_updates_interval_days" and set it to 15 in case it doesn't exist (default value)
+//
+//   1.7.21
+//   Added World Space Baker
+//
+//   1.7.22
+//   Added "generate_udim_previews()"
+//
+//   1.7.23 - 4 2022-07-13
+//   Renamed Auto Biped Rigger to Biped Auto Rigger 
+//   Added Game FBX Expoter
+//   Added Retarget Assistant
+//   Added Custom Rig Interface
+//
+//   2.0.0 - 2022-07-14
+//	 Added Extract Curve State
+//	 Added Extract Bound Joints
+//
+//   2.1.0 - 2022-07-19
+//   Added Render Calculator
+//
+//   2.2.0 - 2022-07-19
+//   Added "Attributes to Python"
+//   Added "Morphing Attributes"
+//
+//   2.2.1 - 2022-08-06
+//   Changed "Delete Unused Nodes" Utility Order
+//
+//   2.4.1 - 2022-08-31
+//   Added Outliner Sorter
+//   Added "Open File Directory" utlity
+//
+//   2.4.10 - 2022-12-23
+//   Added morphing utilities
+//
+//   2.5.5 - 2023-02-23
+//   Added set joint name as label
+//
+//----------------------------------------------------------------------------
+
+// Globals 
+python("import gt_tools");
+global string $gMainWindow;
+global string $scriptVersion = "0.0.0";
+$scriptVersion = `python "gt_tools.PACKAGE_VERSION"`;
+string  $installedVersion =  `optionVar -q "gt_tools_version"`;
+
+catchQuiet(python("import sys\nimport importlib\npython_version = sys.version_info.major"));
+
+// Recreate icons if the version is different
+if (`optionVar -exists "gt_tools_version"` && $scriptVersion != $installedVersion)
+    {
+    catchQuiet(python("import gt_generate_icons"));
+    catchQuiet(python("gt_generate_icons.gt_generate_icons()"));
+    }
+    
+// Set optionVar to the current version
+optionVar -sv "gt_tools_version" $scriptVersion;
+
+// Check if auto update is active and silently check it
+int  $silentlyAutoCheckUpdate =  `optionVar -q "gt_check_for_updates_auto_active"`;
+if (`optionVar -exists "gt_check_for_updates_auto_active"` && $silentlyAutoCheckUpdate != 0)
+    {
+    catchQuiet(python("import gt_check_for_updates"));
+    catchQuiet(python("gt_check_for_updates.silent_update_check()"));
+    }
+    
+if (`optionVar -exists "gt_check_for_updates_auto_active"` == 0) // First time running
+    {
+    optionVar -sv "gt_check_for_updates_auto_active" 1;
+    optionVar -sv "gt_check_for_updates_interval_days" 15;
+    }
+    
+    
+// Removes existing menu in case it exists
+if (`menu -q -exists gtToolsMenu`)
+    {
+    menu -e -dai gtToolsMenu;
+    }
+else
+    {
+    setParent $gMainWindow ;
+    menu -l "GT Tools" -p MayaWindow -to true gtToolsMenu ;
+    }
+
+setParent -menu gtToolsMenu ;
+
+// -----------------------------------------TOOLS------------------------------------
+menuItem -l "Tools" -sm true -to true -image "toolSettings.png";
+    menuItem 
+    -l ("Renamer")
+    -c ("python(\"gt_tools.execute_script('gt_renamer', 'build_gui_renamer')\");") 
+    -ann ("Script for renaming multiple objects.") 
+    -image "renamePreset.png" ;
+    
+    menuItem 
+    -l ("Outliner Sorter") 
+    -c ("python(\"gt_tools.execute_script('gt_outliner_sorter', 'build_gui_outliner_sorter')\");") 
+    -ann ("Manages the order of the elements in the outliner.") 
+    -image "outliner.png" ;
+    
+    menuItem 
+    -l ("Selection Manager") 
+    -c ("python(\"gt_tools.execute_script('gt_selection_manager', 'build_gui_selection_manager')\");") 
+    -ann ("Manages or creates custom selections.") 
+    -image "selectByHierarchy.png" ;
+    
+    menuItem 
+    -l ("Path Manager") 
+    -c ("python(\"import gt_path_manager\\nif python_version == 3:\\n\\timportlib.reload(gt_path_manager)\\nelse:\\n\\treload(gt_path_manager)\\ntry:\\n\\tgt_path_manager_dialog.close()\\n\\tgt_path_manager_dialog.deleteLater()\\nexcept:\\n\\tpass\\ngt_path_manager.try_to_close_gt_path_manager()\\ngt_path_manager_dialog = gt_path_manager.GTPathManagerDialog()\\ngt_path_manager_dialog.show()\");") 
+    -ann ("A script for managing and repairing the path of many nodes.") 
+    -image "annotation.png" ;
+    
+    menuItem 
+    -l ("Color Manager") 
+    -c ("python(\"gt_tools.execute_script('gt_color_manager', 'build_gui_color_manager')\");") 
+    -ann ("A way to quickly change colors of objects and objects names (outliner).") 
+    -image "render_swColorPerVertex.png" ;
+    
+    menuItem 
+    -l ("Transfer Transforms") 
+    -c ("python(\"gt_tools.execute_script('gt_transfer_transforms', 'build_gui_transfer_transforms')\");") 
+    -ann ("Script for quickly transfering Translate, Rotate, and Scale between objects.") 
+    -image "transform.svg" ;
+    
+    menuItem 
+    -l ("World Space Baker") 
+    -c ("python(\"gt_tools.execute_script('gt_world_space_baker', 'build_gui_world_space_baker')\");") 
+    -ann ("Script for getting and setting translate and rotate world space data.") 
+    -image "buttonManip.svg" ;
+    
+    menuItem 
+    -l ("Attributes to Python") 
+    -c ("python(\"gt_tools.execute_script('gt_attributes_to_python', 'build_gui_attr_to_python')\");") 
+    -ann ("Converts attributes into Python code. TRS Channels or User-defined.") 
+    -image "attributes.png" ;
+    
+    menuItem 
+    -l ("Render Checklist") 
+    -c ("python(\"gt_tools.execute_script('gt_render_checklist', 'build_gui_gt_render_checklist')\");") 
+    -ann ("Performs a series of checks to detect common issues that are often accidently ignored/unnoticed.") 
+    -image "checkboxOn.png" ;
+    
+    setParent -menu ".." ;
+    
+    
+// -----------------------------------------CURVES------------------------------------
+menuItem -l "Curves" -sm true -to true -image "out_stroke.png";
+
+    menuItem 
+    -l ("Extract Python Curve")
+    -c ("python(\"gt_tools.execute_script('gt_shape_curve_to_python', 'build_gui_py_curve')\");")
+    -ann ("Generates the python code necessary to create a selected curve.") 
+    -image "pythonFamily.png" ;
+    
+    menuItem 
+    -l ("Generate Text Curve") 
+    -c ("python(\"gt_tools.execute_script('gt_shape_text_to_curve', 'build_gui_generate_text_curve')\");")
+    -ann ("Generates a single curve containing all shapes necessary to produce a word/text.") 
+    -image "text.png" ;
+    
+    menuItem 
+    -l ("Extract Curve State") 
+    -c ("python(\"gt_tools.execute_script('gt_shape_extract_state', 'build_gui_curve_shape_state')\");")
+    -ann ("Generates the python command necessary to reshapea curves back to their current state.") 
+    -image "arcLengthDimension.svg" ;
+
+
+    // Utility Section
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Combine Curves")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'curves_combine')\");")
+    -ann ("Combine curves by moving all the shape objects inside one single transform.") 
+    -image "nurbsCurve.svg";
+    
+    menuItem 
+    -l ("Separate Curves")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'curves_separate')\");")
+    -ann ("Separate curves by moving every shape object to their own separated transform.") 
+    -image "curveEditor.png";
+
+
+
+    setParent -menu ".." ;
+    
+// -----------------------------------------MODELING------------------------------------
+menuItem -l "Modeling" -sm true -to true -image "mesh.svg"; //out_stroke.png
+    menuItem 
+    -l ("Transfer UVs") 
+    -c ("python(\"gt_tools.execute_script('gt_transfer_uvs', 'build_gui_uv_transfer')\");") 
+    -ann ("A script to export/import UVs as well as transfer them between objects.") 
+    -image "uvChooser.svg" ;
+    
+    menuItem 
+    -l ("Sphere Types") 
+    -c ("python(\"gt_tools.execute_script('gt_create_sphere_types', 'build_gui_sphere_type')\");") 
+    -ann ("A reminder for students that there are other sphere types.") 
+    -image "blinn.svg" ;
+
+
+    // GT Utility Functions
+    menuItem -divider true ;
+
+    menuItem
+    -l ("Preview All UDIMs")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'generate_udim_previews')\");")
+    -ann ("Generates UDIM previews for all file nodes.")
+    -image "textureToGeom.png";
+
+        menuItem
+    -l ("Convert Bif to Mesh")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'convert_bif_to_mesh')\");")
+    -ann ("Converts Bifrost Geometry into Maya Geometry (Mesh). If used with volume or particles the output will be empty.")
+    -image "nurbsToPolygons.png";
+
+    // Material
+    menuItem -divider true ;
+
+    menuItem
+    -l ("Copy Material")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'material_copy')\");")
+    -ann ("Copies material to clipboard.")
+    -image "polyBakeSetAssign.png";
+
+    menuItem
+    -l ("Paste Material")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'material_paste')\");")
+    -ann ("Pastes material from clipboard.") 
+    -image "polyBakeSetEdit.png";
+
+
+
+    setParent -menu ".." ;
+
+// -----------------------------------------RIGGING------------------------------------
+menuItem -l "Rigging" -sm true -to true -image "kinReroot.png";
+
+    // Auto Rigging Tools
+    menuItem 
+    -l ("Biped Auto Rigger") 
+    -c ("python(\"gt_tools.execute_script('gt_rigger_biped_gui', 'build_gui_auto_biped_rig')\");") 
+    -ann ("Automated solution for creating a biped rig.") 
+    -image "kinReroot.png" ;
+    
+    menuItem 
+    -l ("Biped Rig Interface")
+    -c ("python(\"gt_tools.execute_script('gt_biped_rig_interface', 'build_gui_custom_rig_interface')\");") 
+    -ann ("Custom Rig Interface for GT Biped Auto Rigger.") 
+    -image "animateSnapshot.png" ;
+    
+    menuItem 
+    -l ("Retarget Assistant")
+    -c ("python(\"gt_tools.execute_script('gt_rigger_retarget_assistant', 'build_gui_mocap_rig')\");") 
+    -ann ("Script with HumanIK patches.") 
+    -image "p-add.png" ;
+    
+    menuItem 
+    -l ("Game FBX Exporter")
+    -c ("python(\"gt_tools.execute_script('gt_rigger_game_exporter', 'build_gui_fbx_exporter')\");") 
+    -ann ("Automated solution for exporting real-time FBX files.") 
+    -image "QR_QuickRigTool.png" ;
+    
+    // General Rigging Tools
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Extract Bound Joints") 
+    -c ("python(\"gt_tools.execute_script('gt_extract_bound_joints', 'build_gui_extract_bound_joints')\");") 
+    -ann ("Generate Python code used to select bound joints.") 
+    -image "smoothSkin.png";
+    
+    menuItem 
+    -l ("Connect Attributes") 
+    -c ("python(\"gt_tools.execute_script('gt_connect_attributes', 'build_gui_connect_attributes')\");") 
+    -ann ("Automated solution for connecting multiple attributes.") 
+    -image "hsRearrange.png";
+    
+    menuItem 
+    -l ("Morphing Attributes") 
+    -c ("python(\"gt_tools.execute_script('gt_morphing_attributes', 'build_gui_morphing_attributes')\");") 
+    -ann ("Creates attributes to drive selected blend shapes.") 
+    -image "blendShape.png";
+    
+    menuItem 
+    -l ("Morphing Utilities") 
+    -c ("python(\"gt_tools.execute_script('gt_morphing_utilities', 'build_gui_morphing_utilities')\");") 
+    -ann ("Morphing utilities (Blend Shapes).") 
+    -image "falloff_blend.png";
+    
+    menuItem 
+    -l ("Mirror Cluster Tool") 
+    -c ("python(\"gt_tools.execute_script('gt_mirror_cluster_tool', 'build_gui_mirror_cluster_tool')\");") 
+    -ann ("Automated solution for mirroring clusters.") 
+    -image "cluster.png";
+    
+    menuItem 
+    -l ("Generate In-Between") 
+    -c ("python(\"gt_tools.execute_script('gt_generate_inbetween', 'build_gui_generate_inbetween')\");") 
+    -ann ("Generates inbetween transforms that can be used as layers for rigging/animation.") 
+    -image "hsGraphMaterial.png" ;
+    
+    menuItem 
+    -l ("Create Auto FK") 
+    -c ("python(\"gt_tools.execute_script('gt_create_auto_fk', 'build_gui_auto_fk')\");") 
+    -ann ("Automated solution for created an FK control curve.") 
+    -image "kinInsert.png" ;
+
+    menuItem 
+    -l ("Create Testing Keys") 
+    -c ("python(\"gt_tools.execute_script('gt_create_testing_keys', 'build_gui_create_testing_keys')\");") 
+    -ann ("Automated solution for making an IK system stretchy.") 
+    -image "setMaxInfluence.png" ;
+
+    menuItem 
+    -l ("Make IK Stretchy") 
+    -c ("python(\"gt_tools.execute_script('gt_make_ik_stretchy', 'build_gui_make_ik_stretchy')\");") 
+    -ann ("Automated solution for making an IK system stretchy.") 
+    -image "ikSCsolver.svg" ;
+    
+    menuItem 
+    -l ("Add Sine Attributes") 
+    -c ("python(\"gt_tools.execute_script('gt_sine_attributes', 'build_gui_add_sine_attr')\");") 
+    -ann ("Create Sine function without using third-party plugins or expressions.") 
+    -image "sineCurveProfile.png" ;
+    
+    setParent -menu ".." ;
+
+
+    
+// -----------------------------------------UTILITIES------------------------------------
+
+menuItem -l "Utilities" -sm true -to true -image "bsd-head.png";
+
+    // File Utilities
+    menuItem 
+    -l ("Reload File")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'force_reload_file')\");")
+    -ann ("Forces the re-opening of an opened file. (Changes are ignored)") 
+    -image "openScript.png";
+    
+    menuItem 
+    -l ("Open File Directory")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'open_file_dir')\");")
+    -ann ("Opens the directory where the scene is located.") 
+    -image "openLoadGeneric.png";
+        
+    // General
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Resource Browser")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'open_resource_browser')\");")
+    -ann ("Opens Maya's Resource Browser. A good way to find icons or elements you may want to use.") 
+    -image "bsd-head.png";
+    
+    menuItem 
+    -l ("Unlock Default Channels")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'unlock_default_channels')\");")
+    -ann ("Unlocks the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
+    -image "Lock_OFF_grey.png";
+    
+    menuItem 
+    -l ("Unhide Default Channels")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'unhide_default_channels')\");")
+    -ann ("Unhides the default channels of the selected objects. (Default channels : Translate, Rotate, Scale and Visibility)") 
+    -image "RS_filter_list.png";
+    
+    menuItem 
+    -l ("Uniform LRA Toggle")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_uniform_lra')\");")
+    -ann ("Makes the visibility of the Local Rotation Axis uniform among the selected objects according to the current state of the majority of them.") 
+    -image "srt.png";
+	
+	menuItem 
+    -l ("Uniform Joint Label Toggle")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_uniform_jnt_label')\");")
+    -ann ("Makes the visibility of the joint labels uniform according to the current state of the majority of them.") 
+    -image "QR_xRay.png";
+        
+	menuItem 
+    -l ("Set Joint Name as Label")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'set_joint_name_as_label')\");")
+    -ann ("Set the label of the selected joints to be the same as their short name.") 
+    -image "falloff_transfer.png";
+        
+	menuItem 
+    -l ("Select Non-Unique Objects")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'select_non_unique_objects')\");")
+    -ann ("Selects all objects with the same short name. (non-unique objects)") 
+    -image "gotoLine.png";
+    
+    menuItem 
+    -l ("Complete HUD Toggle")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'toggle_full_hud')\");")
+    -ann ("Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. (Keeps default elements intact when toggling it off)") 
+    -image "channelBox.png";
+
+    // Convert
+    menuItem -divider true;
+    
+    menuItem 
+    -l ("Convert Joints to Mesh")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'convert_joints_to_mesh')\");")
+    -ann ("Converts joints to mesh. (Helpful when sending references to other applications)") 
+    -image "HIKCharacterToolSkeleton.png";
+    
+    menuItem 
+    -l ("Convert to Locators")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'convert_to_locators')\");")
+    -ann ("Converts transforms to locators. Function doesn't affect selected objects.") 
+    -image "locator.svg";
+    
+    // References
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Import References")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'references_import')\");")
+    -ann ("Imports all references.") 
+    -image "reference.svg";
+    
+    menuItem 
+    -l ("Remove References")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'references_remove')\");")
+    -ann ("Removes all references.") 
+    -image "referenceProxy.png";
+    
+    
+    // Pivot
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Move Pivot to Top")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_top')\");")
+    -ann ("Moves pivot point to the top of the boundingbox of every selected object.") 
+    -image "moveLayerUp.png";
+    
+    menuItem 
+    -l ("Move Pivot to Base")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_pivot_base')\");")
+    -ann ("Moves pivot point to the base of the boundingbox of every selected object.") 
+    -image "moveLayerDown.png";
+    
+    menuItem 
+    -l ("Move Object to Origin")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'move_to_origin')\");")
+    -ann ("Moves selected objects to origin according to their pivot point.") 
+    -image "grid.svg";
+
+    // Reset Section
+    menuItem -divider true ;
+
+    menuItem 
+    -l ("Reset Transforms")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_transforms')\");")
+    -ann ("Reset transforms. It checks for incomming connections, then set the attribute to 0 if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)") 
+    -image "CenterPivot.png";
+    
+    menuItem 
+    -l ("Reset Joints Display")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_joint_display')\");")
+    -ann ("Resets the radius attribute back to one in all joints, then changes the global multiplier (jointDisplayScale) back to one.") 
+    -image "kinJoint.png";
+    
+    menuItem 
+    -l ("Reset \"persp\" Camera")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'reset_persp_shape_attributes')\");")
+    -ann ("If persp camera exists (default camera), reset its attributes.") 
+    -image "camera.svg";
+
+
+    // Delete Section
+    menuItem -divider true ;
+    
+    menuItem 
+    -l ("Delete Namespaces")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_namespaces')\");")
+    -ann ("Deletes all namespaces in the scene.") 
+    -image "renamePreset.png";
+    
+    menuItem 
+    -l ("Delete Display Layers")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_display_layers')\");")
+    -ann ("Deletes all display layers.") 
+    -image "displayLayer.svg";
+    
+    menuItem 
+    -l ("Delete Unused Nodes")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_unused_nodes')\");")
+    -ann ("Deletes unused nodes.") 
+    -image "nodeGrapherRemoveNodes.png";
+
+    menuItem 
+    -l ("Delete Nucleus Nodes")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_nucleus_nodes')\");")
+    -ann ("Deletes all nodes related to particles. (Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)") 
+    -image "nParticle.svg";
+
+    menuItem 
+    -l ("Delete Keyframes")
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'delete_keyframes')\");")
+    -ann ("Deletes all nodes of the type \"animCurveTA\" (keyframes).") 
+    -image "keyIntoclip.png";
+
+    setParent -menu ".." ;
+    
+
+// -----------------------------------------MISCELLANEOUS------------------------------------
+
+menuItem -l "Miscellaneous" -sm true -to true -image "bin.png";
+    
+    menuItem 
+    -l ("Startup Booster") 
+    -c ("python(\"gt_tools.execute_script('gt_startup_booster', 'build_gui_startup_booster')\");") 
+    -ann ("Improve startup times by managing which plugins get loaded when starting Maya.") 
+    -image "out_time.png" ;
+    
+    
+    // If MtoD icon exists, use it
+    string $mayaToDiscordIcon = `internalVar -userBitmapsDir` + "gt_maya_to_discord_icon.png";
+    if (!`filetest -r $mayaToDiscordIcon`) 
+    { 
+        catchQuiet(python("import gt_generate_icons"));
+        catchQuiet(python("gt_generate_icons.gt_generate_icons()"));
+    } 
+    
+    if (!`filetest -r $mayaToDiscordIcon`) 
+    { 
+        $mayaToDiscordIcon = "camera.open.svg" ;
+    } 
+    
+    // If fSpy icon exists, use it
+    string $fSpyImporterIcon = `internalVar -userBitmapsDir` + "gt_fspy_importer.png";
+    if (!`filetest -r $fSpyImporterIcon`) 
+    { 
+        catchQuiet(python("import gt_generate_icons"));
+        catchQuiet(python("gt_generate_icons.gt_generate_icons()"));
+    } 
+    
+    if (!`filetest -r $fSpyImporterIcon`) 
+    { 
+        $fSpyImporterIcon = "camera.open.svg" ;
+    } 
+
+
+    menuItem 
+    -l ("fSpy Importer") 
+    -c ("python(\"gt_tools.execute_script('gt_fspy_importer', 'build_gui_fspy_importer')\");") 
+    -ann ("Imports the JSON data exported out of fSpy (Camera Matching software).") 
+    -image $fSpyImporterIcon ;
+
+    menuItem 
+    -l ("Maya to Discord") 
+    -c ("python(\"gt_tools.execute_script('gt_maya_to_discord', 'build_gui_maya_to_discord')\");") 
+    -ann ("Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.") 
+    -image $mayaToDiscordIcon ;
+    
+    menuItem 
+    -l ("Render Calculator") 
+    -c ("python(\"gt_tools.execute_script('gt_render_calculator', 'build_gui_render_calculator')\");") 
+    -ann ("Helps calculate how long it's going to take to render an image sequence.") 
+    -image "render.png" ;
+    
+    
+    setParent -menu ".." ;
+    
+
+
+// -----------------------------------------ABOUT------------------------------------
+
+    menuItem -divider true ;
+    menuItem 
+    -l "Help" 
+    -sm true 
+    -to true 
+    -image "defaultOutliner.svg";
+    
+    menuItem -l "About"  
+    -c ("python(\"gt_tools.execute_script('gt_maya_utilities', 'build_gui_about_gt_tools')\");")
+    -ann ("Opens about menu.") 
+    -image "help.png" ;
+    
+    menuItem 
+    -l "Re-Build Menu" 
+    -c ("rehash; source \"gt_tools_menu.mel\"; python(\"gt_tools.reload_package()\");") 
+    -ann ("Re-Creates this menu, and does a rehash to pick up any new scripts.") 
+    -image "refresh.png" ;
+    
+    menuItem 
+    -l "Check for Updates"  
+    -c ("python(\"gt_tools.execute_script('gt_check_for_updates', 'build_gui_gt_check_for_updates')\");") 
+    -ann ("Check for updates by comparing current version with latest release.") 
+    -image "RS_import_layer.png" ;
+    
+    menuItem 
+    -l ("Installed Version: "   +  $scriptVersion) 
+    -en false 
+    -itl true 
+    -image "SP_FileDialogToParent_Disabled.png";

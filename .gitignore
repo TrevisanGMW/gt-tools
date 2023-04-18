@@ -2,3 +2,6 @@
 
 /workbench
 Thumbs.db
+*__pycache__
+*pyc
+*.idea

@@ -1,0 +1,87 @@
+def remove_string_prefix(input_string, prefix):
+    """
+    Removes prefix from a string (if found). It only removes in case it's a prefix.
+    This function does NOT use replace
+    Args:
+        input_string (string): Input to remove prefix from
+        prefix (string): Prefix to remove (only if found)
+
+    Returns:
+        String without prefix (if prefix was found)
+    """
+    if input_string.startswith(prefix):
+        return input_string[len(prefix):]
+    return input_string
+
+
+def remove_string_suffix(input_string, suffix):
+    """
+    Removes suffix from a string (if found). It only removes in case it's a suffix.
+    This function does NOT use replace
+    Args:
+        input_string (string): Input to remove prefix from
+        suffix (string): Suffix to remove (only if found)
+
+    Returns:
+        String without prefix (if prefix was found)
+    """
+    if suffix and input_string.endswith(suffix):
+        return input_string[:-len(suffix)]
+    return input_string
+
+
+def string_list_to_snake_case(string_list, separating_string="_", force_lowercase=True):
+    """
+    Merges strings from a list of strings into one single string separating the strings with a character
+    Args:
+        string_list (list): A list of strings with combined words
+        separating_string (optional, string): String used to separate words. (Default: "_")
+        force_lowercase (optional, bool): If it should force all words to be lowercase (default: True)
+
+    Returns:
+        Combined string: e.g. "camelCase" becomes "camel_case"
+    """
+    if not string_list:
+        return ""
+    result_string = ""
+    for index in range(len(string_list)):
+        if force_lowercase:
+            result_string += string_list[index].lower()
+        else:
+            result_string += string_list[index]
+        if index != len(string_list) - 1:  # Last word doesn't need separating string
+            result_string += separating_string
+    return result_string
+
+
+def camel_case_to_snake_case(camel_case_input_string):
+    """
+    Uses "string_list_to_snake_case" and "camel_case_split" to convert camelCase to snake_case
+    Args:
+        camel_case_input_string (string): camelCase string to be convert to snake_case
+    Returns:
+        camelCase convert to snake_case (string, lowercase)
+    """
+    return string_list_to_snake_case(camel_case_split(camel_case_input_string))
+
+
+def camel_case_split(input_string):
+    """
+    Splits camelCase strings into a list of words
+    Args:
+        input_string (string): camel case string to be separated into a
+    Returns:
+        A list with words
+    """
+    words = [[input_string[0]]]
+
+    for char in input_string[1:]:
+        if words[-1][-1].islower() and char.isupper():
+            words.append(list(char))
+        else:
+            words[-1].append(char)
+
+    return [''.join(word) for word in words]
+
+
+#list_to_comma_separated_string
