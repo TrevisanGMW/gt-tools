@@ -9,7 +9,7 @@ logger = logging.getLogger("test_session_utils")
 logger.setLevel(logging.DEBUG)
 
 # Import Test Session Utilities
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))  # gt_tools
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from utils import session_utils
 
 

@@ -19,6 +19,7 @@ for to_append in [_tests_folder, _parent_folder]:
 # Modules to Test
 modules_to_test = [
     test_utils.test_session_utils,
+    test_utils.test_alembic_utils,
 ]
 
 
