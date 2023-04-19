@@ -1,10 +1,9 @@
 import os
 import sys
 
-# Paths to Append (utils, gt_tools)
-_this_folder = os.path.dirname(__file__)
-_parent_folder = os.path.dirname(_this_folder)
-
-for to_append in [_this_folder, _parent_folder]:
+# Paths to Append
+source_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(source_dir)
+for to_append in [source_dir, parent_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)

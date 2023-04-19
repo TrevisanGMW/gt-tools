@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from utils import session_utils
 
 
-class Test_SessionUtils(unittest.TestCase):
+class TestSessionUtils(unittest.TestCase):
     def setUp(self):
         pass
 

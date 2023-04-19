@@ -10,9 +10,9 @@ logger = logging.getLogger("tests")
 logger.setLevel(logging.INFO)
 
 # Paths to Append
-_tests_folder = os.path.dirname(__file__)
-_parent_folder = os.path.dirname(_tests_folder)
-for to_append in [_tests_folder, _parent_folder]:
+source_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(source_dir)
+for to_append in [source_dir, parent_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 

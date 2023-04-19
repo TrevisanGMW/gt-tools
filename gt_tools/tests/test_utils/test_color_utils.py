@@ -24,7 +24,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 #     logger.warning("Unable load maya cmds, maya standalone, mel or OpenMaya")
 
 
-class Test_ColorUtils(unittest.TestCase):
+class TestColorUtils(unittest.TestCase):
     def setUp(self):
         cmds.file(new=True, force=True)
 

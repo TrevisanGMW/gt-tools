@@ -22,7 +22,7 @@ except Exception as e:
     logger.warning("Unable load maya cmds, maya standalone, mel or OpenMaya")
 
 
-class Test_SessionUtils(unittest.TestCase):
+class TestSessionUtils(unittest.TestCase):
     def setUp(self):
         cmds.file(new=True, force=True)
 

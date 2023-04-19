@@ -35,7 +35,11 @@ def get_system():
     return system
 
 
-def get_home_path():
+def get_temp_folder():
+    return tempfile.gettempdir()
+
+
+def get_home_dir():
     """
     Returns home path
 
@@ -49,6 +53,15 @@ def get_home_path():
         return os.path.expanduser(os.getenv('USERPROFILE'))
     else:
         return pathlib.Path.home()
+
+
+def get_desktop_path():
+    """
+    Get path to the Desktop folder of the current user
+    Returns:
+        String (path) to the desktop folder
+    """
+    return os.path.join(get_home_dir(), 'Desktop')
 
 
 def get_maya_install_dir(system):
@@ -118,6 +131,7 @@ def get_maya_settings_dir(system):
     win_maya_settings_dir = ""
     if system == OS_WINDOWS:
         win_maya_settings_dir = os.path.expanduser('~')
+        win_maya_settings_dir = os.path.join(win_maya_settings_dir, "Documents")
         win_maya_settings_dir = os.path.join(win_maya_settings_dir, "maya")
 
     maya_settings_paths = {
@@ -132,38 +146,80 @@ def get_maya_settings_dir(system):
 
 
 def get_available_maya_setting_dirs():
+    """
+    Gets all folders matching the pattern "####" inside the maya settings directory.
+    Returns:
+        Dictionary with maya versions as keys and path as value
+        e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
+    """
     maya_settings_dir = get_maya_settings_dir(get_system())
     if os.path.exists(maya_settings_dir):
         maya_folders = os.listdir(maya_settings_dir)
-        existing_folders = []
+        existing_folders = {}
         for folder in maya_folders:
             if re.match("[0-9][0-9][0-9][0-9]", folder):
-                existing_folders.append(os.path.join(maya_settings_dir, folder))
+                existing_folders[folder] = os.path.join(maya_settings_dir, folder)
         return existing_folders
     else:
-        logger.warning(f'Unable to process required path: "{maya_settings_dir}"')
+        logger.warning(f'Missing provided path: "{maya_settings_dir}"')
 
 
-def get_desktop_path():
+def get_available_maya_install_dirs():
     """
-    Get path to the Desktop folder of the current user
+    Gets all folders matching the pattern "Maya####" inside the autodesk directory.
     Returns:
-        String (path) to the desktop folder
+        Dictionary with maya versions as keys and path as value
+        e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
+        If nothing is found, it returns an empty dictionary
     """
-    return os.path.join(get_home_path(), 'Desktop')
+    maya_settings_dir = get_maya_install_dir(get_system())
+    if os.path.exists(maya_settings_dir):
+        maya_folders = os.listdir(maya_settings_dir)
+        existing_folders = {}
+        for folder in maya_folders:
+            if re.match("Maya[0-9][0-9][0-9][0-9]", folder):
+                folder_digits = re.sub("[^0-9]", "", folder)
+                existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
+        return existing_folders
+    else:
+        logger.warning(f'Missing provided path: "{maya_settings_dir}"')
+        return {}
 
 
-def get_temp_folder():
-    return tempfile.gettempdir()
+def get_latest_maya_path():
+    maya_installs = get_available_maya_install_dirs()
+    if len(maya_installs) == 0:
+        logger.warning("Unable to find latest Maya path. No Maya installation detected on this system.")
+        return
+    latest_maya_install_dir = get_maya_path(get_system(), max(maya_installs))
+    if not os.path.exists(latest_maya_install_dir):
+        logger.warning(f"Unable to find latest Maya path. Missing: {latest_maya_install_dir}")
+        return
+    return latest_maya_install_dir
+
+
+def launch_maya_from_path(maya_path, add_python_three_args=False):
+    """
+    Launches Maya
+    Args:
+        maya_path (string): Path to the maya executable e.g. "maya.exe"
+        add_python_three_args (optional, bool): If active, it will try to add arguments to tell maya to run python 3
+    """
+
+    if add_python_three_args:
+        subprocess.Popen([maya_path, "-pythonver", "3"])
+    else:
+        subprocess.Popen([maya_path])
+
+
+def launch_latest_maya(add_python_three_args=False):
+    maya_path = get_latest_maya_path()
+    if maya_path:
+        launch_maya_from_path(maya_path=maya_path,
+                              add_python_three_args=add_python_three_args)
 
 
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    # out = get_maya_settings_dir(get_system())
-
-    # out = get_available_maya_setting_dirs()
-    # for t in out:
-    #     open_file_dir(t)
-    open_file_dir(get_temp_folder())
     pprint(out)
