@@ -1,8 +1,8 @@
 """
 Alembic Utilities
+github.com/TrevisanGMW/gt-tools
 """
 import maya.cmds as cmds
-
 import logging
 
 # Logging Setup
@@ -79,7 +79,7 @@ class AlembicNode:
     start_time: int
     end_time: int
     cycle_type: str
-    transform: Transform
+    # transform: Transform
     # mesh_cache: str
     # keyframes: Keyframes
 

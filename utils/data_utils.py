@@ -1,6 +1,7 @@
 """
-Data Utilities
+Data Utilities - Reading and Writing data (JSONs, TXT, etc..)
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
+github.com/TrevisanGMW/gt-tools
 """
 import logging
 import json

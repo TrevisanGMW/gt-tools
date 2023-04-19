@@ -1,7 +1,7 @@
 """
 System Utilities - Utilities related to system activities, such as paths, open explorer, etc...
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
-Writing and reading data should be handled in "data_utils"
+github.com/TrevisanGMW/gt-tools
 """
 import subprocess
 import tempfile
