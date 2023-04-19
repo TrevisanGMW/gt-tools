@@ -9,7 +9,9 @@ logger = logging.getLogger("test_alembic_utils")
 logger.setLevel(logging.DEBUG)
 
 # Import Test Alembic Utilities
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+if tools_root_dir not in sys.path:
+    sys.path.append(tools_root_dir)
 from utils import alembic_utils
 
 try:
