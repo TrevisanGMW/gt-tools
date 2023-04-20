@@ -28,9 +28,6 @@ class TestSessionUtils(unittest.TestCase):
     def setUp(self):
         cmds.file(new=True, force=True)
 
-    def tearDown(self):
-        pass
-
     @classmethod
     def setUpClass(cls):
         maya.standalone.initialize()  # Start Maya Headless (mayapy.exe)
