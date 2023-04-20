@@ -20,19 +20,19 @@ class TestSessionUtils(unittest.TestCase):
     def test_is_script_in_interactive_maya(self):
         expected = False
         result = session_utils.is_script_in_interactive_maya()  # "maya##.exe"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_is_script_in_py_maya(self):
         expected = True
         result = session_utils.is_script_in_py_maya()  # "mayapy.exe"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_temp_folder(self):
         expected = tempfile.gettempdir()
         result = session_utils.get_temp_folder()
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_loaded_modules(self):
         expected = ["fake", "state"]
         result = session_utils.get_loaded_modules(expected)
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
