@@ -2,12 +2,10 @@ import os
 import sys
 import logging
 import unittest
-import maya.cmds as cmds
-from collections import namedtuple
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("test_session_utils")
+logger = logging.getLogger("test_color_utils")
 logger.setLevel(logging.DEBUG)
 
 # Import Test Session Utilities
@@ -30,9 +28,6 @@ except Exception as e:
 class TestColorUtils(unittest.TestCase):
     def setUp(self):
         cmds.file(new=True, force=True)
-
-    def tearDown(self):
-        pass
 
     @classmethod
     def setUpClass(cls):
