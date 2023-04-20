@@ -24,6 +24,8 @@ for to_append in [source_dir, tools_root_dir]:
 modules_to_test = [
     test_utils.test_session_utils,
     test_utils.test_alembic_utils,
+    test_utils.test_session_utils,
+    test_utils.test_string_utils,
 ]
 
 
