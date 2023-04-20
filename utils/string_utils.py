@@ -1,3 +1,16 @@
+"""
+String Utilities - Utilities used for dealing with strings
+This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
+github.com/TrevisanGMW/gt-tools
+"""
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("string_utils")
+logger.setLevel(logging.DEBUG)
+
+
 def remove_string_prefix(input_string, prefix):
     """
     Removes prefix from a string (if found). It only removes in case it's a prefix.
@@ -54,15 +67,15 @@ def string_list_to_snake_case(string_list, separating_string="_", force_lowercas
     return result_string
 
 
-def camel_case_to_snake_case(camel_case_input_string):
+def camel_case_to_snake_case(camel_case_string):
     """
     Uses "string_list_to_snake_case" and "camel_case_split" to convert camelCase to snake_case
     Args:
-        camel_case_input_string (string): camelCase string to be convert to snake_case
+        camel_case_string (string): camelCase string to be converted to snake_case
     Returns:
         camelCase convert to snake_case (string, lowercase)
     """
-    return string_list_to_snake_case(camel_case_split(camel_case_input_string))
+    return string_list_to_snake_case(camel_case_split(camel_case_string))
 
 
 def camel_case_split(input_string):
@@ -84,4 +97,7 @@ def camel_case_split(input_string):
     return [''.join(word) for word in words]
 
 
-#list_to_comma_separated_string
+if __name__ == "__main__":
+    from pprint import pprint
+    out = None
+    pprint(out)
