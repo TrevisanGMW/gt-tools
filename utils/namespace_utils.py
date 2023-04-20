@@ -1,30 +1,47 @@
-def get_short_name(obj):
+"""
+Namespace Utilities
+"""
+import maya.api.OpenMaya as OpenMaya
+import maya.cmds as cmds
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("namespace_utils")
+logger.setLevel(logging.INFO)
+
+
+def get_namespace_hierarchy_list(obj, top_parent_only=False):
     """
-    Get the name of the objects without its path (Maya returns full path if name is not unique)
+    Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
 
     Args:
-        obj (string) : object to extract short name
+        obj (string) : Name of the object to extract namespace
+        top_parent_only
 
     Returns:
-        short_name (string) : Name of the object without its full path
+        List of namespaces in hierarchy order.
+        e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+        or  ["parentNamespace"]
     """
-    short_name = ''
-    if obj == '':
-        return ''
-    split_path = obj.split('|')
-    if len(split_path) >= 1:
-        short_name = split_path[len(split_path) - 1]
-    return short_name
+    namespace_list = []
+    obj_namespaces = get_namespaces(obj)
+    if obj_namespaces:
+        namespace_list = obj_namespaces[0].split(":")
+    if len(namespace_list) > 0 and top_parent_only:
+        return [namespace_list[0]]
+    return namespace_list
 
 
 def get_namespaces(obj_list):
     """
     Get the all namespaces found in provided objects
     Args:
-        obj_list (list): A list of objects to extract namespaces from
+        obj_list (list, string): A list of objects to extract namespaces from.
+                                 If a string is provided, it's automatically converted to a list, so it's compatible.
 
     Returns:
-        A sorted list of namespaces
+        A list of namespaces
     """
     if isinstance(obj_list, str):  # Convert to list in case a string was provided
         obj_list = [obj_list]
@@ -39,7 +56,7 @@ def get_namespaces(obj_list):
             if not namespaces.count(ns_shortname[0]):
                 namespaces.append(ns_shortname[0])
 
-    return sorted(namespaces)
+    return namespaces
 
 
 def namespaces_split(object_name):
@@ -129,3 +146,10 @@ class StripNamespace(object):
             api_obj = OpenMaya.MGlobal.getSelectionListByName(current_name).getDependNode(0)
             api_node = OpenMaya.MFnDependencyNode(api_obj)
             api_node.setName(original_name)
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    from pprint import pprint
+    out = None
+    pprint(out)
