@@ -1,3 +1,8 @@
+"""
+List Utilities - Utilities used for dealing with list
+This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
+github.com/TrevisanGMW/gt-tools
+"""
 import logging
 
 # Logging Setup
@@ -13,11 +18,11 @@ def get_list_intersection(list_a, list_b):
         list_a (list):
         list_b (list):
     Returns:
-        intersection
+        intersection list (sorted)
     """
     set_a = set(list_a)
     set_b = set(list_b)
-    return list(set_a.intersection(set_b))
+    return sorted(list(set_a.intersection(set_b)))
 
 
 def get_list_difference(list_a, list_b):
@@ -28,19 +33,20 @@ def get_list_difference(list_a, list_b):
         list_b: Second list to extract difference
     Returns:
         tuple: difference_a (against b), difference_b (against a)
+        Lists within the tuple are sorted
     """
     set_a = set(list_a)
     set_b = set(list_b)
-    return list(set_a.difference(set_b)), list(set_b.difference(set_a))
+    return sorted(list(set_a.difference(set_b))), sorted(list(set_b.difference(set_a)))
 
 
 def get_list_missing_elements(expected_list, result_list):
     """
     Args:
-        expected_list (list):
-        result_list (list):
+        expected_list (list): Full list - What you would expect to see
+        result_list (list): Actual list - List to be compared (the one that might be missing elements)
     Returns:
-        difference  list
+        difference list
     """
     difference = get_list_difference(expected_list, result_list)[0]
     return difference
@@ -66,35 +72,6 @@ def make_flat_list(*args):
             _flat.append(_arg)
     return _flat
     
-
-def remove_numbers(string):
-    """
-    Removes all numbers (digits) from the provided string
-
-    Args:
-        string (string): input string (numbers will be removed from it)
-
-    Returns:
-        string (string): output string without numbers (digits)
-
-    """
-    return ''.join([i for i in string if not i.isdigit()])
-
-
-def remove_strings_from_string(input_string, undesired_string_list):
-    """
-    Removes provided strings from input
-    Args:
-        input_string: String to be modified. E.g. "left_elbow_ctrl"
-        undesired_string_list (list): A list of strings to be removed. E.g. ['left', 'ctrl'] # Outputs: "_elbow_"
-
-    Returns:
-        clean_string (string): The "input_string" after without strings provided in the "undesired_string_list" list
-    """
-    for undesired in undesired_string_list:
-        input_string = input_string.replace(undesired, '')
-    return input_string
-
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
