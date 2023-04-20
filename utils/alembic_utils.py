@@ -2,6 +2,10 @@
 Alembic Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from namespace_utils import get_namespaces
+from transform_utils import Transform, Vector3
+from math import degrees
+import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
 
@@ -79,7 +83,7 @@ class AlembicNode:
     start_time: int
     end_time: int
     cycle_type: str
-    # transform: Transform
+    transform: Transform
     # mesh_cache: str
     # keyframes: Keyframes
 
@@ -90,67 +94,67 @@ class AlembicNode:
         self.start_time = cmds.getAttr(f"{alembic_node}.startFrame")
         self.end_time = cmds.getAttr(f"{alembic_node}.endFrame")
         self.cycle_type = get_alembic_cycle_as_string(alembic_node)
-        # self.transform = self.getRootTransform(alembic_node)
-        # self.mesh_cache = pm.getAttr(alembic_node.abc_File)
-        # self.keyframes = getKeyFrames(self.getRootNode(alembic_node))
-    #
-    # def get_root_node(self, node: pm.PyNode):
-    #     fNode = node
-    #     for nt in pm.listFuture(node):
-    #         if pm.nodeType(nt) == 'transform':
-    #             fNode = nt
-    #     root = pm.PyNode(getRoot(fNode))
-    #     return root
-    #
-    # def getRootTransform(self, node: pm.PyNode):
-    #     if self.isCamera(node):
-    #         return Transform(Vector3(0, 0, 0),
-    #                          Vector3(0, 0, 0),
-    #                          Vector3(1, 1, 1))
-    #
-    #     root = self.getRootNode(node)
-    #     try:
-    #         transform = dt.TransformationMatrix(
-    #             pm.xform(root, q=True, matrix=True, ws=True))
-    #     except:
-    #         return Transform(Vector3(0, 0, 0),
-    #                          Vector3(0, 0, 0),
-    #                          Vector3(1, 1, 1))
-    #
-    #     translation = transform.getTranslation('world')
-    #     rotation = transform.getRotation()
-    #     scale = transform.getScale('world')
-    #
-    #     loc = Vector3(translation[0],
-    #                   translation[1],
-    #                   translation[2])
-    #     rot = Vector3(degrees(rotation[0]),
-    #                   degrees(rotation[1]),
-    #                   degrees(rotation[2]))
-    #     scl = Vector3(scale[0],
-    #                   scale[1],
-    #                   scale[2])
-    #     trans = Transform(loc, rot, scl)
-    #     return trans
-    #
-    # def isCamera(self, node: pm.PyNode):
-    #     if len(node.namespaceList()) > 0:
-    #         for cam in pm.ls(type='camera'):
-    #             camera = pm.PyNode(cam)
-    #             if len(camera.namespaceList()) > 0:
-    #                 if camera.namespaceList()[0] == node.namespaceList()[0]:
-    #                     return True
-    #
-    #     return "camera" in node.name()
+        self.transform = self.get_root_transform(alembic_node)
+        self.mesh_cache = cmds.getAttr(f"{alembic_node}.abc_File")
+        # self.keyframes = getKeyFrames(self.get_root_node(alembic_node))
+
+    def get_root_node(self, alembic_node):
+        """
+        WIP
+        """
+        node = alembic_node
+        for history in cmds.listHistory(alembic_node):
+            if cmds.objectType(history) == 'transform':
+                node = history
+        return node
+
+    def get_root_transform(self, alembic_node):
+        if self.is_camera(alembic_node):
+            return Transform(Vector3(0, 0, 0),
+                             Vector3(0, 0, 0),
+                             Vector3(1, 1, 1))
+
+        root = self.get_root_node(alembic_node)
+        try:
+            translation = cmds.xform(root, q=True, ws=True, translation=True)
+            rotation = cmds.xform(root, q=True, ws=True, rotate=True)
+            scale = cmds.xform(root, q=True, ws=True, scale=True)
+        except Exception as e:
+            logger.debug(f"Unable to retrieve root transforms. Origin returned instead. Issue: {e}")
+            return Transform(Vector3(0, 0, 0),
+                             Vector3(0, 0, 0),
+                             Vector3(1, 1, 1))
+
+        pos = Vector3(translation[0],
+                      translation[1],
+                      translation[2])
+        rot = Vector3(degrees(rotation[0]),
+                      degrees(rotation[1]),
+                      degrees(rotation[2]))
+        scl = Vector3(scale[0],
+                      scale[1],
+                      scale[2])
+        trans = Transform(pos, rot, scl)
+        return trans
+
+    def is_camera(self, alembic_node):
+        if len(get_namespaces(alembic_node)) > 0:
+            for cam in cmds.ls(type='camera'):
+                if len(get_namespaces(cam)) > 0:
+                    if cam.namespaceList()[0] == alembic_node.namespaceList()[0]:
+                        return True
+
+        return "camera" in alembic_node.name()
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
+
     out = None
 
     alembic_node_temp = get_alembic_nodes()[0]
-    # out = AlembicNode(alembic_node_temp)
+    out = AlembicNode(alembic_node_temp)
     # out = attrs = vars(out)
-    out = get_alembic_cycle_as_string(alembic_node_temp)
+
     pprint(out)
