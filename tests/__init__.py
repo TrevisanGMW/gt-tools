@@ -1,3 +1,6 @@
+"""
+Tests module
+"""
 import test_utils
 import unittest
 import logging
@@ -11,10 +14,11 @@ logger.setLevel(logging.INFO)
 
 # Paths to Append
 source_dir = os.path.dirname(__file__)
-parent_dir = os.path.dirname(source_dir)
-for to_append in [source_dir, parent_dir]:
+tools_root_dir = os.path.dirname(source_dir)
+for to_append in [source_dir, tools_root_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
+
 
 # Modules to Test
 modules_to_test = [
