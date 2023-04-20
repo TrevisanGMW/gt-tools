@@ -97,6 +97,35 @@ def camel_case_split(input_string):
     return [''.join(word) for word in words]
 
 
+def remove_digits(input_string):
+    """
+    Removes all numbers (digits) from the provided string
+
+    Args:
+        input_string (string): input string (numbers will be removed from it)
+
+    Returns:
+        string (string): output string without numbers (digits)
+
+    """
+    return ''.join([i for i in input_string if not i.isdigit()])
+
+
+def remove_strings_from_string(input_string, undesired_string_list):
+    """
+    Removes provided strings from input
+    Args:
+        input_string: String to be modified. E.g. "left_elbow_ctrl"
+        undesired_string_list (list): A list of strings to be removed. E.g. ['left', 'ctrl'] # Outputs: "_elbow_"
+
+    Returns:
+        clean_string (string): The "input_string" after without strings provided in the "undesired_string_list" list
+    """
+    for undesired in undesired_string_list:
+        input_string = input_string.replace(undesired, '')
+    return input_string
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
