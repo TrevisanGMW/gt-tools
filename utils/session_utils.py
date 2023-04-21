@@ -7,7 +7,6 @@ from data_utils import write_json, read_json_dict
 import logging
 import sys
 import os
-import re
 
 # Logging Setup
 logging.basicConfig()
@@ -20,27 +19,38 @@ def is_script_in_interactive_maya():
     Check if the script is running in "maya###.exe" or not
     Returns:
         True if running in interactive Maya, false if not.
-    TODO:
-        Find MacOS pattern
     """
-    if get_system() == OS_WINDOWS:
-        if re.match("maya\\.exe", os.path.basename(sys.executable), re.I):
-            return True
-    return False
+    try:
+        import maya.cmds as cmds
+    except ImportError:
+        return False  # Failed to import cmds, not in Maya
+    try:
+        if cmds.about(batch=True):
+            return False  # Batch mode
+        else:
+            return True  # Maya interactive!
+    except AttributeError:
+        # cmds module isn't fully loaded/populated (which only happens in batch, maya.standalone, or maya GUI)
+        return False
 
 
 def is_script_in_py_maya():
     """
-    Check if the script is running in "mayapy.exe" or not
+    Check if the script is running in batch mode - e.g. "mayapy.exe"
     Returns:
         True if running in standalone python Maya, false if not.
-    TODO:
-        Find MacOS pattern
     """
-    if get_system() == OS_WINDOWS:
-        if re.match("mayapy.exe", os.path.basename(sys.executable), re.I):
-            return True
-    return False
+    try:
+        import maya.cmds as cmds
+    except ImportError:
+        return False  # Failed to import cmds, not in MayaPy
+    try:
+        if not cmds.about(batch=True):
+            return False  # Maya interactive
+        else:
+            return True  # Batch mode!
+    except AttributeError:
+        return True
 
 
 def get_loaded_modules(state=None):
@@ -130,13 +140,4 @@ if __name__ == "__main__":
     import maya.standalone as standalone
     standalone.initialize()
     out = None
-    out = is_script_in_interactive_maya()
-    # out = get_maya_settings_dir(get_system())
-    # old = get_loaded_modules()
-    # save_module_state()
-    # print(get_temp_folder())
-    # import glob
-    # reset_session()
-    # out = get_loaded_modules()
-    # open_file_dir(out)
     pprint(out)
