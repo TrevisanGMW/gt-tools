@@ -62,7 +62,7 @@ def import_namespace_test_scene():
     import_scene("cube_namespaces.mb")
 
 
-class TestStringUtils(unittest.TestCase):
+class TestNamespaceUtils(unittest.TestCase):
     def setUp(self):
         cmds.file(new=True, force=True)
 
