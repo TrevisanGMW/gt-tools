@@ -2,8 +2,8 @@
 Session Utilities
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 """
+from system_utils import get_temp_folder, get_system, OS_WINDOWS
 from data_utils import write_json, read_json_dict
-from system_utils import get_temp_folder
 import logging
 import sys
 import os
@@ -20,9 +20,12 @@ def is_script_in_interactive_maya():
     Check if the script is running in "maya###.exe" or not
     Returns:
         True if running in interactive Maya, false if not.
+    TODO:
+        Find MacOS pattern
     """
-    if re.match("maya\\.exe", os.path.basename(sys.executable), re.I):
-        return True
+    if get_system() == OS_WINDOWS:
+        if re.match("maya\\.exe", os.path.basename(sys.executable), re.I):
+            return True
     return False
 
 
@@ -31,9 +34,12 @@ def is_script_in_py_maya():
     Check if the script is running in "mayapy.exe" or not
     Returns:
         True if running in standalone python Maya, false if not.
+    TODO:
+        Find MacOS pattern
     """
-    if re.match("mayapy.exe", os.path.basename(sys.executable), re.I):
-        return True
+    if get_system() == OS_WINDOWS:
+        if re.match("mayapy.exe", os.path.basename(sys.executable), re.I):
+            return True
     return False
 
 
@@ -124,12 +130,13 @@ if __name__ == "__main__":
     import maya.standalone as standalone
     standalone.initialize()
     out = None
+    out = is_script_in_interactive_maya()
     # out = get_maya_settings_dir(get_system())
-    old = get_loaded_modules()
-    save_module_state()
-    print(get_temp_folder())
-    import glob
-    reset_session()
-    out = get_loaded_modules()
+    # old = get_loaded_modules()
+    # save_module_state()
+    # print(get_temp_folder())
+    # import glob
+    # reset_session()
+    # out = get_loaded_modules()
     # open_file_dir(out)
     pprint(out)
