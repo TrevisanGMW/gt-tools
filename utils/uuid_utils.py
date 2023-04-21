@@ -1,3 +1,18 @@
+"""
+UUID Utilities
+"""
+from dataclasses import dataclass
+import maya.api.OpenMaya as OpenMaya
+import maya.cmds as cmds
+import logging
+import re
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("uuid_utils")
+logger.setLevel(logging.INFO)
+
+
 def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
     """
     Return object if provided UUID is present in it
