@@ -97,3 +97,19 @@ class TestStringUtils(unittest.TestCase):
         result = string_utils.remove_strings_from_string(input_string=input_string,
                                                          undesired_string_list=to_remove_list)
         self.assertEqual(expected, result)
+
+    def test_fail2(self):
+        input_string = "1a2b3c"
+        to_remove_list = ["a", "c", "3"]
+        expected = "1f2b"
+        result = string_utils.remove_strings_from_string(input_string=input_string,
+                                                         undesired_string_list=to_remove_list)
+        self.assertEqual(expected, result)
+
+    def test_fail3(self):
+        input_string = "1a2b3c"
+        to_remove_list = ["a", "c", "3"]
+        expected = "1f2b"
+        result = string_utils.remove_strings_from_string(input_string=input_string,
+                                                         undesired_string_list=to_remove_list)
+        self.assertEqual(expected, result)

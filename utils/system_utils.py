@@ -186,7 +186,15 @@ def get_available_maya_install_dirs():
         return {}
 
 
-def get_latest_maya_path():
+def get_latest_maya_executable(get_maya_py_instead=False):
+    """
+    Gets a path to the executable of the latest available version of Maya detected on the system.
+    Args:
+        get_maya_py_instead (optional, bool): If active, it will attempt to retrieve "mayapy" instead of "maya"
+    Returns:
+        Path to Maya executable
+        e.g. "C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe"
+    """
     maya_installs = get_available_maya_install_dirs()
     if len(maya_installs) == 0:
         logger.warning("Unable to find latest Maya path. No Maya installation detected on this system.")
@@ -213,7 +221,7 @@ def launch_maya_from_path(maya_path, add_python_three_args=False):
 
 
 def launch_latest_maya(add_python_three_args=False):
-    maya_path = get_latest_maya_path()
+    maya_path = get_latest_maya_executable()
     if maya_path:
         launch_maya_from_path(maya_path=maya_path,
                               add_python_three_args=add_python_three_args)
@@ -222,4 +230,5 @@ def launch_latest_maya(add_python_three_args=False):
 if __name__ == "__main__":
     from pprint import pprint
     out = None
+    out = get_latest_maya_executable()
     pprint(out)
