@@ -27,6 +27,7 @@ modules_to_test = [
     test_utils.test_color_utils,
     test_utils.test_list_utils,
     test_utils.test_namespace_utils,
+    test_utils.test_scene_utils,
     test_utils.test_session_utils,
     test_utils.test_string_utils,
 ]
@@ -57,6 +58,7 @@ def extract_file_from_failure(failure_message):
     find_file_regex = "(?=File).+(?<=, line).+"
     result = re.findall(find_file_regex, failure_message)
     return result[0]
+
 
 
 def run_all_tests_with_summary():
