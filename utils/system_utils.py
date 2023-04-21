@@ -82,15 +82,24 @@ def get_maya_install_dir(system):
     return autodesk_default_paths.get(system)
 
 
-def get_maya_path(system, version):
+def get_maya_path(system, version, maya_py_instead=False):
     """
-    Get a path to Maya executable
+    Get a path to Maya executable or maya headless
+    Args
+        system (string): System name
+        version (string): Software version - #### e.g. "2023" or "2024"
+        maya_py_instead (optional, bool): If active, it will return maya python executable instead of maya interactive
+    Returns:
+        Path to Maya interactive or headless
     """
     install_dir = get_maya_install_dir(system)
+    executable_name = "maya"
+    if maya_py_instead:
+        executable_name = "mayapy"
     maya_paths = {
         OS_LINUX: "/usr/bin/",
-        OS_MAC: f"{install_dir}/maya{version}/Maya.app/Contents/bin/maya",
-        OS_WINDOWS: f"{install_dir}\\Maya{version}\\bin\\maya.exe",
+        OS_MAC: f"{install_dir}/maya{version}/Maya.app/Contents/bin/{executable_name}",
+        OS_WINDOWS: f"{install_dir}\\Maya{version}\\bin\\{executable_name}.exe",
     }
     if system not in maya_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
@@ -125,18 +134,28 @@ def open_file_dir(path):
 
 def get_maya_settings_dir(system):
     """
-    TODO:
-        MacOS path
+    Get maya settings folder (folder contains scripts, prefs, etc..)
+    Args:
+        system (string): System string
+    Returns:
+        Path to settings folder (folder where you find scripts, prefs, etc..)
     """
     win_maya_settings_dir = ""
+    mac_maya_settings_dir = ""
     if system == OS_WINDOWS:
         win_maya_settings_dir = os.path.expanduser('~')
         win_maya_settings_dir = os.path.join(win_maya_settings_dir, "Documents")
         win_maya_settings_dir = os.path.join(win_maya_settings_dir, "maya")
+    elif system == OS_MAC:
+        mac_maya_settings_dir = os.path.expanduser('~')
+        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Library")
+        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Preferences")
+        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Autodesk")
+        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "maya")
 
     maya_settings_paths = {
         OS_LINUX: "/usr/bin/",
-        OS_MAC: f"~/Library/Preferences/Autodesk/maya",
+        OS_MAC: mac_maya_settings_dir,
         OS_WINDOWS: win_maya_settings_dir,
     }
     if system not in maya_settings_paths.keys():
@@ -177,7 +196,7 @@ def get_available_maya_install_dirs():
         maya_folders = os.listdir(maya_settings_dir)
         existing_folders = {}
         for folder in maya_folders:
-            if re.match("Maya[0-9][0-9][0-9][0-9]", folder):
+            if re.match("maya[0-9][0-9][0-9][0-9]", folder.lower()):
                 folder_digits = re.sub("[^0-9]", "", folder)
                 existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
         return existing_folders
@@ -230,5 +249,4 @@ def launch_latest_maya(add_python_three_args=False):
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = get_latest_maya_executable()
     pprint(out)
