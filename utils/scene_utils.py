@@ -43,7 +43,6 @@ def get_distance_in_meters():
         float describing the amount of units necessary to make a meter
     """
     unit = cmds.currentUnit(query=True, linear=True) or ""
-    print("unit:" + str(unit))
     if unit == 'mm':
         return 1000
     elif unit == 'cm':
