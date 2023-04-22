@@ -135,9 +135,13 @@ def regex_file_from_failure(failure_message):
         return str(failure_message)
 
 
-def run_all_tests_with_summary():
+def run_all_tests_with_summary(print_results=True):
     """
     Runs all the unit tests found in the "modules_to_test" and generates a report
+    Args:
+        print_results (optional, bool): If active it prints the results
+    Returns:
+        str: Results in a Markdown table format
     """
     ran = 0
     failed = 0
@@ -163,8 +167,9 @@ def run_all_tests_with_summary():
                            # "Module": modules,
                            "Source": files}
         output_string += "\n" + dict_to_markdown_table(module_failures)
-
-    print(output_string)
+    if print_results:
+        print(output_string)
+    return output_string
 
 
 if __name__ == "__main__":
