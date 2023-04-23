@@ -36,6 +36,12 @@ def get_system():
 
 
 def get_temp_folder():
+    """
+    Get path to the tempo folder. It will be different depending on the system
+    e.g. "C:\\Users\\<User-Name>>\\AppData\\Local\\Temp"
+    Returns:
+        String path to temp folder
+    """
     return tempfile.gettempdir()
 
 
