@@ -164,7 +164,6 @@ def run_all_tests_with_summary(print_results=True):
         modules = list(module_failures.keys())
         files = list(module_failures.values())
         module_failures = {"Failures": modules,
-                           # "Module": modules,
                            "Source": files}
         output_string += "\n" + dict_to_markdown_table(module_failures)
     if print_results:
