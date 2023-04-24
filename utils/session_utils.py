@@ -102,8 +102,10 @@ def reset_state(modules_to_ignore):
     Resets state by removing modules from sys modules
     Args:
         modules_to_ignore (list): A list of modules to ignore. Usually initial state
+    Returns:
+        removed modules (modules removed when reseting)
     """
-    remove_modules(get_new_modules(modules_to_ignore))
+    return remove_modules(get_new_modules(modules_to_ignore))
 
 
 def get_initial_state_file_path():
@@ -126,13 +128,30 @@ def save_module_state():
 def reset_session():
     """
     If the initial state file is found, it's used to reset the session
+    Returns:
+        List of removed modules
     """
     file_path = get_initial_state_file_path()
     if os.path.exists(file_path):
         state_dict = read_json_dict(path=file_path)
-        reset_state(state_dict.get("initial_state"))
+        return reset_state(state_dict.get("initial_state"))
     else:
         logger.warning(f'Unable to reset session. Missing initial state: {file_path}')
+
+
+def reset_session_with_feedback(*args):
+    """
+    Resets session with printing feedback
+    Returns:
+        removed modules
+    """
+    removed_modules = reset_session()
+    if removed_modules is not None:
+        print('\n' + '-' * 80)
+        for module in removed_modules:
+            print(module)
+        sys.stdout.write(f'{len(removed_modules)} modules were removed. (Open script editor to see the list)')
+        return removed_modules
 
 
 if __name__ == "__main__":
