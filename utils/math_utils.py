@@ -71,6 +71,19 @@ def get_cross_direction(obj_a, obj_b, obj_c):
     return get_cross_product(pos_a, pos_b, pos_c).normal()
 
 
+def is_float_equal(x, y, tolerance=0.00001):
+    """
+    Compares two float values and returns their difference
+        Args:
+            x (float): First float value to compare
+            y (float): Second float value to compare
+            tolerance (float): Comparison tolerance
+        Returns:
+            boolean, true if below tolerance threshold
+    """
+    return abs(x-y) < tolerance
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
