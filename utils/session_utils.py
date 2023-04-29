@@ -2,8 +2,8 @@
 Session Utilities
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 """
-from system_utils import get_temp_folder, get_system, OS_WINDOWS
 from data_utils import write_json, read_json_dict
+from system_utils import get_temp_folder
 import logging
 import sys
 import os
