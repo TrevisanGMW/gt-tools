@@ -16,8 +16,8 @@ def set_unlocked_os_attr(target, attr, value):
     Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
 
     Args:
-        target (string): Name of the target object (object that will receive transforms)
-        attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+        target (str): Name of the target object (object that will receive transforms)
+        attr (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
         value (float): Value used to set attribute. e.g. 1.5, 2, 5...
     """
     try:
@@ -32,8 +32,8 @@ def set_unlocked_ws_attr(target, attr, value_tuple):
     Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
 
     Args:
-        target (string): Name of the target object (object that will receive transforms)
-        attr (string): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+        target (str): Name of the target object (object that will receive transforms)
+        attr (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
         value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
 
     """
@@ -52,9 +52,9 @@ def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     """
     Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
     Args:
-        obj (string): object to add attributes
-        attr_name (string): Name of the attribute to create
-        suffix (optional, string): Used as suffix for the three created attributes
+        obj (str): object to add attributes
+        attr_name (str): Name of the attribute to create
+        suffix (optional, str): Used as suffix for the three created attributes
         keyable (optional, bool): Determines if the attributes should be keyable or not. (Must be a 3 character string)
                                   First attribute uses the first letter, second the second letter, etc...
     """
@@ -69,8 +69,8 @@ def get_existing_attribute_value(obj, attr, not_found_result=None):
     Tries to get attribute out of an object.
     If either obj or attribute doesn't exist, it returns the provided parameter: not_found_result
     Args:
-        obj (string): Object name
-        attr (string): attribute long or short name, for example "visibility" or "v" (no need for ".")
+        obj (str): Object name
+        attr (str): attribute long or short name, for example "visibility" or "v" (no need for ".")
         not_found_result (optional, any): This is returned in case the attribute is not found.
 
     Returns:
@@ -90,7 +90,7 @@ def hide_lock_default_attributes(obj, include_visibility=False):
     """
     Locks default TRS channels
     Args:
-        obj (string): Name of the object to lock TRS attributes
+        obj (str): Name of the object to lock TRS attributes
         include_visibility (optional, bool): If active, also locks and hides visibility
     """
     for channel in ['t', 'r', 's']:
@@ -196,7 +196,7 @@ def attr_to_list(obj_list, printing=True, decimal_place=2, separate_channels=Fal
         
 def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_place=2, strip_zeroes=True):
     """
-    Returns a string
+    TODO
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
         printing (optional, bool): If active, the function will print the values to the script editor

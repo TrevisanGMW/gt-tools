@@ -54,9 +54,9 @@ def get_cross_direction(obj_a, obj_b, obj_c):
     """
     Get Cross Direction
         Args:
-            obj_a (string): Name of the first object. (Must exist in scene)
-            obj_b (string): Name of the second object. (Must exist in scene)
-            obj_c (string): Name of the third object. (Must exist in scene)
+            obj_a (str): Name of the first object. (Must exist in scene)
+            obj_b (str): Name of the second object. (Must exist in scene)
+            obj_c (str): Name of the third object. (Must exist in scene)
         Returns:
             MVector: cross direction of the objects
     """

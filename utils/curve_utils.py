@@ -4,8 +4,8 @@ def combine_curves_list(curve_list):
     It moves the shape objects of all elements in the provided input (curve_list) to a single group (combining them)
     This version was changed to accept a list of objects (instead of selection)
 
-            Parameters:
-                    curve_list (list): A string of strings with the name of the curves to be combined.
+    Args:
+        curve_list (list): A string of strings with the name of the curves to be combined.
 
     """
     errors = ''
@@ -80,7 +80,7 @@ def add_snapping_shape(target_object):
     Parents a locator shape to the target object so objects can be snapped to it.
     The parented locator shape has a scale of 0, so it doesn't change the look of the target object.
     Args:
-        target_object (string): Name of the object to add the locator shape.
+        target_object (str): Name of the object to add the locator shape.
     Returns:
         Name of the added shape
     """
@@ -158,10 +158,10 @@ def create_main_control(name):
     Creates a main control with an arrow pointing to +Z (Direction character should be facing)
 
         Parameters:
-            name (string): Name of the new control
+            name (str): Name of the new control
 
         Returns:
-            main_crv (string): Name of the generated control (in case it was different from what was provided)
+            main_crv (str): Name of the generated control (in case it was different from what was provided)
 
     """
     main_crv_assembly = []

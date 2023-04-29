@@ -16,7 +16,7 @@ def write_json(path, data):
     """
     Writes a JSON file using the provided dictionary as data
     Args:
-        path (string): Path to save the file. e.g. "C:/my_file.json" (Must be accessible)
+        path (str): Path to save the file. e.g. "C:/my_file.json" (Must be accessible)
         data (dict): A python dictionary to be converted into JSON data.
     Returns:
         Path if successful, None if it failed

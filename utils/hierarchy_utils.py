@@ -2,8 +2,8 @@ def enforce_parent(obj_name, desired_parent):
     """
     Makes sure that the provided object is really parented under the desired parent element.
     Args:
-        obj_name (string): Name of the source object enforce parenting (e.g. "pSphere1")
-        desired_parent (string): Name of the desired parent element. You would expect to find obj_name inside it.
+        obj_name (str): Name of the source object enforce parenting (e.g. "pSphere1")
+        desired_parent (str): Name of the desired parent element. You would expect to find obj_name inside it.
 
     Returns: True if re-parented, false if not re-parented or not found
     """

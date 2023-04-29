@@ -16,11 +16,11 @@ def remove_string_prefix(input_string, prefix):
     Removes prefix from a string (if found). It only removes in case it's a prefix.
     This function does NOT use replace
     Args:
-        input_string (string): Input to remove prefix from
-        prefix (string): Prefix to remove (only if found)
+        input_string (str): Input to remove prefix from
+        prefix (str): Prefix to remove (only if found)
 
     Returns:
-        String without prefix (if prefix was found)
+        str: String without prefix (if prefix was found)
     """
     if input_string.startswith(prefix):
         return input_string[len(prefix):]
@@ -32,11 +32,11 @@ def remove_string_suffix(input_string, suffix):
     Removes suffix from a string (if found). It only removes in case it's a suffix.
     This function does NOT use replace
     Args:
-        input_string (string): Input to remove prefix from
-        suffix (string): Suffix to remove (only if found)
+        input_string (str): Input to remove prefix from
+        suffix (str): Suffix to remove (only if found)
 
     Returns:
-        String without prefix (if prefix was found)
+        str: String without prefix (if prefix was found)
     """
     if suffix and input_string.endswith(suffix):
         return input_string[:-len(suffix)]
@@ -48,11 +48,11 @@ def string_list_to_snake_case(string_list, separating_string="_", force_lowercas
     Merges strings from a list of strings into one single string separating the strings with a character
     Args:
         string_list (list): A list of strings with combined words
-        separating_string (optional, string): String used to separate words. (Default: "_")
+        separating_string (optional, str): String used to separate words. (Default: "_")
         force_lowercase (optional, bool): If it should force all words to be lowercase (default: True)
 
     Returns:
-        Combined string: e.g. "camelCase" becomes "camel_case"
+        str: Combined string: e.g. "camelCase" becomes "camel_case"
     """
     if not string_list:
         return ""
@@ -71,9 +71,9 @@ def camel_case_to_snake_case(camel_case_string):
     """
     Uses "string_list_to_snake_case" and "camel_case_split" to convert camelCase to snake_case
     Args:
-        camel_case_string (string): camelCase string to be converted to snake_case
+        camel_case_string (str): camelCase string to be converted to snake_case
     Returns:
-        camelCase convert to snake_case (string, lowercase)
+        str: camelCase convert to snake_case (string, lowercase)
     """
     return string_list_to_snake_case(camel_case_split(camel_case_string))
 
@@ -82,9 +82,9 @@ def camel_case_split(input_string):
     """
     Splits camelCase strings into a list of words
     Args:
-        input_string (string): camel case string to be separated into a
+        input_string (str): camel case string to be separated into a
     Returns:
-        A list with words
+        list: A list with words
     """
     words = [[input_string[0]]]
 
@@ -102,10 +102,10 @@ def remove_digits(input_string):
     Removes all numbers (digits) from the provided string
 
     Args:
-        input_string (string): input string (numbers will be removed from it)
+        input_string (str): input string (numbers will be removed from it)
 
     Returns:
-        string (string): output string without numbers (digits)
+        str: output string without numbers (digits)
 
     """
     return ''.join([i for i in input_string if not i.isdigit()])
@@ -115,11 +115,11 @@ def remove_strings_from_string(input_string, undesired_string_list):
     """
     Removes provided strings from input
     Args:
-        input_string: String to be modified. E.g. "left_elbow_ctrl"
+        input_string (str): String to be modified. E.g. "left_elbow_ctrl"
         undesired_string_list (list): A list of strings to be removed. E.g. ['left', 'ctrl'] # Outputs: "_elbow_"
 
     Returns:
-        clean_string (string): The "input_string" after without strings provided in the "undesired_string_list" list
+        str: The "input_string" after without strings provided in the "undesired_string_list" list
     """
     for undesired in undesired_string_list:
         input_string = input_string.replace(undesired, '')

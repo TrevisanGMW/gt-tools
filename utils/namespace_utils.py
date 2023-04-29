@@ -16,7 +16,7 @@ def get_namespace_hierarchy_list(obj, top_parent_only=False):
     Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
 
     Args:
-        obj (string) : Name of the object to extract namespace
+        obj (str) : Name of the object to extract namespace
         top_parent_only
 
     Returns:
@@ -37,11 +37,11 @@ def get_namespaces(obj_list):
     """
     Get the all namespaces found in provided objects
     Args:
-        obj_list (list, string): A list of objects to extract namespaces from.
+        obj_list (list, str): A list of objects to extract namespaces from.
                                  If a string is provided, it's automatically converted to a list, so it's compatible.
 
     Returns:
-        A list of namespaces
+        list: A list of namespaces
     """
     if isinstance(obj_list, str):  # Convert to list in case a string was provided
         obj_list = [obj_list]
@@ -64,10 +64,10 @@ def namespaces_split(object_name):
     Extracts namespaces and short name, returns a tuple with this extracted information (namespace, shortname)
 
     Args:
-        object_name (string): Name of the object
+        object_name (str): Name of the object
 
     Returns:
-        Tuple: (namespace, short name)
+        tuple: (namespace, short name)
     """
     if not object_name:
         return None, None

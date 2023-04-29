@@ -108,7 +108,7 @@ def copy_parent_orients(joint_list):
     """
     Copy the orientations from its world (parent)
     Args:
-        joint_list (list, string): A list of joints to receive the orientation of their parents.
+        joint_list (list, str): A list of joints to receive the orientation of their parents.
                                    If a string is given instead, it will be auto converted into a list for processing.
     """
     if isinstance(joint_list, str):
@@ -163,9 +163,9 @@ def get_cross_direction(obj_a, obj_b, obj_c):
     """
     Get Cross Direction
         Args:
-            obj_a (string): Name of the first object. (Must exist in scene)
-            obj_b (string): Name of the second object. (Must exist in scene)
-            obj_c (string): Name of the third object. (Must exist in scene)
+            obj_a (str): Name of the first object. (Must exist in scene)
+            obj_b (str): Name of the second object. (Must exist in scene)
+            obj_c (str): Name of the third object. (Must exist in scene)
         Returns:
             MVector: cross direction of the objects
     """

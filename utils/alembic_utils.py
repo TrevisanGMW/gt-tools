@@ -59,9 +59,9 @@ def get_alembic_cycle_as_string(alembic_node):
     """
     Returns alembic cycle as a string (instead of number)
     Args:
-        alembic_node (string): Name of the alembic alembic_node (must be an alembic alembic_node)
+        alembic_node (str): Name of the alembic alembic_node (must be an alembic alembic_node)
     Returns:
-        String describing cycle type. None if failed to retrieve
+        str: String describing cycle type. None if failed to retrieve
     """
     cycle_string = ["Hold", "Loop", "Reverse", "Bounce"]
     if not cmds.objExists(f"{alembic_node}.cycleType"):
