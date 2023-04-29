@@ -27,7 +27,7 @@ def get_system():
     """
     Get system in which this script is running
     Returns:
-        System name.
+        str: System name.
         e.g. "win32" for Windows, or "darwin" for MacOS
     """
     system = sys.platform
@@ -41,7 +41,7 @@ def get_temp_folder():
     Get path to the tempo folder. It will be different depending on the system
     e.g. "C:\\Users\\<User-Name>>\\AppData\\Local\\Temp"
     Returns:
-        String path to temp folder
+        str: String path to temp folder
     """
     return tempfile.gettempdir()
 
@@ -51,7 +51,7 @@ def get_home_dir():
     Returns home path
 
     Returns:
-        Home path
+        str: Home path
         Windows example: "C:/Users/<UserName>"
         MacOS example: TBD
     """
@@ -66,7 +66,7 @@ def get_desktop_path():
     """
     Get path to the Desktop folder of the current user
     Returns:
-        String (path) to the desktop folder
+        str: String (path) to the desktop folder
     """
     return os.path.join(get_home_dir(), 'Desktop')
 
@@ -75,7 +75,7 @@ def get_maya_install_dir(system):
     """
     Get Maya installation folder (Autodesk folder where you find all Maya versions)
     Return:
-        Path to autodesk folder (where you find maya#### folders
+        str: Path to autodesk folder (where you find maya#### folders
         e.g. "C:/Program Files/Autodesk/"
     """
     autodesk_default_paths = {
@@ -93,11 +93,11 @@ def get_maya_path(system, version, get_maya_python=False):
     """
     Get a path to Maya executable or maya headless
     Args
-        system (string): System name
-        version (string): Software version - #### e.g. "2023" or "2024"
+        system (str): System name
+        version (str): Software version - #### e.g. "2023" or "2024"
         get_maya_python (optional, bool): If active, it will return maya python executable instead of maya interactive
     Returns:
-        Path to Maya interactive or headless
+        str: Path to Maya interactive or headless
     """
     install_dir = get_maya_install_dir(system)
     executable_name = "maya"
@@ -118,7 +118,7 @@ def open_file_dir(path):
     """
     Opens the directory where the provided path points to
     Args:
-        path (string): A path to a file or directory
+        path (str): A path to a file or directory
     """
     system = get_system()
     if system == OS_WINDOWS:  # Windows
@@ -143,9 +143,9 @@ def get_maya_settings_dir(system):
     """
     Get maya settings folder (folder contains scripts, prefs, etc..)
     Args:
-        system (string): System string
+        system (str): System string
     Returns:
-        Path to settings folder (folder where you find scripts, prefs, etc..)
+        str: Path to settings folder (folder where you find scripts, prefs, etc..)
     """
     win_maya_settings_dir = ""
     mac_maya_settings_dir = ""
@@ -175,7 +175,7 @@ def get_available_maya_setting_dirs():
     """
     Gets all folders matching the pattern "####" inside the maya settings directory.
     Returns:
-        Dictionary with maya versions as keys and path as value
+        dict: Dictionary with maya versions as keys and path as value
         e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
     """
     maya_settings_dir = get_maya_settings_dir(get_system())
@@ -194,7 +194,7 @@ def get_available_maya_install_dirs():
     """
     Gets all folders matching the pattern "Maya####" inside the autodesk directory.
     Returns:
-        Dictionary with maya versions as keys and path as value
+        dict: Dictionary with maya versions as keys and path as value
         e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
         If nothing is found, it returns an empty dictionary
     """
@@ -218,11 +218,11 @@ def get_maya_executable(get_maya_python=False, preferred_version=None):
     If a preferred version si provided and is available, that is used instead
     Args:
         get_maya_python (optional, bool): If active, it will attempt to retrieve "mayapy" instead of "maya"
-        preferred_version (optional, string): The preferred version. A string with four digits e.g. "2024"
+        preferred_version (optional, str): The preferred version. A string with four digits e.g. "2024"
                                               If found, that will be used, otherwise the latest detected version
                                               is returned instead.
     Returns:
-        Path to Maya executable
+        str: Path to Maya executable
         e.g. "C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe"
     """
     maya_installs = get_available_maya_install_dirs()
@@ -242,8 +242,8 @@ def launch_maya_from_path(maya_path, python_script=None, additional_args=None):
     """
     Launches Maya using provided path
     Args:
-        maya_path (string): Path to the maya executable e.g. "maya.exe" (Complete path)
-        python_script (string): A python script in string format. If provided, it runs after opening Maya
+        maya_path (str): Path to the maya executable e.g. "maya.exe" (Complete path)
+        python_script (str): A python script in string format. If provided, it runs after opening Maya
         additional_args (optional, list): Additional arguments. e.g. ["-pythonver", "3"]
     Example:
         launch_maya(maya_path="C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe"
@@ -273,8 +273,8 @@ def launch_maya(preferred_version=None, python_script=None, additional_args=None
     """
     Launches Maya latest automatically detected Maya executable
     Args:
-        python_script (string): A python script in string format. If provided, it runs after opening Maya
-        preferred_version (optional, string): The preferred version. A string with four digits e.g. "2024"
+        python_script (str): A python script in string format. If provided, it runs after opening Maya
+        preferred_version (optional, str): The preferred version. A string with four digits e.g. "2024"
                                               If found, that will be used, otherwise the latest detected version
                                               is returned instead.
         additional_args (optional, list): A list of additional arguments (elements are converted to string)
@@ -295,8 +295,8 @@ def run_script_using_maya_python(script_path, preferred_version=None):
     """
     Runs provided script using the latest detected Maya Python ("mayapy")
     Args:
-        script_path (string): Path to python script
-        preferred_version (optional, string): The preferred version. A string with four digits e.g. "2024"
+        script_path (str): Path to python script
+        preferred_version (optional, str): The preferred version. A string with four digits e.g. "2024"
                                               If found, that will be used, otherwise the latest detected version
                                               is returned instead.
     """
@@ -305,7 +305,51 @@ def run_script_using_maya_python(script_path, preferred_version=None):
         output = subprocess.call([str(headless_maya), script_path])
         return output
     else:
-        logger.warning(f"Unable to find maya python. Missing file: ")
+        logger.warning(f"Unable to find maya python. Missing file: {headless_maya}")
+
+
+def process_launch_options(sys_args):
+    """
+    Processes the package arguments to determine launch action.
+    Available arguments:
+        -install : Installs package, so it starts automatically when Maya runs
+        -uninstall : Uninstall package (If detected on the system)
+        -launch : Runs Maya with package from current location
+        -dev : Run Maya from current location with developer options
+    Args:
+        sys_args (list): A "sys.argv" list. First object ("argv[0]") is expected to the script name.
+                         (Full path is not guaranteed as it's system dependent)
+    Returns:
+        bool: True if a launch option was found an executed, otherwise None.
+    """
+    if not isinstance(sys_args, list):  # Initial type check
+        raise TypeError(f'Provided argument is not a list. Please use "sys.argv" as input and try again.')
+    if len(sys_args) == 0:  # Missing script name argument
+        raise ValueError(f'Missing script name. Make sure to use "sys.argv" as input. Current input: {sys_args}')
+    elif len(sys_args) == 1:  # No extra arguments
+        logger.debug("No additional launch arguments.")
+        return
+    # Launch Options
+    if sys_args[1] == "-install":
+        import setup_utils
+        if "-clean" in sys_args:
+            setup_utils.install_package(clean_install=True)
+        else:
+            setup_utils.install_package(clean_install=False)
+        return True
+    elif sys_args[1] == "-uninstall":
+        import setup_utils
+        setup_utils.uninstall_package()
+        return True
+    elif sys_args[1] == "-launch":
+        print("launch...")
+        return True
+    elif sys_args[1] == "-dev":
+        print("dev...")
+        return True
+    else:
+        unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
+        sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
 
 
 if __name__ == "__main__":
