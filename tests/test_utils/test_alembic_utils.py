@@ -49,4 +49,3 @@ class TestSessionUtils(unittest.TestCase):
             result.append(cmds.pluginInfo(plugin, q=True, loaded=True))
         expected = [True, True, True]
         self.assertEqual(result, expected)
-
