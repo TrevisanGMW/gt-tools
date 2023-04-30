@@ -4,8 +4,8 @@ QT View example - This script should only emit signals and deal with UI (View) -
 import ui.resource_library as resource_library
 import ui.qt_utils as qt_utils
 import sys
+from PySide2.QtGui import QPixmap, QIcon
 from PySide2 import QtWidgets, QtCore
-from PySide2.QtGui import QPixmap
 
 
 class PackageSetupWindow(QtWidgets.QDialog):
@@ -23,13 +23,15 @@ class PackageSetupWindow(QtWidgets.QDialog):
         # Setup Window
         _min_width = 500
         _min_height = 200
-        self.setGeometry(200, 100, _min_width, _min_height)  # Args X, Y, W, H
+        self.setGeometry(0, 0, _min_width, _min_height)  # Args X, Y, W, H
         self.setMinimumWidth(_min_width)
         self.setMinimumHeight(_min_height)
         self.setWindowTitle("Package Setup Window")
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
+        self.setStyleSheet(resource_library.Stylesheet.dark_style_stylesheet)  # Temporary
+        self.setWindowIcon(QIcon(resource_library.Icon.cog_icon))
         # Widgets, Layout and Connections
         self.create_widgets()
         self.create_layout()
