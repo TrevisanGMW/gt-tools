@@ -22,4 +22,4 @@ def onMayaDroppedPythonFile(*args):
         sys.path.append(package_dir)
 
     from tools import package_setup
-    package_setup.build_installer_gui()
+    package_setup.launcher_entry_point()
