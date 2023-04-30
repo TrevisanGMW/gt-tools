@@ -1,0 +1,17 @@
+QFrame{
+    background-color: rgba(68,68,68,255);
+    color: rgba(178,187,187,255);
+}
+QLabel{
+    background-color: transparent;
+    font-weight: 700;
+    border: none;
+    color: rgba(178,187,187,255);
+}
+QLineEdit{
+    background-color: rgba(43,43,43,255);
+    selection-background-color: rgba(82,133,166,255);
+    border: none;
+    font-weight: 500;
+    color: rgba(178,187,187,255);
+}
