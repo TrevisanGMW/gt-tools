@@ -43,13 +43,13 @@ SET /P M=Type 1, 2, 3, 4 or 5 then press ENTER:
 IF %M%==1 GOTO GUI
 IF %M%==2 GOTO INSTALL
 IF %M%==3 GOTO UNINSTALL
-IF %M%==4 GOTO UNINSTALL
+IF %M%==4 GOTO LAUNCH
 IF %M%==5 GOTO ABOUT
 GOTO EOF
 
 :GUI
-echo "GUI"
-GOTO PAUSE
+set "launch_option=-install -gui"
+GOTO GET_LATEST_MAYAPY
 
 :INSTALL
 set "launch_option=-install -clean"
@@ -57,6 +57,14 @@ GOTO GET_LATEST_MAYAPY
 
 :UNINSTALL
 set "launch_option=-uninstall"
+GOTO GET_LATEST_MAYAPY
+
+:LAUNCH
+set "launch_option=-launch"
+GOTO GET_LATEST_MAYAPY
+
+:LAUNCH_DEV
+set "launch_option=-launch -dev"
 GOTO GET_LATEST_MAYAPY
 
 :GET_LATEST_MAYAPY
