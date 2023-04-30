@@ -312,10 +312,14 @@ def process_launch_options(sys_args):
     """
     Processes the package arguments to determine launch action.
     Available arguments:
-        -install : Installs package, so it starts automatically when Maya runs
+        -install : Installs package, so it starts automatically when Maya runs. (Overwrite files if existing)
+        -install -clean: Installs package, but if previous installation is detected, it deletes it first
+        -install -gui: Opens installation GUI instead of running command-line installation
+
         -uninstall : Uninstall package (If detected on the system)
+
         -launch : Runs Maya with package from current location
-        -dev : Run Maya from current location with developer options
+        -launch -dev: Run Maya from current location with developer options
     Args:
         sys_args (list): A "sys.argv" list. First object ("argv[0]") is expected to the script name.
                          (Full path is not guaranteed as it's system dependent)
@@ -331,10 +335,14 @@ def process_launch_options(sys_args):
         return
     # Launch Options
     if sys_args[1] == "-install":
-        import setup_utils
         if "-clean" in sys_args:
+            import setup_utils
             setup_utils.install_package(clean_install=True)
+        elif "-gui" in sys_args:
+            import tools.package_setup as package_setup
+            package_setup.launcher_entry_point()
         else:
+            import setup_utils
             setup_utils.install_package(clean_install=False)
         return True
     elif sys_args[1] == "-uninstall":
@@ -342,10 +350,10 @@ def process_launch_options(sys_args):
         setup_utils.uninstall_package()
         return True
     elif sys_args[1] == "-launch":
-        print("launch...")
-        return True
-    elif sys_args[1] == "-dev":
-        print("dev...")
+        if "-dev" in sys_args:
+            print("launch in dev mode...")
+        else:
+            print("launch...")
         return True
     else:
         unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
