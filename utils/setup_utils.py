@@ -33,7 +33,7 @@ def get_package_requirements():
     Gets required folders elements from the package root
     Returns:
         Dictionary with required files as keys and paths as values
-        e.g. { "toos": "C:\\tools"}
+        e.g. { "tools": "C:\\tools"}
         If nothing is found, it returns an empty dictionary
     """
     source_dir = os.path.dirname(__file__)
@@ -102,7 +102,6 @@ def install_package(clean_install=True, verbose=True):
         bool: True if function reached the end successfully
     TODO:
         Add userSetup string
-        Create integrity check
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
@@ -133,17 +132,35 @@ def install_package(clean_install=True, verbose=True):
     copy_package_requirements(package_target_folder, package_requirements)
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
-    if check_installation_integrity():
+    if check_installation_integrity(package_target_folder):
         print_when_true("\nInstallation completed successfully!", do_print=verbose)
         return True
     else:
         logger.warning(f'Installation failed integrity check. Package might not work as expected.')
 
 
-def check_installation_integrity():
-    # TODO
-    pass
-    return False
+def check_installation_integrity(package_target_folder):
+    """
+    Checks if all requirements were copied to the installation folder
+
+    Parameters:
+        package_target_folder (str): Path to the installation folder
+
+    Returns:
+        bool: True if all requirements were found. False otherwise.
+    """
+    if not package_target_folder or not os.path.isdir(package_target_folder):
+        return False
+    file_list = os.listdir(package_target_folder)
+    missing_list = []
+    for requirement in PACKAGE_REQUIREMENTS:
+        if requirement not in file_list:
+            missing_list.append(requirement)
+    missing_string = ', '.join(missing_list)
+    if len(missing_list) > 0:
+        print(f"Missing required files: {missing_string}")
+        return False
+    return True
 
 
 def uninstall_package():
@@ -194,4 +211,5 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     out = None
     out = install_package()
+
     pprint(out)
