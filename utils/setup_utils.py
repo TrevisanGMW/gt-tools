@@ -16,6 +16,7 @@ logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
+PACKAGE_ENTRY_LINE = "source \"gt_tools_menu.mel\";"
 
 
 def get_maya_settings_dir():
@@ -204,12 +205,51 @@ def print_when_true(input_string, do_print=True, use_system_write=False):
         sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
 
 
+def add_entry_line(file_path, create_missing_file=True):
+    """
+    Add entry line to provided path. The entry line is a line of code used to initialize package.
+
+    Parameters:
+        file_path (str): File path, usually a "userSetup" file
+        create_missing_file (bool, optional): If provided file doesn't exist, a file is created.
+    """
+    # Determine if file is available and create missing ones
+    if not file_path or not os.path.exists(file_path):
+        if os.path.isdir(os.path.dirname(file_path)) and create_missing_file:
+            open(file_path, 'a').close()  # Create empty file
+            with open(file_path, 'w') as file:
+                file.write(PACKAGE_ENTRY_LINE + "\n")
+            return
+        else:
+            logger.warning(f'Unable to add entry line. Missing file: "{str(file_path)}".')
+            return
+    # Find if line exists before adding
+    file_lines = []
+    is_present = False
+    with open(file_path, "r+") as file:
+        file_lines = file.readlines()
+        for line in file_lines:
+            if line.startswith(PACKAGE_ENTRY_LINE):
+                is_present = True
+
+    if not is_present:
+        with open(file_path, "w") as file:
+            prefix = ""
+            if len(file_lines) > 0:
+                if not file_lines[-1].endswith("\n"):  # Is new line necessary?
+                    prefix = "\n"
+            file_lines.append(prefix + PACKAGE_ENTRY_LINE + "\n")
+            file.writelines(file_lines)
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
-    standalone.initialize()
+
+    # standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    out = install_package()
+    # out = install_package()
+    add_entry_line("C:\\Users\\guilherme.trevisan\\Desktop\\userSetup.mel")
 
     pprint(out)
