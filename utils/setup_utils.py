@@ -1,13 +1,13 @@
 """
 Setup Utilities - install/uninstall package from system
 """
-import sys
-
 from session_utils import is_script_in_py_maya
 import maya.cmds as cmds
 import logging
 import shutil
+import sys
 import os
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -16,7 +16,8 @@ logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
-PACKAGE_ENTRY_LINE = "source \"gt_tools_menu.mel\";"
+PACKAGE_ENTRY_LINE = "maya.utils.executeDeferred(func)"
+PACKAGE_USER_SETUP = "userSetup.py"
 
 
 def get_maya_settings_dir():
@@ -245,6 +246,7 @@ def add_entry_line(file_path, create_missing_file=True):
 def remove_entry_line(file_path, delete_empty_file=True):
     """
     Remove entry line to provided path. The entry line is a line of code used to initialize package.
+    If the file is empty after removing the line, it's also deleted to avoid keeping an empty file (default behaviour)
 
     Parameters:
         file_path (str): File path, usually an "userSetup" file
@@ -279,13 +281,80 @@ def remove_entry_line(file_path, delete_empty_file=True):
                 logger.debug(f"Unable to delete empty file. Issue: {str(e)}")
 
 
+def add_entry_line_to_maya_installs():
+    """
+    Add entry line to all available maya settings.
+    For example, if Maya 2023 and 2024 are installed:
+    Both of these files would get the string PACKAGE_ENTRY_LINE appended to them (if not yet present):
+        "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
+        "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
+    """
+    user_setup_list = generate_available_user_setup_list()
+    for user_setup_path in user_setup_list:
+        add_entry_line(file_path=user_setup_path)
+
+
+def remove_entry_line_from_maya_installs():
+    """
+    Remove entry line from all available maya settings.
+    For example, if Maya 2023 and 2024 are installed:
+    Both of these files would be searched for the string PACKAGE_ENTRY_LINE and cleaned if present:
+        "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
+        "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
+    If the file is empty after removing the line, it's also deleted to avoid keeping an empty file
+    """
+    user_setup_list = generate_available_user_setup_list()
+    for user_setup_path in user_setup_list:
+        remove_entry_line(file_path=user_setup_path)
+
+
+def generate_available_user_setup_list():
+    user_setup_list = []
+    maya_settings_dir = get_available_maya_setting_dirs_cmds()
+    if not maya_settings_dir:
+        logger.warning(f"Unable to add entry lines. Failed to retrieve Maya settings folders.")
+        return user_setup_list
+    for version in maya_settings_dir:
+        folder = maya_settings_dir.get(version)
+        scripts_folder = os.path.join(folder, "scripts")
+        if os.path.isdir(scripts_folder):
+            user_setup_file = os.path.join(scripts_folder, PACKAGE_USER_SETUP)
+            user_setup_list.append(user_setup_file)
+    return user_setup_list
+
+
+def get_available_maya_setting_dirs_cmds():
+    """
+    Gets all folders matching the pattern "####" inside the maya settings directory.
+    Similar to the function "get_available_maya_setting_dirs" from "system_utils",
+    but this one uses cmds to find the base Maya settings. (This tends to be more robust)
+
+    Returns:
+        dict: Dictionary with maya versions as keys and path as value
+        e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
+    """
+    maya_settings_dir = get_maya_settings_dir()
+    if not os.path.exists(maya_settings_dir):
+        logger.warning(f'Unable to get settings folders. Missing required path: "{maya_settings_dir}"')
+        return
+    maya_folders = os.listdir(maya_settings_dir)
+    existing_folders = {}
+    for folder in maya_folders:
+        if re.match("[0-9][0-9][0-9][0-9]", folder.lower()):
+            folder_digits = re.sub("[^0-9]", "", folder)
+            existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
+    return existing_folders
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
-
-    # standalone.initialize()
+    standalone.initialize()
     logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
+    # out = add_entry_line_to_maya_installs()
+    out = add_entry_line_to_maya_installs()
+    # out = remove_entry_line_from_maya_installs()
 
     pprint(out)
