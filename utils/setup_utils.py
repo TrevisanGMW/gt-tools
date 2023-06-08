@@ -210,7 +210,7 @@ def add_entry_line(file_path, create_missing_file=True):
     Add entry line to provided path. The entry line is a line of code used to initialize package.
 
     Parameters:
-        file_path (str): File path, usually a "userSetup" file
+        file_path (str): File path, usually an "userSetup" file
         create_missing_file (bool, optional): If provided file doesn't exist, a file is created.
     """
     # Determine if file is available and create missing ones
@@ -242,14 +242,50 @@ def add_entry_line(file_path, create_missing_file=True):
             file.writelines(file_lines)
 
 
+def remove_entry_line(file_path, delete_empty_file=True):
+    """
+    Remove entry line to provided path. The entry line is a line of code used to initialize package.
+
+    Parameters:
+        file_path (str): File path, usually an "userSetup" file
+        delete_empty_file (bool, optional): If file is empty after removing the entry line, it gets deleted.
+    """
+    # Determine if file is available and create missing ones
+    if not file_path or not os.path.exists(file_path):
+        logger.warning(f'Unable to remove entry line. Missing file: "{str(file_path)}".')
+        return
+    # Find if line exists and store non-matching lines
+    new_lines = []
+    is_present = False
+    with open(file_path, "r+") as file:
+        file_lines = file.readlines()
+        for line in file_lines:
+            if line.startswith(PACKAGE_ENTRY_LINE):
+                is_present = True
+            else:
+                new_lines.append(line)
+    # Write file with lines that don't match entry line
+    if is_present:
+        with open(file_path, "w") as file:
+            file.writelines(new_lines)
+    if delete_empty_file:
+        content = ''
+        with open(file_path, "r") as file:
+            content = file.read()
+        if content.strip() == "":
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.debug(f"Unable to delete empty file. Issue: {str(e)}")
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
 
     # standalone.initialize()
-    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    add_entry_line("C:\\Users\\guilherme.trevisan\\Desktop\\userSetup.mel")
 
     pprint(out)
