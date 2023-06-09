@@ -171,14 +171,29 @@ def get_maya_settings_dir(system):
     return maya_settings_paths.get(system)
 
 
-def get_available_maya_setting_dirs():
+def get_available_maya_preferences_dirs(use_maya_commands=False):
     """
-    Gets all folders matching the pattern "####" inside the maya settings directory.
+    Gets all folders matching the pattern "####" inside the parent maya preferences directory.
+    Parameters:
+        use_maya_commands (bool, optional): If true, it will attempt to import Maya cmds and use it for the operation.
+                                            This different method provides a more robust way of generating the path
+                                            but requires access to Maya commands. It can only be used when in Maya.
     Returns:
         dict: Dictionary with maya versions as keys and path as value
         e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
     """
-    maya_settings_dir = get_maya_settings_dir(get_system())
+    # Get Maya Preference folders
+    if use_maya_commands:
+        try:
+            import maya.cmds as cmds
+            maya_settings_dir = os.path.dirname(cmds.about(preferences=True))
+        except Exception as e:
+            logger.debug(f"Unable to retrieve settings using Maya commands. Issue: {e}. \n"
+                         f"Attempting operation using system functions...")
+            maya_settings_dir = get_maya_settings_dir(get_system())
+    else:
+        maya_settings_dir = get_maya_settings_dir(get_system())
+
     if os.path.exists(maya_settings_dir):
         maya_folders = os.listdir(maya_settings_dir)
         existing_folders = {}
@@ -188,6 +203,7 @@ def get_available_maya_setting_dirs():
         return existing_folders
     else:
         logger.warning(f'Missing provided path: "{maya_settings_dir}"')
+        return {}
 
 
 def get_available_maya_install_dirs():
