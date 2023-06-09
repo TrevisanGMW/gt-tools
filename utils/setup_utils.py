@@ -2,6 +2,7 @@
 Setup Utilities - install/uninstall package from system
 """
 from session_utils import is_script_in_py_maya
+from system_utils import get_available_maya_preferences_dirs
 import maya.cmds as cmds
 import logging
 import shutil
@@ -310,7 +311,7 @@ def remove_entry_line_from_maya_installs():
 
 def generate_available_user_setup_list():
     user_setup_list = []
-    maya_settings_dir = get_available_maya_setting_dirs_cmds()
+    maya_settings_dir = get_available_maya_preferences_dirs(use_maya_commands=True)
     if not maya_settings_dir:
         logger.warning(f"Unable to add entry lines. Failed to retrieve Maya settings folders.")
         return user_setup_list
@@ -321,29 +322,6 @@ def generate_available_user_setup_list():
             user_setup_file = os.path.join(scripts_folder, PACKAGE_USER_SETUP)
             user_setup_list.append(user_setup_file)
     return user_setup_list
-
-
-def get_available_maya_setting_dirs_cmds():
-    """
-    Gets all folders matching the pattern "####" inside the maya settings directory.
-    Similar to the function "get_available_maya_setting_dirs" from "system_utils",
-    but this one uses cmds to find the base Maya settings. (This tends to be more robust)
-
-    Returns:
-        dict: Dictionary with maya versions as keys and path as value
-        e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
-    """
-    maya_settings_dir = get_maya_settings_dir()
-    if not os.path.exists(maya_settings_dir):
-        logger.warning(f'Unable to get settings folders. Missing required path: "{maya_settings_dir}"')
-        return
-    maya_folders = os.listdir(maya_settings_dir)
-    existing_folders = {}
-    for folder in maya_folders:
-        if re.match("[0-9][0-9][0-9][0-9]", folder.lower()):
-            folder_digits = re.sub("[^0-9]", "", folder)
-            existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
-    return existing_folders
 
 
 if __name__ == "__main__":
