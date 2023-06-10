@@ -15,9 +15,9 @@ logging.basicConfig()
 logger = logging.getLogger("setup_utils")
 logger.setLevel(logging.INFO)
 
-PACKAGE_NAME = "gt-tools"
+PACKAGE_NAME = "gt_tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
-PACKAGE_ENTRY_LINE = "maya.utils.executeDeferred(func)"
+PACKAGE_ENTRY_LINE_ONE = "import initialization_utils; maya.utils.executeDeferred(initialization_utils.import_gt_tools)"
 PACKAGE_USER_SETUP = "userSetup.py"
 
 
@@ -220,7 +220,7 @@ def add_entry_line(file_path, create_missing_file=True):
         if os.path.isdir(os.path.dirname(file_path)) and create_missing_file:
             open(file_path, 'a').close()  # Create empty file
             with open(file_path, 'w') as file:
-                file.write(PACKAGE_ENTRY_LINE + "\n")
+                file.write(PACKAGE_ENTRY_LINE_ONE + "\n")
             return
         else:
             logger.warning(f'Unable to add entry line. Missing file: "{str(file_path)}".')
@@ -231,7 +231,7 @@ def add_entry_line(file_path, create_missing_file=True):
     with open(file_path, "r+") as file:
         file_lines = file.readlines()
         for line in file_lines:
-            if line.startswith(PACKAGE_ENTRY_LINE):
+            if line.startswith(PACKAGE_ENTRY_LINE_ONE):
                 is_present = True
 
     if not is_present:
@@ -240,7 +240,7 @@ def add_entry_line(file_path, create_missing_file=True):
             if len(file_lines) > 0:
                 if not file_lines[-1].endswith("\n"):  # Is new line necessary?
                     prefix = "\n"
-            file_lines.append(prefix + PACKAGE_ENTRY_LINE + "\n")
+            file_lines.append(prefix + PACKAGE_ENTRY_LINE_ONE + "\n")
             file.writelines(file_lines)
 
 
@@ -263,7 +263,7 @@ def remove_entry_line(file_path, delete_empty_file=True):
     with open(file_path, "r+") as file:
         file_lines = file.readlines()
         for line in file_lines:
-            if line.startswith(PACKAGE_ENTRY_LINE):
+            if line.startswith(PACKAGE_ENTRY_LINE_ONE):
                 is_present = True
             else:
                 new_lines.append(line)
@@ -282,34 +282,46 @@ def remove_entry_line(file_path, delete_empty_file=True):
                 logger.debug(f"Unable to delete empty file. Issue: {str(e)}")
 
 
-def add_entry_line_to_maya_installs():
+def add_entry_point_to_maya_installs():
     """
     Add entry line to all available maya settings.
     For example, if Maya 2023 and 2024 are installed:
-    Both of these files would get the string PACKAGE_ENTRY_LINE appended to them (if not yet present):
+    Both of these files would get the string PACKAGE_ENTRY_LINE_ONE appended to them (if not yet present):
         "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     """
-    user_setup_list = generate_available_user_setup_list()
+    user_setup_list = generate_user_setup_list(only_existing=True)
     for user_setup_path in user_setup_list:
         add_entry_line(file_path=user_setup_path)
 
 
-def remove_entry_line_from_maya_installs():
+def remove_entry_point_from_maya_installs():
     """
     Remove entry line from all available maya settings.
     For example, if Maya 2023 and 2024 are installed:
-    Both of these files would be searched for the string PACKAGE_ENTRY_LINE and cleaned if present:
+    Both of these files would be searched for the string PACKAGE_ENTRY_LINE_ONE and cleaned if present:
         "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     If the file is empty after removing the line, it's also deleted to avoid keeping an empty file
     """
-    user_setup_list = generate_available_user_setup_list()
+    user_setup_list = generate_user_setup_list(only_existing=True)
     for user_setup_path in user_setup_list:
         remove_entry_line(file_path=user_setup_path)
 
 
-def generate_available_user_setup_list():
+def generate_user_setup_list(only_existing=False):
+    """
+    Creates a list of potential userSetup files according to available folders.
+    For example, if preferences for Maya 2023 and 2024 were found, the path for both of these would be generated.
+
+    Parameters:
+        only_existing (bool, optional): If true, only existing files will be returned (useful for when removing them)
+                                        Default is false, so potential paths will be generated even if file is not
+                                        available (does not exist).
+    Returns:
+        A list of paths pointing to the Maya preferences folder, including the userSetup file name.
+        e.g. ["C://Users//<user-name>//Documents//maya/2024//scripts//userSetup.py"]
+    """
     user_setup_list = []
     maya_settings_dir = get_available_maya_preferences_dirs(use_maya_commands=True)
     if not maya_settings_dir:
@@ -320,7 +332,11 @@ def generate_available_user_setup_list():
         scripts_folder = os.path.join(folder, "scripts")
         if os.path.isdir(scripts_folder):
             user_setup_file = os.path.join(scripts_folder, PACKAGE_USER_SETUP)
-            user_setup_list.append(user_setup_file)
+            if only_existing:
+                if os.path.exists(user_setup_file):
+                    user_setup_list.append(user_setup_file)
+            else:
+                user_setup_list.append(user_setup_file)
     return user_setup_list
 
 
@@ -331,8 +347,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    # out = add_entry_line_to_maya_installs()
-    out = add_entry_line_to_maya_installs()
-    # out = remove_entry_line_from_maya_installs()
+    # out = add_entry_point_to_maya_installs()
+    # out = remove_entry_point_from_maya_installs()
 
     pprint(out)
