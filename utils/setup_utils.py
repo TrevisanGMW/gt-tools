@@ -290,7 +290,7 @@ def add_entry_point_to_maya_installs():
         "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     """
-    user_setup_list = generate_user_setup_list(only_existing=True)
+    user_setup_list = generate_user_setup_list(only_existing=False)  # False so it generates missing files
     for user_setup_path in user_setup_list:
         add_entry_line(file_path=user_setup_path)
 
