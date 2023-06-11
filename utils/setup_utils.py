@@ -8,7 +8,6 @@ import logging
 import shutil
 import sys
 import os
-import re
 
 # Logging Setup
 logging.basicConfig()
@@ -17,7 +16,7 @@ logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt_tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
-PACKAGE_ENTRY_LINE_ONE = "import initialization_utils; maya.utils.executeDeferred(initialization_utils.import_gt_tools)"
+PACKAGE_ENTRY_LINE_ONE = "import gt_tools_importer; maya.utils.executeDeferred(gt_tools_importer.import_package)"
 PACKAGE_USER_SETUP = "userSetup.py"
 
 
@@ -347,7 +346,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    # out = add_entry_point_to_maya_installs()
+    out = add_entry_point_to_maya_installs()
     # out = remove_entry_point_from_maya_installs()
 
     pprint(out)
