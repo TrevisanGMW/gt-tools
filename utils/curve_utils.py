@@ -1,3 +1,5 @@
+import maya.cmds as cmds
+
 def combine_curves_list(curve_list):
     """
     This is a modified version of the GT Utility "Combine Curves"

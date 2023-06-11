@@ -1,3 +1,6 @@
+import maya.cmds as cmds
+
+
 def enforce_parent(obj_name, desired_parent):
     """
     Makes sure that the provided object is really parented under the desired parent element.
