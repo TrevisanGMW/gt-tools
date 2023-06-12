@@ -14,10 +14,10 @@ logging.basicConfig()
 logger = logging.getLogger("setup_utils")
 logger.setLevel(logging.INFO)
 
-PACKAGE_NAME = "gt_tools"
+PACKAGE_NAME = "gt-tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
-PACKAGE_ENTRY_LINE_ONE = "import gt_tools_importer; maya.utils.executeDeferred(gt_tools_importer.import_package)"
-PACKAGE_USER_SETUP = "userSetup.py"
+PACKAGE_ENTRY_LINE_ONE = 'python("import gt_tools_loader");'
+PACKAGE_USER_SETUP = "userSetup.mel"
 
 
 def get_maya_settings_dir():
@@ -102,8 +102,6 @@ def install_package(clean_install=True, verbose=True):
         verbose (optional, bool): If active, script will print steps as it's going through it - Default: True
     Returns:
         bool: True if function reached the end successfully
-    TODO:
-        Add userSetup string
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
@@ -132,6 +130,9 @@ def install_package(clean_install=True, verbose=True):
     # Copy files and directories
     print_when_true("Copying required files...", do_print=verbose)
     copy_package_requirements(package_target_folder, package_requirements)
+    # Add Entry Point (Line)
+    print_when_true("Checking installation integrity...", do_print=verbose)
+    add_entry_point_to_maya_installs()
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
     if check_installation_integrity(package_target_folder):
@@ -170,8 +171,6 @@ def uninstall_package():
     Uninstalls package from the Maya Settings directory
     Returns:
         bool: True if function reached the end successfully
-    TODO:
-        Remove userSetup string
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
@@ -190,6 +189,8 @@ def uninstall_package():
         return
     # Clean install
     remove_previous_install(package_target_folder)
+    # Remove entry point (line)
+    remove_entry_point_from_maya_installs()
     return True
 
 
@@ -308,17 +309,18 @@ def remove_entry_point_from_maya_installs():
         remove_entry_line(file_path=user_setup_path)
 
 
-def generate_user_setup_list(only_existing=False):
+def generate_scripts_dir_list(file_name, only_existing=False):
     """
-    Creates a list of potential userSetup files according to available folders.
-    For example, if preferences for Maya 2023 and 2024 were found, the path for both of these would be generated.
+    Creates a list of potential files according to available preferences folders.
+    For example, if preferences for Maya 2023 and 2024 are found, the path for both of these will be generated.
 
     Parameters:
+        file_name (string): Name of the file to generate the list
         only_existing (bool, optional): If true, only existing files will be returned (useful for when removing them)
                                         Default is false, so potential paths will be generated even if file is not
                                         available (does not exist).
     Returns:
-        A list of paths pointing to the Maya preferences folder, including the userSetup file name.
+        A list of paths pointing to the Maya preferences folder, including the provided file name.
         e.g. ["C://Users//<user-name>//Documents//maya/2024//scripts//userSetup.py"]
     """
     user_setup_list = []
@@ -330,13 +332,33 @@ def generate_user_setup_list(only_existing=False):
         folder = maya_settings_dir.get(version)
         scripts_folder = os.path.join(folder, "scripts")
         if os.path.isdir(scripts_folder):
-            user_setup_file = os.path.join(scripts_folder, PACKAGE_USER_SETUP)
+            user_setup_file = os.path.join(scripts_folder, file_name)
             if only_existing:
                 if os.path.exists(user_setup_file):
                     user_setup_list.append(user_setup_file)
             else:
                 user_setup_list.append(user_setup_file)
     return user_setup_list
+
+
+def generate_user_setup_list(only_existing=False):
+    """
+    Creates a list of potential userSetup files according to available maya preferences folders.
+    For example, if preferences for Maya 2023 and 2024 are found, the path for both of these versions will be generated.
+
+    Parameters:
+    only_existing (bool, optional): If true, only existing files will be returned (useful for when removing them)
+                                    Default is false, so potential paths will be generated even if file is not
+                                    available (does not exist).
+    Returns:
+        A list of paths pointing to the Maya preferences folder, including the provided file name.
+        e.g. ["C://Users//<user-name>//Documents//maya/2024//scripts//userSetup.py"]
+        """
+    return generate_scripts_dir_list(file_name=PACKAGE_USER_SETUP, only_existing=only_existing)
+
+
+def copy_package_loader_to_maya_installs():
+    out = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=True)
 
 
 if __name__ == "__main__":
@@ -346,7 +368,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    out = add_entry_point_to_maya_installs()
+    # out = add_entry_point_to_maya_installs()
     # out = remove_entry_point_from_maya_installs()
+    # out = copy_package_loader_to_maya_installs()
 
     pprint(out)
