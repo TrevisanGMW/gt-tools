@@ -130,9 +130,10 @@ def install_package(clean_install=True, verbose=True):
     # Copy files and directories
     print_when_true("Copying required files...", do_print=verbose)
     copy_package_requirements(package_target_folder, package_requirements)
-    # Add Entry Point (Line)
+    # Add Entry Point and loader script
     print_when_true("Checking installation integrity...", do_print=verbose)
     add_entry_point_to_maya_installs()
+    copy_package_loader_to_maya_installs()
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
     if check_installation_integrity(package_target_folder):
@@ -189,8 +190,9 @@ def uninstall_package():
         return
     # Clean install
     remove_previous_install(package_target_folder)
-    # Remove entry point (line)
+    # Remove entry point and loader script
     remove_entry_point_from_maya_installs()
+    remove_package_loader_from_maya_installs()
     return True
 
 
@@ -358,7 +360,36 @@ def generate_user_setup_list(only_existing=False):
 
 
 def copy_package_loader_to_maya_installs():
-    out = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=True)
+    """
+    Copy the package loader script to all available Maya preferences folders.
+    e.g. Windows: "Documents/scripts/gt_tools_loader.py"
+    """
+    to_copy_list = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=False)
+    utils_dir = os.path.dirname(__file__)
+    package_dir = os.path.dirname(utils_dir)
+    package_loader_script = os.path.join(package_dir, "tools", "package_setup", "gt_tools_loader.py")
+    if os.path.isfile(package_loader_script):
+        for path in to_copy_list:
+            target_dir = os.path.dirname(path)
+            shutil.copy(package_loader_script, target_dir)
+    else:
+        logger.warning(f"Unable to find loader script. Expected location: {package_loader_script}")
+
+
+def remove_package_loader_from_maya_installs():
+    """
+    Remove the package loader script from all available Maya preferences folders.
+    e.g. Windows: "Documents/scripts/gt_tools_loader.py"  - If it exists, it will get deleted
+    """
+    to_remove_list = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=True)
+
+    for file in to_remove_list:
+        if os.path.exists(file):
+            logger.debug(f'Removing loader script: "{file}"')
+            try:
+                os.remove(file)
+            except Exception as e:
+                logger.warning(f"Unable to remove loader file. Issue: {str(e)}")
 
 
 if __name__ == "__main__":
@@ -367,9 +398,6 @@ if __name__ == "__main__":
     standalone.initialize()
     logger.setLevel(logging.DEBUG)
     out = None
-    # out = install_package()
-    # out = add_entry_point_to_maya_installs()
-    # out = remove_entry_point_from_maya_installs()
-    # out = copy_package_loader_to_maya_installs()
+    out = install_package()
 
     pprint(out)
