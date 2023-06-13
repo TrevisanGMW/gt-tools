@@ -16,7 +16,8 @@ logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"
 PACKAGE_REQUIREMENTS = ['tools', 'utils', 'ui', '__init__.py']
-PACKAGE_ENTRY_LINE_ONE = 'python("import gt_tools_loader");'
+PACKAGE_ENTRY_LINE = 'python("import gt_tools_loader");'
+PACKAGE_LEGACY_LINE = 'source "gt_tools_menu.mel";'
 PACKAGE_USER_SETUP = "userSetup.mel"
 
 
@@ -131,9 +132,10 @@ def install_package(clean_install=True, verbose=True):
     print_when_true("Copying required files...", do_print=verbose)
     copy_package_requirements(package_target_folder, package_requirements)
     # Add Entry Point and loader script
-    print_when_true("Checking installation integrity...", do_print=verbose)
+    print_when_true("Adding entry point to userSetup...", do_print=verbose)
     add_entry_point_to_maya_installs()
     copy_package_loader_to_maya_installs()
+    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
     if check_installation_integrity(package_target_folder):
@@ -222,7 +224,7 @@ def add_entry_line(file_path, create_missing_file=True):
         if os.path.isdir(os.path.dirname(file_path)) and create_missing_file:
             open(file_path, 'a').close()  # Create empty file
             with open(file_path, 'w') as file:
-                file.write(PACKAGE_ENTRY_LINE_ONE + "\n")
+                file.write(PACKAGE_ENTRY_LINE + "\n")
             return
         else:
             logger.warning(f'Unable to add entry line. Missing file: "{str(file_path)}".')
@@ -233,7 +235,7 @@ def add_entry_line(file_path, create_missing_file=True):
     with open(file_path, "r+") as file:
         file_lines = file.readlines()
         for line in file_lines:
-            if line.startswith(PACKAGE_ENTRY_LINE_ONE):
+            if line.startswith(PACKAGE_ENTRY_LINE):
                 is_present = True
 
     if not is_present:
@@ -242,17 +244,18 @@ def add_entry_line(file_path, create_missing_file=True):
             if len(file_lines) > 0:
                 if not file_lines[-1].endswith("\n"):  # Is new line necessary?
                     prefix = "\n"
-            file_lines.append(prefix + PACKAGE_ENTRY_LINE_ONE + "\n")
+            file_lines.append(prefix + PACKAGE_ENTRY_LINE + "\n")
             file.writelines(file_lines)
 
 
-def remove_entry_line(file_path, delete_empty_file=True):
+def remove_entry_line(file_path, line_to_remove, delete_empty_file=True):
     """
     Remove entry line to provided path. The entry line is a line of code used to initialize package.
     If the file is empty after removing the line, it's also deleted to avoid keeping an empty file (default behaviour)
 
     Parameters:
         file_path (str): File path, usually an "userSetup" file
+        line_to_remove (str): String to remove from the userSetup file
         delete_empty_file (bool, optional): If file is empty after removing the entry line, it gets deleted.
     """
     # Determine if file is available and create missing ones
@@ -265,7 +268,7 @@ def remove_entry_line(file_path, delete_empty_file=True):
     with open(file_path, "r+") as file:
         file_lines = file.readlines()
         for line in file_lines:
-            if line.startswith(PACKAGE_ENTRY_LINE_ONE):
+            if line.startswith(line_to_remove):
                 is_present = True
             else:
                 new_lines.append(line)
@@ -288,7 +291,7 @@ def add_entry_point_to_maya_installs():
     """
     Add entry line to all available maya settings.
     For example, if Maya 2023 and 2024 are installed:
-    Both of these files would get the string PACKAGE_ENTRY_LINE_ONE appended to them (if not yet present):
+    Both of these files would get the string PACKAGE_ENTRY_LINE appended to them (if not yet present):
         "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     """
@@ -301,14 +304,34 @@ def remove_entry_point_from_maya_installs():
     """
     Remove entry line from all available maya settings.
     For example, if Maya 2023 and 2024 are installed:
-    Both of these files would be searched for the string PACKAGE_ENTRY_LINE_ONE and cleaned if present:
+    Both of these files would be searched for the string PACKAGE_ENTRY_LINE and cleaned if present:
         "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     If the file is empty after removing the line, it's also deleted to avoid keeping an empty file
     """
     user_setup_list = generate_user_setup_list(only_existing=True)
     for user_setup_path in user_setup_list:
-        remove_entry_line(file_path=user_setup_path)
+        remove_entry_line(file_path=user_setup_path, line_to_remove=PACKAGE_ENTRY_LINE)
+
+
+def remove_legacy_entry_point_from_maya_installs(verbose=True):
+    """
+    Remove entry line from all available maya settings.
+    For example, if Maya 2023 and 2024 are installed:
+    Both of these files would be searched for the string PACKAGE_ENTRY_LINE and cleaned if present:
+        "C:/Users/<user-name>/Documents/maya/2023/scripts/userSetup.py"
+        "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
+    If the file is empty after removing the line, it's also deleted to avoid keeping an empty file
+
+    Parameters:
+        verbose (bool, optional): If active, a message
+
+    """
+    user_setup_list = generate_user_setup_list(only_existing=True)
+    if user_setup_list:
+        print_when_true("Legacy version detected. Removing legacy entry line...", do_print=verbose)
+    for user_setup_path in user_setup_list:
+        remove_entry_line(file_path=user_setup_path, line_to_remove=PACKAGE_LEGACY_LINE)
 
 
 def generate_scripts_dir_list(file_name, only_existing=False):
