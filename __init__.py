@@ -1,7 +1,6 @@
 import sys
 import utils
 import tools
-import ui
 
 # Global Vars
 PACKAGE_VERSION = "3.0.0"
