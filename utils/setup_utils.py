@@ -366,12 +366,10 @@ def copy_package_loader_to_maya_installs():
     """
     to_copy_list = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=False)
     utils_dir = os.path.dirname(__file__)
-    package_dir = os.path.dirname(utils_dir)
-    package_loader_script = os.path.join(package_dir, "tools", "package_setup", "gt_tools_loader.py")
+    package_loader_script = os.path.join(utils_dir, "data", "package_loader.py")  # utils/data/package_loader.py
     if os.path.isfile(package_loader_script):
         for path in to_copy_list:
-            target_dir = os.path.dirname(path)
-            shutil.copy(package_loader_script, target_dir)
+            shutil.copy(package_loader_script, path)
     else:
         logger.warning(f"Unable to find loader script. Expected location: {package_loader_script}")
 
@@ -399,5 +397,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = None
     out = install_package()
+    # copy_package_loader_to_maya_installs()
 
     pprint(out)
