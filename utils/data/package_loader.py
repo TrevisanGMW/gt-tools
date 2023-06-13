@@ -1,6 +1,7 @@
 """
 Loader for the GT Tools package. It assumes that the installation is present inside the maya preferences folder.
 e.g. Windows: "Documents/maya/gt-tools"
+     MacOS: "Library/Preferences/Autodesk/Maya/gt-tools"
 """
 import maya.utils as utils
 import maya.cmds as cmds
