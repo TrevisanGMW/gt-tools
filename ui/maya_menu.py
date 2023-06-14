@@ -24,7 +24,7 @@ def _print_args_kwargs(*args, **kwargs):
 MenuItem = namedtuple("MenuItem", ['label', 'command', 'tooltip', 'icon', 'enable', 'parent', 'divider',
                                    'divider_label', 'sub_menu', 'tear_off', 'enable_command_repeat',
                                    'option_box', 'option_box_icon'])
-MENU_ROOT_PLACEHOLDER = ""
+MENU_ROOT_PLACEHOLDER = "TempMayaMenuPlaceholderRoot"
 
 
 class MayaMenu:
@@ -197,18 +197,19 @@ class MayaMenu:
         return param_dict
 
 
-def _open_renamer(*args):
-    print("Open Renamer")
+def _open_tool_ui_renamer(*args):
     #-c ("python(\"gt_tools.execute_script('gt_renamer', 'build_gui_renamer')\");")
+    print("Open Renamer")
 
 
 def load_menu():
     menu = MayaMenu("GT Tools WIP")
+    # ------------------------------------ General / Tools ------------------------------------
     menu.add_sub_menu("General",
                       icon="toolSettings.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Renamer',
-                       command=_print_args_kwargs,
+                       command=_open_tool_ui_renamer,
                        tooltip='Script for renaming multiple objects.',
                        icon='renamePreset.png')
     menu.add_menu_item(label='Outliner Sorter',
@@ -244,6 +245,8 @@ def load_menu():
                        tooltip='Performs a series of checks to detect common issues that are often accidentally '
                                'ignored/unnoticed.',
                        icon='checkboxOn.png')
+
+    # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves",
                       icon="out_stroke.png",
                       parent_to_root=True)
@@ -251,7 +254,291 @@ def load_menu():
                        command=_print_args_kwargs,
                        tooltip='Generates the python code necessary to create a selected curve.',
                        icon='pythonFamily.png')
+    menu.add_menu_item(label='Generate Text Curve',
+                       command=_print_args_kwargs,
+                       tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
+                       icon='text.png')
+    menu.add_menu_item(label='Extract Curve State',
+                       command=_print_args_kwargs,
+                       tooltip='Generates the python command necessary to reshape curves back to their stored state.',
+                       icon='arcLengthDimension.svg')
+
+    menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Combine Curves',
+                       command=_print_args_kwargs,
+                       tooltip='Combine curves by moving all the shape objects inside one single transform.',
+                       icon='nurbsCurve.svg')
+    menu.add_menu_item(label='Separate Curves',
+                       command=_print_args_kwargs,
+                       tooltip='Separate curves by moving every shape object to their own separated transform.',
+                       icon='curveEditor.png')
+
+    # ------------------------------------ Modeling ------------------------------------
+    menu.add_sub_menu("Modeling",
+                      icon="mesh.svg",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Transfer UVs',
+                       command=_print_args_kwargs,
+                       tooltip='A script to export/import UVs as well as transfer them between objects.',
+                       icon='uvChooser.svg')
+    menu.add_menu_item(label='Sphere Types',
+                       command=_print_args_kwargs,
+                       tooltip='A reminder for students that there are other sphere types.',
+                       icon='blinn.svg')
+
+    menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Preview All UDIMs',
+                       command=_print_args_kwargs,
+                       tooltip='Generates UDIM previews for all file nodes.',
+                       icon='textureToGeom.png')
+    menu.add_menu_item(label='Convert Bif to Mesh',
+                       command=_print_args_kwargs,
+                       tooltip='Converts Bifrost Geometry into Maya Geometry (Mesh). '
+                               'If used with volume or particles the output will be empty.',
+                       icon='nurbsToPolygons.png')
+
+    menu.add_divider()  # Material Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Copy Material',
+                       command=_print_args_kwargs,
+                       tooltip='Copies material to clipboard.',
+                       icon='polyBakeSetAssign.png')
+    menu.add_menu_item(label='Paste Material',
+                       command=_print_args_kwargs,
+                       tooltip='Pastes material from clipboard.',
+                       icon='polyBakeSetEdit.png')
+    # ------------------------------------ Rigging ------------------------------------
+    menu.add_sub_menu("Rigging",
+                      icon="kinReroot.png",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Biped Auto Rigger',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for creating a biped rig.',
+                       icon='kinReroot.png')
+    menu.add_menu_item(label='Biped Rig Interface',
+                       command=_print_args_kwargs,
+                       tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
+                       icon='animateSnapshot.png')
+    menu.add_menu_item(label='Retarget Assistant',
+                       command=_print_args_kwargs,
+                       tooltip='Script with HumanIK patches.',
+                       icon='p-add.png')
+    menu.add_menu_item(label='Game FBX Exporter',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for exporting real-time FBX files.',
+                       icon='QR_QuickRigTool.png')
+
+    menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Extract Bound Joints',
+                       command=_print_args_kwargs,
+                       tooltip='Generate Python code used to select bound joints.',
+                       icon='smoothSkin.png')
+    menu.add_menu_item(label='Connect Attributes',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for connecting multiple attributes.',
+                       icon='hsRearrange.png')
+    menu.add_menu_item(label='Morphing Attributes',
+                       command=_print_args_kwargs,
+                       tooltip='Creates attributes to drive selected blend shapes.',
+                       icon='blendShape.png')
+    menu.add_menu_item(label='Morphing Utilities',
+                       command=_print_args_kwargs,
+                       tooltip='Morphing utilities (Blend Shapes).',
+                       icon='falloff_blend.png')
+    menu.add_menu_item(label='Mirror Cluster Tool',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for mirroring clusters.',
+                       icon='cluster.png')
+    menu.add_menu_item(label='Generate In-Between',
+                       command=_print_args_kwargs,
+                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
+                       icon='hsGraphMaterial.png')
+    menu.add_menu_item(label='Create Auto FK',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for created an FK control curve.',
+                       icon='kinInsert.png')
+    menu.add_menu_item(label='Create Testing Keys',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for creating testing keyframes.',
+                       icon='setMaxInfluence.png')
+    menu.add_menu_item(label='Make IK Stretchy',
+                       command=_print_args_kwargs,
+                       tooltip='Automated solution for making an IK system stretchy.',
+                       icon='ikSCsolver.svg')
+    menu.add_menu_item(label='Add Sine Attributes',
+                       command=_print_args_kwargs,
+                       tooltip='Create Sine function without using third-party plugins or expressions.',
+                       icon='sineCurveProfile.png')
+
+    # ------------------------------------ Utilities ------------------------------------
+    menu.add_sub_menu("Utilities",
+                      icon="bsd-head.png",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Reload File',
+                       command=_print_args_kwargs,
+                       tooltip='Forces the re-opening of an opened file. (Changes are ignored)',
+                       icon='openScript.png')
+    menu.add_menu_item(label='Open File Directory',
+                       command=_print_args_kwargs,
+                       tooltip='Opens the directory where the scene is located.',
+                       icon='openLoadGeneric.png')
+
+    menu.add_divider()  # General +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Resource Browser',
+                       command=_print_args_kwargs,
+                       tooltip="Opens Maya's Resource Browser. "
+                               "A good way to find icons or elements you may want to use.",
+                       icon='bsd-head.png')
+    menu.add_menu_item(label='Unlock Default Channels',
+                       command=_print_args_kwargs,
+                       tooltip='Unlocks the default channels of the selected objects. '
+                               '(Default channels : Translate, Rotate, Scale and Visibility)',
+                       icon='Lock_OFF_grey.png')
+    menu.add_menu_item(label='Unhide Default Channels',
+                       command=_print_args_kwargs,
+                       tooltip='Unhides the default channels of the selected objects. '
+                               '(Default channels : Translate, Rotate, Scale and Visibility)',
+                       icon='RS_filter_list.png')
+    menu.add_menu_item(label='Uniform LRA Toggle',
+                       command=_print_args_kwargs,
+                       tooltip='Makes the visibility of the Local Rotation Axis uniform among the selected '
+                               'objects according to the current state of the majority of them.',
+                       icon='srt.png')
+    menu.add_menu_item(label='Uniform Joint Label Toggle',
+                       command=_print_args_kwargs,
+                       tooltip='Makes the visibility of the joint labels uniform according to the current '
+                               'state of the majority of them.',
+                       icon='QR_xRay.png')
+    menu.add_menu_item(label='Set Joint Name as Label',
+                       command=_print_args_kwargs,
+                       tooltip='Set the label of the selected joints to be the same as their short name.',
+                       icon='falloff_transfer.png')
+    menu.add_menu_item(label='Select Non-Unique Objects',
+                       command=_print_args_kwargs,
+                       tooltip='Selects all objects with the same short name. (non-unique objects)',
+                       icon='gotoLine.png')
+    menu.add_menu_item(label='Complete HUD Toggle',
+                       command=_print_args_kwargs,
+                       tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
+                               'the majority of them. (Keeps default elements intact when toggling it off)',
+                       icon='channelBox.png')
+
+    menu.add_divider()  # Convert Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Convert Joints to Mesh',
+                       command=_print_args_kwargs,
+                       tooltip='Converts joints to mesh. (Helpful when sending references to other applications)',
+                       icon='HIKCharacterToolSkeleton.png')
+    menu.add_menu_item(label='Convert to Locators',
+                       command=_print_args_kwargs,
+                       tooltip="Converts transforms to locators. Function doesn't affect selected objects.",
+                       icon='locator.svg')
+
+    menu.add_divider()  # References Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Import References',
+                       command=_print_args_kwargs,
+                       tooltip="Imports all references.",
+                       icon='reference.svg')
+    menu.add_menu_item(label='Remove References',
+                       command=_print_args_kwargs,
+                       tooltip="Removes all references.",
+                       icon='referenceProxy.png')
+
+    menu.add_divider()  # Pivot Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Move Pivot to Top',
+                       command=_print_args_kwargs,
+                       tooltip="Moves pivot point to the top of the bounding box of every selected object.",
+                       icon='moveLayerUp.png')
+    menu.add_menu_item(label='Move Pivot to Base',
+                       command=_print_args_kwargs,
+                       tooltip="Moves pivot point to the base of the bounding box of every selected object.",
+                       icon='moveLayerDown.png')
+    menu.add_menu_item(label='Move Object to Origin',
+                       command=_print_args_kwargs,
+                       tooltip="Moves selected objects to origin according to their pivot point.",
+                       icon='grid.svg')
+
+    menu.add_divider()  # Reset Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Reset Transforms',
+                       command=_print_args_kwargs,
+                       tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
+                               "if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)",
+                       icon='CenterPivot.png')
+    menu.add_menu_item(label='Reset Joints Display',
+                       command=_print_args_kwargs,
+                       tooltip="Resets the radius attribute back to one in all joints, then changes the global "
+                               "multiplier (jointDisplayScale) back to one.",
+                       icon='kinJoint.png')
+    menu.add_menu_item(label='Reset "persp" Camera',
+                       command=_print_args_kwargs,
+                       tooltip="If persp camera exists (default camera), reset its attributes.",
+                       icon='camera.svg')
+
+    menu.add_divider()  # Delete Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Delete Namespaces',
+                       command=_print_args_kwargs,
+                       tooltip="Deletes all namespaces in the scene.",
+                       icon='renamePreset.png')
+    menu.add_menu_item(label='Delete Display Layers',
+                       command=_print_args_kwargs,
+                       tooltip="Deletes all display layers.",
+                       icon='displayLayer.svg')
+    menu.add_menu_item(label='Delete Unused Nodes',
+                       command=_print_args_kwargs,
+                       tooltip="Deletes unused nodes.",
+                       icon='nodeGrapherRemoveNodes.png')
+    menu.add_menu_item(label='Delete Nucleus Nodes',
+                       command=_print_args_kwargs,
+                       tooltip="Deletes all nodes related to particles. "
+                               "(Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)",
+                       icon='nParticle.svg')
+    menu.add_menu_item(label='Delete Keyframes',
+                       command=_print_args_kwargs,
+                       tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
+                       icon='keyIntoclip.png')
+
+    # ------------------------------------ Miscellaneous ------------------------------------
+    menu.add_sub_menu("Miscellaneous",
+                      icon="bin.png",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Startup Booster',
+                       command=_print_args_kwargs,
+                       tooltip='Improve startup times by managing which plugins get loaded when starting Maya.',
+                       icon='out_time.png')
+    menu.add_menu_item(label='fSpy Importer',
+                       command=_print_args_kwargs,
+                       tooltip='Imports the JSON data exported out of fSpy (Camera Matching software).',
+                       icon='out_time.png')
+    menu.add_menu_item(label='Maya to Discord',
+                       command=_print_args_kwargs,
+                       tooltip='Send images and videos (playblasts) from Maya to Discord using a '
+                               'Discord Webhook to bridge the two programs.',
+                       icon='out_time.png')
+    menu.add_menu_item(label='Render Calculator',
+                       command=_print_args_kwargs,
+                       tooltip="Helps calculate how long it's going to take to render an image sequence.",
+                       icon='render.png')
+
+    # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
+    menu.add_sub_menu("Help",
+                      icon="defaultOutliner.svg",
+                      parent_to_root=True)
+    menu.add_menu_item(label='About',
+                       command=_print_args_kwargs,
+                       tooltip="Opens about menu.",
+                       icon='help.png')
+    menu.add_menu_item(label='Re-Build Menu',
+                       command=_print_args_kwargs,
+                       tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
+                       icon='refresh.png')
+    menu.add_menu_item(label='Check for Updates',
+                       command=_print_args_kwargs,
+                       tooltip="Check for updates by comparing current version with latest release.",
+                       icon='RS_import_layer.png')
+    menu.add_menu_item(label='Installed Version: 3.0.0',  # TODO GET VERSION @@@
+                       command=_print_args_kwargs,
+                       enable=False,
+                       icon='SP_FileDialogToParent_Disabled.png')
+
     menu_path = menu.create_menu()
     return menu_path
 
