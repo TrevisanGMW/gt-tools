@@ -47,9 +47,6 @@ class MayaMenu:
 
     """
     def __init__(self, name, parent=""):
-        """
-
-        """
         self.initialized = False
         self.menu_path = None
         self.menu_name = name
@@ -59,7 +56,7 @@ class MayaMenu:
 
     def create_menu(self, *args):
         # Determine Parent
-        menu_name = self.menu_name.replace(" ", '')
+        menu_name = self.menu_name.replace(" ", "")
         menu_parent = self.menu_parent
         if menu_parent == "":  # No parent provided, parent assumed to be the main Maya window
             try:
@@ -76,15 +73,17 @@ class MayaMenu:
         # Create Menu
         self.menu_path = cmds.menu(menu_name, label=self.menu_name, parent=menu_parent, tearOff=True)
 
-        # Populate Menu
+        # Set Status
         if not self.initialized:
             self.initialized = True
-        for item in self.menu_items:
-            params = self.get_item_parameters(item)
-            print(params)
-            cmds.menuItem(item.label, **params)
 
         return self.menu_path
+
+    def populate_menu(self):
+        # Populate Menu
+        for item in self.menu_items:
+            params = self.get_item_parameters(item)
+            cmds.menuItem(item.label, **params)
 
     def add_menu_item(self, label,
                       command=None,
@@ -211,9 +210,57 @@ def load_menu():
     #
     # menu = MayaMenu("MyMenu", parent=window_test)
     menu = MayaMenu("GT Tools WIP")
-    menu.add_sub_menu("Tools", icon="toolSettings.png")
-    menu.add_menu_item(label='Renamer', command=_print_args_kwargs,
-                       tooltip='Script for renaming multiple objects."', icon='renamePreset.png')
+    menu_path = menu.create_menu()
+    menu.add_sub_menu("General",
+                      icon="toolSettings.png")
+    menu.add_sub_menu("Curves2",
+                      icon="out_stroke.png",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Renamer',
+                       command=_print_args_kwargs,
+                       tooltip='Script for renaming multiple objects.',
+                       icon='renamePreset.png')
+    # menu.add_menu_item(label='Outliner Sorter',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Manages the order of the elements in the outliner.',
+    #                    icon='outliner.png')
+    # menu.add_menu_item(label='Selection Manager',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Manages or creates custom selections.',
+    #                    icon='selectByHierarchy.png')
+    # menu.add_menu_item(label='Path Manager',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='A script for managing and repairing the path of many nodes.',
+    #                    icon='annotation.png')
+    # menu.add_menu_item(label='Color Manager',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='A way to quickly change colors of objects and objects names (outliner).',
+    #                    icon='render_swColorPerVertex.png')
+    # menu.add_menu_item(label='Transfer Transforms',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Script for quickly transfering Translate, Rotate, and Scale between objects.',
+    #                    icon='transform.svg')
+    # menu.add_menu_item(label='World Space Baker',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Script for getting and setting translate and rotate world space data.',
+    #                    icon='buttonManip.svg')
+    # menu.add_menu_item(label='Attributes to Python',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
+    #                    icon='attributes.png')
+    # menu.add_menu_item(label='Render Checklist',
+    #                    command=_print_args_kwargs,
+    #                    tooltip='Performs a series of checks to detect common issues that are often accidentally '
+    #                            'ignored/unnoticed.',
+    #                    icon='checkboxOn.png')
+    menu.add_sub_menu("Curves3",
+                      icon="out_stroke.png",
+                      parent_to_root=True)
+    menu.add_menu_item(label='Extract Python Curve',
+                       command=_print_args_kwargs,
+                       tooltip='Generates the python code necessary to create a selected curve.',
+                       icon='pythonFamily.png')
+    menu.populate_menu()  # What if I store another variable to avoid later populating it? Namespace?
     # menu.add_divider()
     # menu.add_sub_menu("SubMenuRooTwo", icon='out_layeredTexture.png')
     # menu.add_sub_menu("SubTwo", parent="SubMenuRootOne")
@@ -222,7 +269,6 @@ def load_menu():
     # menu.add_menu_item('Tool With Options Box', _print_args_kwargs,
     #                    'Tool With Options Box', 'out_layeredTexture.png', parent='MyMenu', option_box=True,
     #                    option_box_command=_print_args_kwargs)
-    menu_path = menu.create_menu()
 
     # menu.add_divider()
     # menu.add_menu_item('Texture Helper', _open_texture_helper,  # Previously Texture Loader
@@ -236,5 +282,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
+    print("Loading...")
     load_menu()
     # pprint(out)
