@@ -135,7 +135,7 @@ def install_package(clean_install=True, verbose=True):
     print_when_true("Adding entry point to userSetup...", do_print=verbose)
     add_entry_point_to_maya_installs()
     copy_package_loader_to_maya_installs()
-    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
+    # remove_legacy_entry_point_from_maya_installs(verbose=verbose) # @@@
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
     if check_installation_integrity(package_target_folder):
@@ -420,6 +420,5 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = None
     out = install_package()
-    # copy_package_loader_to_maya_installs()
 
     pprint(out)
