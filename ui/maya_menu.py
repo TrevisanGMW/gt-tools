@@ -24,6 +24,7 @@ def _print_args_kwargs(*args, **kwargs):
 MenuItem = namedtuple("MenuItem", ['label', 'command', 'tooltip', 'icon', 'enable', 'parent', 'divider',
                                    'divider_label', 'sub_menu', 'tear_off', 'enable_command_repeat',
                                    'option_box', 'option_box_icon'])
+MENU_ROOT_PLACEHOLDER = ""
 
 
 class MayaMenu:
@@ -76,13 +77,12 @@ class MayaMenu:
         # Set Status
         if not self.initialized:
             self.initialized = True
-
-        return self.menu_path
-
-    def populate_menu(self):
         # Populate Menu
         for item in self.menu_items:
             params = self.get_item_parameters(item)
+            # Populate root values
+            if params.get('parent') is not None and params.get('parent') == MENU_ROOT_PLACEHOLDER:
+                params['parent'] = self.menu_path
             cmds.menuItem(item.label, **params)
 
     def add_menu_item(self, label,
@@ -98,7 +98,7 @@ class MayaMenu:
                       parent_to_root=False):
         # Determine Parent
         if parent_to_root:
-            parent = self.menu_path
+            parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
             logger.debug(f'Provided parent not in the list of sub-menus. '
                          f'Parenting for the Menu item "{label}" will be ignored.')
@@ -125,7 +125,7 @@ class MayaMenu:
                      parent_to_root=True):
         # Determine Parent
         if parent_to_root:
-            parent = self.menu_path
+            parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
             logger.debug(f'Provided parent not in the list of sub-menus. '
                          f'Menu item {label} will be added to the menu root menu "{self.menu_path}" instead.')
@@ -140,7 +140,7 @@ class MayaMenu:
     def add_divider(self, label=None, parent=None, divider_label='', parent_to_root=False):
         # Determine Parent
         if parent_to_root:
-            parent = self.menu_path
+            parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
             logger.debug(f'Provided parent not in the list of sub-menus. '
                          f'Divider {label} will be added to the menu root menu "{self.menu_path}" instead.')
@@ -151,7 +151,7 @@ class MayaMenu:
         self.menu_items.append(menu_item)
 
     def determine_parent(self, parent, parent_to_root):
-        """ TODO WIP """
+        """ TODO WIP @@@ """
         if parent_to_root:
             parent = self.menu_path
         elif parent is not None and parent not in self.sub_menus:
@@ -203,79 +203,57 @@ def _open_renamer(*args):
 
 
 def load_menu():
-    # window_test = cmds.window(title="Simple Window", widthHeight=(300, 200), menuBar=True)
-    # cmds.columnLayout()
-    # cmds.text(label="Hello, Maya!")
-    # cmds.showWindow(window_test)
-    #
-    # menu = MayaMenu("MyMenu", parent=window_test)
     menu = MayaMenu("GT Tools WIP")
-    menu_path = menu.create_menu()
     menu.add_sub_menu("General",
-                      icon="toolSettings.png")
-    menu.add_sub_menu("Curves2",
-                      icon="out_stroke.png",
+                      icon="toolSettings.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Renamer',
                        command=_print_args_kwargs,
                        tooltip='Script for renaming multiple objects.',
                        icon='renamePreset.png')
-    # menu.add_menu_item(label='Outliner Sorter',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Manages the order of the elements in the outliner.',
-    #                    icon='outliner.png')
-    # menu.add_menu_item(label='Selection Manager',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Manages or creates custom selections.',
-    #                    icon='selectByHierarchy.png')
-    # menu.add_menu_item(label='Path Manager',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='A script for managing and repairing the path of many nodes.',
-    #                    icon='annotation.png')
-    # menu.add_menu_item(label='Color Manager',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='A way to quickly change colors of objects and objects names (outliner).',
-    #                    icon='render_swColorPerVertex.png')
-    # menu.add_menu_item(label='Transfer Transforms',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Script for quickly transfering Translate, Rotate, and Scale between objects.',
-    #                    icon='transform.svg')
-    # menu.add_menu_item(label='World Space Baker',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Script for getting and setting translate and rotate world space data.',
-    #                    icon='buttonManip.svg')
-    # menu.add_menu_item(label='Attributes to Python',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
-    #                    icon='attributes.png')
-    # menu.add_menu_item(label='Render Checklist',
-    #                    command=_print_args_kwargs,
-    #                    tooltip='Performs a series of checks to detect common issues that are often accidentally '
-    #                            'ignored/unnoticed.',
-    #                    icon='checkboxOn.png')
-    menu.add_sub_menu("Curves3",
+    menu.add_menu_item(label='Outliner Sorter',
+                       command=_print_args_kwargs,
+                       tooltip='Manages the order of the elements in the outliner.',
+                       icon='outliner.png')
+    menu.add_menu_item(label='Selection Manager',
+                       command=_print_args_kwargs,
+                       tooltip='Manages or creates custom selections.',
+                       icon='selectByHierarchy.png')
+    menu.add_menu_item(label='Path Manager',
+                       command=_print_args_kwargs,
+                       tooltip='A script for managing and repairing the path of many nodes.',
+                       icon='annotation.png')
+    menu.add_menu_item(label='Color Manager',
+                       command=_print_args_kwargs,
+                       tooltip='A way to quickly change colors of objects and objects names (outliner).',
+                       icon='render_swColorPerVertex.png')
+    menu.add_menu_item(label='Transfer Transforms',
+                       command=_print_args_kwargs,
+                       tooltip='Script for quickly transfering Translate, Rotate, and Scale between objects.',
+                       icon='transform.svg')
+    menu.add_menu_item(label='World Space Baker',
+                       command=_print_args_kwargs,
+                       tooltip='Script for getting and setting translate and rotate world space data.',
+                       icon='buttonManip.svg')
+    menu.add_menu_item(label='Attributes to Python',
+                       command=_print_args_kwargs,
+                       tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
+                       icon='attributes.png')
+    menu.add_menu_item(label='Render Checklist',
+                       command=_print_args_kwargs,
+                       tooltip='Performs a series of checks to detect common issues that are often accidentally '
+                               'ignored/unnoticed.',
+                       icon='checkboxOn.png')
+    menu.add_sub_menu("Curves",
                       icon="out_stroke.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Extract Python Curve',
                        command=_print_args_kwargs,
                        tooltip='Generates the python code necessary to create a selected curve.',
                        icon='pythonFamily.png')
-    menu.populate_menu()  # What if I store another variable to avoid later populating it? Namespace?
-    # menu.add_divider()
-    # menu.add_sub_menu("SubMenuRooTwo", icon='out_layeredTexture.png')
-    # menu.add_sub_menu("SubTwo", parent="SubMenuRootOne")
-    # menu.add_menu_item('Tool Two', _print_args_kwargs,
-    #                    'Open Texture Helper UI', 'out_layeredTexture.png')
-    # menu.add_menu_item('Tool With Options Box', _print_args_kwargs,
-    #                    'Tool With Options Box', 'out_layeredTexture.png', parent='MyMenu', option_box=True,
-    #                    option_box_command=_print_args_kwargs)
-
-    # menu.add_divider()
-    # menu.add_menu_item('Texture Helper', _open_texture_helper,  # Previously Texture Loader
-    #                     'Open Texture Helper UI', 'out_layeredTexture.png')
-
-    # cmds.menu(_menu_path, edit=True, postMenuCommand=_menu.create_menu)  # Re-create/update menu when showing it
-    # return _menu_path
+    menu.add_divider(parent_to_root=True)
+    menu_path = menu.create_menu()
+    return menu_path
 
 
 if __name__ == "__main__":
