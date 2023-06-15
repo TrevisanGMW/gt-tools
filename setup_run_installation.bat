@@ -2,12 +2,14 @@
 @title =  Command-line Package Installer
 setlocal enabledelayedexpansion
 
-set "launch_option="
+set launch_option="%1"
 set "path_bat_script=%~dp0"
 set "path_package_init=!path_bat_script!__init__.py"
 set "path_autodesk=C:\Program Files\Autodesk"
 set "path_mayapy_end=\bin\mayapy.exe"
 set "installation_status="
+
+if %launch_option%=="test" goto TEST
 
 :MENU
 @echo off
@@ -65,6 +67,10 @@ GOTO GET_LATEST_MAYAPY
 
 :LAUNCH_DEV
 set "launch_option=-launch -dev"
+GOTO GET_LATEST_MAYAPY
+
+:TEST
+set "launch_option=-test"
 GOTO GET_LATEST_MAYAPY
 
 :GET_LATEST_MAYAPY
