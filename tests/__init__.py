@@ -1,7 +1,6 @@
 """
 Tests module
 """
-import test_utils
 import unittest
 import logging
 import sys
@@ -20,6 +19,8 @@ for to_append in [source_dir, tools_root_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 
+# Import Tests
+import test_utils
 
 # Modules to Test
 modules_to_test = [
