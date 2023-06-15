@@ -336,6 +336,7 @@ def process_launch_options(sys_args):
 
         -launch : Runs Maya with package from current location
         -launch -dev: Run Maya from current location with developer options
+        -test: Run all unittests
     Args:
         sys_args (list): A "sys.argv" list. First object ("argv[0]") is expected to the script name.
                          (Full path is not guaranteed as it's system dependent)
@@ -371,6 +372,13 @@ def process_launch_options(sys_args):
         else:
             print("launch...")
         return True
+    elif sys_args[1] == "-test":
+        utils_dir = os.path.dirname(__file__)
+        package_dir = os.path.dirname(utils_dir)
+        if package_dir not in sys.path:
+            sys.path.append(package_dir)
+        import tests
+        tests.run_all_tests_with_summary()
     else:
         unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
