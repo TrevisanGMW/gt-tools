@@ -2,42 +2,6 @@
  GT Transfer Transforms - Script for transferring Translate, Rotate, and Scale between objects.
  A solution for mirroring poses and set driven keys.
  github.com/TrevisanGMW - 2020-06-07
- 
- 1.1 - 2020-06-09
- Added Copy/Paste TRS options
- 
- 1.2 - 2020-06-18
- Changed GUI
- Added icons
- Added help menu
- 
- 1.3 - 2020-11-15
- Updated a few UI elements and colors
- Removed a few unnecessary lines
- 
- 1.4 - 2021-01-30
- Minor adjustments to the GUI
- Updated help to reflect new changes
- Added documentation to all functions
- Removed initial focus from textfield
- Made the use of quotations more consistent
- Create Import and Export Transform Functions
- Updated Copy and Paste Transforms to account for the previous settings
- Fixed issue where set attribute wouldn't follow previously provided instructions
- Changed the inverted behavior for when getting and settings to only apply when setting
- Managed the "get attribute" by storing full 32-bit precision value while showing truncated version (3f)
- 
- 1.5 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022+)
- 
- 1.6 - 2021-08-08
- Fixed an issue where the script would stop execution when failing to change a locked attribute
- Added better feedback for when values are set (with inView error warning)
- Removed a few unnecessary lines
-
- 1.6.1 - 2022-07-09
- PEP8 Cleanup
- 
 """
 try:
     from shiboken2 import wrapInstance

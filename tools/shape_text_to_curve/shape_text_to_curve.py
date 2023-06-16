@@ -1,26 +1,6 @@
 """
  GT Text Curve Generator -> Script used to quickly create text curves
  github.com/TrevisanGMW/gt-tools -  2020-06-09
- 
- 1.1 - 2020-06-17
- Changed UI
- Added help menu
- Added icon
- 
- 1.2 - 2020-06-27
- Added font option
- 
- 1.3 - 2020-11-15
- Tweaked the color and text for the title and help menu
- 
- 1.4 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.4.1 - 2022-07-11
- PEP8 Cleanup
- Added logging
- Added patch to version
- 
 """
 import maya.cmds as cmds
 import logging

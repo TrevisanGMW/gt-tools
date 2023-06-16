@@ -7,46 +7,6 @@
     script_name - variable content
     build_gui_gt_render_checklist() - name of the function
     build_gui_help_gt_render_checklist() - name of the function
-    
- 1.1 - 2020-07-25
-    User no longer needs to remove slashes from custom path. Script manages it.
-    Settings are now persistent. (You can reset them in the help menu)
-    New function added: "Other Network Paths" checks for paths for the following nodes
-        Audio Nodes, Mash Audio Nodes, nCache Nodes,Maya Fluid Cache Nodes,
-        Arnold Volumes/Standins/Lights, Redshift Proxy/Volume/Normal/Lights,
-        Alembic/BIF/GPU Cache,Golaem Common and Cache Nodes
-
- 1.2 - 2020-11-15
-    Changed a few UI elements and colors
-
- 1.3 - 2020-12-05
-    Fixed issue where checklist wouldn't update without bifrost loaded
-    Added support for non-unique objects to non-manifold checks
-    Fixed typos in the help text
-    Fixed issue where spaces would cause resolution check to fail
-    
- 1.4 - 2021-05-12
-    Made script compatible with Python 3 (Maya 2022+)
-    
- 1.4.1 - 2021-08-27
-    Added PATCH field to the version 11.11.(11)
-    Changed default expected network path and file paths
-    
- 1.4.2 - 2021-09-03
-    Added import line for fileTexturePathResolver
-
- 1.4.3 - 2022-07-18
-    Some PEP8 Cleanup
-
- 1.4.4 - 2022-07-21
-    A bit more PEP8 Cleanup
-    Fixed settings issue where the UI would get bigger
-    Simplified some expressions
-
- Todo:
-    Add checks for xgen
-    Create a better error handling option for the total texture count function
-    
 """
 import maya.cmds as cmds
 import maya.mel as mel

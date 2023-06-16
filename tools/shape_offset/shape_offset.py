@@ -1,11 +1,6 @@
 """
 GT Offset Shape - Offsets the CVs of a curve shape
 github.com/TrevisanGMW/gt-tools - 2022-03-16
-
-v0.0.1 - 2022-03-16
-Work in progress, core function
-
-
 """
 import maya.cmds as cmds
 

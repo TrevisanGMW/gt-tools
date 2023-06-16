@@ -1,15 +1,6 @@
 """
  GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
  github.com/TrevisanGMW/gt-tools - 2020-11-20
- 
- 1.1 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.1.1 - 2022-07-11
- Added logging
- Added patch to version
- PEP8 Cleanup
-  
 """
 try:
     from shiboken2 import wrapInstance

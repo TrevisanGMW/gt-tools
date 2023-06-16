@@ -1,56 +1,6 @@
 """
  GT Path Manager - A script for quickly re-pathing many elements in Maya.
  github.com/TrevisanGMW/gt-tools - 2020-08-26
- 
- 0.1 - 2020-08-26
- Created initial setup, added table and icons for file nodes
- 
- 1.0 - 2020-12-02
- Initial Release
- Added support for UDIMS and Image Sequences to the "file" node
- Added support for a lot of common nodes: 
-    audio, cacheFile, AlembicNode, BifMeshImportNode, gpuCache, MASH_Audio
- Added support for Arnold Lights
-    aiPhotometricLight, aiStandIn, aiVolume
- Added support for Redshift Lights
-    RedshiftProxyMesh, RedshiftVolumeShape, RedshiftNormalMap, RedshiftDomeLight, RedshiftIESLight
- Added support for Reference Files through OpenMaya API (Instead of PyMEL)
- 
- 1.1 - 2020-12-03
- Added support for Image Planes
- 
- 1.2 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.2.1 - 2022-03-17
- Fixed issue where error or found icons would look stretched (fixed size now)
- Organize the code and comments a bit better
- Changed to semantic versioning
- Removed unused imports
- Fixed "Refresh" button width
-
- 1.2.2 - 2022-07-22
- Minor PEP8 Cleanup
-
- 1.2.3 - 2022-08-17
- Aligned path to the left
- Added padding to table cells
-
- Todo:
-    Add support for Goalem Nodes
-        'SimulationCacheProxyManager', 'destinationTerrainFile', accepts_empty=True
-        'SimulationCacheProxyManager', 'skinningShaderFile', accepts_empty=True
-        'CrowdEntityTypeNode', 'characterFile', accepts_empty=True
-        'CharacterMakerLocator', 'currentFile', accepts_empty=True
-        'TerrainLocator', 'navMeshFile', accepts_empty=True
-        'SimulationCacheProxy', 'inputCacheDir', accepts_empty=True
-    # Manage Multiple Files?
-        'SimulationCacheProxy', 'characterFiles', accepts_empty=True, checks_multiple_paths=True
-        'CrowdManagerNode', 'characterFiles', accepts_empty=True, checks_multiple_paths=True
-         
-    Add:
-    Only Files Checkbox
- 
 """
 from PySide2 import QtCore
 from PySide2 import QtGui

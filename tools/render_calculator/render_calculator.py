@@ -1,13 +1,6 @@
 """
  GT Render Calculator - Script for calculating the time a render will take
  github.com/TrevisanGMW - 2022-07-18
-
- 1.0.0 - 2022-07-20
- Initial release
-
- 1.0.1 - 2022-07-21
- Updated help link
-
 """
 from maya import OpenMayaUI as OpenMayaUI
 from functools import partial

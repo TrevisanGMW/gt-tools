@@ -1,17 +1,6 @@
 """
  Create Sine output attributes without using third-party plugins or expressions.
  github.com/TrevisanGMW/gt-tools - 2021-01-25
-
- 1.0 - 2021-01-25
- Initial Release
- 
- 1.1 - 2021-05-10
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.1.1 - 2021-06-30
- Added patch to version
- General cleanup
-
 """
 try:
     from shiboken2 import wrapInstance

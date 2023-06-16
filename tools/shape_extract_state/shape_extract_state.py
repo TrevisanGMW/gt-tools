@@ -1,25 +1,6 @@
 """
 GT Extract Shape State - Outputs the python code containing the current shape data for the selected curves
 github.com/TrevisanGMW/gt-tools - 2021-10-01
-
- 1.0.0 - 2021-10-01
- Initial Release
-
- 1.1.0 - 2022-03-16
- Added GUI and checks
- Added option to print or just return it
-
- 1.2.0 - 2022-07-14
- Added GUI
- Added logger
-
- 1.2.1 - 2022-07-23
- Increased the size of the main window
-
- 1.2.2 - 2022-07-26
- Added save to shelf
- Updated help
-
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
