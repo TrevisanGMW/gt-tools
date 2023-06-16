@@ -41,9 +41,10 @@
 """
 
 
-def build_ui():
+def launch_tool():
     """
-    Builds UI for GT Renamer
+    Launch user interface and create any necessary connections for the tool to function.
+    Entry point for when using the tool GT Renamer.
     """
     from tools.renamer import renamer
     renamer.get_persistent_settings_renamer()
@@ -51,4 +52,4 @@ def build_ui():
 
 
 if __name__ == "__main__":
-    build_ui()
+    launch_tool()
