@@ -2,7 +2,10 @@
 Maya Menu UI - Utilities for creating a maya menu
 """
 from collections import namedtuple
+from functools import partial
 import logging
+import sys
+import os
 
 logging.basicConfig()
 logger = logging.getLogger("maya_menu")
@@ -197,9 +200,18 @@ class MayaMenu:
         return param_dict
 
 
-def _open_tool_ui_renamer(*args):
-    #-c ("python(\"gt_tools.execute_script('gt_renamer', 'build_gui_renamer')\");")
-    print("Open Renamer")
+def _open_named_tool(import_path, entry_point_function=None, *args):
+    logger.debug(f'Package Path: {str(import_path)}, Entry Function: {str(entry_point_function)}')
+    utils_dir = os.path.dirname(__file__)
+    package_dir = os.path.dirname(utils_dir)
+    if package_dir not in sys.path:
+        sys.path.append(package_dir)  # Ensure package is available
+    from utils import system_utils
+    if entry_point_function:
+        system_utils.initialize_tool(import_path=import_path,
+                                     entry_point_function=entry_point_function)
+    else:
+        system_utils.initialize_tool(import_path=import_path)
 
 
 def load_menu():
@@ -209,7 +221,7 @@ def load_menu():
                       icon="toolSettings.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Renamer',
-                       command=_open_tool_ui_renamer,
+                       command=partial(_open_named_tool, "renamer"),
                        tooltip='Script for renaming multiple objects.',
                        icon='renamePreset.png')
     menu.add_menu_item(label='Outliner Sorter',
@@ -549,4 +561,3 @@ if __name__ == "__main__":
     out = None
     print("Loading...")
     load_menu()
-    # pprint(out)
