@@ -27,7 +27,7 @@
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Create Auto FK.
+    Entry point for when using the tool GT Create Testing Keys.
     """
     from tools.create_testing_keys import create_testing_keys
     create_testing_keys.build_gui_create_testing_keys()

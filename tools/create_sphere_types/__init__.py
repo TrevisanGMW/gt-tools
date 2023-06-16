@@ -32,7 +32,7 @@
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Create Auto FK.
+    Entry point for when using the tool GT Sphere Types.
     """
     from tools.create_sphere_types import create_sphere_types
     create_sphere_types.build_gui_sphere_type()
