@@ -390,6 +390,48 @@ def process_launch_options(sys_args):
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
 
 
+def initialize_package(import_path, entry_point_function):
+    """
+    Attempts to import and execute the provided script using its entry point function
+    Args:
+        import_path (str): Name of the script or module to import. For example "tools.renamer"
+        entry_point_function (str): Name of the entry point function, usually the one that opens the script's UI
+                                    Parenthesis "()" are not necessary as it's automatically added when running it.
+
+    Returns:
+        bool: True if there were no errors, false if it failed
+    """
+    import importlib
+    module = importlib.import_module(import_path)
+
+    # Call Entry Function
+    entry_line = 'module.' + entry_point_function + '()'
+    try:
+        eval(entry_line)
+        return True
+    except Exception as exception:
+        logger.warning('"' + entry_line + '" failed to run.')
+        logger.warning('Error: ' + str(exception))
+        return False
+
+
+def initialize_tool(import_path, entry_point_function="build_ui"):
+    """
+    Attempts to import and execute the provided script using its entry point function
+    Similar to "initialize_package", but with some default initial values.
+    Args:
+        import_path (str): Name of the script or module to import. For example "renamer"
+                          IMPORTANT: The prefix "tools." will automatically be added to it.
+        entry_point_function (str, optional): Name of the entry point function. Default "build_ui"
+                                              Parenthesis "()" are automatically added when running it.
+
+    Returns:
+        bool: True if there were no errors, false if it failed
+    """
+    return initialize_package(import_path="tools." + import_path,
+                              entry_point_function=entry_point_function)
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
