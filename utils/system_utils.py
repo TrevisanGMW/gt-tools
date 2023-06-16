@@ -415,7 +415,7 @@ def initialize_package(import_path, entry_point_function):
         return False
 
 
-def initialize_tool(import_path, entry_point_function="build_ui"):
+def initialize_tool(import_path, entry_point_function="launch_tool"):
     """
     Attempts to import and execute the provided script using its entry point function
     Similar to "initialize_package", but with some default initial values.
