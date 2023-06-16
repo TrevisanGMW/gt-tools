@@ -1,9 +1,15 @@
+import logging
 import sys
 import utils
 import tools
 
 # Global Vars
 PACKAGE_VERSION = "3.0.0"
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("gt_tools")
+logger.setLevel(logging.INFO)
 
 # Dependencies
 if sys.version_info.major < 3:
