@@ -4,11 +4,16 @@ github.com/TrevisanGMW/gt-tools
 """
 import maya.cmds as cmds
 import logging
+import random
+import sys
 
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("attribute_utils")
 logger.setLevel(logging.INFO)
+
+DEFAULT_CHANNELS = ['t', 'r', 's']
+DEFAULT_DIMENSIONS = ['x', 'y', 'z']
 
 
 def set_unlocked_os_attr(target, attr, value):
@@ -46,24 +51,8 @@ def set_unlocked_ws_attr(target, attr, value_tuple):
             cmds.xform(target, ws=True, s=value_tuple)
     except Exception as e:
         logger.debug(str(e))
-        
-        
-def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
-    """
-    Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
-    Args:
-        obj (str): object to add attributes
-        attr_name (str): Name of the attribute to create
-        suffix (optional, str): Used as suffix for the three created attributes
-        keyable (optional, bool): Determines if the attributes should be keyable or not. (Must be a 3 character string)
-                                  First attribute uses the first letter, second the second letter, etc...
-    """
-    cmds.addAttr(obj, ln=attr_name, at='double3', k=keyable)
-    cmds.addAttr(obj, ln=attr_name + suffix[0], at='double', k=keyable, parent=attr_name)
-    cmds.addAttr(obj, ln=attr_name + suffix[1], at='double', k=keyable, parent=attr_name)
-    cmds.addAttr(obj, ln=attr_name + suffix[2], at='double', k=keyable, parent=attr_name)
-    
-    
+
+
 def get_existing_attribute_value(obj, attr, not_found_result=None):
     """
     Tries to get attribute out of an object.
@@ -159,7 +148,7 @@ def attr_to_list(obj_list, printing=True, decimal_place=2, separate_channels=Fal
         output += '\n# Transform Data for "' + obj + '":\n'
         data = []
         for channel in DEFAULT_CHANNELS:  # TRS
-            for dimension in DIMENSIONS:  # XYZ
+            for dimension in DEFAULT_DIMENSIONS:  # XYZ
                 value = cmds.getAttr(obj + '.' + channel + dimension)
                 if strip_zeroes:
                     formatted_value = str(float(format(value, "." + str(decimal_place) + "f"))).rstrip('0').rstrip('.')
@@ -221,7 +210,7 @@ def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_plac
         output += '\n# Transform Data for "' + obj + '":\n'
         data = {}
         for channel in DEFAULT_CHANNELS:  # TRS
-            for dimension in DIMENSIONS:  # XYZ
+            for dimension in DEFAULT_DIMENSIONS:  # XYZ
                 # Extract Values
                 value = cmds.getAttr(obj + '.' + channel + dimension)
                 if strip_zeroes:
@@ -309,6 +298,204 @@ def user_attr_to_python(obj_list, printing=True):
             return None
     else:
         return output
+
+
+def unlock_default_channels():
+    """ Unlocks Translate, Rotate, Scale for the selected objects """
+    function_name = 'Unlock Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
+    selection_short = cmds.ls(selection=True)
+    unlocked_counter = 0
+    try:
+        for obj in selection:
+            try:
+                cmds.setAttr(obj + '.translateX', lock=False)
+                cmds.setAttr(obj + '.translateY', lock=False)
+                cmds.setAttr(obj + '.translateZ', lock=False)
+                cmds.setAttr(obj + '.rotateX', lock=False)
+                cmds.setAttr(obj + '.rotateY', lock=False)
+                cmds.setAttr(obj + '.rotateZ', lock=False)
+                cmds.setAttr(obj + '.scaleX', lock=False)
+                cmds.setAttr(obj + '.scaleY', lock=False)
+                cmds.setAttr(obj + '.scaleZ', lock=False)
+                cmds.setAttr(obj + '.v', lock=False)
+                unlocked_counter += 1
+            except Exception as e:
+                errors += str(e) + '\n'
+        if errors != '':
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    in_view_message = '<' + str(random.random()) + '>'
+    is_plural = 'objects had their'
+    if unlocked_counter == 1:
+        is_plural = 'object had its'
+    description = ' default channels unlocked.'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter)
+    in_view_message += ' </span>'
+    in_view_message += is_plural + description
+
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+
+    if unlocked_counter == 1:
+        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
+    else:
+        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
+
+
+def unhide_default_channels():
+    """ Un-hides Translate, Rotate, Scale for the selected objects """
+    function_name = 'GTU Unhide Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
+    selection_short = cmds.ls(selection=True)
+    unlocked_counter = 0
+    try:
+        for obj in selection:
+            try:
+                cmds.setAttr(obj + '.translateX', keyable=True)
+                cmds.setAttr(obj + '.translateY', keyable=True)
+                cmds.setAttr(obj + '.translateZ', keyable=True)
+                cmds.setAttr(obj + '.rotateX', keyable=True)
+                cmds.setAttr(obj + '.rotateY', keyable=True)
+                cmds.setAttr(obj + '.rotateZ', keyable=True)
+                cmds.setAttr(obj + '.scaleX', keyable=True)
+                cmds.setAttr(obj + '.scaleY', keyable=True)
+                cmds.setAttr(obj + '.scaleZ', keyable=True)
+                cmds.setAttr(obj + '.v', keyable=True)
+                unlocked_counter += 1
+            except Exception as e:
+                errors += str(e) + '\n'
+        if errors != '':
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    in_view_message = '<' + str(random.random()) + '>'
+    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
+    is_plural = 'objects had their'
+    if unlocked_counter == 1:
+        is_plural = 'object had its'
+    description = ' default channels made visible.'
+    in_view_message += is_plural + description
+
+    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    if unlocked_counter == 1:
+        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
+    else:
+        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
+
+
+def reset_persp_shape_attributes():
+    """
+    If persp shape exists (default camera), reset its attributes
+    """
+    camera_transform = 'persp'
+    camera_shape = 'perspShape'
+    try:
+        if cmds.objExists(camera_transform):
+            cmds.setAttr(camera_transform + ".sx", 1)
+            cmds.setAttr(camera_transform + ".sy", 1)
+            cmds.setAttr(camera_transform + ".sz", 1)
+    except Exception as e:
+        logger.debug(str(e))
+
+    try:
+        if cmds.objExists(camera_shape):
+            cmds.setAttr(camera_shape + ".focalLength", 35)
+            cmds.setAttr(camera_shape + ".verticalFilmAperture", 0.945)
+            cmds.setAttr(camera_shape + ".horizontalFilmAperture", 1.417)
+            cmds.setAttr(camera_shape + ".lensSqueezeRatio", 1)
+            cmds.setAttr(camera_shape + ".fStop", 5.6)
+            cmds.setAttr(camera_shape + ".focusDistance", 5)
+            cmds.setAttr(camera_shape + ".shutterAngle", 144)
+            cmds.setAttr(camera_shape + ".locatorScale", 1)
+            cmds.setAttr(camera_shape + ".nearClipPlane", 0.100)
+            cmds.setAttr(camera_shape + ".farClipPlane", 10000.000)
+            cmds.setAttr(camera_shape + ".cameraScale", 1)
+            cmds.setAttr(camera_shape + ".preScale", 1)
+            cmds.setAttr(camera_shape + ".postScale", 1)
+            cmds.setAttr(camera_shape + ".depthOfField", 0)
+            cmds.viewFit(allObjects=True)
+            in_view_message = '<' + str(random.random()) + '>'
+            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">"persp"</span> camera '
+            in_view_message += 'attributes were reset.'
+            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+            sys.stdout.write('"' + camera_transform + '" camera attributes were reset back to default values.')
+    except Exception as e:
+        print(e)
+        logger.debug(str(e))
+
+
+def delete_user_defined_attributes():
+    """ Deletes all User defined attributes for the selected objects. """
+    function_name = 'Delete User Defined Attributes'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+
+    selection = cmds.ls(selection=True)
+    if selection == 0:
+        cmds.warning('Select at least one target object to delete custom attributes')
+        return
+
+    try:
+        custom_attributes = []
+        for sel in selection:
+            attributes = cmds.listAttr(sel, userDefined=True) or []
+            for attr in attributes:
+                custom_attributes.append(sel + '.' + attr)
+
+        deleted_counter = 0
+        for obj in custom_attributes:
+            try:
+                cmds.deleteAttr(obj)
+                deleted_counter += 1
+            except Exception as e:
+                logger.debug(str(e))
+        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
+        is_plural = 'user defined attributes were'
+        if deleted_counter == 1:
+            is_plural = 'user defined attribute was'
+        message += is_plural + ' deleted.'
+
+        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
+    """
+    Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
+    Parameters:
+        obj (str): Name of the object to receive new attributes
+        attr_name (str): Name of the attribute to be created
+        suffix (str, optional) : Used as suffix for the three created attributes
+        keyable (bool, optional): Determines if the attributes should be keyable or not. (Must be a 3 character string)
+                                  First attribute uses the first letter, second the second letter, etc...
+    """
+    cmds.addAttr(obj, ln=attr_name, at='double3', k=keyable)
+    cmds.addAttr(obj, ln=attr_name + suffix[0], at='double', k=keyable, parent=attr_name)
+    cmds.addAttr(obj, ln=attr_name + suffix[1], at='double', k=keyable, parent=attr_name)
+    cmds.addAttr(obj, ln=attr_name + suffix[2], at='double', k=keyable, parent=attr_name)
 
 
 if __name__ == "__main__":
