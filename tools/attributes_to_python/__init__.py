@@ -21,13 +21,14 @@
 """
 
 
-def build_ui():
+def launch_tool():
     """
-    Builds UI for GT Renamer
+    Launch user interface and create any necessary connections for the tool to function.
+    Entry point for when using the tool GT Attributes to Python.
     """
     from tools.attributes_to_python import attributes_to_python
     attributes_to_python.build_gui_attr_to_python()
 
 
 if __name__ == "__main__":
-    build_ui()
+    launch_tool()

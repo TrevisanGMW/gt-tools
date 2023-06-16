@@ -36,14 +36,14 @@ TODO:
 """
 
 
-def build_ui():
+def launch_tool():
     """
-    Builds UI for GT Attribute Manager
-    WIP
+    Launch user interface and create any necessary connections for the tool to function.
+    Entry point for when using the tool GT Attribute Manager.
     """
     from tools.attribute_manager import attribute_manager
     print("Tool is still a work in progress.")
 
 
 if __name__ == "__main__":
-    build_ui()
+    launch_tool()
