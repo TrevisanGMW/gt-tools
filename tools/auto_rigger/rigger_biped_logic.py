@@ -330,9 +330,9 @@
     Add twist joints option (upper and lower arm, legs, etc)
     Add option to auto create proxy geo
 """
-from rigger_utilities import *
-from rigger_data import *
-from shape_offset import offset_curve_shape
+from tools.auto_rigger.rigger_utilities import *
+from tools.auto_rigger.rigger_data import *
+from tools.shape_offset.shape_offset  import offset_curve_shape
 import maya.cmds as cmds
 import logging
 import random

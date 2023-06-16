@@ -54,10 +54,9 @@ from PySide2.QtGui import QIcon
 from maya import OpenMayaUI
 from rigger_biped_logic import *
 from rigger_data import *
-import gt_generate_icons
-import rigger_corrective_logic
-import rigger_facial_logic
-import rigger_rebuild
+from ui import image_processor
+from tools.auto_rigger import rigger_corrective_logic
+from tools.auto_rigger import rigger_facial_logic
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -137,13 +136,13 @@ def build_gui_auto_biped_rig():
     create_proxy_btn_ico = icons_folder_dir + 'gt_abr_create_proxy.png'
 
     if os.path.isdir(icons_folder_dir) and os.path.exists(create_proxy_btn_ico) is False:
-        gt_generate_icons.generate_image_from_library(create_proxy_btn_ico, 'biped_rigger_proxy_btn')
+        image_processor.generate_image_from_library(create_proxy_btn_ico, 'biped_rigger_proxy_btn')
 
     # Create Rig Icon
     create_rig_btn_ico = icons_folder_dir + 'gt_abr_create_rig.png'
 
     if os.path.isdir(icons_folder_dir) and os.path.exists(create_rig_btn_ico) is False:
-        gt_generate_icons.generate_image_from_library(create_rig_btn_ico, 'biped_rigger_rig_btn')
+        image_processor.generate_image_from_library(create_rig_btn_ico, 'biped_rigger_rig_btn')
 
     # Step 1
     cmds.separator(h=5, style='none')  # Empty Space
@@ -811,7 +810,7 @@ def validate_facial_operation(operation):
 
     """
     if operation == "merge":
-        gt_rigger_facial_logic.merge_facial_elements()
+        rigger_facial_logic.merge_facial_elements()
         return
 
     # Check for existing rig or conflicting names
@@ -834,12 +833,12 @@ def validate_facial_operation(operation):
                 cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
                                          'Delete current proxy or generate a rig before creating a new one.')
                 return
-        gt_rigger_facial_logic.create_facial_proxy(data_facial)
+        rigger_facial_logic.create_facial_proxy(data_facial)
     elif operation == "create_facial_rig":
         expected_proxy = data_facial.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
             data_facial.settings['auto_merge'] = data_biped.settings.get('auto_merge')
-            gt_rigger_facial_logic.create_facial_controls(data_facial)
+            rigger_facial_logic.create_facial_controls(data_facial)
 
         else:
             cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
@@ -854,7 +853,7 @@ def validate_corrective_operation(operation):
 
     """
     if operation == "merge":
-        gt_rigger_corrective_logic.merge_corrective_elements()
+        rigger_corrective_logic.merge_corrective_elements()
         return
 
     # Check for existing rig or conflicting names
@@ -877,12 +876,12 @@ def validate_corrective_operation(operation):
                 cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
                                          'Delete current proxy or generate a rig before creating a new one.')
                 return
-        gt_rigger_corrective_logic.create_corrective_proxy(data_corrective)
+        rigger_corrective_logic.create_corrective_proxy(data_corrective)
     elif operation == "create_corrective_rig":
         expected_proxy = data_corrective.elements_default.get('main_proxy_grp')
         if cmds.objExists(expected_proxy):
             data_corrective.settings['auto_merge'] = data_biped.settings.get('auto_merge')
-            gt_rigger_corrective_logic.create_corrective_setup(data_corrective)
+            rigger_corrective_logic.create_corrective_setup(data_corrective)
         else:
             cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
 
@@ -2517,7 +2516,8 @@ def rebuild_rig():
     """
     A button call for rig rebuild (Temporary)
     """
-    gt_rigger_rebuild.validate_rebuild()
+    from tools.auto_rigger import rigger_rebuild
+    rigger_rebuild.validate_rebuild()
 
 
 # Build UI

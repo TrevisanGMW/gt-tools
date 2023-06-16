@@ -93,9 +93,9 @@
      Look for existing biped proxy (not only joints) when creating facial proxy
 """
 from collections import namedtuple
-from utilities import remove_strings_from_string
-from rigger_utilities import *
-from rigger_data import *
+from utils.string_utils import remove_strings_from_string
+from tools.auto_rigger.rigger_utilities import *
+from tools.auto_rigger.rigger_data import *
 import maya.cmds as cmds
 import random
 

@@ -23,8 +23,8 @@
  Added "reparent_constraints"
 
 """
-from utilities import make_flat_list
-from rigger_data import *
+from utils.list_utils import make_flat_list
+from tools.auto_rigger.rigger_data import *
 from functools import partial
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
