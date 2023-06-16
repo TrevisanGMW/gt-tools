@@ -9,7 +9,7 @@ set "path_autodesk=C:\Program Files\Autodesk"
 set "path_mayapy_end=\bin\mayapy.exe"
 set "installation_status="
 
-if %launch_option%=="test" goto TEST
+if %launch_option%=="-test" goto TEST
 
 :MENU
 @echo off
@@ -70,7 +70,7 @@ set "launch_option=-launch -dev"
 GOTO GET_LATEST_MAYAPY
 
 :TEST
-set "launch_option=-test"
+set "launch_option=-test %2 %3"
 GOTO GET_LATEST_MAYAPY
 
 :GET_LATEST_MAYAPY

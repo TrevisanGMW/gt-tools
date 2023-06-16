@@ -3,5 +3,5 @@
 color 0A
 @echo on
 @echo.
-@echo.	Unittests Launcher...
-../setup_run_installation.bat test
+@echo.	Launching All Tests...
+../setup_run_installation.bat -test -all

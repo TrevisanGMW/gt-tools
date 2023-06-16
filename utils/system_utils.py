@@ -376,9 +376,15 @@ def process_launch_options(sys_args):
         utils_dir = os.path.dirname(__file__)
         package_dir = os.path.dirname(utils_dir)
         if package_dir not in sys.path:
-            sys.path.append(package_dir)
+            sys.path.append(package_dir)  # Ensure package is available
         import tests
-        tests.run_all_tests_with_summary()
+        if "-all" in sys_args:
+            tests.run_all_tests_with_summary()
+        else:
+            print('Unrecognized or missing launching option:\n1. "-all" to run all unittests.\n')
+            logger.warning("Unable to run test. Unrecognized or missing launching option.")
+            return False
+        return True
     else:
         unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
