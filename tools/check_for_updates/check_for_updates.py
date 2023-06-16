@@ -1,39 +1,6 @@
 """
  GT Check for Updates - This script compares your current GT Tools version with the latest release.
  github.com/TrevisanGMW/gt-tools - 2020-11-10
- 
- 1.1 - 2020-11-11
- Fixed a few issues with the color of the UI.
- Updated link to show only latest release.
- The "Update" button now is disabled after refreshing.
- 
- 1.2 - 2020-11-13
- Added code to try to retrieve the three latest releases
- 
- 1.3 - 2020-11-15
- Changed title background color to grey
- Added dates to changelog
- 
- 1.4 - 2020-12-04
- Added a text for when the version is higher than expected (Unreleased Version)
- Added an auto check for updates so user's don't forget to update
- Added threading support (so the http request doesn't slow things down)
- 
- 1.5 - 2021-05-11
- Made script compatible with Python 3 (Maya 2022+)
- 
- 1.6 - 2021-10-21
- Updated parsing mechanism to be fully compatible with semantic versioning
- Updated the silent update checker
-
- 1.7.0 - 2022-07-07
- PEP8 Cleanup
- Added patch to version
- Changed a few variable names
- Added output message for when changing auto check or interval values
-
- 1.7.1 - 2022-10-27
- Fixed an issue where it wouldn't be able to make an HTTP request on Maya 2023+
 
     Debugging Lines:
         # GT Tools Version Query/Overwrite
@@ -107,7 +74,7 @@ gt_check_for_updates = {'current_version': "v0.0.0",
                         'def_auto_updater_interval': 15, }
 
 
-def build_gui_gt_check_for_updates():
+def build_gui_check_for_updates():
     """ Build a GUI to show current and latest versions """
     window_name = "build_gui_gt_check_for_updates"
     if cmds.window(window_name, exists=True):
@@ -641,7 +608,7 @@ def silent_update_check():
 
                 if current_state == 'update':
                     cmds.optionVar(sv=('gt_check_for_updates_last_date', str(today_date)))  # Store check date
-                    build_gui_gt_check_for_updates()
+                    build_gui_check_for_updates()
                 
                 # Print Output - Debugging
                 logger.debug('Check Interval: ' + str(check_interval))
@@ -663,5 +630,5 @@ def silent_update_check():
 # Build GUI
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)  # Debug
-    build_gui_gt_check_for_updates()
+    build_gui_check_for_updates()
     # silent_update_check()
