@@ -1,32 +1,6 @@
 """
  Inbetween Generator -> Simple script used to create Inbetween Transforms
  github.com/TrevisanGMW/gt-tools -  2020-02-04
-
- 1.1 - 2020-02-18
- Added Color Picker
-
- 1.2 - 2020-06-07
- Updated naming convention to make it clearer. (PEP8)
- Changed Script Name. (Previously rigLayer Generator)
- Fixed random window widthHeight issue.
- 
- 1.3 - 2020-06-16
- Updated UI
- Added icon
- Added help menu
- 
- 1.4 - 2020-11-15
- Tweaked the color and text for the title and help menu
- 
- 1.5 - 2021-05-12
- Made script compatible with Python 3.0 (Maya 2022+)
- 
- 1.5.1 - 2021-08-22
- Changed default suffix from "_rigLayer" to "_offset"
-
- 1.5.2 - 2022-07-21
- PEP8 Cleanup
-
 """
 import maya.cmds as cmds
 from maya import OpenMayaUI as OpenMayaUI

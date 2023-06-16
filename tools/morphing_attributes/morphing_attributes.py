@@ -1,44 +1,6 @@
 """
 GT Morphing to Attributes (a.k.a. Blend Shapes to Attributes)
 github.com/TrevisanGMW/gt-tools - 2022-03-17
-
-0.0.1 - 2022-03-17
-Create core function
-
-0.0.2 - 2022-07-23
-Create GUI
-
-0.0.3 - 2022-07-23
-Added settings
-
-1.0.0 - 2022-07-24
-Connected UI and main function
-Connected Settings
-Added filter logic
-Added separated text field for undesired filter
-
-1.0.1 - 2022-07-24
-Added undo chunk
-Changed remap node name
-Kept original selection after operation
-Added inView feedback
-Added some docs
-
-1.1.0 - 2022-07-24
-Added "Delete Instead" option
-Added "Sort Attributes" option
-Added more feedback
-Renamed "Ignore Uppercase"
-Minor tweaks to the GUI
-
-1.1.1 - 2022-07-24
-Added help
-Repositioned "Delete Instead"
-
-1.1.2 - 2022-12-23
-Small change to the system out text behaviour when selecting a blend shape
-Updated icon
-
 """
 try:
     from shiboken2 import wrapInstance

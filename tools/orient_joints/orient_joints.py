@@ -1,13 +1,7 @@
 """
  GT Orient Joints - Script for orienting multiple joints in a more predictable way
  github.com/TrevisanGMW/gt-tools - 2023-01-19
-
- 0.0.1 to 0.0.4 - 2023-01-19
- Initial GUI
-
-
 """
-
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
 import logging

@@ -1,22 +1,6 @@
 """
- GT Mirror Cluster Tool
+ GT Mirror Cluster Tool - Tool to mirror cluster weights.
  github.com/TrevisanGMW/gt-tools -  2020-06-16
- 
- 1.1 - 2020-11-15
- Tweaked the color and text for the title and help menu
- 
- 1.2 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.2.1 - 2022-07-04
- Added logger
- Added patch version
- PEP8 General cleanup
- 
- To Do:
- Add option to mirror other deformers
- Mirror multiple clusters and meshes at the same time
-
 """
 import maya.cmds as cmds
 import logging
