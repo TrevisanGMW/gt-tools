@@ -3,7 +3,10 @@ Namespace Utilities
 """
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
+import maya.mel as mel
 import logging
+import random
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -84,6 +87,66 @@ def namespaces_split(object_name):
         return "", short_name[0]
     else:
         return ':'.join(short_name[:-1]), short_name[-1]
+
+
+def delete_namespaces(object_list=None):
+    """
+    Deletes all namespaces in the scene
+    Args:
+        object_list (optional, list) A list of objects to affect. If not provided, entire scene is used instead.
+    Returns:
+        Number of namespaces deleted (int)
+    """
+    counter = 0
+    if object_list:
+        for obj in object_list:
+            if ":" in obj:
+                namespace = obj.split(":")[0]
+                cmds.namespace(removeNamespace=namespace, mergeNamespaceWithRoot=True)
+                counter += 1
+        return counter
+
+    function_name = 'Delete All Namespaces'
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    counter = 0
+    try:
+        default_namespaces = ['UI', 'shared']
+
+        def num_children(ns):
+            """Used as a sort key, this will sort namespaces by how many children they have."""
+            return ns.count(':')
+
+        namespaces = [namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if
+                      namespace not in default_namespaces]
+
+        # Reverse List
+        namespaces.sort(key=num_children, reverse=True)  # So it does the children first
+
+        logger.debug(namespaces)
+
+        for namespace in namespaces:
+            if namespace not in default_namespaces:
+                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+                counter += 1
+    except Exception as e:
+        cmds.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+    if counter > 0:
+        is_plural = 'namespaces were'
+        if counter == 1:
+            is_plural = 'namespace was'
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(counter)
+        in_view_message += '</span> ' + is_plural + ' deleted.'
+        message = '\n' + str(counter) + ' ' + is_plural + ' merged with the "root".'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        sys.stdout.write(message)
+    else:
+        in_view_message = '<' + str(random.random()) + '>'
+        in_view_message += 'No namespaces found in this scene.'
+        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
 
 
 class StripNamespace(object):

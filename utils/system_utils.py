@@ -3,11 +3,11 @@ System Utilities - Utilities related to system activities, such as paths, open e
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
-import base64
 import subprocess
 import tempfile
 import logging
 import pathlib
+import base64
 import sys
 import os
 import re
@@ -429,6 +429,23 @@ def initialize_tool(import_path, entry_point_function="launch_tool"):
         bool: True if there were no errors, false if it failed
     """
     return initialize_package(import_path="tools." + import_path,
+                              entry_point_function=entry_point_function)
+
+
+def initialize_utility(import_path, entry_point_function="launch_tool"):
+    """
+    Attempts to import and execute the provided script using its entry point function
+    Similar to "initialize_package", but with some default initial values.
+    Args:
+        import_path (str): Name of the script or module to import. For example "renamer"
+                          IMPORTANT: The prefix "tools." will automatically be added to it.
+        entry_point_function (str, optional): Name of the entry point function. Default "build_ui"
+                                              Parenthesis "()" are automatically added when running it.
+
+    Returns:
+        bool: True if there were no errors, false if it failed
+    """
+    return initialize_package(import_path="utils." + import_path,
                               entry_point_function=entry_point_function)
 
 

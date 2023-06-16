@@ -180,6 +180,67 @@ def get_cross_direction(obj_a, obj_b, obj_c):
     return get_cross_product(pos_a, pos_b, pos_c).normal()
 
 
+def convert_joints_to_mesh(combine_mesh=True):
+    """
+    Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
+    Args:
+        combine_mesh: Combines generated meshes into one
+
+    Returns:
+        A list of generated meshes
+    """
+    selection = cmds.ls(selection=True, type='joint')
+    if len(selection) != 1:
+        cmds.warning('Please selection only the root joint and try again.')
+        return
+    cmds.select(selection[0], replace=True)
+    cmds.select(hierarchy=True)
+    joints = cmds.ls(selection=True, type='joint')
+
+    generated_mesh = []
+    for obj in reversed(joints):
+        if cmds.objExists(obj):
+            joint_name = obj.split('|')[-1]
+            radius = cmds.getAttr(obj + '.radius')
+            joint_sphere = cmds.polySphere(radius=radius * .5,
+                                           subdivisionsAxis=8,
+                                           subdivisionsHeight=8,
+                                           axis=[1, 0, 0],
+                                           name=joint_name + 'JointMesh',
+                                           ch=False)
+            generated_mesh.append(joint_sphere[0])
+            cmds.delete(cmds.parentConstraint(obj, joint_sphere))
+            joint_parent = cmds.listRelatives(obj, parent=True) or []
+            if joint_parent:
+                joint_cone = cmds.polyCone(radius=radius * .5,
+                                           subdivisionsAxis=4,
+                                           name=joint_name + 'BoneMesh',
+                                           ch=False)
+                generated_mesh.append(joint_cone[0])
+                bbox = cmds.exactWorldBoundingBox(joint_cone)
+                bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]
+                cmds.xform(joint_cone, piv=bottom, ws=True)
+                cmds.move(1, joint_cone, moveY=True)
+                cmds.rotate(90, joint_cone, rotateX=True)
+                cmds.rotate(90, joint_cone, rotateY=True)
+                cmds.makeIdentity(joint_cone, rotate=True, apply=True)
+
+                cmds.delete(cmds.parentConstraint(joint_parent, joint_cone))
+                cmds.delete(cmds.aimConstraint(obj, joint_cone))
+
+                child_pos = cmds.xform(obj, t=True, ws=True, query=True)
+                cmds.xform(joint_cone[0] + '.vtx[4]', t=child_pos, ws=True)
+    if combine_mesh:
+        cmds.select(generated_mesh, replace=True)
+        mesh = cmds.polyUnite()
+        cmds.select(clear=True)
+        cmds.delete(mesh, constructionHistory=True)
+        mesh = cmds.rename(mesh[0], selection[0] + 'AsMesh')
+        return [mesh]
+    else:
+        return generated_mesh
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint

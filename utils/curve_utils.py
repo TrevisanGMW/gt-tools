@@ -1,4 +1,15 @@
+from attribute_utils import add_attr_double_three
 import maya.cmds as cmds
+import logging
+import sys
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("selection_utils")
+logger.setLevel(logging.INFO)
+
+PROXY_ATTR_COLOR = "autoColor"
+
 
 def combine_curves_list(curve_list):
     """
@@ -100,7 +111,6 @@ def add_snapping_shape(target_object):
     return locator_shape[0]
 
 
-
 def add_side_color_setup(obj, left_clr=(0, 0.5, 1), right_clr=(1, 0.5, 0.5)):
     if not obj or not cmds.objExists(obj):
         return
@@ -152,8 +162,7 @@ def add_side_color_setup(obj, left_clr=(0, 0.5, 1), right_clr=(1, 0.5, 0.5)):
     cmds.connectAttr(obj + "." + l_clr_attr + "R", clr_side_condition + ".colorIfFalseR")
     cmds.connectAttr(obj + "." + l_clr_attr + "G", clr_side_condition + ".colorIfFalseG")
     cmds.connectAttr(obj + "." + l_clr_attr + "B", clr_side_condition + ".colorIfFalseB")
-    
-    
+
 
 def create_main_control(name):
     """
@@ -188,3 +197,143 @@ def create_main_control(name):
     cmds.rename(shapes[1], '{0}Shape'.format('main_ctrlArrow'))
 
     return main_crv
+
+
+def selected_curves_combine():
+    """ Moves the shape objects of all selected curves under a single group (combining them) """
+    errors = ''
+    function_name = 'Combine Curves'
+    try:
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        selection = cmds.ls(sl=True, absoluteName=True)
+        valid_selection = True
+        acceptable_types = ['nurbsCurve', 'bezierCurve']
+        bezier_in_selection = []
+
+        for obj in selection:
+            shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+            for shape in shapes:
+                if cmds.objectType(shape) == 'bezierCurve':
+                    bezier_in_selection.append(obj)
+                if cmds.objectType(shape) not in acceptable_types:
+                    valid_selection = False
+                    cmds.warning('Make sure you selected only curves.')
+
+        if valid_selection and len(selection) < 2:
+            cmds.warning('You need to select at least two curves.')
+            valid_selection = False
+
+        if len(bezier_in_selection) > 0 and valid_selection:
+            user_input = cmds.confirmDialog(title='Bezier curve detected!',
+                                            message='A bezier curve was found in your selection.\n'
+                                                    'Would you like to convert Bezier to NURBS before combining?',
+                                            button=['Yes', 'No'],
+                                            defaultButton='Yes',
+                                            cancelButton='No',
+                                            dismissString='No',
+                                            icon="warning")
+            if user_input == 'Yes':
+                for obj in bezier_in_selection:
+                    logger.debug(str(obj))
+                    cmds.bezierCurveToNurbs()
+
+        if valid_selection:
+            shapes = cmds.listRelatives(shapes=True, fullPath=True)
+            for obj in range(len(selection)):
+                cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
+
+            group = cmds.group(empty=True, world=True, name=selection[0])
+            cmds.refresh()
+            cmds.select(shapes[0])
+            for obj in range(1, (len(shapes))):
+                cmds.select(shapes[obj], add=True)
+
+            cmds.select(group, add=True)
+            cmds.parent(relative=True, shape=True)
+            cmds.delete(selection)
+            sys.stdout.write('\nSelected curves were combined into: "' + group + '".')
+            cmds.select(group)
+
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)
+
+
+def selected_curves_separate():
+    """
+    Moves the shapes instead of a curve to individual transforms (separating curves)
+    """
+    errors = ''
+    acceptable_types = ['nurbsCurve', 'bezierCurve']
+
+    def get_short_name(full_name):
+        """
+        Get the name of the objects without its path (Maya returns full path if name is not unique)
+
+        Args:
+            full_name (string) - object to extract short name
+        """
+        short_name = ''
+        if full_name == '':
+            return ''
+        split_path = full_name.split('|')
+        if len(split_path) >= 1:
+            short_name = split_path[len(split_path) - 1]
+        return short_name
+
+    function_name = 'Separate Curves'
+    try:
+        cmds.undoInfo(openChunk=True, chunkName=function_name)
+        selection = cmds.ls(sl=True, long=True)
+        valid_selection = True
+
+        curve_shapes = []
+        parent_transforms = []
+
+        if len(selection) < 1:
+            valid_selection = False
+            cmds.warning('You need to select at least one curve.')
+
+        if valid_selection:
+            new_transforms = []
+            for obj in selection:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    if cmds.objectType(shape) in acceptable_types:
+                        curve_shapes.append(shape)
+
+            if len(curve_shapes) == 0:
+                cmds.warning('You need to select at least one curve.')
+            elif len(curve_shapes) > 1:
+                for obj in curve_shapes:
+                    parent = cmds.listRelatives(obj, parent=True) or []
+                    for par in parent:
+                        if par not in parent_transforms:
+                            parent_transforms.append(par)
+                        cmds.makeIdentity(par, apply=True, rotate=True, scale=True, translate=True)
+                    group = cmds.group(empty=True, world=True, name=get_short_name(obj).replace('Shape', ''))
+                    cmds.parent(obj, group, relative=True, shape=True)
+                    new_transforms.append(group)
+            else:
+                cmds.warning('The selected curve contains only one shape.')
+
+            for obj in parent_transforms:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                if cmds.objExists(obj) and cmds.objectType(obj) == 'transform' and len(shapes) == 0:
+                    cmds.delete(obj)
+            cmds.select(new_transforms)
+            sys.stdout.write('\n' + str(len(curve_shapes)) + ' shapes extracted.')
+
+    except Exception as e:
+        errors += str(e) + '\n'
+        cmds.warning('An error occurred when separating the curves. Open the script editor for more information.')
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if errors != '':
+        print('######## Errors: ########')
+        print(errors)

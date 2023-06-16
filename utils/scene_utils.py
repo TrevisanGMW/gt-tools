@@ -2,7 +2,10 @@
 Scene Utilities
 """
 import maya.cmds as cmds
+import subprocess
 import logging
+import sys
+import os
 
 
 # Logging Setup
@@ -58,6 +61,59 @@ def get_distance_in_meters():
     elif unit == 'mi':
         return 0.000621371
     return 1
+
+
+def force_reload_file():
+    """ Reopens the opened file (to revert any changes done to the file) """
+    if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
+        file_path = cmds.file(query=True, expandName=True)
+        if file_path is not None:
+            cmds.file(file_path, open=True, force=True)
+    else:
+        cmds.warning('Unable to force reload. File was never saved.')
+
+
+def open_file_dir():
+    """Opens the directory where the Maya file is saved"""
+    fail_message = 'Unable to open directory. Path printed to script editor instead.'
+
+    def open_dir(path):
+        """
+        Open path
+        Parameters:
+            path (str): Path to open using
+        """
+        if sys.platform == "win32":  # Windows
+            # explorer needs forward slashes
+            filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
+            path = os.path.normpath(path)
+
+            if os.path.isdir(path):
+                subprocess.run([filebrowser_path, path])
+            elif os.path.isfile(path):
+                subprocess.run([filebrowser_path, '/select,', path])
+        elif sys.platform == "darwin":  # Mac-OS
+            try:
+                subprocess.call(["open", "-R", path])
+            except Exception as exception:
+                logger.debug(str(exception))
+                print(path)
+                cmds.warning(fail_message)
+        else:  # Linux/Other
+            print(path)
+            cmds.warning(fail_message)
+
+    if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
+        file_path = cmds.file(query=True, expandName=True)
+        if file_path is not None:
+            try:
+                open_dir(file_path)
+            except Exception as e:
+                logger.debug(str(e))
+                print(file_path)
+                cmds.warning(fail_message)
+    else:
+        cmds.warning('Unable to open directory. File was never saved.')
 
 
 if __name__ == "__main__":
