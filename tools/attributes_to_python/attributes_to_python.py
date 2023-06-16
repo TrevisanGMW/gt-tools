@@ -1,32 +1,6 @@
 """
- GT Attributes to Python
+ GT Attributes to Python - Tools for extracting attributes as python code.
  github.com/TrevisanGMW/gt-tools - 2021-12-01
-
- 0.0.2 - 2022-03-31
- Re-created script after losing it to hard drive corruption
-
- 0.0.3 - 2022-04-19
- Added option to strip zeroes
- Added auto conversion of "-0"s into "0"s for clarity
-
- 0.0.4 - 2022-07-22
- Added GUI
- Added logger
-
- 0.0.5 - 2022-07-22
- Increased the size of the UI
- Added "Extract User-Defined Attributes" function
-
- 1.0.0 - 2022-07-26
- Added save to shelf
- Updated help
-
- 1.0.1 - 2022-10-06
- Added triple quote to string attributes
-
- TODO:
-    Add options
-
 """
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
