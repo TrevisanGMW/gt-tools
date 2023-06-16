@@ -26,7 +26,7 @@ logger = logging.getLogger("gt_blend_utilities")
 logger.setLevel(logging.INFO)
 
 # Script Name
-script_name = "GT - Blend Utilities"
+script_name = "GT - Morphing Utilities"
 
 # Version:
 script_version = "1.3.2"
