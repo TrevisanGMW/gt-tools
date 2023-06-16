@@ -1,23 +1,6 @@
 """
  GT fSpy Importer - Imports a JSON file exported out of fSpy
  github.com/TrevisanGMW/gt-tools -  2020-12-10
-
- 0.1a - 2020-12-10
- Created main function
- Added focal length calculation
-
- 1.0 - 2020-12-11
- Initial Release
- Added GUI
- Added Sanity Checks
- 
- 1.1 - 2021-05-12
- Made script compatible with Python 3 (Maya 2022+)
-
- 1.1.1 - 2021-07-21
- PEP8 Update
- Added patch to version
-
 """
 try:
     from shiboken2 import wrapInstance
