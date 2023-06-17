@@ -449,7 +449,30 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
                               entry_point_function=entry_point_function)
 
 
+def get_current_package_version():
+    """
+    Gets the current package version, independently of the package folder name.
+    Returns:
+        str: Package version as a string. "major.minor.patch"
+        e.g. "3.0.0"
+    """
+    utils_dir = os.path.dirname(__file__)
+    package_dir = os.path.dirname(utils_dir)
+    package_basename = os.path.basename(package_dir)
+    package_parent_dir = os.path.dirname(package_dir)
+    # Ensure package parent is available
+    if package_parent_dir not in sys.path:
+        sys.path.append(package_parent_dir)
+    try:
+        imported_package = __import__(package_basename)
+        return imported_package.PACKAGE_VERSION
+    except Exception as e:
+        logger.debug(f"Unable to retrieve current version. Issue: {str(e)}")
+        return "0.0.0"
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
+    out = get_current_package_version()
     pprint(out)
