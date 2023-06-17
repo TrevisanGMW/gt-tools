@@ -100,7 +100,7 @@ def install_package(clean_install=True, verbose=True):
     Args:
         clean_install (optional, bool): Will first delete the package folder before copying files. (No overwrite)
                                         Only deletes if the folder matches the name of the package. Default: True
-        verbose (optional, bool): If active, script will print steps as it's going through it - Default: True
+        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
     Returns:
         bool: True if function reached the end successfully
     """
@@ -169,32 +169,40 @@ def check_installation_integrity(package_target_folder):
     return True
 
 
-def uninstall_package():
+def uninstall_package(verbose=True):
     """
     Uninstalls package from the Maya Settings directory
+    Parameters:
+        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
     Returns:
         bool: True if function reached the end successfully
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
-        logger.debug("Initializing Maya Standalone...")
+        print_when_true("Initializing Maya Standalone...", do_print=verbose)
         import maya.standalone
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
+    print_when_true("Fetching install location...", do_print=verbose)
     maya_settings_dir = get_maya_settings_dir()
     if not os.path.exists(maya_settings_dir):
         logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_settings_dir}"')
         return
     # Find Source Install Directories
+    print_when_true("Checking installed files...", do_print=verbose)
     package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
     if not os.path.exists(package_target_folder):
         logger.warning(f'Unable to uninstall package. No previous installation detected.')
         return
     # Clean install
+    print_when_true("Removing package...", do_print=verbose)
     remove_previous_install(package_target_folder)
     # Remove entry point and loader script
+    print_when_true("Removing entry point lines...", do_print=verbose)
     remove_entry_point_from_maya_installs()
+    print_when_true("Removing loader scripts...", do_print=verbose)
     remove_package_loader_from_maya_installs()
+    print_when_true("\nUninstallation completed successfully!", do_print=verbose)
     return True
 
 
@@ -423,5 +431,6 @@ if __name__ == "__main__":
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    out = install_package()
+    # out = install_package()
+    out = uninstall_package()
     pprint(out)
