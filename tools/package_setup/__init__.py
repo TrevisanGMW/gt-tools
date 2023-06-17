@@ -45,5 +45,10 @@ def launcher_entry_point():
         build_installer_gui(standalone=False)
 
 
+def open_about_window():
+    import about_window
+    about_window.build_gui_about_gt_tools()
+
+
 if __name__ == "__main__":
     build_installer_gui()

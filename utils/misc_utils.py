@@ -4,6 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 import maya.cmds as cmds
 import maya.mel as mel
+import random
 import logging
 
 # Logging Setup
@@ -42,81 +43,6 @@ def material_paste():
         logger.debug(str(e))
         cmds.warning("Couldn't paste material. Make sure you copied a material first, "
                      "then selected the target objects or components.")
-
-
-def delete_nucleus_nodes():
-    """ Deletes all elements related to particles """
-    errors = ''
-    function_name = 'Delete Nucleus Nodes'
-    try:
-        cmds.undoInfo(openChunk=True, chunkName=function_name)
-
-        # Without Transform
-        emitters = cmds.ls(typ='pointEmitter')
-        solvers = cmds.ls(typ='nucleus')
-        instancers = cmds.ls(typ='instancer')
-
-        no_transforms = emitters + instancers + solvers + instancers
-
-        # With Transform
-        nparticle_nodes = cmds.ls(typ='nParticle')
-        spring_nodes = cmds.ls(typ='spring')
-        particle_nodes = cmds.ls(typ='particle')
-        nrigid_nodes = cmds.ls(typ='nRigid')
-        ncloth_nodes = cmds.ls(typ='nCloth')
-        pfxhair_nodes = cmds.ls(typ='pfxHair')
-        hair_nodes = cmds.ls(typ='hairSystem')
-        nconstraint_nodes = cmds.ls(typ='dynamicConstraint')
-
-        transforms = nparticle_nodes + spring_nodes + particle_nodes + nrigid_nodes
-        transforms += ncloth_nodes + pfxhair_nodes + hair_nodes + nconstraint_nodes
-
-        # Fields/Solvers Types
-        # airField
-        # dragField
-        # newtonField
-        # radialField
-        # turbulenceField
-        # uniformField
-        # vortexField
-        # volumeAxisField
-
-        deleted_counter = 0
-        for obj in transforms:
-            try:
-                parent = cmds.listRelatives(obj, parent=True) or []
-                cmds.delete(parent[0])
-                deleted_counter += 1
-            except Exception as e:
-                logger.debug(str(e))
-        for obj in no_transforms:
-            try:
-                cmds.delete(obj)
-                deleted_counter += 1
-            except Exception as e:
-                logger.debug(str(e))
-
-        in_view_message = '<' + str(random.random()) + '>'
-        if deleted_counter > 0:
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter)
-            in_view_message += ' </span>'
-            is_plural = 'objects were'
-            if deleted_counter == 1:
-                is_plural = 'object was'
-            in_view_message += is_plural + ' deleted.'
-        else:
-            in_view_message += 'No nucleus nodes found in this scene.'
-
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-
-    except Exception as e:
-        errors += str(e) + '\n'
-        cmds.warning('An error occurred. Open the script editor for more information.')
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != '':
-        print('######## Errors: ########')
-        print(errors)
 
 
 def output_string_to_notepad(string, file_name='tmp'):
