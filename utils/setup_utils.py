@@ -135,7 +135,7 @@ def install_package(clean_install=True, verbose=True):
     print_when_true("Adding entry point to userSetup...", do_print=verbose)
     add_entry_point_to_maya_installs()
     copy_package_loader_to_maya_installs()
-    # remove_legacy_entry_point_from_maya_installs(verbose=verbose) # @@@
+    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose)
     if check_installation_integrity(package_target_folder):
@@ -257,6 +257,8 @@ def remove_entry_line(file_path, line_to_remove, delete_empty_file=True):
         file_path (str): File path, usually an "userSetup" file
         line_to_remove (str): String to remove from the userSetup file
         delete_empty_file (bool, optional): If file is empty after removing the entry line, it gets deleted.
+    Returns:
+        int: How many lines were found and removed
     """
     # Determine if file is available and create missing ones
     if not file_path or not os.path.exists(file_path):
@@ -265,19 +267,20 @@ def remove_entry_line(file_path, line_to_remove, delete_empty_file=True):
     # Find if line exists and store non-matching lines
     new_lines = []
     is_present = False
+    matching_line_counter = 0
     with open(file_path, "r+") as file:
         file_lines = file.readlines()
         for line in file_lines:
             if line.startswith(line_to_remove):
-                is_present = True
+                matching_line_counter += 1
             else:
                 new_lines.append(line)
     # Write file with lines that don't match entry line
-    if is_present:
+    if matching_line_counter > 0:
         with open(file_path, "w") as file:
             file.writelines(new_lines)
     if delete_empty_file:
-        content = ''
+        content = ""
         with open(file_path, "r") as file:
             content = file.read()
         if content.strip() == "":
@@ -285,6 +288,7 @@ def remove_entry_line(file_path, line_to_remove, delete_empty_file=True):
                 os.remove(file_path)
             except Exception as e:
                 logger.debug(f"Unable to delete empty file. Issue: {str(e)}")
+    return matching_line_counter
 
 
 def add_entry_point_to_maya_installs():
@@ -328,10 +332,10 @@ def remove_legacy_entry_point_from_maya_installs(verbose=True):
 
     """
     user_setup_list = generate_user_setup_list(only_existing=True)
-    if user_setup_list:
-        print_when_true("Legacy version detected. Removing legacy entry line...", do_print=verbose)
     for user_setup_path in user_setup_list:
-        remove_entry_line(file_path=user_setup_path, line_to_remove=PACKAGE_LEGACY_LINE)
+        removed_legacy_lines = remove_entry_line(file_path=user_setup_path, line_to_remove=PACKAGE_LEGACY_LINE)
+        if removed_legacy_lines > 0:
+            print_when_true("Legacy version detected. Removing legacy entry line...", do_print=verbose)
 
 
 def generate_scripts_dir_list(file_name, only_existing=False):
@@ -417,8 +421,7 @@ if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
-    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.DEBUG)
     out = None
     out = install_package()
-
     pprint(out)
