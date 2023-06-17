@@ -15,7 +15,7 @@ logger = logging.getLogger("gt_tools_loader")
 logger.setLevel(logging.INFO)
 
 
-def load_package():
+def load_package_menu():
     maya_preferences = os.path.dirname(cmds.about(preferences=True))
     package_path = os.path.join(maya_preferences, "gt-tools")
     if not os.path.isdir(package_path):
@@ -24,10 +24,10 @@ def load_package():
     if package_path not in sys.path:
         sys.path.append(package_path)
     try:
-        from ui import maya_menu
-        maya_menu.load_menu()
+        from tools.package_setup import gt_tools_maya_menu
+        gt_tools_maya_menu.load_menu()
     except Exception as e:
         logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
 
 
-utils.executeDeferred(load_package)
+utils.executeDeferred(load_package_menu)
