@@ -52,8 +52,8 @@ from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
 from maya import OpenMayaUI
-from rigger_biped_logic import *
-from rigger_data import *
+from tools.auto_rigger.rigger_biped_logic import *
+from tools.auto_rigger.rigger_data import *
 from ui import image_processor
 from tools.auto_rigger import rigger_corrective_logic
 from tools.auto_rigger import rigger_facial_logic
