@@ -195,7 +195,7 @@ def convert_joints_to_mesh(combine_mesh=True):
         return
     cmds.select(selection[0], replace=True)
     cmds.select(hierarchy=True)
-    joints = cmds.ls(selection=True, type='joint')
+    joints = cmds.ls(selection=True, type='joint', long=True)
 
     generated_mesh = []
     for obj in reversed(joints):
@@ -210,8 +210,10 @@ def convert_joints_to_mesh(combine_mesh=True):
                                            ch=False)
             generated_mesh.append(joint_sphere[0])
             cmds.delete(cmds.parentConstraint(obj, joint_sphere))
-            joint_parent = cmds.listRelatives(obj, parent=True) or []
-            if joint_parent:
+            joint_parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
+            if len(joint_parent) > 0:
+                joint_parent = joint_parent[0]
+            if joint_parent and joint_parent in joints:
                 joint_cone = cmds.polyCone(radius=radius * .5,
                                            subdivisionsAxis=4,
                                            name=joint_name + 'BoneMesh',
@@ -244,6 +246,6 @@ def convert_joints_to_mesh(combine_mesh=True):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-
+    convert_joints_to_mesh()
     out = None
     pprint(out)
