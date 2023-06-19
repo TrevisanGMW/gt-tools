@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 def load_package_menu(package_path=None):
     if not package_path:  # Find default install location
         maya_preferences = os.path.dirname(cmds.about(preferences=True))
-        package_path = os.path.join(maya_preferences, "gt-tools")
+        package_path = os.path.normpath(os.path.join(maya_preferences, "gt-tools"))
     if not os.path.isdir(package_path):
         logger.warning(f"Missing package files. Expected location: {str(package_path)}")
         return
@@ -32,4 +32,3 @@ def load_package_menu(package_path=None):
 
 
 utils.executeDeferred(load_package_menu)
-
