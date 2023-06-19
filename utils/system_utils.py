@@ -390,7 +390,7 @@ def process_launch_options(sys_args):
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
 
 
-def initialize_package(import_path, entry_point_function):
+def initialize_from_package(import_path, entry_point_function):
     """
     Attempts to import and execute the provided script using its entry point function
     Args:
@@ -428,8 +428,8 @@ def initialize_tool(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_package(import_path="tools." + import_path,
-                              entry_point_function=entry_point_function)
+    return initialize_from_package(import_path="tools." + import_path,
+                                   entry_point_function=entry_point_function)
 
 
 def initialize_utility(import_path, entry_point_function="launch_tool"):
@@ -445,8 +445,8 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_package(import_path="utils." + import_path,
-                              entry_point_function=entry_point_function)
+    return initialize_from_package(import_path="utils." + import_path,
+                                   entry_point_function=entry_point_function)
 
 
 def get_current_package_version():
@@ -471,8 +471,32 @@ def get_current_package_version():
         return "0.0.0"
 
 
+def launch_latest_maya_with_tools():
+    """
+    Opens the latest Maya version detected on the machine and injects the package loader script onto it causing the
+    package main maya menu to be loaded.
+    Essentially a "Run Only" option for the package and maya menu.
+    """
+    utils_dir = os.path.dirname(__file__)
+    package_loader_script = os.path.join(utils_dir, "data", "package_loader.py")  # utils/data/package_loader.py
+    package_dir = os.path.dirname(utils_dir)
+    file_content = ""
+    if os.path.exists(package_loader_script):
+        with open(package_loader_script, "r") as file:
+            file_content = file.read()
+    search_string = 'utils.executeDeferred(load_package_menu)'
+    replace_string = f'utils.executeDeferred(load_package_menu, """{str(package_dir)}""")'
+    injection_script = file_content.replace(search_string, replace_string)
+    launch_maya(python_script=injection_script)
+
+
+def initialize_package_from_current_location():
+    print("Todo")
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = get_current_package_version()
+    # out = get_current_package_version()
+    launch_latest_maya_with_tools()
     pprint(out)
