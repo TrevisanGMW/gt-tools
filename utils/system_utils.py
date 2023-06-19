@@ -343,6 +343,7 @@ def process_launch_options(sys_args):
     Returns:
         bool: True if a launch option was found an executed, otherwise None.
     """
+    print(sys_args)
     if not isinstance(sys_args, list):  # Initial type check
         raise TypeError(f'Provided argument is not a list. Please use "sys.argv" as input and try again.')
     if len(sys_args) == 0:  # Missing script name argument
@@ -368,15 +369,14 @@ def process_launch_options(sys_args):
         return True
     elif sys_args[1] == "-launch":
         if "-dev" in sys_args:
-            print("launch in dev mode...")
-        else:
-            try:
-                import maya.cmds as cmds
-                is_batch_mode = cmds.about(batch=True)
-                load_package_menu(launch_latest_maya=not is_batch_mode)
-            except Exception as e:
-                logger.debug(str(e))
-                load_package_menu(launch_latest_maya=True)  # Failed to import cmds, not in Maya
+            print("launch in dev mode...")  # WIP
+        try:
+            import maya.cmds as cmds
+            is_batch_mode = cmds.about(batch=True)
+            load_package_menu(launch_latest_maya=is_batch_mode)
+        except Exception as e:
+            logger.debug(str(e))
+            load_package_menu(launch_latest_maya=True)  # Failed to import cmds, not in Maya
         return True
     elif sys_args[1] == "-test":
         utils_dir = os.path.dirname(__file__)
