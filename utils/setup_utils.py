@@ -94,57 +94,6 @@ def remove_previous_install(target_path):
             shutil.rmtree(target_path)
 
 
-def install_package(clean_install=True, verbose=True):
-    """
-    Installs package in the Maya Settings directory
-    Args:
-        clean_install (optional, bool): Will first delete the package folder before copying files. (No overwrite)
-                                        Only deletes if the folder matches the name of the package. Default: True
-        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
-    Returns:
-        bool: True if function reached the end successfully
-    """
-    # If running in MayaPy - Initialize session
-    if is_script_in_py_maya():
-        print_when_true("Initializing Maya Standalone...", do_print=verbose)
-        import maya.standalone
-        maya.standalone.initialize()
-    # Find Install Target Directory - Maya Settings Dir
-    print_when_true("Fetching requirements...", do_print=verbose)
-    maya_settings_dir = get_maya_settings_dir()
-    if not os.path.exists(maya_settings_dir):
-        logger.warning(f'Unable to install package. Missing required path: "{maya_settings_dir}"')
-        return
-    # Find Source Install Directories
-    package_requirements = get_package_requirements()
-    if not package_requirements:
-        logger.warning(f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"')
-        return
-    # Clean install
-    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
-    if clean_install:
-        print_when_true("Removing previous install...", do_print=verbose)
-        remove_previous_install(package_target_folder)
-    # Create Package Folder
-    if not os.path.exists(package_target_folder):
-        os.makedirs(package_target_folder)
-    # Copy files and directories
-    print_when_true("Copying required files...", do_print=verbose)
-    copy_package_requirements(package_target_folder, package_requirements)
-    # Add Entry Point and loader script
-    print_when_true("Adding entry point to userSetup...", do_print=verbose)
-    add_entry_point_to_maya_installs()
-    copy_package_loader_to_maya_installs()
-    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
-    # Check installation integrity
-    print_when_true("Checking installation integrity...", do_print=verbose)
-    if check_installation_integrity(package_target_folder):
-        print_when_true("\nInstallation completed successfully!", do_print=verbose)
-        return True
-    else:
-        logger.warning(f'Installation failed integrity check. Package might not work as expected.')
-
-
 def check_installation_integrity(package_target_folder):
     """
     Checks if all requirements were copied to the installation folder
@@ -166,43 +115,6 @@ def check_installation_integrity(package_target_folder):
     if len(missing_list) > 0:
         print(f"Missing required files: {missing_string}")
         return False
-    return True
-
-
-def uninstall_package(verbose=True):
-    """
-    Uninstalls package from the Maya Settings directory
-    Parameters:
-        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
-    Returns:
-        bool: True if function reached the end successfully
-    """
-    # If running in MayaPy - Initialize session
-    if is_script_in_py_maya():
-        print_when_true("Initializing Maya Standalone...", do_print=verbose)
-        import maya.standalone
-        maya.standalone.initialize()
-    # Find Install Target Directory - Maya Settings Dir
-    print_when_true("Fetching install location...", do_print=verbose)
-    maya_settings_dir = get_maya_settings_dir()
-    if not os.path.exists(maya_settings_dir):
-        logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_settings_dir}"')
-        return
-    # Find Source Install Directories
-    print_when_true("Checking installed files...", do_print=verbose)
-    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
-    if not os.path.exists(package_target_folder):
-        logger.warning(f'Unable to uninstall package. No previous installation detected.')
-        return
-    # Clean install
-    print_when_true("Removing package...", do_print=verbose)
-    remove_previous_install(package_target_folder)
-    # Remove entry point and loader script
-    print_when_true("Removing entry point lines...", do_print=verbose)
-    remove_entry_point_from_maya_installs()
-    print_when_true("Removing loader scripts...", do_print=verbose)
-    remove_package_loader_from_maya_installs()
-    print_when_true("\nUninstallation completed successfully!", do_print=verbose)
     return True
 
 
@@ -423,6 +335,94 @@ def remove_package_loader_from_maya_installs():
                 os.remove(file)
             except Exception as e:
                 logger.warning(f"Unable to remove loader file. Issue: {str(e)}")
+
+
+def install_package(clean_install=True, verbose=True):
+    """
+    Installs package in the Maya Settings directory
+    Args:
+        clean_install (optional, bool): Will first delete the package folder before copying files. (No overwrite)
+                                        Only deletes if the folder matches the name of the package. Default: True
+        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
+    Returns:
+        bool: True if function reached the end successfully
+    """
+    # If running in MayaPy - Initialize session
+    if is_script_in_py_maya():
+        print_when_true("Initializing Maya Standalone...", do_print=verbose)
+        import maya.standalone
+        maya.standalone.initialize()
+    # Find Install Target Directory - Maya Settings Dir
+    print_when_true("Fetching requirements...", do_print=verbose)
+    maya_settings_dir = get_maya_settings_dir()
+    if not os.path.exists(maya_settings_dir):
+        logger.warning(f'Unable to install package. Missing required path: "{maya_settings_dir}"')
+        return
+    # Find Source Install Directories
+    package_requirements = get_package_requirements()
+    if not package_requirements:
+        logger.warning(f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"')
+        return
+    # Clean install
+    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
+    if clean_install:
+        print_when_true("Removing previous install...", do_print=verbose)
+        remove_previous_install(package_target_folder)
+    # Create Package Folder
+    if not os.path.exists(package_target_folder):
+        os.makedirs(package_target_folder)
+    # Copy files and directories
+    print_when_true("Copying required files...", do_print=verbose)
+    copy_package_requirements(package_target_folder, package_requirements)
+    # Add Entry Point and loader script
+    print_when_true("Adding entry point to userSetup...", do_print=verbose)
+    add_entry_point_to_maya_installs()
+    copy_package_loader_to_maya_installs()
+    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
+    # Check installation integrity
+    print_when_true("Checking installation integrity...", do_print=verbose)
+    if check_installation_integrity(package_target_folder):
+        print_when_true("\nInstallation completed successfully!", do_print=verbose)
+        return True
+    else:
+        logger.warning(f'Installation failed integrity check. Package might not work as expected.')
+
+
+def uninstall_package(verbose=True):
+    """
+    Uninstalls package from the Maya Settings directory
+    Parameters:
+        verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
+    Returns:
+        bool: True if function reached the end successfully
+    """
+    # If running in MayaPy - Initialize session
+    if is_script_in_py_maya():
+        print_when_true("Initializing Maya Standalone...", do_print=verbose)
+        import maya.standalone
+        maya.standalone.initialize()
+    # Find Install Target Directory - Maya Settings Dir
+    print_when_true("Fetching install location...", do_print=verbose)
+    maya_settings_dir = get_maya_settings_dir()
+    if not os.path.exists(maya_settings_dir):
+        logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_settings_dir}"')
+        return
+    # Find Source Install Directories
+    print_when_true("Checking installed files...", do_print=verbose)
+    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
+    if not os.path.exists(package_target_folder):
+        logger.warning(f'Unable to uninstall package. No previous installation detected.')
+        return
+    # Clean install
+    print_when_true("Removing package...", do_print=verbose)
+    remove_previous_install(package_target_folder)
+    # Remove entry point and loader script
+    print_when_true("Removing entry point lines...", do_print=verbose)
+    remove_entry_point_from_maya_installs()
+    print_when_true("Removing loader scripts...", do_print=verbose)
+    remove_package_loader_from_maya_installs()
+    print_when_true("\nUninstallation completed successfully!", do_print=verbose)
+    return True
 
 
 if __name__ == "__main__":
