@@ -10,6 +10,7 @@ for to_append in [source_dir, tools_root_dir]:
         sys.path.append(to_append)
 
 from utils import session_utils
+import setup_controller
 import setup_view
 
 
@@ -27,18 +28,39 @@ def get_maya_main_window():
 
 
 def build_installer_gui(standalone=True):
+    """
+    Creates installer GUI
+    Parameters:
+        standalone (bool, optional): If true, it will run the tool without the Maya window dependency.
+                                     If false, it will attempt to retrieve the name of the main maya window as parent.
+    """
     if standalone:
         app = QApplication(sys.argv)
-        window = setup_view.PackageSetupWindow()
-        window.show()
-        sys.exit(app.exec_())
+        _window = setup_view.PackageSetupWindow()
+
     else:
         maya_window = get_maya_main_window()
-        window = setup_view.PackageSetupWindow(parent=maya_window)
-        window.show()
+        _window = setup_view.PackageSetupWindow(parent=maya_window)
+
+    # Create connections
+    _controller = setup_controller.PackageSetupController()
+    _window.controller = _controller  # To avoid garbage collection
+    _window.ButtonInstallClicked.connect(_controller.install_package)
+    _window.ButtonUninstallClicked.connect(_controller.uninstall_package)
+
+    # Show window
+    if standalone:
+        _window.show()
+        sys.exit(app.exec_())
+        print("show standalone")
+    else:
+        _window.show()
+        print("show maya")
+    return _window
 
 
 def launcher_entry_point():
+    """ Determines if it should open the installer GUI as a child of Maya or by itself """
     if session_utils.is_script_in_py_maya():
         build_installer_gui(standalone=True)
     else:
@@ -46,6 +68,7 @@ def launcher_entry_point():
 
 
 def open_about_window():
+    """ Opens about window for the package """
     import about_window
     about_window.build_gui_about_gt_tools()
 

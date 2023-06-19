@@ -9,16 +9,17 @@ from PySide2 import QtWidgets, QtCore
 
 
 class PackageSetupWindow(QtWidgets.QDialog):
-    ButtonInstallClicked = QtCore.Signal(object)
-    ButtonUninstallClicked = QtCore.Signal(object)
+    ButtonInstallClicked = QtCore.Signal()
+    ButtonUninstallClicked = QtCore.Signal()
+    ButtonRunOnlyClicked = QtCore.Signal()
 
     def __init__(self, parent=None, controller=None):
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.text_field = None
         self.label_text_field = None
-        self.add_btn = None
-        self.print_btn = None
+        self.install_btn = None
+        self.uninstall_btn = None
         self.close_btn = None
         # Setup Window
         _min_width = 500
@@ -61,8 +62,8 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.text_field = QtWidgets.QLineEdit()
         self.text_field.setPlaceholderText('hello world')
 
-        self.add_btn = QtWidgets.QPushButton('Install')
-        self.print_btn = QtWidgets.QPushButton('Uninstall')
+        self.install_btn = QtWidgets.QPushButton('Install')
+        self.uninstall_btn = QtWidgets.QPushButton('Uninstall')
         self.close_btn = QtWidgets.QPushButton('Cancel')
 
     def create_layout(self):
@@ -78,8 +79,8 @@ class PackageSetupWindow(QtWidgets.QDialog):
         # Buttons Bottom
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addStretch()
-        button_layout.addWidget(self.add_btn)
-        button_layout.addWidget(self.print_btn)
+        button_layout.addWidget(self.install_btn)
+        button_layout.addWidget(self.uninstall_btn)
         button_layout.addWidget(self.close_btn)
 
         # Build Main Layout
@@ -91,19 +92,19 @@ class PackageSetupWindow(QtWidgets.QDialog):
 
     def create_connections(self):
         """ Create Connections """
-        self.add_btn.clicked.connect(self.button_add_clicked)
-        self.print_btn.clicked.connect(self.button_print_clicked)
+        self.install_btn.clicked.connect(self.button_install_clicked)
+        self.uninstall_btn.clicked.connect(self.button_uninstall_clicked)
         self.close_btn.clicked.connect(self.close_window)
 
     def close_window(self):
         """ Closes this window """
         self.close()
 
-    def button_add_clicked(self):
+    def button_install_clicked(self):
         """ Emits ButtonInstallClicked signal """
-        self.ButtonInstallClicked.emit(self.text_field.text())
+        self.ButtonInstallClicked.emit()
 
-    def button_print_clicked(self):
+    def button_uninstall_clicked(self):
         """ Emits ButtonUninstallClicked signal """
         self.ButtonUninstallClicked.emit()
 
