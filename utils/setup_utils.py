@@ -72,9 +72,10 @@ def copy_package_requirements(target_folder, package_requirements):
     # Copy
     for requirement, requirement_path in package_requirements.items():
         if os.path.isdir(requirement_path):  # Directories
+
             shutil.copytree(src=requirement_path,
                             dst=os.path.join(target_folder, requirement),
-                            dirs_exist_ok=True,
+                            # dirs_exist_ok=True,  # Not needed for now + Only available on Python 3.8+
                             ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
         elif os.path.isfile(requirement_path):  # Files
             shutil.copy(requirement_path, target_folder)
@@ -431,6 +432,6 @@ if __name__ == "__main__":
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    # out = install_package()
-    out = uninstall_package()
+    out = install_package()
+    # out = uninstall_package()
     pprint(out)
