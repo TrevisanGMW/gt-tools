@@ -370,7 +370,13 @@ def process_launch_options(sys_args):
         if "-dev" in sys_args:
             print("launch in dev mode...")
         else:
-            print("launch...")
+            try:
+                import maya.cmds as cmds
+                is_batch_mode = cmds.about(batch=True)
+                load_package_menu(launch_latest_maya=not is_batch_mode)
+            except Exception as e:
+                logger.debug(str(e))
+                load_package_menu(launch_latest_maya=True)  # Failed to import cmds, not in Maya
         return True
     elif sys_args[1] == "-test":
         utils_dir = os.path.dirname(__file__)
@@ -471,11 +477,15 @@ def get_current_package_version():
         return "0.0.0"
 
 
-def launch_latest_maya_with_tools():
+def load_package_menu(launch_latest_maya=False):
     """
-    Opens the latest Maya version detected on the machine and injects the package loader script onto it causing the
-    package main maya menu to be loaded.
+    Loads the script from the current location, so it can be used without installing it.
+    It can also open the latest Maya version detected on the machine and injects the package loader script onto it
+    causing the package main maya menu to be loaded from start.
     Essentially a "Run Only" option for the package and maya menu.
+    Parameters:
+        launch_latest_maya (bool, optional): If true, it will launch the latest detected version of Maya and inject
+                                            the necessary code to import the package and create its maya menu.
     """
     utils_dir = os.path.dirname(__file__)
     package_loader_script = os.path.join(utils_dir, "data", "package_loader.py")  # utils/data/package_loader.py
@@ -487,16 +497,20 @@ def launch_latest_maya_with_tools():
     search_string = 'utils.executeDeferred(load_package_menu)'
     replace_string = f'utils.executeDeferred(load_package_menu, """{str(package_dir)}""")'
     injection_script = file_content.replace(search_string, replace_string)
-    launch_maya(python_script=injection_script)
-
-
-def initialize_package_from_current_location():
-    print("Todo")
+    if launch_latest_maya:
+        launch_maya(python_script=injection_script)
+    else:
+        if package_dir not in sys.path:
+            sys.path.append(package_dir)
+        try:
+            from tools.package_setup import gt_tools_maya_menu
+            gt_tools_maya_menu.load_menu()
+        except Exception as e:
+            logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
 
 
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    # out = get_current_package_version()
-    launch_latest_maya_with_tools()
+    out = get_current_package_version()
     pprint(out)
