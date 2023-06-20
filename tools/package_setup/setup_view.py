@@ -4,7 +4,7 @@ QT View example - This script should only emit signals and deal with UI (View) -
 import ui.resource_library as resource_library
 import ui.qt_utils as qt_utils
 import sys
-from PySide2.QtGui import QPixmap, QIcon
+from PySide2.QtGui import QPixmap, QIcon, QFont
 from PySide2 import QtWidgets, QtCore
 
 
@@ -81,10 +81,13 @@ class PackageSetupWindow(QtWidgets.QDialog):
         # Versions and Status
         self.label_setup_version = QtWidgets.QLabel("Setup Version:")
         self.text_setup_version = QtWidgets.QLabel("?.?.?")
+        self.text_setup_version.setStyleSheet("color: green; font-weight: bold;")
         self.label_installed_version = QtWidgets.QLabel("Installed Version:")
         self.text_installed_version = QtWidgets.QLabel("?.?.?")
+        self.text_installed_version.setStyleSheet("color: green; font-weight: bold;")
         self.label_status = QtWidgets.QLabel("Status:")
         self.text_status = QtWidgets.QLabel("<status_placeholder>")
+        self.text_status.setStyleSheet("color: green; font-weight: bold;")
 
         # Buttons
         self.install_btn = QtWidgets.QPushButton('Install')
