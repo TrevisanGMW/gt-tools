@@ -1,4 +1,5 @@
 from PySide2.QtWidgets import QWidget, QApplication
+import logging
 import sys
 import os
 
@@ -12,6 +13,11 @@ for to_append in [source_dir, tools_root_dir]:
 from utils import session_utils
 import setup_controller
 import setup_view
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger("package_setup")
+logger.setLevel(logging.INFO)
 
 
 def get_maya_main_window():
@@ -34,29 +40,40 @@ def build_installer_gui(standalone=True):
         standalone (bool, optional): If true, it will run the tool without the Maya window dependency.
                                      If false, it will attempt to retrieve the name of the main maya window as parent.
     """
+    # Determine Parent
     if standalone:
         app = QApplication(sys.argv)
-        _window = setup_view.PackageSetupWindow()
-
+        _view = setup_view.PackageSetupWindow()
     else:
         maya_window = get_maya_main_window()
-        _window = setup_view.PackageSetupWindow(parent=maya_window)
+        _view = setup_view.PackageSetupWindow(parent=maya_window)
 
     # Create connections
     _controller = setup_controller.PackageSetupController()
-    _window.controller = _controller  # To avoid garbage collection
-    _window.ButtonInstallClicked.connect(_controller.install_package)
-    _window.ButtonUninstallClicked.connect(_controller.uninstall_package)
+    _view.controller = _controller  # To avoid garbage collection
+
+    # Buttons
+    _view.ButtonInstallClicked.connect(_controller.install_package)
+    _view.ButtonUninstallClicked.connect(_controller.uninstall_package)
+    _view.ButtonRunOnlyClicked.connect(_controller.run_only_package)
+
+    # Feedback
+    _controller.UpdatePath.connect(_view.update_installation_path_text_field)
+    _controller.UpdateVersion.connect(_view.update_version_texts)
+    _controller.UpdateStatus.connect(_view.update_status_text)
+
+    # Initial Update
+    _controller.update_path()
+    _controller.update_version()
+    _controller.update_status()
 
     # Show window
     if standalone:
-        _window.show()
+        _view.show()
         sys.exit(app.exec_())
-        print("show standalone")
     else:
-        _window.show()
-        print("show maya")
-    return _window
+        _view.show()
+    return _view
 
 
 def launcher_entry_point():
