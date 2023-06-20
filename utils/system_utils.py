@@ -343,7 +343,6 @@ def process_launch_options(sys_args):
     Returns:
         bool: True if a launch option was found an executed, otherwise None.
     """
-    print(sys_args)
     if not isinstance(sys_args, list):  # Initial type check
         raise TypeError(f'Provided argument is not a list. Please use "sys.argv" as input and try again.')
     if len(sys_args) == 0:  # Missing script name argument
@@ -455,18 +454,25 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
                                    entry_point_function=entry_point_function)
 
 
-def get_current_package_version():
+def get_package_version(package_path=None):
     """
-    Gets the current package version, independently of the package folder name.
+    Gets the package version, independently of the package folder name.
+    Parameters:
+        package_path (str, optional): If provided, the path will be used to determine the package path.
+                                      It assumes that the package is using the same variable name "PACKAGE_VERSION"
     Returns:
         str: Package version as a string. "major.minor.patch"
         e.g. "3.0.0"
     """
-    utils_dir = os.path.dirname(__file__)
-    package_dir = os.path.dirname(utils_dir)
+    package_dir = package_path
+    if package_path and os.path.exists(str(package_path)) is False:
+        return "0.0.0"
+    if package_path is None:
+        utils_dir = os.path.dirname(__file__)
+        package_dir = os.path.dirname(utils_dir)
     package_basename = os.path.basename(package_dir)
     package_parent_dir = os.path.dirname(package_dir)
-    # Ensure package parent is available
+    # Ensure package parent path is available
     if package_parent_dir not in sys.path:
         sys.path.append(package_parent_dir)
     try:
@@ -512,5 +518,5 @@ def load_package_menu(launch_latest_maya=False):
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = get_current_package_version()
+    out = get_package_version()
     pprint(out)
