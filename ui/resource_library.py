@@ -87,6 +87,7 @@ class Icon:
     cog_icon = get_icon_path(r"cog.svg")
     maya_to_discord_icon = get_icon_path(r"maya_to_discord.png")
     fspy_importer = get_icon_path(r"fspy_importer.png")
+    root_general = get_icon_path(r"root_general.svg")
 
 
 class Stylesheet:

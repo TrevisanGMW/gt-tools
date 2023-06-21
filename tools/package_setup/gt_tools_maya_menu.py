@@ -66,7 +66,8 @@ def load_menu(*args):
     menu = MayaMenu("GT Tools")
     # ------------------------------------ General / Tools ------------------------------------
     menu.add_sub_menu("General",
-                      icon="toolSettings.png",
+                      icon=resource_library.Icon.root_general,
+                      # icon="toolSettings.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Renamer',
                        command=partial(_open_named_tool, "renamer"),
