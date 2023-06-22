@@ -67,7 +67,6 @@ def load_menu(*args):
     # ------------------------------------ General / Tools ------------------------------------
     menu.add_sub_menu("General",
                       icon=resource_library.Icon.root_general,
-                      # icon="toolSettings.png",
                       parent_to_root=True)
     menu.add_menu_item(label='Renamer',
                        command=partial(_open_named_tool, "renamer"),
@@ -109,7 +108,7 @@ def load_menu(*args):
 
     # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves",
-                      icon="out_stroke.png",
+                      icon=resource_library.Icon.root_curves,
                       parent_to_root=True)
     menu.add_menu_item(label='Extract Python Curve',
                        command=partial(_open_named_tool, "shape_curve_to_python"),
