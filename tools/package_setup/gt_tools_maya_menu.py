@@ -168,7 +168,7 @@ def load_menu(*args):
                        icon='polyBakeSetEdit.png')
     # ------------------------------------ Rigging ------------------------------------
     menu.add_sub_menu("Rigging",
-                      icon="kinReroot.png",
+                      icon=resource_library.Icon.root_rigging,
                       parent_to_root=True)
     menu.add_menu_item(label='Biped Auto Rigger',
                        command=partial(_open_named_tool, "auto_rigger"),

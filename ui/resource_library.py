@@ -91,6 +91,7 @@ class Icon:
     root_general = get_icon_path(r"root_general.svg")
     root_curves = get_icon_path(r"root_curves.svg")
     root_modeling = get_icon_path(r"root_modeling.svg")
+    root_rigging = get_icon_path(r"root_rigging.svg")
 
 
 class Stylesheet:
