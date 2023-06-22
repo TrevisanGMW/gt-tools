@@ -92,7 +92,7 @@ class Icon:
     root_rigging = get_icon_path(r"root_rigging.svg")
     # Tools
     maya_to_discord_icon = get_icon_path(r"maya_to_discord.svg")
-    fspy_importer = get_icon_path(r"fspy_importer.png")
+    fspy_importer = get_icon_path(r"fspy_importer.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
