@@ -135,7 +135,7 @@ def load_menu(*args):
 
     # ------------------------------------ Modeling ------------------------------------
     menu.add_sub_menu("Modeling",
-                      icon="mesh.svg",
+                      icon=resource_library.Icon.root_modeling,
                       parent_to_root=True)
     menu.add_menu_item(label='Transfer UVs',
                        command=partial(_open_named_tool, "transfer_uvs"),
