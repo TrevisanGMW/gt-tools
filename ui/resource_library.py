@@ -91,9 +91,15 @@ class Icon:
     root_modeling = get_icon_path(r"root_modeling.svg")
     root_rigging = get_icon_path(r"root_rigging.svg")
     root_utilities = get_icon_path(r"root_utilities.svg")
+    root_miscellaneous = get_icon_path(r"root_miscellaneous.svg")
+    root_help = get_icon_path(r"root_help.svg")
     # Tools
     maya_to_discord_icon = get_icon_path(r"maya_to_discord.svg")
     fspy_importer = get_icon_path(r"fspy_importer.svg")
+    render_calculator = get_icon_path(r"render_calculator.svg")
+    startup_booster = get_icon_path(r"startup_booster.svg")
+    renamer = get_icon_path(r"renamer.svg")
+    outliner_sorter = get_icon_path(r"outliner_sorter.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")

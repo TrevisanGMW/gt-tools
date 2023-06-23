@@ -71,11 +71,11 @@ def load_menu(*args):
     menu.add_menu_item(label='Renamer',
                        command=partial(_open_named_tool, "renamer"),
                        tooltip='Script for renaming multiple objects.',
-                       icon='renamePreset.png')
+                       icon=resource_library.Icon.renamer)
     menu.add_menu_item(label='Outliner Sorter',
                        command=partial(_open_named_tool, "outliner_sorter"),
                        tooltip='Manages the order of the elements in the outliner.',
-                       icon='outliner.png')
+                       icon=resource_library.Icon.outliner_sorter)
     menu.add_menu_item(label='Selection Manager',
                        command=partial(_open_named_tool, "selection_manager"),
                        tooltip='Manages or creates custom selections.',
@@ -357,12 +357,12 @@ def load_menu(*args):
 
     # ------------------------------------ Miscellaneous ------------------------------------
     menu.add_sub_menu("Miscellaneous",
-                      icon="bin.png",
+                      icon=resource_library.Icon.root_miscellaneous,
                       parent_to_root=True)
     menu.add_menu_item(label='Startup Booster',
                        command=partial(_open_named_tool, "startup_booster"),
                        tooltip='Improve startup times by managing which plugins get loaded when starting Maya.',
-                       icon='out_time.png')
+                       icon=resource_library.Icon.startup_booster)
     menu.add_menu_item(label='fSpy Importer',
                        command=partial(_open_named_tool, "fspy_importer"),
                        tooltip='Imports the JSON data exported out of fSpy (Camera Matching software).',
@@ -375,12 +375,12 @@ def load_menu(*args):
     menu.add_menu_item(label='Render Calculator',
                        command=partial(_open_named_tool, "render_calculator"),
                        tooltip="Helps calculate how long it's going to take to render an image sequence.",
-                       icon='render.png')
+                       icon=resource_library.Icon.render_calculator)
 
     # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
     menu.add_sub_menu("Help",
-                      icon="defaultOutliner.svg",
+                      icon=resource_library.Icon.root_help,
                       parent_to_root=True)
     menu.add_menu_item(label='About',
                        command=partial(_open_named_tool, "package_setup", "open_about_window"),
