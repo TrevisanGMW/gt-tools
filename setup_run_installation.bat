@@ -90,7 +90,7 @@ if not exist "%path_mayapy%" (
 	"%path_mayapy%" %path_package_init% %launch_option%
     )
 endlocal
-GOTO PAUSE
+GOTO TIMED_EXIT
 
 
 :ABOUT
@@ -128,6 +128,9 @@ GOTO MENU
 
 :PAUSE
 pause
+
+:TIMED_EXIT
+timeout /t 3 /nobreak
 
 :EOF
 EXIT
