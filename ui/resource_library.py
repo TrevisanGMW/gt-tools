@@ -90,6 +90,7 @@ class Icon:
     root_curves = get_icon_path(r"root_curves.svg")
     root_modeling = get_icon_path(r"root_modeling.svg")
     root_rigging = get_icon_path(r"root_rigging.svg")
+    root_utilities = get_icon_path(r"root_utilities.svg")
     # Tools
     maya_to_discord_icon = get_icon_path(r"maya_to_discord.svg")
     fspy_importer = get_icon_path(r"fspy_importer.svg")

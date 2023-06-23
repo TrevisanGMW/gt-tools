@@ -231,7 +231,7 @@ def load_menu(*args):
 
     # ------------------------------------ Utilities ------------------------------------
     menu.add_sub_menu("Utilities",
-                      icon="bsd-head.png",
+                      icon=resource_library.Icon.root_utilities,
                       parent_to_root=True)
     menu.add_menu_item(label='Reload File',
                        command=partial(_run_utility, "scene_utils", "force_reload_file"),
