@@ -83,7 +83,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Path Manager',
                        command=partial(_open_named_tool, "path_manager"),
                        tooltip='A script for managing and repairing the path of many nodes.',
-                       icon='annotation.png')
+                       icon=resource_library.Icon.path_manager)
     menu.add_menu_item(label='Color Manager',
                        command=partial(_open_named_tool, "color_manager"),
                        tooltip='A way to quickly change colors of objects and objects names (outliner).',
