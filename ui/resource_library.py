@@ -100,6 +100,7 @@ class Icon:
     startup_booster = get_icon_path(r"startup_booster.svg")
     renamer = get_icon_path(r"renamer.svg")
     outliner_sorter = get_icon_path(r"outliner_sorter.svg")
+    selection_manager = get_icon_path(r"selection_manager.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")

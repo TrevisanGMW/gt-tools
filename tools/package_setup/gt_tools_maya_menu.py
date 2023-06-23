@@ -79,7 +79,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Selection Manager',
                        command=partial(_open_named_tool, "selection_manager"),
                        tooltip='Manages or creates custom selections.',
-                       icon='selectByHierarchy.png')
+                       icon=resource_library.Icon.selection_manager)
     menu.add_menu_item(label='Path Manager',
                        command=partial(_open_named_tool, "path_manager"),
                        tooltip='A script for managing and repairing the path of many nodes.',
