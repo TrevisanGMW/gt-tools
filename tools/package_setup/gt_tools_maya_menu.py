@@ -87,7 +87,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Color Manager',
                        command=partial(_open_named_tool, "color_manager"),
                        tooltip='A way to quickly change colors of objects and objects names (outliner).',
-                       icon='render_swColorPerVertex.png')
+                       icon=resource_library.Icon.color_manager)
     menu.add_menu_item(label='Transfer Transforms',
                        command=partial(_open_named_tool, "transfer_transforms"),
                        tooltip='Script for quickly transferring Translate, Rotate, and Scale between objects.',
