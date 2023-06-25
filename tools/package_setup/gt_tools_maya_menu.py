@@ -91,20 +91,20 @@ def load_menu(*args):
     menu.add_menu_item(label='Transfer Transforms',
                        command=partial(_open_named_tool, "transfer_transforms"),
                        tooltip='Script for quickly transferring Translate, Rotate, and Scale between objects.',
-                       icon='transform.svg')
+                       icon=resource_library.Icon.transfer_transforms)
     menu.add_menu_item(label='World Space Baker',
                        command=partial(_open_named_tool, "world_space_baker"),
                        tooltip='Script for getting and setting translate and rotate world space data.',
-                       icon='buttonManip.svg')
+                       icon=resource_library.Icon.world_space_baker)
     menu.add_menu_item(label='Attributes to Python',
                        command=partial(_open_named_tool, "attributes_to_python"),
                        tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
-                       icon='attributes.png')
+                       icon=resource_library.Icon.attributes_to_python)
     menu.add_menu_item(label='Render Checklist',
                        command=partial(_open_named_tool, "render_checklist"),
                        tooltip='Performs a series of checks to detect common issues that are often accidentally '
                                'ignored/unnoticed.',
-                       icon='checkboxOn.png')
+                       icon=resource_library.Icon.render_checklist)
 
     # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves",
