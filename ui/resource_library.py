@@ -103,6 +103,10 @@ class Icon:
     selection_manager = get_icon_path(r"selection_manager.svg")
     path_manager = get_icon_path(r"path_manager.svg")
     color_manager = get_icon_path(r"color_manager.svg")
+    transfer_transforms = get_icon_path(r"transfer_transforms.svg")
+    world_space_baker = get_icon_path(r"world_space_baker.svg")
+    attributes_to_python = get_icon_path(r"attributes_to_python.svg")
+    render_checklist = get_icon_path(r"render_checklist.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
