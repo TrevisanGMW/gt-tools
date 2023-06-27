@@ -11,7 +11,6 @@ except ModuleNotFoundError:
 
 import logging
 import inspect
-import sys
 import os
 
 logging.basicConfig()
@@ -70,9 +69,24 @@ def get_attribute(obj_name, attr_name, *args, **kwargs):
     return cmds.getAttr(f"{obj_name}.{attr_name}", *args, **kwargs)
 
 
-def get_data_dir_path():
+def list_objects(*args, **kwargs):
+    """
+    Same as "cmds.ls()"
+    "ls" relevant parameters:
+        selection (bool): List objects that are currently selected.
+        long (bool): Return full path names for Dag objects. By default the shortest unique name is returned.
+    Returns:
+        list: A list of objects found in the scene (according to provided parameters)
+    """
+    return cmds.ls(*args, **kwargs)
+
+
+def get_data_dir_path(module=None):
     """
     Get a path to the data folder using the path from where this script was called.
+    NOTE: It does NOT return the expected path when called from inside a function in this same module.
+    Parameters:
+        module (module, optional): Module object used to define source path. If not provided caller is used.
     Returns:
         Path to the data folder of the caller script.
         pattern:  ".../<caller-script-dir>/data"
@@ -80,19 +94,11 @@ def get_data_dir_path():
              then the output would be ".../test_utils/data"
              ("..." being the variable portion of the directory path)
     """
-    caller = inspect.getsourcefile(sys._getframe(1))
-    return os.path.join(os.path.dirname(caller), "data")
-
-
-def get_data_file_path(file_name):
-    """
-    Open files from inside the test_*/data folder
-    Args:
-        file_name: Name of the file (must exist)
-    """
-    test_data_folder = get_data_dir_path()
-    requested_file = os.path.join(test_data_folder, file_name)
-    return requested_file
+    if not module:
+        frame = inspect.stack()[1]
+        module = inspect.getmodule(frame[0])
+    script_path = os.path.abspath(module.__file__)
+    return os.path.join(os.path.dirname(script_path), "data")
 
 
 def is_plugin_loaded(plugin):
@@ -141,7 +147,7 @@ def import_file(file_path):
         file_path (str): Path to the file_path to open
 
     Returns:
-        str: Imported objects. (result of the "cmds.file(returnNewNodes=True)" function)
+        list: Imported objects. (result of the "cmds.file(returnNewNodes=True)" function)
     """
     if file_path.split('.')[-1] == 'fbx':  # Make sure "fbxmaya" is available
         load_plugins(['fbxmaya'])
@@ -166,11 +172,16 @@ def import_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
     It automatically determines the location of the data folder using "get_data_dir_path()"
-    Args:
+    Parameters:
         file_name: Name of the file_path (must exist)
+    Returns:
+        list: Imported objects. (result of the "cmds.file(returnNewNodes=True)" function)
     """
-    file_to_import = get_data_file_path(file_name)
-    cmds.file(file_to_import, i=True)
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0])
+    script_path = get_data_dir_path(module=module)
+    file_to_import = os.path.join(script_path, file_name)
+    return cmds.file(file_to_import, i=True, returnNewNodes=True)
 
 
 def open_data_file(file_name):
@@ -180,8 +191,11 @@ def open_data_file(file_name):
     Args:
         file_name: Name of the file (must exist)
     """
-    file_to_import = get_data_file_path(file_name)
-    open_file(file_to_import)
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0])
+    script_path = get_data_dir_path(module=module)
+    file_to_import = os.path.join(script_path, file_name)
+    return open_file(file_to_import)
 
 
 def import_maya_standalone(initialize=True):

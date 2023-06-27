@@ -8,50 +8,15 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Test Session Utilities
-tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-if tools_root_dir not in sys.path:
-    sys.path.append(tools_root_dir)
+# Import Tested Utility and Maya Test Tools
+test_utils_dir = os.path.dirname(__file__)
+tests_dir = os.path.dirname(test_utils_dir)
+package_root_dir = os.path.dirname(tests_dir)
+for to_append in [package_root_dir, tests_dir]:
+    if to_append not in sys.path:
+        sys.path.append(to_append)
+from tests import maya_test_tools
 from utils import namespace_utils
-
-
-try:
-    import maya.cmds as cmds
-    import maya.standalone
-    import maya.mel as mel
-    import maya.OpenMaya as OpenMaya
-except Exception as e:
-    logger.debug(str(e))
-    logger.warning("Unable load maya cmds, maya standalone, mel or OpenMaya")
-
-
-def get_data_dir_path():
-    """
-    Returns:
-        Path to the data folder. e.g. ".../test_utils/data"
-    """
-    return os.path.join(os.path.dirname(__file__), "data")
-
-
-def get_test_file_path(file_name):
-    """
-    Open files from inside the test_*/data folder
-    Args:
-        file_name: Name of the file (must exist)
-    """
-    test_data_folder = get_data_dir_path()
-    requested_file = os.path.join(test_data_folder, file_name)
-    return requested_file
-
-
-def import_scene(file_name):
-    """
-    Open files from inside the test_*/data folder
-    Args:
-        file_name: Name of the file (must exist)
-    """
-    file_to_import = get_test_file_path(file_name)
-    cmds.file(file_to_import, i=True)
 
 
 def import_namespace_test_scene():
@@ -59,16 +24,17 @@ def import_namespace_test_scene():
     Open files from inside the test_*/data folder/cube_namespaces.mb
     Scene contains a cube named: "parentNS:childNS:grandchildNS:pCube1"
     """
-    import_scene("cube_namespaces.mb")
+    # import_scene("cube_namespaces.mb")
+    maya_test_tools.import_data_file("cube_namespaces.mb")
 
 
 class TestNamespaceUtils(unittest.TestCase):
     def setUp(self):
-        cmds.file(new=True, force=True)
+        maya_test_tools.force_new_scene()
 
     @classmethod
     def setUpClass(cls):
-        maya.standalone.initialize()  # Start Maya Headless (mayapy.exe)
+        maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_get_namespaces_string(self):
         import_namespace_test_scene()
@@ -106,6 +72,6 @@ class TestNamespaceUtils(unittest.TestCase):
     def test_strip_namespace(self):
         import_namespace_test_scene()
         with namespace_utils.StripNamespace('parentNS:childNS:grandChildNS:') as stripped_nodes:
-            result = cmds.ls(stripped_nodes)
+            result = maya_test_tools.list_objects(stripped_nodes)
             expected = ['pCube1']
             self.assertEqual(expected, result)
