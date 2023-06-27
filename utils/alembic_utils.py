@@ -94,11 +94,12 @@ class AlembicNode:
         self.start_time = cmds.getAttr(f"{alembic_node}.startFrame")
         self.end_time = cmds.getAttr(f"{alembic_node}.endFrame")
         self.cycle_type = get_alembic_cycle_as_string(alembic_node)
-        self.transform = self.get_root_transform(alembic_node)
+        # self.transform = self.get_root_transform(alembic_node)
         self.mesh_cache = cmds.getAttr(f"{alembic_node}.abc_File")
         # self.keyframes = getKeyFrames(self.get_root_node(alembic_node))
 
-    def get_root_node(self, alembic_node):
+    @staticmethod
+    def get_root_node(alembic_node):
         """
         WIP
         """
@@ -137,7 +138,8 @@ class AlembicNode:
         trans = Transform(pos, rot, scl)
         return trans
 
-    def is_camera(self, alembic_node):
+    @staticmethod
+    def is_camera(alembic_node):
         if len(get_namespaces(alembic_node)) > 0:
             for cam in cmds.ls(type='camera'):
                 if len(get_namespaces(cam)) > 0:
@@ -154,7 +156,15 @@ if __name__ == "__main__":
     out = None
 
     alembic_node_temp = get_alembic_nodes()[0]
+    print(alembic_node_temp)
     out = AlembicNode(alembic_node_temp)
+    pprint(out)
+    pprint(out.name)
+    pprint(out.time)
+    pprint(out.offset)
+    pprint(out.start_time)
+    pprint(out.end_time)
+    pprint(out.cycle_type)
+    pprint(out.mesh_cache)
     # out = attrs = vars(out)
 
-    pprint(out)
