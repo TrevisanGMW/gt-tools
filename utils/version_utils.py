@@ -7,7 +7,7 @@ import re
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("version_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -21,7 +21,7 @@ def parse_semantic_version(version_string):
     """
     Parses semantic version string input into a tuple with major, minor and patch integers.
     Parameters:
-        version_string (string): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
+        version_string (str): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
                                  Only two separating "." are allowed, otherwise it throws a ValueError.
                                  Any extra characters that are not digits will be ignored e.g. "v1.2.3dev" = "1.2.3"
     Returns:
@@ -41,8 +41,8 @@ def compare_versions(version_a, version_b):
     """
     Compare two semantic versions and return the comparison result: newer, older or equal?
     Parameters:
-        version_a (string): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
-        version_b (string): A string describing a version to be compared with version_a
+        version_a (str): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
+        version_b (str): A string describing a version to be compared with version_a
     Returns:
         int: Comparison result
              -1: if older ("a" older than "b")
@@ -67,27 +67,26 @@ def compare_versions(version_a, version_b):
     else:
         return VERSION_EQUAL
 
-    # if major1 > major2:
-    #     return f"Version {version_a} is newer than {version_b}"
-    # elif major1 < major2:
-    #     return f"Version {version_b} is newer than {version_a}"
-    # elif minor1 > minor2:
-    #     return f"Version {version_a} is newer than {version_b}"
-    # elif minor1 < minor2:
-    #     return f"Version {version_b} is newer than {version_a}"
-    # elif patch1 > patch2:
-    #     return f"Version {version_a} is newer than {version_b}"
-    # elif patch1 < patch2:
-    #     return f"Version {version_b} is newer than {version_a}"
-    # else:
-    #     return f"Version {version_a} and {version_b} are the same"
-    # return
+
+def get_comparison_feedback(version_current, version_expected):
+    """
+    Parameters:
+        version_current (str): String describing the current version (must be semantic version) e.g. "1.2.3" or "2.14.5"
+        version_expected (str): A string describing the expected version (so a comparison can happen
+    Returns:
+        str: A string describing the comparison result. It can be "unreleased", "outdated" or "current"
+    """
+    comparison_result = compare_versions(version_current, version_expected)
+    if comparison_result == VERSION_BIGGER:
+        return "unreleased"
+    elif comparison_result == VERSION_SMALLER:
+        return "outdated"
+    else:
+        return "current"
 
 
 if __name__ == "__main__":
     from pprint import pprint
-    # import maya.standalone as standalone
-    # standalone.initialize()
     out = None
-    out = compare_versions(version_a="2.2.3", version_b="1.6.7")
+    out = get_comparison_feedback("1.6.7", "1.6.7")
     pprint(out)
