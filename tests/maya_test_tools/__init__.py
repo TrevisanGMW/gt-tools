@@ -1,1 +1,1 @@
-from . import maya_test_utils
+from .maya_test_tools import *

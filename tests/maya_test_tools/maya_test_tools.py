@@ -29,8 +29,45 @@ def force_new_scene():
 def create_poly_cube(*args, **kwargs):
     """
     Creates poly cube
+    "polyCube" relevant parameters:
+        name (str): Name of the poly cube
     """
-    cmds.polyCube(*args, **kwargs)
+    return cmds.polyCube(*args, **kwargs)
+
+
+def create_node(node_type, *args, **kwargs):
+    """
+    Creates poly cube
+    Parameters:
+        node_type (str): Node type to create (must exist) - When using 3rd party plugins, make sure to load them first.
+    "createNode" relevant parameters:
+        name (str): Name of the node
+    """
+    return cmds.createNode(node_type, *args, **kwargs)
+
+
+def set_attribute(obj_name, attr_name, value, *args, **kwargs):
+    """
+    Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
+
+    Parameters:
+        obj_name (str): Name of the target object (object that will receive new values)
+        attr_name (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
+        value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+    """
+    cmds.setAttr(f"{obj_name}.{attr_name}", value, *args, **kwargs)
+
+
+def get_attribute(obj_name, attr_name, *args, **kwargs):
+    """
+    This command returns the value of the named object's attribute.
+    Parameters:
+        obj_name (str): Name of the object with the attribute (No need to add a ".")
+        attr_name (str): Name of the attribute (must already exist)
+    Returns:
+        any: value found in the queried attribute
+    """
+    return cmds.getAttr(f"{obj_name}.{attr_name}", *args, **kwargs)
 
 
 def get_data_dir_path():
@@ -58,6 +95,18 @@ def get_data_file_path(file_name):
     return requested_file
 
 
+def is_plugin_loaded(plugin):
+    """
+    Load provided plug-ins.
+
+    Parameters:
+        plugin (str): Name of the plugin to check
+    Returns:
+        bool: True if the plug is active, false if it's inactive.
+    """
+    return cmds.pluginInfo(plugin, q=True, loaded=True)
+
+
 def load_plugins(plugin_list):
     """
     Load provided plug-ins.
@@ -65,6 +114,8 @@ def load_plugins(plugin_list):
     Parameters:
         plugin_list (list): A list of strings containing the name of the plugins that were loaded.
                             If a string is provided, it will be automatically converted to a list
+    Returns:
+        list: A list of plugins that were loaded. (Plugins that were already loaded are not included in the list)
     """
     if isinstance(plugin_list, str):
         plugin_list = [plugin_list]
@@ -73,10 +124,10 @@ def load_plugins(plugin_list):
 
     # Load Plug-in
     for plugin in plugin_list:
-        if not cmds.pluginInfo(plugin, q=True, loaded=True):
+        if not is_plugin_loaded(plugin):
             try:
                 cmds.loadPlugin(plugin)
-                if cmds.pluginInfo(plugin, q=True, loaded=True):
+                if is_plugin_loaded(plugin):
                     now_loaded.append(plugin)
             except Exception as e:
                 logger.debug(e)
