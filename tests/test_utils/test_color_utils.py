@@ -5,15 +5,17 @@ import unittest
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("test_color_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Test Session Utilities
-tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-if tools_root_dir not in sys.path:
-    sys.path.append(tools_root_dir)
+# Import Test Session Utilities and Maya Test Tools
+test_utils_dir = os.path.dirname(__file__)
+tests_dir = os.path.dirname(test_utils_dir)
+package_root_dir = os.path.dirname(tests_dir)
+for to_append in [package_root_dir, tests_dir]:
+    if to_append not in sys.path:
+        sys.path.append(to_append)
 from utils import color_utils
-
 
 try:
     import maya.cmds as cmds
