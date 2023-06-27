@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+def force_new_scene():
+    """
+    Force open new empty scene
+    """
+    cmds.file(new=True, force=True)
+
+
+def create_poly_cube(*args, **kwargs):
+    """
+    Creates poly cube
+    """
+    cmds.polyCube(*args, **kwargs)
+
+
 def get_data_dir_path():
     """
     Get a path to the data folder using the path from where this script was called.
