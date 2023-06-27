@@ -212,6 +212,21 @@ def import_maya_standalone(initialize=True):
         maya_standalone.initialize()
 
 
+def set_scene_framerate(time):
+    """
+    Parameters:
+    time (str): Sets the current scene frame rate
+                    game: 15 fps
+                    film: 24 fps
+                    pal: 25 fps
+                    ntsc: 30 fps
+                    show: 48 fps
+                    palf: 50 fps
+                    ntscf: 60 fps
+    """
+    cmds.currentUnit(time=time)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
