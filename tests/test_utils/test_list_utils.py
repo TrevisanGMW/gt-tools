@@ -1,12 +1,11 @@
 import os
 import sys
 import logging
-import tempfile
 import unittest
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("test_list_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Import Test Session Utilities

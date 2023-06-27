@@ -6,7 +6,7 @@ import unittest
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("test_session_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Import Test Session Utilities
