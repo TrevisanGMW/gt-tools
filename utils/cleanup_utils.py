@@ -6,7 +6,7 @@ import sys
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("cleanup_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

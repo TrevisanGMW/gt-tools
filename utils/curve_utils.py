@@ -5,7 +5,7 @@ import sys
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("selection_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 PROXY_ATTR_COLOR = "autoColor"

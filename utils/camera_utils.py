@@ -3,7 +3,7 @@ import logging
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("camera_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 if __name__ == "__main__":

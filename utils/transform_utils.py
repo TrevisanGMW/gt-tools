@@ -9,7 +9,7 @@ import sys
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("transform_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

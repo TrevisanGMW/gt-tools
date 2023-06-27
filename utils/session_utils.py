@@ -10,7 +10,7 @@ import os
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("session_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

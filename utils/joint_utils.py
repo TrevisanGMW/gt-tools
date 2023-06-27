@@ -4,7 +4,7 @@ import logging
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("joint_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

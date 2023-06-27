@@ -19,7 +19,7 @@ known_systems = [OS_WINDOWS, OS_MAC, OS_LINUX]
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("system_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

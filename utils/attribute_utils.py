@@ -9,7 +9,7 @@ import sys
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("attribute_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 DEFAULT_CHANNELS = ['t', 'r', 's']

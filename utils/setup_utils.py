@@ -11,7 +11,7 @@ import os
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("setup_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"

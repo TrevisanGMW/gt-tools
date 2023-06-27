@@ -8,7 +8,7 @@ import math
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("color_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 

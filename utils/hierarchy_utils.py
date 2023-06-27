@@ -1,4 +1,10 @@
 import maya.cmds as cmds
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def enforce_parent(obj_name, desired_parent):

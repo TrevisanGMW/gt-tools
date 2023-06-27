@@ -7,7 +7,7 @@ import logging
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("naming_utils")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
