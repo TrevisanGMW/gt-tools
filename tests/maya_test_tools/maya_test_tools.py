@@ -118,7 +118,7 @@ def load_plugins(plugin_list):
     Load provided plug-ins.
 
     Parameters:
-        plugin_list (list): A list of strings containing the name of the plugins that were loaded.
+        plugin_list (list): A list of strings containing the name of the plugins that should be loaded.
                             If a string is provided, it will be automatically converted to a list
     Returns:
         list: A list of plugins that were loaded. (Plugins that were already loaded are not included in the list)
@@ -140,6 +140,33 @@ def load_plugins(plugin_list):
     return now_loaded
 
 
+def unload_plugins(plugin_list):
+    """
+    Load provided plug-ins.
+
+    Parameters:
+        plugin_list (list): A list of strings containing the name of the plugins to  unloaded.
+                            If a string is provided, it will be automatically converted to a list
+    Returns:
+        list: A list of plugins that were loaded. (Plugins that were already loaded are not included in the list)
+    """
+    if isinstance(plugin_list, str):
+        plugin_list = [plugin_list]
+
+    now_unloaded = []
+
+    # Load Plug-in
+    for plugin in plugin_list:
+        if is_plugin_loaded(plugin):
+            try:
+                cmds.unloadPlugin(plugin)
+                if not is_plugin_loaded(plugin):
+                    now_unloaded.append(plugin)
+            except Exception as e:
+                logger.debug(e)
+    return now_unloaded
+
+
 def import_file(file_path):
     """
     Opens file_path in Maya using "cmds.file_path()"
@@ -150,7 +177,10 @@ def import_file(file_path):
         list: Imported objects. (result of the "cmds.file(returnNewNodes=True)" function)
     """
     if file_path.split('.')[-1] == 'fbx':  # Make sure "fbxmaya" is available
-        load_plugins(['fbxmaya'])
+        load_plugins(["fbxmaya"])
+    elif file_path.split('.')[-1] == 'abc':  # Make sure alembic is available
+        load_plugins(["AbcExport", "AbcImport", "AbcBullet"])
+
     files = cmds.file(file_path, i=True, returnNewNodes=True, force=True)
     return files
 
@@ -181,7 +211,7 @@ def import_data_file(file_name):
     module = inspect.getmodule(frame[0])
     script_path = get_data_dir_path(module=module)
     file_to_import = os.path.join(script_path, file_name)
-    return cmds.file(file_to_import, i=True, returnNewNodes=True)
+    return import_file(file_to_import)
 
 
 def open_data_file(file_name):
