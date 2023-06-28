@@ -55,6 +55,10 @@ class MayaCmdsSpoof(object):
         _log_debug(inspect.stack()[0][3], *args, **kwargs)
         return SPOOF_RETURN
 
+    def unloadPlugin(self, *args, **kwargs):
+        _log_debug(inspect.stack()[0][3], *args, **kwargs)
+        return SPOOF_RETURN
+
     def playbackOptions(self, *args, **kwargs):
         _log_debug(inspect.stack()[0][3], *args, **kwargs)
         return SPOOF_RETURN
