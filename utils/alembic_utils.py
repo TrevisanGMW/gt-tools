@@ -152,19 +152,8 @@ class AlembicNode:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-
+    import maya.standalone
+    maya.standalone.initialize()
     out = None
-
-    alembic_node_temp = get_alembic_nodes()[0]
-    print(alembic_node_temp)
-    out = AlembicNode(alembic_node_temp)
     pprint(out)
-    pprint(out.name)
-    pprint(out.time)
-    pprint(out.offset)
-    pprint(out.start_time)
-    pprint(out.end_time)
-    pprint(out.cycle_type)
-    pprint(out.mesh_cache)
-    # out = attrs = vars(out)
 
