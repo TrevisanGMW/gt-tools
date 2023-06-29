@@ -19,12 +19,40 @@ class Vector3:
     y: float
     z: float
 
+    def __eq__(self, other):
+        """
+        Compare Vector3 objects, they are equal if their float values are all the same
+        Parameters:
+            other (Vector3): Object to compare
+        """
+        if isinstance(other, Vector3):
+            return (
+                    self.x == other.x and
+                    self.y == other.y and
+                    self.z == other.z
+                   )
+        return False
+
 
 @dataclass
 class Transform:
-    location: Vector3
+    position: Vector3
     rotation: Vector3
     scale: Vector3
+
+    def __eq__(self, other):
+        """
+        Compare Transform objects, they are equal if all their Vector3 objects are the same
+        Parameters:
+            other (Transform): Object to compare
+        """
+        if isinstance(other, Transform):
+            return (
+                    self.position == other.position and
+                    self.rotation == other.rotation and
+                    self.scale == other.scale
+                   )
+        return False
 
 
 def move_pivot_top():
