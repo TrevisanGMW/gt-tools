@@ -15,16 +15,22 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
+from utils.transform_utils import Transform, Vector3  # Used to test result
 from tests import maya_test_tools
 from utils import alembic_utils
 
 
 def import_alembic_test_file():
     """
-    Open files from inside the test_*/data folder/cube_namespaces.mb
-    Scene contains a cube named: "parentNS:childNS:grandchildNS:pCube1"
+    Import test alembic file from inside the .../data folder/<name>.abc
+    Scene forces alembic plugin to be loaded when importing ("AbcExport", "AbcImport")
+    Returns:
+        str: Name of the test alembic node: "cube_move_z_AlembicNode"
     """
     maya_test_tools.import_data_file("cube_move_z.abc")
+    alembic_nodes = maya_test_tools.list_objects(typ='AlembicNode') or []
+    if alembic_nodes:
+        return alembic_nodes[0]
 
 
 class TestSessionUtils(unittest.TestCase):
@@ -32,6 +38,7 @@ class TestSessionUtils(unittest.TestCase):
         maya_test_tools.force_new_scene()
 
     def tearDown(self):
+        maya_test_tools.force_new_scene()  # To make sure Abc can be unloaded
         maya_test_tools.unload_plugins(["AbcExport", "AbcImport", "AbcBullet"])  # Unload plugins after every test
 
     @classmethod
@@ -95,50 +102,55 @@ class TestSessionUtils(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_alembic_node_class_name(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = "cube_move_z_AlembicNode"
         self.assertEqual(result.name, expected)
 
     def test_alembic_node_class_time(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = 1.0
         self.assertEqual(result.time, expected)
 
     def test_alembic_node_class_offset(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = 0.0
         self.assertEqual(result.offset, expected)
 
     def test_alembic_node_class_start_time(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = 1.0
         self.assertEqual(result.start_time, expected)
 
     def test_alembic_node_class_end_time(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = 10.0
         self.assertEqual(result.end_time, expected)
 
     def test_alembic_node_class_cycle_type(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
         expected = "Hold"
         self.assertEqual(result.cycle_type, expected)
 
     def test_alembic_node_class_mesh_cache(self):
-        import_alembic_test_file()
-        alembic_node_temp = alembic_utils.get_alembic_nodes()[0]  # cube_move_z_AlembicNode
-        result = alembic_utils.AlembicNode(alembic_node_temp)
-        expected = maya_test_tools.get_attribute(obj_name=alembic_node_temp, attr_name="abc_File")
+        alembic_node = import_alembic_test_file()
+        result = alembic_utils.AlembicNode(alembic_node)
+        expected = maya_test_tools.get_attribute(obj_name=alembic_node, attr_name="abc_File")
         self.assertEqual(result.mesh_cache, expected)
+
+    def test_alembic_node_class_transform_type(self):
+        alembic_node = import_alembic_test_file()
+        # maya_test_tools.set_current_time(10)
+        alembic_object = alembic_utils.AlembicNode(alembic_node)
+        expected = Transform(position=Vector3(x=0.0, y=0.0, z=0.0),
+                             rotation=Vector3(x=0.0, y=0.0, z=0.0),
+                             scale=Vector3(x=1.0, y=1.0, z=1.0))
+        result = alembic_object.transform
+        print(result)
+        self.assertEqual(result, expected)
+        # self.assertEqual(result.transform, expected)
