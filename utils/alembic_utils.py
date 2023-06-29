@@ -2,10 +2,8 @@
 Alembic Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from namespace_utils import get_namespaces
 from transform_utils import Transform, Vector3
 from math import degrees
-import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
 
@@ -84,7 +82,7 @@ class AlembicNode:
     end_time: int
     cycle_type: str
     transform: Transform
-    # mesh_cache: str
+    mesh_cache: str
     # keyframes: Keyframes
 
     def __init__(self, alembic_node):
@@ -94,38 +92,38 @@ class AlembicNode:
         self.start_time = cmds.getAttr(f"{alembic_node}.startFrame")
         self.end_time = cmds.getAttr(f"{alembic_node}.endFrame")
         self.cycle_type = get_alembic_cycle_as_string(alembic_node)
-        # self.transform = self.get_root_transform(alembic_node)
+        self.transform = self.get_root_transform(alembic_node)
         self.mesh_cache = cmds.getAttr(f"{alembic_node}.abc_File")
-        # self.keyframes = getKeyFrames(self.get_root_node(alembic_node))
+        # self.keyframes = get_keyframes()
 
     @staticmethod
     def get_root_node(alembic_node):
         """
-        WIP
+        List transform nodes found under the future history of the alembic node then returns the last
+        node of the type "transform". If no transforms are found, the alembic node is returned instead.
+        Parameters:
+            alembic_node (str): Name of the alembic node (must exist)
+        Returns:
+            str: Last transform node found in the future history of the alembic node.
+                 If nothing is found, the alembic node is returned instead.
         """
-        node = alembic_node
-        for history in cmds.listHistory(alembic_node):
+        root_node = alembic_node
+        for history in cmds.listHistory(alembic_node, future=True):
             if cmds.objectType(history) == 'transform':
-                node = history
-        return node
+                root_node = history
+        return root_node
 
     def get_root_transform(self, alembic_node):
-        if self.is_camera(alembic_node):
-            return Transform(Vector3(0, 0, 0),
-                             Vector3(0, 0, 0),
-                             Vector3(1, 1, 1))
-
         root = self.get_root_node(alembic_node)
         try:
             translation = cmds.xform(root, q=True, ws=True, translation=True)
-            rotation = cmds.xform(root, q=True, ws=True, rotate=True)
+            rotation = cmds.xform(root, q=True, ws=True, rotation=True)
             scale = cmds.xform(root, q=True, ws=True, scale=True)
         except Exception as e:
             logger.debug(f"Unable to retrieve root transforms. Origin returned instead. Issue: {e}")
             return Transform(Vector3(0, 0, 0),
                              Vector3(0, 0, 0),
                              Vector3(1, 1, 1))
-
         pos = Vector3(translation[0],
                       translation[1],
                       translation[2])
@@ -138,22 +136,15 @@ class AlembicNode:
         trans = Transform(pos, rot, scl)
         return trans
 
-    @staticmethod
-    def is_camera(alembic_node):
-        if len(get_namespaces(alembic_node)) > 0:
-            for cam in cmds.ls(type='camera'):
-                if len(get_namespaces(cam)) > 0:
-                    if cam.namespaceList()[0] == alembic_node.namespaceList()[0]:
-                        return True
-
-        return "camera" in alembic_node.name()
-
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-    import maya.standalone
-    maya.standalone.initialize()
+    # import maya.standalone
+    # maya.standalone.initialize()
+    node = get_alembic_nodes()[0]
+    alembic = AlembicNode(node)
     out = None
+    out = alembic.transform
     pprint(out)
 
