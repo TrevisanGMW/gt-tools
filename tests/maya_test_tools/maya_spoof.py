@@ -83,6 +83,14 @@ class MayaCmdsSpoof(object):
         _log_debug(inspect.stack()[0][3], *args, **kwargs)
         return SPOOF_RETURN
 
+    def currentUnit(self, *args, **kwargs):
+        _log_debug(inspect.stack()[0][3], *args, **kwargs)
+        return SPOOF_RETURN
+
+    def currentTime(self, *args, **kwargs):
+        _log_debug(inspect.stack()[0][3], *args, **kwargs)
+        return SPOOF_RETURN
+
     # UI ---------------------------------
     def button(self, *args, **kwargs):
         _log_debug(inspect.stack()[0][3], *args, **kwargs)

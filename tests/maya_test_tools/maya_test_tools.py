@@ -201,7 +201,7 @@ def open_file(file_path):
 def import_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
-    It automatically determines the location of the data folder using "get_data_dir_path()"
+    It automatically determines the position of the data folder using "get_data_dir_path()"
     Parameters:
         file_name: Name of the file_path (must exist)
     Returns:
@@ -217,7 +217,7 @@ def import_data_file(file_name):
 def open_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
-    It automatically determines the location of the data folder using "get_data_dir_path()"
+    It automatically determines the position of the data folder using "get_data_dir_path()"
     Args:
         file_name: Name of the file (must exist)
     """
@@ -253,12 +253,28 @@ def set_scene_framerate(time):
                     show: 48 fps
                     palf: 50 fps
                     ntscf: 60 fps
+    Return:
+        str: Result from the "cmds.currentUnit" operation (same as query)
     """
-    cmds.currentUnit(time=time)
+    return cmds.currentUnit(time=time)
+
+
+def set_current_time(frame):
+    """
+    Set scene current time
+    Parameters:
+        frame (int): Frame where
+    Returns:
+        int: current time (frame) - Result of the "cmds.currentUnit" operation.
+    """
+    return cmds.currentTime(frame)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    import maya.standalone
+    maya.standalone.initialize()
     from pprint import pprint
     out = None
+    out = set_scene_framerate("game")
     pprint(out)
