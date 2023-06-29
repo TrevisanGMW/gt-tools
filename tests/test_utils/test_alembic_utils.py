@@ -15,7 +15,6 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-from utils.transform_utils import Transform, Vector3  # Used to test result
 from tests import maya_test_tools
 from utils import alembic_utils
 
@@ -33,7 +32,7 @@ def import_alembic_test_file():
         return alembic_nodes[0]
 
 
-class TestSessionUtils(unittest.TestCase):
+class TestAlembicUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
 
@@ -143,14 +142,12 @@ class TestSessionUtils(unittest.TestCase):
         expected = maya_test_tools.get_attribute(obj_name=alembic_node, attr_name="abc_File")
         self.assertEqual(result.mesh_cache, expected)
 
-    def test_alembic_node_class_transform_type(self):
+    def test_alembic_node_class_transform(self):
         alembic_node = import_alembic_test_file()
-        # maya_test_tools.set_current_time(10)
+        maya_test_tools.set_current_time(10)
         alembic_object = alembic_utils.AlembicNode(alembic_node)
-        expected = Transform(position=Vector3(x=0.0, y=0.0, z=0.0),
-                             rotation=Vector3(x=0.0, y=0.0, z=0.0),
-                             scale=Vector3(x=1.0, y=1.0, z=1.0))
-        result = alembic_object.transform
-        print(result)
+        expected = "Transform(position=Vector3(x=0.0, y=0.0, z=-10.0), " \
+                   "rotation=Vector3(x=0.0, y=0.0, z=0.0), " \
+                   "scale=Vector3(x=1.0, y=1.0, z=1.0))"
+        result = str(alembic_object.transform)
         self.assertEqual(result, expected)
-        # self.assertEqual(result.transform, expected)
