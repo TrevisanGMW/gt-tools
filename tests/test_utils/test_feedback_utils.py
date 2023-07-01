@@ -16,20 +16,10 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-from tests import maya_test_tools
 from utils import feedback_utils
 
 
 class TestFeedbackUtils(unittest.TestCase):
-    def setUp(self):
-        #maya_test_tools.force_new_scene()
-        pass
-
-    @classmethod
-    def setUpClass(cls):
-        # maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
-        pass
-
     def test_feedback_message_class_empty(self):
         feedback_object = feedback_utils.FeedbackMessage()  # cast as string to use __repr__
         result = str(feedback_object)
@@ -87,6 +77,79 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          zero_overwrite_message="zero")
         result = str(feedback_object)
         expected = "prefix intro 1 was conclusion suffix"
+        self.assertEqual(result, expected)
+
+    def test_feedback_message_class_message_full_overwrite(self):
+        feedback_object = feedback_utils.FeedbackMessage(quantity=1,
+                                                         prefix="prefix",
+                                                         intro="intro",
+                                                         singular="was",
+                                                         plural="were",
+                                                         conclusion="conclusion",
+                                                         suffix="suffix",
+                                                         style_general="color:#00FF00;",
+                                                         style_intro="color:#0000FF;",
+                                                         style_pluralization="color:#FF00FF;",
+                                                         style_conclusion="color:#00FFFF;",
+                                                         style_suffix="color:#F0FF00;",
+                                                         zero_overwrite_message="zero",
+                                                         general_overwrite="general_overwrite")
+        result = str(feedback_object)
+        expected = "general_overwrite"
+        self.assertEqual(result, expected)
+
+    @patch('random.random')
+    def test_feedback_message_class_inview_message_zero_overwrite(self, mock_random):
+        mock_random.return_value = 0.5  # Force random to return 0.5
+        feedback_object = feedback_utils.FeedbackMessage(quantity=0,
+                                                         prefix="prefix",
+                                                         intro="intro",
+                                                         singular="was",
+                                                         plural="were",
+                                                         conclusion="conclusion",
+                                                         suffix="suffix",
+                                                         style_general="color:#00FF00;",
+                                                         style_intro="color:#0000FF;",
+                                                         style_pluralization="color:#FF00FF;",
+                                                         style_conclusion="color:#00FFFF;",
+                                                         style_suffix="color:#F0FF00;",
+                                                         zero_overwrite_message="zero")
+        result = feedback_object.get_inview_formatted_message()
+        expected = '<0.5><span style="color:#00FF00;">zero</span>'
+        self.assertEqual(result, expected)
+
+    @patch('random.random')
+    def test_feedback_message_class_inview_message_zero_overwrite_style(self, mock_random):
+        mock_random.return_value = 0.5  # Force random to return 0.5
+        feedback_object = feedback_utils.FeedbackMessage(quantity=0,
+                                                         singular="was",
+                                                         plural="were",
+                                                         style_zero_overwrite="color:#FF00FF;",
+                                                         style_general="",
+                                                         zero_overwrite_message="zero")
+        result = feedback_object.get_inview_formatted_message()
+        expected = '<0.5><span style="color:#FF00FF;">zero</span>'
+        self.assertEqual(result, expected)
+
+    @patch('random.random')
+    def test_feedback_message_class_inview_message_full_overwrite(self, mock_random):
+        mock_random.return_value = 0.5  # Force random to return 0.5
+        feedback_object = feedback_utils.FeedbackMessage(quantity=1,
+                                                         prefix="prefix",
+                                                         intro="intro",
+                                                         singular="was",
+                                                         plural="were",
+                                                         conclusion="conclusion",
+                                                         suffix="suffix",
+                                                         style_general="color:#00FF00;",
+                                                         style_intro="color:#0000FF;",
+                                                         style_pluralization="color:#FF00FF;",
+                                                         style_conclusion="color:#00FFFF;",
+                                                         style_suffix="color:#F0FF00;",
+                                                         zero_overwrite_message="zero",
+                                                         general_overwrite="general_overwrite")
+        result = feedback_object.get_inview_formatted_message()
+        expected = '<0.5><span style="color:#00FF00;">general_overwrite</span>'
         self.assertEqual(result, expected)
 
     @patch('random.random')
