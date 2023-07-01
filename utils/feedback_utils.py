@@ -21,7 +21,6 @@ class FeedbackMessage:
         prefix, intro, <quantity>, singular/plural, conclusion, suffix
     Parts that are not provided are ignored.
     If "zero_overwrite_message" is provided, the whole message is overwritten when quantity is zero.
-    If  "zero_overwrite_intro" is provided, only the intro parameters is modified when quantity is zero.
 
     Attributes:
         quantity (int, None): If provided, it will be used to in the feedback, pluralization and overwrite functions.
@@ -39,8 +38,6 @@ class FeedbackMessage:
         conclusion (str, optional) : End of the message (before suffix)
         suffix (str, optional) : Very last portion of the message.
         zero_overwrite_message (str, optional): Message that overwrites the entire feedback when the quantity is zero.
-        zero_overwrite_intro (str, optional): Message that overwrites the intro portion of the feedback when the
-                                              quantity is zero.
         general_overwrite (str, optional) : if provided, it will ignore all other options and only print this string
                                             as feedback/message. "style_general" can be used to determine its style.
 
@@ -54,7 +51,6 @@ class FeedbackMessage:
     conclusion: str = field(default="")
     suffix: str = field(default="")
     zero_overwrite_message: str = field(default=None)
-    zero_overwrite_intro: str = field(default=None)
     general_overwrite: str = field(default=None)
 
     # Only used for inview feedback - "get_inview_formatted_message()"
@@ -103,12 +99,7 @@ class FeedbackMessage:
         """
         Determines if overwrite message should be used when quantity is zero "0".
         """
-        if self.quantity is not None and self.quantity < 1:
-            # Override intro?
-            if self.zero_overwrite_intro:
-                self._overwrite_message = self.zero_overwrite_message
-            else:
-                self._overwrite_message = ""
+        if self.quantity is not None and self.quantity == 0:
             # Override entire message?
             if self.zero_overwrite_message:
                 self._overwrite_message = self.zero_overwrite_message
