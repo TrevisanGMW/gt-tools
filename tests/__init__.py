@@ -20,12 +20,14 @@ for to_append in [source_dir, tools_root_dir]:
         sys.path.append(to_append)
 
 # Import Tests
-import test_utils
+#import test_utils - Failing on MacOS for some reason
+from tests import test_utils
 
 # Modules to Test
 modules_to_test = [
     test_utils.test_alembic_utils,
     test_utils.test_color_utils,
+    test_utils.test_feedback_utils,
     test_utils.test_list_utils,
     test_utils.test_namespace_utils,
     test_utils.test_scene_utils,
