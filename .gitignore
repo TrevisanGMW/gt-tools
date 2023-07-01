@@ -1,5 +1,5 @@
 # gitignore
-
+.DS_Store
 /workbench
 Thumbs.db
 *__pycache__
