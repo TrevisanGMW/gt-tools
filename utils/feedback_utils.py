@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import maya.cmds as cmds
 import logging
 import random
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -187,6 +188,33 @@ class FeedbackMessage:
             inview_message += f'</span>'  # End general style span ---
         return inview_message
 
+    def print_inview_message(self, position="botLeft", alpha=0.9, print_message=True, fail_to_system_write=True):
+        """
+        Prints feedback in Maya using the inview command.
+        Parameters:
+            position (str, optional): Determines the position of the inView message. (Same as Maya's position arg)
+                                      "topLeft"
+                                      "topCenter"
+                                      "topRight"
+                                      "midLeft"
+                                      "midCenter"
+                                      "midCenterTop"
+                                      "midCenterBot"
+                                      "midRight"
+                                      "botLeft"  (Default value)
+                                      "botCenter"
+                                      "botRight"
+            alpha (float, optional): 0 to 1 value determining the alpha of the message (its opacity)
+            print_message (bool, optional): If false, the print command is ignored.
+            fail_to_system_write (bool, optional): If active, it will deliver a "sys.stdout.write"
+        """
+        if not print_message:
+            return
+        cmds.inViewMessage(amg=self.get_inview_formatted_message(),
+                           position=position, fade=True, alpha=alpha)
+        if fail_to_system_write:
+            sys.stdout.write(f"{self.get_string_message()}\n")
+
 
 def inview_number_feedback(number, show_feedback=True):  # Add inview options
     """
@@ -234,12 +262,5 @@ if __name__ == "__main__":
                           style_conclusion="color:#00FFFF;",
                           style_suffix="color:#F0FF00;"
                           )
-
-    try:
-        import maya.cmds as cmds
-        message = out.get_inview_formatted_message()
-        print(message)
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
-    except:
-        pass
+    out.print_inview_message()
     pprint(out)
