@@ -28,15 +28,25 @@ class FeedbackMessage:
                               e.g. "7 elements were affected"
                               e.g. "1 element was affected"
                               e.g. "No elements were affected"
-        prefix (str, optional) : Prefix to the message 1st item
-        intro (str, optional) : Intro to the message 2nd item
+        quantity_index (int): Determines the index (position) of the quantity portion in the feedback.
+                              Default value is 2.  That is: prefix, intro, <quantity>, singular/plural...
+                              e.g. If value is 0, then : <quantity>, prefix, intro, singular/plural...
+                              e.g. If value is 1, then : prefix, <quantity>, intro, singular/plural...
+        prefix (str, optional) : Prefix to the feedback message - 1st item (index 0)
+        intro (str, optional) : Intro to the feedback message - 2nd item (index 1)
         singular (str, optional) : Text used when quantity is exactly 1 (one)
-        plural  (str, optional) : Text used when quantity is a number different from 1 (one)
+        plural  (str, optional) : Text used when quantity is a number different from 1 (one) - e.g. -1, 0 , 2, 3...
         conclusion (str, optional) : End of the message (before suffix)
         suffix (str, optional) : Very last portion of the message.
+        zero_overwrite_message (str, optional): Message that overwrites the entire feedback when the quantity is zero.
+        zero_overwrite_intro (str, optional): Message that overwrites the intro portion of the feedback when the
+                                              quantity is zero.
+        general_overwrite (str, optional) : if provided, it will ignore all other options and only print this string
+                                            as feedback/message. "style_general" can be used to determine its style.
 
     """
     quantity: int = field(default=None)
+    quantity_index: int = field(default=None)  # "_update_quantity_index" moves it after prefix and intro
     prefix: str = field(default="")
     intro: str = field(default="")
     singular: str = field(default="")
@@ -45,6 +55,7 @@ class FeedbackMessage:
     suffix: str = field(default="")
     zero_overwrite_message: str = field(default=None)
     zero_overwrite_intro: str = field(default=None)
+    general_overwrite: str = field(default=None)
 
     # Only used for inview feedback - "get_inview_formatted_message()"
     style_general: str = field(default="color:#FFFFFF;")  # White
@@ -59,6 +70,19 @@ class FeedbackMessage:
     _pluralization = ""
     _quantity_str = ""
     _overwrite_message = ""
+
+    def _update_quantity_index(self):
+        """
+        Handles quantity index when it's not directly specified.
+        Checks if prefix or intro exist to determine that.
+        """
+        if self.quantity_index is None:
+            default_index = 0
+            if self.prefix:
+                default_index += 1
+            if self.intro:
+                default_index += 1
+            self.quantity_index = default_index
 
     def _update_pluralization(self):
         """
@@ -93,29 +117,42 @@ class FeedbackMessage:
 
     def __repr__(self):
         """
-        Create a feedback sentence using provided fields
+        Uses "get_string_message()" to return a proper sentence when printing or casting this object to string.
         """
+        return self.get_string_message()
+
+    def get_string_message(self):
+        """
+        Create string feedback sentence using available fields.
+        """
+        self._update_quantity_index()
         self._update_pluralization()
         self._update_overwrites()
         found_text = []
         for text in [self.prefix,
                      self.intro,
-                     self._quantity_str,
                      self._pluralization,
                      self.conclusion,
                      self.suffix]:
             if text:
                 found_text.append(text)
+        # Quantity use and index
+        if self._quantity_str:
+            found_text.insert(self.quantity_index, self._quantity_str)
         result_print = f" ".join(found_text)
-        # Is overwriting?
+        # Determine if zero overwriting - Overwrites when quantity is zero
         if self._overwrite_message:
             result_print = self._overwrite_message
+        # Determine if general overwriting - Always overwrite when present
+        if self.general_overwrite:
+            result_print = self.general_overwrite
         return result_print
 
     def get_inview_formatted_message(self):
         """
         Returns feedback message with spans
         """
+        self._update_quantity_index()
         self._update_pluralization()
         self._update_overwrites()
         inview_message = f"<{str(random.random())}>"  # So it can be repeated without delay
@@ -126,7 +163,6 @@ class FeedbackMessage:
         text_to_join = []
         for text, style in [(self.prefix, self.style_prefix),
                             (self.intro, self.style_intro),
-                            (self._quantity_str, self.style_quantity),
                             (self._pluralization, self.style_pluralization),
                             (self.conclusion, self.style_conclusion),
                             (self.suffix, self.style_suffix)]:
@@ -135,14 +171,24 @@ class FeedbackMessage:
                     text_to_join.append(f'<span style="{str(style)}">{text}</span>')
                 else:
                     text_to_join.append(text)
-
-        # Is overwriting?
+        # Quantity use and index
+        if self._quantity_str:
+            if self.style_quantity:
+                text_to_join.insert(self.quantity_index,
+                                    f'<span style="{str(self.style_quantity)}">{self._quantity_str}</span>')
+            else:
+                text_to_join.insert(self.quantity_index,
+                                    self._quantity_str)
+        # Determine if zero overwriting - Overwrites when quantity is zero
         if self._overwrite_message:
             text_to_join = []
             if self.style_zero_overwrite:
                 text_to_join.append(f'<span style="{str(self.style_zero_overwrite)}">{self._overwrite_message}</span>')
             else:
                 text_to_join.append(self._overwrite_message)
+        # Determine if general overwriting - Always overwrite when present
+        if self.general_overwrite:
+            text_to_join = [self.general_overwrite]
 
         inview_message += f" ".join(text_to_join)
 
@@ -151,7 +197,7 @@ class FeedbackMessage:
         return inview_message
 
 
-def inview_number_feedback(number, show_feedback=True): # Add inview options
+def inview_number_feedback(number, show_feedback=True):  # Add inview options
     """
     Print inViewMessage to the viewport as user feedback.
     Uses "random" to force identical messages to appear at the same time.
@@ -184,7 +230,7 @@ if __name__ == "__main__":
     out = None
     # out = inview_number_feedback(number=123)
 
-    out = FeedbackMessage(quantity=1,
+    out = FeedbackMessage(quantity=2,
                           prefix="prefix",
                           intro="intro",
                           singular="was",
