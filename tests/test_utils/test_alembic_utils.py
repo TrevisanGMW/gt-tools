@@ -51,7 +51,7 @@ class TestAlembicUtils(unittest.TestCase):
         for plugin in plugins_to_check:
             result.append(maya_test_tools.is_plugin_loaded(plugin))
         expected = [True, True, False]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_load_alembic_plugin_bullet(self):
         alembic_utils.load_alembic_plugin(include_alembic_bullet=True)
@@ -60,14 +60,14 @@ class TestAlembicUtils(unittest.TestCase):
         for plugin in plugins_to_check:
             result.append(maya_test_tools.is_plugin_loaded(plugin))
         expected = [True, True, True]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_alembic_nodes(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
         alembic_node = maya_test_tools.create_node(node_type="AlembicNode")
         result = alembic_utils.get_alembic_nodes()
         expected = [alembic_node]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_alembic_nodes_two(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
@@ -75,14 +75,14 @@ class TestAlembicUtils(unittest.TestCase):
         alembic_node_b = maya_test_tools.create_node(node_type="AlembicNode")
         result = alembic_utils.get_alembic_nodes()
         expected = [alembic_node_a, alembic_node_b]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_alembic_cycle_as_string(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
         alembic_node = maya_test_tools.create_node("AlembicNode")  # Default 0 = Hold
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Hold'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_get_alembic_cycle_as_string_reverse(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
@@ -90,7 +90,7 @@ class TestAlembicUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=alembic_node, attr_name="cycleType", value=2)  # Change to 2 = Reverse
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Reverse'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_alembic_node(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
@@ -98,49 +98,49 @@ class TestAlembicUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=alembic_node, attr_name="cycleType", value=2)  # Change to 2 = Reverse
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Reverse'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_alembic_node_class_name(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = "cube_move_z_AlembicNode"
-        self.assertEqual(result.name, expected)
+        self.assertEqual(expected, result.name)
 
     def test_alembic_node_class_time(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = 1.0
-        self.assertEqual(result.time, expected)
+        self.assertEqual(expected, result.time)
 
     def test_alembic_node_class_offset(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = 0.0
-        self.assertEqual(result.offset, expected)
+        self.assertEqual(expected, result.offset)
 
     def test_alembic_node_class_start_time(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = 1.0
-        self.assertEqual(result.start_time, expected)
+        self.assertEqual(expected, result.start_time)
 
     def test_alembic_node_class_end_time(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = 10.0
-        self.assertEqual(result.end_time, expected)
+        self.assertEqual(expected, result.end_time)
 
     def test_alembic_node_class_cycle_type(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = "Hold"
-        self.assertEqual(result.cycle_type, expected)
+        self.assertEqual(expected, result.cycle_type)
 
     def test_alembic_node_class_mesh_cache(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
         expected = maya_test_tools.get_attribute(obj_name=alembic_node, attr_name="abc_File")
-        self.assertEqual(result.mesh_cache, expected)
+        self.assertEqual(expected, result.mesh_cache)
 
     def test_alembic_node_class_transform(self):
         alembic_node = import_alembic_test_file()
@@ -150,4 +150,4 @@ class TestAlembicUtils(unittest.TestCase):
                    "rotation=Vector3(x=0.0, y=0.0, z=0.0), " \
                    "scale=Vector3(x=1.0, y=1.0, z=1.0))"
         result = str(alembic_object.transform)
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)

@@ -47,9 +47,9 @@ class TestListUtils(unittest.TestCase):
         result = list_utils.make_flat_list(list_a, list_b, list_c, list_d, list_e)
         self.assertEqual(expected, result)
 
-    def test_get_list_missing_elements(self):
+    def test_get_list_missing_elements_two(self):
         list_a = ["1", 2, "a", "b"]
         list_b = ["1", "a"]
         expected = ['2', '3', 'b', 'c']
-        result = list_utils.remove_numbers()
+        result = list_utils.get_list_missing_elements(expected_list=list_a, result_list=list_b)
         self.assertEqual(expected, result)

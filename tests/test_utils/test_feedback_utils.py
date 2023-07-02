@@ -24,13 +24,13 @@ class TestFeedbackUtils(unittest.TestCase):
         feedback_object = feedback_utils.FeedbackMessage()  # cast as string to use __repr__
         result = str(feedback_object)
         expected = ""
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_get_string_message_empty(self):
         feedback_object = feedback_utils.FeedbackMessage()
         result = feedback_object.get_string_message()
         expected = ""
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_default_quantity_index_one(self):
         feedback_object = feedback_utils.FeedbackMessage(quantity=2,
@@ -40,7 +40,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          conclusion="conclusion")
         result = str(feedback_object)
         expected = "intro 2 were conclusion"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_default_quantity_index_two(self):
         feedback_object = feedback_utils.FeedbackMessage(quantity=2,
@@ -50,7 +50,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          conclusion="conclusion")
         result = str(feedback_object)
         expected = "prefix 2 were conclusion"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_default_quantity_index_three(self):
         feedback_object = feedback_utils.FeedbackMessage(quantity=2,
@@ -59,7 +59,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          conclusion="conclusion")
         result = str(feedback_object)
         expected = "2 were conclusion"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_message_full(self):
         feedback_object = feedback_utils.FeedbackMessage(quantity=1,
@@ -77,7 +77,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          zero_overwrite_message="zero")
         result = str(feedback_object)
         expected = "prefix intro 1 was conclusion suffix"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_feedback_message_class_message_full_overwrite(self):
         feedback_object = feedback_utils.FeedbackMessage(quantity=1,
@@ -96,7 +96,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          general_overwrite="general_overwrite")
         result = str(feedback_object)
         expected = "general_overwrite"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     @patch('random.random')
     def test_feedback_message_class_inview_message_zero_overwrite(self, mock_random):
@@ -116,7 +116,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          zero_overwrite_message="zero")
         result = feedback_object.get_inview_formatted_message()
         expected = '<0.5><span style="color:#00FF00;">zero</span>'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     @patch('random.random')
     def test_feedback_message_class_inview_message_zero_overwrite_style(self, mock_random):
@@ -129,7 +129,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          zero_overwrite_message="zero")
         result = feedback_object.get_inview_formatted_message()
         expected = '<0.5><span style="color:#FF00FF;">zero</span>'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     @patch('random.random')
     def test_feedback_message_class_inview_message_full_overwrite(self, mock_random):
@@ -150,7 +150,7 @@ class TestFeedbackUtils(unittest.TestCase):
                                                          general_overwrite="general_overwrite")
         result = feedback_object.get_inview_formatted_message()
         expected = '<0.5><span style="color:#00FF00;">general_overwrite</span>'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     @patch('random.random')
     def test_feedback_message_class_inview_message_full(self, mock_random):
@@ -173,4 +173,4 @@ class TestFeedbackUtils(unittest.TestCase):
                    '<span style="color:#FF0000;text-decoration:underline;">1</span> ' \
                    '<span style="color:#FFFFFF;">was</span> <span style="color:#00FFFF;">conclusion</span> ' \
                    '<span style="color:#F0FF00;">suffix</span></span>'
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)

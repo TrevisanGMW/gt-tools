@@ -31,27 +31,27 @@ class TestTransformUtils(unittest.TestCase):
         vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         expected = "Vector3(x=1.2, y=3.4, z=5.6)"
         result = str(vector3_object)
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_vector3_class_as_list(self):
         vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         result = [vector3_object.x, vector3_object.y, vector3_object.z]
         expected = [1.2, 3.4, 5.6]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_vector3_class_equality_true(self):
         vector3_object_a = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         vector3_object_b = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         result = vector3_object_a == vector3_object_b
         expected = True
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_vector3_class_equality_false(self):
         vector3_object_a = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         vector3_object_b = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         result = vector3_object_a == vector3_object_b
         expected = True
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_as_string(self):
         vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
@@ -62,7 +62,7 @@ class TestTransformUtils(unittest.TestCase):
         expected = "Transform(position=Vector3(x=1.2, y=3.4, z=5.6), " \
                    "rotation=Vector3(x=1.2, y=3.4, z=5.6), " \
                    "scale=Vector3(x=1.2, y=3.4, z=5.6))"
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_position_as_list(self):
         vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
@@ -71,7 +71,7 @@ class TestTransformUtils(unittest.TestCase):
                                                      scale=vector3_object)
         result = [transform_object.position.x, transform_object.position.y, transform_object.position.z]
         expected = [1.2, 3.4, 5.6]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_rotation_as_list(self):
         vector3_object = transform_utils.Vector3(x=30, y=-45, z=90)
@@ -80,7 +80,7 @@ class TestTransformUtils(unittest.TestCase):
                                                      scale=vector3_object)
         result = [transform_object.rotation.x, transform_object.rotation.y, transform_object.rotation.z]
         expected = [30, -45, 90]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_scale_as_list(self):
         vector3_object = transform_utils.Vector3(x=1, y=2, z=3)
@@ -89,7 +89,7 @@ class TestTransformUtils(unittest.TestCase):
                                                      scale=vector3_object)
         result = [transform_object.scale.x, transform_object.scale.y, transform_object.scale.z]
         expected = [1, 2, 3]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_equality_one(self):
         vector3_object = transform_utils.Vector3(x=1, y=2, z=3)
@@ -101,7 +101,7 @@ class TestTransformUtils(unittest.TestCase):
                                                          scale=vector3_object)
         result = transform_object_one == transform_object_two
         expected = True
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_transform_class_equality_two(self):
         vector3_object_one = transform_utils.Vector3(x=1, y=2, z=3)
@@ -114,4 +114,4 @@ class TestTransformUtils(unittest.TestCase):
                                                          scale=vector3_object_two)
         result = transform_object_one == transform_object_two
         expected = False
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
