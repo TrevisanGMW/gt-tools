@@ -519,4 +519,5 @@ if __name__ == "__main__":
     from pprint import pprint
     out = None
     out = get_package_version()
+    out = os.environ.keys()
     pprint(out)
