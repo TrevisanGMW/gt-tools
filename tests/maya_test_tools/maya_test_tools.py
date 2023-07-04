@@ -1,3 +1,5 @@
+import shutil
+
 try:
     import maya.cmds as cmds
     import maya.OpenMaya as OpenMaya
@@ -99,6 +101,41 @@ def get_data_dir_path(module=None):
         module = inspect.getmodule(frame[0])
     script_path = os.path.abspath(module.__file__)
     return os.path.join(os.path.dirname(script_path), "data")
+
+
+def create_test_temp_dir(folder_name="test_temp_dir"):
+    """
+    Creates a temporary directory used for testing. If already existing, it will only return the path to it.
+    Args:
+        folder_name (str): Name of the folder to create
+    Returns:
+        str: Path ".../test_utils/data/test_temp_dir"
+    """
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0])
+    data_folder = get_data_dir_path(module=module)
+    test_temp_dir = os.path.join(data_folder, folder_name)  # .../data/test_temp_dir
+    if not os.path.exists(test_temp_dir):
+        os.mkdir(test_temp_dir)
+    return test_temp_dir
+
+
+def delete_test_temp_dir(folder_name="test_temp_dir"):
+    """
+    Deletes the temporary directory used for testing.
+    Args:
+        folder_name (str): Name of the folder to delete
+    Returns:
+        bool: True if it was deleted, False in case it was not found.
+    """
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0])
+    data_folder = get_data_dir_path(module=module)
+    test_temp_dir = os.path.join(data_folder, folder_name)  # .../data/test_temp_dir
+    if os.path.exists(test_temp_dir):
+        shutil.rmtree(test_temp_dir)
+        return True
+    return False
 
 
 def is_plugin_loaded(plugin):
