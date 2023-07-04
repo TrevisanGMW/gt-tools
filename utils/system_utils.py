@@ -92,7 +92,7 @@ def get_maya_install_dir(system):
 def get_maya_path(system, version, get_maya_python=False):
     """
     Get a path to Maya executable or maya headless
-    Args
+    Args:
         system (str): System name
         version (str): Software version - #### e.g. "2023" or "2024"
         get_maya_python (optional, bool): If active, it will return maya python executable instead of maya interactive
@@ -111,7 +111,7 @@ def get_maya_path(system, version, get_maya_python=False):
     if system not in maya_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
 
-    return maya_paths.get(system)
+    return os.path.normpath(maya_paths.get(system))
 
 
 def open_file_dir(path):
@@ -174,7 +174,7 @@ def get_maya_settings_dir(system):
 def get_available_maya_preferences_dirs(use_maya_commands=False):
     """
     Gets all folders matching the pattern "####" inside the parent maya preferences directory.
-    Parameters:
+    Args:
         use_maya_commands (bool, optional): If true, it will attempt to import Maya cmds and use it for the operation.
                                             This different method provides a more robust way of generating the path
                                             but requires access to Maya commands. It can only be used when in Maya.
@@ -198,7 +198,7 @@ def get_available_maya_preferences_dirs(use_maya_commands=False):
         maya_folders = os.listdir(maya_settings_dir)
         existing_folders = {}
         for folder in maya_folders:
-            if re.match("[0-9][0-9][0-9][0-9]", folder):
+            if re.match("^[0-9]{4}$", folder):
                 existing_folders[folder] = os.path.join(maya_settings_dir, folder)
         return existing_folders
     else:
@@ -215,11 +215,12 @@ def get_available_maya_install_dirs():
         If nothing is found, it returns an empty dictionary
     """
     maya_settings_dir = get_maya_install_dir(get_system())
+
     if os.path.exists(maya_settings_dir):
         maya_folders = os.listdir(maya_settings_dir)
         existing_folders = {}
         for folder in maya_folders:
-            if re.match("maya[0-9][0-9][0-9][0-9]", folder.lower()):
+            if re.match("^maya[0-9]{4}$", folder.lower()):
                 folder_digits = re.sub("[^0-9]", "", folder)
                 existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
         return existing_folders
@@ -457,7 +458,7 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
 def get_package_version(package_path=None):
     """
     Gets the package version, independently of the package folder name.
-    Parameters:
+    Args:
         package_path (str, optional): If provided, the path will be used to determine the package path.
                                       It assumes that the package is using the same variable name "PACKAGE_VERSION"
     Returns:
@@ -489,7 +490,7 @@ def load_package_menu(launch_latest_maya=False):
     It can also open the latest Maya version detected on the machine and injects the package loader script onto it
     causing the package main maya menu to be loaded from start.
     Essentially a "Run Only" option for the package and maya menu.
-    Parameters:
+    Args:
         launch_latest_maya (bool, optional): If true, it will launch the latest detected version of Maya and inject
                                             the necessary code to import the package and create its maya menu.
     """
