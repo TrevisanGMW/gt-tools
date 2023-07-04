@@ -253,3 +253,76 @@ class TestSystemUtils(unittest.TestCase):
 
             expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\mayapy")
             self.assertEqual(expected, result)
+
+    def test_launch_maya_from_path(self):
+        with patch('os.path.exists') as mock_exists, \
+             patch('subprocess.check_call') as mock_check_call:
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya_from_path(maya_path="fake_path")
+            mock_exists.assert_called_once()
+            mock_check_call.assert_called_once()
+            result = mock_check_call.call_args.args[0]
+            expected = ['fake_path']
+            self.assertEqual(expected, result)
+
+    def test_launch_maya_from_path_python_script(self):
+        with patch('os.path.exists') as mock_exists, \
+             patch('subprocess.check_call') as mock_check_call:
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya_from_path(maya_path="fake_path", python_script="py")
+            mock_exists.assert_called_once()
+            mock_check_call.assert_called_once()
+            result = mock_check_call.call_args.args[0]
+            expected = ['fake_path', '-c', 'python("import base64; exec (base64.urlsafe_b64decode(b\'cHk=\'))")']
+            self.assertEqual(expected, result)
+
+    def test_launch_maya_from_path_additional_args(self):
+        with patch('os.path.exists') as mock_exists, \
+             patch('subprocess.check_call') as mock_check_call:
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya_from_path(maya_path="fake_path", additional_args=["a", "b"])
+            mock_exists.assert_called_once()
+            mock_check_call.assert_called_once()
+            result = mock_check_call.call_args.args[0]
+            expected = ["fake_path", "a", "b"]
+            self.assertEqual(expected, result)
+
+    def test_launch_maya(self):
+        with patch('utils.system_utils.get_maya_executable') as mock_get_maya_executable, \
+             patch('os.path.exists') as mock_exists, \
+             patch('subprocess.check_call') as mock_check_call:
+            mock_get_maya_executable.return_value = "fake_path"
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya()
+            mock_exists.assert_called_once()
+            mock_check_call.assert_called_once()
+            result = mock_check_call.call_args.args[0]
+            expected = ["fake_path"]
+            self.assertEqual(expected, result)
+
+    def test_launch_maya_preferred_version(self):
+        with patch('utils.system_utils.get_maya_executable') as mock_get_maya_executable, \
+             patch('os.path.exists') as mock_exists, \
+             patch('subprocess.check_call') as mock_check_call:
+            mock_get_maya_executable.return_value = "fake_path"
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya(preferred_version="2024")
+            mock_exists.assert_called_once()
+            mock_check_call.assert_called_once()
+            result_one = mock_check_call.call_args.args[0]
+            result_two = mock_get_maya_executable.call_args.kwargs
+            expected = [["fake_path"], {'preferred_version': '2024'}]
+            self.assertEqual(expected, [result_one, result_two])
+
+    def test_run_script_using_maya_python(self):
+        with patch('utils.system_utils.get_maya_executable') as mock_get_maya_executable, \
+             patch('os.path.exists') as mock_exists, \
+             patch('subprocess.call') as mock_call:
+            mock_get_maya_executable.return_value = "fake_headless_path"
+            mock_exists.return_value = True  # Skip check to see if it exists
+            system_utils.launch_maya()
+            mock_exists.assert_called_once()
+            mock_call.assert_called_once()
+            result = mock_call.call_args.args
+            expected = ["fake_path"]
+            self.assertEqual(expected, result)
