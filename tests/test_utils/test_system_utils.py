@@ -128,7 +128,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('utils.system_utils.get_maya_settings_dir')
     def test_get_available_maya_preferences(self, mock_get_maya_settings_dir):
-        test_temp_dir = maya_test_tools.create_test_temp_dir()
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mock_get_maya_settings_dir.return_value = test_temp_dir
         result = {}
         try:
@@ -147,7 +147,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('utils.system_utils.get_maya_install_dir')
     def test_get_available_maya_install_dirs(self, mock_get_maya_install_dir):
-        test_temp_dir = maya_test_tools.create_test_temp_dir()
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mock_get_maya_install_dir.return_value = test_temp_dir
         result = {}
         try:
@@ -163,3 +163,93 @@ class TestSystemUtils(unittest.TestCase):
         expected = {"2020": os.path.join(test_temp_dir, "Maya2020"),
                     "2024": os.path.join(test_temp_dir, "maya2024")}
         self.assertEqual(expected, result)
+
+    def test_get_maya_executable_win32(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2022": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_WINDOWS
+            mock_exists.return_value = True
+            result = system_utils.get_maya_executable()
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe")
+            self.assertEqual(expected, result)
+
+    def test_get_maya_executable_win32_preferred_version(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2020": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_WINDOWS
+            mock_exists.return_value = True
+            result = system_utils.get_maya_executable(preferred_version="2020")
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe")
+            self.assertEqual(expected, result)
+
+    def test_get_maya_executable_win32_maya_python(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2020": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_WINDOWS
+            mock_exists.return_value = True  # Skip check to see if it exists
+            result = system_utils.get_maya_executable(get_maya_python=True)
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2024\\bin\\mayapy.exe")
+            self.assertEqual(expected, result)
+
+    def test_get_maya_executable_mac(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2022": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_MAC
+            mock_exists.return_value = True  # Skip check to see if it exists
+            result = system_utils.get_maya_executable()
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\maya")
+            self.assertEqual(expected, result)
+
+    def test_get_maya_executable_mac_preferred_version(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2020": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_MAC
+            mock_exists.return_value = True  # Skip check to see if it exists
+            result = system_utils.get_maya_executable(preferred_version="2020")
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("\\Applications\\Autodesk\\maya2020\\Maya.app\\Contents\\bin\\maya")
+            self.assertEqual(expected, result)
+
+    def test_get_maya_executable_mac_maya_python(self):
+        with patch('utils.system_utils.get_available_maya_install_dirs') as mock_install_dirs, \
+             patch('utils.system_utils.get_system') as mock_get_system, \
+             patch('os.path.exists') as mock_exists:
+            mock_install_dirs.return_value = {"2020": "fake_path",
+                                              "2024": "fake_path"}
+            mock_get_system.return_value = system_utils.OS_MAC  # Force Mac
+            mock_exists.return_value = True  # Skip check to see if it exists
+            result = system_utils.get_maya_executable(get_maya_python=True)
+            mock_install_dirs.assert_called_once()
+            mock_exists.assert_called_once()
+
+            expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\mayapy")
+            self.assertEqual(expected, result)
