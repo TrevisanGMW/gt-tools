@@ -351,7 +351,7 @@ def load_menu(*args):
                                "(Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)",
                        icon='nParticle.svg')
     menu.add_menu_item(label='Delete Keyframes',
-                       command=partial(_run_utility, "anim_utils", "delete_keyframes"),
+                       command=partial(_run_utility, "anim_utils", "delete_time_keyframes"),
                        tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
                        icon='keyIntoclip.png')
 
