@@ -4,7 +4,7 @@ import pathlib
 import logging
 import unittest
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Logging Setup
 logging.basicConfig()
@@ -397,4 +397,34 @@ class TestSystemUtils(unittest.TestCase):
             expected = ('module.fake_entry_point_function()',)
             result = mock_eval.call_args.args
             self.assertEqual(expected, result)
+
+    def test_initialize_utility(self):
+        with patch('utils.system_utils.initialize_from_package') as mock_initialize_from_package:
+            system_utils.initialize_utility("fake_import_path", "fake_entry_point_function")
+            mock_initialize_from_package.assert_called_once()
+            expected = {'entry_point_function': 'fake_entry_point_function', 'import_path': 'utils.fake_import_path'}
+            result = mock_initialize_from_package.call_args.kwargs
+            self.assertEqual(expected, result)
+
+    def test_get_package_version_bad_path(self):
+        with patch('os.path.exists') as mock_eval:
+            result = system_utils.get_package_version(package_path="fake_package_path")
+            mock_eval.assert_called_once()
+            expected = "0.0.0"
+            self.assertEqual(expected, result)
+
+    def test_get_package_version(self):
+        with patch('os.path.exists') as mock_eval, \
+             patch('sys.path', ['/mocked/path', 'fake_package_path']), \
+             patch('builtins.__import__') as mock_import:
+            mock_eval.return_value = True
+            mock_instance = MagicMock()
+            mock_instance.PACKAGE_VERSION = '1.2.3'
+            mock_import.return_value = mock_instance
+            result = system_utils.get_package_version(package_path="fake_package_path")
+            mock_eval.assert_called_once()
+            mock_import.assert_called_once()
+            expected = '1.2.3'
+            self.assertEqual(expected, result)
+
 
