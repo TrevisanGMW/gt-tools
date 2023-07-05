@@ -342,7 +342,7 @@ def process_launch_options(sys_args):
         sys_args (list): A "sys.argv" list. First object ("argv[0]") is expected to the script name.
                          (Full path is not guaranteed as it's system dependent)
     Returns:
-        bool: True if a launch option was found an executed, otherwise None.
+        bool: True if a launch option was found an executed, otherwise False.
     """
     if not isinstance(sys_args, list):  # Initial type check
         raise TypeError(f'Provided argument is not a list. Please use "sys.argv" as input and try again.')
@@ -394,6 +394,7 @@ def process_launch_options(sys_args):
     else:
         unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
+        return False
 
 
 def initialize_from_package(import_path, entry_point_function):

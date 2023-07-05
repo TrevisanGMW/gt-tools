@@ -320,9 +320,81 @@ class TestSystemUtils(unittest.TestCase):
              patch('subprocess.call') as mock_call:
             mock_get_maya_executable.return_value = "fake_headless_path"
             mock_exists.return_value = True  # Skip check to see if it exists
-            system_utils.launch_maya()
+            system_utils.run_script_using_maya_python("fake_script_path")
             mock_exists.assert_called_once()
             mock_call.assert_called_once()
             result = mock_call.call_args.args
-            expected = ["fake_path"]
+            expected = (['fake_headless_path', 'fake_script_path'],)
             self.assertEqual(expected, result)
+
+    def test_process_launch_options_value_error(self):
+        with self.assertRaises(ValueError):
+            system_utils.process_launch_options([])
+
+    def test_process_launch_options_value_unrecognized(self):
+        with patch('sys.stdout.write'):
+            result = system_utils.process_launch_options(["fake_script_name", "-unrecognized_test"])
+            expected = False
+            self.assertEqual(expected, result)
+
+    def test_process_launch_options_install(self):
+        with patch('setup_utils.install_package') as mock_install_package:
+            system_utils.process_launch_options(["fake_script_name", "-install"])
+            mock_install_package.assert_called_once()
+            result = mock_install_package.call_args.kwargs
+            expected = {'clean_install': False}
+            self.assertEqual(expected, result)
+
+    def test_process_launch_options_install_clean(self):
+        with patch('setup_utils.install_package') as mock_install_package:
+            system_utils.process_launch_options(["fake_script_name", "-install", "-clean"])
+            mock_install_package.assert_called_once()
+            result = mock_install_package.call_args.kwargs
+            expected = {'clean_install': True}
+            self.assertEqual(expected, result)
+
+    def test_process_launch_options_install_gui(self):
+        with patch('tools.package_setup.launcher_entry_point') as mock_launcher_entry_point:
+            system_utils.process_launch_options(["fake_script_name", "-install", "-gui"])
+            mock_launcher_entry_point.assert_called_once()
+
+    def test_process_launch_options_uninstall(self):
+        with patch('setup_utils.uninstall_package') as mock_uninstall_package:
+            result = system_utils.process_launch_options(["fake_script_name", "-uninstall"])
+            mock_uninstall_package.assert_called_once()
+            expected = True
+            self.assertEqual(expected, result)
+
+    def test_process_launch_options_launch(self):
+        with patch('utils.system_utils.load_package_menu') as mock_launch:
+            result = system_utils.process_launch_options(["fake_script_name", "-launch"])
+            mock_launch.assert_called_once()
+            expected = True
+            self.assertEqual(expected, result)
+
+    def test_process_launch_options_test(self):
+        with patch('tests.run_all_tests_with_summary') as mock_tests:
+            result = system_utils.process_launch_options(["fake_script_name", "-test", "-all"])
+            mock_tests.assert_called_once()
+            expected = True
+            self.assertEqual(expected, result)
+
+    def test_initialize_from_package_calling(self):
+        with patch('importlib.import_module') as mock_import_module, \
+             patch('utils.system_utils.eval') as mock_eval:
+            result = system_utils.initialize_from_package("fake_import_path", "fake_entry_point_function")
+            mock_import_module.assert_called_once()
+            mock_eval.assert_called_once()
+            expected = True
+            self.assertEqual(expected, result)
+
+    def test_initialize_from_package_arguments(self):
+        with patch('importlib.import_module') as mock_import_module, \
+             patch('utils.system_utils.eval') as mock_eval:
+            system_utils.initialize_from_package("fake_import_path", "fake_entry_point_function")
+            mock_import_module.assert_called_once()
+            mock_eval.assert_called_once()
+            expected = ('module.fake_entry_point_function()',)
+            result = mock_eval.call_args.args
+            self.assertEqual(expected, result)
+
