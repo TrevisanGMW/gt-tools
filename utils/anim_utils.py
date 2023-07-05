@@ -11,23 +11,49 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def get_time_keyframes():
+    """
+    Gets time (animation) keyframes.
+    Set Driven Keys are not included.
+    Returns:
+        list: number of keyframes deleted during the operation
+    """
+    keys_ta = cmds.ls(type='animCurveTA') or []  # time-angle (default keys - time as input)
+    keys_tl = cmds.ls(type='animCurveTL') or []  # time-distance
+    keys_tt = cmds.ls(type='animCurveTT') or []  # time-time
+    keys_tu = cmds.ls(type='animCurveTU') or []  # time-double
+
+    time_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
+    return time_keyframes
+
+
+def get_double_keyframes():
+    """
+    Gets double (driven) keyframes.
+    Animation keyframes are not included.
+    Returns:
+        list: number of keyframes deleted during the operation
+    """
+    keys_ul = cmds.ls(type='animCurveUL') or []  # double-distance - Driven Keys (double as input)
+    keys_ua = cmds.ls(type='animCurveUA') or []  # double-angle
+    keys_ut = cmds.ls(type='animCurveUT') or []  # double-time
+    keys_uu = cmds.ls(type='animCurveUU') or []  # double-double
+
+    double_keyframes = keys_ul + keys_ua + keys_ut + keys_uu
+    return double_keyframes
+
+
 def delete_time_keyframes():
     """
     Deletes time (animation) keyframes. (Set Driven Keys are not included)
     Returns:
-        int: number of keyframes deleted during the operation
+        list: number of keyframes deleted during the operation
     """
     function_name = 'Delete Time Keyframes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        keys_ta = cmds.ls(type='animCurveTA')  # time-angle (default keys - time as input)
-        keys_tl = cmds.ls(type='animCurveTL')  # time-distance
-        keys_tt = cmds.ls(type='animCurveTT')  # time-time
-        keys_tu = cmds.ls(type='animCurveTU')  # time-double
-
-        time_keyframes = keys_ta + keys_tl + keys_tt + keys_tu
-        for obj in time_keyframes:
+        for obj in get_time_keyframes():
             try:
                 cmds.delete(obj)
                 deleted_counter += 1
@@ -58,13 +84,7 @@ def delete_double_keyframes():
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        keys_ul = cmds.ls(type='animCurveUL')  # double-distance - Driven Keys (double as input)
-        keys_ua = cmds.ls(type='animCurveUA')  # double-angle
-        keys_ut = cmds.ls(type='animCurveUT')  # double-time
-        keys_uu = cmds.ls(type='animCurveUU')  # double-double
-
-        double_keyframes = keys_ul + keys_ua + keys_ut + keys_uu
-        for obj in double_keyframes:
+        for obj in get_double_keyframes():
             try:
                 cmds.delete(obj)
                 deleted_counter += 1

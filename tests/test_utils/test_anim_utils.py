@@ -37,6 +37,18 @@ class TestAnimUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
+    def test_get_time_keyframes(self):
+        import_anim_test_file()
+        result = anim_utils.get_time_keyframes()
+        expected = ['pCube1_rotateY', 'pCube1_translateZ', 'pCube1_scaleY']
+        self.assertEqual(expected, result)
+
+    def test_get_double_keyframes(self):
+        import_anim_test_file()
+        result = anim_utils.get_double_keyframes()
+        expected = ['pCube2_translateX', 'pCube2_rotateY', 'pCube2_scaleY']
+        self.assertEqual(expected, result)
+
     def test_delete_time_keyframes(self):
         import_anim_test_file()
         result = anim_utils.delete_time_keyframes()
