@@ -58,12 +58,12 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_get_maya_install_dir_win32(self):
         result = system_utils.get_maya_install_dir(system_utils.OS_WINDOWS)
-        expected = f"C:\\Program Files\\Autodesk\\"
+        expected = os.path.normpath(f"C:\\Program Files\\Autodesk\\")
         self.assertEqual(expected, result)
 
     def test_get_maya_install_dir_mac(self):
         result = system_utils.get_maya_install_dir(system_utils.OS_MAC)
-        expected = f"/Applications/Autodesk/"
+        expected = os.path.normpath(f"/Applications/Autodesk/")
         self.assertEqual(expected, result)
 
     def test_get_maya_install_dir_key_error(self):
@@ -427,4 +427,15 @@ class TestSystemUtils(unittest.TestCase):
             expected = '1.2.3'
             self.assertEqual(expected, result)
 
+    def test_load_package_menu_launching_maya(self):
+        with patch('utils.system_utils.launch_maya') as mock_launch_maya:
+            system_utils.load_package_menu(launch_latest_maya=True)
+            mock_launch_maya.assert_called_once()
+            result_kwargs = mock_launch_maya.call_args.kwargs
+            expected_key = 'python_script'
+            self.assertIn(expected_key, result_kwargs)
 
+    def test_load_package_menu_injecting(self):
+        with patch('tools.package_setup.gt_tools_maya_menu.load_menu') as mock_load_menu:
+            system_utils.load_package_menu(launch_latest_maya=False)
+            mock_load_menu.assert_called_once()

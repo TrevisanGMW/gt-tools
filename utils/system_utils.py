@@ -86,7 +86,7 @@ def get_maya_install_dir(system):
     if system not in autodesk_default_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
 
-    return autodesk_default_paths.get(system)
+    return os.path.normpath(autodesk_default_paths.get(system))
 
 
 def get_maya_path(system, version, get_maya_python=False):
