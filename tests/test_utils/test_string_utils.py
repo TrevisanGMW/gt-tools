@@ -89,8 +89,3 @@ class TestStringUtils(unittest.TestCase):
         result = string_utils.remove_strings_from_string(input_string=input_string,
                                                          undesired_string_list=to_remove_list)
         self.assertEqual(expected, result)
-
-    def test_fail_one_purpose(self):
-        expected = True
-        result = False
-        self.assertEqual(expected, result)

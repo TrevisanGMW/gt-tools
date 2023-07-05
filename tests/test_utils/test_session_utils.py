@@ -36,8 +36,3 @@ class TestSessionUtils(unittest.TestCase):
         expected = ["fake", "state"]
         result = session_utils.get_loaded_modules(expected)
         self.assertEqual(expected, result)
-
-    def test_fail_one_purpose(self):
-        expected = True
-        result = False
-        self.assertEqual(expected, result)
