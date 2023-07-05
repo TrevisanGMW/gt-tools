@@ -68,7 +68,7 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_get_maya_install_dir_key_error(self):
         with self.assertRaises(KeyError):
-            system_utils.get_maya_install_dir("random_missing_key")
+            system_utils.get_maya_install_dir(system="random_missing_key")
 
     def test_get_maya_path_win32(self):
         result = system_utils.get_maya_path(system=system_utils.OS_WINDOWS,
