@@ -6,6 +6,7 @@ from . import test_list_utils
 from . import test_namespace_utils
 from . import test_scene_utils
 from . import test_session_utils
+from . import test_setup_utils
 from . import test_string_utils
 from . import test_system_utils
 from . import test_version_utils
