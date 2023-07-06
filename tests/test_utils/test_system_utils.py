@@ -173,7 +173,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable()
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe")
+        expected = r"C:\Program Files\Autodesk\Maya2024\bin\maya.exe"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -215,7 +215,8 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable()
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\maya")
+        expected = os.path.join(" ", "Applications", "Autodesk", "maya2024", "Maya.app", "Contents", "bin", "maya")[1:]
+        # expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\maya") @@@
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -229,7 +230,8 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(preferred_version="2020")
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("\\Applications\\Autodesk\\maya2020\\Maya.app\\Contents\\bin\\maya")
+        expected = os.path.join(" ", "Applications", "Autodesk", "maya2020", "Maya.app", "Contents", "bin", "maya")[1:]
+        #expected = os.path.normcase("\\Applications\\Autodesk\\maya2020\\Maya.app\\Contents\\bin\\maya")
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -243,7 +245,8 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(get_maya_python=True)
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\mayapy")
+        expected = os.path.join(" ", "Applications", "Autodesk", "maya2024", "Maya.app", "Contents", "bin", "mayapy")[1:]
+        #expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\mayapy")
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -386,8 +389,8 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.initialize_from_package("fake_import_path", "fake_entry_point_function")
         mock_import_module.assert_called_once()
         mock_eval.assert_called_once()
-        expected = ('module.fake_entry_point_function()',)
-        result = mock_eval.call_args.args
+        expected = "call('module.fake_entry_point_function()')"
+        result = str(mock_eval.call_args)
         self.assertEqual(expected, result)
 
     @patch('utils.system_utils.initialize_from_package')
