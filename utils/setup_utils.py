@@ -72,7 +72,6 @@ def copy_package_requirements(target_folder, package_requirements):
     # Copy
     for requirement, requirement_path in package_requirements.items():
         if os.path.isdir(requirement_path):  # Directories
-
             shutil.copytree(src=requirement_path,
                             dst=os.path.join(target_folder, requirement),
                             # dirs_exist_ok=True,  # Not needed for now + Only available on Python 3.8+

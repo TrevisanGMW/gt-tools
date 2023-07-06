@@ -45,7 +45,7 @@ class TestSetupUtils(unittest.TestCase):
 
     @patch('maya.cmds.about')
     def test_get_maya_settings_dir_about_key(self, mock_about):
-        mock_about.return_value = "fake_path"
+        mock_about.return_value = "mocked_path"
         setup_utils.get_maya_preferences_dir()
         result = str(mock_about.call_args)
         expected = "call(preferences=True)"
@@ -63,3 +63,37 @@ class TestSetupUtils(unittest.TestCase):
         for value in result_dict.values():
             exists = os.path.exists(str(value))
             self.assertEqual(True, exists)
+
+    def test_copy_package_requirements(self):
+        # Create test elements
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        source_dir = os.path.join(test_temp_dir, "source_dir")
+        target_dir = os.path.join(test_temp_dir, "target_dir")
+        requirement_dir_one = os.path.join(source_dir, "dir_one")
+        requirement_dir_two = os.path.join(source_dir, "dir_two")
+        requirement_py = os.path.join(source_dir, "empty.py")
+        undesired_pyc = os.path.join(source_dir, "empty.pyc")
+        undesired_dir_one = os.path.join(requirement_dir_one, "__pycache__")
+        undesired_dir_two = os.path.join(source_dir, "__pycache__")
+        for path in [source_dir,
+                     target_dir,
+                     requirement_dir_one,
+                     requirement_dir_two,
+                     undesired_dir_one,
+                     undesired_dir_two]:
+            if not os.path.exists(path):
+                os.mkdir(path)
+        for file in [requirement_py, undesired_pyc]:
+            with open(file, 'w'):
+                pass  # Create empty file
+        mocked_package_requirements = {"dir_one": str(requirement_dir_one),
+                                       "dir_two": str(requirement_dir_two),
+                                       "empty.py": str(requirement_py)}
+        setup_utils.copy_package_requirements(target_folder=target_dir,
+                                              package_requirements=mocked_package_requirements)
+        source_result = sorted(os.listdir(source_dir))
+        source_expected = sorted(['dir_one', 'dir_two', 'empty.py', 'empty.pyc', '__pycache__'])
+        self.assertEqual(source_expected, source_result)
+        target_result = sorted(os.listdir(target_dir))
+        target_expected = sorted(['dir_one', 'dir_two', 'empty.py'])
+        self.assertEqual(target_expected, target_result)
