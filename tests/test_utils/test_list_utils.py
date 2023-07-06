@@ -48,8 +48,8 @@ class TestListUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_list_missing_elements_two(self):
-        list_a = ["1", 2, "a", "b"]
+        list_a = ["1", "2", "a", "b"]
         list_b = ["1", "a"]
-        expected = ['2', '3', 'b', 'c']
+        expected = ['2', 'b']
         result = list_utils.get_list_missing_elements(expected_list=list_a, result_list=list_b)
         self.assertEqual(expected, result)
