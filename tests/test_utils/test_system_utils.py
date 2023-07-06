@@ -117,22 +117,22 @@ class TestSystemUtils(unittest.TestCase):
         expected = f'call({str(["open", "-R", temp_folder])})'
         self.assertEqual(expected, result)
 
-    def test_get_maya_settings_dir_win32(self):
-        result = system_utils.get_maya_settings_dir(system=system_utils.OS_WINDOWS)
+    def test_get_maya_preferences_dir_win32(self):
+        result = system_utils.get_maya_preferences_dir(system=system_utils.OS_WINDOWS)
         generated_path = os.path.join(os.path.expanduser('~'), "Documents", "maya")
         expected = os.path.normpath(generated_path)
         self.assertEqual(expected, result)
 
-    def test_get_maya_settings_dir_mac(self):
-        result = system_utils.get_maya_settings_dir(system=system_utils.OS_MAC)
+    def test_get_maya_preferences_dir_mac(self):
+        result = system_utils.get_maya_preferences_dir(system=system_utils.OS_MAC)
         generated_path = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
         expected = os.path.normpath(generated_path)
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.get_maya_settings_dir')
-    def test_get_available_maya_preferences(self, mock_get_maya_settings_dir):
+    @patch('utils.system_utils.get_maya_preferences_dir')
+    def test_get_available_maya_preferences(self, mock_get_maya_preferences_dir):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
-        mock_get_maya_settings_dir.return_value = test_temp_dir
+        mock_get_maya_preferences_dir.return_value = test_temp_dir
         result = {}
         try:
             for folder in ["2020", "2024", "folder", "scripts", "2023backup"]:
@@ -142,7 +142,7 @@ class TestSystemUtils(unittest.TestCase):
             result = system_utils.get_available_maya_preferences_dirs(use_maya_commands=False)
         except Exception as e:
             logger.warning(f"Failed to test maya preferences: Issue:{e}")
-        mock_get_maya_settings_dir.assert_called_once()
+        mock_get_maya_preferences_dir.assert_called_once()
         expected = {"2020": os.path.join(test_temp_dir, "2020"),
                     "2024": os.path.join(test_temp_dir, "2024")}
         self.assertEqual(expected, result)

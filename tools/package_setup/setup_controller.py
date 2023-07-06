@@ -48,7 +48,7 @@ class PackageSetupController(QtCore.QObject):
 
     @staticmethod
     def get_install_target_dir():
-        maya_settings_dir = system_utils.get_maya_settings_dir(system_utils.get_system())
+        maya_settings_dir = system_utils.get_maya_preferences_dir(system_utils.get_system())
         return os.path.normpath(os.path.join(maya_settings_dir, setup_utils.PACKAGE_NAME))
 
     def update_path(self):

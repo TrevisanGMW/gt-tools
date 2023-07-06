@@ -137,36 +137,36 @@ def open_file_dir(path):
         logger.warning(f'Unable to open directory. Unsupported system: "{system}".')
 
 
-def get_maya_settings_dir(system):
+def get_maya_preferences_dir(system):
     """
-    Get maya settings folder (folder contains scripts, prefs, etc..)
+    Get maya preferences folder (folder contains scripts, prefs, etc..)
     Args:
         system (str): System string
     Returns:
-        str: Path to settings folder (folder where you find scripts, prefs, etc..)
+        str: Path to preferences folder (folder where you find scripts, prefs, etc..)
     """
-    win_maya_settings_dir = ""
-    mac_maya_settings_dir = ""
+    win_maya_preferences_dir = ""
+    mac_maya_preferences_dir = ""
     if system == OS_WINDOWS:
-        win_maya_settings_dir = os.path.expanduser('~')
-        win_maya_settings_dir = os.path.join(win_maya_settings_dir, "Documents")
-        win_maya_settings_dir = os.path.join(win_maya_settings_dir, "maya")
+        win_maya_preferences_dir = os.path.expanduser('~')
+        win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "Documents")
+        win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
     elif system == OS_MAC:
-        mac_maya_settings_dir = os.path.expanduser('~')
-        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Library")
-        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Preferences")
-        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "Autodesk")
-        mac_maya_settings_dir = os.path.join(mac_maya_settings_dir, "maya")
+        mac_maya_preferences_dir = os.path.expanduser('~')
+        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Library")
+        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Preferences")
+        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Autodesk")
+        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "maya")
 
-    maya_settings_paths = {
+    maya_preferences_paths = {
         OS_LINUX: "/usr/bin/",
-        OS_MAC: mac_maya_settings_dir,
-        OS_WINDOWS: win_maya_settings_dir,
+        OS_MAC: mac_maya_preferences_dir,
+        OS_WINDOWS: win_maya_preferences_dir,
     }
-    if system not in maya_settings_paths.keys():
+    if system not in maya_preferences_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
 
-    return maya_settings_paths.get(system)
+    return maya_preferences_paths.get(system)
 
 
 def get_available_maya_preferences_dirs(use_maya_commands=False):
@@ -184,23 +184,23 @@ def get_available_maya_preferences_dirs(use_maya_commands=False):
     if use_maya_commands:
         try:
             import maya.cmds as cmds
-            maya_settings_dir = os.path.dirname(cmds.about(preferences=True))
+            maya_preferences_dir = os.path.dirname(cmds.about(preferences=True))
         except Exception as e:
-            logger.debug(f"Unable to retrieve settings using Maya commands. Issue: {e}. \n"
+            logger.debug(f"Unable to retrieve preferences using Maya commands. Issue: {e}. \n"
                          f"Attempting operation using system functions...")
-            maya_settings_dir = get_maya_settings_dir(get_system())
+            maya_preferences_dir = get_maya_preferences_dir(get_system())
     else:
-        maya_settings_dir = get_maya_settings_dir(get_system())
+        maya_preferences_dir = get_maya_preferences_dir(get_system())
 
-    if os.path.exists(maya_settings_dir):
-        maya_folders = os.listdir(maya_settings_dir)
+    if os.path.exists(maya_preferences_dir):
+        maya_folders = os.listdir(maya_preferences_dir)
         existing_folders = {}
         for folder in maya_folders:
             if re.match("^[0-9]{4}$", folder):
-                existing_folders[folder] = os.path.join(maya_settings_dir, folder)
+                existing_folders[folder] = os.path.join(maya_preferences_dir, folder)
         return existing_folders
     else:
-        logger.warning(f'Missing provided path: "{maya_settings_dir}"')
+        logger.warning(f'Missing provided path: "{maya_preferences_dir}"')
         return {}
 
 
@@ -212,18 +212,18 @@ def get_available_maya_install_dirs():
         e.g. { "2024": "C:\\Users\\UserName\\Documents\\maya\\2024"}
         If nothing is found, it returns an empty dictionary
     """
-    maya_settings_dir = get_maya_install_dir(get_system())
+    maya_preferences_dir = get_maya_install_dir(get_system())
 
-    if os.path.exists(maya_settings_dir):
-        maya_folders = os.listdir(maya_settings_dir)
+    if os.path.exists(maya_preferences_dir):
+        maya_folders = os.listdir(maya_preferences_dir)
         existing_folders = {}
         for folder in maya_folders:
             if re.match("^maya[0-9]{4}$", folder.lower()):
                 folder_digits = re.sub("[^0-9]", "", folder)
-                existing_folders[folder_digits] = os.path.join(maya_settings_dir, folder)
+                existing_folders[folder_digits] = os.path.join(maya_preferences_dir, folder)
         return existing_folders
     else:
-        logger.warning(f'Missing provided path: "{maya_settings_dir}"')
+        logger.warning(f'Missing provided path: "{maya_preferences_dir}"')
         return {}
 
 

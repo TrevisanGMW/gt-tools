@@ -21,9 +21,9 @@ PACKAGE_LEGACY_LINE = 'source "gt_tools_menu.mel";'
 PACKAGE_USER_SETUP = "userSetup.mel"
 
 
-def get_maya_settings_dir():
+def get_maya_preferences_dir():
     """
-    Get maya settings dir using cmds
+    Get maya preferences dir using cmds
     Usually Documents/maya
     Returns:
         Path to maya settings directory. Usually "C:/Users/<user-name>/Documents/maya"
@@ -355,7 +355,7 @@ def install_package(clean_install=True, verbose=True):
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching requirements...", do_print=verbose)
-    maya_settings_dir = get_maya_settings_dir()
+    maya_settings_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_settings_dir):
         logger.warning(f'Unable to install package. Missing required path: "{maya_settings_dir}"')
         return
@@ -404,7 +404,7 @@ def uninstall_package(verbose=True):
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching install location...", do_print=verbose)
-    maya_settings_dir = get_maya_settings_dir()
+    maya_settings_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_settings_dir):
         logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_settings_dir}"')
         return

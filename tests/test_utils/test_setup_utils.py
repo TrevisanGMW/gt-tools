@@ -32,13 +32,13 @@ class TestSetupUtils(unittest.TestCase):
         maya_test_tools.delete_test_temp_dir()
 
     def test_get_maya_settings_dir_exists(self):
-        settings_dir = setup_utils.get_maya_settings_dir()
+        settings_dir = setup_utils.get_maya_preferences_dir()
         result = os.path.exists(settings_dir)
         expected = True
         self.assertEqual(expected, result)
 
     def test_get_maya_settings_dir_is_folder(self):
-        settings_dir = setup_utils.get_maya_settings_dir()
+        settings_dir = setup_utils.get_maya_preferences_dir()
         result = os.path.isdir(settings_dir)
         expected = True
         self.assertEqual(expected, result)
@@ -46,7 +46,7 @@ class TestSetupUtils(unittest.TestCase):
     @patch('maya.cmds.about')
     def test_get_maya_settings_dir_about_key(self, mock_about):
         mock_about.return_value = "fake_path"
-        setup_utils.get_maya_settings_dir()
+        setup_utils.get_maya_preferences_dir()
         result = str(mock_about.call_args)
         expected = "call(preferences=True)"
         self.assertEqual(expected, result)
