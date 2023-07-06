@@ -45,9 +45,10 @@ class TestSetupUtils(unittest.TestCase):
 
     @patch('maya.cmds.about')
     def test_get_maya_settings_dir_about_key(self, mock_about):
+        mock_about.return_value = "fake_path"
         setup_utils.get_maya_settings_dir()
-        result = mock_about.call_args.kwargs
-        expected = {'preferences': True}
+        result = str(mock_about.call_args)
+        expected = "call(preferences=True)"
         self.assertEqual(expected, result)
 
     def test_get_package_requirements_keys(self):
