@@ -63,7 +63,7 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_get_maya_install_dir_mac(self):
         result = system_utils.get_maya_install_dir(system_utils.OS_MAC)
-        expected = os.path.normpath(f"/Applications/Autodesk/")
+        expected = f"/Applications/Autodesk"
         self.assertEqual(expected, result)
 
     def test_get_maya_install_dir_key_error(self):
@@ -74,14 +74,14 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_path(system=system_utils.OS_WINDOWS,
                                             version='2024',
                                             get_maya_python=False)
-        expected = os.path.normpath(f'C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe')
+        expected = f'C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe'
         self.assertEqual(expected, result)
 
     def test_get_maya_path_mac(self):
         result = system_utils.get_maya_path(system=system_utils.OS_MAC,
                                             version='2023',
                                             get_maya_python=False)
-        expected = os.path.normpath(f"/Applications/Autodesk//maya2023/Maya.app/Contents/bin/maya")
+        expected = "/Applications/Autodesk/maya2023/Maya.app/Contents/bin/maya"
         self.assertEqual(expected, result)
 
     def test_get_maya_path_key_error(self):
@@ -90,30 +90,32 @@ class TestSystemUtils(unittest.TestCase):
                                        version='2024',
                                        get_maya_python=False)
 
+    @patch('os.getenv')
     @patch('subprocess.run')
-    def test_open_file_dir_win32(self, mock_subprocess_run):
-        with patch('utils.system_utils.get_system') as mock_get_system:
-            temp_folder = tempfile.gettempdir()
-            mock_get_system.return_value = system_utils.OS_WINDOWS
-            system_utils.open_file_dir(temp_folder)
-            mock_get_system.assert_called_once()  # Make sure get system is called
-            mock_subprocess_run.assert_called_once()  # Make sure subprocess.run is called
-            result = str(mock_subprocess_run.call_args)
-            expected = "['C:\\WINDOWS\\explorer.exe', temp_folder]"  # None type on MAC
-            # Invalid on mac - filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe') @@@
-            self.assertEqual(expected, result)
+    @patch('utils.system_utils.get_system')
+    def test_open_file_dir_win32(self, mock_get_system, mock_subprocess_run, mock_getenv):
+        mock_getenv.return_value = "fake_win_dir_path"
+        target_folder = tempfile.gettempdir()
+        mock_get_system.return_value = system_utils.OS_WINDOWS
+        system_utils.open_file_dir(target_folder)
+        mock_get_system.assert_called_once()
+        mock_subprocess_run.assert_called_once()
+        result = str(mock_subprocess_run.call_args)
+        fake_win_dir_path = r"fake_win_dir_path\explorer.exe"
+        expected = f"call({str([fake_win_dir_path, target_folder])})"
+        self.assertEqual(expected, result)
 
     @patch('subprocess.call')
-    def test_open_file_dir_mac(self, mock_subprocess_call):
-        with patch('utils.system_utils.get_system') as mock_get_system:
-            temp_folder = tempfile.gettempdir()
-            mock_get_system.return_value = system_utils.OS_MAC
-            system_utils.open_file_dir(temp_folder)
-            mock_get_system.assert_called_once()  # Make sure get system is called
-            mock_subprocess_call.assert_called_once()  # Make sure subprocess.run is called
-            result = str(mock_subprocess_call.call_args)
-            expected = f'call(["open", "-R", {temp_folder}])' # TEMP FOLDER IS RANDOM ON MAC @@@
-            self.assertEqual(expected, result)
+    @patch('utils.system_utils.get_system')
+    def test_open_file_dir_mac(self, mock_get_system, mock_subprocess_call):
+        temp_folder = tempfile.gettempdir()
+        mock_get_system.return_value = system_utils.OS_MAC
+        system_utils.open_file_dir(temp_folder)
+        mock_get_system.assert_called_once()
+        mock_subprocess_call.assert_called_once()
+        result = str(mock_subprocess_call.call_args)
+        expected = f'call({str(["open", "-R", temp_folder])})'
+        self.assertEqual(expected, result)
 
     def test_get_maya_settings_dir_win32(self):
         result = system_utils.get_maya_settings_dir(system=system_utils.OS_WINDOWS)
@@ -396,8 +398,8 @@ class TestSystemUtils(unittest.TestCase):
     def test_initialize_utility(self, mock_initialize_from_package):
         system_utils.initialize_utility("fake_import_path", "fake_entry_point_function")
         mock_initialize_from_package.assert_called_once()
-        expected = "call(entry_point_function='fake_entry_point_function', import_path='utils.fake_import_path')"
-        result = str(mock_initialize_from_package.call_args)
+        expected = "[call(import_path='utils.fake_import_path', entry_point_function='fake_entry_point_function')]"
+        result = str(mock_initialize_from_package.call_args_list)
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')

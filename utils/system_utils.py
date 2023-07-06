@@ -86,7 +86,7 @@ def get_maya_install_dir(system):
     if system not in autodesk_default_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
 
-    return os.path.normpath(autodesk_default_paths.get(system))
+    return autodesk_default_paths.get(system)
 
 
 def get_maya_path(system, version, get_maya_python=False):
@@ -124,8 +124,6 @@ def open_file_dir(path):
     if system == OS_WINDOWS:  # Windows
         # explorer needs forward slashes
         filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
-        path = os.path.normpath(path)
-
         if os.path.isdir(path):
             subprocess.run([filebrowser_path, path])
         elif os.path.isfile(path):
