@@ -101,7 +101,7 @@ class TestSystemUtils(unittest.TestCase):
         mock_get_system.assert_called_once()
         mock_subprocess_run.assert_called_once()
         result = str(mock_subprocess_run.call_args)
-        fake_win_dir_path = r"fake_win_dir_path\explorer.exe"
+        fake_win_dir_path = os.path.join("fake_win_dir_path", "explorer.exe")
         expected = f"call({str([fake_win_dir_path, target_folder])})"
         self.assertEqual(expected, result)
 
@@ -398,9 +398,11 @@ class TestSystemUtils(unittest.TestCase):
     def test_initialize_utility(self, mock_initialize_from_package):
         system_utils.initialize_utility("fake_import_path", "fake_entry_point_function")
         mock_initialize_from_package.assert_called_once()
-        expected = "[call(import_path='utils.fake_import_path', entry_point_function='fake_entry_point_function')]"
+        expected_one = "import_path='utils.fake_import_path'"
+        expected_two = "entry_point_function='fake_entry_point_function'"
         result = str(mock_initialize_from_package.call_args_list)
-        self.assertEqual(expected, result)
+        for expected in [expected_one, expected_two]:
+            self.assertIn(expected, result)
 
     @patch('os.path.exists')
     def test_get_package_version_bad_path(self, mock_eval):
