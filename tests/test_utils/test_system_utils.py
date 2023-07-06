@@ -94,15 +94,15 @@ class TestSystemUtils(unittest.TestCase):
     @patch('subprocess.run')
     @patch('utils.system_utils.get_system')
     def test_open_file_dir_win32(self, mock_get_system, mock_subprocess_run, mock_getenv):
-        mock_getenv.return_value = "fake_win_dir_path"
+        mock_getenv.return_value = "mocked_win_dir_path"
         target_folder = tempfile.gettempdir()
         mock_get_system.return_value = system_utils.OS_WINDOWS
         system_utils.open_file_dir(target_folder)
         mock_get_system.assert_called_once()
         mock_subprocess_run.assert_called_once()
         result = str(mock_subprocess_run.call_args)
-        fake_win_dir_path = os.path.join("fake_win_dir_path", "explorer.exe")
-        expected = f"call({str([fake_win_dir_path, target_folder])})"
+        mocked_win_dir_path = os.path.join("mocked_win_dir_path", "explorer.exe")
+        expected = f"call({str([mocked_win_dir_path, target_folder])})"
         self.assertEqual(expected, result)
 
     @patch('subprocess.call')
@@ -169,8 +169,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2022": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2022": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_WINDOWS
         mock_exists.return_value = True
         result = system_utils.get_maya_executable()
@@ -183,8 +183,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32_preferred_version(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2020": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2020": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_WINDOWS
         mock_exists.return_value = True
         result = system_utils.get_maya_executable(preferred_version="2020")
@@ -197,8 +197,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32_maya_python(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2020": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2020": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_WINDOWS
         mock_exists.return_value = True  # Skip check to see if it exists
         result = system_utils.get_maya_executable(get_maya_python=True)
@@ -211,8 +211,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2022": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2022": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_MAC
         mock_exists.return_value = True  # Skip check to see if it exists
         result = system_utils.get_maya_executable()
@@ -225,8 +225,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac_preferred_version(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2020": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2020": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_MAC
         mock_exists.return_value = True  # Skip check to see if it exists
         result = system_utils.get_maya_executable(preferred_version="2020")
@@ -239,8 +239,8 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.get_system')
     @patch('utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac_maya_python(self, mock_install_dirs, mock_get_system, mock_exists):
-        mock_install_dirs.return_value = {"2020": "fake_path",
-                                          "2024": "fake_path"}
+        mock_install_dirs.return_value = {"2020": "mocked_path",
+                                          "2024": "mocked_path"}
         mock_get_system.return_value = system_utils.OS_MAC  # Force Mac
         mock_exists.return_value = True  # Skip check to see if it exists
         result = system_utils.get_maya_executable(get_maya_python=True)
@@ -253,22 +253,22 @@ class TestSystemUtils(unittest.TestCase):
     @patch('subprocess.check_call')
     def test_launch_maya_from_path(self, mock_check_call, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
-        system_utils.launch_maya_from_path(maya_path="fake_path")
+        system_utils.launch_maya_from_path(maya_path="mocked_path")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
         result = str(mock_check_call.call_args)
-        expected = "call(['fake_path'])"
+        expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
     @patch('subprocess.check_call')
     def test_launch_maya_from_path_python_script(self, mock_check_call, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
-        system_utils.launch_maya_from_path(maya_path="fake_path", python_script="py")
+        system_utils.launch_maya_from_path(maya_path="mocked_path", python_script="py")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
         result = str(mock_check_call.call_args)
-        expected = "call(['fake_path', '-c', " \
+        expected = "call(['mocked_path', '-c', " \
                    "'python(\"import base64; exec (base64.urlsafe_b64decode(b\\'cHk=\\'))\")'])"
         self.assertEqual(expected, result)
 
@@ -276,51 +276,51 @@ class TestSystemUtils(unittest.TestCase):
     @patch('subprocess.check_call')
     def test_launch_maya_from_path_additional_args(self, mock_check_call, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
-        system_utils.launch_maya_from_path(maya_path="fake_path", additional_args=["a", "b"])
+        system_utils.launch_maya_from_path(maya_path="mocked_path", additional_args=["a", "b"])
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
         result = str(mock_check_call.call_args)
-        expected = "call(['fake_path', 'a', 'b'])"
+        expected = "call(['mocked_path', 'a', 'b'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
     @patch('subprocess.check_call')
     @patch('utils.system_utils.get_maya_executable')
     def test_launch_maya(self, mock_get_maya_executable, mock_check_call, mock_exists):
-        mock_get_maya_executable.return_value = "fake_path"
+        mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         system_utils.launch_maya()
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
         result = str(mock_check_call.call_args)
-        expected = "call(['fake_path'])"
+        expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
     @patch('subprocess.check_call')
     @patch('utils.system_utils.get_maya_executable')
     def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_check_call, mock_exists):
-        mock_get_maya_executable.return_value = "fake_path"
+        mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         system_utils.launch_maya(preferred_version="2024")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
         result_one = str(mock_check_call.call_args)
         result_two = str(mock_get_maya_executable.call_args)
-        expected = ["call(['fake_path'])", "call(preferred_version='2024')"]
+        expected = ["call(['mocked_path'])", "call(preferred_version='2024')"]
         self.assertEqual(expected, [result_one, result_two])
 
     @patch('os.path.exists')
     @patch('subprocess.call')
     @patch('utils.system_utils.get_maya_executable')
     def test_run_script_using_maya_python(self, mock_get_maya_executable, mock_call, mock_exists):
-        mock_get_maya_executable.return_value = "fake_headless_path"
+        mock_get_maya_executable.return_value = "mocked_headless_path"
         mock_exists.return_value = True  # Skip check to see if it exists
-        system_utils.run_script_using_maya_python("fake_script_path")
+        system_utils.run_script_using_maya_python("mocked_script_path")
         mock_exists.assert_called_once()
         mock_call.assert_called_once()
         result = str(mock_call.call_args)
-        expected = "call(['fake_headless_path', 'fake_script_path'])"
+        expected = "call(['mocked_headless_path', 'mocked_script_path'])"
         self.assertEqual(expected, result)
 
     def test_process_launch_options_value_error(self):
@@ -329,13 +329,13 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('sys.stdout.write', MagicMock)
     def test_process_launch_options_value_unrecognized(self):
-        result = system_utils.process_launch_options(["fake_script_name", "-unrecognized_test"])
+        result = system_utils.process_launch_options(["mocked_script_name", "-unrecognized_test"])
         expected = False
         self.assertEqual(expected, result)
 
     @patch('setup_utils.install_package')
     def test_process_launch_options_install(self, mock_install_package):
-        system_utils.process_launch_options(["fake_script_name", "-install"])
+        system_utils.process_launch_options(["mocked_script_name", "-install"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=False)"
@@ -343,7 +343,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('setup_utils.install_package')
     def test_process_launch_options_install_clean(self, mock_install_package):
-        system_utils.process_launch_options(["fake_script_name", "-install", "-clean"])
+        system_utils.process_launch_options(["mocked_script_name", "-install", "-clean"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=True)"
@@ -351,26 +351,26 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('tools.package_setup.launcher_entry_point')
     def test_process_launch_options_install_gui(self, mock_launcher_entry_point):
-        system_utils.process_launch_options(["fake_script_name", "-install", "-gui"])
+        system_utils.process_launch_options(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
 
     @patch('setup_utils.uninstall_package')
     def test_process_launch_options_uninstall(self, mock_uninstall_package):
-        result = system_utils.process_launch_options(["fake_script_name", "-uninstall"])
+        result = system_utils.process_launch_options(["mocked_script_name", "-uninstall"])
         mock_uninstall_package.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch('utils.system_utils.load_package_menu')
     def test_process_launch_options_launch(self, mock_launch):
-        result = system_utils.process_launch_options(["fake_script_name", "-launch"])
+        result = system_utils.process_launch_options(["mocked_script_name", "-launch"])
         mock_launch.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch('tests.run_all_tests_with_summary')
     def test_process_launch_options_test(self, mock_tests):
-        result = system_utils.process_launch_options(["fake_script_name", "-test", "-all"])
+        result = system_utils.process_launch_options(["mocked_script_name", "-test", "-all"])
         mock_tests.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
@@ -378,7 +378,7 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.eval')
     @patch('importlib.import_module')
     def test_initialize_from_package_calling(self, mock_import_module, mock_eval):
-        result = system_utils.initialize_from_package("fake_import_path", "fake_entry_point_function")
+        result = system_utils.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
         mock_import_module.assert_called_once()
         mock_eval.assert_called_once()
         expected = True
@@ -387,26 +387,26 @@ class TestSystemUtils(unittest.TestCase):
     @patch('utils.system_utils.eval')
     @patch('importlib.import_module')
     def test_initialize_from_package_arguments(self, mock_import_module, mock_eval):
-        system_utils.initialize_from_package("fake_import_path", "fake_entry_point_function")
+        system_utils.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
         mock_import_module.assert_called_once()
         mock_eval.assert_called_once()
-        expected = "call('module.fake_entry_point_function()')"
+        expected = "call('module.mocked_entry_point_function()')"
         result = str(mock_eval.call_args)
         self.assertEqual(expected, result)
 
     @patch('utils.system_utils.initialize_from_package')
     def test_initialize_utility(self, mock_initialize_from_package):
-        system_utils.initialize_utility("fake_import_path", "fake_entry_point_function")
+        system_utils.initialize_utility("mocked_import_path", "mocked_entry_point_function")
         mock_initialize_from_package.assert_called_once()
-        expected_one = "import_path='utils.fake_import_path'"
-        expected_two = "entry_point_function='fake_entry_point_function'"
+        expected_one = "import_path='utils.mocked_import_path'"
+        expected_two = "entry_point_function='mocked_entry_point_function'"
         result = str(mock_initialize_from_package.call_args_list)
         for expected in [expected_one, expected_two]:
             self.assertIn(expected, result)
 
     @patch('os.path.exists')
     def test_get_package_version_bad_path(self, mock_eval):
-        result = system_utils.get_package_version(package_path="fake_package_path")
+        result = system_utils.get_package_version(package_path="mocked_package_path")
         mock_eval.assert_called_once()
         expected = "0.0.0"
         self.assertEqual(expected, result)
@@ -415,12 +415,12 @@ class TestSystemUtils(unittest.TestCase):
     @patch('os.path.exists')
     def test_get_package_version(self, mock_exists, mock_path):
         mock_exists.return_value = True
-        mock_path.return_value = ['/mocked/path', 'fake_package_path']
+        mock_path.return_value = ['/mocked/path', 'mocked_package_path']
         with patch('builtins.__import__') as mock_import:
             mock_instance = MagicMock()
             mock_instance.PACKAGE_VERSION = '1.2.3'
             mock_import.return_value = mock_instance
-            result = system_utils.get_package_version(package_path="fake_package_path")
+            result = system_utils.get_package_version(package_path="mocked_package_path")
             mock_exists.assert_called_once()
             mock_import.assert_called_once()
             expected = '1.2.3'
