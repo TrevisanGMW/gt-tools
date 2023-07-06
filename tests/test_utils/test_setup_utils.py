@@ -62,4 +62,3 @@ class TestSetupUtils(unittest.TestCase):
         for value in result_dict.values():
             exists = os.path.exists(str(value))
             self.assertEqual(True, exists)
-

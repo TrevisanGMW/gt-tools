@@ -106,7 +106,7 @@ def get_maya_path(system, version, get_maya_python=False):
     maya_paths = {
         OS_LINUX: "/usr/bin/",
         OS_MAC: f"{install_dir}/maya{version}/Maya.app/Contents/bin/{executable_name}",
-        OS_WINDOWS: f"{install_dir}Maya{version}\\bin\\{executable_name}.exe",
+        OS_WINDOWS: f"{install_dir}\\Maya{version}\\bin\\{executable_name}.exe",
     }
     if system not in maya_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
