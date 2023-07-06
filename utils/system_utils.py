@@ -80,8 +80,8 @@ def get_maya_install_dir(system):
     """
     autodesk_default_paths = {
         OS_LINUX: "/usr/bin/",
-        OS_MAC: f"/Applications/Autodesk/",
-        OS_WINDOWS: f"C:\\Program Files\\Autodesk\\",
+        OS_MAC: "/Applications/Autodesk",
+        OS_WINDOWS: r"C:\Program Files\Autodesk",
     }
     if system not in autodesk_default_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
@@ -106,12 +106,12 @@ def get_maya_path(system, version, get_maya_python=False):
     maya_paths = {
         OS_LINUX: "/usr/bin/",
         OS_MAC: f"{install_dir}/maya{version}/Maya.app/Contents/bin/{executable_name}",
-        OS_WINDOWS: f"{install_dir}\\Maya{version}\\bin\\{executable_name}.exe",
+        OS_WINDOWS: fr"{install_dir}\Maya{version}\bin\{executable_name}.exe",
     }
     if system not in maya_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
 
-    return os.path.normpath(maya_paths.get(system))
+    return maya_paths.get(system)
 
 
 def open_file_dir(path):

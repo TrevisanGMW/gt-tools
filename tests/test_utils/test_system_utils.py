@@ -58,7 +58,7 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_get_maya_install_dir_win32(self):
         result = system_utils.get_maya_install_dir(system_utils.OS_WINDOWS)
-        expected = os.path.normpath(f"C:\\Program Files\\Autodesk\\")
+        expected = r"C:\Program Files\Autodesk"
         self.assertEqual(expected, result)
 
     def test_get_maya_install_dir_mac(self):
@@ -98,8 +98,9 @@ class TestSystemUtils(unittest.TestCase):
             system_utils.open_file_dir(temp_folder)
             mock_get_system.assert_called_once()  # Make sure get system is called
             mock_subprocess_run.assert_called_once()  # Make sure subprocess.run is called
-            result = mock_subprocess_run.call_args.args[0]
-            expected = ['C:\\WINDOWS\\explorer.exe', temp_folder]
+            result = str(mock_subprocess_run.call_args)
+            expected = "['C:\\WINDOWS\\explorer.exe', temp_folder]"  # None type on MAC
+            # Invalid on mac - filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe') @@@
             self.assertEqual(expected, result)
 
     @patch('subprocess.call')
@@ -110,8 +111,8 @@ class TestSystemUtils(unittest.TestCase):
             system_utils.open_file_dir(temp_folder)
             mock_get_system.assert_called_once()  # Make sure get system is called
             mock_subprocess_call.assert_called_once()  # Make sure subprocess.run is called
-            result = mock_subprocess_call.call_args.args[0]
-            expected = ["open", "-R", temp_folder]
+            result = str(mock_subprocess_call.call_args)
+            expected = f'call(["open", "-R", {temp_folder}])' # TEMP FOLDER IS RANDOM ON MAC @@@
             self.assertEqual(expected, result)
 
     def test_get_maya_settings_dir_win32(self):
@@ -187,7 +188,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(preferred_version="2020")
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe")
+        expected = r"C:\Program Files\Autodesk\Maya2020\bin\maya.exe"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -201,7 +202,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(get_maya_python=True)
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.normpath("C:\\Program Files\\Autodesk\\Maya2024\\bin\\mayapy.exe")
+        expected = r"C:\Program Files\Autodesk\Maya2024\bin\mayapy.exe"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -215,8 +216,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable()
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.join(" ", "Applications", "Autodesk", "maya2024", "Maya.app", "Contents", "bin", "maya")[1:]
-        # expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\maya") @@@
+        expected = r"/Applications/Autodesk/maya2024/Maya.app/Contents/bin/maya"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -230,8 +230,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(preferred_version="2020")
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.join(" ", "Applications", "Autodesk", "maya2020", "Maya.app", "Contents", "bin", "maya")[1:]
-        #expected = os.path.normcase("\\Applications\\Autodesk\\maya2020\\Maya.app\\Contents\\bin\\maya")
+        expected = r"/Applications/Autodesk/maya2020/Maya.app/Contents/bin/maya"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -245,8 +244,7 @@ class TestSystemUtils(unittest.TestCase):
         result = system_utils.get_maya_executable(get_maya_python=True)
         mock_install_dirs.assert_called_once()
         mock_exists.assert_called_once()
-        expected = os.path.join(" ", "Applications", "Autodesk", "maya2024", "Maya.app", "Contents", "bin", "mayapy")[1:]
-        #expected = os.path.normpath("\\Applications\\Autodesk\\maya2024\\Maya.app\\Contents\\bin\\mayapy")
+        expected = r"/Applications/Autodesk/maya2024/Maya.app/Contents/bin/mayapy"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -256,8 +254,8 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.launch_maya_from_path(maya_path="fake_path")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
-        result = mock_check_call.call_args.args[0]
-        expected = ['fake_path']
+        result = str(mock_check_call.call_args)
+        expected = "call(['fake_path'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -267,8 +265,9 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.launch_maya_from_path(maya_path="fake_path", python_script="py")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
-        result = mock_check_call.call_args.args[0]
-        expected = ['fake_path', '-c', 'python("import base64; exec (base64.urlsafe_b64decode(b\'cHk=\'))")']
+        result = str(mock_check_call.call_args)
+        expected = "call(['fake_path', '-c', " \
+                   "'python(\"import base64; exec (base64.urlsafe_b64decode(b\\'cHk=\\'))\")'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -278,8 +277,8 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.launch_maya_from_path(maya_path="fake_path", additional_args=["a", "b"])
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
-        result = mock_check_call.call_args.args[0]
-        expected = ["fake_path", "a", "b"]
+        result = str(mock_check_call.call_args)
+        expected = "call(['fake_path', 'a', 'b'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -291,8 +290,8 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.launch_maya()
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
-        result = mock_check_call.call_args.args[0]
-        expected = ["fake_path"]
+        result = str(mock_check_call.call_args)
+        expected = "call(['fake_path'])"
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -304,9 +303,9 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.launch_maya(preferred_version="2024")
         mock_exists.assert_called_once()
         mock_check_call.assert_called_once()
-        result_one = mock_check_call.call_args.args[0]
-        result_two = mock_get_maya_executable.call_args.kwargs
-        expected = [["fake_path"], {'preferred_version': '2024'}]
+        result_one = str(mock_check_call.call_args)
+        result_two = str(mock_get_maya_executable.call_args)
+        expected = ["call(['fake_path'])", "call(preferred_version='2024')"]
         self.assertEqual(expected, [result_one, result_two])
 
     @patch('os.path.exists')
@@ -318,8 +317,8 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.run_script_using_maya_python("fake_script_path")
         mock_exists.assert_called_once()
         mock_call.assert_called_once()
-        result = mock_call.call_args.args
-        expected = (['fake_headless_path', 'fake_script_path'],)
+        result = str(mock_call.call_args)
+        expected = "call(['fake_headless_path', 'fake_script_path'])"
         self.assertEqual(expected, result)
 
     def test_process_launch_options_value_error(self):
@@ -336,16 +335,16 @@ class TestSystemUtils(unittest.TestCase):
     def test_process_launch_options_install(self, mock_install_package):
         system_utils.process_launch_options(["fake_script_name", "-install"])
         mock_install_package.assert_called_once()
-        result = mock_install_package.call_args.kwargs
-        expected = {'clean_install': False}
+        result = str(mock_install_package.call_args)
+        expected = "call(clean_install=False)"
         self.assertEqual(expected, result)
 
     @patch('setup_utils.install_package')
     def test_process_launch_options_install_clean(self, mock_install_package):
         system_utils.process_launch_options(["fake_script_name", "-install", "-clean"])
         mock_install_package.assert_called_once()
-        result = mock_install_package.call_args.kwargs
-        expected = {'clean_install': True}
+        result = str(mock_install_package.call_args)
+        expected = "call(clean_install=True)"
         self.assertEqual(expected, result)
 
     @patch('tools.package_setup.launcher_entry_point')
@@ -397,8 +396,8 @@ class TestSystemUtils(unittest.TestCase):
     def test_initialize_utility(self, mock_initialize_from_package):
         system_utils.initialize_utility("fake_import_path", "fake_entry_point_function")
         mock_initialize_from_package.assert_called_once()
-        expected = {'entry_point_function': 'fake_entry_point_function', 'import_path': 'utils.fake_import_path'}
-        result = mock_initialize_from_package.call_args.kwargs
+        expected = "call(entry_point_function='fake_entry_point_function', import_path='utils.fake_import_path')"
+        result = str(mock_initialize_from_package.call_args)
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
@@ -427,7 +426,7 @@ class TestSystemUtils(unittest.TestCase):
     def test_load_package_menu_launching_maya(self, mock_launch_maya):
         system_utils.load_package_menu(launch_latest_maya=True)
         mock_launch_maya.assert_called_once()
-        result_kwargs = mock_launch_maya.call_args.kwargs
+        result_kwargs = str(mock_launch_maya.call_args)
         expected_key = 'python_script'
         self.assertIn(expected_key, result_kwargs)
 
