@@ -216,29 +216,17 @@ class FeedbackMessage:
             sys.stdout.write(f"{self.get_string_message()}\n")
 
 
-def inview_number_feedback(number, show_feedback=True):  # Add inview options
+def print_when_true(input_string, do_print=True, use_system_write=False):
     """
-    Print inViewMessage to the viewport as user feedback.
-    Uses "random" to force identical messages to appear at the same time.
-
-    Parameters:
-        number (int): how many objects were renamed.
-        show_feedback (bool, optional):
+    Print input string only when the parameter "do_print" is true
+    Args:
+        input_string (str): String to print
+        do_print (optional, bool): If it should print or not (if active, it prints) - Default is active/True
+        use_system_write (optional, bool): If active, it will uses "sys.stdout.write()" to print instead of
+                                           the standard "print()" function. Default is inactive/False
     """
-    if not show_feedback:
-        return
-    if number != 0:
-        inview_message = f"<{str(random.random())}>"
-        inview_message += f'<span style="{"number_style"}">{str(number)}</span>'
-
-        if number == 1:
-            inview_message += '<span style=\"color:#FFFFFF;\"> object was renamed.</span>'
-        else:
-            inview_message += '</span><span style=\"color:#FFFFFF;\"> objects were renamed.</span>'
-        cmds.inViewMessage(amg=inview_message, pos='botLeft', fade=True, alpha=.9)
-    else:
-        return "zero"
-    return "return"
+    if do_print:
+        sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
 
 
 if __name__ == "__main__":

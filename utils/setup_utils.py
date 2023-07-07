@@ -1,12 +1,12 @@
 """
 Setup Utilities - install/uninstall package from system
 """
-from session_utils import is_script_in_py_maya
 from system_utils import get_available_maya_preferences_dirs
+from session_utils import is_script_in_py_maya
+from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil
-import sys
 import os
 
 # Logging Setup
@@ -116,19 +116,6 @@ def check_installation_integrity(package_target_folder):
         print(f"Missing required files: {missing_string}")
         return False
     return True
-
-
-def print_when_true(input_string, do_print=True, use_system_write=False):
-    """
-    Print input string only when the parameter "do_print" is true
-    Args:
-        input_string (str): String to print
-        do_print (optional, bool): If it should print or not (if active, it prints) - Default is active/True
-        use_system_write (optional, bool): If active, it will uses "sys.stdout.write()" to print instead of
-                                           the standard "print()" function. Default is inactive/False
-    """
-    if do_print:
-        sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
 
 
 def add_entry_line(file_path, create_missing_file=True):
@@ -275,7 +262,7 @@ def generate_scripts_dir_list(file_name, only_existing=False):
     user_setup_list = []
     maya_settings_dir = get_available_maya_preferences_dirs(use_maya_commands=True)
     if not maya_settings_dir:
-        logger.warning(f"Unable to add entry lines. Failed to retrieve Maya settings folders.")
+        logger.warning(f"Unable to add entry lines. Failed to retrieve Maya preferences folders.")
         return user_setup_list
     for version in maya_settings_dir:
         folder = maya_settings_dir.get(version)
