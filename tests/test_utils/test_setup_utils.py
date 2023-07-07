@@ -65,8 +65,7 @@ class TestSetupUtils(unittest.TestCase):
             self.assertEqual(True, exists)
 
     def test_copy_package_requirements(self):
-        # Create test elements
-        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()  # Create test elements
         source_dir = os.path.join(test_temp_dir, "source_dir")
         target_dir = os.path.join(test_temp_dir, "target_dir")
         requirement_dir_one = os.path.join(source_dir, "dir_one")
@@ -97,3 +96,150 @@ class TestSetupUtils(unittest.TestCase):
         target_result = sorted(os.listdir(target_dir))
         target_expected = sorted(['dir_one', 'dir_two', 'empty.py'])
         self.assertEqual(target_expected, target_result)
+
+    def test_remove_previous_install(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()  # Create test elements
+        mocked_install_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
+        mocked_install_content_one = os.path.join(mocked_install_dir, "dir_one")
+        mocked_install_content_two = os.path.join(mocked_install_dir, "dir_two")
+        mocked_pyc = os.path.join(mocked_install_dir, "empty.pyc")
+        mocked_py = os.path.join(mocked_install_dir, "empty.py")
+        for path in [mocked_install_dir, mocked_install_content_one, mocked_install_content_two]:
+            if not os.path.exists(path):
+                os.mkdir(path)
+        for file in [mocked_pyc, mocked_py]:
+            with open(file, 'w'):
+                pass  # Create empty file
+        expected = True
+        result = os.path.exists(mocked_install_dir)
+        self.assertEqual(expected, result)
+        setup_utils.remove_previous_install(target_path=mocked_install_dir)
+        expected = False
+        result = os.path.exists(mocked_install_dir)
+        self.assertEqual(expected, result)
+
+    def test_check_installation_integrity(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()  # Create test elements
+        for requirement in setup_utils.PACKAGE_REQUIREMENTS:
+            if "." in requirement:  # Assuming files have an extension
+                with open(os.path.join(test_temp_dir, requirement), 'w'):
+                    pass
+            else:
+                dir_path = os.path.join(test_temp_dir, requirement)
+                if not os.path.exists(dir_path):
+                    os.mkdir(dir_path)
+        result = setup_utils.check_installation_integrity(package_target_folder=test_temp_dir)
+        expected = True
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_generate_scripts_dir_list_invalid_preferences(self, mock_get_preferences):
+        mock_get_preferences.return_value = {'1234': 'invalid_path'}
+        result = setup_utils.generate_scripts_dir_list(file_name=setup_utils.PACKAGE_USER_SETUP,
+                                                       only_existing=False)
+        expected = []
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_generate_scripts_dir_list_not_existing(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        result = setup_utils.generate_scripts_dir_list(file_name=setup_utils.PACKAGE_USER_SETUP,
+                                                       only_existing=False)
+        expected = [os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)]
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_generate_scripts_dir_list_existing_false(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        result = setup_utils.generate_scripts_dir_list(file_name=setup_utils.PACKAGE_USER_SETUP,
+                                                       only_existing=True)
+        expected = []
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_generate_scripts_dir_list_existing_true(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w'):
+            pass  # Create empty file
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        result = setup_utils.generate_scripts_dir_list(file_name=setup_utils.PACKAGE_USER_SETUP,
+                                                       only_existing=True)
+        expected = [os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)]
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_add_entry_line_existing_default(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w'):
+            pass  # Create empty file
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        setup_utils.add_entry_line(file_path=mocked_file_name,
+                                   create_missing_file=False)
+        expected = [setup_utils.PACKAGE_ENTRY_LINE + "\n"]
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_add_entry_line_not_existing(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        setup_utils.add_entry_line(file_path=mocked_file_name,
+                                   create_missing_file=True)
+        expected = [setup_utils.PACKAGE_ENTRY_LINE + "\n"]
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_add_entry_line_with_content(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write("# Mocked content")
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        setup_utils.add_entry_line(file_path=mocked_file_name,
+                                   create_missing_file=True)
+        expected = ['# Mocked content\n', setup_utils.PACKAGE_ENTRY_LINE + "\n"]
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_add_entry_line_missing(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        logging.disable(logging.WARNING)
+        setup_utils.add_entry_line(file_path=mocked_file_name,
+                                   create_missing_file=False)
+        logging.disable(logging.NOTSET)
+        expected = False
+        result = os.path.exists(mocked_file_name)
+        self.assertEqual(expected, result)
