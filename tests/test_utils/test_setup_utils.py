@@ -419,3 +419,46 @@ class TestSetupUtils(unittest.TestCase):
                                                        only_existing=True)
         expected = []
         self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_generate_user_setup_list_return(self, mock_get_preferences):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"# Mocked content\n{setup_utils.PACKAGE_LEGACY_LINE}\n")
+        mock_get_preferences.return_value = {'2020': test_temp_dir}
+        result = setup_utils.generate_user_setup_list(only_existing=True)
+        expected = [mocked_file_name]
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.generate_scripts_dir_list')
+    def test_copy_package_loader_to_maya_installs(self, mock_scripts_dir_list):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, "package_loader.py")
+        mock_scripts_dir_list.return_value = [mocked_file_name]
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        setup_utils.copy_package_loader_to_maya_installs()
+        expected = True
+        result = os.path.exists(mocked_file_name)
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.generate_scripts_dir_list')
+    def test_remove_package_loader_from_maya_installs(self, mock_scripts_dir_list):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, "package_loader.py")
+        mock_scripts_dir_list.return_value = [mocked_file_name]
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"# Mocked content")
+        setup_utils.remove_package_loader_from_maya_installs()
+        expected = False
+        result = os.path.exists(mocked_file_name)
+        self.assertEqual(expected, result)
+
