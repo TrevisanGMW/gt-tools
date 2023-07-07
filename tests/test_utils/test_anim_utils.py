@@ -26,7 +26,7 @@ def import_anim_test_file():
     Returns:
         str: Name of the test alembic node: "cube_move_z_AlembicNode"
     """
-    maya_test_tools.import_data_file("cube_animated.mb")
+    maya_test_tools.import_data_file("cube_animated.ma")
 
 
 class TestAnimUtils(unittest.TestCase):
