@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import unittest
+from io import StringIO
 from unittest.mock import patch
 
 # Logging Setup
@@ -173,4 +174,28 @@ class TestFeedbackUtils(unittest.TestCase):
                    '<span style="color:#FF0000;text-decoration:underline;">1</span> ' \
                    '<span style="color:#FFFFFF;">was</span> <span style="color:#00FFFF;">conclusion</span> ' \
                    '<span style="color:#F0FF00;">suffix</span></span>'
+        self.assertEqual(expected, result)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_when_true_simple(self, mock_stdout):
+        input_string = "mocked_message"
+        feedback_utils.print_when_true(input_string=input_string, do_print=True, use_system_write=False)
+        result = mock_stdout.getvalue()
+        expected = input_string + "\n"
+        self.assertEqual(expected, result)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_when_true_sys_write(self, mock_stdout):
+        input_string = "mocked_message"
+        feedback_utils.print_when_true(input_string=input_string, do_print=True, use_system_write=True)
+        result = mock_stdout.getvalue()
+        expected = input_string + "\n"
+        self.assertEqual(expected, result)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_when_true_false(self, mock_stdout):
+        input_string = "mocked_message"
+        feedback_utils.print_when_true(input_string=input_string, do_print=False, use_system_write=False)
+        result = mock_stdout.getvalue()
+        expected = ""
         self.assertEqual(expected, result)
