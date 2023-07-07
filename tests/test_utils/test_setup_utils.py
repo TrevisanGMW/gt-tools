@@ -223,7 +223,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_get_preferences.return_value = {'2020': test_temp_dir}
         setup_utils.add_entry_line(file_path=mocked_file_name,
                                    create_missing_file=True)
-        expected = ['# Mocked content\n', setup_utils.PACKAGE_ENTRY_LINE + "\n"]
+        expected = ['# Mocked content\n', f"{setup_utils.PACKAGE_ENTRY_LINE}\n"]
         with open(mocked_file_name) as file:
             result = file.readlines()
         self.assertEqual(expected, result)
@@ -241,5 +241,89 @@ class TestSetupUtils(unittest.TestCase):
                                    create_missing_file=False)
         logging.disable(logging.NOTSET)
         expected = False
+        result = os.path.exists(mocked_file_name)
+        self.assertEqual(expected, result)
+
+    def test_remove_entry_line_basic(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"{setup_utils.PACKAGE_ENTRY_LINE}\n")
+        expected = [f"{setup_utils.PACKAGE_ENTRY_LINE}\n"]
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+        setup_utils.remove_entry_line(file_path=mocked_file_name,
+                                      line_to_remove=setup_utils.PACKAGE_ENTRY_LINE,
+                                      delete_empty_file=False)
+        expected = []
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    def test_remove_entry_line_times_removed(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"{setup_utils.PACKAGE_ENTRY_LINE}\n" * 5)
+        result = setup_utils.remove_entry_line(file_path=mocked_file_name,
+                                               line_to_remove=setup_utils.PACKAGE_ENTRY_LINE,
+                                               delete_empty_file=False)
+        expected = 5
+        self.assertEqual(expected, result)
+
+    def test_remove_entry_line_times_removed_zero(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w'):
+            pass
+        result = setup_utils.remove_entry_line(file_path=mocked_file_name,
+                                               line_to_remove=setup_utils.PACKAGE_ENTRY_LINE,
+                                               delete_empty_file=False)
+        expected = 0
+        self.assertEqual(expected, result)
+
+    def test_remove_entry_line_delete_empty(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(setup_utils.PACKAGE_ENTRY_LINE + "\n")
+        expected = [setup_utils.PACKAGE_ENTRY_LINE + "\n"]
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+        setup_utils.remove_entry_line(file_path=mocked_file_name,
+                                      line_to_remove=setup_utils.PACKAGE_ENTRY_LINE,
+                                      delete_empty_file=True)
+        expected = False
+        result = os.path.exists(mocked_file_name)
+        self.assertEqual(expected, result)
+
+    def test_remove_entry_line_delete_non_empty(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"# Mocked content\n{setup_utils.PACKAGE_ENTRY_LINE}\n")
+        result = setup_utils.remove_entry_line(file_path=mocked_file_name,
+                                               line_to_remove=setup_utils.PACKAGE_ENTRY_LINE,
+                                               delete_empty_file=True)
+        expected = 1
+        self.assertEqual(expected, result)
+        expected = True
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
