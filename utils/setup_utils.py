@@ -340,9 +340,9 @@ def install_package(clean_install=True, verbose=True):
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching requirements...", do_print=verbose)
-    maya_settings_dir = get_maya_preferences_dir()
-    if not os.path.exists(maya_settings_dir):
-        logger.warning(f'Unable to install package. Missing required path: "{maya_settings_dir}"')
+    maya_preferences_dir = get_maya_preferences_dir()
+    if not os.path.exists(maya_preferences_dir):
+        logger.warning(f'Unable to install package. Missing required path: "{maya_preferences_dir}"')
         return
     # Find Source Install Directories
     package_requirements = get_package_requirements()
@@ -350,7 +350,7 @@ def install_package(clean_install=True, verbose=True):
         logger.warning(f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"')
         return
     # Clean install
-    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
+    package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if clean_install:
         print_when_true("Removing previous install...", do_print=verbose)
         remove_previous_install(package_target_folder)
