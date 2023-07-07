@@ -327,3 +327,51 @@ class TestSetupUtils(unittest.TestCase):
         expected = True
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.generate_user_setup_list')
+    def test_add_entry_point_to_maya_installs(self, mock_user_setup_list):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        mock_user_setup_list.return_value = [mocked_file_name]
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write("# Mocked content\n")
+        setup_utils.add_entry_point_to_maya_installs()
+        expected = ['# Mocked content\n', f'{setup_utils.PACKAGE_ENTRY_LINE}\n']
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.generate_user_setup_list')
+    def test_remove_entry_point_from_maya_installs(self, mock_user_setup_list):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        mock_user_setup_list.return_value = [mocked_file_name]
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"# Mocked content\n{setup_utils.PACKAGE_ENTRY_LINE}\n")
+        setup_utils.remove_entry_point_from_maya_installs()
+        expected = ['# Mocked content\n']
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)
+
+    @patch('utils.setup_utils.generate_user_setup_list')
+    def test_remove_legacy_entry_point_from_maya_installs(self, mock_user_setup_list):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
+        mocked_file_name = os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)
+        mock_user_setup_list.return_value = [mocked_file_name]
+        if not os.path.exists(mocked_scripts_dir):
+            os.mkdir(mocked_scripts_dir)
+        with open(mocked_file_name, 'w') as file:
+            file.write(f"# Mocked content\n{setup_utils.PACKAGE_LEGACY_LINE}\n")
+        setup_utils.remove_legacy_entry_point_from_maya_installs(verbose=False)
+        expected = ['# Mocked content\n']
+        with open(mocked_file_name) as file:
+            result = file.readlines()
+        self.assertEqual(expected, result)

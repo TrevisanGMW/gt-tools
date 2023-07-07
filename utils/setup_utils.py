@@ -160,7 +160,7 @@ def remove_entry_line(file_path, line_to_remove, delete_empty_file=True):
     Remove entry line to provided path. The entry line is a line of code used to initialize package.
     If the file is empty after removing the line, it's also deleted to avoid keeping an empty file (default behaviour)
 
-    Parameters:
+    Args:
         file_path (str): File path, usually an "userSetup" file
         line_to_remove (str): String to remove from the userSetup file
         delete_empty_file (bool, optional): If file is empty after removing the entry line, it gets deleted.
@@ -234,9 +234,8 @@ def remove_legacy_entry_point_from_maya_installs(verbose=True):
         "C:/Users/<user-name>/Documents/maya/2024/scripts/userSetup.py"
     If the file is empty after removing the line, it's also deleted to avoid keeping an empty file
 
-    Parameters:
+    Args:
         verbose (bool, optional): If active, a message
-
     """
     user_setup_list = generate_user_setup_list(only_existing=True)
     for user_setup_path in user_setup_list:
@@ -250,7 +249,7 @@ def generate_scripts_dir_list(file_name, only_existing=False):
     Creates a list of potential files according to available preferences folders.
     For example, if preferences for Maya 2023 and 2024 are found, the path for both of these will be generated.
 
-    Parameters:
+    Args:
         file_name (string): Name of the file to generate the list
         only_existing (bool, optional): If true, only existing files will be returned (useful for when removing them)
                                         Default is false, so potential paths will be generated even if file is not
@@ -282,7 +281,7 @@ def generate_user_setup_list(only_existing=False):
     Creates a list of potential userSetup files according to available maya preferences folders.
     For example, if preferences for Maya 2023 and 2024 are found, the path for both of these versions will be generated.
 
-    Parameters:
+    Args:
     only_existing (bool, optional): If true, only existing files will be returned (useful for when removing them)
                                     Default is false, so potential paths will be generated even if file is not
                                     available (does not exist).
@@ -378,7 +377,7 @@ def install_package(clean_install=True, verbose=True):
 def uninstall_package(verbose=True):
     """
     Uninstalls package from the Maya Settings directory
-    Parameters:
+    Args:
         verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
     Returns:
         bool: True if function reached the end successfully
