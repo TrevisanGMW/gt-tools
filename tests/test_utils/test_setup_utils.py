@@ -462,3 +462,71 @@ class TestSetupUtils(unittest.TestCase):
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
 
+    @patch('utils.setup_utils.check_installation_integrity')
+    @patch('utils.setup_utils.remove_legacy_entry_point_from_maya_installs')
+    @patch('utils.setup_utils.copy_package_loader_to_maya_installs')
+    @patch('utils.setup_utils.add_entry_point_to_maya_installs')
+    @patch('utils.setup_utils.remove_previous_install')
+    @patch('utils.setup_utils.get_package_requirements')
+    @patch('utils.setup_utils.get_maya_preferences_dir')
+    @patch('utils.setup_utils.is_script_in_py_maya')
+    def test_install_package_basic_calls(self,
+                                         mock_is_script_in_py,
+                                         mock_preferences_dir,
+                                         mock_get_package_requirements,
+                                         mock_remove_previous_install,
+                                         mock_add_entry_point,
+                                         mock_copy_package_loader,
+                                         mock_remove_legacy_entry_point,
+                                         mock_installation_integrity):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_target_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
+        mocked_requirement_dir = os.path.join(test_temp_dir, "tools")
+        if not os.path.exists(mocked_requirement_dir):
+            os.mkdir(mocked_requirement_dir)
+        mock_is_script_in_py.return_value = False  # Maya Standalone already initialized (True initializes it)
+        mock_preferences_dir.return_value = test_temp_dir
+        mock_get_package_requirements.return_value = {'tools': mocked_requirement_dir}
+        result = setup_utils.install_package(clean_install=True, verbose=False)
+        mock_is_script_in_py.assert_called_once()
+        mock_preferences_dir.assert_called_once()
+        mock_get_package_requirements.assert_called_once()
+        mock_remove_previous_install.assert_called_once()
+        mock_add_entry_point.assert_called_once()
+        mock_copy_package_loader.assert_called_once()
+        mock_remove_legacy_entry_point.assert_called_once()
+        mock_installation_integrity.assert_called_once()
+        expected = True  # Ended with return True - Reached integrity check
+        self.assertEqual(expected, result)
+        expected = "tools"
+        result = os.listdir(mocked_target_dir)
+        self.assertIn(expected, result)
+
+    @patch('utils.setup_utils.remove_package_loader_from_maya_installs')
+    @patch('utils.setup_utils.remove_entry_point_from_maya_installs')
+    @patch('utils.setup_utils.get_maya_preferences_dir')
+    @patch('utils.setup_utils.is_script_in_py_maya')
+    def test_uninstall_package_basic_calls(self,
+                                           mock_is_script_in_py,
+                                           mock_preferences_dir,
+                                           mock_remove_entry_point,
+                                           mock_remove_package_loader):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_target_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
+        mocked_requirement_dir = os.path.join(test_temp_dir, "tools")
+        if not os.path.exists(mocked_requirement_dir):
+            os.mkdir(mocked_requirement_dir)
+        if not os.path.exists(mocked_target_dir):
+            os.mkdir(mocked_target_dir)
+        mock_is_script_in_py.return_value = False  # Maya Standalone already initialized (True initializes it)
+        mock_preferences_dir.return_value = test_temp_dir
+        result = setup_utils.uninstall_package(verbose=False)
+        mock_is_script_in_py.assert_called_once()
+        mock_preferences_dir.assert_called_once()
+        mock_remove_entry_point.assert_called_once()
+        mock_remove_package_loader.assert_called_once()
+        expected = True  # Ended with return True reached end of function
+        self.assertEqual(expected, result)
+        expected = False
+        result = os.path.exists(mocked_target_dir)
+        self.assertEqual(expected, result)

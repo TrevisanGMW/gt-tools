@@ -389,17 +389,17 @@ def uninstall_package(verbose=True):
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching install location...", do_print=verbose)
-    maya_settings_dir = get_maya_preferences_dir()
-    if not os.path.exists(maya_settings_dir):
-        logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_settings_dir}"')
+    maya_preferences_dir = get_maya_preferences_dir()
+    if not os.path.exists(maya_preferences_dir):
+        logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_preferences_dir}"')
         return
     # Find Source Install Directories
     print_when_true("Checking installed files...", do_print=verbose)
-    package_target_folder = os.path.normpath(os.path.join(maya_settings_dir, PACKAGE_NAME))
+    package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if not os.path.exists(package_target_folder):
         logger.warning(f'Unable to uninstall package. No previous installation detected.')
         return
-    # Clean install
+    # Remove installed package
     print_when_true("Removing package...", do_print=verbose)
     remove_previous_install(package_target_folder)
     # Remove entry point and loader script

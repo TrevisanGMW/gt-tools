@@ -217,7 +217,6 @@ def import_file(file_path):
         load_plugins(["fbxmaya"])
     elif file_path.split('.')[-1] == 'abc':  # Make sure alembic is available
         load_plugins(["AbcExport", "AbcImport", "AbcBullet"])
-
     files = cmds.file(file_path, i=True, returnNewNodes=True, force=True)
     return files
 
