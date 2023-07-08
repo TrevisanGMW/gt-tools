@@ -24,7 +24,7 @@ def import_test_scene():
     Open files from inside the test_*/data folder/cube_namespaces.mb
     Scene contains a cube named: "parentNS:childNS:grandchildNS:pCube1"
     """
-    maya_test_tools.import_data_file("cube_namespaces.mb")
+    maya_test_tools.import_data_file("cube_namespaces.ma")
 
 
 class TestSceneUtils(unittest.TestCase):
