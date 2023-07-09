@@ -6,7 +6,7 @@ import sys
 
 
 class ProgressBarWindow(QMainWindow):
-    def __init__(self, parent=None, controller=None, output_window=True):
+    def __init__(self, parent=None, controller=None, output_text=True):
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
@@ -14,23 +14,6 @@ class ProgressBarWindow(QMainWindow):
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setGeometry(50, 50, 400, 50)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid gray;
-                border-radius: 5px;
-                border-style: solid;
-                text-align: center;
-                background-color: #f0f0f0;
-                background-color: #808080
-
-            }
-            QProgressBar::chunk {
-                background-color: #6AA2BB;
-                width: 5;
-                margin 22;
-                border-radius: 5px;
-            }
-        """)
 
         # Output Window
         self.output_textbox = QTextEdit(self)
@@ -54,8 +37,10 @@ class ProgressBarWindow(QMainWindow):
         self.center()
         # Window Details
         self.setWindowTitle("Progress Bar Example")
-        self.setStyleSheet(resource_library.Stylesheet.maya_basic_dialog)
+        self.setStyleSheet(resource_library.Stylesheet.maya_progress_bar)
+        print(resource_library.Stylesheet.maya_progress_bar)
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
+        self.start_progress()
 
     def center(self):
         """ Moves window to the center of the screen """
@@ -90,21 +75,33 @@ class ProgressBarWindow(QMainWindow):
 
     def start_progress(self):
         self.set_progress_value(5)
-        self.output_textbox.clear()
+        # self.output_textbox.clear()
 
+        self.append_text_to_output_box("""Initializing Maya Standalone...
+Fetching requirements...
+Removing previous install...
+Copying required files...
+Adding entry point to userSetup...
+Checking installation integrity...
+
+Removing previous install...
+Copying required files...
+Adding entry point to userSetup...
+Checking installation integrity...
+
+Installation completed successfully!""")
         index = 0
-        while index < 100:
-            # self.progress_bar.setValue(i)
-            increase_value = 5
-            self.increase_progress_value(increase_value)
-            index += increase_value
-            self.append_text_to_output_box(f"Progress: {index}%")
-            QApplication.processEvents()  # Updates the GUI and keeps it responsive
-            # Simulate some work being done
-            # Replace this with your actual work
-            import time
-            time.sleep(0.1)
-        self.clear_output_box()
+        # while index < 100:
+        #     # self.progress_bar.setValue(i)
+        #     increase_value = 5
+        #     self.increase_progress_value(increase_value)
+        #     index += increase_value
+        #     # self.append_text_to_output_box(f"Progress: {index}%")
+        #     QApplication.processEvents()  # Updates the GUI and keeps it responsive
+        #     # Simulate some work being done
+        #     # Replace this with your actual work
+        #     import time
+        #     time.sleep(0.1)
 
 
 if __name__ == '__main__':
