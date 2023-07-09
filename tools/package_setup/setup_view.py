@@ -4,7 +4,7 @@ QT View example - This script should only emit signals and deal with UI (View) -
 import ui.resource_library as resource_library
 import ui.qt_utils as qt_utils
 import sys
-from PySide2.QtGui import QPixmap, QIcon, QFont
+from PySide2.QtGui import QPixmap, QIcon
 from PySide2 import QtWidgets, QtCore
 
 
@@ -50,16 +50,16 @@ class PackageSetupWindow(QtWidgets.QDialog):
         # Widgets, Layout and Connections
         self.create_widgets()
         self.create_layout()
+        self.create_connections()
         # Adjust window
         self.adjustSize()
         self.setMinimumWidth(self.width())
-        self.create_connections()
         self.setMinimumHeight(self.height())
         # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
         self.center()
 
     def center(self):
-        """ Move window to the center of the window """
+        """ Move window to the center of the screen """
         rect = self.frameGeometry()
         center_position = qt_utils.get_screen_center()
         rect.moveCenter(center_position)
