@@ -58,34 +58,53 @@ class ProgressBarWindow(QMainWindow):
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
 
     def center(self):
-        """ Move window to the center of the screen """
+        """ Moves window to the center of the screen """
         rect = self.frameGeometry()
         center_position = qt_utils.get_screen_center()
         rect.moveCenter(center_position)
         self.move(rect.topLeft())
 
     def set_progress_value(self, value):
+        """
+        Sets a progress bar value
+        Args:
+            value (int): New value to set.
+                         e.g. 10 = 10%
+        """
         self.progress_bar.setValue(value)
 
     def increase_progress_value(self, increase_value=1):
+        """
+        Increases the progress bar value
+        Args:
+            increase_value (int, optional): Amount to increase the progress bar: Default 1
+        """
         new_value = self.progress_bar.value() + increase_value
-        self.progress_bar.setValue(new_value)
+        self.set_progress_value(new_value)
+
+    def append_text_to_output_box(self, new_text):
+        self.output_textbox.append(new_text)
+
+    def clear_output_box(self):
+        self.output_textbox.clear()
 
     def start_progress(self):
         self.set_progress_value(5)
         self.output_textbox.clear()
 
-        for i in range(1, 101):
+        index = 0
+        while index < 100:
             # self.progress_bar.setValue(i)
-            self.increase_progress_value()
-            self.output_textbox.append(f"Progress: {i}%")
+            increase_value = 5
+            self.increase_progress_value(increase_value)
+            index += increase_value
+            self.append_text_to_output_box(f"Progress: {index}%")
             QApplication.processEvents()  # Updates the GUI and keeps it responsive
             # Simulate some work being done
             # Replace this with your actual work
             import time
             time.sleep(0.1)
-
-        # self.progress_bar.setValue(0)
+        self.clear_output_box()
 
 
 if __name__ == '__main__':
