@@ -195,9 +195,30 @@ class Color:
 
         black = 'rgba(0,0,0,255)'
 
+        red = 'rgb(255, 0, 0, 255)'
+
+        green = 'rgb(0, 255, 0, 255)'
+        green_soft = 'rgb(96, 152, 129, 255)'
+        green_light = 'rgb(144, 228, 193, 255)'
+
         blue = 'rgba(0,0,255,255)'
         blue_ghosted = 'rgba(0,0,255,75)'
-        blue_soft = 'rgba(82,133,166,255)'
+        blue_soft = 'rgba(189, 217, 255,255)'
+        blue_soft_dark = 'rgba(82,133,166,255)'
+
+    class Gradient:
+        def __init__(self):
+            """
+            A library of colors Gradient colors.
+            """
+
+        conical_rainbow = 'qconicalgradient(cx:0.5, cy:0.5, angle:90, stop:0.0 rgba(255, 0, 0, 255), ' \
+                          'stop:0.15 rgba(255, 127, 0, 255), stop:0.3 rgba(255, 255, 0, 255), ' \
+                          'stop:0.45 rgba(0, 255, 0, 255), stop:0.6 rgba(0, 0, 255, 255), ' \
+                          'stop:0.75 rgba(139, 0, 255, 255), stop:1.0 rgba(255, 0, 255, 255));'
+        linear_rainbow = 'qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF0000, stop: 0.15 #FF7F00, ' \
+                         'stop: 0.3 #FFFF00, stop: 0.45 #00FF00, stop: 0.6 #0000FF, stop: 0.75 #8B00FF, ' \
+                         'stop: 1 #FF00FF);'
 
 
 class StylesheetVariables:
@@ -214,7 +235,7 @@ class StylesheetVariables:
         "@maya_button": Color.RGB.grey_light,
         "@maya_button_hover": Color.RGB.grey_lighter,
         "@maya_button_clicked": Color.RGB.grey_darker,
-        "@maya_selection": Color.RGB.blue_soft,
+        "@maya_selection": Color.RGB.blue_soft_dark,
         "@maya_text": Color.RGB.white_soft,
         # Formatting
         "@maya_small_button_padding": "5",
@@ -228,10 +249,10 @@ class StylesheetVariables:
         "@maya_button": Color.RGB.grey_light,
         "@maya_button_hover": Color.RGB.grey_lighter,
         "@maya_button_clicked": Color.RGB.grey_darker,
-        "@maya_selection": Color.RGB.blue_soft,
+        "@maya_selection": Color.RGB.blue_soft_dark,
         "@maya_text": Color.RGB.white_soft,
         "@progress_bar_background": Color.RGB.grey_lighter,
-        "@progress_bar_chunk": Color.RGB.white,
+        "@progress_bar_chunk": Color.RGB.blue_soft,
         "@scrollbar_line_background": Color.RGB.grey_darker,
         "@scrollbar_sub_line": Color.RGB.grey,
         "@scrollbar_handle": Color.RGB.grey_lighter,
@@ -246,7 +267,6 @@ class StylesheetVariables:
         # Icons
         "@image_scrollbar_up": f"url({Icon.scrollbar_up})".replace("\\", "/"),
         "@image_scrollbar_down": f"url({Icon.scrollbar_down})".replace("\\", "/"),
-
     }
 
 
@@ -265,8 +285,9 @@ class Font:
     def __init__(self):
         """
         A library of fonts
+        Note: Make sure fonts are available on Windows and Mac, otherwise include the font file under resources.
         """
-    console = QtGui.QFont("Consolas", 12, QtGui.QFont.Bold)
+    console = QtGui.QFont("Courier New", 12, QtGui.QFont.Bold)
 
 
 if __name__ == "__main__":
