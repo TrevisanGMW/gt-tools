@@ -21,6 +21,7 @@ for to_append in [source_dir, tools_root_dir]:
 
 # Import Tests
 from tests import test_utils
+from tests import test_ui
 
 # Modules to Test
 modules_to_test = [
@@ -36,6 +37,7 @@ modules_to_test = [
     test_utils.test_string_utils,
     test_utils.test_system_utils,
     test_utils.test_version_utils,
+    test_ui.test_resource_library
 ]
 
 
