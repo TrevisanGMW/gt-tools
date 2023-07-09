@@ -41,20 +41,21 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.setGeometry(0, 0, _min_width, _min_height)  # Args X, Y, W, H
         self.setMinimumWidth(_min_width)
         self.setMinimumHeight(_min_height)
-        self.setWindowTitle("Package Setup Window")
+        self.setWindowTitle("GT Tools - Package Setup Window")
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setStyleSheet(resource_library.Stylesheet.dark_style_stylesheet)  # Temporary
-        self.setWindowIcon(QIcon(resource_library.Icon.cog_icon))
+        self.setStyleSheet(resource_library.Stylesheet.maya_basic_dialog)
+        self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
         # Widgets, Layout and Connections
         self.create_widgets()
         self.create_layout()
-        self.create_connections()
         # Adjust window
         self.adjustSize()
         self.setMinimumWidth(self.width())
+        self.create_connections()
         self.setMinimumHeight(self.height())
+        # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
         self.center()
 
     def center(self):
