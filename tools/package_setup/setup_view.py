@@ -59,7 +59,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.center()
 
     def center(self):
-        """ Move window to the center of the screen """
+        """ Moves window to the center of the screen """
         rect = self.frameGeometry()
         center_position = qt_utils.get_screen_center()
         rect.moveCenter(center_position)
