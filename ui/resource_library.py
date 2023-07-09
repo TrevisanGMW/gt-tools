@@ -132,6 +132,10 @@ class Icon:
     world_space_baker = get_icon_path(r"world_space_baker.svg")
     attributes_to_python = get_icon_path(r"attributes_to_python.svg")
     render_checklist = get_icon_path(r"render_checklist.svg")
+    # Help
+    rebuild_menu = get_icon_path(r"rebuild_menu.svg")
+    check_for_updates = get_icon_path(r"check_for_updates.svg")
+    about = get_icon_path(r"about.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
