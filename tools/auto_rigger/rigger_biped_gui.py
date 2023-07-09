@@ -54,7 +54,7 @@ from PySide2.QtGui import QIcon
 from maya import OpenMayaUI
 from tools.auto_rigger.rigger_biped_logic import *
 from tools.auto_rigger.rigger_data import *
-from ui import image_processor
+from ui import resource_library
 from tools.auto_rigger import rigger_corrective_logic
 from tools.auto_rigger import rigger_facial_logic
 import maya.cmds as cmds
@@ -68,7 +68,7 @@ import re
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("gt_rigger_biped_gui")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Data Objects
@@ -128,28 +128,14 @@ def build_gui_auto_biped_rig():
     cs_biped_two_buttons = [(1, 0), (2, 5)]
     biped_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
 
-    # ######## Generate Icon Images ########
-    # Icon
-    icons_folder_dir = cmds.internalVar(userBitmapsDir=True)
-
-    # Create Proxy Icon
-    create_proxy_btn_ico = icons_folder_dir + 'gt_abr_create_proxy.png'
-
-    if os.path.isdir(icons_folder_dir) and os.path.exists(create_proxy_btn_ico) is False:
-        image_processor.generate_image_from_library(create_proxy_btn_ico, 'biped_rigger_proxy_btn')
-
-    # Create Rig Icon
-    create_rig_btn_ico = icons_folder_dir + 'gt_abr_create_rig.png'
-
-    if os.path.isdir(icons_folder_dir) and os.path.exists(create_rig_btn_ico) is False:
-        image_processor.generate_image_from_library(create_rig_btn_ico, 'biped_rigger_rig_btn')
-
     # Step 1
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.text('Step 1 - Biped Proxy:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_proxy_btn_ico, label='Create Biped Proxy',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image=resource_library.Icon.abr_create_proxy,
+                        label='Create Biped Proxy',
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -181,7 +167,9 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 3 - Create Biped Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Biped Rig',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image1=resource_library.Icon.abr_create_rig,
+                        label='Create Biped Rig',
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -204,8 +192,8 @@ def build_gui_auto_biped_rig():
     cmds.text('Utilities:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.button(label='Add Custom Rig Interface to Shelf', bgc=(.3, .3, .3), c=lambda x: add_rig_interface_button())
-    cmds.separator(h=5, style='none')  # Empty Space
+    # cmds.button(label='Add Custom Rig Interface to Shelf', bgc=(.3, .3, .3), c=lambda x: add_rig_interface_button())
+    # cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
     cmds.button(label='Toggle Label Visibility', bgc=(.3, .3, .3), c=lambda x: gtu_uniform_jnt_label_toggle())
     cmds.button(label='Attach to HumanIK', bgc=(.3, .3, .3), c=lambda x: define_biped_humanik('auto_biped'))
@@ -227,7 +215,9 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 1 - Facial Proxy:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_proxy_btn_ico, label='Create Facial Proxy',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image1=resource_library.Icon.abr_create_proxy,
+                        label='Create Facial Proxy',
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s facial shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -259,7 +249,9 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 3 - Create Facial Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Facial Rig',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image1=resource_library.Icon.abr_create_rig,
+                        label='Create Facial Rig',
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -294,7 +286,9 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 1 - Corrective Proxy:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_proxy_btn_ico, label='Create Corrective Proxy',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image1=resource_library.Icon.abr_create_proxy,
+                        label='Create Corrective Proxy',
                         statusBarMessage='Creates a proxy/guide elements so the user can determine '
                                          'the character\'s facial shape.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -326,7 +320,9 @@ def build_gui_auto_biped_rig():
     cmds.text('Step 3 - Create Corrective Rig:', font='boldLabelFont')
     cmds.separator(h=5, style='none')  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical', image1=create_rig_btn_ico, label='Create Corrective Rig',
+    cmds.iconTextButton(style='iconAndTextVertical',
+                        image1=resource_library.Icon.abr_create_rig,
+                        label='Create Corrective Rig',
                         statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
                                          'determine how to create the skeleton, controls and mechanics.',
                         olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
@@ -1008,8 +1004,8 @@ def validate_biped_operation(operation):
         for obj in proxy_elements:
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" is missing. '
-                                         'Create a new proxy and make sure NOT to rename or delete any of its elements.')
+                cmds.warning(f'"{obj}" is missing. '
+                             f'Create a new proxy and make sure NOT to rename or delete any of its elements.')
 
         # If valid, create rig
         if is_valid:
