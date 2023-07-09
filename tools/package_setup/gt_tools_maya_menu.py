@@ -11,7 +11,7 @@ import sys
 import os
 
 logging.basicConfig()
-logger = logging.getLogger("main_maya_menu")
+logger = logging.getLogger(__name__)
 
 
 def _rebuild_menu(*args):

@@ -16,7 +16,7 @@ import setup_view
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("package_setup")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
