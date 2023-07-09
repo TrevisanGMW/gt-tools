@@ -1,10 +1,89 @@
+from PySide2 import QtGui
 import logging
 import os
 
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("resource_library")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class Color:
+    def __init__(self):
+        """
+        A library of colors
+        """
+    class Hex:
+        def __init__(self):
+            """
+            A library of Hex colors
+            """
+        black = '#000000'
+        white = '#FFFFFF'
+        grey = '#808080'
+        grey_dark = '#555555'
+        red = '#FF0000'
+        green = '#20A500'
+        blue = '#0033FF'
+        orange = '#FFBB00'
+        lime = '#32FF00'
+        yellow = '#FFEE00'
+        yellow_dark = '#636110'
+        teal = '#00FFFF'
+        purple = '#DD22FF'
+        pink = '#F700FF'
+        magenta = '#C40B5F'
+        violet = '#ff22BB'
+
+    class RGB:
+        def __init__(self):
+            """
+            A library of colors RGB+A colors.
+            Format:
+            rgba(Red, Green, Blue, Alpha)
+            e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
+            Value range 0-255
+            """
+        white = 'rgba(255,255,255,255)'
+        white_soft = 'rgba(238,238,238,255)'
+        white_soft_ghosted = 'rgba(238,238,238,75)'
+
+        grey_darker = 'rgba(29,29,29,255)'
+        grey_dark = 'rgba(43,43,43,255)'
+        grey_dark_ghosted = 'rgba(43,43,43,75)'
+        grey = 'rgba(68,68,68,255)'
+        grey_ghosted = 'rgba(68,68,68,75)'
+        grey_mid = 'rgba(73,73,73,255)'
+        grey_mid_light = 'rgba(82,82,82,255)'
+        grey_light = 'rgba(93,93,93,255)'
+        grey_lighter = 'rgba(112,112,112,255)'
+
+        black = 'rgba(0,0,0,255)'
+
+        blue = 'rgba(0,0,255,255)'
+        blue_ghosted = 'rgba(0,0,255,75)'
+        blue_soft = 'rgba(82,133,166,255)'
+
+
+class StylesheetVariables:
+    def __init__(self):
+        """
+        A library of stylesheet variables
+        """
+    maya_basic = {
+        # Colors
+        "@maya_background_mid;": Color.RGB.grey,
+        "@maya_background_dark;": Color.RGB.grey_dark,
+        "@maya_background_darker;": Color.RGB.grey_darker,
+        "@maya_background_light;": Color.RGB.grey_mid,
+        "@maya_button;": Color.RGB.grey_light,
+        "@maya_button_hover;": Color.RGB.grey_lighter,
+        "@maya_button_clicked;": Color.RGB.grey_darker,
+        "@maya_selection;": Color.RGB.blue_soft,
+        "@maya_text;": Color.RGB.white_soft,
+        # Formatting
+        "@maya_small_button_padding": "5",
+    }
 
 
 def get_resource_path(resource_name, resource_folder, sub_folder=None):
@@ -43,16 +122,40 @@ def get_icon_path(icon_name, sub_folder=None):
     return icon_path
 
 
-def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss"):
+def process_stylesheet_variables(stylesheet_content, stylesheet_variables=None):
+    """
+    Replaces any instances of the given stylesheet variables in the given stylesheet
+    If not stylesheet is provided, this function acts as passthrough (no changes to the content)
+    If stylesheet variables are of an incorrect type, the raw content will be returned.
+    Args:
+        stylesheet_content (str): content found in a stylesheet
+        stylesheet_variables (dict): A dictionary used to substitute stylesheet values/keys
+
+    Returns:
+        str: processed stylesheet content with the variables replaced with dict values
+    """
+    if stylesheet_variables is None:
+        return stylesheet_content
+    if not isinstance(stylesheet_variables, dict):
+        logger.debug(f'Unable to process stylesheet. '
+                     f'Must be a dictionary, but received a: "{str(type(stylesheet_variables))}".')
+        return stylesheet_content
+    for key, value in stylesheet_variables.items():
+        stylesheet_content = stylesheet_content.replace(key, f'{value};')
+    return stylesheet_content
+
+
+def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss", stylesheet_variables=None):
     """
    Get the path to a stylesheet (qss) file. This file should exist inside the resources/stylesheet folder.
    Args:
        stylesheet_name (str): Name of the file without its extension. Since all files share the same extension "qss"
                               you can provide just the name of the file. If an extension is provided, it is replaced.
-       sub_folder (optional, str): In case the icon exists inside a sub-folder, it can be provided as an argument.
+       sub_folder (str, optional): In case the icon exists inside a sub-folder, it can be provided as an argument.
                                    For example, if the icon is inside "../resource/icons/my_folder/icon.svg"
                                    One would call "get_icon_path("icon.svg", "my_folder")"
-       file_extension (optional, str): File extension used to find the file.
+       file_extension (str, optional): File extension used to find the file.
+       stylesheet_variables (dict, optional): A dictionary of variables to replace when importing the stylesheet
    Returns:
        str: Stylesheet content
    """
@@ -63,7 +166,8 @@ def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss"):
         logger.info(f'Could not find stylesheet: "{stylesheet_path}"')
         return ""
     else:
-        stylesheet_content = open(stylesheet_path).read()
+        stylesheet_content = process_stylesheet_variables(stylesheet_content=open(stylesheet_path).read(),
+                                                          stylesheet_variables=stylesheet_variables)
         return stylesheet_content
 
 
@@ -84,6 +188,7 @@ class Icon:
         A library of icons
         """
     package_logo = get_icon_path(r"package_logo.png")
+    package_icon = get_icon_path(r"package_icon.png")
     cog_icon = get_icon_path(r"cog.svg")
     # Root Menu
     root_general = get_icon_path(r"root_general.svg")
@@ -117,8 +222,16 @@ class Stylesheet:
         """
         A library of stylesheets
         """
-    maya_bordered_widget = get_stylesheet_path(r"maya_bordered_widget")
-    dark_style_stylesheet = get_stylesheet_path(r"darkstyle")
+    maya_basic_dialog = get_stylesheet_path(stylesheet_name="maya_basic_dialog",
+                                            stylesheet_variables=StylesheetVariables.maya_basic)
+
+
+class Font:
+    def __init__(self):
+        """
+        A library of fonts
+        """
+    console = QtGui.QFont("Consolas", 12, QtGui.QFont.Bold)
 
 
 if __name__ == "__main__":
