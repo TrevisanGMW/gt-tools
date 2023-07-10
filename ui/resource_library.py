@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-
 def get_resource_path(resource_name, resource_folder, sub_folder=None):
     """
     Get the path to a resource file. This file should exist inside the resources' folder.
@@ -43,6 +42,23 @@ def get_icon_path(icon_name, sub_folder=None):
     if not os.path.exists(icon_path) or icon_name == '':
         logger.info(f'Could not find icon: "{icon_path}"')
     return icon_path
+
+
+def get_font_path(font_name, sub_folder=None):
+    """
+    Get the path to an icon file. This file should exist inside the resources/icons folder.
+    Args:
+        font_name (str): Name of the file. It should contain its extension as it may vary. For example "font.ttf"
+        sub_folder (optional, str): In case the font exists inside a sub-folder, it can be provided as an argument.
+                                    For example, if the icon is inside "../resource/fonts/my_folder/font.ttf"
+                                    One would call "get_icon_path("icon.svg", "my_folder")"
+    Returns:
+        str: Path to the font.
+    """
+    font_path = get_resource_path(font_name, resource_folder=ResourceDirConstants.DIR_FONTS, sub_folder=sub_folder)
+    if not os.path.exists(font_path) or font_name == '':
+        logger.info(f'Could not find font: "{font_path}"')
+    return font_path
 
 
 def process_stylesheet_variables(stylesheet_content, stylesheet_variables=None):
@@ -136,6 +152,9 @@ class Icon:
     # Curves
     crv_to_python = get_icon_path(r"crv_to_python.svg")
     crv_text = get_icon_path(r"crv_text.svg")
+    crv_state = get_icon_path(r"crv_state.svg")
+    crv_combine = get_icon_path(r"crv_combine.svg")
+    crv_separate = get_icon_path(r"crv_separate.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
@@ -296,10 +315,14 @@ class Font:
         A library of fonts
         Note: Make sure fonts are available on Windows and Mac, otherwise include the font file under resources.
         """
-    console = QtGui.QFont("Courier New", 12, QtGui.QFont.Bold)
+    courier_new = QtGui.QFont("Courier New")
+    roboto = QtGui.QFont(get_font_path("Roboto-Regular.ttf"))
+    inter = QtGui.QFont(get_font_path("Inter-Regular.ttf"))
+    kb = QtGui.QFont(get_font_path("kb.ttf"))
 
 
 if __name__ == "__main__":
     from pprint import pprint
     out = None
+    out = get_font_path("Inter-Regular.ttf")
     pprint(out)
