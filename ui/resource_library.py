@@ -154,6 +154,9 @@ class Icon:
     crv_state = get_icon_path(r"crv_state.svg")
     crv_combine = get_icon_path(r"crv_combine.svg")
     crv_separate = get_icon_path(r"crv_separate.svg")
+    # Modeling
+    mod_transfer_uvs = get_icon_path(r"mod_transfer_uvs.svg")
+    mod_sphere_types = get_icon_path(r"mod_sphere_types.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")

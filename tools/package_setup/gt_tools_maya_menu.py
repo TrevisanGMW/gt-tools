@@ -140,11 +140,11 @@ def load_menu(*args):
     menu.add_menu_item(label='Transfer UVs',
                        command=partial(_open_named_tool, "transfer_uvs"),
                        tooltip='A script to export/import UVs as well as transfer them between objects.',
-                       icon='uvChooser.svg')
+                       icon=resource_library.Icon.mod_transfer_uvs)
     menu.add_menu_item(label='Sphere Types',
                        command=partial(_open_named_tool, "create_sphere_types"),
                        tooltip='A reminder for students that there are other sphere types.',
-                       icon='blinn.svg')
+                       icon=resource_library.Icon.mod_sphere_types)
 
     menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Preview All UDIMs',
