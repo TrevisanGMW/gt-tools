@@ -117,7 +117,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Generate Text Curve',
                        command=partial(_open_named_tool, "shape_text_to_curve"),
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
-                       icon='text.png')
+                       icon=resource_library.Icon.crv_text)
     menu.add_menu_item(label='Extract Curve State',
                        command=partial(_open_named_tool, "shape_extract_state"),
                        tooltip='Generates the python command necessary to reshape curves back to their stored state.',

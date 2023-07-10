@@ -135,6 +135,7 @@ class Icon:
     render_checklist = get_icon_path(r"render_checklist.svg")
     # Curves
     crv_to_python = get_icon_path(r"crv_to_python.svg")
+    crv_text = get_icon_path(r"crv_text.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
