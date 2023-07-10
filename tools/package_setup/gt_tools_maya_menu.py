@@ -113,7 +113,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Extract Python Curve',
                        command=partial(_open_named_tool, "shape_curve_to_python"),
                        tooltip='Generates the python code necessary to create a selected curve.',
-                       icon='pythonFamily.png')
+                       icon=resource_library.Icon.crv_to_python)
     menu.add_menu_item(label='Generate Text Curve',
                        command=partial(_open_named_tool, "shape_text_to_curve"),
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',

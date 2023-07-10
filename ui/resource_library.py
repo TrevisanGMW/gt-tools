@@ -103,6 +103,7 @@ class ResourceDirConstants:
     DIR_RESOURCES = os.path.join(DIR_CURRENT, "resources")
     DIR_STYLESHEETS = os.path.join(DIR_RESOURCES, 'stylesheets')
     DIR_ICONS = os.path.join(DIR_RESOURCES, 'icons')
+    DIR_FONTS = os.path.join(DIR_RESOURCES, 'fonts')
 
 
 class Icon:
@@ -132,6 +133,8 @@ class Icon:
     world_space_baker = get_icon_path(r"world_space_baker.svg")
     attributes_to_python = get_icon_path(r"attributes_to_python.svg")
     render_checklist = get_icon_path(r"render_checklist.svg")
+    # Curves
+    crv_to_python = get_icon_path(r"crv_to_python.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
