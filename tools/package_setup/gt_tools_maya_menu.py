@@ -121,17 +121,17 @@ def load_menu(*args):
     menu.add_menu_item(label='Extract Curve State',
                        command=partial(_open_named_tool, "shape_extract_state"),
                        tooltip='Generates the python command necessary to reshape curves back to their stored state.',
-                       icon='arcLengthDimension.svg')
+                       icon=resource_library.Icon.crv_state)
 
     menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Combine Curves',
                        command=partial(_run_utility, "curve_utils", "selected_curves_combine"),
                        tooltip='Combine curves by moving all the shape objects inside one single transform.',
-                       icon='nurbsCurve.svg')
+                       icon=resource_library.Icon.crv_combine)
     menu.add_menu_item(label='Separate Curves',
                        command=partial(_run_utility, "curve_utils", "selected_curves_separate"),
                        tooltip='Separate curves by moving every shape object to their own separated transform.',
-                       icon='curveEditor.png')
+                       icon=resource_library.Icon.crv_separate)
 
     # ------------------------------------ Modeling ------------------------------------
     menu.add_sub_menu("Modeling",
