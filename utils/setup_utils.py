@@ -1,8 +1,8 @@
 """
 Setup Utilities - install/uninstall package from system
 """
+from session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
 from system_utils import get_available_maya_preferences_dirs
-from session_utils import is_script_in_py_maya
 from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
@@ -409,6 +409,26 @@ def uninstall_package(verbose=True):
     remove_package_loader_from_maya_installs()
     print_when_true("\nUninstallation completed successfully!", do_print=verbose)
     return True
+
+
+def reload_package_loaded_modules():
+    """
+    Reloads modules containing the package fragment path in it.
+    For example, if a module contains "package-name//requirement" it gets reloaded.
+    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+    """
+    package_path_fragments = []
+    for requirement in PACKAGE_REQUIREMENTS:
+        if "." not in requirement:
+            undesired_fragment = os.path.join(PACKAGE_NAME, requirement)
+            package_path_fragments.append(undesired_fragment)
+    filtered_modules = filter_loaded_modules_path_containing(package_path_fragments)
+    import importlib
+    try:
+        for module in filtered_modules:
+            importlib.reload(module)
+    except Exception as e:
+        logger.debug(e)
 
 
 if __name__ == "__main__":
