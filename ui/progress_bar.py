@@ -1,7 +1,7 @@
+from PySide2 import QtGui
 from PySide2.QtWidgets import QApplication, QMainWindow, QProgressBar, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from ui import resource_library, qt_utils
 from PySide2.QtGui import QIcon
-from ui import resource_library
-from ui import qt_utils
 import sys
 
 
@@ -17,6 +17,8 @@ class ProgressBarWindow(QMainWindow):
         # Output Window
         self.output_textbox = QTextEdit(self)
         self.output_textbox.setReadOnly(True)
+        self.output_textbox.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.output_textbox.setFontPointSize(12)
 
         # Temp Test Button
         self.start_button = QPushButton("OK", self)
@@ -79,14 +81,6 @@ class ProgressBarWindow(QMainWindow):
         self.set_progress_value(5)
         # self.output_textbox.clear()
 
-        self.append_text_to_output_box("""Initializing Maya Standalone...
-Fetching requirements...
-Removing previous install...
-Copying required files...
-Adding entry point to userSetup...
-Checking installation integrity...
-
-Installation completed successfully!""")
         index = 0
         while index < 100:
             # self.progress_bar.setValue(i)
@@ -105,5 +99,13 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     # app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)  # no auto scale
     window = ProgressBarWindow()
+    window.append_text_to_output_box("""Initializing Maya Standalone...
+Fetching requirements...
+Removing previous install...
+Copying required files...
+Adding entry point to userSetup...
+Checking installation integrity...
+
+Installation completed successfully!""")
     window.show()
     sys.exit(app.exec_())
