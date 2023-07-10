@@ -103,7 +103,7 @@ def reset_state(modules_to_ignore):
     Args:
         modules_to_ignore (list): A list of modules to ignore. Usually initial state
     Returns:
-        removed modules (modules removed when reseting)
+        removed modules (modules removed when resetting)
     """
     return remove_modules(get_new_modules(modules_to_ignore))
 
@@ -154,9 +154,36 @@ def reset_session_with_feedback(*args):
         return removed_modules
 
 
+def filter_loaded_modules_path_containing(filter_strings, return_module=True):
+    """
+    Looks through loaded modules and returns the ones containing the provided string under their path
+    Args:
+        filter_strings (list): A list of strings used to filter modules. If any are found under the module path,
+                               then they will be included in the return list.
+        return_module (bool, optional): If active, it will return the module.
+                                        If inactive, it will return the module name.
+    Returns:
+        list: List of module names (the ones that contained the provided string under their path)
+    """
+    filtered_module_names = set()
+    filtered_modules = set()
+    for module_name in sys.modules.keys():
+        module = sys.modules[module_name]
+        if hasattr(module, "__file__") and isinstance(module.__file__, str):
+            for contains_string in filter_strings:
+                if contains_string in module.__file__:
+                    filtered_module_names.add(module_name)
+                    filtered_modules.add(module)
+    if return_module:
+        return list(filtered_modules)
+    else:
+        return list(filtered_module_names)
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
     out = None
+    out = filter_loaded_modules_path_containing(["gt-tools", "sys"])
     pprint(out)
