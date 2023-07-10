@@ -1,4 +1,3 @@
-from PySide2 import QtGui
 import logging
 import os
 
@@ -46,14 +45,14 @@ def get_icon_path(icon_name, sub_folder=None):
 
 def get_font_path(font_name, sub_folder=None):
     """
-    Get the path to an icon file. This file should exist inside the resources/icons folder.
+    Get the path to a font file. This file should exist inside the resources/fonts folder.
     Args:
         font_name (str): Name of the file. It should contain its extension as it may vary. For example "font.ttf"
         sub_folder (optional, str): In case the font exists inside a sub-folder, it can be provided as an argument.
                                     For example, if the icon is inside "../resource/fonts/my_folder/font.ttf"
                                     One would call "get_icon_path("icon.svg", "my_folder")"
     Returns:
-        str: Path to the font.
+        str: QT Formatted Path to the font. @@@ (Double slashes "//" are replaced with single slashes "/")
     """
     font_path = get_resource_path(font_name, resource_folder=ResourceDirConstants.DIR_FONTS, sub_folder=sub_folder)
     if not os.path.exists(font_path) or font_name == '':
@@ -314,15 +313,16 @@ class Font:
         """
         A library of fonts
         Note: Make sure fonts are available on Windows and Mac, otherwise include the font file under resources.
+        To use these fonts, wrap them around the function
         """
-    courier_new = QtGui.QFont("Courier New")
-    roboto = QtGui.QFont(get_font_path("Roboto-Regular.ttf"))
-    inter = QtGui.QFont(get_font_path("Inter-Regular.ttf"))
-    kb = QtGui.QFont(get_font_path("kb.ttf"))
+        self.kb = None
+    courier_new = "Courier New"
+    roboto = get_font_path("Roboto-Regular.ttf")
+    inter = get_font_path("Inter-Regular.ttf")
 
 
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = get_font_path("Inter-Regular.ttf")
     pprint(out)
+
