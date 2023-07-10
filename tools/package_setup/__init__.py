@@ -11,6 +11,7 @@ for to_append in [source_dir, tools_root_dir]:
         sys.path.append(to_append)
 
 from utils import session_utils
+from utils import setup_utils
 import setup_controller
 import setup_view
 
@@ -78,7 +79,10 @@ def build_installer_gui(standalone=True):
 
 def launcher_entry_point():
     """ Determines if it should open the installer GUI as a child of Maya or by itself """
+    setup_utils.reload_package_loaded_modules()
     if session_utils.is_script_in_py_maya():
+        # Unload scripts
+        # Save changes
         build_installer_gui(standalone=True)
     else:
         build_installer_gui(standalone=False)
@@ -91,4 +95,5 @@ def open_about_window():
 
 
 if __name__ == "__main__":
-    build_installer_gui()
+    # build_installer_gui()
+    launcher_entry_point()
