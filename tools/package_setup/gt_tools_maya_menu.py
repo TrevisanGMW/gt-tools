@@ -396,7 +396,7 @@ def load_menu(*args):
                        icon=resource_library.Icon.check_for_updates)
     menu.add_menu_item(label=f'Installed Version: {str(package_version)}',
                        enable=False,
-                       icon='SP_FileDialogToParent_Disabled.png')
+                       icon=resource_library.Icon.current_version)
 
     menu_path = menu.create_menu()
     return menu_path

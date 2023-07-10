@@ -136,6 +136,7 @@ class Icon:
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
     about = get_icon_path(r"about.svg")
+    current_version = get_icon_path(r"current_version.svg")
     # Misc
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
