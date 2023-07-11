@@ -21,7 +21,7 @@
 	</g>
 	<g>
 		<g>
-			<rect x="127.685" y="59.894" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFBB63;" width="336.49" height="336.484"/>
+			<rect x="127.685" y="59.894" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FF9931;" width="336.49" height="336.484"/>
 			<path style="fill:#1D1D1D;" d="M456.35,67.72v320.834H135.51V67.72L456.35,67.72 M472,52.069h-15.65H135.51h-15.65v15.65v320.834
 				v15.65h15.65h320.84H472v-15.65V67.72V52.069L472,52.069z"/>
 		</g>
@@ -29,16 +29,16 @@
 	<g>
 		<g>
 			<g>
-				<rect x="160.617" y="92.827" style="fill-rule:evenodd;clip-rule:evenodd;fill:#BDBDBD;" width="270.625" height="270.617"/>
-				<path style="fill:#1D1D1D;" d="M423.415,100.652v254.969H168.442V100.652H423.415 M439.066,85.002H152.792v286.27h286.274
-					V85.002L439.066,85.002z"/>
+				<rect x="176.176" y="108.384" style="fill-rule:evenodd;clip-rule:evenodd;fill:#BDBDBD;" width="239.508" height="239.502"/>
+				<path style="fill:#1D1D1D;" d="M408.758,115.309v225.652H183.102V115.309H408.758 M422.609,101.458H169.251v253.354h253.358
+					V101.458L422.609,101.458z"/>
 			</g>
 		</g>
 		<g>
-			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M166.302,184.928h86.418v86.424h-86.418V184.928z"/>
-			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M252.72,98.51h86.422v86.418H252.72V98.51z"/>
-			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M252.72,271.351h86.422v86.414H252.72V271.351z"/>
-			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M339.142,184.928h86.418v86.424h-86.418V184.928z"/>
+			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M181.208,189.895h76.481v76.487h-76.481V189.895z"/>
+			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M257.689,113.413h76.485v76.481h-76.485V113.413z"/>
+			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M257.689,266.381h76.485v76.478h-76.485V266.381z"/>
+			<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;" d="M334.174,189.895h76.481v76.487h-76.481V189.895z"/>
 		</g>
 	</g>
 	<rect style="fill:none;" width="509.131" height="509.131"/>
