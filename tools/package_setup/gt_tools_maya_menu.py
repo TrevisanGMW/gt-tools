@@ -161,11 +161,11 @@ def load_menu(*args):
     menu.add_menu_item(label='Copy Material',
                        command=partial(_run_utility, "misc_utils", "material_copy"),
                        tooltip='Copies material to clipboard.',
-                       icon='polyBakeSetAssign.png')
+                       icon=resource_library.Icon.mod_copy_material)
     menu.add_menu_item(label='Paste Material',
                        command=partial(_run_utility, "misc_utils", "material_paste"),
                        tooltip='Pastes material from clipboard.',
-                       icon='polyBakeSetEdit.png')
+                       icon=resource_library.Icon.mod_paste_material)
     # ------------------------------------ Rigging ------------------------------------
     menu.add_sub_menu("Rigging",
                       icon=resource_library.Icon.root_rigging,
