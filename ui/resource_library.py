@@ -159,6 +159,8 @@ class Icon:
     mod_sphere_types = get_icon_path(r"mod_sphere_types.svg")
     mod_load_udims = get_icon_path(r"mod_load_udims.svg")
     mod_bif_to_mesh = get_icon_path(r"mod_bif_to_mesh.svg")
+    mod_copy_material = get_icon_path(r"mod_copy_material.svg")
+    mod_paste_material = get_icon_path(r"mod_paste_material.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
