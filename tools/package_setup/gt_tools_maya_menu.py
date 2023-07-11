@@ -150,12 +150,12 @@ def load_menu(*args):
     menu.add_menu_item(label='Preview All UDIMs',
                        command=partial(_run_utility, "display_utils", "generate_udim_previews"),
                        tooltip='Generates UDIM previews for all file nodes.',
-                       icon='textureToGeom.png')
+                       icon=resource_library.Icon.mod_load_udims)
     menu.add_menu_item(label='Convert Bif to Mesh',
                        command=partial(_run_utility, "geometry_utils", "convert_bif_to_mesh"),
                        tooltip='Converts Bifrost Geometry into Maya Geometry (Mesh). '
                                'If used with volume or particles the output will be empty.',
-                       icon='nurbsToPolygons.png')
+                       icon=resource_library.Icon.mod_bif_to_mesh)
 
     menu.add_divider()  # Material Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Copy Material',
