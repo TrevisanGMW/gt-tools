@@ -1,9 +1,11 @@
 import os
+import io
 import sys
 import pathlib
 import logging
 import unittest
 import tempfile
+from contextlib import redirect_stdout
 from unittest.mock import patch, MagicMock
 
 # Logging Setup
@@ -20,6 +22,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from utils import system_utils
+from utils.system_utils import time_profiler
 
 
 class TestSystemUtils(unittest.TestCase):
@@ -438,3 +441,31 @@ class TestSystemUtils(unittest.TestCase):
     def test_load_package_menu_injecting(self, mock_load_menu):
         system_utils.load_package_menu(launch_latest_maya=False)
         mock_load_menu.assert_called_once()
+
+    def test_function_execution_time(self):
+        @time_profiler
+        def temp_function(*args, **kwargs):
+            pass
+
+        with io.StringIO() as buf, redirect_stdout(buf):
+            temp_function("abc", input="def")
+            result = buf.getvalue()
+
+        self.assertRegex(result, r"\D*0\.\d+\D*")  # Characters #.### Characters
+        self.assertTrue(result.startswith("Execution Time: "))
+        self.assertIn(" - Function: ", result)
+
+    def test_function_return_value(self):
+        @time_profiler
+        def add_numbers(a, b):
+            return a + b
+        result = add_numbers(2, 3)
+        self.assertEqual(result, 5)
+
+    def test_function_with_args_and_kwargs(self):
+        @time_profiler
+        def greet_person(name, message="Hello"):
+            return f"{message}, {name}!"
+
+        result = greet_person("Barbara", message="Hi")
+        self.assertEqual(result, "Hi, Barbara!")

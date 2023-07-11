@@ -3,11 +3,13 @@ System Utilities - Utilities related to system activities, such as paths, open e
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+from functools import wraps
 import subprocess
 import tempfile
 import logging
 import pathlib
 import base64
+import time
 import sys
 import os
 import re
@@ -513,6 +515,53 @@ def load_package_menu(launch_latest_maya=False):
             gt_tools_maya_menu.load_menu()
         except Exception as e:
             logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
+
+
+def time_profiler(func):
+    """
+    A decorator that measures the execution time of a function.
+
+    Args:
+        func (callable): The function to be profiled.
+
+    Returns:
+        callable: The decorated function.
+
+    Example:
+        @time_profiler
+        def my_function(arg1, arg2):
+            # Function code here
+
+        my_function(10, arg2='test')
+
+    Output:
+        Function "my_function(10,) {'arg2': 'test'}" took 0.1234 seconds to run.
+    """
+    @wraps(func)
+    def time_profiler_wrapper(*args, **kwargs):
+        """
+        Wrapper function that measures the execution time of the decorated function.
+
+        Args:
+            *args: Variable-length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            The result of the decorated function.
+
+        Prints:
+            The execution time of the decorated function.
+
+        Example:
+            result = time_profiler_wrapper(10, arg2='test')
+        """
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Execution Time: {total_time:.4f} - Function: {func.__name__}{args} {kwargs}')
+        return result
+    return time_profiler_wrapper
 
 
 if __name__ == "__main__":
