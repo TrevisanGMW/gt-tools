@@ -1,32 +1,31 @@
-QWidget{
+QWidget {
     background-color: @maya_background_mid;
 }
 
-QPushButton, QToolButton{
-    border: none;
+QPushButton, QToolButton {
+	border: none;
     background-color: @maya_button;
     color: @maya_text;
 	padding: @maya_small_button_padding;
 }
 
-QPushButton:hover, QToolButton:hover{
-    background-color: @maya_button_hover;
+QPushButton:hover, QToolButton:hover {
+	background-color: @maya_button_hover;
     color: @maya_text;
 }
 
-QPushButton:pressed, QToolButton:pressed{
-    background-color: @maya_button_clicked;
-    color: @maya_text;
+QPushButton:pressed, QToolButton:pressed {
+	background-color: @maya_button_clicked;
 }
 
-QLabel{
+QLabel {
     background-color: transparent;
     font-weight: 700;
     border: none;
     color: @maya_text;
 }
 
-QLineEdit{
+QLineEdit {
     background-color: @maya_background_dark;
     selection-background-color: @maya_selection;
     border: none;
@@ -34,14 +33,14 @@ QLineEdit{
     color: @maya_text;
 }
 
-QComboBox{
+QComboBox {
     background-color: @maya_background_dark;
     border: none;
     font-weight: 500;
     color: @maya_text;
 }
 
-QComboBox::text{
+QComboBox::text {
     background-color: @maya_background_dark;
     border: none;
     font-weight: 500;
