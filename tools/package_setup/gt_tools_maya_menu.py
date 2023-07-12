@@ -173,7 +173,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Biped Auto Rigger',
                        command=partial(_open_named_tool, "auto_rigger"),
                        tooltip='Automated solution for creating a biped rig.',
-                       icon='kinReroot.png')
+                       icon=resource_library.Icon.rig_auto_rigger)
     menu.add_menu_item(label='Biped Rig Interface',
                        command=partial(_open_named_tool, "auto_rigger", "launch_biped_rig_interface"),
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
