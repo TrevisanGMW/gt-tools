@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 class PackageSetupController(QtCore.QObject):
     INSTALL_STATUS_FAIL = "Failed"
-    INSTALL_STATUS_SUCCESS = "Success"
+    INSTALL_STATUS_INSTALLED = "Installed"
+    INSTALL_STATUS_MISSING = "Not installed"  # Updated? Not Updated?
     CloseView = QtCore.Signal()
     UpdatePath = QtCore.Signal(object)
     UpdateStatus = QtCore.Signal(object)
@@ -48,11 +49,9 @@ class PackageSetupController(QtCore.QObject):
 
         # Update Status
         if result:
-            self.update_status(self.INSTALL_STATUS_SUCCESS)
+            self.update_status(self.INSTALL_STATUS_INSTALLED)
             self.progress_win.set_progress_bar_done()
             self.progress_win.first_button.clicked.connect(self.close_view)
-        else:
-            self.update_status(self.INSTALL_STATUS_FAIL)
 
         # Show window
         if QApplication.instance():
@@ -62,9 +61,32 @@ class PackageSetupController(QtCore.QObject):
                 logger.debug(e)
         return self.progress_win
 
-    @staticmethod
-    def uninstall_package():
-        setup_utils.uninstall_package()
+    def uninstall_package(self):
+        if not QApplication.instance():
+            app = QApplication(sys.argv)
+
+        self.progress_win = progress_bar.ProgressBarWindow()
+        self.progress_win.show()
+        self.progress_win.set_progress_bar_name("Uninstalling Script Package...")
+        # Create connections
+        self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
+        self.progress_win.set_progress_bar_max_value(7)  # Number of print functions inside installer
+        self.progress_win.increase_progress_bar_value()
+        result = setup_utils.uninstall_package(passthrough_functions=[self.progress_win.append_text_to_output_box,
+                                                                      self.progress_win.increase_progress_bar_value])
+
+        # Update Status
+        if result:
+            self.update_status(self.INSTALL_STATUS_MISSING)
+            self.progress_win.set_progress_bar_done()
+
+        # Show window
+        if QApplication.instance():
+            try:
+                sys.exit(app.exec_())
+            except Exception as e:
+                logger.debug(e)
+        return self.progress_win
 
     @staticmethod
     def run_only_package():

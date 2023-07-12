@@ -348,12 +348,16 @@ def install_package(clean_install=True, verbose=True, passthrough_functions=None
     print_when_true("Fetching requirements...", do_print=verbose, passthrough_functions=passthrough_functions)
     maya_preferences_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_preferences_dir):
-        logger.warning(f'Unable to install package. Missing required path: "{maya_preferences_dir}"')
+        message = f'Unable to install package. Missing required path: "{maya_preferences_dir}"'
+        logger.warning(message)
+        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
         return
     # Find Source Install Directories
     package_requirements = get_package_requirements()
     if not package_requirements:
-        logger.warning(f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"')
+        message = f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"'
+        logger.warning(message)
+        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
         return
     # Clean install
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
@@ -409,13 +413,17 @@ def uninstall_package(verbose=True, passthrough_functions=None):
                     passthrough_functions=passthrough_functions)
     maya_preferences_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_preferences_dir):
-        logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_preferences_dir}"')
+        message = f'Unable to uninstall package. Unable to find install location: "{maya_preferences_dir}"'
+        logger.warning(message)
+        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
         return
     # Find Source Install Directories
     print_when_true("Checking installed files...", do_print=verbose, passthrough_functions=passthrough_functions)
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if not os.path.exists(package_target_folder):
-        logger.warning(f'Unable to uninstall package. No previous installation detected.')
+        message = f'Unable to uninstall package. No previous installation detected.'
+        logger.warning(message)
+        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
         return
     # Remove installed package
     print_when_true("Removing package...", do_print=verbose,
