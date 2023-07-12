@@ -216,7 +216,7 @@ class FeedbackMessage:
             sys.stdout.write(f"{self.get_string_message()}\n")
 
 
-def print_when_true(input_string, do_print=True, use_system_write=False):
+def print_when_true(input_string, do_print=True, use_system_write=False, passthrough_functions=None):
     """
     Print input string only when the parameter "do_print" is true
     Args:
@@ -224,9 +224,24 @@ def print_when_true(input_string, do_print=True, use_system_write=False):
         do_print (optional, bool): If it should print or not (if active, it prints) - Default is active/True
         use_system_write (optional, bool): If active, it will uses "sys.stdout.write()" to print instead of
                                            the standard "print()" function. Default is inactive/False
+        passthrough_functions (list, callable, optional): A list of callable functions that will be called with the
+                                                          input string as their first argument.
+                                                          e.g. if I provide [my_func], then the script will call
+                                                          my_func(input_string) as it prints.
     """
     if do_print:
         sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
+    if passthrough_functions:
+        if not isinstance(passthrough_functions, list):
+            passthrough_functions = [passthrough_functions]  # Convert to list in case arg was provided as function
+        for func in passthrough_functions:
+            if callable(func):
+                try:
+                    func(input_string)
+                except Exception as e:
+                    logger.debug(f"Unable to execute passthrough function. Issue: {e}")
+            else:
+                logger.debug(f"Error: {func} is not a callable function.")
 
 
 if __name__ == "__main__":
@@ -236,19 +251,4 @@ if __name__ == "__main__":
     # maya.standalone.initialize()
     out = None
     # out = inview_number_feedback(number=123)
-
-    out = FeedbackMessage(quantity=2,
-                          prefix="prefix",
-                          intro="intro",
-                          singular="was",
-                          plural="were",
-                          conclusion="conclusion",
-                          suffix="suffix",
-                          style_general="color:#00FF00;",
-                          style_intro="color:#0000FF;",
-                          style_pluralization="color:#FF00FF;",
-                          style_conclusion="color:#00FFFF;",
-                          style_suffix="color:#F0FF00;"
-                          )
-    out.print_inview_message()
     pprint(out)
