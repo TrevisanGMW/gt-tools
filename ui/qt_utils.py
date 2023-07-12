@@ -1,5 +1,5 @@
+from PySide2.QtWidgets import QApplication, QWidget
 from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QFontDatabase
 import logging
 import os
@@ -90,6 +90,19 @@ def get_font(font):
     elif os.path.exists(font) and os.path.isfile(font):
         qt_font = load_custom_font(font)
     return qt_font
+
+
+def get_maya_main_window():
+    """
+    Finds the instance of maya's main window
+    Returns:
+        QWidget: The main maya widget
+    """
+    from shiboken2 import wrapInstance
+    from maya import OpenMayaUI as OpenMayaUI
+    ptr = OpenMayaUI.MQtUtil.mainWindow()
+    maya_window = wrapInstance(int(ptr), QWidget)
+    return maya_window
 
 
 if __name__ == "__main__":
