@@ -1,9 +1,13 @@
 """
 QT Controller for setup
 """
+import sys
+
+from PySide2.QtWidgets import QApplication
 from PySide2 import QtCore
 from utils import setup_utils
 from utils import system_utils
+from ui import progress_bar
 import logging
 import os
 
@@ -13,6 +17,7 @@ logger = logging.getLogger(__name__)
 class PackageSetupController(QtCore.QObject):
     INSTALL_STATUS_FAIL = "Failed"
     INSTALL_STATUS_SUCCESS = "Success"
+    CloseView = QtCore.Signal()
     UpdatePath = QtCore.Signal(object)
     UpdateStatus = QtCore.Signal(object)
     UpdateVersion = QtCore.Signal(object, object)
@@ -25,18 +30,37 @@ class PackageSetupController(QtCore.QObject):
             kwargs (any): Arbitrary keyword arguments.
         """
         super().__init__(*args, **kwargs)
+        self.progress_win = None
 
     def install_package(self):
-        result = None
-        try:
-            result = setup_utils.install_package()
-        except Exception as e:
-            logger.debug(str(e))
+        if not QApplication.instance():
+            app = QApplication(sys.argv)
+
+        self.progress_win = progress_bar.ProgressBarWindow()
+        self.progress_win.show()
+        self.progress_win.set_progress_bar_name("Installing Script Package...")
+        # Create connections
+        self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
+        self.progress_win.set_progress_bar_max_value(7)  # Number of print functions inside installer
+        self.progress_win.increase_progress_bar_value()
+        result = setup_utils.install_package(passthrough_functions=[self.progress_win.append_text_to_output_box,
+                                                                    self.progress_win.increase_progress_bar_value])
+
         # Update Status
         if result:
             self.update_status(self.INSTALL_STATUS_SUCCESS)
+            self.progress_win.set_progress_bar_done()
+            self.progress_win.first_button.clicked.connect(self.close_view)
         else:
             self.update_status(self.INSTALL_STATUS_FAIL)
+
+        # Show window
+        if QApplication.instance():
+            try:
+                sys.exit(app.exec_())
+            except Exception as e:
+                logger.debug(e)
+        return self.progress_win
 
     @staticmethod
     def uninstall_package():
@@ -70,6 +94,10 @@ class PackageSetupController(QtCore.QObject):
         installed_version = system_utils.get_package_version(package_path=self.get_install_target_dir())
         self.UpdateVersion.emit(setup_version, installed_version)  # 1: Current Package Version, 2: Installed Version
 
+    def close_view(self):
+        self.CloseView.emit()
+
 
 if __name__ == "__main__":
-    PackageSetupController.install_package()
+    controller = PackageSetupController()
+    controller.install_package()

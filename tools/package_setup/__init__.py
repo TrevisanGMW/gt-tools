@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QWidget, QApplication
+from PySide2.QtWidgets import QApplication
 import logging
 import sys
 import os
@@ -21,19 +21,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_maya_main_window():
-    """
-    Finds the instance of maya's main window
-    Returns:
-        QWidget: The main maya widget
-    """
-    from shiboken2 import wrapInstance
-    from maya import OpenMayaUI as OpenMayaUI
-    ptr = OpenMayaUI.MQtUtil.mainWindow()
-    maya_window = wrapInstance(int(ptr), QWidget)
-    return maya_window
-
-
 def build_installer_gui(standalone=True):
     """
     Creates installer GUI
@@ -46,6 +33,7 @@ def build_installer_gui(standalone=True):
         app = QApplication(sys.argv)
         _view = setup_view.PackageSetupWindow()
     else:
+        from ui.qt_utils import get_maya_main_window
         maya_window = get_maya_main_window()
         _view = setup_view.PackageSetupWindow(parent=maya_window)
 
@@ -62,6 +50,7 @@ def build_installer_gui(standalone=True):
     _controller.UpdatePath.connect(_view.update_installation_path_text_field)
     _controller.UpdateVersion.connect(_view.update_version_texts)
     _controller.UpdateStatus.connect(_view.update_status_text)
+    _controller.CloseView.connect(_view.close_window)
 
     # Initial Update
     _controller.update_path()
@@ -95,5 +84,4 @@ def open_about_window():
 
 
 if __name__ == "__main__":
-    # build_installer_gui()
     launcher_entry_point()
