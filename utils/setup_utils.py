@@ -323,23 +323,29 @@ def remove_package_loader_from_maya_installs():
                 logger.warning(f"Unable to remove loader file. Issue: {str(e)}")
 
 
-def install_package(clean_install=True, verbose=True):
+def install_package(clean_install=True, verbose=True, passthrough_functions=None):
     """
     Installs package in the Maya Settings directory
     Args:
         clean_install (optional, bool): Will first delete the package folder before copying files. (No overwrite)
                                         Only deletes if the folder matches the name of the package. Default: True
         verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
+        passthrough_functions (list, callable, optional): A list of callable functions that will be called with the
+                                                          feedback of the installation as their first argument.
+                                                          e.g. If I provide [my_func], then the script will call
+                                                          my_func("Fetching requirements...") and so on as it goes
+                                                          through the operation.
     Returns:
         bool: True if function reached the end successfully
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
-        print_when_true("Initializing Maya Standalone...", do_print=verbose)
+        print_when_true("Initializing Maya Standalone...", do_print=verbose,
+                        passthrough_functions=passthrough_functions)
         import maya.standalone
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
-    print_when_true("Fetching requirements...", do_print=verbose)
+    print_when_true("Fetching requirements...", do_print=verbose, passthrough_functions=passthrough_functions)
     maya_preferences_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_preferences_dir):
         logger.warning(f'Unable to install package. Missing required path: "{maya_preferences_dir}"')
@@ -352,62 +358,78 @@ def install_package(clean_install=True, verbose=True):
     # Clean install
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if clean_install:
-        print_when_true("Removing previous install...", do_print=verbose)
+        print_when_true("Removing previous install...", do_print=verbose,
+                        passthrough_functions=passthrough_functions)
         remove_previous_install(package_target_folder)
     # Create Package Folder
     if not os.path.exists(package_target_folder):
         os.makedirs(package_target_folder)
     # Copy files and directories
-    print_when_true("Copying required files...", do_print=verbose)
+    print_when_true("Copying required files...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     copy_package_requirements(package_target_folder, package_requirements)
     # Add Entry Point and loader script
-    print_when_true("Adding entry point to userSetup...", do_print=verbose)
+    print_when_true("Adding entry point to userSetup...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     add_entry_point_to_maya_installs()
     copy_package_loader_to_maya_installs()
     remove_legacy_entry_point_from_maya_installs(verbose=verbose)
     # Check installation integrity
-    print_when_true("Checking installation integrity...", do_print=verbose)
+    print_when_true("Checking installation integrity...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     if check_installation_integrity(package_target_folder):
-        print_when_true("\nInstallation completed successfully!", do_print=verbose)
+        print_when_true("\nInstallation completed successfully!", do_print=verbose,
+                        passthrough_functions=passthrough_functions)
         return True
     else:
         logger.warning(f'Installation failed integrity check. Package might not work as expected.')
 
 
-def uninstall_package(verbose=True):
+def uninstall_package(verbose=True, passthrough_functions=None):
     """
     Uninstalls package from the Maya Settings directory
     Args:
         verbose (bool, optional): If active, script will print steps as it's going through it - Default: True
+        passthrough_functions (list, callable, optional): A list of callable functions that will be called with the
+                                                          feedback of the uninstallation as their first argument.
+                                                          e.g. If I provide [my_func], then the script will call
+                                                          my_func("Fetching install location...") and so on as it goes
+                                                          through the operation.
     Returns:
         bool: True if function reached the end successfully
     """
     # If running in MayaPy - Initialize session
     if is_script_in_py_maya():
-        print_when_true("Initializing Maya Standalone...", do_print=verbose)
+        print_when_true("Initializing Maya Standalone...", do_print=verbose,
+                        passthrough_functions=passthrough_functions)
         import maya.standalone
         maya.standalone.initialize()
     # Find Install Target Directory - Maya Settings Dir
-    print_when_true("Fetching install location...", do_print=verbose)
+    print_when_true("Fetching install location...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     maya_preferences_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_preferences_dir):
         logger.warning(f'Unable to uninstall package. Unable to find install location: "{maya_preferences_dir}"')
         return
     # Find Source Install Directories
-    print_when_true("Checking installed files...", do_print=verbose)
+    print_when_true("Checking installed files...", do_print=verbose, passthrough_functions=passthrough_functions)
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if not os.path.exists(package_target_folder):
         logger.warning(f'Unable to uninstall package. No previous installation detected.')
         return
     # Remove installed package
-    print_when_true("Removing package...", do_print=verbose)
+    print_when_true("Removing package...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     remove_previous_install(package_target_folder)
     # Remove entry point and loader script
-    print_when_true("Removing entry point lines...", do_print=verbose)
+    print_when_true("Removing entry point lines...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     remove_entry_point_from_maya_installs()
-    print_when_true("Removing loader scripts...", do_print=verbose)
+    print_when_true("Removing loader scripts...", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     remove_package_loader_from_maya_installs()
-    print_when_true("\nUninstallation completed successfully!", do_print=verbose)
+    print_when_true("\nUninstallation completed successfully!", do_print=verbose,
+                    passthrough_functions=passthrough_functions)
     return True
 
 
