@@ -161,6 +161,8 @@ class Icon:
     mod_bif_to_mesh = get_icon_path(r"mod_bif_to_mesh.svg")
     mod_copy_material = get_icon_path(r"mod_copy_material.svg")
     mod_paste_material = get_icon_path(r"mod_paste_material.svg")
+    # Rigging
+    rig_auto_rigger = get_icon_path(r"rig_auto_rigger.svg")
     # Help
     rebuild_menu = get_icon_path(r"rebuild_menu.svg")
     check_for_updates = get_icon_path(r"check_for_updates.svg")
@@ -262,45 +264,44 @@ class StylesheetVariables:
         """
     maya_basic = {
         # Colors
-        "@maya_background_mid": Color.RGB.grey,
-        "@maya_background_dark": Color.RGB.grey_dark,
-        "@maya_background_darker": Color.RGB.grey_darker,
-        "@maya_background_light": Color.RGB.grey_mid,
-        "@maya_button": Color.RGB.grey_light,
-        "@maya_button_hover": Color.RGB.grey_lighter,
-        "@maya_button_clicked": Color.RGB.grey_darker,
-        "@maya_selection": Color.RGB.blue_soft_dark,
-        "@maya_text": Color.RGB.white_soft,
+        "@maya_background_mid;": Color.RGB.grey,
+        "@maya_background_dark;": Color.RGB.grey_dark,
+        "@maya_background_darker;": Color.RGB.grey_darker,
+        "@maya_background_light;": Color.RGB.grey_mid,
+        "@maya_button;": Color.RGB.grey_light,
+        "@maya_button_hover;": Color.RGB.grey_lighter,
+        "@maya_button_clicked;": Color.RGB.grey_darker,
+        "@maya_selection;": Color.RGB.blue_soft_dark,
+        "@maya_text;": Color.RGB.white_soft,
         # Formatting
-        "@maya_small_button_padding": "5",
+        "@maya_small_button_padding;": "5",
     }
     maya_progress_bar = {
         # Colors
-        "@maya_background_mid": Color.RGB.grey,
-        "@maya_background_dark": Color.RGB.grey_dark,
-        "@maya_background_darker": Color.RGB.grey_darker,
-        "@maya_background_light": Color.RGB.grey_mid,
-        "@maya_button": Color.RGB.grey_light,
-        "@maya_button_hover": Color.RGB.grey_lighter,
-        "@maya_button_clicked": Color.RGB.grey_darker,
-        "@maya_selection": Color.RGB.blue_soft_dark,
-        "@maya_text": Color.RGB.white_soft,
-        "@progress_bar_background": Color.RGB.grey_lighter,
-        "@progress_bar_chunk": Color.RGB.blue_soft,
-        "@scrollbar_line_background": Color.RGB.grey_darker,
-        "@scrollbar_sub_line": Color.RGB.grey,
-        "@scrollbar_handle": Color.RGB.grey_lighter,
-        "@scrollbar_handle_pressed": Color.RGB.grey_much_lighter,
-        "@scrollbar_background": Color.RGB.grey_dark,
-        "@output_text_border": Color.RGB.grey_lighter,
-        "@output_text_color": Color.RGB.white_soft,
-        "@output_text_color_border": Color.RGB.grey,
-
+        "@maya_background_mid;": Color.RGB.grey,
+        "@maya_background_dark;": Color.RGB.grey_dark,
+        "@maya_background_darker;": Color.RGB.grey_darker,
+        "@maya_background_light;": Color.RGB.grey_mid,
+        "@maya_button;": Color.RGB.grey_light,
+        "@maya_button_hover;": Color.RGB.grey_lighter,
+        "@maya_button_clicked;": Color.RGB.grey_darker,
+        "@maya_selection;": Color.RGB.blue_soft_dark,
+        "@maya_text;": Color.RGB.white_soft,
+        "@progress_bar_background;": Color.RGB.grey_lighter,
+        "@progress_bar_chunk;": Color.RGB.blue_soft,
+        "@scrollbar_line_background;": Color.RGB.grey_darker,
+        "@scrollbar_sub_line;": Color.RGB.grey,
+        "@scrollbar_handle;": Color.RGB.grey_lighter,
+        "@scrollbar_handle_pressed;": Color.RGB.grey_much_lighter,
+        "@scrollbar_background;": Color.RGB.grey_dark,
+        "@output_text_border;": Color.RGB.grey_lighter,
+        "@output_text_color;": Color.RGB.white_soft,
+        "@output_text_color_border;": Color.RGB.grey,
         # Formatting
-        "@maya_small_button_padding": "5",
+        "@maya_small_button_padding;": "5",
         # Icons
-        "@image_scrollbar_up": f"url({Icon.scrollbar_up})".replace("\\", "/"),
-        "@image_scrollbar_down": f"url({Icon.scrollbar_down})".replace("\\", "/"),
+        "@image_scrollbar_up;": f"url({Icon.scrollbar_up})".replace("\\", "/"),
+        "@image_scrollbar_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
     }
 
 
@@ -331,5 +332,6 @@ class Font:
 if __name__ == "__main__":
     from pprint import pprint
     out = None
+    out = Stylesheet.maya_progress_bar
     pprint(out)
 
