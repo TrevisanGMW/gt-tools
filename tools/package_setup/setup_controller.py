@@ -1,14 +1,13 @@
 """
 QT Controller for setup
 """
-import sys
-
+from ui import progress_bar, resource_library
 from PySide2.QtWidgets import QApplication
-from PySide2 import QtCore
-from utils import setup_utils
 from utils import system_utils
-from ui import progress_bar
+from utils import setup_utils
+from PySide2 import QtCore
 import logging
+import sys
 import os
 
 logger = logging.getLogger(__name__)
@@ -44,14 +43,22 @@ class PackageSetupController(QtCore.QObject):
         self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
         self.progress_win.set_progress_bar_max_value(7)  # Number of print functions inside installer
         self.progress_win.increase_progress_bar_value()
-        result = setup_utils.install_package(passthrough_functions=[self.progress_win.append_text_to_output_box,
-                                                                    self.progress_win.increase_progress_bar_value])
 
-        # Update Status
+        result = None
+        try:
+            result = setup_utils.install_package(passthrough_functions=[self.progress_win.add_text_to_output_box,
+                                                                        self.progress_win.increase_progress_bar_value])
+        except Exception as e:
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+
+        # Installation Result
         if result:
             self.update_status(self.INSTALL_STATUS_INSTALLED)
             self.progress_win.set_progress_bar_done()
-            self.progress_win.first_button.clicked.connect(self.close_view)
+            self.progress_win.first_button.clicked.connect(self.close_view)  # Closes parent (Package Setup View)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+        else:
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
 
         # Show window
         if QApplication.instance():
@@ -72,7 +79,8 @@ class PackageSetupController(QtCore.QObject):
         self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
         self.progress_win.set_progress_bar_max_value(7)  # Number of print functions inside installer
         self.progress_win.increase_progress_bar_value()
-        result = setup_utils.uninstall_package(passthrough_functions=[self.progress_win.append_text_to_output_box,
+
+        result = setup_utils.uninstall_package(passthrough_functions=[self.progress_win.add_text_to_output_box,
                                                                       self.progress_win.increase_progress_bar_value])
 
         # Update Status
