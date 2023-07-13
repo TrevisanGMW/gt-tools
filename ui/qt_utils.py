@@ -1,8 +1,9 @@
 from PySide2.QtWidgets import QApplication, QWidget
 from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtGui import QFontDatabase
+from PySide2.QtGui import QFontDatabase, QColor
 import logging
 import os
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -105,11 +106,26 @@ def get_maya_main_window():
     return maya_window
 
 
+def get_qt_color(color):
+    if isinstance(color, str):
+        if re.match(r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", color):  # Hex pattern (e.g. "#FF0000"):
+            return QColor(color)
+        else:
+            try:
+                return QColor(color)
+            except Exception as e:
+                logger.error(f'Unable to create QColor. Issue: {e}')
+    elif isinstance(color, QColor):
+        return color
+    elif color is not None:
+        logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
+
+
 if __name__ == "__main__":
     import sys
     import resource_library
     app = QApplication(sys.argv)
     out = None
     # out = is_font_available(resource_library.Font.inter)
-    out = get_screen_center()
+    out = get_qt_color("#FF00FF")
     print(out)
