@@ -7,6 +7,7 @@ from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil
+import sys
 import os
 
 # Logging Setup
@@ -326,23 +327,35 @@ def remove_package_loader_from_maya_installs():
                 logger.warning(f"Unable to remove loader file. Issue: {str(e)}")
 
 
-def reload_package_loaded_modules():
+def get_package_loaded_modules():
     """
-    Reloads modules containing the package fragment path in it.
-    For example, if a module contains "package-name//requirement" it gets reloaded.
-    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+    Gets modules containing the package fragment path in it.
+    For example, if a module contains "package-name//requirement" it is included.
+    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py", it is included.
+    Returns:
+        list:
     """
     package_path_fragments = []
     for requirement in PACKAGE_REQUIREMENTS:
         if "." not in requirement:
             undesired_fragment = os.path.join(PACKAGE_NAME, requirement)
             package_path_fragments.append(undesired_fragment)
-    filtered_modules = filter_loaded_modules_path_containing(package_path_fragments)
+    return filter_loaded_modules_path_containing(package_path_fragments)
+
+
+def reload_package_loaded_modules():
+    """
+    Reloads modules containing the package fragment path in it.
+    For example, if a module contains "package-name//requirement" it gets reloaded.
+    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+    """
+    filtered_modules = get_package_loaded_modules()
     import importlib
     try:
         for module in filtered_modules:
             importlib.reload(module)
     except Exception as e:
+        print(e)
         logger.debug(e)
 
 
@@ -412,6 +425,7 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
                     callbacks=callbacks)
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
+            reload_package_loaded_modules()
             print_when_true("Running in Maya..", do_print=verbose, callbacks=callbacks)
         print_when_true("\nInstallation completed successfully!", do_print=verbose, callbacks=callbacks)
         return True
@@ -480,6 +494,11 @@ if __name__ == "__main__":
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    out = install_package()
+    # out = install_package()
     # out = uninstall_package()
-    pprint(out)
+    import sys
+    print(sys.path)
+    # remove_package_loaded_modules()
+    print(sys.path)
+    # print(list(sys.modules.keys()))
+    # pprint(out)
