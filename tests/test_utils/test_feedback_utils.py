@@ -1,9 +1,9 @@
-import os
-import sys
-import logging
-import unittest
+from unittest.mock import patch, MagicMock
 from io import StringIO
-from unittest.mock import patch
+import unittest
+import logging
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -18,6 +18,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from utils import feedback_utils
+from utils.feedback_utils import redirect_output_to_function
 
 
 class TestFeedbackUtils(unittest.TestCase):
@@ -199,3 +200,52 @@ class TestFeedbackUtils(unittest.TestCase):
         result = mock_stdout.getvalue()
         expected = ""
         self.assertEqual(expected, result)
+
+    def test_redirect_output_to_function_info(self):
+        # Create the MagicMock object
+        process_func = MagicMock()
+
+        # Define a dummy function to be decorated
+        @redirect_output_to_function(process_func)
+        def dummy_function():
+            print("Hello, World!")
+            logging.info("This is an info message.")
+
+        dummy_function()
+
+        expected_output = "Hello, World!\n"
+        expected_logs = "This is an info message.\n"
+        process_func.assert_called_with(expected_output, expected_logs)
+
+    def test_redirect_output_to_function_debug(self):
+        # Create the MagicMock object
+        process_func = MagicMock()
+
+        # Define a dummy function to be decorated
+        @redirect_output_to_function(process_func, logger_level=logging.DEBUG)
+        def dummy_function():
+            print("Hello, World!")
+            logging.debug("This is a debug message.")
+
+        dummy_function()
+
+        expected_output = "Hello, World!\n"
+        expected_logs = "This is a debug message.\n"
+        process_func.assert_called_with(expected_output, expected_logs)
+
+    def test_redirect_output_to_function_no_log(self):
+        # Create the MagicMock object
+        process_func = MagicMock()
+
+        # Define a dummy function to be decorated
+        @redirect_output_to_function(process_func, logger_level=logging.INFO)
+        def dummy_function():
+            print("Hello, World!")
+            logging.debug("This is a debug message.")
+
+        dummy_function()
+
+        expected_output = "Hello, World!\n"
+        expected_logs = ""
+        process_func.assert_called_with(expected_output, expected_logs)
+

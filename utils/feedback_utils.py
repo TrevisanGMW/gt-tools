@@ -4,6 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from dataclasses import dataclass, field
 import maya.cmds as cmds
+from io import StringIO
 import logging
 import random
 import sys
@@ -242,6 +243,90 @@ def print_when_true(input_string, do_print=True, use_system_write=False, passthr
                     logger.debug(f"Unable to execute passthrough function. Issue: {e}")
             else:
                 logger.debug(f"Error: {func} is not a callable function.")
+
+
+def redirect_output_to_function(process_func, logger_level=logging.INFO):
+    """
+    Decorator function that redirects stdout, stderr, and logging output to capture the output and logs.
+
+    Args:
+        process_func (callable): A function to process the captured output and logs.
+        logger_level (int, optional): The logging level to set for capturing logs. Defaults to logging.INFO.
+
+    Returns:
+        callable: Decorator that can be applied to other functions.
+
+    Example:
+        @redirect_output_to_function(process_func=process_output)
+        def my_function():
+            print("Hello, world!")
+            logging.info("This is an informational message.")
+
+        def process_output(captured_output, captured_logs):
+            # Process the captured output and logs
+            # ...
+
+        my_function()  # The output and logs will be captured and passed to process_output function.
+    """
+    def decorator(func):
+        """
+        Decorator function that wraps the decorated function and performs the redirection of output and logs.
+        Args:
+            func (callable): The function to be decorated.
+
+        Returns:
+            callable: The wrapper function.
+
+        Raises:
+            Any exceptions raised by the decorated function.
+        """
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper function that redirects the output and logs, executes the decorated function,
+            and processes the captured output and logs.
+
+            Args:
+                *args: Variable length argument list.
+                **kwargs: Arbitrary keyword arguments.
+
+            Raises:
+                Any exceptions raised by the decorated function.
+            """
+            # Redirect stdout and stderr to capture the output
+            stdout_orig = sys.stdout
+            stderr_orig = sys.stderr
+            captured_stdout = StringIO()
+            captured_stderr = StringIO()
+            sys.stdout = captured_stdout
+            sys.stderr = captured_stderr
+
+            # Redirect logging output to capture logs
+            log_capture_string = StringIO()
+            log_capture_handler = logging.StreamHandler(log_capture_string)
+            logging.root.setLevel(logger_level)
+            logging.root.addHandler(log_capture_handler)
+
+            try:
+                # Call the decorated function
+                func(*args, **kwargs)
+            finally:
+                # Restore stdout and stderr
+                sys.stdout = stdout_orig
+                sys.stderr = stderr_orig
+
+                # Restore logging output
+                logging.root.removeHandler(log_capture_handler)
+
+            # Get the captured output and logs
+            captured_output = captured_stdout.getvalue()
+            captured_logs = log_capture_string.getvalue()
+
+            # Pass the captured output and logs to the provided function
+            process_func(captured_output, captured_logs)
+
+        return wrapper
+
+    return decorator
 
 
 if __name__ == "__main__":
