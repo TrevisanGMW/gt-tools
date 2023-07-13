@@ -236,12 +236,16 @@ def remove_legacy_entry_point_from_maya_installs(verbose=True):
 
     Args:
         verbose (bool, optional): If active, a message
+    Returns:
+        int: Number of legacy lines detected and removed during operation.
     """
+    removed_legacy_lines = 0
     user_setup_list = generate_user_setup_list(only_existing=True)
     for user_setup_path in user_setup_list:
         removed_legacy_lines = remove_entry_line(file_path=user_setup_path, line_to_remove=PACKAGE_LEGACY_LINE)
         if removed_legacy_lines > 0:
             print_when_true("Legacy version detected. Removing legacy entry line...", do_print=verbose)
+    return removed_legacy_lines
 
 
 def generate_scripts_dir_list(file_name, only_existing=False):
@@ -323,6 +327,26 @@ def remove_package_loader_from_maya_installs():
                 logger.warning(f"Unable to remove loader file. Issue: {str(e)}")
 
 
+def reload_package_loaded_modules():
+    """
+    Reloads modules containing the package fragment path in it.
+    For example, if a module contains "package-name//requirement" it gets reloaded.
+    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+    """
+    package_path_fragments = []
+    for requirement in PACKAGE_REQUIREMENTS:
+        if "." not in requirement:
+            undesired_fragment = os.path.join(PACKAGE_NAME, requirement)
+            package_path_fragments.append(undesired_fragment)
+    filtered_modules = filter_loaded_modules_path_containing(package_path_fragments)
+    import importlib
+    try:
+        for module in filtered_modules:
+            importlib.reload(module)
+    except Exception as e:
+        logger.debug(e)
+
+
 def install_package(clean_install=True, verbose=True, passthrough_functions=None):
     """
     Installs package in the Maya Settings directory
@@ -342,23 +366,31 @@ def install_package(clean_install=True, verbose=True, passthrough_functions=None
     if is_script_in_py_maya():
         print_when_true("Initializing Maya Standalone...", do_print=verbose,
                         passthrough_functions=passthrough_functions)
-        import maya.standalone
-        maya.standalone.initialize()
+        try:
+            import maya.standalone
+            maya.standalone.initialize()
+        except Exception as e:
+            print_when_true(f"Failed to initialize Maya standalone. Issue: {e}", do_print=verbose,
+                            passthrough_functions=passthrough_functions)
+            return
+
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching requirements...", do_print=verbose, passthrough_functions=passthrough_functions)
     maya_preferences_dir = get_maya_preferences_dir()
     if not os.path.exists(maya_preferences_dir):
         message = f'Unable to install package. Missing required path: "{maya_preferences_dir}"'
         logger.warning(message)
-        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
+        print_when_true(message, do_print=False, passthrough_functions=passthrough_functions)
         return
+
     # Find Source Install Directories
     package_requirements = get_package_requirements()
     if not package_requirements:
         message = f'Unable to install package. Missing required directories: "{PACKAGE_REQUIREMENTS}"'
         logger.warning(message)
-        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
+        print_when_true(message, do_print=False, passthrough_functions=passthrough_functions)
         return
+
     # Clean install
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if clean_install:
@@ -377,7 +409,11 @@ def install_package(clean_install=True, verbose=True, passthrough_functions=None
                     passthrough_functions=passthrough_functions)
     add_entry_point_to_maya_installs()
     copy_package_loader_to_maya_installs()
-    remove_legacy_entry_point_from_maya_installs(verbose=verbose)
+    # Detect legacy entry lines
+    if remove_legacy_entry_point_from_maya_installs(verbose=False):
+        print_when_true("Legacy version detected. Removing legacy entry line...", do_print=verbose,
+                        passthrough_functions=passthrough_functions)
+
     # Check installation integrity
     print_when_true("Checking installation integrity...", do_print=verbose,
                     passthrough_functions=passthrough_functions)
@@ -386,7 +422,10 @@ def install_package(clean_install=True, verbose=True, passthrough_functions=None
                         passthrough_functions=passthrough_functions)
         return True
     else:
-        logger.warning(f'Installation failed integrity check. Package might not work as expected.')
+        message = f'Installation failed integrity check. Package might not work as expected.'
+        logger.warning(message)
+        print_when_true(message, do_print=False,
+                        passthrough_functions=passthrough_functions)
 
 
 def uninstall_package(verbose=True, passthrough_functions=None):
@@ -406,8 +445,14 @@ def uninstall_package(verbose=True, passthrough_functions=None):
     if is_script_in_py_maya():
         print_when_true("Initializing Maya Standalone...", do_print=verbose,
                         passthrough_functions=passthrough_functions)
-        import maya.standalone
-        maya.standalone.initialize()
+        try:
+            import maya.standalone
+            maya.standalone.initialize()
+        except Exception as e:
+            print_when_true(f"Failed to initialize Maya standalone. Issue: {e}", do_print=verbose,
+                            passthrough_functions=passthrough_functions)
+            return
+
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching install location...", do_print=verbose,
                     passthrough_functions=passthrough_functions)
@@ -415,16 +460,18 @@ def uninstall_package(verbose=True, passthrough_functions=None):
     if not os.path.exists(maya_preferences_dir):
         message = f'Unable to uninstall package. Unable to find install location: "{maya_preferences_dir}"'
         logger.warning(message)
-        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
+        print_when_true(message, do_print=False, passthrough_functions=passthrough_functions)
         return
+
     # Find Source Install Directories
     print_when_true("Checking installed files...", do_print=verbose, passthrough_functions=passthrough_functions)
     package_target_folder = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME))
     if not os.path.exists(package_target_folder):
         message = f'Unable to uninstall package. No previous installation detected.'
         logger.warning(message)
-        print_when_true(message, do_print=verbose, passthrough_functions=passthrough_functions)
+        print_when_true(message, do_print=False, passthrough_functions=passthrough_functions)
         return
+
     # Remove installed package
     print_when_true("Removing package...", do_print=verbose,
                     passthrough_functions=passthrough_functions)
@@ -439,26 +486,6 @@ def uninstall_package(verbose=True, passthrough_functions=None):
     print_when_true("\nUninstallation completed successfully!", do_print=verbose,
                     passthrough_functions=passthrough_functions)
     return True
-
-
-def reload_package_loaded_modules():
-    """
-    Reloads modules containing the package fragment path in it.
-    For example, if a module contains "package-name//requirement" it gets reloaded.
-    e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
-    """
-    package_path_fragments = []
-    for requirement in PACKAGE_REQUIREMENTS:
-        if "." not in requirement:
-            undesired_fragment = os.path.join(PACKAGE_NAME, requirement)
-            package_path_fragments.append(undesired_fragment)
-    filtered_modules = filter_loaded_modules_path_containing(package_path_fragments)
-    import importlib
-    try:
-        for module in filtered_modules:
-            importlib.reload(module)
-    except Exception as e:
-        logger.debug(e)
 
 
 if __name__ == "__main__":
