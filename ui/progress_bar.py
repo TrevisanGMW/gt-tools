@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import QMainWindow, QProgressBar, QPushButton, QTextEdit, QVBoxLayout, QWidget, QHBoxLayout
+from PySide2.QtGui import QIcon, QTextCursor, QTextCharFormat, QColor, QTextDocument
 from ui import resource_library, qt_utils
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtGui import QIcon
 import logging
 
 # Logging Setup
@@ -20,9 +20,11 @@ class ProgressBarWindow(QMainWindow):
     def __init__(self, parent=None, output_text=True, has_second_button=False):
         super().__init__(parent=parent)
 
-        # Size Variables
+        # Basic Variables
         _min_width = 500
         _min_height = MIN_HEIGHT
+        self.output_text_font = qt_utils.get_font(resource_library.Font.roboto)
+        self.output_text_size = 12
 
         # Progress Bar
         self.progress_bar = QProgressBar(self)
@@ -31,8 +33,8 @@ class ProgressBarWindow(QMainWindow):
         # Output Window
         self.output_textbox = QTextEdit(self)
         self.output_textbox.setReadOnly(True)
-        self.output_textbox.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        self.output_textbox.setFontPointSize(12)
+        self.output_textbox.setFont(self.output_text_font)
+        self.output_textbox.setFontPointSize(self.output_text_size)
 
         # Buttons
         self.first_button = QPushButton("OK", self)
@@ -114,18 +116,129 @@ class ProgressBarWindow(QMainWindow):
         new_value = self.progress_bar.value() + increase_value
         self.set_progress_bar_value(new_value)
 
-    def append_text_to_output_box(self, new_text):
+    def add_text_to_output_box(self, input_string, color=None, as_new_line=True):
         """
         Appends new_text to the output_textbox.
         Args:
-           new_text (str): The text to be appended to the output_textbox.
+           input_string (str): The text to be appended to the output_textbox.
+           color (QColor, str): QColor or Hex color used to determine the color of the input text.
+                                e.g. "#FF0000" or QColor("#FF0000")
+           as_new_line (bool, optional): If true, added text is appended as a new line. (e.g. "\n" + append_string)
+                                         If false it's appended in the same line (e.g. append_string)
         """
-        self.output_textbox.append(str(new_text))
+        # Create a text char format with the specified color
+        text_format = QTextCharFormat()
+        text_format.setFont(self.output_text_font)
+        text_format.setFontPointSize(self.output_text_size)
+
+        # Determine if color is being set
+        if color:
+            text_format.setForeground(qt_utils.get_qt_color(color))
+
+        # Move the cursor to the end of the text edit
+        cursor = self.output_textbox.textCursor()
+        cursor.movePosition(cursor.End)
+
+        # Apply the text char format to the newly appended text
+        cursor.setCharFormat(text_format)
+
+        # Check if the text edit is empty
+        is_empty = self.output_textbox.toPlainText() == ''
+
+        # Append a newline character and the text to the text edit
+        new_line_symbol = ''
+        if as_new_line:
+            new_line_symbol = '\n'
+        cursor.insertText(new_line_symbol + input_string if not is_empty else input_string)
+
+        # Scroll the text edit to the end
+        self.output_textbox.ensureCursorVisible()
+
+        # self.output_textbox.append(str(append_string))
         QtWidgets.QApplication.processEvents()  # Updates the GUI and keeps it responsive
 
     def clear_output_box(self):
         """ Clears the output_textbox """
         self.output_textbox.clear()
+
+    def change_line_color(self, line_number, color):
+        """
+        Changes the color of a specific line in the text document.
+        Args:
+           line_number (int): The line number (1-indexed) of the line to be changed.
+           color (QColor, str): QColor or Hex color used to determine the color of the used text.
+                                e.g. "#FF0000" or QColor("#FF0000")
+        """
+        cursor = self.output_textbox.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        cursor.movePosition(QTextCursor.Down, QTextCursor.MoveAnchor, line_number - 1)
+        cursor.movePosition(QTextCursor.StartOfLine, QTextCursor.MoveAnchor)
+        cursor.movePosition(QTextCursor.EndOfLine, QTextCursor.KeepAnchor)
+        format_line = QTextCharFormat()
+        format_line.setForeground(qt_utils.get_qt_color(color))
+        format_line.setFont(self.output_text_font)
+        format_line.setFontPointSize(self.output_text_size)
+        cursor.setCharFormat(format_line)
+
+    def edit_text_color_of_first_match(self, color, target_text, start_from_bottom=False):
+        """
+        Edits the text color of the first occurrence of the target text in the output textbox.
+
+        Args:
+            color (QColor, str): The color to set for the matched text. (e.g. "#FF0000" = Red)
+                                 This should be a valid color name or hex code or a QColor object.
+            target_text (str): The text to search for in the output textbox.
+            start_from_bottom (bool, optional): If True, the search starts from the bottom of the output textbox.
+                Defaults to False, meaning the search starts from the top.
+
+        Returns:
+            bool: True if text was found.
+        """
+        cursor = QTextCursor(self.output_textbox.document())
+        format_line = QTextCharFormat()
+        format_line.setForeground(qt_utils.get_qt_color(color))
+        format_line.setFont(self.output_text_font)
+        format_line.setFontPointSize(self.output_text_size)
+
+        if start_from_bottom:
+            cursor.movePosition(QTextCursor.End)
+            while not cursor.isNull() and not cursor.atStart():
+                cursor = self.output_textbox.document().find(target_text, cursor, QTextDocument.FindBackward)
+                if not cursor.isNull():
+                    cursor.mergeCharFormat(format_line)
+                    return True
+        else:
+            while not cursor.isNull() and not cursor.atEnd():
+                cursor = self.output_textbox.document().find(target_text, cursor)
+                if not cursor.isNull():
+                    cursor.mergeCharFormat(format_line)
+                    return True
+
+    def change_last_line_color(self, color):
+        """
+        Changes the color of a specific line in the text document.
+        Args:
+           color (QColor, str): QColor or Hex color used to determine the color of the text.
+                                e.g. "#FF0000" or QColor("#FF0000")
+        """
+        last_line = self.get_latest_raw_line()
+        self.edit_text_color_of_first_match(color=color, target_text=last_line, start_from_bottom=True)
+
+    def get_latest_raw_line(self):
+        raw_text = self.output_textbox.toPlainText()
+        lines = raw_text.split('\n')
+        if lines:
+            return lines[-1]
+
+    def set_line_color(self, line, color):
+        cursor = self.output_textbox.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        while cursor.movePosition(QTextCursor.NextBlock):
+            if cursor.block().text() == line:
+                format_line = QTextCharFormat()
+                format_line.setForeground(qt_utils.get_qt_color(color))
+                cursor.mergeCharFormat(format_line)
+                break
 
     def close_window(self):
         """ Closes this window """
@@ -148,7 +261,7 @@ if __name__ == '__main__':
     window.first_button.clicked.connect(window.close_window)
 
     window.set_progress_bar_max_value(8)
-    window.set_progress_bar_done()
+    # window.set_progress_bar_done()
     # import utils.setup_utils as setup_utils
     # setup_utils.install_package(passthrough_functions=[window.append_text_to_output_box,
     #                                                    window.increase_progress_bar_value])
@@ -156,12 +269,14 @@ if __name__ == '__main__':
     index = 0
     import time
     while index < 7:
-        increase_value = 1
-        window.increase_progress_bar_value(increase_value)
-        window.append_text_to_output_box(str(index))
-        index += increase_value
+        increase_val = 1
+        window.increase_progress_bar_value(increase_val)
+        window.add_text_to_output_box(str(index), color="#00FF00")
+        index += increase_val
         # self.append_text_to_output_box(f"Progress: {index}%")
-        time.sleep(0.5)
+        time.sleep(0.1)
+    window.change_line_color(2, QColor("red"))  # Change color of line 2 to red
+    window.change_last_line_color("#0000FF")
 
     sys.exit(app.exec_())
 
