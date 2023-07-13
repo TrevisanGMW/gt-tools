@@ -217,7 +217,7 @@ class FeedbackMessage:
             sys.stdout.write(f"{self.get_string_message()}\n")
 
 
-def print_when_true(input_string, do_print=True, use_system_write=False, passthrough_functions=None):
+def print_when_true(input_string, do_print=True, use_system_write=False, callbacks=None):
     """
     Print input string only when the parameter "do_print" is true
     Args:
@@ -225,17 +225,17 @@ def print_when_true(input_string, do_print=True, use_system_write=False, passthr
         do_print (optional, bool): If it should print or not (if active, it prints) - Default is active/True
         use_system_write (optional, bool): If active, it will uses "sys.stdout.write()" to print instead of
                                            the standard "print()" function. Default is inactive/False
-        passthrough_functions (list, callable, optional): A list of callable functions that will be called with the
-                                                          input string as their first argument.
-                                                          e.g. if I provide [my_func], then the script will call
-                                                          my_func(input_string) as it prints.
+        callbacks (list, callable, optional): A list of callable functions that will be called with the
+                                              input string as their first argument.
+                                              e.g. if I provide [my_func], then the script will call
+                                              my_func(input_string) as it prints.
     """
     if do_print:
         sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
-    if passthrough_functions:
-        if not isinstance(passthrough_functions, list):
-            passthrough_functions = [passthrough_functions]  # Convert to list in case arg was provided as function
-        for func in passthrough_functions:
+    if callbacks:
+        if not isinstance(callbacks, list):
+            callbacks = [callbacks]  # Convert to list in case arg was provided as function
+        for func in callbacks:
             if callable(func):
                 try:
                     func(input_string)

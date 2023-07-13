@@ -46,8 +46,8 @@ class PackageSetupController(QtCore.QObject):
 
         result = None
         try:
-            result = setup_utils.install_package(passthrough_functions=[self.progress_win.add_text_to_output_box,
-                                                                        self.progress_win.increase_progress_bar_value])
+            result = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
+                                                            self.progress_win.increase_progress_bar_value])
         except Exception as e:
             self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
 
@@ -80,13 +80,20 @@ class PackageSetupController(QtCore.QObject):
         self.progress_win.set_progress_bar_max_value(7)  # Number of print functions inside installer
         self.progress_win.increase_progress_bar_value()
 
-        result = setup_utils.uninstall_package(passthrough_functions=[self.progress_win.add_text_to_output_box,
-                                                                      self.progress_win.increase_progress_bar_value])
+        result = None
+        try:
+            result = setup_utils.uninstall_package(callbacks=[self.progress_win.add_text_to_output_box,
+                                                              self.progress_win.increase_progress_bar_value])
+        except Exception as e:
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
 
-        # Update Status
+        # Uninstallation Result
         if result:
             self.update_status(self.INSTALL_STATUS_MISSING)
             self.progress_win.set_progress_bar_done()
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+        else:
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
 
         # Show window
         if QApplication.instance():
