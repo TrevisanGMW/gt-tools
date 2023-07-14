@@ -45,14 +45,14 @@ class TestSystemUtils(unittest.TestCase):
         expected = tempfile.gettempdir()
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_system')
     def test_get_home_dir(self, mock_get_system):
         mock_get_system.return_value = "mocked_value"
         result = system_utils.get_home_dir()
         expected = pathlib.Path.home()  # Exactly what the function returns
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.get_home_dir')
+    @patch('gt.utils.system_utils.get_home_dir')
     def test_get_desktop_path(self, mock_get_home_dir):
         mock_get_home_dir.return_value = "path"
         result = system_utils.get_desktop_path()
@@ -95,7 +95,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('os.getenv')
     @patch('subprocess.run')
-    @patch('utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_system')
     def test_open_file_dir_win32(self, mock_get_system, mock_subprocess_run, mock_getenv):
         mock_getenv.return_value = "mocked_win_dir_path"
         target_folder = tempfile.gettempdir()
@@ -109,7 +109,7 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('subprocess.call')
-    @patch('utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_system')
     def test_open_file_dir_mac(self, mock_get_system, mock_subprocess_call):
         temp_folder = tempfile.gettempdir()
         mock_get_system.return_value = system_utils.OS_MAC
@@ -132,7 +132,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = os.path.normpath(generated_path)
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.get_maya_preferences_dir')
+    @patch('gt.utils.system_utils.get_maya_preferences_dir')
     def test_get_available_maya_preferences(self, mock_get_maya_preferences_dir):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mock_get_maya_preferences_dir.return_value = test_temp_dir
@@ -150,7 +150,7 @@ class TestSystemUtils(unittest.TestCase):
                     "2024": os.path.join(test_temp_dir, "2024")}
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.get_maya_install_dir')
+    @patch('gt.utils.system_utils.get_maya_install_dir')
     def test_get_available_maya_install_dirs(self, mock_get_maya_install_dir):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mock_get_maya_install_dir.return_value = test_temp_dir
@@ -169,8 +169,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2022": "mocked_path",
                                           "2024": "mocked_path"}
@@ -183,8 +183,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32_preferred_version(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2020": "mocked_path",
                                           "2024": "mocked_path"}
@@ -197,8 +197,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_win32_maya_python(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2020": "mocked_path",
                                           "2024": "mocked_path"}
@@ -211,8 +211,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2022": "mocked_path",
                                           "2024": "mocked_path"}
@@ -225,8 +225,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac_preferred_version(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2020": "mocked_path",
                                           "2024": "mocked_path"}
@@ -239,8 +239,8 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('os.path.exists')
-    @patch('utils.system_utils.get_system')
-    @patch('utils.system_utils.get_available_maya_install_dirs')
+    @patch('gt.utils.system_utils.get_system')
+    @patch('gt.utils.system_utils.get_available_maya_install_dirs')
     def test_get_maya_executable_mac_maya_python(self, mock_install_dirs, mock_get_system, mock_exists):
         mock_install_dirs.return_value = {"2020": "mocked_path",
                                           "2024": "mocked_path"}
@@ -288,7 +288,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('os.path.exists')
     @patch('subprocess.check_call')
-    @patch('utils.system_utils.get_maya_executable')
+    @patch('gt.utils.system_utils.get_maya_executable')
     def test_launch_maya(self, mock_get_maya_executable, mock_check_call, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
@@ -301,7 +301,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('os.path.exists')
     @patch('subprocess.check_call')
-    @patch('utils.system_utils.get_maya_executable')
+    @patch('gt.utils.system_utils.get_maya_executable')
     def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_check_call, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
@@ -315,7 +315,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('os.path.exists')
     @patch('subprocess.call')
-    @patch('utils.system_utils.get_maya_executable')
+    @patch('gt.utils.system_utils.get_maya_executable')
     def test_run_script_using_maya_python(self, mock_get_maya_executable, mock_call, mock_exists):
         mock_get_maya_executable.return_value = "mocked_headless_path"
         mock_exists.return_value = True  # Skip check to see if it exists
@@ -364,7 +364,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.load_package_menu')
+    @patch('gt.utils.system_utils.load_package_menu')
     def test_process_launch_options_launch(self, mock_launch):
         result = system_utils.process_launch_options(["mocked_script_name", "-launch"])
         mock_launch.assert_called_once()
@@ -378,7 +378,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.eval')
+    @patch('gt.utils.system_utils.eval')
     @patch('importlib.import_module')
     def test_initialize_from_package_calling(self, mock_import_module, mock_eval):
         result = system_utils.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
@@ -387,7 +387,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.eval')
+    @patch('gt.utils.system_utils.eval')
     @patch('importlib.import_module')
     def test_initialize_from_package_arguments(self, mock_import_module, mock_eval):
         system_utils.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
@@ -397,7 +397,7 @@ class TestSystemUtils(unittest.TestCase):
         result = str(mock_eval.call_args)
         self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.initialize_from_package')
+    @patch('gt.utils.system_utils.initialize_from_package')
     def test_initialize_utility(self, mock_initialize_from_package):
         system_utils.initialize_utility("mocked_import_path", "mocked_entry_point_function")
         mock_initialize_from_package.assert_called_once()
@@ -429,7 +429,7 @@ class TestSystemUtils(unittest.TestCase):
             expected = '1.2.3'
             self.assertEqual(expected, result)
 
-    @patch('utils.system_utils.launch_maya')
+    @patch('gt.utils.system_utils.launch_maya')
     def test_load_package_menu_launching_maya(self, mock_launch_maya):
         system_utils.load_package_menu(launch_latest_maya=True)
         mock_launch_maya.assert_called_once()
@@ -437,7 +437,7 @@ class TestSystemUtils(unittest.TestCase):
         expected_key = 'python_script'
         self.assertIn(expected_key, result_kwargs)
 
-    @patch('tools.package_setup.gt_tools_maya_menu.load_menu')
+    @patch('gt.tools.package_setup.gt_tools_maya_menu.load_menu')
     def test_load_package_menu_injecting(self, mock_load_menu):
         system_utils.load_package_menu(launch_latest_maya=False)
         mock_load_menu.assert_called_once()
