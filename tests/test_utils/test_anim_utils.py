@@ -16,7 +16,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import anim_utils
+from gt.utils import anim_utils
 
 
 def import_anim_test_file():

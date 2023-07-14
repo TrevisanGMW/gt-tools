@@ -16,7 +16,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import namespace_utils
+from gt.utils import namespace_utils
 
 
 def import_namespace_test_scene():

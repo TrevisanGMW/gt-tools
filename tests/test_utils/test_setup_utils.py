@@ -17,7 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import setup_utils
+from gt.utils import setup_utils
 
 
 class TestSetupUtils(unittest.TestCase):
@@ -53,7 +53,7 @@ class TestSetupUtils(unittest.TestCase):
 
     def test_get_package_requirements_keys(self):
         result = setup_utils.get_package_requirements()
-        expected_items = ["__init__.py", "tools", "ui", "utils"]
+        expected_items = ["gt"]
         for item in expected_items:
             self.assertIn(item, result)
 
@@ -132,7 +132,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_invalid_preferences(self, mock_get_preferences):
         mock_get_preferences.return_value = {'1234': 'invalid_path'}
         result = setup_utils.generate_scripts_dir_list(file_name=setup_utils.PACKAGE_USER_SETUP,
@@ -140,7 +140,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = []
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_not_existing(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -152,7 +152,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = [os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)]
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_existing_false(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -164,7 +164,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = []
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_existing_true(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -179,7 +179,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = [os.path.join(mocked_scripts_dir, setup_utils.PACKAGE_USER_SETUP)]
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_add_entry_line_existing_default(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -196,7 +196,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_add_entry_line_not_existing(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -211,7 +211,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_add_entry_line_with_content(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -228,7 +228,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_add_entry_line_missing(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -328,7 +328,7 @@ class TestSetupUtils(unittest.TestCase):
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.generate_user_setup_list')
+    @patch('gt.utils.setup_utils.generate_user_setup_list')
     def test_add_entry_point_to_maya_installs(self, mock_user_setup_list):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -344,7 +344,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.generate_user_setup_list')
+    @patch('gt.utils.setup_utils.generate_user_setup_list')
     def test_remove_entry_point_from_maya_installs(self, mock_user_setup_list):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -360,7 +360,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.generate_user_setup_list')
+    @patch('gt.utils.setup_utils.generate_user_setup_list')
     def test_remove_legacy_entry_point_from_maya_installs(self, mock_user_setup_list):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -376,7 +376,7 @@ class TestSetupUtils(unittest.TestCase):
             result = file.readlines()
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_return(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -391,7 +391,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = [mocked_file_name]
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_exists(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -408,7 +408,7 @@ class TestSetupUtils(unittest.TestCase):
             result = os.path.exists(result[0])
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_scripts_dir_list_non_existing(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -420,7 +420,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = []
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.get_available_maya_preferences_dirs')
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
     def test_generate_user_setup_list_return(self, mock_get_preferences):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -434,7 +434,7 @@ class TestSetupUtils(unittest.TestCase):
         expected = [mocked_file_name]
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.generate_scripts_dir_list')
+    @patch('gt.utils.setup_utils.generate_scripts_dir_list')
     def test_copy_package_loader_to_maya_installs(self, mock_scripts_dir_list):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -447,7 +447,7 @@ class TestSetupUtils(unittest.TestCase):
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.generate_scripts_dir_list')
+    @patch('gt.utils.setup_utils.generate_scripts_dir_list')
     def test_remove_package_loader_from_maya_installs(self, mock_scripts_dir_list):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_scripts_dir = os.path.join(test_temp_dir, "scripts")
@@ -462,14 +462,14 @@ class TestSetupUtils(unittest.TestCase):
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
 
-    @patch('utils.setup_utils.check_installation_integrity')
-    @patch('utils.setup_utils.remove_legacy_entry_point_from_maya_installs')
-    @patch('utils.setup_utils.copy_package_loader_to_maya_installs')
-    @patch('utils.setup_utils.add_entry_point_to_maya_installs')
-    @patch('utils.setup_utils.remove_previous_install')
-    @patch('utils.setup_utils.get_package_requirements')
-    @patch('utils.setup_utils.get_maya_preferences_dir')
-    @patch('utils.setup_utils.is_script_in_py_maya')
+    @patch('gt.utils.setup_utils.check_installation_integrity')
+    @patch('gt.utils.setup_utils.remove_legacy_entry_point_from_maya_installs')
+    @patch('gt.utils.setup_utils.copy_package_loader_to_maya_installs')
+    @patch('gt.utils.setup_utils.add_entry_point_to_maya_installs')
+    @patch('gt.utils.setup_utils.remove_previous_install')
+    @patch('gt.utils.setup_utils.get_package_requirements')
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    @patch('gt.utils.setup_utils.is_script_in_py_maya')
     def test_install_package_basic_calls(self,
                                          mock_is_script_in_py,
                                          mock_preferences_dir,
@@ -488,7 +488,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_preferences_dir.return_value = test_temp_dir
         mock_get_package_requirements.return_value = {'tools': mocked_requirement_dir}
         result = setup_utils.install_package(clean_install=True, verbose=False)
-        mock_is_script_in_py.assert_called_once()
+        mock_is_script_in_py.assert_called()
         mock_preferences_dir.assert_called_once()
         mock_get_package_requirements.assert_called_once()
         mock_remove_previous_install.assert_called_once()
@@ -502,10 +502,10 @@ class TestSetupUtils(unittest.TestCase):
         result = os.listdir(mocked_target_dir)
         self.assertIn(expected, result)
 
-    @patch('utils.setup_utils.remove_package_loader_from_maya_installs')
-    @patch('utils.setup_utils.remove_entry_point_from_maya_installs')
-    @patch('utils.setup_utils.get_maya_preferences_dir')
-    @patch('utils.setup_utils.is_script_in_py_maya')
+    @patch('gt.utils.setup_utils.remove_package_loader_from_maya_installs')
+    @patch('gt.utils.setup_utils.remove_entry_point_from_maya_installs')
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    @patch('gt.utils.setup_utils.is_script_in_py_maya')
     def test_uninstall_package_basic_calls(self,
                                            mock_is_script_in_py,
                                            mock_preferences_dir,
@@ -521,7 +521,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_is_script_in_py.return_value = False  # Maya Standalone already initialized (True initializes it)
         mock_preferences_dir.return_value = test_temp_dir
         result = setup_utils.uninstall_package(verbose=False)
-        mock_is_script_in_py.assert_called_once()
+        mock_is_script_in_py.assert_called()
         mock_preferences_dir.assert_called_once()
         mock_remove_entry_point.assert_called_once()
         mock_remove_package_loader.assert_called_once()

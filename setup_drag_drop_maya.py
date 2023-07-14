@@ -1,8 +1,8 @@
 """
 Drag and drop this file into the viewport to run the package installer
 """
-import os
 import sys
+import os
 
 
 def onMayaDroppedPythonFile(*args):
@@ -17,10 +17,25 @@ def onMayaDroppedPythonFile(*args):
         error += "For Python 2, use an older version of GT-Tools before (e.g. 2.0.0)\n"
         raise ImportError(error)
 
-    # Paths to Append
-    package_dir = os.path.dirname(__file__)
-    if package_dir not in sys.path:
-        sys.path.append(package_dir)
+    # Initial Feedback
+    print("_"*40)
+    print("Initializing Drag-and-Drop Setup...")
 
-    from tools import package_setup
+    # Remove existing loaded modules (So it uses the new one)
+    from gt.utils.setup_utils import remove_package_loaded_modules
+    removed_modules = remove_package_loaded_modules()
+    if removed_modules:
+        print("Removing package loaded modules...")
+
+    # Prepend sys path with drag and drop location
+    print("Prepending system paths with drag-and-drop location...")
+    parent_dir = os.path.dirname(__file__)
+    print(f'Current location: "{parent_dir}"')
+    package_dir = os.path.join(parent_dir, "gt")
+    sys.path.insert(0, parent_dir)
+    sys.path.insert(0, package_dir)
+
+    # Import and run installer GUI
+    print("Initializing installer GUI...")
+    import gt.tools.package_setup as package_setup
     package_setup.launcher_entry_point()
