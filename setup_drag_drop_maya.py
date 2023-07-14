@@ -18,7 +18,8 @@ def onMayaDroppedPythonFile(*args):
         raise ImportError(error)
 
     # Initial Feedback
-    print(" +++ GT-Tools Drag-and-Drop Setup +++ ")
+    print("_"*40)
+    print("Initializing Drag-and-Drop Setup...")
 
     # Remove existing loaded modules (So it uses the new one)
     from gt.utils.setup_utils import remove_package_loaded_modules
