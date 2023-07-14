@@ -165,6 +165,11 @@ def filter_loaded_modules_path_containing(filter_strings, return_module=True):
     Returns:
         list: List of module names (the ones that contained the provided string under their path)
     """
+    if isinstance(filter_strings, str):
+        filter_strings = [filter_strings]
+    if not isinstance(filter_strings, list):
+        logger.error(f'Unable to filter modules. Expected "list" as argument, but received "{type(filter_strings)}')
+        return []
     filtered_module_names = set()
     filtered_modules = set()
     for module_name in sys.modules.keys():
@@ -178,6 +183,41 @@ def filter_loaded_modules_path_containing(filter_strings, return_module=True):
         return list(filtered_modules)
     else:
         return list(filtered_module_names)
+
+
+def remove_modules_startswith(prefix):
+    """
+    Removes modules from "sys.modules" dictionary that start with the specified prefix.
+    Args:
+        prefix (str): The prefix that the module names should start with.
+
+    Returns:
+        list: A list of module names that were removed.
+    """
+    modules_to_remove = set()
+    # Iterate through all loaded modules
+    for module_name in list(sys.modules.keys()):
+        if module_name.startswith(prefix):
+            modules_to_remove.add(module_name)
+    # Remove the modules from the sys.modules dictionary
+    for module_name in list(modules_to_remove):
+        del sys.modules[module_name]
+    return list(modules_to_remove)
+
+
+def prepend_sys_path(new_path):
+    """Prepends a path to the "sys.path" list.
+    Args:
+        new_path (str): The path to be prepended.
+    Raises:
+        TypeError: If new_path is not a string.
+        ValueError: If new_path is an empty string.
+    """
+    if not isinstance(new_path, str):
+        raise TypeError("new_path must be a string.")
+    if not new_path:
+        raise ValueError("new_path cannot be an empty string.")
+    sys.path.insert(0, new_path)
 
 
 if __name__ == "__main__":
