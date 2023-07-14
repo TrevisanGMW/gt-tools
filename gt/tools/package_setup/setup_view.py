@@ -2,10 +2,10 @@
 QT View example - This script should only emit signals and deal with UI (View) - No unrelated logic here
 """
 import gt.ui.resource_library as resource_library
-import gt.ui.qt_utils as qt_utils
-import sys
 from PySide2.QtGui import QPixmap, QIcon
 from PySide2 import QtWidgets, QtCore
+import gt.ui.qt_utils as qt_utils
+import sys
 
 
 class PackageSetupWindow(QtWidgets.QDialog):
