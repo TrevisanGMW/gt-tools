@@ -1,15 +1,12 @@
-import logging
-import sys
 import gt.utils
 import gt.tools
+import sys
 
-# Global Vars
-PACKAGE_VERSION = "3.0.0"
-
-# Logging Setup
-logging.basicConfig()
-logger = logging.getLogger("gt_tools")
-logger.setLevel(logging.INFO)
+# Package Variables
+__version_tuple__ = (3, 0, 0)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+__authors__ = ['Guilherme Trevisan']
 
 # Dependencies
 if sys.version_info.major < 3:
