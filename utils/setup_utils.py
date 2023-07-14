@@ -2,12 +2,11 @@
 Setup Utilities - install/uninstall package from system
 """
 from session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
-from system_utils import get_available_maya_preferences_dirs
+from system_utils import get_available_maya_preferences_dirs, load_package_menu
 from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil
-import sys
 import os
 
 # Logging Setup
@@ -387,6 +386,7 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
     # Find Install Target Directory - Maya Settings Dir
     print_when_true("Fetching requirements...", do_print=verbose, callbacks=callbacks)
     maya_preferences_dir = get_maya_preferences_dir()
+    print(maya_preferences_dir)
     if not os.path.exists(maya_preferences_dir):
         message = f'Unable to install package. Missing required path: "{maya_preferences_dir}"'
         logger.warning(message)
@@ -426,7 +426,8 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
             reload_package_loaded_modules()
-            print_when_true("Running in Maya..", do_print=verbose, callbacks=callbacks)
+            print_when_true("Refreshing package drop-down menu..", do_print=verbose, callbacks=callbacks)
+            load_package_menu(launch_latest_maya=False)  # Already in Maya
         print_when_true("\nInstallation completed successfully!", do_print=verbose, callbacks=callbacks)
         return True
     else:
