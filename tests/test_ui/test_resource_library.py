@@ -15,7 +15,7 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-from ui import resource_library
+from gt.ui import resource_library
 
 
 class TestResourceLibrary(unittest.TestCase):

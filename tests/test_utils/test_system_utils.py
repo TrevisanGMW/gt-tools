@@ -21,8 +21,8 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import system_utils
-from utils.system_utils import time_profiler
+from gt.utils import system_utils
+from gt.utils.system_utils import time_profiler
 
 
 class TestSystemUtils(unittest.TestCase):

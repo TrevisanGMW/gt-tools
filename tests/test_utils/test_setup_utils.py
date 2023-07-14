@@ -17,7 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import setup_utils
+from gt.utils import setup_utils
 
 
 class TestSetupUtils(unittest.TestCase):

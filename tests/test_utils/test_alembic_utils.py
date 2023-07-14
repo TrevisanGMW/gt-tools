@@ -16,7 +16,7 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from tests import maya_test_tools
-from utils import alembic_utils
+from gt.utils import alembic_utils
 
 
 def import_alembic_test_file():

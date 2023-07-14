@@ -12,7 +12,7 @@ logger.setLevel(logging.DEBUG)
 tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if tools_root_dir not in sys.path:
     sys.path.append(tools_root_dir)
-from utils import list_utils
+from gt.utils import list_utils
 
 
 class TestListUtils(unittest.TestCase):

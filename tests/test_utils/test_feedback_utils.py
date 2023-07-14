@@ -17,8 +17,8 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-from utils import feedback_utils
-from utils.feedback_utils import redirect_output_to_function
+from gt.utils import feedback_utils
+from gt.utils.feedback_utils import redirect_output_to_function
 
 
 class TestFeedbackUtils(unittest.TestCase):

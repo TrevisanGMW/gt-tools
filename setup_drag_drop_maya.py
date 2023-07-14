@@ -1,7 +1,6 @@
 """
 Drag and drop this file into the viewport to run the package installer
 """
-import os
 import sys
 
 
@@ -17,10 +16,5 @@ def onMayaDroppedPythonFile(*args):
         error += "For Python 2, use an older version of GT-Tools before (e.g. 2.0.0)\n"
         raise ImportError(error)
 
-    # Paths to Append
-    package_dir = os.path.dirname(__file__)
-    if package_dir not in sys.path:
-        sys.path.append(package_dir)
-
-    from tools import package_setup
-    package_setup.launcher_entry_point()
+    from gt.tools.package_setup import launcher_entry_point
+    launcher_entry_point()
