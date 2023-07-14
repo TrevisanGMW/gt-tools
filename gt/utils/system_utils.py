@@ -511,7 +511,7 @@ def load_package_menu(launch_latest_maya=False):
         if package_dir not in sys.path:
             sys.path.append(package_dir)
         try:
-            from tools.package_setup import gt_tools_maya_menu
+            from gt.tools.package_setup import gt_tools_maya_menu
             gt_tools_maya_menu.load_menu()
         except Exception as e:
             logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
