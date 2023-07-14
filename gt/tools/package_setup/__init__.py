@@ -1,19 +1,10 @@
+from gt.tools.package_setup import setup_controller
+from gt.tools.package_setup import setup_view
 from PySide2.QtWidgets import QApplication
-import logging
-import sys
-import os
-
-# Paths to Append
-source_dir = os.path.dirname(__file__)
-tools_root_dir = os.path.dirname(source_dir)
-for to_append in [source_dir, tools_root_dir]:
-    if to_append not in sys.path:
-        sys.path.append(to_append)
-
 from gt.utils import session_utils
 from gt.utils import setup_utils
-import setup_controller
-import setup_view
+import logging
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -33,7 +24,7 @@ def build_installer_gui(standalone=True):
         app = QApplication(sys.argv)
         _view = setup_view.PackageSetupWindow()
     else:
-        from ui.qt_utils import get_maya_main_window
+        from gt.ui.qt_utils import get_maya_main_window
         maya_window = get_maya_main_window()
         _view = setup_view.PackageSetupWindow(parent=maya_window)
 
