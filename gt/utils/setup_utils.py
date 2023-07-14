@@ -1,12 +1,13 @@
 """
 Setup Utilities - install/uninstall package from system
 """
-from session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
+from session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing, remove_modules_startswith
 from system_utils import get_available_maya_preferences_dirs, load_package_menu
 from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil
+import sys
 import os
 
 # Logging Setup
@@ -16,6 +17,7 @@ logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"
 PACKAGE_REQUIREMENTS = ['gt']
+PACKAGE_DIRS = ['tools', 'ui', 'utils']
 PACKAGE_ENTRY_LINE = 'python("import gt_tools_loader");'
 PACKAGE_LEGACY_LINE = 'source "gt_tools_menu.mel";'
 PACKAGE_USER_SETUP = "userSetup.mel"
@@ -89,7 +91,7 @@ def remove_previous_install(target_path):
     Args:
         target_path (str): Path to a directory that is a previous installation of the package
     TODO:
-        @@@ Only Remove contents, leave folder for settings
+        Only Remove contents, leave folder for settings
     """
     if os.path.exists(target_path):
         if os.path.basename(target_path) == PACKAGE_NAME:
@@ -350,8 +352,6 @@ def reload_package_loaded_modules():
     Reloads modules containing the package fragment path in it.
     For example, if a module contains "package-name//requirement" it gets reloaded.
     e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
-    TODO:
-        @@@ Likely to change, investigate (new pattern)
     """
     filtered_modules = get_package_loaded_modules()
     import importlib
@@ -361,6 +361,23 @@ def reload_package_loaded_modules():
     except Exception as e:
         print(e)
         logger.debug(e)
+
+
+def remove_package_loaded_modules():
+    """
+    Removes modules loaded by this package.
+    Returns:
+        list: List of removed module names. (str)
+    """
+    modules_to_remove = []
+    modules_to_remove.extend(PACKAGE_REQUIREMENTS)
+    modules_to_remove.extend(PACKAGE_DIRS)
+    removed_modules = []
+    for module_name in modules_to_remove:
+        removed = remove_modules_startswith(module_name)
+        if removed:
+            removed_modules.extend(removed)
+    return removed_modules
 
 
 def install_package(clean_install=True, verbose=True, callbacks=None):
@@ -499,8 +516,5 @@ if __name__ == "__main__":
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    # out = install_package()
-    # out = uninstall_package()
-    out = get_package_requirements()
-    # print(list(sys.modules.keys()))
+    out = remove_package_loaded_modules()
     pprint(out)
