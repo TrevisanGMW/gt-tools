@@ -1,7 +1,7 @@
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
 from shiboken2 import wrapInstance
 from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QWidget
 import maya.cmds as cmds
 
 
