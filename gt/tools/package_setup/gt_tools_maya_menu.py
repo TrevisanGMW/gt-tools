@@ -35,7 +35,7 @@ def _open_named_tool(import_path, entry_point_function=None, *args):
     package_dir = os.path.dirname(utils_dir)
     if package_dir not in sys.path:
         sys.path.append(package_dir)  # Ensure package is available
-    from utils import system_utils
+    from gt.utils import system_utils
     if entry_point_function:
         system_utils.initialize_tool(import_path=import_path,
                                      entry_point_function=entry_point_function)
@@ -55,7 +55,7 @@ def _run_utility(import_path, util_name, *args):
     package_dir = os.path.dirname(utils_dir)
     if package_dir not in sys.path:
         sys.path.append(package_dir)  # Ensure package is available
-    from utils import system_utils
+    from gt.utils import system_utils
     system_utils.initialize_utility(import_path, util_name)
 
 
