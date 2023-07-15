@@ -48,7 +48,8 @@ class MayaMenu:
         """
         self.initialized = False
         self.menu_path = None
-        self.menu_name = name
+        self.menu_name_raw = name
+        self.menu_name = name.replace(" ", "")
         self.menu_items = []
         self.sub_menus = []
         self.menu_parent = parent
@@ -57,24 +58,29 @@ class MayaMenu:
         """
         Creates menu. Deletes existing menu with the same name and re-creates it using settings found in the object.
         Usually called after populating it with "add" functions.
+        TL;DR: Creates a menu with the provided settings found in the object.
+        Returns:
+            str: The menu path of the created menu.
+        Raises:
+            None
+            The method handles exceptions internally and provides appropriate error messages.
         """
         # Determine Parent
-        menu_name = self.menu_name.replace(" ", "")
+        menu_name = self.menu_name
         menu_parent = self.menu_parent
         if menu_parent == "":  # No parent provided, parent assumed to be the main Maya window
             try:
                 menu_parent = mel.eval("$retvalue = $gMainWindow;")  # Get global variable for main Maya window
-            except Exception as e:
+            except Exception as exception:
+                logger.debug(str(exception))
                 cmds.warning("Unable to find Maya Window. Menu creation was ignored.")
                 return ""
 
         # Delete if already in Maya - Singleton
-        if cmds.menu(menu_name, exists=True):
-            cmds.menu(menu_name, e=True, deleteAllItems=True)
-            cmds.deleteUI(menu_name)
+        self.delete_menu()
 
         # Create Menu
-        self.menu_path = cmds.menu(menu_name, label=self.menu_name, parent=menu_parent, tearOff=True)
+        self.menu_path = cmds.menu(menu_name, label=self.menu_name_raw, parent=menu_parent, tearOff=True)
 
         # Set Status
         if not self.initialized:
@@ -87,6 +93,14 @@ class MayaMenu:
                 params['parent'] = self.menu_path
             cmds.menuItem(item.label, **params)
 
+    def delete_menu(self):
+        """
+        Deletes menu and all its items from the Maya interface.
+        """
+        if self.menu_name and cmds.menu(self.menu_name, exists=True):
+            cmds.menu(self.menu_name, e=True, deleteAllItems=True)
+            cmds.deleteUI(self.menu_name)
+
     def add_menu_item(self, label,
                       command=None,
                       tooltip='',
@@ -98,6 +112,22 @@ class MayaMenu:
                       option_box_command=None,
                       option_box_icon='',
                       parent_to_root=False):
+        """
+        Adds a menu item to the menu.
+
+        Args:
+            label (str): The label text for the menu item. (What you see in the drop-down menu)
+            command (callable, optional): The command to be executed when the menu item is clicked.
+            tooltip (str, optional): The tooltip text for the menu item.
+            icon (str, optional): The icon path for the menu item.
+            enable (bool, optional): Determines whether the menu item is enabled or disabled.
+            parent (str, optional): The name of the parent menu for the menu item.
+            enable_command_repeat (bool, optional): Determines whether the menu item's command can be repeated.
+            option_box (bool, optional): Determines whether the menu item is an option box.
+            option_box_command (callable, optional): The command to be executed when the option box is clicked.
+            option_box_icon (str, optional): The icon path for the option box.
+            parent_to_root (bool, optional): Determines whether the menu item should be parented to the root menu.
+        """
         # Determine Parent
         if parent_to_root:
             parent = MENU_ROOT_PLACEHOLDER
@@ -125,6 +155,16 @@ class MayaMenu:
                      tear_off=True,
                      parent=None,
                      parent_to_root=True):
+        """
+        Adds a sub-menu to the menu.
+        Args:
+            label (str): The label text for the sub-menu.
+            enable (bool, optional): Determines whether the sub-menu is enabled or disabled.
+            icon (str, optional): The icon path for the sub-menu.
+            tear_off (bool, optional): Determines whether the sub-menu can be torn off.
+            parent (str, optional): The name of the parent menu for the sub-menu.
+            parent_to_root (bool, optional): Determines whether the sub-menu should be parented to the root menu.
+        """
         # Determine Parent
         if parent_to_root:
             parent = MENU_ROOT_PLACEHOLDER
@@ -154,6 +194,13 @@ class MayaMenu:
 
     @staticmethod
     def get_item_parameters(item):
+        """
+        Retrieves the parameters of a menu item in a dictionary format.
+        Args:
+           item: The menu item to retrieve the parameters from.
+        Returns:
+           dict: A dictionary containing the parameters of the menu item.
+        """
         # Build default menu item param list
         param_dict = {
             "label": item.label,
