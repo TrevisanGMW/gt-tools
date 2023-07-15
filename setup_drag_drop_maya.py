@@ -14,7 +14,7 @@ def onMayaDroppedPythonFile(*args):
         # String formatting for this error should remain compatible to Python 2 to guarantee feedback
         user_version = "{}.{}.{}".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
         error = "Incompatible Python Version. Expected to find 3+. Found version: " + user_version
-        error += "For Python 2, use an older version of GT-Tools before (e.g. 2.0.0)\n"
+        error += "For Python 2, use an older version of GT-Tools below 3. (e.g. 2.5.5)\n"
         raise ImportError(error)
 
     # Initial Feedback
