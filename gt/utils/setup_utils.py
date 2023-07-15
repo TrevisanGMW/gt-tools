@@ -7,7 +7,6 @@ from feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil
-import sys
 import os
 
 # Logging Setup
@@ -447,7 +446,7 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
             reload_package_loaded_modules()
-            print_when_true("Refreshing package drop-down menu..", do_print=verbose, callbacks=callbacks)
+            print_when_true("Loading package drop-down menu..", do_print=verbose, callbacks=callbacks)
             load_package_menu(launch_latest_maya=False)  # Already in Maya
         print_when_true("\nInstallation completed successfully!", do_print=verbose, callbacks=callbacks)
         return True
@@ -506,6 +505,12 @@ def uninstall_package(verbose=True, callbacks=None):
     remove_entry_point_from_maya_installs()
     print_when_true("Removing loader scripts...", do_print=verbose, callbacks=callbacks)
     remove_package_loader_from_maya_installs()
+    # Remove Maya Menu
+    menu_name = "GTTools"
+    if cmds.menu(menu_name, exists=True):
+        cmds.menu(menu_name, e=True, deleteAllItems=True)
+        cmds.deleteUI(menu_name)
+        print_when_true("Removing drop-down menu...", do_print=verbose, callbacks=callbacks)
     print_when_true("\nUninstallation completed successfully!", do_print=verbose, callbacks=callbacks)
     return True
 
@@ -516,5 +521,5 @@ if __name__ == "__main__":
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    out = remove_package_loaded_modules()
+    out = install_package()
     pprint(out)
