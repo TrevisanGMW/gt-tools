@@ -1,3 +1,7 @@
+"""
+Maya Spoof - Used to get different results out of Maya functions
+Similar to unittest Mock
+"""
 import logging
 import inspect
 
