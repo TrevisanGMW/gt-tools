@@ -10,12 +10,20 @@ import logging
 import sys
 import os
 
+# Setup  Logger
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
+MENU_NAME = "GT Tools"
+
 
 def _rebuild_menu(*args):
-    logger.debug(args)
+    """
+    Rebuilds the menu.
+    Args:
+       *args: Variable number of arguments. Not used, only logged as debug.
+    """
+    logger.debug(f'Args: {str(args)}')
     sys.stdout.write("Re-building GT Tools Menu...\n")
     load_menu()
 
@@ -59,11 +67,29 @@ def _run_utility(import_path, util_name, *args):
     system_utils.initialize_utility(import_path, util_name)
 
 
+def unload_menu(*args):
+    """
+    Unloads the menu by deleting it (if found)
+    Args:
+        *args: Variable number of arguments. Not used, only logged as debug.
+    """
+    logger.debug(f'Args: {str(args)}')
+    menu = MayaMenu(MENU_NAME)
+    menu.delete_menu()
+
+
 def load_menu(*args):
+    """
+    Loads the package drop-down menu with various submenus and menu items.
+    Args:
+        *args: Variable number of arguments. Not used, only logged as debug.
+    Returns:
+        str: The path of the created menu.
+    """
     logger.debug(f'Args: {str(args)}')
     package_version = get_package_version()
 
-    menu = MayaMenu("GT Tools")
+    menu = MayaMenu(MENU_NAME)
     # ------------------------------------ General / Tools ------------------------------------
     menu.add_sub_menu("General",
                       icon=resource_library.Icon.root_general,
