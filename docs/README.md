@@ -74,15 +74,15 @@
 
 <h1>Package Installation</h1>
 
+<h3>Installation</h3>
 <b>TL;DR :</b> Download files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.
 
-<h3>Installation</h3>
 
 <img src="./media/setup_tutorial.svg"
      alt="GT Tools Windows Auto Installation Demo">
 
-This script collection comes with an auto installer (setup_drag_drop_maya.py) just drag and drop it on your Maya viewport.
-Here is how you do it in more details:
+<p>This script collection comes with an auto installer (setup_drag_drop_maya.py) just drag and drop it on your Maya viewport.
+<br>Here is how you do it in more details:</p>
 
 <ol>
 	<li>Open Maya (in case it's closed).</li>
@@ -97,7 +97,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 
 <h3>Updating</h3>
-<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<p>Simply install it again. The auto setup will handle the file updates.
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
