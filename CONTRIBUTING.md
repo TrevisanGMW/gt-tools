@@ -38,12 +38,12 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 
 We **love** detailed bug reports!
 
-## Use a Consistent Coding Style
+## Package Structure and Code Style
 
 - Functions should have docstrings describing arguments, returns and when possible raises and examples. Use Google Docs pattern for these.
 - Make sure to add new utilities to the correct categories.
-- 
-![Setup Tutorial](docs//media/setup_tutorial.svg)
+
+![Setup Tutorial](docs//media/package_structure.svg)
 
 ## License
 By contributing, you agree that your contributions will be licensed under its MIT License.
