@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 
 set launch_option="%1"
 set "path_bat_script=%~dp0"
-set "path_package_init=!path_bat_script!__init__.py"
+set "path_package_init=!path_bat_script!\setup_drag_drop_maya.py"
 set "path_autodesk=C:\Program Files\Autodesk"
 set "path_mayapy_end=\bin\mayapy.exe"
 set "installation_status="

@@ -39,3 +39,12 @@ def onMayaDroppedPythonFile(*args):
     print("Initializing installer GUI...")
     import gt.tools.package_setup as package_setup
     package_setup.launcher_entry_point()
+
+
+# Launch Options
+if len(sys.argv) > 1:
+    try:
+        from gt.utils import system_utils
+        system_utils.process_launch_options(sys.argv)
+    except Exception as e:
+        sys.stdout.write("Failed to process launch option. Issue: " + str(e))
