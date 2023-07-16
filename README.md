@@ -1,35 +1,25 @@
 <!-- GT Tools README.md file -->
 <p></p>
-
 <img src="./docs/media/gt_logo.png">
-
 <p></p>
 <p align="center"> 
-<a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
-<img alt="GitHub contributors" src="https://img.shields.io/github/contributors/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-<img alt="GitHub language count" src="https://img.shields.io/github/languages/count/TrevisanGMW/gt-tools?style=flat-square">
-<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/TrevisanGMW/gt-tools?style=flat-square">
-
-<a href="https://github.com/TrevisanGMW/gt-tools/network/members">
-<img alt="GitHub forks" src="https://img.shields.io/github/forks/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-
-<a href="https://github.com/TrevisanGMW/gt-tools/stargazers">
-<img alt="GitHub stars" src="https://img.shields.io/github/stars/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-
-<a href="https://github.com/TrevisanGMW/gt-tools/issues">
-<img alt="GitHub issues" src="https://img.shields.io/github/issues/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-
-<a href="https://github.com/TrevisanGMW/gt-tools/blob/master/LICENSE">
-<img alt="GitHub license" src="https://img.shields.io/github/license/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-
-<a href="https://www.paypal.me/TrevisanGMW"> 
-<img src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square">
-
-<a href="https://www.linkedin.com/in/trevisangmw/">
-<img alt="GitHub stars" src="https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555" ></a>
-
+   <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
+   <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
+   <img alt="GitHub language count" src="https://img.shields.io/github/languages/count/TrevisanGMW/gt-tools?style=flat-square">
+   <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/TrevisanGMW/gt-tools?style=flat-square">
+   <a href="https://github.com/TrevisanGMW/gt-tools/network/members">
+   <img alt="GitHub forks" src="https://img.shields.io/github/forks/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
+   <a href="https://github.com/TrevisanGMW/gt-tools/stargazers">
+   <img alt="GitHub stars" src="https://img.shields.io/github/stars/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
+   <a href="https://github.com/TrevisanGMW/gt-tools/issues">
+   <img alt="GitHub issues" src="https://img.shields.io/github/issues/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
+   <a href="https://github.com/TrevisanGMW/gt-tools/blob/master/LICENSE">
+   <img alt="GitHub license" src="https://img.shields.io/github/license/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
+   <a href="https://www.paypal.me/TrevisanGMW"> 
+   <img src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square">
+   <a href="https://www.linkedin.com/in/trevisangmw/">
+   <img alt="GitHub stars" src="https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555" ></a>
 </p>
-
 
 <h1> Description </h1>
 This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, enhancing or simply filling the missing details of what I find lacking in Maya.
@@ -45,10 +35,14 @@ Hopefully these scripts are helpful to you as they are to me.
 
 
 <h1> Organization </h1>
-<p><code>docs</code>: contains documentation about the scripts</p>
-<p><code>mel-scripts</code>: contains scripts written in MEL</p>
-<p><code>python-scripts</code>: contains scripts written in Python</p>
+<ul>
+<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package's tools.</li>
+<li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
+<li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations, including resource getters and QT functions.</li>
+<li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
 
+<li><code>tests</code>: package unittests.</li>
+</ul>
 <h1> Installation </h1>
 
 <b>TL;DR :</b> Download files, then open "setup.bat". 
