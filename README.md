@@ -54,7 +54,8 @@ Note: Python 2 is no longer supported. If you want to still use an older version
 
 <img src="./docs/media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
-     width="900">
+     width="900" 
+     align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
 <br>Here is how you do it in more details:</p>
@@ -87,7 +88,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <h3>Windows Only - Express Launcher</h3>
 <p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
 <br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
-<b>"-launch"</b> (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
+<b>"-launch"</b> ("..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
 
 <h1> Contributors </h1>
 If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a> file for a detailed explanation on how to do that. 
