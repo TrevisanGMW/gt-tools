@@ -22,26 +22,33 @@
 </p>
 
 <h1> Description </h1>
-This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, enhancing or simply filling the missing details of what I find lacking in Maya.
+This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, 
+enhancing or simply filling the missing details of what I find lacking in Maya.
 
-After installing the script collection, you’ll find a pull-down menu that provides easy access to a variety of tools. This menu contains sub-menus that have been organized to contain related tools, for example: modeling, rigging, utilities, etc…
+After installing or running the script collection, you’ll find a pull-down menu that provides easy access to a 
+variety of tools and utilities. This menu contains sub-menus that have been organized to contain related tools, 
+for example: modeling, rigging, utilities, etc…
 
-For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
+For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or 
+check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top 
+of the tool init file (just open the “.py” file using any text editor, such as notepad)
 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
 Hopefully these scripts are helpful to you as they are to me.
 
-<p><b>Tested using Autodesk Maya 2022 (Windows 10)</b></p>
+Note: Python 2 is no longer supported. If you are using older versions of Maya, please make sure to use a GT-Tools 
+version below "3.0.0" for compatibility.
+
+<p><b>Tested using Autodesk Maya 2022, 2023 and 2024 (Windows 10)</b></p>
 
 
 <h1> Organization </h1>
 <ul>
-<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package's tools.</li>
+<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package and its tools.</li>
 <li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
 <li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations, including resource getters and QT functions.</li>
 <li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
-
-<li><code>tests</code>: package unittests.</li>
+<li><code>tests</code>: Package unittests for tools, ui and utilities. See ["CONTRIBUTING.md"]() for more details.</li>
 </ul>
 <h1> Installation </h1>
 

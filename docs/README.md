@@ -9,7 +9,7 @@
 <a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
-  <li><a href="#package-installation">Package Installation</a></li>
+  <li><a href="#package-setup/installation">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
   <li><a href="#gt-check-for-updates">GT Check for Updates</a></li>
 </ul>
@@ -70,18 +70,17 @@
 <br>
 </div>
 
-<!-- Setup -->
+<!-- Package Setup -->
 
-<h1>Package Installation</h1>
+<h1>Package Setup</h1>
 
 <h3>Installation</h3>
-<b>TL;DR :</b> Download files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.
-
+<b>Summarized:</b> Download and extract the files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.
 
 <img src="./media/setup_tutorial.svg"
-     alt="GT Tools Windows Auto Installation Demo">
+     alt="GT Tools Installation Tutorial">
 
-<p>This script collection comes with an auto installer (setup_drag_drop_maya.py) just drag and drop it on your Maya viewport.
+<p>This script collection comes with an auto setup (setup_drag_drop_maya.py) to call it drag and drop it on your Maya viewport.
 <br>Here is how you do it in more details:</p>
 
 <ol>
@@ -91,32 +90,37 @@
 	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
     <li>An user interface with the setup options will open.</li>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
+	<li>If you see a window saying "UserSetup Checksum Verification", confirm it with a "Yes".</li>
 </ol>
 
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
+Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This is only letting you know that the "userSetup.mel" script was modified. (It's a security feature)
 
+<h3>Run Only</h3>
+<p>The setup window offers the option to run the tools without installing them. To do this, follow the same drag and drop steps and click on "Run Only" instead of "Install". This is going to load the tools from the location you have them, allowing you to run it one time only.</p>
 
 <h3>Updating</h3>
-<p>Simply install it again. The auto setup will handle the file updates.
+<p>Simply install it again. The auto setup will handle the file changes.
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
 
-<!-- GT Menu -->
+<!-- Dropdown Menu -->
 <div>
-<h1> GT Menu</h1>
+<h1>GT Menu</h1>
 <img src="./media/gt_menu.jpg" align="right"
      alt="GT Dropdown Menu and Help">
 
-<p>The script "gt_tools_menu.mel" adds a new dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
+<p>The package adds a dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
 <br>This menu contains sub-menus that have been organized to contain related tools. For example: modeling, rigging, utilities, etc...</p>
 
-<p><b>How does Maya know to run the script and create the menu?:</b> When you install the script package, it adds a line of code to the "userSetup.mel" file. This file gets executed every time Maya opens.</p>
+<p><b>How does Maya know to run the script and create the menu?:</b>
+<br>When you install the script package, it adds a line of code to the "userSetup.mel" file. This file gets executed every time Maya opens.</p>
 
-<p><b>Help > About: </b><br>This option opens a window showing basic information about GT Tools.</p>
+<p><b>Help > About: </b>
+<br>This option opens a window showing basic information about GT Tools.</p>
 
-<p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.
-<br>(Good for when updating, so you don't need to restart Maya)</p>
+<p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.</p>
 
 <p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
 
