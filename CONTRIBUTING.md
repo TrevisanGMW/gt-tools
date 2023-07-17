@@ -59,7 +59,7 @@ We **love** detailed bug reports!
 4. The tests for “test_ui” and “test_utils” have their own directory and should not receive distinct folders for each script.
 5. Each tool is tested in a separated directory with the following name pattern: “test\_<tool-name>”. e.g. “test_renamer”.
 6. All new test modules should be added to the tests `__init__.py` so they participate in the "run all tests" function.
-7. Use the example tool to clarify the pattern. It can be found in the follow path: "[../gt/tools/sample_tool](../gt/tools/sample_tool)".
+7. Use the example tool to clarify the pattern. It can be found in the follow path: "[..\gt\tools\sample_tool](..\gt\tools\sample_tool)".
 
 ## Versioning
 
