@@ -86,9 +86,8 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 <h3>Windows Only - Express Launcher</h3>
 <p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
-The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
-<b>"-launch"</b> (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window. 
-(Essentially creating a shortcut to use the tools without installing them)</p>
+<br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
+<b>"-launch"</b> (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
 
 <h1> Contributors </h1>
 If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a> file for a detailed explanation on how to do that. 
