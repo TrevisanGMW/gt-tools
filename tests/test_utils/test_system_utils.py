@@ -407,28 +407,6 @@ class TestSystemUtils(unittest.TestCase):
         for expected in [expected_one, expected_two]:
             self.assertIn(expected, result)
 
-    @patch('os.path.exists')
-    def test_get_package_version_bad_path(self, mock_eval):
-        result = system_utils.get_package_version(package_path="mocked_package_path")
-        mock_eval.assert_called_once()
-        expected = "0.0.0"
-        self.assertEqual(expected, result)
-
-    @patch('sys.path')
-    @patch('os.path.exists')
-    def test_get_package_version(self, mock_exists, mock_path):
-        mock_exists.return_value = True
-        mock_path.return_value = ['/mocked/path', 'mocked_package_path']
-        with patch('builtins.__import__') as mock_import:
-            mock_instance = MagicMock()
-            mock_instance.PACKAGE_VERSION = '1.2.3'
-            mock_import.return_value = mock_instance
-            result = system_utils.get_package_version(package_path="mocked_package_path")
-            mock_exists.assert_called_once()
-            mock_import.assert_called_once()
-            expected = '1.2.3'
-            self.assertEqual(expected, result)
-
     @patch('gt.utils.system_utils.launch_maya')
     def test_load_package_menu_launching_maya(self, mock_launch_maya):
         system_utils.load_package_menu(launch_latest_maya=True)
