@@ -2,7 +2,16 @@
  GT Biped Rigger
  github.com/TrevisanGMW - 2020-12-08
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
+ TODO:
+    Updated pattern to MVC
 """
+# Tool Version
+__version_tuple__ = (1, 12, 6)
+__version__ = '.'.join(str(n) for n in __version_tuple__)
 
 
 def launch_tool():

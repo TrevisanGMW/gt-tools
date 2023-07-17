@@ -1,3 +1,7 @@
+"""
+ Package Setup - Entry point tool used to install, uninstall or run tools directly from location.
+ github.com/TrevisanGMW/gt-tools - 2023-06-01
+"""
 from gt.tools.package_setup import setup_controller
 from gt.tools.package_setup import setup_view
 from PySide2.QtWidgets import QApplication

@@ -2,6 +2,10 @@
  GT Connect Attributes - Script for automatically connecting or disconnecting multiple attributes.
  github.com/TrevisanGMW/gt-tools - 2020-02-04
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  1.2 - 2020-02-18
  Added force connection and some checks.
 
