@@ -74,8 +74,8 @@
 
 <h1>Package Setup</h1>
 
-<h3>Installation</h3>
-<b>Summarized:</b> Download and extract the files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.
+<h3>Setup - Installation, Uninstallation, or Run Only</h3>
+<p><b>Summarized:</b> Download and extract the files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.<br></p>
 
 <img src="./media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial">
