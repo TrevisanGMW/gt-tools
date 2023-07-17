@@ -4,4 +4,4 @@ color 0A
 @echo on
 @echo.
 @echo.	Launching All Tests...
-../setup_express_installation.bat -test -all
+../setup_express_launcher.bat -test -all

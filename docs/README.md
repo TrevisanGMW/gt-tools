@@ -67,7 +67,7 @@
 </ul>
 </div>
 
-<br>
+
 </div>
 
 <!-- Package Setup -->
@@ -80,7 +80,7 @@
 <img src="./media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial">
 
-<p>This script collection comes with an auto setup (setup_drag_drop_maya.py) to call it drag and drop it on your Maya viewport.
+<p>This script collection comes with an auto setup ("setup_drag_drop_maya.py") to call it drag and drop it on your Maya viewport.
 <br>Here is how you do it in more details:</p>
 
 <ol>
@@ -93,8 +93,10 @@
 	<li>If you see a window saying "UserSetup Checksum Verification", confirm it with a "Yes".</li>
 </ol>
 
+<p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
-Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This is only letting you know that the "userSetup.mel" script was modified. (It's a security feature)
+<br>Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This is only letting you know that the "userSetup.mel" script was modified. (It's a security feature)
+</p>
 
 <h3>Run Only</h3>
 <p>The setup window offers the option to run the tools without installing them. To do this, follow the same drag and drop steps and click on "Run Only" instead of "Install". This is going to load the tools from the location you have them, allowing you to run it one time only.</p>
@@ -104,6 +106,11 @@ Maya might show you a small dialog window saying "UserSetup Checksum Verificatio
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
+<h3>Windows Only - Express Launcher</h3>
+<p>Users running windows can also use the <b>"setup_express_windows.bat"</b> file to run setup options without opening Maya. 
+The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
+"-launch" (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window. 
+(Essentially a shortcut to use the tools without installing them)</p>
 
 <!-- Dropdown Menu -->
 <div>
