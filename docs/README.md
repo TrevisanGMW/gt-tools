@@ -74,11 +74,13 @@
 <h1>Package Setup</h1>
 
 <h3>Setup - Installation, Uninstallation, or Run Only</h3>
-<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br><br></p>
+<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
+Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
-<img src="./media/setup_tutorial.svg"
+<img src="./docs/media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
-     width="800">
+     width="1000" 
+     align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
 <br>Here is how you do it in more details:</p>
@@ -110,9 +112,8 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 <h3>Windows Only - Express Launcher</h3>
 <p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
-The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
-<b>"-launch"</b> (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window. 
-(Essentially creating a shortcut to use the tools without installing them)</p>
+<br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
+<b>"-launch"</b> ("..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
 
 <!-- Dropdown Menu -->
 <div>
