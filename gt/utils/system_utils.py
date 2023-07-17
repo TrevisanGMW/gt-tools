@@ -357,7 +357,7 @@ def process_launch_options(sys_args):
             import setup_utils
             setup_utils.install_package(clean_install=True)
         elif "-gui" in sys_args:
-            import tools.package_setup as package_setup
+            import gt.tools.package_setup as package_setup
             package_setup.launcher_entry_point()
         else:
             import setup_utils

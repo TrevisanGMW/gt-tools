@@ -3,6 +3,7 @@ QT Controller for setup
 """
 from gt.ui import progress_bar, resource_library
 from PySide2.QtWidgets import QApplication
+from gt.utils import version_utils
 from gt.utils import system_utils
 from gt.utils import setup_utils
 from PySide2 import QtCore
@@ -127,8 +128,8 @@ class PackageSetupController(QtCore.QObject):
             self.UpdateStatus.emit("Updated!")
 
     def update_version(self):
-        setup_version = system_utils.get_package_version()
-        installed_version = system_utils.get_package_version(package_path=self.get_install_target_dir())
+        setup_version = version_utils.get_package_version()
+        installed_version = version_utils.get_package_version(package_path=self.get_install_target_dir())
         self.UpdateVersion.emit(setup_version, installed_version)  # 1: Current Package Version, 2: Installed Version
 
     def close_view(self):

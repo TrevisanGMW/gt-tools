@@ -352,7 +352,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = "call(clean_install=True)"
         self.assertEqual(expected, result)
 
-    @patch('tools.package_setup.launcher_entry_point')
+    @patch('gt.tools.package_setup.launcher_entry_point')
     def test_process_launch_options_install_gui(self, mock_launcher_entry_point):
         system_utils.process_launch_options(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
