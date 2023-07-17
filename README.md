@@ -50,11 +50,12 @@ Note: Python 2 is no longer supported. If you want to still use an older version
 </ul>
 
 <h1>Setup</h1>
-<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br><br></p>
+<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
+Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
 <img src="./docs/media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
-     width="900" 
+     width="1000" 
      align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
