@@ -9,7 +9,7 @@
 <a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
-  <li><a href="#package-setup/installation">Package Setup</a></li>
+  <li><a href="#package-setup">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
   <li><a href="#gt-check-for-updates">GT Check for Updates</a></li>
 </ul>
@@ -77,7 +77,7 @@
 <p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
 Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
-<img src="./docs/media/setup_tutorial.svg"
+<img src="./media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
      width="1000" 
      align="center">
