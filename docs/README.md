@@ -67,7 +67,6 @@
 </ul>
 </div>
 
-
 </div>
 
 <!-- Package Setup -->
@@ -75,12 +74,13 @@
 <h1>Package Setup</h1>
 
 <h3>Setup - Installation, Uninstallation, or Run Only</h3>
-<p><b>Summarized:</b> Download and extract the files, then drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport.<br></p>
+<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br><br></p>
 
 <img src="./media/setup_tutorial.svg"
-     alt="GT Tools Installation Tutorial">
+     alt="GT Tools Installation Tutorial"
+     width="800">
 
-<p>This script collection comes with an auto setup ("setup_drag_drop_maya.py") to call it drag and drop it on your Maya viewport.
+<p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
 <br>Here is how you do it in more details:</p>
 
 <ol>
@@ -90,12 +90,14 @@
 	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
     <li>An user interface with the setup options will open.</li>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
-	<li>If you see a window saying "UserSetup Checksum Verification", confirm it with a "Yes".</li>
+	<li>Enjoy!</li>
 </ol>
 
 <p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
-<br>Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This is only letting you know that the "userSetup.mel" script was modified. (It's a security feature)
+</p>
+<h3>Checksum Verification</h3>
+<p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
 </p>
 
 <h3>Run Only</h3>
@@ -107,10 +109,10 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
 <h3>Windows Only - Express Launcher</h3>
-<p>Users running windows can also use the <b>"setup_express_windows.bat"</b> file to run setup options without opening Maya. 
+<p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
 The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
-"-launch" (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window. 
-(Essentially a shortcut to use the tools without installing them)</p>
+<b>"-launch"</b> (Target: "..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window. 
+(Essentially creating a shortcut to use the tools without installing them)</p>
 
 <!-- Dropdown Menu -->
 <div>
@@ -165,9 +167,9 @@ The same file can be used with arguments to run a launching option directly. For
 
 <p><b>Semantic Versioning: MAJOR.MINOR.PATCH</b>
 <ul> 
-	<li> MAJOR: Big changes that might be incompatible with older versions. </li>
-	<li> MINOR: Significant changes, like adding new scripts/features. </li>
-	<li> PATCH: Small changes used to fix issues or improve existing scripts. </li>
+	<li> <b>MAJOR</b>: Big changes that might be incompatible with older versions. </li>
+	<li> <b>MINOR</b>: Significant changes, like adding new tools or big features. </li>
+	<li> <b>PATCH</b>: Small changes used to fix issues or improve existing tools. </li>
 </ul>
 
 </p>
