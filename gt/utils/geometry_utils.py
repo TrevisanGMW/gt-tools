@@ -80,3 +80,31 @@ def convert_bif_to_mesh():
         cmds.warning('An error occurred when converting bif to mesh. Open the script editor for more information.')
         print('######## Errors: ########')
         print(errors)
+
+
+def get_vertices(mesh):
+    """
+    Retrieves the vertices of a given mesh.
+    This function returns a list of vertex names that belong to the specified mesh.
+
+    Parameters:
+        mesh (str): The name of the mesh for which vertices will be retrieved.
+
+    Returns:
+        list[str]: A list of vertex names as strings, representing the vertices
+                   of the specified mesh.
+
+    Raises:
+        ValueError: If the provided 'mesh' name does not correspond to an existing mesh.
+
+    Examples:
+        mesh_name = 'my_mesh'
+        vertices = get_vertices(mesh_name)
+        print(vertices)
+        ['my_mesh.vtx[0]', 'my_mesh.vtx[1]', 'my_mesh.vtx[2]', ...]
+    """
+
+    if not cmds.objExists(mesh):
+        raise ValueError(f'The mesh "{mesh}" does not exist.')
+    vertices = cmds.ls(f"{mesh}.vtx[*]", flatten=True)
+    return vertices
