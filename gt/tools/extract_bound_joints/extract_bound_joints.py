@@ -2,6 +2,7 @@
 GT Extract Bound Joints - Extract or Transfer bound joints
 github.com/TrevisanGMW/gt-tools - 2022-06-22
 """
+from gt.utils.skin_utils import get_bound_joints
 from maya import OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
@@ -271,38 +272,6 @@ def build_gui_help_extract_bound_joints():
     def close_help_gui():
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
-
-
-def get_bound_joints(obj):
-    """
-    Gets a list of joints bound to the skin cluster of the object
-    Args:
-        obj: Name of the object to extract joints from (must contain a skinCluster node)
-
-    Returns:
-        joints (list): List of joints bound to this object
-    """
-    if not cmds.objExists(obj):
-        logger.warning('Object "' + obj + '" was not found in the scene.')
-        return
-
-    history = cmds.listHistory(obj) or []
-    skin_clusters = cmds.ls(history, type='skinCluster') or []
-
-    if len(skin_clusters) != 0:
-        skin_cluster = skin_clusters[0]
-    else:
-        logger.debug('history: ', str(history))
-        logger.debug('skin_clusters: ', str(skin_clusters))
-        logger.warning('Object "' + obj + "\" doesn't seem to be bound to any joints.")
-        return
-
-    connections = cmds.listConnections(skin_cluster + '.influenceColor') or []
-    joints = []
-    for obj in connections:
-        if cmds.objectType(obj) == 'joint':
-            joints.append(obj)
-    return joints
 
 
 def create_shelf_button(command,
