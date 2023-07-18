@@ -2,8 +2,9 @@
  Sample Tool - A tool to be used as starting point or example for when creating new tools.
  github.com/TrevisanGMW/gt-tools - 2023-07-17
 """
-from gt.tools.package_setup import setup_controller
-from gt.tools.package_setup import setup_view
+from gt.tools.sample_tool import sample_controller
+from gt.tools.sample_tool import sample_model
+from gt.tools.sample_tool import sample_view
 from PySide2.QtWidgets import QApplication
 from gt.utils import session_utils
 import logging
@@ -25,31 +26,32 @@ def build_tool_example_gui(standalone=True):
     # Determine Parent
     if session_utils.is_script_in_py_maya():
         app = QApplication(sys.argv)
-        _view = setup_view.PackageSetupWindow()
+        _view = sample_view.SampleToolWindow()
     else:
         from gt.ui.qt_utils import get_maya_main_window
         maya_window = get_maya_main_window()
-        _view = setup_view.PackageSetupWindow(parent=maya_window)
+        _view = sample_view.SampleToolWindow(parent=maya_window)
 
     # Create connections
-    _controller = setup_controller.PackageSetupController()
-    _view.controller = _controller  # To avoid garbage collection
+    _model = sample_model.SampleToolModel()
+    _controller = sample_controller.SampleToolController(model=_model, view=_view)
+    # _view.controller = _controller  # To avoid garbage collection
 
-    # Buttons
-    _view.ButtonInstallClicked.connect(_controller.install_package)
-    _view.ButtonUninstallClicked.connect(_controller.uninstall_package)
-    _view.ButtonRunOnlyClicked.connect(_controller.run_only_package)
+    # # Buttons
+    # _view.ButtonInstallClicked.connect(_controller.install_package)
+    # _view.ButtonUninstallClicked.connect(_controller.uninstall_package)
+    # _view.ButtonRunOnlyClicked.connect(_controller.run_only_package)
+    #
+    # # Feedback
+    # _controller.UpdatePath.connect(_view.update_installation_path_text_field)
+    # _controller.UpdateVersion.connect(_view.update_version_texts)
+    # _controller.UpdateStatus.connect(_view.update_status_text)
+    # _controller.CloseView.connect(_view.close_window)
 
-    # Feedback
-    _controller.UpdatePath.connect(_view.update_installation_path_text_field)
-    _controller.UpdateVersion.connect(_view.update_version_texts)
-    _controller.UpdateStatus.connect(_view.update_status_text)
-    _controller.CloseView.connect(_view.close_window)
-
-    # Initial Update
-    _controller.update_path()
-    _controller.update_version()
-    _controller.update_status()
+    # # Initial Update
+    # _controller.update_path()
+    # _controller.update_version()
+    # _controller.update_status()
 
     # Show window
     if standalone:

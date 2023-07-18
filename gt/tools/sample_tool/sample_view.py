@@ -30,12 +30,10 @@ class SampleToolWindow(QtWidgets.QDialog):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collector.
         # Data Output
         self.label_output = QtWidgets.QLabel("Stored Data:")
-        self.stored_data = QtWidgets.QLabel("")
         # Data Input
-        self.label_input = QtWidgets.QLabel("Input:")
-        self.text_input_output = QtWidgets.QLineEdit()
+        self.text_edit_input = QtWidgets.QLineEdit()
         # Buttons
-        self.set_data_btn = QtWidgets.QPushButton('Set Data')
+        # self.set_data_btn = QtWidgets.QPushButton('Set Data')
         self.get_data_btn = QtWidgets.QPushButton('Get Data')
         self.write_to_desktop_btn = QtWidgets.QPushButton('Write Stored Data to Desktop')
         self.close_btn = QtWidgets.QPushButton('Cancel')
@@ -60,11 +58,9 @@ class SampleToolWindow(QtWidgets.QDialog):
         """ Creates layout """
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.label_output)
-        layout.addWidget(self.stored_data)
-        layout.addWidget(self.label_input)
-        layout.addWidget(self.text_input_output)
+        layout.addWidget(self.text_edit_input)
         buttons_layout = QtWidgets.QHBoxLayout()
-        buttons_layout.addWidget(self.set_data_btn)
+        # buttons_layout.addWidget(self.set_data_btn)
         buttons_layout.addWidget(self.get_data_btn)
         buttons_layout.addWidget(self.write_to_desktop_btn)
         buttons_layout.addWidget(self.close_btn)
@@ -80,7 +76,7 @@ class SampleToolWindow(QtWidgets.QDialog):
 
     def create_connections(self):
         """ Create Connections between buttons and functions that calls signals """
-        self.set_data_btn.clicked.connect(self.button_set_clicked)
+        # self.set_data_btn.clicked.connect(self.button_set_clicked)
         self.get_data_btn.clicked.connect(self.button_get_clicked)
         self.write_to_desktop_btn.clicked.connect(self.button_write_desktop_clicked)
         self.close_btn.clicked.connect(self.close_window)
@@ -107,7 +103,7 @@ class SampleToolWindow(QtWidgets.QDialog):
         Args:
             new_text (str): The new text to be set in the text input field.
         """
-        self.text_input_output.setText(new_text)
+        self.text_edit_input.setText(new_text)
 
     def update_data_text(self, new_stored_data):
         """
@@ -115,7 +111,7 @@ class SampleToolWindow(QtWidgets.QDialog):
         Args:
             new_stored_data (str): The new data to be displayed in the stored_data field.
         """
-        self.stored_data.setText(new_stored_data)
+        self.stored_data_string.setText(new_stored_data)
 
 
 if __name__ == "__main__":
