@@ -65,8 +65,6 @@ def launcher_entry_point():
     """ Determines if it should open the installer GUI as a child of Maya or by itself """
     setup_utils.reload_package_loaded_modules()
     if session_utils.is_script_in_py_maya():
-        # Unload scripts
-        # Save changes
         build_installer_gui(standalone=True)
     else:
         build_installer_gui(standalone=False)
