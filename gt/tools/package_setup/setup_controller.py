@@ -26,7 +26,7 @@ class PackageSetupController(QtCore.QObject):
     def __init__(self, *args, **kwargs):
         """
         Initializes package setup controller object
-        Parameters:
+        Args:
             args (any): Variable length argument list.
             kwargs (any): Arbitrary keyword arguments.
         """
