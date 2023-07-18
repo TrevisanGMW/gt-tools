@@ -46,8 +46,9 @@ We **love** detailed bug reports!
 - Make sure to add new utilities and user interface functions and classes to the correct script categories. <br>For example, if it's an animation class/function, add it to "anim_utils.py" so it can be easily found.
 - Follow [best practices](https://refactoring.guru/refactoring/smells), such as avoiding bloated code, or minimizing coupling between components.
 - Use Python, other languages should only be used if an option in Python is not available.
-- When creating new tools, try to use the [Model-View-Controller](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) design pattern
-- Everything should be tested as much as possible.
+- When creating new tools, try to use a known pattern, for example: the [Model-View-Controller](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) design pattern.
+<br>In case you prefer to use a less known or unique pattern, just make sure to keep the GUI separated from the Logic.
+- Everything should be tested as much as possible. Create [unittests](https://docs.python.org/3/library/unittest.html) for all new functions, use the existing ones as example.
 
 ## Package Structure
 
@@ -59,7 +60,8 @@ We **love** detailed bug reports!
 4. The tests for “test_ui” and “test_utils” have their own directory and should not receive distinct folders for each script.
 5. Each tool is tested in a separated directory with the following name pattern: “test\_<tool-name>”. e.g. “test_renamer”.
 6. All new test modules should be added to the tests `__init__.py` so they participate in the "run all tests" function.
-7. Use the example tool to clarify the pattern. It can be found in the follow path: "[./gt/tools/sample_tool](./gt/tools/sample_tool)".
+7. Not sure where to start? Use the example tool as inspiration. It can be found under the following path: "[./gt/tools/sample_tool](./gt/tools/sample_tool)".
+<br>This example uses the MVC Pattern, but you can use other patterns too, as long as the GUI is separated from the logic.
 
 ## Versioning
 
