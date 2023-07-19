@@ -1,9 +1,10 @@
-import json
-import os
-import sys
-import logging
-import unittest
 from unittest.mock import patch, MagicMock
+import unittest
+import logging
+import json
+import stat
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -28,9 +29,23 @@ class TestDataUtils(unittest.TestCase):
                             "mocked_key_b": "mocked_value_b"}
         self.temp_dir = maya_test_tools.generate_test_temp_dir()
         self.file_path = os.path.join(self.temp_dir, "test_file.txt")
+        if os.path.exists(self.file_path):
+            maya_test_tools.unlock_file_permissions(self.file_path)
 
     def tearDown(self):
+        if os.path.exists(self.file_path):
+            maya_test_tools.unlock_file_permissions(self.file_path)
         maya_test_tools.delete_test_temp_dir()
+
+    def create_temp_test_file(self):
+        """
+        Creates a test file and populates it with the variable "mocked_str"
+        Returns:
+            str: Path to the test file
+        """
+        with open(self.file_path, "w", encoding="utf-8") as temp_file:
+            temp_file.write(self.mocked_str)
+        return self.file_path
 
     def assert_file_content_equal(self, file_path, expected_content):
         """
@@ -132,3 +147,15 @@ class TestDataUtils(unittest.TestCase):
         logging.disable(logging.NOTSET)
         expected = {}
         self.assertEqual(expected, result)
+
+    def test_set_file_permissions(self):
+        test_file = self.create_temp_test_file()
+        test_permission_bits = 438
+        data_utils.set_file_permissions(test_file, data_utils.PermissionBits.ALL_PERMISSIONS)
+        self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
+
+    def test_set_file_permissions_raises_error(self):
+        # Test that FileNotFoundError is raised for non-existent file
+        non_existent_file_path = "invalid_path/non_existent_file.txt"
+        with self.assertRaises(FileNotFoundError):
+            data_utils.set_file_permissions(non_existent_file_path, 0o755)
