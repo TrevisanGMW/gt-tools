@@ -2,8 +2,10 @@
 Skin Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from data_utils import write_json, read_json_dict
+from feedback_utils import print_when_true
+from string_utils import extract_digits
 from geometry_utils import get_vertices
-from data_utils import write_json
 import maya.cmds as cmds
 import os.path
 import logging
@@ -143,22 +145,12 @@ def get_skin_weights(skin_cluster):
         structured as follows:
 
         {
-            vertex_id_1: {
-                influence_name_1: weight_value,
-                influence_name_2: weight_value,
-                ...
-            },
-            vertex_id_2: {
-                influence_name_1: weight_value,
-                influence_name_2: weight_value,
-                ...
-            },
+            0: {'joint1': 0.75, 'joint2': 0.25},
+            1: {'joint2': 1.0},
+            2: {'joint3': 0.5, 'joint1': 0.5},
             ...
         }
-
-        Each vertex_id is a unique identifier for a vertex in the geometry, and each influence_name represents
-        the name of a bone or influence object associated with the skin cluster. The weight_value is a float
-        representing the weight of the influence on the vertex.
+        This data assigns the weights for each vertex (index 0, 1, 2, ...) to the respective joints.
 
     Example:
         # Assuming a valid 'skinCluster1' exists in the scene.
@@ -174,13 +166,47 @@ def get_skin_weights(skin_cluster):
     vertices = get_vertices(obj_name[0])
 
     for vertex in vertices:
-        skin_data[vertex] = {}
-        for influence in influences:
-            weight = cmds.skinPercent(skin_cluster, vertex,
-                                      transform=influence, query=True,
-                                      ignoreBelow=0.00000001)
-            skin_data[vertex][influence] = weight
+        vert_id_split = vertex.split(".")
+        vert_id = extract_digits(vert_id_split[-1])  # get only vertex id
+        skin_data[vert_id] = {}
+        vert_influences = cmds.skinPercent(skin_cluster, vertex, query=True, transform=None, ignoreBelow=0.00000001)
+
+        for joint in vert_influences:
+            weight_val = cmds.skinPercent(skin_cluster, vertex, transform=joint, query=True)
+            skin_data[vert_id][joint] = weight_val
     return skin_data
+
+
+def set_skin_weights(skin_cluster, skin_data):
+    """
+    Import skin weights from a JSON file and apply them to a given skin cluster.
+
+    Args:
+        skin_cluster (str): Name of the skin cluster to apply weights to.
+        skin_data (dict): File path of the JSON data containing skin weights.
+
+    Raises:
+        ValueError: If the specified skin cluster does not exist in the scene.
+
+    Example:
+        The skin_data should look like this:
+        {
+            0: {'joint1': 0.75, 'joint2': 0.25},
+            1: {'joint2': 1.0},
+            2: {'joint3': 0.5, 'joint1': 0.5},
+            ...
+        }
+        This data assigns the weights for each vertex (index 0, 1, 2, ...) to the respective joints.
+    """
+    if not cmds.objExists(skin_cluster):
+        raise ValueError(f'Skin cluster "{skin_cluster}" does not exist.')
+    obj_name = get_skin_cluster_geometry(skin_cluster)[0]
+    for vertex_id in skin_data:
+        mesh_vertex = f"{obj_name}.vtx[{vertex_id}]"
+        for joint in skin_data[vertex_id].keys():
+            weight = skin_data[vertex_id][joint]
+            joint_weight_pair = [cmds.ls(joint, shortNames=True)[0], weight]
+            cmds.skinPercent(skin_cluster, mesh_vertex, transformValue=joint_weight_pair)
 
 
 def export_skin_weights_to_json(output_file_path, skin_weight_data):
@@ -199,6 +225,25 @@ def export_skin_weights_to_json(output_file_path, skin_weight_data):
         str: Path if successful, None if it failed
     """
     return write_json(path=output_file_path, data=skin_weight_data)
+
+
+def import_skin_weights_from_json(target_object, import_file_path):
+    """
+    Imports skin weights from a JSON file and applies them to the specified target object's skin cluster.
+
+    Args:
+        target_object (str): The name or reference of the target object to apply the skin weights to.
+        import_file_path (str): The file path of the JSON file containing the skin weight data.
+
+    Raises:
+        IOError: If the JSON file cannot be read or is not found.
+
+    Note:
+        This function assumes that the JSON file contains data matching the pattern found in  "get_skin_weights()".
+    """
+    skin_data = read_json_dict(import_file_path)
+    skin_cluster = get_skin_cluster(target_object)
+    set_skin_weights(skin_cluster=skin_cluster, skin_data=skin_data)
 
 
 def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influences=4):
@@ -251,9 +296,11 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
     # Bind objects
     for geo in objects_found:
         skin_node = cmds.skinCluster(joints_found, geo,
+                                     obeyMaxInfluences=True,
                                      bindMethod=bind_method,
                                      toSelectedBones=True,
                                      smoothWeights=smooth_weights,
+                                     removeUnusedInfluence=False,
                                      maximumInfluences=maximum_influences) or []
         if skin_node:
             skin_nodes.extend(skin_node)
@@ -266,40 +313,64 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
     return skin_nodes
 
 
-def export_weights_to_target_folder(objects, target_folder):
-    """
-    Export skin weights for multiple objects to JSON files and save them in the target folder.
+def export_influences_to_target_folder(obj_list, target_folder, verbose=False):
+    """ TODO: Check if exists, add existing checks """
 
-    This function takes a list of object names and exports their skin weight data to individual
-    JSON files in the target folder. The function first checks if the target folder exists and
-    is a directory. If the folder does not exist or is not a directory, it logs a warning and
-    returns without performing any exports.
+    if isinstance(obj_list, str):  # If a string is provided, convert it to list
+        obj_list = [obj_list]
 
-    Parameters:
-        objects (list[str]): A list of object names for which skin weights will be exported.
-        target_folder (str): The path to the folder where the JSON files will be saved.
+    if not os.path.exists(target_folder) or not os.path.isdir(target_folder):
+        logger.warning(f'Unable to export influences. Missing target folder: {str(target_folder)}')
+        return
 
-    Returns:
-        list: A list of the exported files
+    exported_files = set()
+    for obj in obj_list:
+        file_name = f"influences_{obj}.json"
+        file_path = os.path.join(target_folder, file_name)
+        joints = get_influences(get_skin_cluster(obj))
+        influences_dict = {"obj_name": obj, "influences": joints}
+        json_file = write_json(path=file_path, data=influences_dict)
+        if json_file:
+            exported_files.add(json_file)
+            print_when_true(input_string=f'Influences for "{obj}" exported to "{json_file}".', do_print=verbose)
+    return list(exported_files)
 
-    Example:
-        objects_list = ['mesh1', 'mesh2', 'mesh3']
-        target_folder_path = '/path/to/target/folder/'
-        export_weights_to_target_folder(objects_list, target_folder_path)
-    """
+
+def import_influences_from_target_folder(source_folder, verbose=False):
+    """ TODO: Check if exists, add existing checks, check pattern before using it """
+
+    if not os.path.exists(source_folder) or not os.path.isdir(source_folder):
+        logger.warning(f'Unable to import influences. Missing source folder: {str(source_folder)}')
+        return
+
+    for source_file_name in os.listdir(source_folder):
+        file_path = os.path.join(source_folder, source_file_name)
+        influences_dict = read_json_dict(file_path)
+        obj_name = influences_dict.get("obj_name")
+        joints = influences_dict.get("influences")
+        bind_skin(joints, [obj_name])
+        print_when_true(input_string=f'Influences for {obj_name} imported from "{source_file_name}".', do_print=verbose)
+
+
+def export_weights_to_target_folder(obj_list, target_folder, verbose=False):
+    """ TODO: Check if exists, add existing checks, check pattern before using it Add suffix?"""
+    if isinstance(obj_list, str):  # If a string is provided, convert it to list
+        obj_list = [obj_list]
+
     if not os.path.exists(target_folder) or not os.path.isdir(target_folder):
         logger.warning(f'Unable to export skin weights. Missing target folder: {str(target_folder)}')
         return
 
     exported_files = set()
-    for obj in objects:
-        file_name = obj + ".json"
+    for obj in obj_list:
+        file_name = f"weights_{obj}.json"
         file_path = os.path.join(target_folder, file_name)
         skin_cluster = get_skin_cluster(obj=obj)
         skin_weights_data = get_skin_weights(skin_cluster=skin_cluster)
-        file = export_skin_weights_to_json(output_file_path=file_path, skin_weight_data=skin_weights_data)
-        if file:
-            exported_files.add(file)
+        json_file = export_skin_weights_to_json(output_file_path=file_path, skin_weight_data=skin_weights_data)
+        if json_file:
+            exported_files.add(json_file)
+            print_when_true(input_string=f'Weights for "{obj}" exported to "{json_file}".', do_print=verbose)
     return list(exported_files)
 
 
@@ -309,8 +380,15 @@ if __name__ == "__main__":
     out = None
     selection = cmds.ls(selection=True) or []
     temp_joints = ['joint1', 'joint2', 'joint3']
-    temp_geometries = ['pCylinder1', 'pCylinder2', 'pCylinder3']
-    out = get_bound_joints('pCylinder1')
-    out = get_skin_weights(get_skin_cluster('pCylinder1'))
-    export_weights_to_target_folder(temp_geometries, r'C:\Users\guilherme.trevisan\Desktop\temp')
-    pprint(out)
+    temp_geometries = ['pCylinder3', 'pCylinder2']
+    # out = get_skin_weights(get_skin_cluster('pCylinder2'))
+    from gt.utils.system_utils import get_desktop_path
+    # weights_file = os.path.join(get_desktop_path(), "pCylinder2.json")
+    # # export_weights_to_target_folder("pCylinder2", weights_file)
+    # print(weights_file)
+    # import_skin_weights_from_json("pCylinder3", weights_file)
+    temp_folder = os.path.join(get_desktop_path(), "temp")
+    # export_influences_to_target_folder(temp_geometries, target_folder=temp_folder)
+    # import_influences_from_target_folder(source_folder=temp_folder)
+    export_weights_to_target_folder(obj_list=temp_geometries, target_folder=temp_folder)
+    # pprint(out)
