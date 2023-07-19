@@ -166,17 +166,32 @@ class PermissionBits:
         """
         A library of Permission Bits
         """
-    NO_USER_WRITING = ~stat.S_IWUSR
-    NO_GROUP_WRITING = ~stat.S_IWGRP
-    NO_OTHER_WRITING = ~stat.S_IWOTH
-    NO_WRITING = NO_USER_WRITING & NO_GROUP_WRITING & NO_OTHER_WRITING
-    YES_OWNER_WRITING = stat.S_IWUSR
-    YES_GROUP_WRITING = stat.S_IWGRP
-    YES_OTHER_WRITING = stat.S_IWOTH
-    YES_WRITING = YES_OWNER_WRITING & YES_GROUP_WRITING & YES_OTHER_WRITING
+    # User permission bits
+    USER_READ = stat.S_IRUSR
+    USER_WRITE = stat.S_IWUSR
+    USER_EXECUTE = stat.S_IXUSR
+
+    # Group permission bits
+    GROUP_READ = stat.S_IRGRP
+    GROUP_WRITE = stat.S_IWGRP
+    GROUP_EXECUTE = stat.S_IXGRP
+
+    # Others permission bits
+    OTHERS_READ = stat.S_IROTH
+    OTHERS_WRITE = stat.S_IWOTH
+    OTHERS_EXECUTE = stat.S_IXOTH
+
+    # Commonly used combinations
+    READ_ONLY = USER_READ | GROUP_READ | OTHERS_READ
+    WRITE_ONLY = USER_WRITE | GROUP_WRITE | OTHERS_WRITE
+    EXECUTE_ONLY = USER_EXECUTE | GROUP_EXECUTE | OTHERS_EXECUTE
+    READ_WRITE = READ_ONLY | WRITE_ONLY
+    READ_EXECUTE = READ_ONLY | EXECUTE_ONLY
+    WRITE_EXECUTE = WRITE_ONLY | EXECUTE_ONLY
+    ALL_PERMISSIONS = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 
 
-def set_file_permissions(file_path, permission_bits):
+def set_file_permissions(file_path, permission_bits, keep_current=False):
     """
     Set the file permissions of the given file to the specified permission bits.
 
@@ -185,6 +200,8 @@ def set_file_permissions(file_path, permission_bits):
         permission_bits (int): The permission bits to set for the file. These bits represent
                                the desired permissions in octal format, e.g., 0o755.
                                These can be found in the class "PermissionBits".
+        keep_current (bool, optional): If active, current permissions are retained during operation.
+                                       Default off
 
     Raises:
         FileNotFoundError: If the provided file_path does not exist.
@@ -198,8 +215,11 @@ def set_file_permissions(file_path, permission_bits):
     """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"The file '{file_path}' does not exist.")
-    current_permissions = stat.S_IMODE(os.lstat(file_path).st_mode)
-    os.chmod(file_path, current_permissions & permission_bits)
+    if keep_current:
+        current_permissions = stat.S_IMODE(os.lstat(file_path).st_mode)
+        os.chmod(file_path, current_permissions & permission_bits)
+    else:
+        os.chmod(file_path, permission_bits)
 
 
 def set_file_permission_read_only(file_path):
@@ -208,16 +228,16 @@ def set_file_permission_read_only(file_path):
     Params:
         path:  The path whose permissions to alter.
     """
-    set_file_permissions(file_path, PermissionBits.NO_WRITING)
+    set_file_permissions(file_path, PermissionBits.READ_ONLY)
 
 
-def set_file_permission_writable(file_path):
+def set_file_permission_modifiable(file_path):
     """
     Remove write permissions from this path, while keeping all other permissions intact.
     Params:
         path:  The path whose permissions to alter.
     """
-    set_file_permissions(file_path, PermissionBits.YES_WRITING)
+    set_file_permissions(file_path, PermissionBits.ALL_PERMISSIONS)
 
 
 if __name__ == "__main__":
@@ -226,5 +246,5 @@ if __name__ == "__main__":
     out = None
     from system_utils import get_desktop_path
     test_file = os.path.join(get_desktop_path(), "test.txt")
-    out = set_file_permissions(test_file, PermissionBits.NO_WRITING)
+    set_file_permissions(test_file, PermissionBits.READ_ONLY)
     pprint(out)
