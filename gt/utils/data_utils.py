@@ -4,7 +4,9 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 import logging
+import stat
 import json
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -158,3 +160,71 @@ def read_json_dict(path):
         logging.warning(f"An error occurred while reading JSON from {path}: {e}")
         return {}
 
+
+class PermissionBits:
+    def __init__(self):
+        """
+        A library of Permission Bits
+        """
+    NO_USER_WRITING = ~stat.S_IWUSR
+    NO_GROUP_WRITING = ~stat.S_IWGRP
+    NO_OTHER_WRITING = ~stat.S_IWOTH
+    NO_WRITING = NO_USER_WRITING & NO_GROUP_WRITING & NO_OTHER_WRITING
+    YES_OWNER_WRITING = stat.S_IWUSR
+    YES_GROUP_WRITING = stat.S_IWGRP
+    YES_OTHER_WRITING = stat.S_IWOTH
+    YES_WRITING = YES_OWNER_WRITING & YES_GROUP_WRITING & YES_OTHER_WRITING
+
+
+def set_file_permissions(file_path, permission_bits):
+    """
+    Set the file permissions of the given file to the specified permission bits.
+
+    Parameters:
+        file_path (str): The path to the file whose permissions need to be modified.
+        permission_bits (int): The permission bits to set for the file. These bits represent
+                               the desired permissions in octal format, e.g., 0o755.
+                               These can be found in the class "PermissionBits".
+
+    Raises:
+        FileNotFoundError: If the provided file_path does not exist.
+
+    Example:
+        set_file_permissions("/path/to/file.txt", 0o644)
+        # This will set the file permissions of "file.txt" to read/write for the owner
+        # and read-only for the group and others.
+        set_file_permissions("/path/to/file.txt", PermissionBits.NO_WRITING)
+        # This will set the file permission of "file.txt" to read-only
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file '{file_path}' does not exist.")
+    current_permissions = stat.S_IMODE(os.lstat(file_path).st_mode)
+    os.chmod(file_path, current_permissions & permission_bits)
+
+
+def set_file_permission_read_only(file_path):
+    """
+    Remove write permissions from this path, while keeping all other permissions intact.
+    Params:
+        path:  The path whose permissions to alter.
+    """
+    set_file_permissions(file_path, PermissionBits.NO_WRITING)
+
+
+def set_file_permission_writable(file_path):
+    """
+    Remove write permissions from this path, while keeping all other permissions intact.
+    Params:
+        path:  The path whose permissions to alter.
+    """
+    set_file_permissions(file_path, PermissionBits.YES_WRITING)
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    from pprint import pprint
+    out = None
+    from system_utils import get_desktop_path
+    test_file = os.path.join(get_desktop_path(), "test.txt")
+    out = set_file_permissions(test_file, PermissionBits.NO_WRITING)
+    pprint(out)
