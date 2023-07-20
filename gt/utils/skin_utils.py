@@ -314,7 +314,13 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
 
 
 def export_influences_to_target_folder(obj_list, target_folder, verbose=False):
-    """ TODO: Check if exists, add existing checks """
+    """
+    WIP Function
+        TODO:
+            add existing checks
+            extract maximum influences and skin cluster options
+            extract target name
+    """
 
     if isinstance(obj_list, str):  # If a string is provided, convert it to list
         obj_list = [obj_list]
@@ -337,7 +343,11 @@ def export_influences_to_target_folder(obj_list, target_folder, verbose=False):
 
 
 def import_influences_from_target_folder(source_folder, verbose=False):
-    """ TODO: Check if exists, add existing checks, check pattern before using it """
+    """
+    WIP
+    TODO:
+        Check if exists, add existing checks, check pattern before using it
+    """
 
     if not os.path.exists(source_folder) or not os.path.isdir(source_folder):
         logger.warning(f'Unable to import influences. Missing source folder: {str(source_folder)}')
@@ -353,7 +363,11 @@ def import_influences_from_target_folder(source_folder, verbose=False):
 
 
 def export_weights_to_target_folder(obj_list, target_folder, verbose=False):
-    """ TODO: Check if exists, add existing checks, check pattern before using it Add suffix?"""
+    """
+    WIP
+    TODO:
+        Check if exists, add existing checks, check pattern before using it Add suffix?
+    """
     if isinstance(obj_list, str):  # If a string is provided, convert it to list
         obj_list = [obj_list]
 
