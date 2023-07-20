@@ -479,6 +479,7 @@ class TestSetupUtils(unittest.TestCase):
                                          mock_copy_package_loader,
                                          mock_remove_legacy_entry_point,
                                          mock_installation_integrity):
+        maya_test_tools.mel.eval('$gMainWindow = "";')  # To avoid unnecessary UI error
         test_temp_dir = maya_test_tools.generate_test_temp_dir()
         mocked_target_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
         mocked_requirement_dir = os.path.join(test_temp_dir, "tools")

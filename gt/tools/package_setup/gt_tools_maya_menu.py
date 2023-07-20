@@ -2,7 +2,7 @@
  Main Maya Menu - GT Tools Menu - Creates a menu to call scripts from the GT Tools Package
  github.com/TrevisanGMW/gt-tools - 2020-03-03
 """
-from gt.utils.system_utils import get_package_version
+from gt.utils.version_utils import get_package_version
 import gt.ui.resource_library as resource_library
 from gt.ui.maya_menu import MayaMenu
 from functools import partial

@@ -1,4 +1,5 @@
 import shutil
+import stat
 
 try:
     import maya.cmds as cmds
@@ -123,7 +124,7 @@ def generate_test_temp_dir(folder_name="test_temp_dir"):
 def delete_test_temp_dir(folder_name="test_temp_dir"):
     """
     Deletes the temporary directory used for testing. (Only if existing)
-    Args:
+    Parameters:
         folder_name (str, optional): Name of the folder to delete. Default: "test_temp_dir"
     Returns:
         bool: True if it was deleted, False in case it was not found.
@@ -136,6 +137,31 @@ def delete_test_temp_dir(folder_name="test_temp_dir"):
         shutil.rmtree(test_temp_dir)
         return True
     return False
+
+
+def unlock_file_permissions(file_path):
+    """
+    Unlocks write permissions for all users on the specified file.
+
+    Parameters:
+        file_path (str): The path to the file whose permissions need to be unlocked.
+
+    Raises:
+        OSError: If there was an issue accessing or modifying the file's permissions.
+
+    Note:
+        This function uses the `os` and `stat` modules to manipulate file permissions.
+        The function will attempt to unlock write permissions for the owner, group, and
+        other users of the specified file.
+
+    Example:
+        unlock_file_permissions('/path/to/file.txt')
+        # If successful, the write permissions for all users on 'file.txt' are unlocked.
+    """
+    try:
+        os.chmod(file_path, 0o700)
+    except Exception as e:
+        logger.debug(f'Unable to unlock file permissions. Issue: {e}')
 
 
 def is_plugin_loaded(plugin):
@@ -254,7 +280,7 @@ def open_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
     It automatically determines the position of the data folder using "get_data_dir_path()"
-    Args:
+    Parameters:
         file_name: Name of the file (must exist)
     """
     frame = inspect.stack()[1]

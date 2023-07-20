@@ -2,6 +2,10 @@
  GT Mirror Cluster Tool - Tool to mirror cluster weights
  github.com/TrevisanGMW/gt-tools -  2020-06-16
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  1.1 - 2020-11-15
  Tweaked the color and text for the title and help menu
 

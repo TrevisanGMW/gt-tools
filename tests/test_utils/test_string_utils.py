@@ -109,3 +109,4 @@ class TestStringUtils(unittest.TestCase):
     def test_extract_digits_only_digits(self):
         input_string = "9876543210"
         self.assertEqual(string_utils.extract_digits(input_string), "9876543210")
+        

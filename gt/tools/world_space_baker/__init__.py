@@ -2,6 +2,10 @@
  GT World Space Baker
  github.com/TrevisanGMW/gt-tools - 2021-11-23
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  1. This script stores animation according to the provided time line range for the selected controls
  2. Then forces the control back into that position by baking world space coordinates
 

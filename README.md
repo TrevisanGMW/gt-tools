@@ -21,115 +21,86 @@
    <img alt="GitHub stars" src="https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555" ></a>
 </p>
 
-<h1> Description </h1>
-This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, enhancing or simply filling the missing details of what I find lacking in Maya.
+<h1>Description</h1>
+This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, 
+enhancing or simply filling the missing details of what I find lacking in Maya.
 
-After installing the script collection, you’ll find a pull-down menu that provides easy access to a variety of tools. This menu contains sub-menus that have been organized to contain related tools, for example: modeling, rigging, utilities, etc…
+After installing or running the script collection, you’ll find a pull-down menu that provides easy access to a
+variety of tools and utilities. This menu contains sub-menus that have been organized to contain related tools,
+for example: modeling, rigging, utilities, etc…
 
-For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top of the script file (just open the “.py” or “.mel” file using any text editor, such as notepad)
+For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or
+check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top
+of the tool init file (just open the “.py” file using any text editor, such as notepad)
 
-All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk. 
+All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk.
 Hopefully these scripts are helpful to you as they are to me.
 
-<p><b>Tested using Autodesk Maya 2022 (Windows 10)</b></p>
+Note: Python 2 is no longer supported. If you want to still use an older versions of Maya, make sure to use a GT-Tools version below "3.0.0" for compatibility.
 
+<p><b>Package tested using Autodesk Maya 2022, 2023 and 2024 (Windows 10)</b></p>
 
-<h1> Organization </h1>
+<h1>Organization</h1>
 <ul>
-<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package's tools.</li>
+<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package and its tools.</li>
 <li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
 <li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations, including resource getters and QT functions.</li>
 <li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
-
-<li><code>tests</code>: package unittests.</li>
+<li><code>tests</code>: Package unittests for tools, ui and utilities. See ["CONTRIBUTING.md"]() for more details.</li>
 </ul>
-<h1> Installation </h1>
 
-<b>TL;DR :</b> Download files, then open "setup.bat". 
-<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial. (Manual installation is slightly different now, I'll upload a new video soon)
+<h1>Setup</h1>
+<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
+Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
-It's possible to use most scripts without installing the whole package. Most of them are standalone and will work on their own, but for a better experience it's recommended that you include all scripts. This way you won't miss any dependencies.
+<img src="./docs/media/setup_tutorial.svg"
+     alt="GT Tools Installation Tutorial"
+     width="1000" 
+     align="center">
 
-PS: for "gt_utilities" you will have to uncomment a function at the bottom of the script, as it wouldn't make sense to call all of them at once.
+<p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
+<br>Here is how you do it in more details:</p>
 
-The text below explains how to install it on a Windows PC, in case you're looking for MacOS or Linux check the <a href="./docs">"docs"</a> folder.
-
-<h3>Auto Installation</h3>
-
-This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
-Here is how you do it in more details:
 <ol>
-	<li>Close Maya (in case it's opened).</li>
+	<li>Open Maya (in case it's closed).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "1" to "Install", then press enter.</li>
-	<li>Open Autodesk Maya.</li>
+	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
+    <li>An user interface with the setup options will open.</li>
+	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
+	<li>Enjoy!</li>
 </ol>
 
+<p>
+After installing, you can delete the downloaded/extracted files (as they have already been copied)
+</p>
+<h3>Checksum Verification</h3>
+<p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
+</p>
 
-If you want, you can now delete the downloaded/extracted files (as they have already been installed)
-
-<h3>Manual Installation</h3>
-
-In case you need/want to manually install the scripts. It's also a pretty straightforward process.
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" to your scripts folder (usually located under the path below):
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Move all the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
-	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
-	(This command adds the menu when Maya opens)
-	<li>Open Autodesk Maya. </li>
-</ol>
+<h3>Run Only</h3>
+<p>The setup window offers the option to run the tools without installing them. To do this, follow the same drag and drop steps and click on "Run Only" instead of "Install". This is going to load the tools from the location you have them, allowing you to run it one time only.</p>
 
 <h3>Updating</h3>
-<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<p>Simply install it again. The auto setup will handle the file changes.
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
-<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
+<br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
-<h1> Uninstallation </h1>
-
-<h3>Auto Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "2" to "Uninstall", then press enter.</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-<h3>Manual Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Navigate to your scripts folder, usually located under the following path:
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
-	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<h1> Frequently Asked Questions </h1>
-<ul>
-	<li><b>How do I update GT Tools to a new version?</b> <br>A: Simply uninstall and install it again.</li>
-	<li><b>What do I do if I have multiple "userSetup.mel" files?</b> One inside "maya/####/scripts" and another one inside "maya/scripts"<br>A: The "userSetup.mel" file gets executed when you open Maya, but Maya supports only one file. In case you have two files it will give priority to the file located inside "maya/####/scripts", so manage your initialization commands there.</li>
-	<li><b>Where are the other scripts you had in this repository?</b> <br> A: I moved all other scripts that are not part of GT Tools to another repository. Here is the link: <a href="https://github.com/TrevisanGMW/maya-scripts">TrevisanGMW/maya-scripts</a> </li>
-</ul>
+<h3>Windows Only - Express Launcher</h3>
+<p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
+<br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
+<b>"-launch"</b> ("..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
 
 <h1> Contributors </h1>
-If you'd like to contribute, please fork the repository and make changes as you'd like. <br><b>Pull requests are warmly welcome.</b>
+If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a> file for a detailed explanation on how to do that. 
+<br><b>Pull requests are warmly welcome.</b> 
 <p></p>
 <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=TrevisanGMW/gt-tools" />
 </a>
 
-Don't know how to code but want to contribute? You could [__buy me a coffee! :coffee:__](https://www.buymeacoffee.com/TrevisanGMW)
+Looking for other ways to contribute? You could [**buy me a coffee! :coffee:**](https://www.buymeacoffee.com/TrevisanGMW) or use the [**Github sponsor :heart:**](https://github.com/sponsors/TrevisanGMW) options!
+<br>This is definitely a huge motivation boost! :star_struck:
 
 <h1> Licensing </h1>
 The MIT License 2020 - Guilherme Trevisan

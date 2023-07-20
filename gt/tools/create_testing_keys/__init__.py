@@ -1,9 +1,12 @@
 """
  GT Create Testing Keys - Script for creating testing keyframes.
- github.com/TrevisanGMW/gt-tools -  2021-01-28
-
  It creates a sequence of keyframes on the selected objects using the provided offset.
  Helpful for when testing controls or painting skin weights.
+ github.com/TrevisanGMW/gt-tools -  2021-01-28
+
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
 
  1.0 - 2021-01-28
  Initial Release

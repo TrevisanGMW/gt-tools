@@ -3,12 +3,21 @@
 setlocal enabledelayedexpansion
 
 set launch_option="%1"
+::if "%2" NEQ "" set launch_option=%1 %2
+::if "%3" NEQ "" set launch_option=%1 %2 %3
 set "path_bat_script=%~dp0"
 set "path_package_init=!path_bat_script!\setup_drag_drop_maya.py"
 set "path_autodesk=C:\Program Files\Autodesk"
 set "path_mayapy_end=\bin\mayapy.exe"
 set "installation_status="
 
+:ARGS
+if %launch_option%=="" goto MENU
+if %launch_option%=="-install -gui" goto GET_LATEST_MAYAPY
+if %launch_option%=="-install -clean" goto GET_LATEST_MAYAPY
+if %launch_option%=="-uninstall" goto GET_LATEST_MAYAPY
+if %launch_option%=="-launch" goto GET_LATEST_MAYAPY
+if %launch_option%=="-launch -dev" goto GET_LATEST_MAYAPY
 if %launch_option%=="-test" goto TEST
 
 :MENU

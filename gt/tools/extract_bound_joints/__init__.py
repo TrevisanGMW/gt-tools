@@ -1,32 +1,36 @@
 """
-GT Extract Bound Joints - Extract or Transfer bound joints
-github.com/TrevisanGMW/gt-tools - 2022-06-22
+ GT Extract Bound Joints - Extract or Transfer bound joints
+ github.com/TrevisanGMW/gt-tools - 2022-06-22
 
-0.0.1 to 0.0.3 - 2022-06-22 to 2022-07-20
-Created main function
-Added GUI
-Added skinCluster check
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
 
-1.0.0 to 1.0.2 - 2022-07-20 to 2022-07-22
-Added Filter non-existent and include mesh checkboxes
-Updated help menu
-Increased the size of the output window
+ 0.0.1 to 0.0.3 - 2022-06-22 to 2022-07-20
+ Created main function
+ Added GUI
+ Added skinCluster check
 
-1.1.0 to 1.1.4 - 2022-07-26 to 2022-09-12
-Added "Save to Shelf" button
-Added "Extract Bound Joints to Selection Sets" button
-Updated help
-Tweaked the UI spacing
-Fixed a typo
-Removed unnecessary parameter
-Changed "Include Bound Mesh" to be be inactive by default
-Added option to run bind/unbind skin functions
-Centered Checkbox options a bit better
-Fixed a few issues caused by the latest changes
+ 1.0.0 to 1.0.2 - 2022-07-20 to 2022-07-22
+ Added Filter non-existent and include mesh checkboxes
+ Updated help menu
+ Increased the size of the output window
 
-Todo:
-    Add Transfer functions
-    Add option to include maya.cmds
+ 1.1.0 to 1.1.4 - 2022-07-26 to 2022-09-12
+ Added "Save to Shelf" button
+ Added "Extract Bound Joints to Selection Sets" button
+ Updated help
+ Tweaked the UI spacing
+ Fixed a typo
+ Removed unnecessary parameter
+ Changed "Include Bound Mesh" to be be inactive by default
+ Added option to run bind/unbind skin functions
+ Centered Checkbox options a bit better
+ Fixed a few issues caused by the latest changes
+
+ Todo:
+     Add Transfer functions
+     Add option to include maya.cmds
 """
 
 
