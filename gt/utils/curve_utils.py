@@ -1,4 +1,4 @@
-from attribute_utils import add_attr_double_three
+from gt.utils.attribute_utils import add_attr_double_three
 import maya.cmds as cmds
 import logging
 import sys

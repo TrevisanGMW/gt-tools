@@ -1,5 +1,5 @@
-import os
 import sys
+import os
 
 # Paths to Append
 source_dir = os.path.dirname(__file__)

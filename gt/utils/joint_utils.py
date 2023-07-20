@@ -1,5 +1,5 @@
-import maya.cmds as cmds
 import maya.api.OpenMaya as OpenMaya
+import maya.cmds as cmds
 import logging
 
 # Logging Setup

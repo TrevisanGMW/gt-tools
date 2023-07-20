@@ -354,17 +354,17 @@ def process_launch_options(sys_args):
     # Launch Options
     if sys_args[1] == "-install":
         if "-clean" in sys_args:
-            import setup_utils
+            import gt.utils.setup_utils as setup_utils
             setup_utils.install_package(clean_install=True)
         elif "-gui" in sys_args:
-            import tools.package_setup as package_setup
+            import gt.tools.package_setup as package_setup
             package_setup.launcher_entry_point()
         else:
-            import setup_utils
+            import gt.utils.setup_utils as setup_utils
             setup_utils.install_package(clean_install=False)
         return True
     elif sys_args[1] == "-uninstall":
-        import setup_utils
+        import gt.utils.setup_utils as setup_utils
         setup_utils.uninstall_package()
         return True
     elif sys_args[1] == "-launch":
