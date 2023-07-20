@@ -104,8 +104,10 @@ def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss", 
         logger.info(f'Could not find stylesheet: "{stylesheet_path}"')
         return ""
     else:
-        stylesheet_content = process_stylesheet_variables(stylesheet_content=open(stylesheet_path).read(),
-                                                          stylesheet_variables=stylesheet_variables)
+        with open(stylesheet_path, "r") as data_file:
+            stylesheet_data = data_file.read()
+            stylesheet_content = process_stylesheet_variables(stylesheet_content=stylesheet_data,
+                                                              stylesheet_variables=stylesheet_variables)
         return stylesheet_content
 
 

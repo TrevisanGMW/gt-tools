@@ -3,6 +3,10 @@
  github.com/TrevisanGMW - 2021-06-22
  Tested on Maya 2020.4 - Windows 10
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  1.1 - 2021-06-22
  It now iterates through all intermediate objects to guarantee they all have the same UVs
 

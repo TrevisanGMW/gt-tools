@@ -352,7 +352,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = "call(clean_install=True)"
         self.assertEqual(expected, result)
 
-    @patch('tools.package_setup.launcher_entry_point')
+    @patch('gt.tools.package_setup.launcher_entry_point')
     def test_process_launch_options_install_gui(self, mock_launcher_entry_point):
         system_utils.process_launch_options(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
@@ -406,28 +406,6 @@ class TestSystemUtils(unittest.TestCase):
         result = str(mock_initialize_from_package.call_args_list)
         for expected in [expected_one, expected_two]:
             self.assertIn(expected, result)
-
-    @patch('os.path.exists')
-    def test_get_package_version_bad_path(self, mock_eval):
-        result = system_utils.get_package_version(package_path="mocked_package_path")
-        mock_eval.assert_called_once()
-        expected = "0.0.0"
-        self.assertEqual(expected, result)
-
-    @patch('sys.path')
-    @patch('os.path.exists')
-    def test_get_package_version(self, mock_exists, mock_path):
-        mock_exists.return_value = True
-        mock_path.return_value = ['/mocked/path', 'mocked_package_path']
-        with patch('builtins.__import__') as mock_import:
-            mock_instance = MagicMock()
-            mock_instance.PACKAGE_VERSION = '1.2.3'
-            mock_import.return_value = mock_instance
-            result = system_utils.get_package_version(package_path="mocked_package_path")
-            mock_exists.assert_called_once()
-            mock_import.assert_called_once()
-            expected = '1.2.3'
-            self.assertEqual(expected, result)
 
     @patch('gt.utils.system_utils.launch_maya')
     def test_load_package_menu_launching_maya(self, mock_launch_maya):

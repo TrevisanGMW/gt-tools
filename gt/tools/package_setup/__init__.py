@@ -1,3 +1,7 @@
+"""
+ Package Setup - Entry point tool used to install, uninstall or run tools directly from location.
+ github.com/TrevisanGMW/gt-tools - 2023-06-01
+"""
 from gt.tools.package_setup import setup_controller
 from gt.tools.package_setup import setup_view
 from PySide2.QtWidgets import QApplication
@@ -61,8 +65,6 @@ def launcher_entry_point():
     """ Determines if it should open the installer GUI as a child of Maya or by itself """
     setup_utils.reload_package_loaded_modules()
     if session_utils.is_script_in_py_maya():
-        # Unload scripts
-        # Save changes
         build_installer_gui(standalone=True)
     else:
         build_installer_gui(standalone=False)

@@ -357,7 +357,7 @@ def process_launch_options(sys_args):
             import setup_utils
             setup_utils.install_package(clean_install=True)
         elif "-gui" in sys_args:
-            import tools.package_setup as package_setup
+            import gt.tools.package_setup as package_setup
             package_setup.launcher_entry_point()
         else:
             import setup_utils
@@ -456,35 +456,6 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
                                    entry_point_function=entry_point_function)
 
 
-def get_package_version(package_path=None):
-    """
-    Gets the package version, independently of the package folder name.
-    Args:
-        package_path (str, optional): If provided, the path will be used to determine the package path.
-                                      It assumes that the package is using the same variable name "PACKAGE_VERSION"
-    Returns:
-        str: Package version as a string. "major.minor.patch"
-        e.g. "3.0.0"
-    """
-    package_dir = package_path
-    if package_path and os.path.exists(str(package_path)) is False:
-        return "0.0.0"
-    if package_path is None:
-        utils_dir = os.path.dirname(__file__)
-        package_dir = os.path.dirname(utils_dir)
-    package_basename = os.path.basename(package_dir)
-    package_parent_dir = os.path.dirname(package_dir)
-    # Ensure package parent path is available
-    if package_parent_dir not in sys.path:
-        sys.path.append(package_parent_dir)
-    try:
-        imported_package = __import__(package_basename)
-        return imported_package.PACKAGE_VERSION
-    except Exception as e:
-        logger.debug(f"Unable to retrieve current version. Issue: {str(e)}")
-        return "0.0.0"
-
-
 def load_package_menu(launch_latest_maya=False):
     """
     Loads the script from the current location, so it can be used without installing it.
@@ -567,6 +538,6 @@ def time_profiler(func):
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = get_package_version()
+    logger.setLevel(logging.DEBUG)
     out = os.environ.keys()
     pprint(out)

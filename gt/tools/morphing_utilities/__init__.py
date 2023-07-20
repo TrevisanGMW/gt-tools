@@ -2,6 +2,10 @@
  GT Morphing Utilities
  github.com/TrevisanGMW/gt-tools - 2020-11-15
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  0.0.1 to 0.0.4 - 2022-11-15 to 2022-12-23
  Added "delete_blends_target"
  Added "delete_blends_targets"

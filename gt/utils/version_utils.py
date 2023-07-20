@@ -3,6 +3,8 @@ Version Utilities
 """
 from collections import namedtuple
 import logging
+import sys
+import os
 import re
 
 # Logging Setup
@@ -85,8 +87,40 @@ def get_comparison_feedback(version_current, version_expected):
         return "current"
 
 
+def get_package_version(package_path=None):
+    """
+    Gets the package version, independently of the package folder name.
+    Args:
+        package_path (str, optional): If provided, the path will be used to determine the package path.
+                                      It assumes that the package is using the same variable name "PACKAGE_VERSION"
+    Returns:
+        str: Package version as a string. "major.minor.patch"
+        e.g. "3.0.0"
+    """
+    package_dir = package_path
+    if package_path and os.path.exists(str(package_path)) is False:
+        return "0.0.0"
+    if package_path is None:
+        utils_dir = os.path.dirname(__file__)
+        package_dir = os.path.dirname(utils_dir)
+    package_basename = os.path.basename(package_dir)
+    package_parent_dir = os.path.dirname(package_dir)
+    # Ensure package parent path is available
+    if package_parent_dir not in sys.path:
+        sys.path.append(package_parent_dir)
+    try:
+        imported_package = __import__(package_basename)
+        return imported_package.__version__
+    except Exception as e:
+        logger.debug(f"Unable to retrieve current version. Issue: {str(e)}")
+        return "0.0.0"
+
+
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    out = get_comparison_feedback("1.6.7", "1.6.7")
+    # out = get_comparison_feedback("1.6.7", "1.6.7")
+    out = get_package_version()
     pprint(out)
+

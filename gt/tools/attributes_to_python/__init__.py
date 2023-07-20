@@ -2,6 +2,10 @@
  GT Attributes to Python - Tools for extracting attributes as python code.
  github.com/TrevisanGMW/gt-tools - 2021-12-01
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  0.0.2 to 0.0.5 - 2022-03-31 to 2022-07-22
  Re-created script after losing it to hard drive corruption
  Added option to strip zeroes

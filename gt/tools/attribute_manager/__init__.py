@@ -2,6 +2,10 @@
  GT Attribute Manager - Script for quickly creating, deleting or updating user defined attributes.
  github.com/TrevisanGMW/gt-tools - 2022-08-06
 
+ ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
+ how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
+ Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
+
  0.0.1 - 2022-08-06
  Created script file
  Added description

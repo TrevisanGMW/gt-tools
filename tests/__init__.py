@@ -28,6 +28,7 @@ modules_to_test = [
     test_utils.test_alembic_utils,
     test_utils.test_anim_utils,
     test_utils.test_color_utils,
+    test_utils.test_data_utils,
     test_utils.test_feedback_utils,
     test_utils.test_list_utils,
     test_utils.test_namespace_utils,
@@ -126,21 +127,21 @@ def regex_module_name(module):
         return str(module)
 
 
-def regex_file_from_failure(failure_message):
+def regex_file_from_failure_or_error(message):
     """
-    Formats the failure message string into simpler string that contains the filename and line number
+    Formats the failure or error message string into simpler string that contains the filename and line number
     Args:
-        failure_message (string): The failure_message string which includes traceback for finding where the tests failed
+        message (string): The failure/error message string which includes traceback for finding where the tests failed.
     Returns:
         String with the file, line number and test name.
-        In case operation fails, the entire failure message is returned instead.
+        In case operation fails, the entire failure/error message is returned instead.
     """
     find_file_regex = "(?=File).+(?<=, line).+"  # Keep only file line
-    result = re.findall(find_file_regex, failure_message)
+    result = re.findall(find_file_regex, message)
     if result:
         return result[0]
     else:
-        return str(failure_message)
+        return str(message)
 
 
 def run_all_tests_with_summary(print_results=True):
@@ -153,17 +154,27 @@ def run_all_tests_with_summary(print_results=True):
     """
     ran = 0
     failed = 0
+    errors = 0
     module_failures = {}
+    module_errors = {}
     for name, result in zip(modules_to_test, run_test_modules(modules_to_test)):
         ran += result.testsRun
         failed += len(result.failures)
+        errors += len(result.errors)
         if len(result.failures) > 0:
             module = regex_module_name(name)
             first_failure = result.failures[0][1]
-            module_failures[module] = regex_file_from_failure(first_failure)
+            module_failures[module] = regex_file_from_failure_or_error(first_failure)
+        if len(result.errors) > 0:
+            module = regex_module_name(name)
+            first_error = result.errors[0][1]
+            module_errors[module] = regex_file_from_failure_or_error(first_error)
 
     tests_summary = {"Test Runner Summary": ["Ran", "Failed"],
                      "": [ran, failed]}
+    if errors:
+        tests_summary.get("Test Runner Summary").append("Errors")
+        tests_summary.get("").append(str(errors))
 
     output_string = dict_to_markdown_table(tests_summary)
 
@@ -174,6 +185,12 @@ def run_all_tests_with_summary(print_results=True):
         module_failures = {"Failures": modules,
                            "Source": files}
         output_string += "\n" + dict_to_markdown_table(module_failures)
+    if len(module_errors) > 0:
+        modules = list(module_errors.keys())
+        files = list(module_errors.values())
+        module_errors = {"Errors": modules,
+                         "Source": files}
+        output_string += "\n" + dict_to_markdown_table(module_errors)
     if print_results:
         print(output_string)
     return output_string

@@ -1,5 +1,6 @@
 """
-QT View example - This script should only emit signals and deal with UI (View) - No unrelated logic here
+Package Setup View
+This script should only emit signals and deal with UI (View) - No unrelated logic here
 """
 import gt.ui.resource_library as resource_library
 from PySide2.QtGui import QPixmap, QIcon
