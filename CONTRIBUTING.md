@@ -63,6 +63,32 @@ We **love** detailed bug reports!
 7. Not sure where to start? Use the example tool as inspiration. It can be found under the following path: "[./gt/tools/sample_tool](./gt/tools/sample_tool)".
 <br>This example uses the MVC Pattern, but you can use other patterns too, as long as the GUI is separated from the logic.
 
+## Naming branches
+Please use a descriptive pattern when creating branches:
+<br>`<source-branch>-<category>/<description>`<br>
+
+**"source-branch"** : Name of the branch used as starting point
+<br>**"category"** : Category for the work in the new branch
+<br>**"description"** : Branch description (issue number, topic, purpose)
+
+### Category Words:
+
+| Category | Meaning                                                   |
+|----------|-----------------------------------------------------------|
+| hotfix   | fixing critical issues, usually with a temporary solution |
+| bugfix   | for fixing a bug                                          |
+| feature  | for adding, removing or modifying a feature               |
+| test     | for experimenting something                               |
+| wip      | for a work in progress                                    |
+
+### Examples:
+
+- `dev.feature/123-add-skin-update`
+- `dev.bugfix/100-fix-import-issue`
+- `dev.test/new-export-method`
+- `dev.wip/updating-docs`
+
+
 ## Versioning
 
 When describing a tool version, use semantic versioning. Such as **MAJOR.MINOR.PATCH**
