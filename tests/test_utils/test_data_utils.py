@@ -159,3 +159,15 @@ class TestDataUtils(unittest.TestCase):
         non_existent_file_path = "invalid_path/non_existent_file.txt"
         with self.assertRaises(FileNotFoundError):
             data_utils.set_file_permissions(non_existent_file_path, 0o755)
+
+    def test_set_file_permission_read_only(self):
+        test_file = self.create_temp_test_file()
+        test_permission_bits = 292
+        data_utils.set_file_permission_read_only(test_file)
+        self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
+
+    def test_set_file_permission_modifiable(self):
+        test_file = self.create_temp_test_file()
+        test_permission_bits = 438
+        data_utils.set_file_permission_modifiable(test_file)
+        self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
