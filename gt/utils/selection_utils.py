@@ -1,4 +1,4 @@
-from naming_utils import get_short_name
+from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
 import random

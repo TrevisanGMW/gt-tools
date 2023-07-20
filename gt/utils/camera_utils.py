@@ -1,4 +1,3 @@
-import maya.cmds as cmds
 import logging
 
 # Logging Setup

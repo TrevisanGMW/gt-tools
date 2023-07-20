@@ -336,7 +336,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = False
         self.assertEqual(expected, result)
 
-    @patch('setup_utils.install_package')
+    @patch('gt.utils.setup_utils.install_package')
     def test_process_launch_options_install(self, mock_install_package):
         system_utils.process_launch_options(["mocked_script_name", "-install"])
         mock_install_package.assert_called_once()
@@ -344,7 +344,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = "call(clean_install=False)"
         self.assertEqual(expected, result)
 
-    @patch('setup_utils.install_package')
+    @patch('gt.utils.setup_utils.install_package')
     def test_process_launch_options_install_clean(self, mock_install_package):
         system_utils.process_launch_options(["mocked_script_name", "-install", "-clean"])
         mock_install_package.assert_called_once()
@@ -357,7 +357,7 @@ class TestSystemUtils(unittest.TestCase):
         system_utils.process_launch_options(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
 
-    @patch('setup_utils.uninstall_package')
+    @patch('gt.utils.setup_utils.uninstall_package')
     def test_process_launch_options_uninstall(self, mock_uninstall_package):
         result = system_utils.process_launch_options(["mocked_script_name", "-uninstall"])
         mock_uninstall_package.assert_called_once()

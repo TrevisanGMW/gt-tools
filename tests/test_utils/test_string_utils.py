@@ -89,3 +89,24 @@ class TestStringUtils(unittest.TestCase):
         result = string_utils.remove_strings_from_string(input_string=input_string,
                                                          undesired_string_list=to_remove_list)
         self.assertEqual(expected, result)
+
+    def test_extract_digits_no_digits(self):
+        input_string = "No digits here!"
+        self.assertEqual(string_utils.extract_digits(input_string), "")
+
+    def test_extract_digits_mixed_characters(self):
+        input_string = "It costs $20.99 only."
+        self.assertEqual(string_utils.extract_digits(input_string), "2099")
+
+    def test_extract_digits_special_characters(self):
+        input_string = "Password: $ecr3t!!123"
+        self.assertEqual(string_utils.extract_digits(input_string), "3123")
+
+    def test_extract_digits_empty_string(self):
+        input_string = ""
+        self.assertEqual(string_utils.extract_digits(input_string), "")
+
+    def test_extract_digits_only_digits(self):
+        input_string = "9876543210"
+        self.assertEqual(string_utils.extract_digits(input_string), "9876543210")
+        

@@ -7,7 +7,6 @@ import logging
 import sys
 import os
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)

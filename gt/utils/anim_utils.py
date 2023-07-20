@@ -1,8 +1,8 @@
 """
 Animation Utilities
 """
+from gt.utils.feedback_utils import FeedbackMessage
 import maya.cmds as cmds
-from feedback_utils import FeedbackMessage
 import logging
 
 # Logging Setup

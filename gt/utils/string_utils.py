@@ -4,6 +4,7 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 import logging
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -124,6 +125,27 @@ def remove_strings_from_string(input_string, undesired_string_list):
     for undesired in undesired_string_list:
         input_string = input_string.replace(undesired, '')
     return input_string
+
+
+def extract_digits(input_string):
+    """
+    Extracts and returns only the digits from a given input string.
+
+    Parameters:
+        input_string (str): The input string from which digits will be extracted.
+
+    Returns:
+        str: A string containing only the extracted digits.
+
+    Examples:
+        input_string = "Hello, my phone number is +1 (123) 456-7890."
+        result = extract_digits(input_string)
+        print(result)
+        # Output: '11234567890'
+    """
+    pattern = r'\d+'
+    digits_list = re.findall(pattern, input_string)
+    return ''.join(digits_list)
 
 
 if __name__ == "__main__":

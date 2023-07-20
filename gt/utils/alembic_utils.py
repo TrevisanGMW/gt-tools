@@ -2,7 +2,7 @@
 Alembic Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from transform_utils import Transform, Vector3
+from gt.utils.transform_utils import Transform, Vector3
 from math import degrees
 import maya.cmds as cmds
 import logging

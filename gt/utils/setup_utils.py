@@ -1,9 +1,10 @@
 """
 Setup Utilities - install/uninstall package from system
 """
-from session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing, remove_modules_startswith
-from system_utils import get_available_maya_preferences_dirs, load_package_menu
-from feedback_utils import print_when_true
+from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
+from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
+from gt.utils.session_utils import remove_modules_startswith
+from gt.utils.feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
 import shutil

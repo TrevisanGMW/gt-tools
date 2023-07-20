@@ -1,8 +1,6 @@
 """
 Naming Utilities
 """
-import maya.api.OpenMaya as OpenMaya
-import maya.cmds as cmds
 import logging
 
 # Logging Setup
