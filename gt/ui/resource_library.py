@@ -347,10 +347,14 @@ class Stylesheet:
         """
         A library of stylesheets
         """
+    # Stylesheets Without Variations
     maya_basic_dialog = get_stylesheet_path(stylesheet_name="maya_basic_dialog",
                                             stylesheet_variables=StylesheetVariables.maya_basic)
     maya_progress_bar = get_stylesheet_path(stylesheet_name="maya_progress_bar",
                                             stylesheet_variables=StylesheetVariables.maya_progress_bar)
+    maya_list_widget = get_stylesheet_path(stylesheet_name="maya_list_widget",
+                                           stylesheet_variables=StylesheetVariables.maya_progress_bar)
+    # Metro Tool Button
     metro_tool_button = get_stylesheet_path(stylesheet_name="metro_tool_button",
                                             stylesheet_variables=StylesheetVariables.metro_tools_button_default)
     metro_tool_button_red = get_stylesheet_path(stylesheet_name="metro_tool_button",
@@ -359,6 +363,7 @@ class Stylesheet:
                                                  stylesheet_variables=StylesheetVariables.metro_tools_button_blue)
     metro_tool_button_green = get_stylesheet_path(stylesheet_name="metro_tool_button",
                                                   stylesheet_variables=StylesheetVariables.metro_tools_button_green)
+
 
 
 class Font:
