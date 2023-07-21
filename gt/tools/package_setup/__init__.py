@@ -3,6 +3,7 @@
  github.com/TrevisanGMW/gt-tools - 2023-06-01
 """
 from gt.tools.package_setup import setup_controller
+from gt.tools.package_setup import setup_model
 from gt.tools.package_setup import setup_view
 from PySide2.QtWidgets import QApplication
 from gt.utils import session_utils
@@ -32,25 +33,8 @@ def build_installer_gui(standalone=True):
         maya_window = get_maya_main_window()
         _view = setup_view.PackageSetupWindow(parent=maya_window)
 
-    # Create connections
-    _controller = setup_controller.PackageSetupController()
-    _view.controller = _controller  # To avoid garbage collection
-
-    # Buttons
-    _view.ButtonInstallClicked.connect(_controller.install_package)
-    _view.ButtonUninstallClicked.connect(_controller.uninstall_package)
-    _view.ButtonRunOnlyClicked.connect(_controller.run_only_package)
-
-    # Feedback
-    _controller.UpdatePath.connect(_view.update_installation_path_text_field)
-    _controller.UpdateVersion.connect(_view.update_version_texts)
-    _controller.UpdateStatus.connect(_view.update_status_text)
-    _controller.CloseView.connect(_view.close_window)
-
-    # Initial Update
-    _controller.update_path()
-    _controller.update_version()
-    _controller.update_status()
+    _model = setup_model.PackageSetupModel()
+    _controller = setup_controller.PackageSetupController(model=_model, view=_view)
 
     # Show window
     if standalone:

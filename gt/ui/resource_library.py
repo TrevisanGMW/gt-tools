@@ -2,6 +2,8 @@ import logging
 import os
 
 # Logging Setup
+from copy import deepcopy
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -178,6 +180,10 @@ class Icon:
     cog_icon = get_icon_path(r"cog.svg")
     scrollbar_up = get_icon_path(r"scrollbar_up.svg")
     scrollbar_down = get_icon_path(r"scrollbar_down.svg")
+    setup_install = get_icon_path(r"setup_install.svg")
+    setup_uninstall = get_icon_path(r"setup_uninstall.svg")
+    setup_run_only = get_icon_path(r"setup_run_only.svg")
+    setup_close = get_icon_path(r"setup_close.svg")
 
 
 class Color:
@@ -195,10 +201,16 @@ class Color:
         grey = '#808080'
         grey_dark = '#555555'
         red = '#FF0000'
-        red_soft = '#ffaaaa'
+        red_soft = '#FFAAAA'
+        red_softer = '#D45757'
+        red_dark = '#AF2D2D'
         green = '#20A500'
-        green_soft = '#aaffaa'
+        green_light = '#AAFFAA'
+        green_soft = '#609881'
+        green_dark = '#588C77'
         blue = '#0033FF'
+        blue_dark = '#006EA0'
+        blue_soft = '#00A0E8'
         orange = '#FFBB00'
         lime = '#32FF00'
         yellow = '#FFEE00'
@@ -277,36 +289,50 @@ class StylesheetVariables:
         "@maya_button_clicked;": Color.RGB.grey_darker,
         "@maya_selection;": Color.RGB.blue_soft_dark,
         "@maya_text;": Color.RGB.white_soft,
+        "@text_edit_border;": Color.RGB.grey,
         # Formatting
         "@maya_small_button_padding;": "5",
     }
-    maya_progress_bar = {
-        # Colors
-        "@maya_background_mid;": Color.RGB.grey,
-        "@maya_background_dark;": Color.RGB.grey_dark,
-        "@maya_background_darker;": Color.RGB.grey_darker,
-        "@maya_background_light;": Color.RGB.grey_mid,
-        "@maya_button;": Color.RGB.grey_light,
-        "@maya_button_hover;": Color.RGB.grey_lighter,
-        "@maya_button_clicked;": Color.RGB.grey_darker,
-        "@maya_selection;": Color.RGB.blue_soft_dark,
-        "@maya_text;": Color.RGB.white_soft,
-        "@progress_bar_background;": Color.RGB.grey_lighter,
-        "@progress_bar_chunk;": Color.RGB.blue_soft,
+    dark_scrollbar = {
+        "@background_mid;": Color.RGB.grey,
+        "@background_dark;": Color.RGB.grey_dark,
+        "@scroll_area_border;": Color.RGB.grey_lighter,
         "@scrollbar_line_background;": Color.RGB.grey_darker,
         "@scrollbar_sub_line;": Color.RGB.grey,
         "@scrollbar_handle;": Color.RGB.grey_lighter,
         "@scrollbar_handle_pressed;": Color.RGB.grey_much_lighter,
         "@scrollbar_background;": Color.RGB.grey_dark,
-        "@output_text_border;": Color.RGB.grey_lighter,
-        "@output_text_color;": Color.RGB.white_soft,
-        "@output_text_color_border;": Color.RGB.grey,
-        # Formatting
-        "@maya_small_button_padding;": "5",
         # Icons
         "@image_scrollbar_up;": f"url({Icon.scrollbar_up})".replace("\\", "/"),
         "@image_scrollbar_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
     }
+    dark_progress_bar = {
+        # Colors
+        "@progress_bar_background;": Color.RGB.grey_lighter,
+        "@progress_bar_chunk;": Color.RGB.blue_soft,
+    }
+    # Metro QToolButton Start ----------------------------------------------------------------
+    metro_tools_button_default = {
+        # Colors
+        "@tool_button_text;": Color.RGB.white,
+        "@tool_bg_hover_color;": Color.RGB.grey_lighter,
+        "@tool_bg_click_color;": Color.RGB.grey_darker,
+
+        # Formatting
+        "@tool_button_padding;": "35",
+        "@tool_button_font_size;": "16",
+        "@tool_button_border_radius;": "5",
+    }
+    metro_tools_button_blue = deepcopy(metro_tools_button_default)
+    metro_tools_button_blue["@tool_bg_hover_color;"] = Color.Hex.blue_soft
+    metro_tools_button_blue["@tool_bg_click_color;"] = Color.Hex.blue_dark
+    metro_tools_button_red = deepcopy(metro_tools_button_default)
+    metro_tools_button_red["@tool_bg_hover_color;"] = Color.Hex.red_softer
+    metro_tools_button_red["@tool_bg_click_color;"] = Color.Hex.red_dark
+    metro_tools_button_green = deepcopy(metro_tools_button_default)
+    metro_tools_button_green["@tool_bg_hover_color;"] = Color.Hex.green_soft
+    metro_tools_button_green["@tool_bg_click_color;"] = Color.Hex.green_dark
+    # Metro QToolButton End ------------------------------------------------------------------
 
 
 class Stylesheet:
@@ -314,10 +340,24 @@ class Stylesheet:
         """
         A library of stylesheets
         """
+    # Stylesheets Without Variations
     maya_basic_dialog = get_stylesheet_path(stylesheet_name="maya_basic_dialog",
                                             stylesheet_variables=StylesheetVariables.maya_basic)
-    maya_progress_bar = get_stylesheet_path(stylesheet_name="maya_progress_bar",
-                                            stylesheet_variables=StylesheetVariables.maya_progress_bar)
+    dark_progress_bar = get_stylesheet_path(stylesheet_name="dark_progress_bar",
+                                            stylesheet_variables=StylesheetVariables.dark_progress_bar)
+    dark_scroll_bar = get_stylesheet_path(stylesheet_name="dark_scroll_bar",
+                                          stylesheet_variables=StylesheetVariables.dark_scrollbar)
+    dark_list_widget = get_stylesheet_path(stylesheet_name="dark_list_widget",
+                                           stylesheet_variables=StylesheetVariables.dark_progress_bar)
+    # Metro Tool Button
+    metro_tool_button = get_stylesheet_path(stylesheet_name="metro_tool_button",
+                                            stylesheet_variables=StylesheetVariables.metro_tools_button_default)
+    metro_tool_button_red = get_stylesheet_path(stylesheet_name="metro_tool_button",
+                                                stylesheet_variables=StylesheetVariables.metro_tools_button_red)
+    metro_tool_button_blue = get_stylesheet_path(stylesheet_name="metro_tool_button",
+                                                 stylesheet_variables=StylesheetVariables.metro_tools_button_blue)
+    metro_tool_button_green = get_stylesheet_path(stylesheet_name="metro_tool_button",
+                                                  stylesheet_variables=StylesheetVariables.metro_tools_button_green)
 
 
 class Font:
@@ -336,6 +376,6 @@ class Font:
 if __name__ == "__main__":
     from pprint import pprint
     out = None
-    out = Stylesheet.maya_progress_bar
+    out = Stylesheet.dark_progress_bar
     pprint(out)
 

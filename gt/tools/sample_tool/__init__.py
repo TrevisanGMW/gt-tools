@@ -1,5 +1,5 @@
 """
- Sample Tool - A tool to be used as starting point or example for when creating new tools.
+ Sample Tool - To be used as starting point or example for when creating new tools.
  github.com/TrevisanGMW/gt-tools - 2023-07-17
 """
 from gt.tools.sample_tool import sample_controller
@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 
 def build_tool_example_gui(standalone=True):
     """
-    Creates tool GUI and its connections.
+    Creates Model, View and Controller
     Parameters:
         standalone (bool, optional): If true, it will run the tool without the Maya window dependency.
                                      If false, it will attempt to retrieve the name of the main maya window as parent.
@@ -35,23 +35,7 @@ def build_tool_example_gui(standalone=True):
     # Create connections
     _model = sample_model.SampleToolModel()
     _controller = sample_controller.SampleToolController(model=_model, view=_view)
-    # _view.controller = _controller  # To avoid garbage collection
-
-    # # Buttons
-    # _view.ButtonInstallClicked.connect(_controller.install_package)
-    # _view.ButtonUninstallClicked.connect(_controller.uninstall_package)
-    # _view.ButtonRunOnlyClicked.connect(_controller.run_only_package)
-    #
-    # # Feedback
-    # _controller.UpdatePath.connect(_view.update_installation_path_text_field)
-    # _controller.UpdateVersion.connect(_view.update_version_texts)
-    # _controller.UpdateStatus.connect(_view.update_status_text)
-    # _controller.CloseView.connect(_view.close_window)
-
-    # # Initial Update
-    # _controller.update_path()
-    # _controller.update_version()
-    # _controller.update_status()
+    _controller.update_view()
 
     # Show window
     if standalone:

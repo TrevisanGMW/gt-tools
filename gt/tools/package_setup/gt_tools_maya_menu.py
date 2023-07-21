@@ -402,7 +402,15 @@ def load_menu(*args):
                        command=partial(_open_named_tool, "render_calculator"),
                        tooltip="Helps calculate how long it's going to take to render an image sequence.",
                        icon=resource_library.Icon.render_calculator)
-
+    # ------------------------------------ Development ------------------------------------
+    if False:  # TODO - Replace with global variable
+        menu.add_sub_menu("Develop",
+                          icon=resource_library.Icon.about,
+                          parent_to_root=True)
+        menu.add_menu_item(label='Sample Tool',
+                           command=partial(_open_named_tool, "sample_tool"),
+                           tooltip="Opens sample tool.",
+                           icon=resource_library.Icon.about)
     # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
     menu.add_sub_menu("Help",
@@ -423,7 +431,7 @@ def load_menu(*args):
     menu.add_menu_item(label=f'Installed Version: {str(package_version)}',
                        enable=False,
                        icon=resource_library.Icon.current_version)
-
+    # ------------------------------------ End ------------------------------------
     menu_path = menu.create_menu()
     return menu_path
 
