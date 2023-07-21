@@ -1,5 +1,5 @@
 """
- Sample Tool - A tool to be used as starting point or example for when creating new tools.
+ Sample Tool - To be used as starting point or example for when creating new tools.
  github.com/TrevisanGMW/gt-tools - 2023-07-17
 """
 from gt.tools.sample_tool import sample_controller
@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 
 def build_tool_example_gui(standalone=True):
     """
-    Creates tool GUI and its connections.
+    Creates Model, View and Controller
     Parameters:
         standalone (bool, optional): If true, it will run the tool without the Maya window dependency.
                                      If false, it will attempt to retrieve the name of the main maya window as parent.
