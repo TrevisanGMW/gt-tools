@@ -25,13 +25,10 @@ class SampleToolWindow(QMainWindow):
         This window represents the main GUI window of the application.
 
         It contains a list of items, along with buttons to add and remove items.
-
-        Returns:
-            None
         """
         super().__init__()
 
-        self.setWindowTitle("MVC Example")
+        self.setWindowTitle("Sample Tool")
         self.setGeometry(100, 100, 400, 300)
 
         self.central_widget = QWidget(self)
@@ -53,13 +50,20 @@ class SampleToolWindow(QMainWindow):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
-        sample_stylesheet = resource_library.Stylesheet.maya_basic_dialog
-        sample_stylesheet += resource_library.Stylesheet.maya_list_widget
-        print(sample_stylesheet)
+        self.setWindowIcon(QIcon(resource_library.Icon.cog_icon))
+
+        sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
+        sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        sample_stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(sample_stylesheet)
 
     def update_view(self, items):
+        """
+        Updates the view with the provided items.
+
+        Parameters:
+            items (list): A list of items to be displayed in the view.
+        """
         self.item_list.clear()
         for item in items:
             self.item_list.addItem(item)
@@ -75,5 +79,5 @@ class SampleToolWindow(QMainWindow):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
     window = SampleToolWindow()  # View
-    window.show() # Open Windows
+    window.show()  # Open Windows
     sys.exit(app.exec_())
