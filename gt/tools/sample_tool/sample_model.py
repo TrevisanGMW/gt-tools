@@ -3,60 +3,52 @@ Sample Tool Model. (Logic, Database Access, Read/Write, Update Data)
 The Model represents the data and business logic of the application. It encapsulates the data, defines how it is
 structured, and provides methods to manipulate and access that data. The Model component is essentially responsible
 for the application's data layer. It does not know anything about the user interface or how the data is presented to
-the user. Instead, it focuses on managing data integrity, validation, and data rules.
+the user. Instead, it focuses on managing data integrity, validation, and business rules.
+
+In the example below, it's adding, removing and getting items from a list.
+But it could be writing/reading a file or processing the data from a scene.
 """
-import gt.utils.system_utils as system_utils
-import gt.utils.data_utils as data_utils
-import os.path
 
 
 class SampleToolModel:
     def __init__(self):
         """
-        Initializes the class instance.
-        This constructor sets the initial state of the object, creating an instance
-        of the class with an empty `_data` attribute.
+        Initialize the SampleToolModel object.
         """
-        self._data = ""
+        self.items = []
 
-    def get_data(self):
+    def add_item(self, item):
         """
-        Retrieves the stored data. (Data Getter)
-        This method returns the currently stored data within the instance.
+        Add an item to the list.
+        Parameters:
+            item: The item to be added.
+        """
+        self.items.append(item)
+
+    def remove_item(self, index):
+        """
+        Remove an item from the list based on its index.
+
+        Parameters:
+            index: The index of the item to be removed.
+
+        """
+        if 0 <= index < len(self.items):
+            del self.items[index]
+
+    def get_items(self):
+        """
+        Get the list of items.
         Returns:
-            str: The stored data.
+            list: A list containing all the items in the SampleToolModel.
         """
-        return self._data
-
-    def set_data(self, data):
-        """
-        Sets the data. (Data Setter)
-        This method updates the `_data` attribute of the instance with the provided data.
-        Args:
-            self (object): The instance of the class.
-            data (str): The data to be stored.
-        """
-        self._data = data
-
-    def write_data_to_desktop(self):
-        """
-        Writes the data to a file named 'sample_tool_data.txt' on the desktop.
-        This method retrieves the desktop path using system_utils.get_desktop_path(),
-        and then constructs the file path by joining the desktop path with the default
-        filename 'sample_tool_data.txt'. It writes the stored data to the file using
-        data_utils.write_data().
-        Note:
-            - "data_utils" and "system_utils" imported from "gt.utils"
-            - The data will be written to a file named 'sample_tool_data.txt' on the desktop.
-        """
-        desktop_path = system_utils.get_desktop_path()
-        file_path = os.path.join(desktop_path, "sample_tool_data.txt")
-        data_utils.write_data(path=file_path, data=self._data)
+        return self.items
 
 
 if __name__ == "__main__":
-    # Application - To launch without Maya
+    # The model should be able to work without the controller or view
     model = SampleToolModel()
-    model.set_data("test_data")
-    print(model.get_data())
-    model.write_data_to_desktop()
+    model.add_item("Test Item 1")
+    model.add_item("Test Item 2")
+    items = model.get_items()
+    print(items)
