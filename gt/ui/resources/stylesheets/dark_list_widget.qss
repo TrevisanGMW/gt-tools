@@ -22,30 +22,6 @@ QListWidget::item:selected:!active {
     color: #C8C8C8;
 }
 
-QScrollBar:vertical {
-    border: none;
-    background: #1E1E1E;
-    width: 10px;
-    margin: 0px;
-}
-
-QScrollBar::handle:vertical {
-    background-color: #606060;
-    min-height: 20px;
-}
-
-QScrollBar::add-line:vertical {
-    height: 0px;
-}
-
-QScrollBar::sub-line:vertical {
-    height: 0px;
-}
-
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-    background: none;
-}
-
 QListWidget::item:focus {
     outline: none;
 }

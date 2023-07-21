@@ -47,3 +47,10 @@ QComboBox::text{
     font-weight: 500;
     color: @maya_text;
 }
+
+QTextEdit {
+	color: @maya_text;
+	border: 1px solid @text_edit_border;
+	border-radius: 4px;
+	padding: 5px;
+}
