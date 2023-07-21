@@ -64,7 +64,10 @@ class ProgressBarWindow(QMainWindow):
         self.center()
         # Window Details
         self.setWindowTitle("Progress Bar")
-        self.setStyleSheet(resource_library.Stylesheet.maya_progress_bar)
+        progress_bar_stylesheet = resource_library.Stylesheet.maya_basic_dialog
+        progress_bar_stylesheet += resource_library.Stylesheet.dark_progress_bar
+        progress_bar_stylesheet += resource_library.Stylesheet.dark_scroll_bar
+        self.setStyleSheet(progress_bar_stylesheet)
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
 
     def center(self):
