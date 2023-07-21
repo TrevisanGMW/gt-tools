@@ -1,0 +1,14 @@
+QToolButton {
+        color: @tool_button_text;
+        border-radius: @tool_button_border_radius;
+		padding: @tool_button_padding;
+        font-size: @tool_button_font_size;
+}
+
+QToolButton:hover {
+	background-color: @tool_bg_hover_color;
+}
+
+QToolButton:pressed {
+	background-color: @tool_bg_click_color;
+}
