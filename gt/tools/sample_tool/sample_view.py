@@ -18,15 +18,20 @@ import sys
 
 
 class SampleToolWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, parent=None, controller=None):
         """
         Initialize the SampleToolWindow.
-
         This window represents the main GUI window of the application.
-
         It contains a list of items, along with buttons to add and remove items.
+
+        Parameters:
+            parent (str): Parent for this window
+            controller (SampleToolController): SampleToolController, not to be used, here so it's not deleted by
+                                                 the garbage collector.
         """
-        super().__init__()
+        super().__init__(parent=parent)
+
+        self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         self.setWindowTitle("Sample Tool")
         self.setGeometry(100, 100, 400, 300)

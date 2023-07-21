@@ -28,9 +28,9 @@ class SampleToolController:
         """
         self.model = model
         self.view = view
-
         self.view.add_button.clicked.connect(self.add_item_view)
         self.view.remove_button.clicked.connect(self.remove_item_view)
+        self.view.controller = self
 
     def add_item_view(self):
         """
