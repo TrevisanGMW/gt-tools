@@ -45,7 +45,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.text_status = None
 
         # Setup Window
-        _min_width = 200
+        _min_width = 700
         _min_height = 200
         self.setGeometry(0, 0, _min_width, _min_height)  # Args X, Y, W, H
         self.setMinimumWidth(_min_width)
