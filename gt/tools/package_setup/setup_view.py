@@ -11,16 +11,6 @@ from PySide2.QtCore import Qt
 import sys
 
 
-class ToolButton(QToolButton):
-    def sizeHint(self):
-        hint = super().sizeHint()
-        if hint.width() & 1:
-            hint.setWidth(hint.width() + 1)
-        if hint.height() & 1:
-            hint.setHeight(hint.height() + 1)
-        return hint
-
-
 class PackageSetupWindow(QtWidgets.QDialog):
     ButtonInstallClicked = QtCore.Signal()
     ButtonUninstallClicked = QtCore.Signal()
@@ -105,7 +95,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.text_status.setStyleSheet("color: green; font-weight: bold;")
 
         # Buttons
-        self.install_btn = ToolButton()
+        self.install_btn = QToolButton()
         self.uninstall_btn = QToolButton()
         self.run_only_btn = QToolButton()
         self.close_btn = QToolButton()
