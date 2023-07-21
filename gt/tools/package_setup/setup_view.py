@@ -21,7 +21,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         Initializes package setup model object
         Parameters:
             parent (str): Parent for this window
-            controller (PackageSetupController): PackageSetupController, not to be used, but to not be deleted by
+            controller (PackageSetupController): PackageSetupController, not to be used, here so it's not deleted by
                                                  the garbage collector.
         """
         super().__init__(parent=parent)
