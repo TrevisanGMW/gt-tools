@@ -5,6 +5,9 @@ It's what the users see and interact with. The View's primary role is to display
 relay the user's actions (such as clicking buttons) back to the Controller.
 It should NOT be coupled to the controller. You should be able to run the View independently and all it would do is
 send signals.
+
+It should be able to work independently of the view.
+One should be able to import it and run the tool without its GUI.
 """
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore

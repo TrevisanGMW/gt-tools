@@ -1,5 +1,5 @@
 """
-Sample Tool Model. (Database Access, Read/Write, Update Data)
+Sample Tool Model. (Logic, Database Access, Read/Write, Update Data)
 The Model represents the data and business logic of the application. It encapsulates the data, defines how it is
 structured, and provides methods to manipulate and access that data. The Model component is essentially responsible
 for the application's data layer. It does not know anything about the user interface or how the data is presented to
