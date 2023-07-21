@@ -7812,6 +7812,8 @@ def create_biped_rig(data_biped):
                                                sj=right_hip_ik_jnt,
                                                ee=right_ankle_ik_jnt,
                                                sol='ikRPsolver')
+
+
     # Test again (in case it's a false positive)
     right_ball_probe_start = cmds.xform(right_ball_ik_jnt, q=True, ws=True, t=True)
     right_ball_probe_end = cmds.xform(right_ball_fk_jnt, q=True, ws=True, t=True)
@@ -7868,6 +7870,9 @@ def create_biped_rig(data_biped):
     if cmds.objExists(elements_default.get('right_heel_proxy_pivot')):
         cmds.delete(
             cmds.pointConstraint(elements_default.get('right_heel_proxy_pivot'), right_heel_pivot_grp))
+
+    # Make sure pole vector was created - Hacky
+    cmds.poleVectorConstraint(right_knee_ik_ctrl, right_leg_rp_ik_handle[0])
 
     cmds.parent(right_foot_pivot_grp, rig_setup_grp)
     cmds.parent(right_heel_pivot_grp, right_foot_pivot_grp)
@@ -10411,9 +10416,10 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
 
     # Use Proxy Template
     biped_obj.debugging_import_proxy = True
-    import rigger_biped_gui
+
     if biped_obj.debugging_import_proxy:
-        gt_rigger_biped_gui.import_biped_proxy_pose(source_path=biped_obj.debugging_import_path)
+        from gt.tools.auto_rigger import rigger_biped_gui
+        rigger_biped_gui.import_biped_proxy_pose(source_path=biped_obj.debugging_import_path)
 
     # Create Controls
     if create_rig_ctrls:
@@ -10422,4 +10428,14 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
 
 # Test it
 if __name__ == '__main__':
-    build_test_biped_rig(create_rig_ctrls=False, debugging=True)
+    # build_test_biped_rig(create_rig_ctrls=False, debugging=True)
+    from gt.utils.scene_utils import force_reload_file
+    force_reload_file()
+    biped_obj = GTBipedRiggerData()
+    biped_obj.debugging = False
+    biped_obj.debugging_force_new_scene = True
+    biped_obj.settings['using_no_ssc_skeleton'] = False
+    biped_obj.settings['uniform_ctrl_orient'] = True
+    biped_obj.settings['worldspace_ik_orient'] = False
+    biped_obj.settings['simplify_spine'] = True
+    create_biped_rig(biped_obj)
