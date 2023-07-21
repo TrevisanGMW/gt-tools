@@ -11,6 +11,16 @@ from PySide2.QtCore import Qt
 import sys
 
 
+class ToolButton(QToolButton):
+    def sizeHint(self):
+        hint = super().sizeHint()
+        if hint.width() & 1:
+            hint.setWidth(hint.width() + 1)
+        if hint.height() & 1:
+            hint.setHeight(hint.height() + 1)
+        return hint
+
+
 class PackageSetupWindow(QtWidgets.QDialog):
     ButtonInstallClicked = QtCore.Signal()
     ButtonUninstallClicked = QtCore.Signal()
@@ -28,10 +38,14 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Variable Initializations
-        # self.label_logo = None
+        # Buttons
+        self.install_btn = None
+        self.uninstall_btn = None
+        self.run_only_btn = None
+        self.close_btn = None
         # Path
+        self.label_installation_path = None
         self.line_edit_installation_path = None
-        self.label_text_field = None
         # Version and Status
         self.label_setup_version = None
         self.text_setup_version = None
@@ -39,11 +53,6 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.text_installed_version = None
         self.label_status = None
         self.text_status = None
-        # Buttons
-        self.install_btn = None
-        self.uninstall_btn = None
-        self.run_only_btn = None
-        self.close_btn = None
 
         # Setup Window
         _min_width = 200
@@ -77,14 +86,9 @@ class PackageSetupWindow(QtWidgets.QDialog):
 
     def create_widgets(self):
         """ Creates widgets """
-        # Logo
-        # self.label_logo = QtWidgets.QLabel(self)
-        # logo_pixmap = QPixmap(resource_library.Icon.package_logo)
-        # self.label_logo.setPixmap(logo_pixmap)
-        # self.label_logo.resize(logo_pixmap.width(), logo_pixmap.height())
 
         # Text-field path
-        self.label_text_field = QtWidgets.QLabel("Installation Path:")
+        self.label_installation_path = QtWidgets.QLabel("Installation Path:")
         self.line_edit_installation_path = QtWidgets.QLineEdit()
         self.line_edit_installation_path.setPlaceholderText('<installation_target_path_placeholder>')
         self.line_edit_installation_path.setReadOnly(True)
@@ -101,10 +105,10 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.text_status.setStyleSheet("color: green; font-weight: bold;")
 
         # Buttons
-        self.install_btn = QToolButton(self)
-        self.uninstall_btn = QToolButton(self)
-        self.run_only_btn = QToolButton(self)
-        self.close_btn = QToolButton(self)
+        self.install_btn = ToolButton()
+        self.uninstall_btn = QToolButton()
+        self.run_only_btn = QToolButton()
+        self.close_btn = QToolButton()
         self.install_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.uninstall_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.run_only_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -114,14 +118,16 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.run_only_btn.setText("Run Only")
         self.close_btn.setText("Cancel")
 
-        button_size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        button_size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.install_btn.setSizePolicy(button_size_policy)
+        self.uninstall_btn.setSizePolicy(button_size_policy)
+        self.run_only_btn.setSizePolicy(button_size_policy)
+        self.close_btn.setSizePolicy(button_size_policy)
 
         self.install_btn.setStyleSheet(resource_library.Stylesheet.metro_tool_button_blue)
         self.uninstall_btn.setStyleSheet(resource_library.Stylesheet.metro_tool_button_red)
         self.run_only_btn.setStyleSheet(resource_library.Stylesheet.metro_tool_button_green)
         self.close_btn.setStyleSheet(resource_library.Stylesheet.metro_tool_button)
-
 
         # Icons
         icon_sizes = QtCore.QSize(50, 50)
@@ -138,39 +144,29 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.close_btn.setIcon(icon_close)
         self.close_btn.setIconSize(icon_sizes)
 
-        button_size = 150
-        self.install_btn.setFixedSize(button_size, button_size)
-        self.uninstall_btn.setFixedSize(button_size, button_size)
-        self.run_only_btn.setFixedSize(button_size, button_size)
-        self.close_btn.setFixedSize(button_size, button_size)
-
-        # self.install_btn.setFixedSize(icon.width(), icon.height())
-        # self.install_btn.setIconSize(pixmap.size())
-
-        # self.install_btn.setStyleSheet(
-        #     """
-        #     QPushButton {
-        #         font-size: 18px;
-        #         background-color: #0078d4; /* Set the desired background color */
-        #         border: none; /* Remove button border */
-        #         color: white; /* Set text color to white */
-        #         padding: 10px; /* Add some padding */
-        #     }
-        #
-        #     QPushButton:hover {
-        #         background-color: #005a9e; /* Change background color on hover */
-        #     }
-        #     """
-        # )
+        # button_size = 150
+        # self.install_btn.setFixedSize(button_size, button_size)
+        # self.uninstall_btn.setFixedSize(button_size, button_size)
+        # self.run_only_btn.setFixedSize(button_size, button_size)
+        # self.close_btn.setFixedSize(button_size, button_size)
 
     def create_layout(self):
         """ Creates layout """
-        # label_logo = QtWidgets.QHBoxLayout()
-        # label_logo.addWidget(self.label_logo)
+
+        # Buttons
+        button_layout = QtWidgets.QGridLayout()
+        button_layout.addWidget(self.install_btn, 0, 0)
+        button_layout.addWidget(self.uninstall_btn, 0, 1)
+        button_layout.addWidget(self.run_only_btn, 0, 2)
+        button_layout.addWidget(self.close_btn, 0, 3)
+        button_layout.setColumnStretch(0, 1)
+        button_layout.setColumnStretch(1, 1)
+        button_layout.setColumnStretch(2, 1)
+        button_layout.setColumnStretch(3, 1)
 
         # Add Layout
         target_path_layout = QtWidgets.QHBoxLayout()
-        target_path_layout.addWidget(self.label_text_field)
+        target_path_layout.addWidget(self.label_installation_path)
         target_path_layout.addWidget(self.line_edit_installation_path)
 
         # Version Information
@@ -182,21 +178,12 @@ class PackageSetupWindow(QtWidgets.QDialog):
         version_layout.addWidget(self.label_status)
         version_layout.addWidget(self.text_status)
 
-        # Action Buttons
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(self.install_btn)
-        button_layout.addWidget(self.uninstall_btn)
-        button_layout.addWidget(self.run_only_btn)
-        button_layout.addWidget(self.close_btn)
-
         # Build Main Layout
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)  # Margins L, T, R, B
-        # main_layout.addLayout(label_logo)
         main_layout.addLayout(button_layout)
-        main_layout.addLayout(version_layout)
         main_layout.addLayout(target_path_layout)
+        main_layout.addLayout(version_layout)
 
     def create_connections(self):
         """ Create Connections """
