@@ -22,6 +22,15 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 4. Ensure the test suite passes and add the results to your push request.
 5. Issue a pull request!
 
+### Push Request (PR) Reviews and Test Results:
+To ensure smooth integration and to minimize conflicts, it is ideal to include test results with the push request. 
+<br>This practice allows the reviewer to quickly determine that the code doesn't affect other elements of the package. 
+<br>By providing the test results, you are demonstrating a proactive approach to maintain code integrity.
+
+1. Add any new unittests to the tests [`__init__.py`](./tests/__init__.py) under the list "modules_to_test"
+2. Run all tests; The output will be a text result formatted for Github (Markdown). 
+3. Copy and paste the results as a comment on your PR.
+
 ## Report bugs using Github's [issues](https://github.com/TrevisanGMW/gt-tools/issues)
 
 We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/TrevisanGMW/gt-tools/issues/new/choose); Your contribution is invaluable to us!
