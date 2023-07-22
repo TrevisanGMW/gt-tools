@@ -22,8 +22,8 @@ class PackageSetupModel(QtCore.QObject):
     CloseView = QtCore.Signal()
     UpdatePath = QtCore.Signal(object)
     UpdateStatus = QtCore.Signal(object)
-    UpdateVersion = QtCore.Signal(object, object)
-
+    UpdateVersionSetup = QtCore.Signal(object)  # 1: Current Package Version
+    UpdateVersionInstalled = QtCore.Signal(object)  # 2: Installed Version
     def __init__(self, *args, **kwargs):
         """
         Initializes package setup model object
@@ -131,7 +131,8 @@ class PackageSetupModel(QtCore.QObject):
     def update_version(self):
         setup_version = version_utils.get_package_version()
         installed_version = version_utils.get_package_version(package_path=self.get_install_target_dir())
-        self.UpdateVersion.emit(setup_version, installed_version)  # 1: Current Package Version, 2: Installed Version
+        self.UpdateVersionSetup.emit(setup_version)
+        self.UpdateVersionInstalled.emit(installed_version)
 
     def close_view(self):
         self.CloseView.emit()
