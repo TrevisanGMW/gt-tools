@@ -332,6 +332,24 @@ def set_current_time(frame):
     return cmds.currentTime(frame)
 
 
+def eval_mel_code(mel_code_string):
+    """
+   Evaluates the given MEL (Maya Embedded Language) code string and returns the result.
+
+   Parameters:
+       mel_code_string (str): The MEL code string to be evaluated.
+
+   Returns:
+       Any: The result of evaluating the MEL code.
+
+   Example:
+       mel_code_string = "polyCube()"
+       eval_mel_code(mel_code_string)
+       Result: "pCube1"
+   """
+    return mel.eval(mel_code_string)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     import maya.standalone

@@ -220,10 +220,51 @@ def prepend_sys_path(new_path):
     sys.path.insert(0, new_path)
 
 
+def get_maya_version():
+    """
+    Get the version of Autodesk Maya.
+
+    Returns:
+        str: The version of Maya if successful, otherwise returns None.
+    """
+    try:
+        import maya.cmds as cmds
+        return cmds.about(version=True)
+    except Exception as e:
+        logger.debug(str(e))
+        logger.debug(f'Unable to retrieve version using "cmds". Trying with "mel"...')
+        try:
+            import maya.mel as mel
+            return mel.eval("about -v;")
+        except ImportError:
+            logger.warning(f'Unable to retrieve Maya version')
+            return None
+
+
+def is_maya_standalone_initialized():
+    """
+    Check if Maya standalone mode has been initialized.
+
+    This function attempts to access a Maya function that is only available in standalone mode,
+    without making any changes to the scene.
+
+    Returns:
+        bool: True if Maya standalone mode has been initialized, False otherwise.
+    """
+    try:
+        import maya.cmds as cmds
+        cmds.about(version=True) # Attempt to access a Maya function that is only available when initialized
+        return True
+    except Exception as e:
+        logger.debug(str(e))
+        return False    # If an exception is raised, it means maya.standalone has not been initialized
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
     out = None
-    out = filter_loaded_modules_path_containing(["gt-tools", "sys"])
+    # out = filter_loaded_modules_path_containing(["gt-tools", "sys"])
+    out = is_maya_standalone_initialized()
     pprint(out)

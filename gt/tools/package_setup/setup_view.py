@@ -1,6 +1,5 @@
 """
-Package Setup View
-This script should only emit signals and deal with UI (View) - No unrelated logic here
+Package Setup View - GUI
 """
 from PySide2.QtWidgets import QToolButton, QSizePolicy
 import gt.ui.resource_library as resource_library
@@ -12,6 +11,19 @@ import sys
 
 
 class PackageSetupWindow(QtWidgets.QDialog):
+    """
+    PackageSetupWindow class represents a dialog window for package setup.
+
+    Signals:
+        ButtonInstallClicked: Signal emitted when the 'Install' button is clicked.
+        ButtonUninstallClicked: Signal emitted when the 'Uninstall' button is clicked.
+        ButtonRunOnlyClicked: Signal emitted when the 'Run Only' button is clicked.
+
+    Parameters:
+        parent (QWidget): The parent widget for this window.
+        controller (PackageSetupController): The PackageSetupController instance, not used here, but retained to
+                                             prevent it from being deleted by the garbage collector.
+    """
     ButtonInstallClicked = QtCore.Signal()
     ButtonUninstallClicked = QtCore.Signal()
     ButtonRunOnlyClicked = QtCore.Signal()
@@ -20,7 +32,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         """
         Initializes package setup model object
         Parameters:
-            parent (str): Parent for this window
+            parent (QWidget, str): The parent widget for this window.
             controller (PackageSetupController): PackageSetupController, not to be used, here so it's not deleted by
                                                  the garbage collector.
         """
@@ -38,11 +50,8 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.line_edit_installation_path = None
         # Version and Status
         self.label_setup_version = None
-        self.text_setup_version = None
         self.label_installed_version = None
-        self.text_installed_version = None
         self.label_status = None
-        self.text_status = None
 
         # Setup Window
         _min_width = 700
@@ -64,8 +73,8 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.adjustSize()
         self.setMinimumWidth(self.width())
         self.setMinimumHeight(self.height())
-        # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
         self.center()
+        # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)  # Todo: Custom window border
 
     def center(self):
         """ Moves window to the center of the screen """
@@ -84,15 +93,9 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.line_edit_installation_path.setReadOnly(True)
 
         # Versions and Status
-        self.label_setup_version = QtWidgets.QLabel("Setup Version:")
-        self.text_setup_version = QtWidgets.QLabel("?.?.?")
-        self.text_setup_version.setStyleSheet("color: green; font-weight: bold;")
-        self.label_installed_version = QtWidgets.QLabel("Installed Version:")
-        self.text_installed_version = QtWidgets.QLabel("?.?.?")
-        self.text_installed_version.setStyleSheet("color: green; font-weight: bold;")
-        self.label_status = QtWidgets.QLabel("Status:")
-        self.text_status = QtWidgets.QLabel("<status_placeholder>")
-        self.text_status.setStyleSheet("color: green; font-weight: bold;")
+        self.label_setup_version = QtWidgets.QLabel("?.?.?")
+        self.label_installed_version = QtWidgets.QLabel("?.?.?")
+        self.label_status = QtWidgets.QLabel("<status_placeholder>")
 
         # Buttons
         self.install_btn = QToolButton()
@@ -134,15 +137,8 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.close_btn.setIcon(icon_close)
         self.close_btn.setIconSize(icon_sizes)
 
-        # button_size = 150
-        # self.install_btn.setFixedSize(button_size, button_size)
-        # self.uninstall_btn.setFixedSize(button_size, button_size)
-        # self.run_only_btn.setFixedSize(button_size, button_size)
-        # self.close_btn.setFixedSize(button_size, button_size)
-
     def create_layout(self):
         """ Creates layout """
-
         # Buttons
         button_layout = QtWidgets.QGridLayout()
         button_layout.addWidget(self.install_btn, 0, 0)
@@ -154,21 +150,18 @@ class PackageSetupWindow(QtWidgets.QDialog):
         button_layout.setColumnStretch(2, 1)
         button_layout.setColumnStretch(3, 1)
 
-        # Add Layout
+        # Install Path
         target_path_layout = QtWidgets.QHBoxLayout()
         target_path_layout.addWidget(self.label_installation_path)
         target_path_layout.addWidget(self.line_edit_installation_path)
 
-        # Version Information
+        # Version
         version_layout = QtWidgets.QHBoxLayout()
         version_layout.addWidget(self.label_setup_version)
-        version_layout.addWidget(self.text_setup_version)
         version_layout.addWidget(self.label_installed_version)
-        version_layout.addWidget(self.text_installed_version)
         version_layout.addWidget(self.label_status)
-        version_layout.addWidget(self.text_status)
 
-        # Build Main Layout
+        # Build Main Layout ------------------------------------------------
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)  # Margins L, T, R, B
         main_layout.addLayout(button_layout)
@@ -199,14 +192,73 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.ButtonRunOnlyClicked.emit()
 
     def update_installation_path_text_field(self, new_path):
+        """
+        Updates the installation path text field with the given new path.
+        Parameters:
+            new_path (str): The new installation path to display.
+        """
         self.line_edit_installation_path.setText(new_path)
 
-    def update_version_texts(self, new_setup_version, new_installed_version):
-        self.text_setup_version.setText(new_setup_version)
-        self.text_installed_version.setText(new_installed_version)
+    @staticmethod
+    def update_formatted_label(target_label,
+                               new_title,
+                               new_text_output,
+                               title_size=3,
+                               title_color="grey",
+                               version_size=4,
+                               version_color="white",
+                               overall_alignment="center"):
+        """
+        Updates the target QLabel with formatted text containing a title and text output.
+
+        Parameters:
+           target_label (QtWidgets.QLabel): The QLabel to update with the formatted text.
+           new_title (str): The title to be displayed before the new_text_output.
+           new_text_output (str): The text output to be displayed after the new_title.
+           title_size (int, optional): The font size of the title. Default is 3.
+           title_color (str, optional): The color of the title. Default is "grey".
+           version_size (int, optional): The font size of the text output. Default is 4.
+           version_color (str, optional): The color of the text output. Default is "white".
+           overall_alignment (str, optional): The overall alignment of the formatted text. Default is "center".
+                                              Possible values are "left", "center", and "right".
+        """
+        _html = f"<html><div style='text-align:{overall_alignment};'>"
+        _html += f"<font size='{str(title_size)}' color='{title_color}'>{new_title}: </font>"
+        _html += f"<b><font size='{str(version_size)}' color='{version_color}'>{new_text_output}</font></b>"
+        _html += "</div></html>"
+        target_label.setText(_html)
+
+    def update_version_current_setup(self, new_setup_version):
+        """
+        Updates the current setup version text with the given new version.
+        Parameters:
+            new_setup_version (str): The new setup version to display.
+        """
+        self.update_formatted_label(target_label=self.label_setup_version,
+                                    new_title="Setup Version",
+                                    new_text_output=new_setup_version,
+                                    overall_alignment="left")
+
+    def update_version_installed(self, new_installed_version):
+        """
+        Updates the installed version text with the given new version.
+        Parameters:
+            new_installed_version (str): The new installed version to display.
+        """
+        self.update_formatted_label(target_label=self.label_installed_version,
+                                    new_title="Installed Version",
+                                    new_text_output=new_installed_version)
 
     def update_status_text(self, new_status):
-        self.text_status.setText(new_status)
+        """
+        Updates the status text with the given new status.
+        Parameters:
+            new_status (str): The new status to display.
+        """
+        self.update_formatted_label(target_label=self.label_status,
+                                    new_title="Status",
+                                    new_text_output=new_status,
+                                    overall_alignment="right")
 
 
 if __name__ == "__main__":

@@ -151,14 +151,17 @@ def get_maya_preferences_dir(system):
     mac_maya_preferences_dir = ""
     if system == OS_WINDOWS:
         win_maya_preferences_dir = os.path.expanduser('~')
-        win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "Documents")
+        try:
+            import maya.cmds as cmds
+            if cmds.about(batch=True):
+                raise
+        except Exception as e:
+            win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "Documents")
+            logger.debug(f'Got Maya preferences path from outside Maya. Reason: {str(e)}')
         win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
     elif system == OS_MAC:
         mac_maya_preferences_dir = os.path.expanduser('~')
-        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Library")
-        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Preferences")
-        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Autodesk")
-        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "maya")
+        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Library", "Preferences", "Autodesk", "maya")
 
     maya_preferences_paths = {
         OS_LINUX: "/usr/bin/",
@@ -540,4 +543,5 @@ if __name__ == "__main__":
     out = None
     logger.setLevel(logging.DEBUG)
     out = os.environ.keys()
+    out = get_maya_preferences_dir(get_system())
     pprint(out)

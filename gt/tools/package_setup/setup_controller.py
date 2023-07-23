@@ -26,14 +26,15 @@ class PackageSetupController:
 
         # Feedback
         self.model.UpdatePath.connect(self.view.update_installation_path_text_field)
-        self.model.UpdateVersion.connect(self.view.update_version_texts)
+        self.model.UpdateVersionSetup.connect(self.view.update_version_current_setup)
+        self.model.UpdateVersionInstalled.connect(self.view.update_version_installed)
         self.model.UpdateStatus.connect(self.view.update_status_text)
         self.model.CloseView.connect(self.view.close_window)
 
         # Initial Update
         self.model.update_path()
-        self.model.update_version()
         self.model.update_status()
+        self.model.update_version()
 
 
 if __name__ == "__main__":

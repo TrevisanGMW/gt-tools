@@ -189,7 +189,8 @@ class FeedbackMessage:
             inview_message += f'</span>'  # End general style span ---
         return inview_message
 
-    def print_inview_message(self, position="botLeft", alpha=0.9, print_message=True, fail_to_system_write=True):
+    def print_inview_message(self, position="botLeft", alpha=0.9, stay_time=2000,
+                             print_message=True, system_write=True):
         """
         Prints feedback in Maya using the inview command.
         Parameters:
@@ -206,14 +207,15 @@ class FeedbackMessage:
                                       "botCenter"
                                       "botRight"
             alpha (float, optional): 0 to 1 value determining the alpha of the message (its opacity)
+            stay_time (int): Sets how long the image stays at max opacity (milliseconds). Default: 2000
             print_message (bool, optional): If false, the print command is ignored.
-            fail_to_system_write (bool, optional): If active, it will deliver a "sys.stdout.write"
+            system_write (bool, optional): If active, it will also deliver a "sys.stdout.write" with the message.
         """
         if not print_message:
             return
         cmds.inViewMessage(amg=self.get_inview_formatted_message(),
-                           position=position, fade=True, alpha=alpha)
-        if fail_to_system_write:
+                           position=position, fade=True, alpha=alpha, fadeStayTime=stay_time)
+        if system_write:
             sys.stdout.write(f"{self.get_string_message()}\n")
 
 

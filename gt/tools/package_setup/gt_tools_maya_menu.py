@@ -87,7 +87,7 @@ def load_menu(*args):
         str: The path of the created menu.
     """
     logger.debug(f'Args: {str(args)}')
-    package_version = get_package_version()
+    package_version = get_package_version() or "?.?.?"
 
     menu = MayaMenu(MENU_NAME)
     # ------------------------------------ General / Tools ------------------------------------
