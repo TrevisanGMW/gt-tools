@@ -18,6 +18,12 @@ from gt.utils import version_utils
 
 
 class TestVersionUtils(unittest.TestCase):
+    def setUp(self):
+        maya_test_tools.delete_test_temp_dir()
+
+    def tearDown(self):
+        maya_test_tools.delete_test_temp_dir()
+
     def test_parse_semantic_version(self):
         expected = (1, 2, 3)
         result = version_utils.parse_semantic_version(version_string="1.2.3")
@@ -81,27 +87,15 @@ class TestVersionUtils(unittest.TestCase):
         result = version_utils.compare_versions(version_a="2.2.3", version_b="1.6.7")
         self.assertEqual(expected, result)
 
-    @patch('os.path.exists')
-    def test_get_package_version_bad_path(self, mock_eval):
-        result = version_utils.get_package_version(package_path="mocked_package_path")
-        mock_eval.assert_called_once()
-        expected = None
-        self.assertEqual(expected, result)
+    def test_get_package_version(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        mocked_module_init = os.path.join(test_temp_dir, "__init__.py")
+        with open(mocked_module_init, 'w') as file:
+            file.write(f'__version__ = "1.2.3"')
 
-    @patch('sys.path')
-    @patch('os.path.exists')
-    def test_get_package_version(self, mock_exists, mock_path):
-        mock_exists.return_value = True
-        mock_path.return_value = ['/mocked/path', 'mocked_package_path']
-        with patch('builtins.__import__') as mock_import:
-            mock_instance = MagicMock()
-            mock_instance.__version__ = '1.2.3'
-            mock_import.return_value = mock_instance
-            result = version_utils.get_package_version(package_path="mocked_package_path")
-            mock_exists.assert_called_once()
-            mock_import.assert_called_once()
-            expected = '1.2.3'
-            self.assertEqual(expected, result)
+        result = version_utils.get_package_version(package_path=test_temp_dir)
+        expected = '1.2.3'
+        self.assertEqual(expected, result)
 
     def test_valid_versions(self):
         # Valid semantic versions

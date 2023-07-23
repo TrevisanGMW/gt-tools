@@ -62,7 +62,7 @@ def parse_semantic_version(version_string):
     """
     try:
         version_string = re.sub("[^\d.]", "", version_string)  # Remove non-digits (keeps ".")
-        major, minor, patch = map(int, version_string.split('.'))
+        major, minor, patch = map(int, version_string.split('.')[:3])
         return SemanticVersion(major=major, minor=minor, patch=patch)
     except ValueError:
         raise ValueError(f'Invalid version format: "{version_string}". Use semantic versioning: e.g. "1.2.3".')
