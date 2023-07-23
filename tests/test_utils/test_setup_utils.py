@@ -462,6 +462,13 @@ class TestSetupUtils(unittest.TestCase):
         result = os.path.exists(mocked_file_name)
         self.assertEqual(expected, result)
 
+    @patch('gt.utils.setup_utils.get_available_maya_preferences_dirs')
+    def test_is_legacy_version_install_present(self, mocked_maya_preferences_dirs):
+        mocked_maya_preferences_dirs.return_value = {}
+        result = setup_utils.is_legacy_version_install_present()
+        expected = False
+        self.assertEqual(expected, result)
+
     @patch('gt.utils.setup_utils.check_installation_integrity')
     @patch('gt.utils.setup_utils.remove_legacy_entry_point_from_maya_installs')
     @patch('gt.utils.setup_utils.copy_package_loader_to_maya_installs')
