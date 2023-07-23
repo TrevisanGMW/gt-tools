@@ -3,7 +3,7 @@ Setup Utilities - install/uninstall package from system
 """
 from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
-from gt.utils.session_utils import remove_modules_startswith
+from gt.utils.session_utils import remove_modules_startswith, get_maya_version
 from gt.utils.feedback_utils import print_when_true
 import maya.cmds as cmds
 import logging
@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 PACKAGE_NAME = "gt-tools"
-PACKAGE_REQUIREMENTS = ['gt']
+PACKAGE_MAIN_MODULE = 'gt'
+PACKAGE_REQUIREMENTS = [PACKAGE_MAIN_MODULE]
 PACKAGE_DIRS = ['tools', 'ui', 'utils']
 PACKAGE_ENTRY_LINE = 'python("import gt_tools_loader");'
 PACKAGE_LEGACY_LINE = 'source "gt_tools_menu.mel";'
@@ -516,11 +517,60 @@ def uninstall_package(verbose=True, callbacks=None):
     return True
 
 
+def is_legacy_version_install_present(check_version=None):
+    """
+    Checks if a legacy version of a Maya tool is installed.
+
+    This function determines if a legacy version of a Maya tool is installed by checking for the presence of specific
+    files and a specific line within one of the files.
+    It looks for two specific files, 'gt_tools_menu.mel' and 'userSetup.mel', within the 'scripts' folder of the
+    current Maya preferences directory (current version). If any of these files are missing, it is considered
+    as a sign of a corrupted or missing legacy installation, and the function returns False.
+
+    If the files are found, the function checks for the PACKAGE_LEGACY_LINE within 'userSetup.mel'
+    to determine if the legacy version is fully installed. If the line is found, it indicates that the legacy version
+    is present, and the function returns True.
+
+    Parameters:
+        check_version (str, optional): A version to check. If provided, then it will not attempt to retrieve
+                                       current version, but will instead use provided string. e.g. "2024"
+
+    Returns:
+        bool: True if the legacy version is installed, False otherwise.
+    """
+    if check_version:
+        current_version = check_version
+    else:
+        current_version = get_maya_version()
+    maya_preferences = get_available_maya_preferences_dirs(use_maya_commands=True)
+    old_menu_file = "gt_tools_menu.mel"
+    old_user_setup = "userSetup.mel"
+    old_install_files = [old_menu_file, old_user_setup]
+    current_preferences_dir = maya_preferences.get(str(current_version))  # For current version e.g. 2024
+
+    if not current_preferences_dir:  # If preferences were not found, exit early
+        return False
+    scripts_folder = os.path.join(current_preferences_dir, 'scripts')
+
+    for files in old_install_files:  # If old files were not found, it's corrupted or missing
+        old_file = os.path.join(scripts_folder, files)
+        if not os.path.exists(old_file):
+            return False
+
+    old_user_setup = os.path.join(scripts_folder, old_user_setup)
+    with open(old_user_setup, "r") as file:
+        file_content = file.read()
+        if PACKAGE_LEGACY_LINE in file_content:
+            return True
+    return False
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
     # logger.setLevel(logging.DEBUG)
     out = None
-    out = install_package()
+    # out = install_package()
+    out = is_legacy_version_install_present()
     pprint(out)
