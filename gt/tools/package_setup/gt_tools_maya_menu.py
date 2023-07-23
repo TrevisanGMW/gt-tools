@@ -214,9 +214,9 @@ def load_menu(*args):
                        icon='QR_QuickRigTool.png')
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
-    menu.add_menu_item(label='Extract Bound Joints',
-                       command=partial(_open_named_tool, "extract_bound_joints"),
-                       tooltip='Generate Python code used to select bound joints.',
+    menu.add_menu_item(label='Extract Influence Joints',
+                       command=partial(_open_named_tool, "extract_influence_joints"),
+                       tooltip='Generate Python code used to select influence (bound) joints.',
                        icon='smoothSkin.png')
     menu.add_menu_item(label='Connect Attributes',
                        command=partial(_open_named_tool, "connect_attributes"),
