@@ -79,15 +79,11 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
 <img src="./media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
-     width="1000" 
+     width="1000"
      align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
 <br>Here is how you do it in more details:</p>
-
-<img src="./media/setup_window.jpg"
-     alt="GT Tools Installation Setup Window"
-     align="center">
 
 <ol>
 	<li>Open Maya (in case it's closed).</li>
@@ -98,6 +94,13 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
 	<li>Enjoy!</li>
 </ol>
+
+Here is an image of the setup window (installer) for reference:
+<img src="./media/setup_window.jpg"
+     alt="GT Tools Installation Setup Window"
+     width: 60%;
+     height: auto;
+     align="center">
 
 <p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
