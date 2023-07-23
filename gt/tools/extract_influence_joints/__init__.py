@@ -32,6 +32,10 @@
      Add Transfer functions
      Add option to include maya.cmds
 """
+# Tool Version
+__version_tuple__ = (1, 1, 5)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -39,8 +43,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Extract Bound Joints.
     """
-    from gt.tools.extract_bound_joints import extract_bound_joints
-    extract_bound_joints.build_gui_extract_bound_joints()
+    from gt.tools.extract_influence_joints import extract_influence_joints
+    extract_influence_joints.script_version = __version__
+    extract_influence_joints.build_gui_extract_influence_joints()
 
 
 if __name__ == "__main__":

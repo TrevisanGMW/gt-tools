@@ -182,9 +182,4 @@ if __name__ == "__main__":
     # maya.standalone.initialize()
     out = None
     out = is_semantic_version("1.22.3", metadata_ok=False)
-    # print(get_legacy_package_version())
-    out = get_package_version()
     pprint(out)
-    out = get_package_version(package_path=r"C:\Users\guilherme.trevisan\Documents\maya\gt-tools\gt")
-    pprint(out)
-
