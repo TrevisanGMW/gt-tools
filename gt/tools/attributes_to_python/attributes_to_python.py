@@ -3,21 +3,14 @@
  github.com/TrevisanGMW/gt-tools - 2021-12-01
 """
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
 
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -28,7 +21,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT Attributes to Python'
 
 # Version:
-script_version = "1.0.1"
+script_version = "?.?.?"  # Module version (init)
 
 DIMENSIONS = ['x', 'y', 'z']
 DEFAULT_CHANNELS = ['t', 'r', 's']

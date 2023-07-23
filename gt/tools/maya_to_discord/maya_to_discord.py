@@ -56,7 +56,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Maya to Discord"
 
 # Versions:
-script_version = "1.6.2"
+script_version = "?.?.?"  # Module version (init)
 maya_version = cmds.about(version=True)
 
 # Python Version

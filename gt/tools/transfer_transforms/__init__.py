@@ -40,6 +40,10 @@
  Removed a few unnecessary lines
  PEP8 Cleanup
 """
+# Tool Version
+__version_tuple__ = (1, 6, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -48,6 +52,7 @@ def launch_tool():
     Entry point for when using the tool GT Transfer Transforms.
     """
     from gt.tools.transfer_transforms import transfer_transforms
+    transfer_transforms.script_version = __version__
     transfer_transforms.build_gui_transfer_transforms()
 
 

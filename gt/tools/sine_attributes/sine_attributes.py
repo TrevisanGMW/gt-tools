@@ -21,7 +21,7 @@ import re
 script_name = "GT - Add Sine Attributes"
 
 # Version:
-script_version = "1.1.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Main Form ============================================================================

@@ -46,6 +46,10 @@
  Added pin as an option for the custom curve dialog
  Small clean up to the code and docs
 """
+# Tool Version
+__version_tuple__ = (1, 9, 2)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -54,6 +58,7 @@ def launch_tool():
     Entry point for when using the tool GT Create Auto FK.
     """
     from gt.tools.create_auto_fk import create_auto_fk
+    create_auto_fk.script_version = __version__
     create_auto_fk.build_gui_auto_fk()
 
 

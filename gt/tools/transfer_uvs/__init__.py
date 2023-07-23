@@ -20,6 +20,10 @@
  Added logger
  Added patch to version
 """
+# Tool Version
+__version_tuple__ = (1, 3, 0)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -28,6 +32,7 @@ def launch_tool():
     Entry point for when using the tool GT Transfer UVs.
     """
     from gt.tools.transfer_uvs import transfer_uvs
+    transfer_uvs.script_version = __version__
     transfer_uvs.build_gui_uv_transfer()
 
 

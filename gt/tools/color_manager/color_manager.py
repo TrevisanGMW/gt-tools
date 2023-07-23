@@ -30,7 +30,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Color Manager"
 
 # Version
-script_version = "1.5.0"
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major

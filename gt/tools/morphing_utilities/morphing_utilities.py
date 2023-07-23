@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Morphing Utilities"
 
 # Version:
-script_version = "1.3.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 morphing_util_settings = {'morphing_obj': '',

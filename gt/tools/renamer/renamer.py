@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Renamer"
 
 # Version:
-script_version = "1.6.3"
+script_version = "?.?.?"  # Module version (init)
 
 # Auto Suffix/Prefix Strings and other settings:
 gt_renamer_settings = {'transform_suffix': '_grp',

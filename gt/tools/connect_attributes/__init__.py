@@ -33,6 +33,10 @@
  Added patch to version
  PEP8 cleanup
 """
+# Tool Version
+__version_tuple__ = (1, 8, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -41,6 +45,7 @@ def launch_tool():
     Entry point for when using the tool GT Connect Attributes.
     """
     from gt.tools.connect_attributes import connect_attributes
+    connect_attributes.script_version = __version__
     connect_attributes.build_gui_connect_attributes()
 
 

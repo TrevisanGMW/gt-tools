@@ -18,7 +18,7 @@ import re
 script_name = "GT Path Manager"
 
 # Version
-script_version = '1.2.3'
+script_version = "?.?.?"  # Module version (init)
 
 # Logging Setup
 logging.basicConfig()

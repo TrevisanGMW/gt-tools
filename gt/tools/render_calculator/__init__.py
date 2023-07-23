@@ -12,6 +12,10 @@
  1.0.1 - 2022-07-21
  Updated help link
 """
+# Tool Version
+__version_tuple__ = (1, 0, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -20,6 +24,7 @@ def launch_tool():
     Entry point for when using the tool GT Render Calculator.
     """
     from gt.tools.render_calculator import render_calculator
+    render_calculator.script_version = __version__
     render_calculator.build_gui_render_calculator()
 
 

@@ -25,7 +25,7 @@ import sys
 import os
 
 # Script Version
-script_version = "1.3.3"
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major

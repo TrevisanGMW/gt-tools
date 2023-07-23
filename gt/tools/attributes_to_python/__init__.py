@@ -24,6 +24,10 @@
     Add options
 """
 
+__version_tuple__ = (1, 0, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+
 
 def launch_tool():
     """
@@ -31,6 +35,7 @@ def launch_tool():
     Entry point for when using the tool GT Attributes to Python.
     """
     from gt.tools.attributes_to_python import attributes_to_python
+    attributes_to_python.script_version = __version__
     attributes_to_python.build_gui_attr_to_python()
 
 

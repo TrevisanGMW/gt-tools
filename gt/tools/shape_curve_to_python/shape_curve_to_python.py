@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Python Curve"
 
 # Version:
-script_version = "1.6.3"
+script_version = "?.?.?"  # Module version (init)
 
 # Default Settings
 close_curve = False

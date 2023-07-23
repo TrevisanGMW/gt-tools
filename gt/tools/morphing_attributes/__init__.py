@@ -33,6 +33,10 @@
  Small changes to the system out text behaviour when selecting a blend shape
  Updated icon
 """
+# Tool Version
+__version_tuple__ = (1, 1, 2)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -41,6 +45,7 @@ def launch_tool():
     Entry point for when using the tool GT Morphing Attributes.
     """
     from gt.tools.morphing_attributes import morphing_attributes
+    morphing_attributes.script_version = __version__
     morphing_attributes.build_gui_morphing_attributes()
 
 

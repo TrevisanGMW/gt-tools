@@ -46,6 +46,10 @@
      Add Selection base on Shader name, Texture, TRS
      Add choice between transform and shape for outliner color
 """
+# Tool Version
+__version_tuple__ = (1, 7, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -54,6 +58,7 @@ def launch_tool():
     Entry point for when using the tool GT Selection Manager.
     """
     from gt.tools.selection_manager import selection_manager
+    selection_manager.script_version = __version__
     selection_manager.build_gui_selection_manager()
 
 

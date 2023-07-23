@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Text Curve Generator"
 
 # Version
-script_version = "1.4.1"
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major

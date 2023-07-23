@@ -27,7 +27,7 @@ logger = logging.getLogger("gt_startup_booster")
 logger.setLevel(logging.INFO)
 
 # Script Version
-script_version = "1.1.1"
+script_version = "?.?.?"  # Module version (init)
 
 # Script Version
 script_name = "GT Startup Booster"

@@ -59,8 +59,8 @@ logging.basicConfig()
 logger = logging.getLogger("gt_check_for_updates")
 logger.setLevel(logging.INFO)
 
-# Script Version (This Script)
-script_version = '1.7.1'
+# Script Version
+script_version = "?.?.?"  # Module version (init)
 gt_tools_latest_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
 gt_tools_tag_release_api = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 

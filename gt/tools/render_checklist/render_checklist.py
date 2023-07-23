@@ -34,7 +34,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Render Checklist"
 
 # Versions
-script_version = "1.4.4"
+script_version = "?.?.?"  # Module version (init)
 maya_version = cmds.about(version=True)
 
 # Status Colors

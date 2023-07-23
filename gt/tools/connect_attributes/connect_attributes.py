@@ -21,7 +21,7 @@ except ImportError:
 script_name = "GT Connect Attributes"
 
 # Version:
-script_version = "1.8.1"
+script_version = "?.?.?"  # Module version (init)
 
 settings = {'target_list': [],
             'source_obj': [],

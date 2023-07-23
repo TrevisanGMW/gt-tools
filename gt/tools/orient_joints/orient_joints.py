@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Orient Joints"
 
 # Version:
-script_version = "0.0.4"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Renamer UI ============================================================================

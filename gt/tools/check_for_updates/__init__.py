@@ -60,6 +60,10 @@
         cmds.optionVar(q=("gt_check_for_updates_auto_active"))
         cmds.optionVar(q=("gt_check_for_updates_interval_days"))
 """
+# Tool Version
+__version_tuple__ = (1, 7, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -68,6 +72,7 @@ def launch_tool():
     Entry point for when using the tool GT Check for Updates.
     """
     from gt.tools.check_for_updates import check_for_updates
+    check_for_updates.script_version = __version__
     check_for_updates.build_gui_check_for_updates()
 
 

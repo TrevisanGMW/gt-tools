@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Outliner Sorter"
 
 # Version:
-script_version = "1.0.0"
+script_version = "?.?.?"  # Module version (init)
 
 
 def reorder_up(obj_list):

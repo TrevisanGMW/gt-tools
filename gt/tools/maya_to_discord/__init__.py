@@ -54,6 +54,10 @@
     Add option to keep screenshots and playblasts in a selected folder
     Add checks to overwrite existing images (UI) when there is a new version
 """
+# Tool Version
+__version_tuple__ = (1, 6, 2)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -62,6 +66,7 @@ def launch_tool():
     Entry point for when using the tool GT Maya To Discord.
     """
     from gt.tools.maya_to_discord import maya_to_discord
+    maya_to_discord.script_version = __version__
     maya_to_discord.build_gui_maya_to_discord()
 
 

@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Create FK Control"
 
 # Version:
-script_version = "1.9.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Custom Curve Dictionary
 gt_auto_fk_settings = {'using_custom_curve': False,

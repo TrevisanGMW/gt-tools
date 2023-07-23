@@ -42,7 +42,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - World Space Baker"
 
 # Version:
-script_version = "1.0.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 try:

@@ -15,6 +15,11 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Tool Version
+__version_tuple__ = (1, 0, 0)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+
 
 def build_tool_example_gui(standalone=True):
     """

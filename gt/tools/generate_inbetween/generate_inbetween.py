@@ -20,7 +20,7 @@ except ImportError:
 script_name = "GT - In-between Generator"
 
 # Version
-script_version = "1.5.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 settings = {'outliner_color': [0, 1, 0]}

@@ -32,7 +32,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT fSpy Importer"
 
 # Version
-script_version = "1.1.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 def build_gui_fspy_importer():

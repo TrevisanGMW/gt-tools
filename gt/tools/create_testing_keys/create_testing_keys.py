@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Create Testing Keys"
 
 # Version:
-script_version = "1.3.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Main Form ============================================================================

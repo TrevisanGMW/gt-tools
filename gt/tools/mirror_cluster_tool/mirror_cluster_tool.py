@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Mirror Cluster Tool"
 
 # Version
-script_version = "1.2.1"
+script_version = "?.?.?"  # Module version (init)
 
 global_settings = {'loaded_mesh': '',
                    'loaded_cluster_handle': '',

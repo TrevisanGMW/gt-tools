@@ -25,7 +25,7 @@ except ImportError:
 script_name = "GT - Render Calculator"
 
 # Version
-script_version = "1.0.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Logging Setup

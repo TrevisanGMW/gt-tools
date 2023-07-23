@@ -47,6 +47,10 @@
  PEP8 Cleanup
 
 """
+# Tool Version
+__version_tuple__ = (1, 5, 3)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -55,6 +59,7 @@ def launch_tool():
     Entry point for when using the tool GT Make IK Stretchy.
     """
     from gt.tools.make_ik_stretchy import make_ik_stretchy
+    make_ik_stretchy.script_version = __version__
     make_ik_stretchy.build_gui_make_ik_stretchy()
 
 

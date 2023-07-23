@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Shape State"
 
 # Version
-script_version = "1.2.2"
+script_version = "?.?.?"  # Module version (init)
 
 
 def extract_python_curve_shape(curve_transforms, printing=False):

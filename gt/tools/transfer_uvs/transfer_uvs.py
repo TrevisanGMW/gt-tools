@@ -34,7 +34,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT - Transfer UVs'
 
 # Script Version
-script_version = '1.3.0'
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major

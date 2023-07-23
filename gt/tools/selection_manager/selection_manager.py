@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Selection Manager"
 
 # Version:
-script_version = "1.7.1"
+script_version = "?.?.?"  # Module version (init)
 
 gt_sel_manager = {'use_contains_string': False,  # Active Functions
                   'use_contains_no_string': False,

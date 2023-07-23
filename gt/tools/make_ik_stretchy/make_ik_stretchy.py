@@ -65,7 +65,7 @@ import sys
 script_name = "GT - Make IK Stretchy"
 
 # Version:
-script_version = "1.5.3"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 gt_make_ik_stretchy_settings = {'ik_handle': '',
