@@ -96,6 +96,7 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 </ol>
 
 Here is an image of the setup window (installer) for reference:
+
 <img src="./media/setup_window.jpg"
      alt="GT Tools Installation Setup Window"
      width: "300"
