@@ -4,22 +4,14 @@
  github.com/TrevisanGMW/gt-tools -  2020-11-04
  Tested on Maya 2020 - Windows 10
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
 
-try:
-    from PySide2 import QtWidgets, QtGui, QtCore
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide import QtWidgets, QtGui, QtCore
-    from PySide.QtGui import QIcon, QWidget
-
+from PySide2.QtWidgets import QWidget
+import maya.OpenMayaUI as OpenMayaUI
+from gt.ui import resource_library
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
-import maya.OpenMayaUI as OpenMayaUI
 import base64
 import sys
 import os
@@ -79,7 +71,7 @@ def build_gui_sphere_type():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_sphere_type)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/lambert.svg')
+    icon = QIcon(resource_library.Icon.mod_sphere_types)
 
     widget.setWindowIcon(icon)
 

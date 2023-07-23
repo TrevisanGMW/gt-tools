@@ -2,13 +2,13 @@
  GT Path Manager - A script for quickly re-pathing many elements in Maya.
  github.com/TrevisanGMW/gt-tools - 2020-08-26
 """
+import maya.OpenMayaUI as OpenMayaUI
+from gt.ui import resource_library
+from shiboken2 import wrapInstance
+import maya.OpenMaya as OpenMaya
+from PySide2 import QtWidgets
 from PySide2 import QtCore
 from PySide2 import QtGui
-from PySide2 import QtWidgets
-from shiboken2 import wrapInstance
-
-import maya.OpenMaya as OpenMaya
-import maya.OpenMayaUI as OpenMayaUI
 import maya.cmds as cmds
 import logging
 import os
@@ -86,7 +86,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.resize(self.width() + 250, 500)
 
         # Set Icon
-        self.setWindowIcon(QtGui.QIcon(':/annotation.png'))
+        self.setWindowIcon(QtGui.QIcon(resource_library.Icon.selection_manager))
 
         # Setup Window Content and Signals
         self.create_widgets()

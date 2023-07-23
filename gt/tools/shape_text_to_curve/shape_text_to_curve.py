@@ -2,21 +2,14 @@
  GT Text Curve Generator -> Script used to quickly create text curves
  github.com/TrevisanGMW/gt-tools -  2020-06-09
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import sys
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -89,7 +82,7 @@ def build_gui_generate_text_curve():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/text.png')
+    icon = QIcon(resource_library.Icon.crv_text)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

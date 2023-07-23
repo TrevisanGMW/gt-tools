@@ -2,22 +2,15 @@
  GT Selection Manager - Script to quickly create or update selections.
  github.com/TrevisanGMW/gt-tools -  2020-02-19
 """
+from PySide2.QtWidgets import QWidget
+from gt.ui import resource_library
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
+from maya import OpenMayaUI
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import random
-from maya import OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -484,7 +477,7 @@ def build_gui_selection_manager():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/selectByHierarchy.png')
+    icon = QIcon(resource_library.Icon.selection_manager)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

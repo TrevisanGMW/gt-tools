@@ -166,10 +166,10 @@
     Option to save pose thumbnail when exporting it
 
 """
-from PySide2.QtWidgets import QWidget
-from PySide2.QtGui import QIcon
-from shiboken2 import wrapInstance
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import traceback

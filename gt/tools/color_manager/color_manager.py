@@ -2,24 +2,17 @@
  GT Color Manager - A script for managing the color of many objects at the same time (outliner and other overrides)
  github.com/TrevisanGMW/gt-tools - 2020-11-13
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import random
 import math
 import copy
 import sys
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -463,7 +456,7 @@ def build_gui_color_manager():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/render_swColorPerVertex.png')
+    icon = QIcon(resource_library.Icon.color_manager)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

@@ -3,21 +3,16 @@
  github.com/TrevisanGMW/gt-tools - 2022-08-18
 """
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from gt.ui import resource_library
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import random
 
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
 
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
+# Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_outliner_sorter")
 logger.setLevel(logging.INFO)
@@ -333,7 +328,7 @@ def build_gui_outliner_sorter():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/outliner.png')
+    icon = QIcon(resource_library.Icon.outliner_sorter)
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window

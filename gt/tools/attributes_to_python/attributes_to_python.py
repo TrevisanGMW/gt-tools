@@ -5,12 +5,12 @@
 from maya import OpenMayaUI as OpenMayaUI
 from PySide2.QtWidgets import QWidget
 from shiboken2 import wrapInstance
+from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
-
 
 # Logging Setup
 logging.basicConfig()
@@ -329,7 +329,7 @@ def build_gui_attr_to_python():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/attributes.png')
+    icon = QIcon(resource_library.Icon.attributes_to_python)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================
