@@ -5,6 +5,7 @@
 from PySide2.QtWidgets import QWidget
 import maya.OpenMayaUI as OpenMayaUI
 from shiboken2 import wrapInstance
+from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
@@ -789,7 +790,7 @@ def build_gui_startup_booster():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_startup_booster)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/out_time.png')
+    icon = QIcon(resource_library.Icon.startup_booster)
     widget.setWindowIcon(icon)
 
     # main dialog Ends Here =================================================================================

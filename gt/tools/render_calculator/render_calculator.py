@@ -5,6 +5,7 @@
 from maya import OpenMayaUI as OpenMayaUI
 from PySide2.QtWidgets import QWidget
 from shiboken2 import wrapInstance
+from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 from functools import partial
 import maya.cmds as cmds
@@ -182,7 +183,7 @@ def build_gui_render_calculator():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/render.png')
+    icon = QIcon(resource_library.Icon.render_calculator)
     widget.setWindowIcon(icon)
 
     _recalculate_time()
