@@ -99,7 +99,7 @@ Here is an image of the setup window (installer) for reference:
 
 <img src="./media/setup_window.jpg"
      alt="GT Tools Installation Setup Window"
-     width="300"
+     width="500"
      align="center">
 
 <p>
