@@ -33,8 +33,8 @@ class PackageSetupController:
 
         # Initial Update
         self.model.update_path()
-        self.model.update_version()
         self.model.update_status()
+        self.model.update_version()
 
 
 if __name__ == "__main__":
