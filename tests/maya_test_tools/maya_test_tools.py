@@ -1,5 +1,4 @@
 import shutil
-import stat
 
 try:
     import maya.cmds as cmds
