@@ -69,7 +69,8 @@ class ProgressBarWindow(QMainWindow):
         progress_bar_stylesheet += resource_library.Stylesheet.dark_scroll_bar
         self.setStyleSheet(progress_bar_stylesheet)
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
-        self.setWindowFlag(QtCore.Qt.Tool, True)  # Window Stay On Top Modality
+        # self.setWindowFlag(QtCore.Qt.Tool, True)
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Stay On Top Modality
 
     def center(self):
         """ Moves window to the center of the screen """
