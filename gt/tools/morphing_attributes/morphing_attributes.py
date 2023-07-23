@@ -2,18 +2,10 @@
 GT Morphing to Attributes (a.k.a. Blend Shapes to Attributes)
 github.com/TrevisanGMW/gt-tools - 2022-03-17
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import random

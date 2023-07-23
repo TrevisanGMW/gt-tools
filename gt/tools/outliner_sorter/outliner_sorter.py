@@ -11,7 +11,6 @@ import maya.cmds as cmds
 import logging
 import random
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger("gt_outliner_sorter")

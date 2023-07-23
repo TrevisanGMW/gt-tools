@@ -26,33 +26,25 @@
         cmds.optionVar(q=("gt_check_for_updates_interval_days"))
 
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
-try:
-    from httplib2 import Http
-except ImportError as import_error:
-    print(str(import_error))
-    import http.client
 
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 from datetime import datetime
-from json import loads
 import maya.utils as utils
 import maya.cmds as cmds
+from json import loads
 import traceback
 import threading
 import logging
 import sys
 import re
+try:
+    from httplib2 import Http
+except ImportError as import_error:
+    print(str(import_error))
+    import http.client
 
 # Logging Setup
 logging.basicConfig()

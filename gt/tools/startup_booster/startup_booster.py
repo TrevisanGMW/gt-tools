@@ -2,22 +2,12 @@
  GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
  github.com/TrevisanGMW/gt-tools - 2020-11-20
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2 import QtWidgets, QtGui, QtCore
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide import QtWidgets, QtGui, QtCore
-    from PySide.QtGui import QIcon, QWidget
-
+from PySide2.QtWidgets import QWidget
+import maya.OpenMayaUI as OpenMayaUI
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
-import maya.OpenMayaUI as OpenMayaUI
 import logging
 import sys
 

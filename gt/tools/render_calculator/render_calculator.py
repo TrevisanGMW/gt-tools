@@ -3,23 +3,13 @@
  github.com/TrevisanGMW - 2022-07-18
 """
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 from functools import partial
 import maya.cmds as cmds
 import logging
 import datetime
-
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
 
 # Script Name
 script_name = "GT - Render Calculator"

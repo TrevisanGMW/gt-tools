@@ -2,20 +2,10 @@
  GT fSpy Importer - Imports a JSON file exported out of fSpy
  github.com/TrevisanGMW/gt-tools -  2020-12-10
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2 import QtWidgets, QtGui, QtCore
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide import QtWidgets, QtGui, QtCore
-    from PySide.QtGui import QIcon, QWidget
-
+from PySide2.QtWidgets import QWidget
 import maya.OpenMayaUI as OpenMayaUI
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import base64

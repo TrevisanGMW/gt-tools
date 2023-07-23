@@ -2,20 +2,12 @@
  GT Connect Attributes Script
  github.com/TrevisanGMW/gt-tools - 2020-02-04
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Script Name
 script_name = "GT Connect Attributes"
