@@ -94,6 +94,9 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
 	<li>Enjoy!</li>
 </ol>
+<p>
+After installing, you can delete the downloaded/extracted files (as they have already been copied)
+</p>
 
 <h3>Setup Window</h3>
 <img src="./media/setup_window.jpg"
@@ -106,9 +109,6 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
 </ol>
 
-<p>
-After installing, you can delete the downloaded/extracted files (as they have already been copied)
-</p>
 <h3>Checksum Verification</h3>
 <p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
 </p>
