@@ -14,7 +14,6 @@ from PySide2.QtWidgets import QWidget
 from PySide2 import QtWidgets, QtGui
 import maya.OpenMayaUI as OpenMayaUI
 from shiboken2 import wrapInstance
-from gt.ui import resource_library
 import maya.OpenMaya as OpenMaya
 from PySide2.QtGui import QIcon
 import maya.utils as utils
@@ -894,7 +893,7 @@ def build_gui_maya_to_discord():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.maya_to_discord_icon)
+    icon = QIcon(icon_image)
 
     widget.setWindowIcon(icon)
 
