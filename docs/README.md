@@ -83,7 +83,7 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
      align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
-<br>Here is how you do it in more details:</p>
+<br>How to run it step by step:</p>
 
 <ol>
 	<li>Open Maya (in case it's closed).</li>
@@ -95,12 +95,16 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 	<li>Enjoy!</li>
 </ol>
 
-Here is an image of the setup window (installer) for reference:
-
+<h3>Setup Window</h3>
 <img src="./media/setup_window.jpg"
      alt="GT Tools Installation Setup Window"
      width="500"
      align="center">
+<ol>
+	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
+</ol>
 
 <p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
