@@ -1,9 +1,9 @@
+from copy import deepcopy
 import logging
 import os
+import re
 
 # Logging Setup
-from copy import deepcopy
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -113,6 +113,103 @@ def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss", 
         return stylesheet_content
 
 
+def rgba_to_hex(r, g, b, a=255, include_alpha=False):
+    """
+    Convert RGBA (red, green, blue, alpha) values to a HEX color code.
+
+    Parameters:
+        r (int): Red component (0-255).
+        g (int): Green component (0-255).
+        b (int): Blue component (0-255).
+        a (int): Alpha component (0-255).
+        include_alpha (bool, optional): If active, it will include two suffix characters to act as alpha.
+
+    Returns:
+        str: The HEX color code in the format '#RRGGBBAA'.
+    """
+    if include_alpha:
+        hex_code = "#{:02x}{:02x}{:02x}{:02x}".format(r, g, b, a)
+    else:
+        hex_code = "#{:02x}{:02x}{:02x}".format(r, g, b)
+    return hex_code.upper()
+
+
+def rgb_to_hex(r, g, b):
+    """
+    Convert RGBA (red, green, blue, alpha) values to a HEX color code.
+
+    Parameters:
+        r (int): Red component (0-255).
+        g (int): Green component (0-255).
+        b (int): Blue component (0-255).
+
+    Returns:
+        str: The HEX color code in the format '#RRGGBB'.
+    """
+    return rgba_to_hex(r, g, b)
+
+
+def parse_rgb_numbers(rgb_string):
+    """
+    Extracts RGB+A numbers from an RGB+A string.
+    All the ranges (RGB+A) are from 0-255.
+    Alpha may be included, but it's not necessary.
+
+    Parameters:
+        rgb_string (str): A string containing the RGB color in the format "rgb(R, G, B)" or "rgba(R, G, B, A)"
+                          The range goes from "0" to "255". Numbers above 255 are set back to 255.
+                          e.g. "300" becomes "255"
+
+    Returns:
+        tuple or None: A tuple of three integers representing the RGB values (R, G, B) if the input string
+                        matches the correct format. Returns None if no match is found.
+
+    Example:
+        rgb_string = "rgb(255, 255, 255)"
+        result = extract_rgb_numbers(rgb_string)
+        print(result)
+        # Output: (255, 255, 255)
+    """
+    if rgb_string.startswith("rgba"):
+        pattern = r'^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$'
+    elif rgb_string.startswith("rgb"):
+        pattern = r"rgb\((\d+),\s*(\d+),\s*(\d+)\)"
+    else:
+        return None
+    match = re.match(pattern, rgb_string)
+    if match:
+        numbers = list(map(int, match.groups()))
+        result_tuple = tuple(n if n < 256 else 255 for n in numbers)
+        return result_tuple
+    else:
+        return None
+
+
+def rgba_string_to_hex(rgb_string):
+    """
+    Extracts RGB+A numbers from an RGB+A string.
+    All the ranges (RGB+A) are from 0-255.
+    Alpha may be included, but it's not necessary.
+
+    Parameters:
+        rgb_string (str): A string containing the RGB color in the format "rgb(R, G, B)" or "rgba(R, G, B, A)"
+                          The range goes from "0" to "255". Numbers above 255 are set back to 255.
+                          e.g. "300" becomes "255"
+
+    Returns:
+        str or None: A string with the color converted to Hex. e.g. "rgb(255, 0, 0)" becomes "#FF0000"
+    """
+    rgba_values = parse_rgb_numbers(rgb_string)
+    if not rgba_values:
+        return None
+    elif len(rgba_values) == 3:
+        return rgb_to_hex(rgba_values[0], rgba_values[1], rgba_values[2])
+    elif len(rgba_values) == 4:
+        return rgba_to_hex(rgba_values[0], rgba_values[1], rgba_values[2], rgba_values[3])
+    else:
+        return None
+
+
 class ResourceDirConstants:
     def __init__(self):
         """
@@ -191,37 +288,6 @@ class Color:
         """
         A library of colors
         """
-    class Hex:
-        def __init__(self):
-            """
-            A library of Hex colors
-            """
-        black = '#000000'
-        white = '#FFFFFF'
-        grey = '#808080'
-        grey_dark = '#555555'
-        red = '#FF0000'
-        red_soft = '#FFAAAA'
-        red_softer = '#D45757'
-        red_dark = '#AF2D2D'
-        green = '#20A500'
-        green_light = '#AAFFAA'
-        green_soft = '#609881'
-        green_dark = '#588C77'
-        blue = '#0033FF'
-        blue_dark = '#006EA0'
-        blue_soft = '#00A0E8'
-        orange = '#FFBB00'
-        lime = '#32FF00'
-        yellow = '#FFEE00'
-        yellow_dark = '#636110'
-        teal = '#00FFFF'
-        purple = '#DD22FF'
-        pink = '#F700FF'
-        magenta = '#C40B5F'
-        violet = '#FF22BB'
-        cyan_soft = "#48E0DB"
-
     class RGB:
         def __init__(self):
             """
@@ -248,16 +314,53 @@ class Color:
 
         black = 'rgba(0,0,0,255)'
 
-        red = 'rgb(255, 0, 0, 255)'
+        red = 'rgba(255,0,0,255)'
+        red_softer = 'rgba(212,87,87,255)'
+        red_dark = 'rgba(175,45,45,255)'
 
         green = 'rgb(0, 255, 0, 255)'
         green_soft = 'rgb(96, 152, 129, 255)'
         green_light = 'rgb(144, 228, 193, 255)'
+        green_dark = 'rgba(88,140,119,255)'
 
         blue = 'rgba(0,0,255,255)'
         blue_ghosted = 'rgba(0,0,255,75)'
         blue_soft = 'rgba(189, 217, 255,255)'
         blue_soft_dark = 'rgba(82,133,166,255)'
+        blue_vivid = 'rgba(0,160,232,255)'
+        blue_dark = 'rgba(0,110,160,255)'
+
+    class Hex:
+        def __init__(self):
+            """
+            A library of Hex colors
+            """
+        black = '#000000'
+        white = '#FFFFFF'
+        white_soft = '#EEEEEE'
+        grey = '#444444'
+        grey_dark = '#2B2B2B'
+        red = '#FF0000'
+        red_soft = '#FFAAAA'
+        red_softer = '#D45757'
+        red_dark = '#AF2D2D'
+        green = '#20A500'
+        green_light = '#90E4C1'
+        green_soft = '#609881'
+        green_dark = '#588C77'
+        blue = '#0033FF'
+        blue_dark = '#006EA0'
+        blue_vivid = '#00A0E8'
+        orange = '#FFBB00'
+        lime = '#32FF00'
+        yellow = '#FFEE00'
+        yellow_dark = '#636110'
+        teal = '#00FFFF'
+        purple = '#DD22FF'
+        pink = '#F700FF'
+        magenta = '#C40B5F'
+        violet = '#FF22BB'
+        cyan_soft = "#48E0DB"
 
     class Gradient:
         def __init__(self):
@@ -325,14 +428,14 @@ class StylesheetVariables:
         "@tool_button_border_radius;": "5",
     }
     metro_tools_button_blue = deepcopy(metro_tools_button_default)
-    metro_tools_button_blue["@tool_bg_hover_color;"] = Color.Hex.blue_soft
-    metro_tools_button_blue["@tool_bg_click_color;"] = Color.Hex.blue_dark
+    metro_tools_button_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid
+    metro_tools_button_blue["@tool_bg_click_color;"] = Color.RGB.blue_dark
     metro_tools_button_red = deepcopy(metro_tools_button_default)
-    metro_tools_button_red["@tool_bg_hover_color;"] = Color.Hex.red_softer
-    metro_tools_button_red["@tool_bg_click_color;"] = Color.Hex.red_dark
+    metro_tools_button_red["@tool_bg_hover_color;"] = Color.RGB.red_softer
+    metro_tools_button_red["@tool_bg_click_color;"] = Color.RGB.red_dark
     metro_tools_button_green = deepcopy(metro_tools_button_default)
-    metro_tools_button_green["@tool_bg_hover_color;"] = Color.Hex.green_soft
-    metro_tools_button_green["@tool_bg_click_color;"] = Color.Hex.green_dark
+    metro_tools_button_green["@tool_bg_hover_color;"] = Color.RGB.green_soft
+    metro_tools_button_green["@tool_bg_click_color;"] = Color.RGB.green_dark
     # Metro QToolButton End ------------------------------------------------------------------
 
 
