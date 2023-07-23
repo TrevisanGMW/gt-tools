@@ -219,7 +219,8 @@ class Color:
         purple = '#DD22FF'
         pink = '#F700FF'
         magenta = '#C40B5F'
-        violet = '#ff22BB'
+        violet = '#FF22BB'
+        cyan_soft = "#48E0DB"
 
     class RGB:
         def __init__(self):
