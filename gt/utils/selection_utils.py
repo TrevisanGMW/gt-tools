@@ -1,7 +1,11 @@
+"""
+Selection Utilities
+github.com/TrevisanGMW/gt-tools
+"""
+from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
-import random
 import sys
 
 # Logging Setup
@@ -24,19 +28,18 @@ def select_non_unique_objects():
             non_unique_transforms.append(obj)
 
     cmds.select(non_unique_transforms, r=True)
-
-    if len(non_unique_transforms) > 0:
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">'
-        in_view_message += str(len(non_unique_transforms)) + '</span> non-unique objects were selected.'
-        message = '\n' + str(len(non_unique_transforms)) + ' non-unique objects were found in this scene. ' \
-                                                           'Rename them to avoid conflicts.'
+    feedback = FeedbackMessage(quantity=len(non_unique_transforms),
+                               singular='non-unique object was.',
+                               plural='non-unique objects were',
+                               conclusion='selected.',
+                               zero_overwrite_message='All objects seem to have unique names in this scene.')
+    feedback.print_inview_message(system_write=False)
+    if len(non_unique_transforms):
+        message = f'\n{str(len(non_unique_transforms))} non-unique objects were found in this scene. '
+        message += 'Rename them to avoid conflicts.'
+        sys.stdout.write(message)
     else:
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += 'All objects seem to have unique names in this scene.'
-        message = 'No repeated names found in this scene.'
-    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-    sys.stdout.write(message)
+        sys.stdout.write('\nNo repeated names found in this scene.')
 
 
 if __name__ == "__main__":

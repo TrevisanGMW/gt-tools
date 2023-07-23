@@ -79,11 +79,11 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
 <img src="./media/setup_tutorial.svg"
      alt="GT Tools Installation Tutorial"
-     width="1000" 
+     width="1000"
      align="center">
 
 <p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
-<br>Here is how you do it in more details:</p>
+<br>How to run it step by step:</p>
 
 <ol>
 	<li>Open Maya (in case it's closed).</li>
@@ -94,10 +94,21 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
 	<li>Enjoy!</li>
 </ol>
-
 <p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
 </p>
+
+<h3>Setup Window</h3>
+<img src="./media/setup_window.jpg"
+     alt="GT Tools Installation Setup Window"
+     width="500"
+     align="center">
+<ol>
+	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
+</ol>
+
 <h3>Checksum Verification</h3>
 <p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
 </p>

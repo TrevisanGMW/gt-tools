@@ -1,5 +1,6 @@
 """
 Scene Utilities
+github.com/TrevisanGMW/gt-tools
 """
 import maya.cmds as cmds
 import subprocess

@@ -3,24 +3,14 @@
  github.com/TrevisanGMW - 2021-06-22
  Tested on Maya 2020.4 - Windows 10
 """
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2 import QtWidgets, QtGui, QtCore
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide import QtWidgets, QtGui, QtCore
-    from PySide.QtGui import QIcon, QWidget
-
+from PySide2.QtWidgets import QWidget
+import maya.OpenMayaUI as OpenMayaUI
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+import maya.OpenMaya as OpenMaya
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
-import maya.OpenMayaUI as OpenMayaUI
-import maya.OpenMaya as OpenMaya
 import logging
 import random
 import sys
@@ -34,7 +24,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT - Transfer UVs'
 
 # Script Version
-script_version = '1.3.0'
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major
@@ -84,7 +74,7 @@ def build_gui_uv_transfer():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_uv_transfer)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/uvChooser.svg')
+    icon = QIcon(resource_library.Icon.mod_transfer_uvs)
 
     widget.setWindowIcon(icon)
 

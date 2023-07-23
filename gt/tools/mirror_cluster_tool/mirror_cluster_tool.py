@@ -2,20 +2,12 @@
  GT Mirror Cluster Tool - Tool to mirror cluster weights.
  github.com/TrevisanGMW/gt-tools -  2020-06-16
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -26,7 +18,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Mirror Cluster Tool"
 
 # Version
-script_version = "1.2.1"
+script_version = "?.?.?"  # Module version (init)
 
 global_settings = {'loaded_mesh': '',
                    'loaded_cluster_handle': '',

@@ -2,20 +2,12 @@
  GT Create Testing Keys - Script for creating testing keyframes.
  github.com/TrevisanGMW/gt-tools -  2021-01-28
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -26,7 +18,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Create Testing Keys"
 
 # Version:
-script_version = "1.3.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Main Form ============================================================================

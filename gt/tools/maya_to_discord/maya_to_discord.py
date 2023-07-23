@@ -10,29 +10,17 @@
     Add option to keep screenshots and playblasts in a selected folder
     Add checks to overwrite existing images (UI) when there is a new version
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2 import QtWidgets, QtGui, QtCore
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide import QtWidgets, QtGui, QtCore
-    from PySide.QtGui import QIcon, QWidget
-
-try:
-    from httplib2 import Http
-except ImportError:
-    import http.client
-
+from PySide2.QtWidgets import QWidget
+from PySide2 import QtWidgets, QtGui
 import maya.OpenMayaUI as OpenMayaUI
-import maya.utils as utils
+from shiboken2 import wrapInstance
 import maya.OpenMaya as OpenMaya
+from PySide2.QtGui import QIcon
+import maya.utils as utils
 import maya.cmds as cmds
 import maya.mel as mel
+from json import dumps
+from json import loads
 import threading
 import logging
 import base64
@@ -44,8 +32,10 @@ import string
 import copy
 import sys
 import os
-from json import dumps
-from json import loads
+try:
+    from httplib2 import Http
+except ImportError:
+    import http.client
 
 # Logging Setup
 logging.basicConfig()
@@ -56,7 +46,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Maya to Discord"
 
 # Versions:
-script_version = "1.6.2"
+script_version = "?.?.?"  # Module version (init)
 maya_version = cmds.about(version=True)
 
 # Python Version

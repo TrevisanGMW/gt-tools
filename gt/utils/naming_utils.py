@@ -1,5 +1,6 @@
 """
 Naming Utilities
+github.com/TrevisanGMW/gt-tools
 """
 import logging
 

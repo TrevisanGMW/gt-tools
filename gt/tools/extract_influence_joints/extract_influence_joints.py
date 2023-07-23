@@ -4,31 +4,23 @@ github.com/TrevisanGMW/gt-tools - 2022-06-22
 """
 from gt.utils.skin_utils import get_bound_joints
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
 # Logging Setup
 logging.basicConfig()
-logger = logging.getLogger("gt_extract_bound_joints")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Script Name
-script_name = "GT - Extract Bound Joints"
+script_name = "GT - Extract Influence Joints"
 
 # Version
-script_version = "1.1.4"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 extract_joints_settings = {'filter_non_existent': True,
@@ -46,8 +38,8 @@ def run_output_code(out):
 
 
 # Main Window ============================================================================
-def build_gui_extract_bound_joints():
-    window_name = "build_gui_extract_bound_joints"
+def build_gui_extract_influence_joints():
+    window_name = "build_gui_extract_influence_joints"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
 
@@ -67,7 +59,7 @@ def build_gui_extract_bound_joints():
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
-    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_extract_bound_joints())
+    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_extract_influence_joints())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
@@ -79,10 +71,10 @@ def build_gui_extract_bound_joints():
     include_mesh_chk = cmds.checkBox("Include Bound Mesh", value=False, cc=lambda x: _btn_update_settings())
     cmds.separator(h=15, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 235), (2, 235)], cs=[(1, 15), (2, 10)], p=content_main)
-    cmds.button(l="Extract Bound Joints to Python", bgc=(.6, .6, .6),
-                c=lambda x: _btn_extract_bound_validation('python'))
-    cmds.button(l="Extract Bound Joints to Selection Sets", bgc=(.6, .6, .6),
-                c=lambda x: _btn_extract_bound_validation('set'))
+    cmds.button(l="Extract Influence Joints to Python", bgc=(.6, .6, .6),
+                c=lambda x: _btn_extract_influence_validation('python'))
+    cmds.button(l="Extract Influence Joints to Selection Sets", bgc=(.6, .6, .6),
+                c=lambda x: _btn_extract_influence_validation('set'))
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
     cmds.separator(h=10, p=content_main)
 
@@ -123,7 +115,7 @@ def build_gui_extract_bound_joints():
         else:
             cmds.warning('Unable to save to shelf. "Output - Selection Command" is empty.')
 
-    def _btn_extract_bound_validation(operation_target='python'):
+    def _btn_extract_influence_validation(operation_target='python'):
         """
         Validation before extracting python or set out of the bound mesh
         Args:
@@ -203,7 +195,7 @@ def build_gui_extract_bound_joints():
 
 
 # Creates Help GUI
-def build_gui_help_extract_bound_joints():
+def build_gui_help_extract_influence_joints():
     window_name = "build_gui_help_extract_bound_joints"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -229,11 +221,11 @@ def build_gui_help_extract_bound_joints():
     cmds.text(l='Adds a line of code that ignores objects not found in the scene.\n', align="left")
     cmds.text(l='Include Bound Mesh:', align="left", fn="boldLabelFont")
     cmds.text(l='Determines if the selected bound mesh will be included in the\nextracted list.\n', align="left")
-    cmds.text(l='"Extract Bound Joints to Python" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='"Extract Influence Joints to Python" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Outputs the python code necessary to reselect the joints', align="left")
     cmds.text(l='inside the "Output Python Curve" box.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='"Extract Bound Joints to Selection Sets" button:', align="left", fn="boldLabelFont")
+    cmds.text(l='"Extract Influence Joints to Selection Sets" button:', align="left", fn="boldLabelFont")
     cmds.text(l='Saves the bound joints as selection sets instead of Python.'
                 '\nOne set per mesh. (May or may not include mesh, according \nto checkbox settings.', align="left")
     cmds.separator(h=15, style='none')  # Empty Space
@@ -329,4 +321,4 @@ def create_shelf_button(command,
 
 
 if __name__ == '__main__':
-    build_gui_extract_bound_joints()
+    build_gui_extract_influence_joints()

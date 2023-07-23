@@ -74,6 +74,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.setMinimumWidth(self.width())
         self.setMinimumHeight(self.height())
         self.center()
+        self.setWindowFlag(QtCore.Qt.Tool, True)  # Window Stay On Top Modality
         # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)  # Todo: Custom window border
 
     def center(self):
@@ -266,6 +267,10 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     # Connections
     window = PackageSetupWindow()  # View
+    # Sample Updates
+    window.update_status_text(r"Not Installed")
+    window.update_version_current_setup("3.0.0")
+    window.update_version_installed("2.5.5")
     # Open Windows
     window.show()
     sys.exit(app.exec_())

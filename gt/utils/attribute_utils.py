@@ -2,6 +2,7 @@
 Attribute Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.feedback_utils import FeedbackMessage
 import maya.cmds as cmds
 import logging
 import random
@@ -336,21 +337,11 @@ def unlock_default_channels():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    in_view_message = '<' + str(random.random()) + '>'
-    is_plural = 'objects had their'
-    if unlocked_counter == 1:
-        is_plural = 'object had its'
-    description = ' default channels unlocked.'
-    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter)
-    in_view_message += ' </span>'
-    in_view_message += is_plural + description
-
-    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-
-    if unlocked_counter == 1:
-        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
-    else:
-        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
+    feedback = FeedbackMessage(quantity=unlocked_counter,
+                               singular='object had its',
+                               plural='objects had their',
+                               conclusion='default channels unlocked.')
+    feedback.print_inview_message()
 
 
 def unhide_default_channels():
@@ -363,7 +354,7 @@ def unhide_default_channels():
         cmds.warning('Nothing selected. Please select an object and try again.')
         return
     selection_short = cmds.ls(selection=True)
-    unlocked_counter = 0
+    unhide_counter = 0
     try:
         for obj in selection:
             try:
@@ -377,7 +368,7 @@ def unhide_default_channels():
                 cmds.setAttr(obj + '.scaleY', keyable=True)
                 cmds.setAttr(obj + '.scaleZ', keyable=True)
                 cmds.setAttr(obj + '.v', keyable=True)
-                unlocked_counter += 1
+                unhide_counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
         if errors != '':
@@ -389,19 +380,11 @@ def unhide_default_channels():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    in_view_message = '<' + str(random.random()) + '>'
-    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(unlocked_counter) + ' </span>'
-    is_plural = 'objects had their'
-    if unlocked_counter == 1:
-        is_plural = 'object had its'
-    description = ' default channels made visible.'
-    in_view_message += is_plural + description
-
-    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-    if unlocked_counter == 1:
-        sys.stdout.write('\n"' + str(selection_short[0]) + '" ' + is_plural + description)
-    else:
-        sys.stdout.write('\n' + str(unlocked_counter) + ' ' + is_plural + description)
+    feedback = FeedbackMessage(quantity=unhide_counter,
+                               singular='object had its',
+                               plural='objects had their',
+                               conclusion='default channels made visible.')
+    feedback.print_inview_message()
 
 
 def reset_persp_shape_attributes():
@@ -435,11 +418,11 @@ def reset_persp_shape_attributes():
             cmds.setAttr(camera_shape + ".postScale", 1)
             cmds.setAttr(camera_shape + ".depthOfField", 0)
             cmds.viewFit(allObjects=True)
-            in_view_message = '<' + str(random.random()) + '>'
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">"persp"</span> camera '
-            in_view_message += 'attributes were reset.'
-            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write('"' + camera_transform + '" camera attributes were reset back to default values.')
+
+            feedback_message = f'"{camera_transform}" camera attributes were reset back to default values.'
+            feedback = FeedbackMessage(general_overwrite=feedback_message)
+            feedback.print_inview_message()
+
     except Exception as e:
         print(e)
         logger.debug(str(e))
@@ -469,13 +452,14 @@ def delete_user_defined_attributes():
                 deleted_counter += 1
             except Exception as e:
                 logger.debug(str(e))
-        message = '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter) + ' </span>'
-        is_plural = 'user defined attributes were'
-        if deleted_counter == 1:
-            is_plural = 'user defined attribute was'
-        message += is_plural + ' deleted.'
 
-        cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        feedback = FeedbackMessage(quantity=deleted_counter,
+                                   singular='user defined attribute was',
+                                   plural='user defined attributes were',
+                                   conclusion='deleted.',
+                                   zero_overwrite_message='No user defined attributes were deleted.')
+        feedback.print_inview_message()
+
     except Exception as e:
         cmds.warning(str(e))
     finally:

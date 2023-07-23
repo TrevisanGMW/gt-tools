@@ -27,6 +27,10 @@
  Changed default suffix from "_rigLayer" to "_offset"
  PEP8 Cleanup
 """
+# Tool Version
+__version_tuple__ = (1, 5, 2)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -35,6 +39,7 @@ def launch_tool():
     Entry point for when using the tool GT Generate Inbetween.
     """
     from gt.tools.generate_inbetween import generate_inbetween
+    generate_inbetween.script_version = __version__
     generate_inbetween.build_gui_generate_inbetween()
 
 

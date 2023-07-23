@@ -1,3 +1,7 @@
+"""
+Joint Utilities
+github.com/TrevisanGMW/gt-tools
+"""
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
@@ -187,7 +191,7 @@ def convert_joints_to_mesh(combine_mesh=True):
         combine_mesh: Combines generated meshes into one
 
     Returns:
-        A list of generated meshes
+        list: A list of generated meshes
     """
     selection = cmds.ls(selection=True, type='joint')
     if len(selection) != 1:

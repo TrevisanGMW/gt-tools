@@ -2,25 +2,17 @@
  Inbetween Generator -> Simple script used to create Inbetween Transforms
  github.com/TrevisanGMW/gt-tools -  2020-02-04
 """
-import maya.cmds as cmds
 from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
+import maya.cmds as cmds
 
 # Script Name
 script_name = "GT - In-between Generator"
 
 # Version
-script_version = "1.5.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 settings = {'outliner_color': [0, 1, 0]}

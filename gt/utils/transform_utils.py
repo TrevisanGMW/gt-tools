@@ -1,10 +1,11 @@
 """
 Transform Utilities
+github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.feedback_utils import FeedbackMessage
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
-import random
 import sys
 
 # Logging Setup
@@ -80,20 +81,21 @@ def move_pivot_top():
         print(errors)
         print('#' * 50)
 
-    if counter > 0:
-        pivot_pos = 'top'
-        is_plural = 'pivots were'
-        affected = str(counter)
-        if counter == 1:
-            is_plural = 'pivot was'
-            affected = '"' + selection_short[0] + '"'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-        in_view_message += '</span> ' + is_plural + ' moved to the '
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
-        message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
+    pivot_pos = 'top'
+    highlight_style = "color:#FF0000;text-decoration:underline;"
+    feedback = FeedbackMessage(quantity=counter,
+                               singular='pivot was',
+                               plural='pivots were',
+                               conclusion='moved to the',
+                               suffix=pivot_pos,
+                               style_suffix=highlight_style)
+    if counter == 1:
+        feedback = FeedbackMessage(intro=f'"{selection_short[0]}"',
+                                   style_intro=highlight_style,
+                                   conclusion='pivot was moved to the',
+                                   suffix=pivot_pos,
+                                   style_suffix=highlight_style)
+    feedback.print_inview_message()
 
 
 def move_pivot_base():
@@ -120,21 +122,21 @@ def move_pivot_base():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
-
-    if counter > 0:
-        pivot_pos = 'base'
-        is_plural = 'pivots were'
-        affected = str(counter)
-        if counter == 1:
-            is_plural = 'pivot was'
-            affected = '"' + selection_short[0] + '"'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-        in_view_message += '</span> ' + is_plural + ' moved to the '
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
-        message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
+    pivot_pos = 'base'
+    highlight_style = "color:#FF0000;text-decoration:underline;"
+    feedback = FeedbackMessage(quantity=counter,
+                               singular='pivot was',
+                               plural='pivots were',
+                               conclusion='moved to the',
+                               suffix=pivot_pos,
+                               style_suffix=highlight_style)
+    if counter == 1:
+        feedback = FeedbackMessage(intro=f'"{selection_short[0]}"',
+                                   style_intro=highlight_style,
+                                   conclusion='pivot was moved to the',
+                                   suffix=pivot_pos,
+                                   style_suffix=highlight_style)
+    feedback.print_inview_message()
 
 
 def move_to_origin():
@@ -162,20 +164,22 @@ def move_to_origin():
             print(errors)
             cmds.warning('Some objects could not be moved to the origin. Open the script editor for a list of errors.')
 
-        if counter > 0:
-            pivot_pos = 'origin'
-            is_plural = 'objects were'
-            affected = str(counter)
-            if counter == 1:
-                is_plural = ' was'
-                affected = '"' + selection_short[0] + '"'
-            in_view_message = '<' + str(random.random()) + '>'
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-            in_view_message += '</span> ' + is_plural + ' moved to the '
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\"> ' + pivot_pos + '</span>'
-            message = affected + ' ' + is_plural + ' moved to the ' + pivot_pos
-            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write(message)
+        pivot_pos = 'origin'
+        highlight_style = "color:#FF0000;text-decoration:underline;"
+        feedback = FeedbackMessage(quantity=counter,
+                                   singular='object was',
+                                   plural='objects were',
+                                   conclusion='moved to the',
+                                   suffix=pivot_pos,
+                                   style_suffix=highlight_style)
+        if counter == 1:
+            feedback = FeedbackMessage(intro=f'"{selection_short[0]}"',
+                                       style_intro=highlight_style,
+                                       conclusion='was moved to the',
+                                       suffix=pivot_pos,
+                                       style_suffix=highlight_style)
+        feedback.print_inview_message()
+
     except Exception as e:
         logger.debug(str(e))
     finally:
@@ -259,15 +263,13 @@ def reset_transforms():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     if output_counter > 0:
-        affected = str(output_counter)
+        feedback = FeedbackMessage(quantity=output_counter,
+                                   conclusion='transforms were reset.')
         if output_counter == 1:
-            affected = '"' + current_selection_short[0] + '"'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-        in_view_message += '</span> transforms were reset.'
-        message = '\n' + affected + ' transforms were reset.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
+            feedback = FeedbackMessage(intro=f'"{current_selection_short[0]}"',
+                                       style_intro="color:#FF0000;text-decoration:underline;",
+                                       conclusion='transforms were reset.')
+        feedback.print_inview_message()
 
     if output_errors != '':
         cmds.warning("Some objects couldn't be reset. Open the script editor for a list of errors.")
@@ -306,18 +308,18 @@ def convert_transforms_to_locators():
         print('#' * 50)
 
     if counter > 0:
-        affected = str(counter)
-        is_plural = 'locators were'
-        if counter == 1:
-            is_plural = 'locator was'
-            affected = '"' + selection_short[0] + '"'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-        in_view_message += '</span> ' + is_plural + ' created.'
-        message = affected + ' ' + is_plural + ' created. Find them inside the group "' + str(locators_grp) + '".'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
         cmds.select(selection)
+        feedback = FeedbackMessage(quantity=counter,
+                                   singular='locator was',
+                                   plural='locators were',
+                                   conclusion='created.')
+        if counter == 1:
+            feedback = FeedbackMessage(intro=f'"{selection_short[0]}"',
+                                       style_intro="color:#FF0000;text-decoration:underline;",
+                                       conclusion='locator was created.')
+        feedback.print_inview_message(system_write=False)
+        feedback.conclusion = f'created. Find generated elements in the group "{str(locators_grp)}".'
+        sys.stdout.write(f'\n{feedback.get_string_message()}')
 
 
 if __name__ == "__main__":

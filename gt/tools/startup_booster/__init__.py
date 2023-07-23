@@ -12,6 +12,10 @@
  Added patch to version
  PEP8 Cleanup
 """
+# Tool Version
+__version_tuple__ = (1, 1, 1)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -20,6 +24,7 @@ def launch_tool():
     Entry point for when using the tool GT Startup Booster.
     """
     from gt.tools.startup_booster import startup_booster
+    startup_booster.script_version = __version__
     startup_booster.build_gui_startup_booster()
 
 

@@ -18,18 +18,11 @@
     Add sparse key option
 
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from PySide2.QtGui import QIcon
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 
@@ -42,7 +35,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - World Space Baker"
 
 # Version:
-script_version = "1.0.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 try:
@@ -257,7 +250,7 @@ def build_gui_world_space_baker():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/buttonManip.svg')
+    icon = QIcon(resource_library.Icon.world_space_baker)
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window

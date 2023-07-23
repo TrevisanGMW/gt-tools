@@ -3,19 +3,12 @@
  A solution for mirroring poses and set driven keys.
  github.com/TrevisanGMW - 2020-06-07
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-import maya.cmds as cmds
-
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+from PySide2.QtGui import QIcon
+import maya.cmds as cmds
 import logging
 import random
 import json
@@ -31,7 +24,7 @@ logger.setLevel(logging.INFO)
 script_name = 'GT - Transfer Transforms'
 
 # Version:
-script_version = '1.6.1'
+script_version = "?.?.?"  # Module version (init)
 
 # Python Version
 python_version = sys.version_info.major
@@ -489,7 +482,7 @@ def build_gui_transfer_transforms():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/transform.svg')
+    icon = QIcon(resource_library.Icon.transfer_transforms)
     widget.setWindowIcon(icon)
 
     # Deselect Text Field

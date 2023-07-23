@@ -3,21 +3,14 @@ GT Extract Shape State - Outputs the python code containing the current shape da
 github.com/TrevisanGMW/gt-tools - 2021-10-01
 """
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -28,7 +21,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Extract Shape State"
 
 # Version
-script_version = "1.2.2"
+script_version = "?.?.?"  # Module version (init)
 
 
 def extract_python_curve_shape(curve_transforms, printing=False):
@@ -180,7 +173,7 @@ def build_gui_curve_shape_state():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/arcLengthDimension.svg')
+    icon = QIcon(resource_library.Icon.crv_state)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

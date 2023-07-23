@@ -29,6 +29,7 @@ class FeedbackMessage:
                               e.g. "7 elements were affected"
                               e.g. "1 element was affected"
                               e.g. "No elements were affected"
+        skip_quantity_print (bool): If active, the quantity will not be included in the feedback.
         quantity_index (int): Determines the index (position) of the quantity portion in the feedback.
                               Default value is 2.  That is: prefix, intro, <quantity>, singular/plural...
                               e.g. If value is 0, then : <quantity>, prefix, intro, singular/plural...
@@ -54,6 +55,7 @@ class FeedbackMessage:
     suffix: str = field(default="")
     zero_overwrite_message: str = field(default=None)
     general_overwrite: str = field(default=None)
+    skip_quantity_print: bool = field(default=False)
 
     # Only used for inview feedback - "get_inview_formatted_message()"
     style_general: str = field(default="color:#FFFFFF;")  # White
@@ -93,6 +95,8 @@ class FeedbackMessage:
             else:
                 self._pluralization = self.plural
             self._quantity_str = str(self.quantity)
+            if self.skip_quantity_print:
+                self._quantity_str = ""
         else:
             self._pluralization = ""
             self._quantity_str = ""

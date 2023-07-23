@@ -64,7 +64,7 @@ class PackageSetupModel(QtCore.QObject):
             feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
                                                       style_intro=f"color:{self.package_name_color};"
                                                                   f"text-decoration:underline;",
-                                                      conclusion="is now installed and active.")
+                                                      conclusion="has been installed and is now active.")
             feedback.print_inview_message(stay_time=4000)
         else:
             self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
@@ -181,10 +181,7 @@ class PackageSetupModel(QtCore.QObject):
         """ Sends signals to update view with the setup and installed versions """
         setup_version = version_utils.get_package_version()
         installed_module = os.path.join(self.get_install_target_dir(), setup_utils.PACKAGE_MAIN_MODULE)
-        print(installed_module)
         installed_version = version_utils.get_package_version(package_path=installed_module)
-        print(setup_version)
-        print(installed_version)
         # Attempt to find older version
         try:
             if not installed_version:

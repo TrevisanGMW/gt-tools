@@ -1,5 +1,6 @@
 """
 Version Utilities
+github.com/TrevisanGMW/gt-tools
 """
 from collections import namedtuple
 import importlib.util
@@ -61,7 +62,7 @@ def parse_semantic_version(version_string):
     """
     try:
         version_string = re.sub("[^\d.]", "", version_string)  # Remove non-digits (keeps ".")
-        major, minor, patch = map(int, version_string.split('.'))
+        major, minor, patch = map(int, version_string.split('.')[:3])
         return SemanticVersion(major=major, minor=minor, patch=patch)
     except ValueError:
         raise ValueError(f'Invalid version format: "{version_string}". Use semantic versioning: e.g. "1.2.3".')
@@ -182,9 +183,4 @@ if __name__ == "__main__":
     # maya.standalone.initialize()
     out = None
     out = is_semantic_version("1.22.3", metadata_ok=False)
-    # print(get_legacy_package_version())
-    out = get_package_version()
     pprint(out)
-    out = get_package_version(package_path=r"C:\Users\guilherme.trevisan\Documents\maya\gt-tools\gt")
-    pprint(out)
-

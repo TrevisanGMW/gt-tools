@@ -1,11 +1,12 @@
 """
 Namespace Utilities
+github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.feedback_utils import FeedbackMessage
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
-import random
 import sys
 
 # Logging Setup
@@ -132,21 +133,14 @@ def delete_namespaces(object_list=None):
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-    if counter > 0:
-        is_plural = 'namespaces were'
-        if counter == 1:
-            is_plural = 'namespace was'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(counter)
-        in_view_message += '</span> ' + is_plural + ' deleted.'
-        message = '\n' + str(counter) + ' ' + is_plural + ' merged with the "root".'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
-    else:
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += 'No namespaces found in this scene.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    feedback = FeedbackMessage(quantity=counter,
+                               singular='namespace was',
+                               plural='namespaces were',
+                               conclusion='deleted.',
+                               zero_overwrite_message='No namespaces found in this scene.')
+    feedback.print_inview_message(system_write=False)
+    feedback.conclusion = 'merged with the "root".'
+    sys.stdout.write(f'\n{feedback.get_string_message()}')
 
 
 class StripNamespace(object):

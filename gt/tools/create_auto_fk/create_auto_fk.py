@@ -2,21 +2,13 @@
  GT Auto FK - Creates FK controls while mimicking joint hierarchy.
  github.com/TrevisanGMW/gt-tools - 2020-01-03
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
 import copy
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -27,7 +19,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT - Create FK Control"
 
 # Version:
-script_version = "1.9.2"
+script_version = "?.?.?"  # Module version (init)
 
 # Custom Curve Dictionary
 gt_auto_fk_settings = {'using_custom_curve': False,

@@ -43,29 +43,20 @@
  PEP8 Cleanup
  
 """
-import math
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
 from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import random
+import math
 import sys
 
 # Script Name
 script_name = "GT - Make IK Stretchy"
 
 # Version:
-script_version = "1.5.3"
+script_version = "?.?.?"  # Module version (init)
 
 # Settings
 gt_make_ik_stretchy_settings = {'ik_handle': '',

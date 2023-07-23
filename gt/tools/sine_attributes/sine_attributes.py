@@ -2,17 +2,9 @@
  Create Sine output attributes without using third-party plugins or expressions.
  github.com/TrevisanGMW/gt-tools - 2021-01-25
 """
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
-
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
 from maya import OpenMayaUI
 import maya.cmds as cmds
 import re
@@ -21,7 +13,7 @@ import re
 script_name = "GT - Add Sine Attributes"
 
 # Version:
-script_version = "1.1.1"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Main Form ============================================================================

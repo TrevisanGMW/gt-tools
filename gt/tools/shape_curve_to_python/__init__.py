@@ -38,6 +38,10 @@
  Updated help
  Added save to shelf
 """
+# Tool Version
+__version_tuple__ = (1, 6, 3)
+__version_suffix__ = ''
+__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
@@ -46,6 +50,7 @@ def launch_tool():
     Entry point for when using the tool GT Curve to Python.
     """
     from gt.tools.shape_curve_to_python import shape_curve_to_python
+    shape_curve_to_python.script_version = __version__
     shape_curve_to_python.build_gui_py_curve()
 
 

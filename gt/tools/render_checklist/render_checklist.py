@@ -8,22 +8,15 @@
     build_gui_gt_render_checklist() - name of the function
     build_gui_help_gt_render_checklist() - name of the function
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from gt.ui import resource_library
+from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import copy
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -34,7 +27,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Render Checklist"
 
 # Versions
-script_version = "1.4.4"
+script_version = "?.?.?"  # Module version (init)
 maya_version = cmds.about(version=True)
 
 # Status Colors
@@ -287,7 +280,7 @@ def build_gui_gt_render_checklist():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/checkboxOn.png')
+    icon = QIcon(resource_library.Icon.render_checklist)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends ==========================================================

@@ -2,22 +2,14 @@
  GT Orient Joints - Script for orienting multiple joints in a more predictable way
  github.com/TrevisanGMW/gt-tools - 2023-01-19
 """
+from maya import OpenMayaUI as OpenMayaUI
+from PySide2.QtWidgets import QWidget
+from shiboken2 import wrapInstance
+from PySide2.QtGui import QIcon
+import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
-import maya.api.OpenMaya as om
 import logging
 import random
-from maya import OpenMayaUI as OpenMayaUI
-
-try:
-    from shiboken2 import wrapInstance
-except ImportError:
-    from shiboken import wrapInstance
-
-try:
-    from PySide2.QtGui import QIcon
-    from PySide2.QtWidgets import QWidget
-except ImportError:
-    from PySide.QtGui import QIcon, QWidget
 
 # Logging Setup
 logging.basicConfig()
@@ -28,7 +20,7 @@ logger.setLevel(logging.INFO)
 script_name = "GT Orient Joints"
 
 # Version:
-script_version = "0.0.4"
+script_version = "?.?.?"  # Module version (init)
 
 
 # Renamer UI ============================================================================
@@ -232,7 +224,7 @@ def orient_joint(joint_list,
         up_dir (optional, tuple):
         detect_up_dir (optional, bool): If it should attempt to auto-detect up direction
     """
-    starting_up = om.MVector((0, 0, 0))
+    starting_up = OpenMaya.MVector((0, 0, 0))
     index = 0
     for jnt in joint_list:
 
@@ -293,9 +285,9 @@ def orient_joint(joint_list,
                                            worldUpVector=up_vec,
                                            worldUpType="vector"))
 
-            current_up = om.MVector(up_vec).normal()
+            current_up = OpenMaya.MVector(up_vec).normal()
             dot = get_dot_product(current_up, starting_up)
-            starting_up = om.MVector(up_vec).normal()
+            starting_up = OpenMaya.MVector(up_vec).normal()
 
             # Flip in case dot is negative (wrong way)
             if index > 0 and dot <= 0.0:
@@ -335,9 +327,9 @@ def get_dot_product(vector_a, vector_b):
             vector_b (list, MVector): second vector
     """
     if type(vector_a) != 'OpenMaya.MVector':
-        vector_a = om.MVector(vector_a)
+        vector_a = OpenMaya.MVector(vector_a)
     if type(vector_b) != 'OpenMaya.MVector':
-        vector_b = om.MVector(vector_b)
+        vector_b = OpenMaya.MVector(vector_b)
     return vector_a * vector_b
 
 
@@ -352,17 +344,17 @@ def get_cross_product(vector_a, vector_b, vector_c):
             MVector: cross product
     """
     if type(vector_a) != 'OpenMaya.MVector':
-        vector_a = om.MVector(vector_a)
+        vector_a = OpenMaya.MVector(vector_a)
     if type(vector_b) != 'OpenMaya.MVector':
-        vector_b = om.MVector(vector_b)
+        vector_b = OpenMaya.MVector(vector_b)
     if type(vector_c) != 'OpenMaya.MVector':
-        vector_c = om.MVector(vector_c)
+        vector_c = OpenMaya.MVector(vector_c)
 
-    vector_a = om.MVector([vector_a[0]-vector_b[0],
+    vector_a = OpenMaya.MVector([vector_a[0]-vector_b[0],
                            vector_a[1]-vector_b[1],
                            vector_a[2]-vector_b[2]])
 
-    vector_b = om.MVector([vector_c[0]-vector_b[0],
+    vector_b = OpenMaya.MVector([vector_c[0]-vector_b[0],
                            vector_c[1]-vector_b[1],
                            vector_c[2]-vector_b[2]])
 
