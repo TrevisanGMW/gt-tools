@@ -62,6 +62,8 @@ class SampleToolWindow(QMainWindow):
         sample_stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(sample_stylesheet)
 
+        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
+
     def update_view(self, items):
         """
         Updates the view with the provided items.
