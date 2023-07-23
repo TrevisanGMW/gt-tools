@@ -4,7 +4,6 @@
  github.com/TrevisanGMW/gt-tools -  2020-11-04
  Tested on Maya 2020 - Windows 10
 """
-
 from PySide2.QtWidgets import QWidget
 import maya.OpenMayaUI as OpenMayaUI
 from gt.ui import resource_library
