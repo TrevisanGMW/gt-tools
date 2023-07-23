@@ -1,3 +1,7 @@
+"""
+Curve Utilities
+github.com/TrevisanGMW/gt-tools
+"""
 from gt.utils.attribute_utils import add_attr_double_three
 import maya.cmds as cmds
 import logging
@@ -22,7 +26,7 @@ def combine_curves_list(curve_list):
 
     """
     errors = ''
-    function_name = 'GTU Combine Curves List'
+    function_name = 'Combine Curves List'
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         valid_selection = True

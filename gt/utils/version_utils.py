@@ -1,5 +1,6 @@
 """
 Version Utilities
+github.com/TrevisanGMW/gt-tools
 """
 from collections import namedtuple
 import importlib.util

@@ -3,13 +3,15 @@ Display Utilities - Update how you see elements in the viewport
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.feedback_utils import FeedbackMessage
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
-import random
 import sys
 
 # Logging Setup
+from gt.utils.naming_utils import get_short_name
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -70,10 +72,11 @@ def toggle_uniform_lra():
                 except Exception as e:
                     errors += str(e) + '\n'
 
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span>LRA Visibility set to: </span>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result + '</span>'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+        feedback = FeedbackMessage(intro='LRA Visibility set to:',
+                                   conclusion=str(operation_result),
+                                   style_conclusion='color:#FF0000;text-decoration:underline;',
+                                   zero_overwrite_message='No user defined attributes were deleted.')
+        feedback.print_inview_message(system_write=False)
         sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
 
         if errors != '':
@@ -138,18 +141,14 @@ def toggle_uniform_jnt_label():
                 except Exception as e:
                     errors += str(e) + '\n'
 
-        if len(joints) > 0:
-            in_view_message = '<' + str(random.random()) + '>'
-            in_view_message += '<span>Joint Label Visibility set to: </span>'
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result
-            in_view_message += '</span>'
-            cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
-        else:
-            unique_message = '<' + str(random.random()) + '>'
-            message = 'No joints found in this scene.'
-            cmds.inViewMessage(amg=unique_message + message, pos='botLeft', fade=True, alpha=.9)
-            sys.stdout.write('\n' + message)
+        feedback = FeedbackMessage(quantity=len(joints),
+                                   skip_quantity_print=True,
+                                   intro='Joint Label Visibility set to:',
+                                   conclusion=str(operation_result),
+                                   style_conclusion="color:#FF0000;text-decoration:underline;",
+                                   zero_overwrite_message='No joints found in this scene.')
+        feedback.print_inview_message(system_write=False)
+        sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
 
         if errors != '':
             print('#### Errors: ####')
@@ -293,11 +292,11 @@ def toggle_full_hud():
     operation_result = 'off'
     if toggle:
         operation_result = 'on'
-    in_view_message = '<' + str(random.random()) + '>'
-    in_view_message += '<span>Hud Visibility set to: </span>'
-    in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + operation_result
-    in_view_message += '</span>'
-    cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    feedback = FeedbackMessage(intro='Hud Visibility set to:',
+                               conclusion=str(operation_result),
+                               style_conclusion='color:#FF0000;text-decoration:underline;',
+                               zero_overwrite_message='No user defined attributes were deleted.')
+    feedback.print_inview_message(system_write=False)
     sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
 
 
@@ -327,20 +326,12 @@ def set_joint_name_as_label():
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
-    if counter > 0:
-        is_plural = 'labels were'
-        if counter == 1:
-            is_plural = 'label was'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(counter)
-        in_view_message += '</span> joint ' + is_plural + ' updated.'
-        message = '\n' + str(counter) + ' joint ' + is_plural + ' updated.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
-    else:
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += 'No labels were updated.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    feedback = FeedbackMessage(quantity=counter,
+                               singular='label was',
+                               plural='labels were',
+                               conclusion='updated.',
+                               zero_overwrite_message='No labels were updated.')
+    feedback.print_inview_message()
 
 
 def generate_udim_previews():
@@ -357,11 +348,11 @@ def generate_udim_previews():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
-
-    unique_message = '<' + str(random.random()) + '>'
-    message = unique_message + 'Previews generated for all <span style=\"color:#FF0000;text-decoration:underline;\"> ' \
-                               'UDIM</span> file nodes.'
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+    feedback = FeedbackMessage(prefix='Previews generated for all',
+                               intro='UDIM',
+                               style_intro='color:#FF0000;text-decoration:underline;',
+                               conclusion='file nodes.')
+    feedback.print_inview_message()
 
 
 def reset_joint_display():
@@ -391,22 +382,14 @@ def reset_joint_display():
             errors += str(exception) + '\n'
     cmds.jointDisplayScale(target_radius)
 
-    if counter > 0:
-        affected = str(counter)
-        is_plural = 'joints had their'
-        if counter == 1:
-            is_plural = 'had its'
-            affected = '"' + all_joints_short[0] + '"'
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + affected
-        in_view_message += '</span> ' + is_plural + ' display reset.'
-        message = '\n' + affected + ' ' + is_plural + ' "radius", "drawStyle" and "visibility" attributes reset.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
-        sys.stdout.write(message)
-    else:
-        in_view_message = '<' + str(random.random()) + '>'
-        in_view_message += 'No joints found in this scene.'
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
+    feedback = FeedbackMessage(quantity=counter,
+                               singular='joint had its',
+                               plural='joints had their',
+                               conclusion='display reset.',
+                               zero_overwrite_message='No joints found in this scene.')
+    feedback.print_inview_message(system_write=False)
+    feedback.conclusion = '"radius", "drawStyle" and "visibility" attributes reset.'
+    sys.stdout.write(f'\n{feedback.get_string_message()}')
 
     if errors:
         print(('#' * 50) + '\n')
@@ -426,18 +409,13 @@ def delete_display_layers():
             if layer != 'defaultLayer':
                 cmds.delete(layer)
                 deleted_counter += 1
-        in_view_message = '<' + str(random.random()) + '>'
-        if deleted_counter > 0:
-            in_view_message += '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(deleted_counter)
-            in_view_message += ' </span>'
-            is_plural = 'layers were'
-            if deleted_counter == 1:
-                is_plural = 'layer was'
-            in_view_message += is_plural + ' deleted.'
-        else:
-            in_view_message += 'No display layers found in this scene.'
+        feedback = FeedbackMessage(quantity=deleted_counter,
+                                   singular='layer was',
+                                   plural='layers were',
+                                   conclusion='deleted.',
+                                   zero_overwrite_message='No display layers found in this scene.')
+        feedback.print_inview_message()
 
-        cmds.inViewMessage(amg=in_view_message, pos='botLeft', fade=True, alpha=.9)
     except Exception as e:
         cmds.warning(str(e))
     finally:

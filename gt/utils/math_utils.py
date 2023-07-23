@@ -1,3 +1,7 @@
+"""
+Math Utilities
+github.com/TrevisanGMW/gt-tools
+"""
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging

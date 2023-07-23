@@ -1,3 +1,7 @@
+"""
+Camera Utilities
+github.com/TrevisanGMW/gt-tools
+"""
 import logging
 
 # Logging Setup

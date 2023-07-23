@@ -1,8 +1,7 @@
 """
 UUID Utilities
+github.com/TrevisanGMW/gt-tools
 """
-from dataclasses import dataclass
-import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
 import re

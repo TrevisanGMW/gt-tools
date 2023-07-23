@@ -2,6 +2,7 @@
 Misc Utilities - Any utilities that might not clearly fit in an existing category.
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.feedback_utils import FeedbackMessage
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -27,7 +28,11 @@ def material_copy():
     try:
         mel.eval('ConvertSelectionToFaces;')
         cmds.polyClipboard(copy=True, shader=True)
-        cmds.inViewMessage(amg='Material <hl>copied</hl> to the clipboard.', pos='midCenterTop', fade=True)
+        feedback = FeedbackMessage(prefix='Material',
+                                   intro='copied',
+                                   style_intro="color:#FF0000;text-decoration:underline;",
+                                   conclusion='to the clipboard.')
+        feedback.print_inview_message(system_write=False)
     except Exception as e:
         logger.debug(str(e))
         cmds.warning("Couldn't copy material. Make sure you selected an object or component before copying.")
@@ -35,9 +40,14 @@ def material_copy():
 
 
 def material_paste():
-    """ Copies selected material to clipboard """
+    """ Pastes selected material to clipboard """
     try:
         cmds.polyClipboard(paste=True, shader=True)
+        feedback = FeedbackMessage(prefix='Material',
+                                   intro='pasted',
+                                   style_intro="color:#FF0000;text-decoration:underline;",
+                                   conclusion='from the clipboard.')
+        feedback.print_inview_message(system_write=False)
     except Exception as e:
         logger.debug(str(e))
         cmds.warning("Couldn't paste material. Make sure you copied a material first, "
