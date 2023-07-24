@@ -44,12 +44,12 @@ Note: Python 2 is no longer supported. If you want to still use an older version
 <ul>
 <li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package and its tools.</li>
 <li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
-<li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations, including resource getters and QT functions.</li>
+<li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations.</li>
 <li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
 <li><code>tests</code>: Package unittests for tools, ui and utilities. See ["CONTRIBUTING.md"]() for more details.</li>
 </ul>
 
-<h1>Setup</h1>
+<h1>Setup (Install, Uninstall, Run Only)</h1>
 <p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
 Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
@@ -74,6 +74,18 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 <p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
 </p>
+
+h3>Setup Window</h3>
+<img src="./media/setup_window.jpg"
+     alt="GT Tools Installation Setup Window"
+     width="500"
+     align="center">
+<ol>
+	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
+</ol>
+
 <h3>Checksum Verification</h3>
 <p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
 </p>
