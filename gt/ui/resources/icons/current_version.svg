@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 27.7.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="version">
+	<defs>
+		<filter id="Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="15.307" y="50.857" width="481.387" height="410.285">
+			<feColorMatrix  type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+		</filter>
+	</defs>
+	<mask maskUnits="userSpaceOnUse" x="15.307" y="50.857" width="481.387" height="410.285" id="SVGID_1_">
+		<g style="filter:url(#Adobe_OpacityMaskFilter);">
+			
+				<linearGradient id="SVGID_00000145772498584227524350000014500288461261352858_" gradientUnits="userSpaceOnUse" x1="471" y1="1445.6132" x2="471" y2="933">
+				<stop  offset="0" style="stop-color:#0B0B0B"/>
+				<stop  offset="0.1483" style="stop-color:#0D0D0D"/>
+				<stop  offset="0.2018" style="stop-color:#141414"/>
+				<stop  offset="0.2399" style="stop-color:#1F1F1F"/>
+				<stop  offset="0.2707" style="stop-color:#303030"/>
+				<stop  offset="0.2971" style="stop-color:#464646"/>
+				<stop  offset="0.3205" style="stop-color:#626262"/>
+				<stop  offset="0.3416" style="stop-color:#828282"/>
+				<stop  offset="0.3611" style="stop-color:#A8A8A8"/>
+				<stop  offset="0.3783" style="stop-color:#D1D1D1"/>
+				<stop  offset="0.3896" style="stop-color:#F0F0F0"/>
+			</linearGradient>
+			
+				<linearGradient id="SVGID_00000176749157109387929810000017231960465171103914_" gradientUnits="userSpaceOnUse" x1="216.135" y1="1189.3065" x2="725.865" y2="1189.3065">
+				<stop  offset="0" style="stop-color:#0B0B0B"/>
+				<stop  offset="0.1894" style="stop-color:#0D0D0D"/>
+				<stop  offset="0.2576" style="stop-color:#141414"/>
+				<stop  offset="0.3062" style="stop-color:#1F1F1F"/>
+				<stop  offset="0.3455" style="stop-color:#303030"/>
+				<stop  offset="0.3792" style="stop-color:#464646"/>
+				<stop  offset="0.4091" style="stop-color:#626262"/>
+				<stop  offset="0.4361" style="stop-color:#828282"/>
+				<stop  offset="0.4609" style="stop-color:#A8A8A8"/>
+				<stop  offset="0.4829" style="stop-color:#D1D1D1"/>
+				<stop  offset="0.4973" style="stop-color:#F0F0F0"/>
+			</linearGradient>
+			
+				<rect x="216.635" y="933" style="fill:url(#SVGID_00000145772498584227524350000014500288461261352858_);stroke:url(#SVGID_00000176749157109387929810000017231960465171103914_);stroke-miterlimit:10;" width="508.73" height="512.613"/>
+		</g>
+	</mask>
+	
+		<polygon style="opacity:0.46;mask:url(#SVGID_1_);fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:10;enable-background:new    ;" points="
+		403.676,265.031 403.681,451.128 113.577,451.143 113.577,265.031 25.307,265.031 256.005,60.857 486.693,265.026 	"/>
+</g>
+<g id="Layer_1">
+</g>
+</svg>

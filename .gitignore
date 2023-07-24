@@ -1,4 +1,7 @@
-# gitignore to ignore work in progress files.
-
+# gitignore
+.DS_Store
 /workbench
 Thumbs.db
+*__pycache__
+*pyc
+*.idea

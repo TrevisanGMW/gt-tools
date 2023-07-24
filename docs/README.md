@@ -5,314 +5,143 @@
 <p></p>
 <!-- Table of Contents -->
 <div>
-<h1> Table of Contents </h1>
+<h1> Table of Contents</h1>
 <a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
-  <li><a href="#windows-installation">Windows Installation</a></li>
-  <li><a href="#macos-installation">MacOS Installation</a></li>
-  <li><a href="#linux-installation">Linux Installation</a></li>
-  <li><a href="#-gt-menu-">GT Menu</a></li>
-  <li><a href="#-gt-check-for-updates-">GT Check for Updates</a></li>
+  <li><a href="#package-setup">Package Setup</a></li>
+  <li><a href="#gt-menu">GT Menu</a></li>
+  <li><a href="#gt-check-for-updates">GT Check for Updates</a></li>
 </ul>
 <h3><b>Tools:</b></h3>
 <ul>
-  <li><a href="#-gt-renamer-">GT Renamer</a></li>
-  <li><a href="#-gt-outliner-sorter-">GT Outliner Sorter</a></li>
-  <li><a href="#-gt-selection-manager-">GT Selection Manager</a></li>
-  <li><a href="#-gt-path-manager-">GT Path Manager</a></li>
-  <li><a href="#-gt-color-manager-">GT Color Manager</a></li>
-  <li><a href="#-gt-transfer-transforms-">GT Transfer Transforms</a></li>
-  <li><a href="#-gt-world-space-baker-">GT World Space Baker</a></li>
-  <li><a href="#-gt-render-checklist-">GT Render Checklist</a></li>
+  <li><a href="#gt-renamer">GT Renamer</a></li>
+  <li><a href="#gt-outliner-sorter">GT Outliner Sorter</a></li>
+  <li><a href="#gt-selection-manager">GT Selection Manager</a></li>
+  <li><a href="#gt-path-manager">GT Path Manager</a></li>
+  <li><a href="#gt-color-manager">GT Color Manager</a></li>
+  <li><a href="#gt-transfer-transforms">GT Transfer Transforms</a></li>
+  <li><a href="#gt-world-space-baker">GT World Space Baker</a></li>
+  <li><a href="#gt-render-checklist">GT Render Checklist</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
-  <li><a href="#-gt-extract-python-curve-">GT Extract Python Curve</a></li>
-  <li><a href="#-gt-generate-text-curve-">GT Generate Text Curve</a></li>
-  <li><a href="#-gt-extract-curve-state-">GT Extract Curve State</a></li>
+  <li><a href="#gt-extract-python-curve">GT Extract Python Curve</a></li>
+  <li><a href="#gt-generate-text-curve">GT Generate Text Curve</a></li>
+  <li><a href="#gt-extract-curve-state">GT Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
-  <li><a href="#-gt-transfer-uvs-">GT Transfer UVs</a></li>
-  <li><a href="#-gt-sphere-types-">GT Sphere Types</a></li>
+  <li><a href="#gt-transfer-uvs">GT Transfer UVs</a></li>
+  <li><a href="#gt-sphere-types">GT Sphere Types</a></li>
 </ul>
 
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
-  <li><a href="#-gt-biped-auto-rigger-">GT Biped Auto Rigger</a></li>
-  <li><a href="#-gt-biped-rig-interface-">GT Biped Rig Interface</a></li>
-  <li><a href="#-gt-retarget-assistant-">GT Retarget Assistant</a></li>
-  <li><a href="#-gt-game-fbx-exporter-">GT Game FBX Exporter</a></li>
-  <li><a href="#-gt-extract-bound-joints-">GT Extract Bound Joints</a></li>
-  <li><a href="#-gt-connect-attributes-">GT Connect Attributes</a></li>
-  <li><a href="#-gt-morphing-utilities-">GT Morphing Utilities</a></li>
-  <li><a href="#-gt-morphing-attributes-">GT Morphing Attributes</a></li>
-  <li><a href="#-gt-mirror-cluster-tool-">GT Mirror Cluster Tool</a></li>
-  <li><a href="#-gt-generate-in-between-">GT Generate In-Between</a></li>
-  <li><a href="#-gt-create-auto-fk-">GT Create Auto FK</a></li>
-  <li><a href="#-gt-create-testing-keys-">GT Create Testing Keys</a></li>
-  <li><a href="#-gt-make-ik-stretchy-">GT Make IK Stretchy</a></li>
-  <li><a href="#-gt-add-sine-attributes-">GT Add Sine Attributes</a></li>
+  <li><a href="#gt-biped-auto-rigger">GT Biped Auto Rigger</a></li>
+  <li><a href="#gt-biped-rig-interface">GT Biped Rig Interface</a></li>
+  <li><a href="#gt-retarget-assistant">GT Retarget Assistant</a></li>
+  <li><a href="#gt-game-fbx-exporter">GT Game FBX Exporter</a></li>
+  <li><a href="#gt-extract-bound-joints">GT Extract Bound Joints</a></li>
+  <li><a href="#gt-connect-attributes">GT Connect Attributes</a></li>
+  <li><a href="#gt-morphing-utilities">GT Morphing Utilities</a></li>
+  <li><a href="#gt-morphing-attributes">GT Morphing Attributes</a></li>
+  <li><a href="#gt-mirror-cluster-tool">GT Mirror Cluster Tool</a></li>
+  <li><a href="#gt-generate-in-between">GT Generate In-Between</a></li>
+  <li><a href="#gt-create-auto-fk">GT Create Auto FK</a></li>
+  <li><a href="#gt-create-testing-keys">GT Create Testing Keys</a></li>
+  <li><a href="#gt-make-ik-stretchy">GT Make IK Stretchy</a></li>
+  <li><a href="#gt-add-sine-attributes">GT Add Sine Attributes</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
-  <li><a href="#-gt-utilities-">GT Utilities</a></li>
+  <li><a href="#gt-utilities">GT Utilities</a></li>
 </ul>
 <h3><b>Miscellaneous:</b></h3>
 <ul>
-  <li><a href="#-gt-startup-booster-">GT Startup Booster</a></li>
-  <li><a href="#-gt-fspy-importer-">GT fSpy Importer</a></li>
-  <li><a href="#-gt-maya-to-discord-">GT Maya to Discord</a></li>
-  <li><a href="#-gt-render-calculator-">GT Render Calculator</a></li>
+  <li><a href="#gt-startup-booster">GT Startup Booster</a></li>
+  <li><a href="#gt-fspy-importer">GT fSpy Importer</a></li>
+  <li><a href="#gt-maya-to-discord">GT Maya to Discord</a></li>
+  <li><a href="#gt-render-calculator">GT Render Calculator</a></li>
 </ul>
 </div>
 
-<br>
 </div>
 
-<!-- Windows Installation -->
+<!-- Package Setup -->
 
-<h1>Windows Installation</h1>
+<h1>Package Setup</h1>
 
-<b>TL;DR :</b> Download files, then open "setup.bat".
-<br>You can also click <a href="https://youtu.be/7Xa05b0cSXE">here</a> to watch a video tutorial.
+<h3>Setup - Installation, Uninstallation, or Run Only</h3>
+<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
+Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 
-<h3>Auto Installation</h3>
+<img src="./media/setup_tutorial.svg"
+     alt="GT Tools Installation Tutorial"
+     width="1000"
+     align="center">
 
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_windows.gif?raw=true"
-     alt="GT Tools Windows Auto Installation Demo">
-
-This script collection comes with an auto installer (setup.bat) you can simply download it, run the setup and reopen Maya.
-Here is how you do it in more details:
+<p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
+<br>How to run it step by step:</p>
 
 <ol>
-	<li>Close Maya (in case it's opened).</li>
+	<li>Open Maya (in case it's closed).</li>
 	<li>Download the latest release (or clone this repository).</li>
 	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "1" to "Install", then press enter.</li>
-	<li>Open Autodesk Maya.</li>
+	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
+    <li>An user interface with the setup options will open.</li>
+	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
+	<li>Enjoy!</li>
 </ol>
+<p>
+After installing, you can delete the downloaded/extracted files (as they have already been copied)
+</p>
 
-If you want, you can now delete the downloaded/extracted files (as they have already been installed)
-
-<h3>Manual Installation</h3>
-
-In case you need/want to manually install the scripts. It's also a pretty straightforward process.
-
+<h3>Setup Window</h3>
+<img src="./media/setup_window.jpg"
+     alt="GT Tools Installation Setup Window"
+     width="500"
+     align="center">
 <ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move all the contents from the folders "mel-scripts" to your scripts folder (usually located under the path below):
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Move all the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\gt_tools\ </b></li>
-<img src="./media/scripts_folder_sample.jpg" alt="Scripts Folder After Installation" align="right">
-	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
-	(This command adds the menu when Maya opens)
-	<li>Open Autodesk Maya. </li>
+	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
 </ol>
 
-<br>
+<h3>Checksum Verification</h3>
+<p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
+</p>
+
+<h3>Run Only</h3>
+<p>The setup window offers the option to run the tools without installing them. To do this, follow the same drag and drop steps and click on "Run Only" instead of "Install". This is going to load the tools from the location you have them, allowing you to run it one time only.</p>
 
 <h3>Updating</h3>
-<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
+<p>Simply install it again. The auto setup will handle the file changes.
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
-<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
+<br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
-<h1>Windows Uninstallation</h1>
+<h3>Windows Only - Express Launcher</h3>
+<p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
+<br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
+<b>"-launch"</b> ("..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
 
-<h3>Auto Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Open "setup.bat". (It will show you the options - "Install, Uninstall and About")</li>
-	<li>Type "2" to "Uninstall", then press enter.</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-<h3>Manual Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Navigate to your scripts folder, usually located under the following path:
-	<b>C:\Users\USERNAME\Documents\maya\VERSION\scripts\ </b></li>
-	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
-	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<br>
-
-<!-- MacOS Installation -->
-
-<h1>MacOS Installation</h1>
-
-<b>TL;DR :</b> Download files, run the bash script "setup_mac.sh".
-
-<h3>Auto Installation</h3>
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_mac.gif?raw=true"
-     alt="GT Tools MacOS Auto Installation Demo">
-
-This script collection comes with an auto installer (setup_mac.sh) you can simply download it, run the setup and reopen Maya. (Tested in MacOS Big Sur 11.1)
-Here is how you do it in more details:
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Open Terminal</li>
-	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop it on the Terminal)</li>
-	<li>It will show you the options "Install, Uninstall and About", Type "1" to "Install".</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-If you want, you can now delete the downloaded/extracted files (as they have already been installed)
-
-<h3>Manual Installation</h3>
-
-In case you need/want to manually install the scripts. It's easy..
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move the contents from the folder "mel-scripts" to your scripts folder (usually located under the path below):
-	<b>"~/Library/Preferences/Autodesk/maya/scripts"</b> (To access the library folder, hold "Command" and click on "Go")</li>
-	<li>Move the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
-	<b>"~/Library/Preferences/Autodesk/maya/scripts/gt_tools"</b> (To access the library folder, hold "Command" and click on "Go")</li>
-	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
-	(This command adds the menu when Maya opens)
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<h3>Updating</h3>
-<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
-<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
-
-<h1>MacOS Uninstallation</h1>
-
-<h3>Auto Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Open Terminal</li>
-	<li>Type "sh " + The path to the "setup_mac.sh" file. (You can just drag and drop it on the Terminal)</li>
-	<li>It will show you the options "Install, Uninstall and About", Type "2" to "Uninstall".</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-<h3>Manual Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Navigate to your scripts folder, usually located under the following path:
-	<b>"~/Library/Preferences/Autodesk/maya/scripts" (To access the library folder, hold "Command" and click on "Go")</b></li>
-	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
-	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<br>
-
-<!-- Linux Installation -->
-
-<h1>Linux Installation</h1>
-
-<b>TL;DR :</b> Download files, sudo run the bash script "setup_linux.sh".
-
-<h3>Auto Installation</h3>
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_tools_installation_linux.gif?raw=true"
-     alt="GT Tools Linux Auto Installation Demo">
-
-This script collection comes with an auto installer (setup_linux.sh) you can simply download it, run the setup and reopen Maya. (Tested in Ubuntu 20.10)
-Here is how you do it in more details:
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Open Terminal</li>
-	<li>Type "sudo sh " + The path to the "setup_linux.sh" file. (You can just drag and drop it on the Terminal)</li>
-	<li>Type your system password (it's required to run a sudo command)</li>
-	<li>It will show you the options "Install, Uninstall and About", Type "1" to "Install".</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-If you want, you can now delete the downloaded/extracted files (as they have already been installed)
-
-<h3>Manual Installation</h3>
-
-In case you need/want to manually install the scripts. It's easy..
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Move the contents from the folder "mel-scripts" to your scripts folder (usually located under the path below):
-	<b>"/home/linux/maya/scripts"</b></li>
-	<li>Move the contents from the folders "python-scripts" to a folder called "gt_tools" inside your scripts folder:
-	<b>"/home/linux/maya/scripts/gt_tools"</b></li>
-	<li>In case you don't want to replace an already existing <b>"userSetup.mel" </b> script (inside your scripts folder), you can easily merge them by opening the existing one and adding the line: <code>source "gt_tools_menu.mel"; </code></li>
-	(This command adds the menu when Maya opens)
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<h3>Updating</h3>
-<p>Simply install it again. The auto setup will overwrite all files essentially updating them.
-<br>In case updating it manually, make sure to overwrite (replace) the files when moving them to the scripts folder.</p>
-
-<h1>Linux Uninstallation</h1>
-
-<h3>Auto Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded.</li>
-	<li>Open Terminal</li>
-	<li>Type "sudo sh " + The path to the "setup_linux.sh" file. (You can just drag and drop it on the Terminal)</li>
-	<li>It will show you the options "Install, Uninstall and About", Type "2" to "Uninstall".</li>
-	<li>Open Autodesk Maya.</li>
-</ol>
-
-<h3>Manual Uninstallation</h3>
-
-<ol>
-	<li>Close Maya (in case it's opened).</li>
-	<li>Navigate to your scripts folder, usually located under the following path:
-	<b>"/home/linux/maya/scripts"</b></li>
-	<li>Delete "gt_tools_menu.mel" and the folder "gt_tools"</li>
-	<li>Open your <b>"userSetup.mel" </b> script (inside your scripts folder), and remove the line: <code>source "gt_tools_menu.mel"; </code></li>
-	<li>Open Autodesk Maya. </li>
-</ol>
-
-<br>
-
-<!-- GT Menu -->
+<!-- Dropdown Menu -->
 <div>
-<h1> GT Menu </h1>
+<h1>GT Menu</h1>
 <img src="./media/gt_menu.jpg" align="right"
      alt="GT Dropdown Menu and Help">
 
-<p>The script "gt_tools_menu.mel" adds a new dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
+<p>The package adds a dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
 <br>This menu contains sub-menus that have been organized to contain related tools. For example: modeling, rigging, utilities, etc...</p>
 
-<p><b>How does Maya know to run the script and create the menu?:</b> When you install the script package, it adds a line of code to the "userSetup.mel" file. This file gets executed every time Maya opens.</p>
+<p><b>How does Maya know to run the script and create the menu?:</b>
+<br>When you install the script package, it adds a line of code to the "userSetup.mel" file. This file gets executed every time Maya opens.</p>
 
-<p><b>Help > About: </b><br>This option opens a window showing basic information about GT Tools.</p>
+<p><b>Help > About: </b>
+<br>This option opens a window showing basic information about GT Tools.</p>
 
-<p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.
-<br>(Good for when updating, so you don't need to restart Maya)</p>
+<p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.</p>
 
 <p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
 
@@ -322,7 +151,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Check for Updates -->
 <div>
-<h1> GT Check for Updates </h1>
+<h1>GT Check for Updates</h1>
 <img src="./media/gt_check_for_updates.jpg" align="right"
      alt="GT Check for Updates UI">
 
@@ -350,9 +179,9 @@ In case you need/want to manually install the scripts. It's easy..
 
 <p><b>Semantic Versioning: MAJOR.MINOR.PATCH</b>
 <ul> 
-	<li> MAJOR: Big changes that might be incompatible with older versions. </li>
-	<li> MINOR: Significant changes, like adding new scripts/features. </li>
-	<li> PATCH: Small changes used to fix issues or improve existing scripts. </li>
+	<li> <b>MAJOR</b>: Big changes that might be incompatible with older versions. </li>
+	<li> <b>MINOR</b>: Significant changes, like adding new tools or big features. </li>
+	<li> <b>PATCH</b>: Small changes used to fix issues or improve existing tools. </li>
 </ul>
 
 </p>
@@ -362,7 +191,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Renamer -->
 <div>
-<h1> GT Renamer </h1>
+<h1>GT Renamer</h1>
 <img src="./media/gt_renamer.jpg" align="right"
      alt="GT Renamer GUI">
 <img src="./media/gt_renamer_sample.gif" align="right"
@@ -389,7 +218,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Outliner Sorter -->
 <div>
-<h1> GT Outliner Sorter </h1>
+<h1>GT Outliner Sorter</h1>
 <img src="./media/gt_outliner_sorter.jpg" align="right"
      alt="GT Renamer GUI">
 
@@ -424,7 +253,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Selection Manager-->
 <div>
-<h1> GT Selection Manager </h1>
+<h1>GT Selection Manager</h1>
 <img src="./media/gt_selection_manager.jpg" align="right"
      alt="GT Selection Manager GUI">
 
@@ -447,7 +276,7 @@ In case you need/want to manually install the scripts. It's easy..
 
 <!-- GT Path Manager -->
 <div>
-<h1> GT Path Manager </h1>
+<h1>GT Path Manager</h1>
 <img src="./media/gt_path_manager.gif" align="right"
      alt="GT Path Manager GUI">
 	 
@@ -472,7 +301,7 @@ The icon on the left describes the validity of the path. If the file or director
 
 <!-- GT Color Manager -->
 <div>
-<h1> GT Color Manager </h1>
+<h1>GT Color Manager</h1>
 
 <img src="./media/gt_color_manager.jpg" align="right"
      alt="GT Color Manager GUI">
@@ -501,7 +330,7 @@ The icon on the left describes the validity of the path. If the file or director
 
 <!-- GT Transfer Transforms -->
 <div>
-<h1> GT Transfer Transforms </h1>
+<h1>GT Transfer Transforms</h1>
 
 <img src="./media/gt_transfer_transforms.jpg" align="right"
      alt="GT Transfer Transforms GUI">
@@ -533,7 +362,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT World Space Baker -->
 <div>
-<h1> GT World Space Baker </h1>
+<h1>GT World Space Baker</h1>
 
 <img src="./media/gt_world_space_baker.jpg" align="right"
      alt="GT World Space Baker GUI">
@@ -558,7 +387,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Render Checklist -->
 <div>
-<h1> GT Render Checklist </h1>
+<h1>GT Render Checklist</h1>
 
 <img src="./media/gt_render_checklist.gif" align="right"
      alt="GT Render Checklist GUI">
@@ -652,7 +481,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Extract Python Curve -->
 <div>
-<h1> GT Extract Python Curve </h1>
+<h1>GT Extract Python Curve</h1>
 
 <img src="./media/gt_extract_python_curve.jpg" align="right"
      alt="GT Generate Python Curve GUI">
@@ -679,7 +508,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Generate Text Curve -->
 <div>
-<h1> GT Generate Text Curve </h1>
+<h1>GT Generate Text Curve</h1>
 
 <img src="./media/gt_generate_text_curve.jpg" align="right"
      alt="GT Generate Text Curve GUI">
@@ -701,7 +530,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Extract Curve State -->
 <div>
-<h1> GT Extract Curve State </h1>
+<h1>GT Extract Curve State</h1>
 
 <img src="./media/gt_extract_shape_state.jpg" align="right"
      alt="GT Extract Curve State GUI">
@@ -723,7 +552,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- Transfer UVs -->
 <div>
-<h1> GT Transfer UVs </h1>
+<h1>GT Transfer UVs</h1>
 
 <img src="./media/gt_transfer_uvs.jpg" align="right"
      alt="GT Transfer UVs GUI">
@@ -740,7 +569,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Sphere Types -->
 <div>
-<h1> GT Sphere Types </h1>
+<h1>GT Sphere Types</h1>
 
 <img src="./media/gt_create_sphere_types.jpg" align="right"
      alt="GT Sphere Types GUI">
@@ -758,7 +587,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- GT Biped Auto Rigger -->
 <div>
-<h1> GT Biped Auto Rigger </h1>
+<h1>GT Biped Auto Rigger</h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
      alt="GT Biped Auto Rigger GUI">
@@ -980,7 +809,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Biped Rig Interface -->
 <div>
-<h1> GT Biped Rig Interface </h1>
+<h1>GT Biped Rig Interface</h1>
 
 <img src="./media/gt_custom_rig_interface.jpg" align="right"
      alt="GT Biped Rig Interface GUI">
@@ -1049,7 +878,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Retarget Assistant -->
 <div>
-<h1> GT Retarget Assistant </h1>
+<h1>GT Retarget Assistant</h1>
 
 <img src="./media/gt_retarget_assistant.jpg" align="right"
      alt="GT Retarget Assistant GUI">
@@ -1095,7 +924,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Game FBX Exporter -->
 <div>
-<h1> GT Game FBX Exporter </h1>
+<h1>GT Game FBX Exporter</h1>
 
 <img src="./media/gt_game_fbx_exporter.jpg" align="right"
      alt="GT Game FBX Exporter GUI">
@@ -1115,7 +944,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Extract Bound Joints -->
 <div>
-<h1> GT Extract Bound Joints </h1>
+<h1>GT Extract Bound Joints</h1>
 
 <img src="./media/gt_extract_bound_joints.jpg" align="right"
      alt="GT Extract Bound Joints GUI">
@@ -1138,7 +967,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Connect Attributes -->
 <div>
-<h1> GT Connect Attributes </h1>
+<h1>GT Connect Attributes</h1>
 
 <img src="./media/gt_connect_attributes.jpg" align="right"
      alt="GT Connect Attributes GUI">
@@ -1172,7 +1001,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Morphing Utilities -->
 <div>
-<h1> GT Morphing Utilities </h1>
+<h1>GT Morphing Utilities</h1>
 
 <img src="./media/gt_morphing_utilities.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1206,7 +1035,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Morphing Attributes -->
 <div>
-<h1> GT Morphing Attributes </h1>
+<h1>GT Morphing Attributes</h1>
 
 <img src="./media/gt_morphing_attributes.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1266,7 +1095,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 </div>
 <!-- GT Mirror Cluster Tool -->
 <div>
-<h1> GT Mirror Cluster Tool </h1>
+<h1>GT Mirror Cluster Tool</h1>
 
 <img src="./media/gt_mirror_cluster_tool.jpg" align="right"
      alt="GT Mirror Cluster Tool GUI">
@@ -1294,7 +1123,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Generate In-Between -->
 <div>
-<h1> GT Generate In-Between </h1>
+<h1>GT Generate In-Between</h1>
 
 <img src="./media/gt_generate_inbetween.jpg" align="right"
      alt="GT Generate In-Between GUI">
@@ -1319,7 +1148,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Create Auto FK -->
 <div>
-<h1> GT Create Auto FK </h1>
+<h1>GT Create Auto FK</h1>
 
 <img src="./media/gt_create_auto_fk.jpg" align="right"
      alt="GT GT Create Auto FK GUI">
@@ -1355,7 +1184,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Create Testing Keys -->
 <div>
-<h1> GT Create Testing Keys </h1>
+<h1>GT Create Testing Keys</h1>
 
 <img src="./media/gt_create_testing_keys.jpg" align="right"
      alt="GT Create Testing Keys GUI">
@@ -1396,7 +1225,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Make Stretchy Legs -->
 <div>
-<h1> GT Make IK Stretchy </h1>
+<h1>GT Make IK Stretchy</h1>
 
 <img src="./media/gt_make_ik_stretchy.jpg" align="right"
      alt="GT Make IK Stretchy GUI">
@@ -1435,7 +1264,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Add Sine Attributes -->
 <div>
-<h1> GT Add Sine Attributes </h1>
+<h1>GT Add Sine Attributes</h1>
 
 <img src="./media/gt_add_sine_attributes.jpg" align="right"
      alt="GT Add Sine Attributes GUI">
@@ -1465,7 +1294,7 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <!-- GT Utilities -->
 <div>
-<h1> GT Utilities </h1>
+<h1>GT Utilities</h1>
 
 <img src="./media/gt_utilities.jpg" align="right"
      alt="GT Utilities Menu">
@@ -1584,7 +1413,7 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <!-- GT Startup Booster -->
 <div>
-<h1> GT Startup Booster </h1>
+<h1>GT Startup Booster</h1>
 
 <img src="./media/gt_startup_booster.jpg" align="right"
      alt="GT Startup Booster GUI">
@@ -1621,7 +1450,7 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <!-- GT fSpy Importer -->
 <div>
-<h1> GT fSpy Importer </h1>
+<h1>GT fSpy Importer</h1>
 
 <img src="./media/gt_fspy_importer.jpg" align="right"
      alt="GT fSpy Importer GUI">
@@ -1666,7 +1495,7 @@ Do not change the resolution of the image file or crop the image or it might not
 
 <!-- GT Maya to Discord -->
 <div>
-<h1> GT Maya to Discord </h1>
+<h1>GT Maya to Discord</h1>
 
 <img src="./media/gt_maya_to_discord.jpg" align="right"
      alt="GT Maya to Discord GUI">
@@ -1730,7 +1559,7 @@ Do not change the resolution of the image file or crop the image or it might not
 
 <!-- GT Render Calculator -->
 <div>
-<h1> GT Render Calculator </h1>
+<h1>GT Render Calculator</h1>
 
 <img src="./media/gt_render_calculator.jpg" align="right"
      alt="GT Render Calculator GUI">
