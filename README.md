@@ -98,11 +98,6 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
 <br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
 
-<h3>Windows Only - Express Launcher</h3>
-<p>Users running windows can also use the <b>"setup_express_launcher.bat"</b> file to run setup options without opening Maya. 
-<br>The same file can be used with arguments to run a launching option directly. For example, a shortcut with the argument 
-<b>"-launch"</b> ("..\setup_express_launcher.bat -launch") will open Maya directly with the option "Run Only" from the GUI Setup window, essentially creating a shortcut to use the tools without installing them.</p>
-
 <h1> Contributors </h1>
 If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a> file for a detailed explanation on how to do that. 
 <br><b>Pull requests are warmly welcome.</b> 
