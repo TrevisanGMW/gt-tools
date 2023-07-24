@@ -75,7 +75,7 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 After installing, you can delete the downloaded/extracted files (as they have already been copied)
 </p>
 
-h3>Setup Window</h3>
+<h3>Setup Window</h3>
 <img src="./docs/media/setup_window.jpg"
      alt="GT Tools Installation Setup Window"
      width="500"
