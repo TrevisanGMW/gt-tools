@@ -76,7 +76,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 </p>
 
 h3>Setup Window</h3>
-<img src="./media/setup_window.jpg"
+<img src="./docs/media/setup_window.jpg"
      alt="GT Tools Installation Setup Window"
      width="500"
      align="center">
