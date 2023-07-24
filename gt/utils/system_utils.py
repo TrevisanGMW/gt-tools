@@ -438,7 +438,7 @@ def initialize_tool(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_from_package(import_path="tools." + import_path,
+    return initialize_from_package(import_path="gt.tools." + import_path,
                                    entry_point_function=entry_point_function)
 
 
@@ -455,7 +455,7 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_from_package(import_path="utils." + import_path,
+    return initialize_from_package(import_path="gt.utils." + import_path,
                                    entry_point_function=entry_point_function)
 
 
@@ -544,4 +544,5 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = os.environ.keys()
     out = get_maya_preferences_dir(get_system())
+    out = initialize_from_package()
     pprint(out)
