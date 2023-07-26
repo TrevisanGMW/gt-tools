@@ -97,40 +97,40 @@ def load_menu(*args):
     menu.add_menu_item(label='Renamer',
                        command=partial(_open_named_tool, "renamer"),
                        tooltip='Script for renaming multiple objects.',
-                       icon=resource_library.Icon.renamer)
+                       icon=resource_library.Icon.tool_renamer)
     menu.add_menu_item(label='Outliner Sorter',
                        command=partial(_open_named_tool, "outliner_sorter"),
                        tooltip='Manages the order of the elements in the outliner.',
-                       icon=resource_library.Icon.outliner_sorter)
+                       icon=resource_library.Icon.tool_outliner_sorter)
     menu.add_menu_item(label='Selection Manager',
                        command=partial(_open_named_tool, "selection_manager"),
                        tooltip='Manages or creates custom selections.',
-                       icon=resource_library.Icon.selection_manager)
+                       icon=resource_library.Icon.tool_selection_manager)
     menu.add_menu_item(label='Path Manager',
                        command=partial(_open_named_tool, "path_manager"),
                        tooltip='A script for managing and repairing the path of many nodes.',
-                       icon=resource_library.Icon.path_manager)
+                       icon=resource_library.Icon.tool_path_manager)
     menu.add_menu_item(label='Color Manager',
                        command=partial(_open_named_tool, "color_manager"),
                        tooltip='A way to quickly change colors of objects and objects names (outliner).',
-                       icon=resource_library.Icon.color_manager)
+                       icon=resource_library.Icon.tool_color_manager)
     menu.add_menu_item(label='Transfer Transforms',
                        command=partial(_open_named_tool, "transfer_transforms"),
                        tooltip='Script for quickly transferring Translate, Rotate, and Scale between objects.',
-                       icon=resource_library.Icon.transfer_transforms)
+                       icon=resource_library.Icon.tool_transfer_transforms)
     menu.add_menu_item(label='World Space Baker',
                        command=partial(_open_named_tool, "world_space_baker"),
                        tooltip='Script for getting and setting translate and rotate world space data.',
-                       icon=resource_library.Icon.world_space_baker)
+                       icon=resource_library.Icon.tool_world_space_baker)
     menu.add_menu_item(label='Attributes to Python',
                        command=partial(_open_named_tool, "attributes_to_python"),
                        tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
-                       icon=resource_library.Icon.attributes_to_python)
+                       icon=resource_library.Icon.tool_attributes_to_python)
     menu.add_menu_item(label='Render Checklist',
                        command=partial(_open_named_tool, "render_checklist"),
                        tooltip='Performs a series of checks to detect common issues that are often accidentally '
                                'ignored/unnoticed.',
-                       icon=resource_library.Icon.render_checklist)
+                       icon=resource_library.Icon.tool_render_checklist)
 
     # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves",
@@ -139,25 +139,25 @@ def load_menu(*args):
     menu.add_menu_item(label='Extract Python Curve',
                        command=partial(_open_named_tool, "shape_curve_to_python"),
                        tooltip='Generates the python code necessary to create a selected curve.',
-                       icon=resource_library.Icon.crv_to_python)
+                       icon=resource_library.Icon.tool_crv_python)
     menu.add_menu_item(label='Generate Text Curve',
                        command=partial(_open_named_tool, "shape_text_to_curve"),
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
-                       icon=resource_library.Icon.crv_text)
+                       icon=resource_library.Icon.tool_crv_text)
     menu.add_menu_item(label='Extract Curve State',
                        command=partial(_open_named_tool, "shape_extract_state"),
                        tooltip='Generates the python command necessary to reshape curves back to their stored state.',
-                       icon=resource_library.Icon.crv_state)
+                       icon=resource_library.Icon.tool_crv_extract_state)
 
     menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Combine Curves',
                        command=partial(_run_utility, "curve_utils", "selected_curves_combine"),
                        tooltip='Combine curves by moving all the shape objects inside one single transform.',
-                       icon=resource_library.Icon.crv_combine)
+                       icon=resource_library.Icon.util_crv_combine)
     menu.add_menu_item(label='Separate Curves',
                        command=partial(_run_utility, "curve_utils", "selected_curves_separate"),
                        tooltip='Separate curves by moving every shape object to their own separated transform.',
-                       icon=resource_library.Icon.crv_separate)
+                       icon=resource_library.Icon.util_crv_separate)
 
     # ------------------------------------ Modeling ------------------------------------
     menu.add_sub_menu("Modeling",
@@ -166,32 +166,32 @@ def load_menu(*args):
     menu.add_menu_item(label='Transfer UVs',
                        command=partial(_open_named_tool, "transfer_uvs"),
                        tooltip='A script to export/import UVs as well as transfer them between objects.',
-                       icon=resource_library.Icon.mod_transfer_uvs)
+                       icon=resource_library.Icon.tool_transfer_uvs)
     menu.add_menu_item(label='Sphere Types',
                        command=partial(_open_named_tool, "create_sphere_types"),
                        tooltip='A reminder for students that there are other sphere types.',
-                       icon=resource_library.Icon.mod_sphere_types)
+                       icon=resource_library.Icon.tool_sphere_types)
 
     menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Preview All UDIMs',
                        command=partial(_run_utility, "display_utils", "generate_udim_previews"),
                        tooltip='Generates UDIM previews for all file nodes.',
-                       icon=resource_library.Icon.mod_load_udims)
+                       icon=resource_library.Icon.util_mod_load_udims)
     menu.add_menu_item(label='Convert Bif to Mesh',
                        command=partial(_run_utility, "geometry_utils", "convert_bif_to_mesh"),
                        tooltip='Converts Bifrost Geometry into Maya Geometry (Mesh). '
                                'If used with volume or particles the output will be empty.',
-                       icon=resource_library.Icon.mod_bif_to_mesh)
+                       icon=resource_library.Icon.util_mod_bif_to_mesh)
 
     menu.add_divider()  # Material Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Copy Material',
                        command=partial(_run_utility, "misc_utils", "material_copy"),
                        tooltip='Copies material to clipboard.',
-                       icon=resource_library.Icon.mod_copy_material)
+                       icon=resource_library.Icon.util_mod_copy_material)
     menu.add_menu_item(label='Paste Material',
                        command=partial(_run_utility, "misc_utils", "material_paste"),
                        tooltip='Pastes material from clipboard.',
-                       icon=resource_library.Icon.mod_paste_material)
+                       icon=resource_library.Icon.util_mod_paste_material)
     # ------------------------------------ Rigging ------------------------------------
     menu.add_sub_menu("Rigging",
                       icon=resource_library.Icon.root_rigging,
@@ -199,7 +199,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Biped Auto Rigger',
                        command=partial(_open_named_tool, "auto_rigger"),
                        tooltip='Automated solution for creating a biped rig.',
-                       icon=resource_library.Icon.rig_auto_rigger)
+                       icon=resource_library.Icon.tool_auto_rigger)
     menu.add_menu_item(label='Biped Rig Interface',
                        command=partial(_open_named_tool, "auto_rigger", "launch_biped_rig_interface"),
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
@@ -388,29 +388,29 @@ def load_menu(*args):
     menu.add_menu_item(label='Startup Booster',
                        command=partial(_open_named_tool, "startup_booster"),
                        tooltip='Improve startup times by managing which plugins get loaded when starting Maya.',
-                       icon=resource_library.Icon.startup_booster)
+                       icon=resource_library.Icon.tool_startup_booster)
     menu.add_menu_item(label='fSpy Importer',
                        command=partial(_open_named_tool, "fspy_importer"),
                        tooltip='Imports the JSON data exported out of fSpy (Camera Matching software).',
-                       icon=resource_library.Icon.fspy_importer)
+                       icon=resource_library.Icon.tool_fspy_importer)
     menu.add_menu_item(label='Maya to Discord',
                        command=partial(_open_named_tool, "maya_to_discord"),
                        tooltip='Send images and videos (playblasts) from Maya to Discord using a '
                                'Discord Webhook to bridge the two programs.',
-                       icon=resource_library.Icon.maya_to_discord_icon)
+                       icon=resource_library.Icon.tool_maya_to_discord)
     menu.add_menu_item(label='Render Calculator',
                        command=partial(_open_named_tool, "render_calculator"),
                        tooltip="Helps calculate how long it's going to take to render an image sequence.",
-                       icon=resource_library.Icon.render_calculator)
+                       icon=resource_library.Icon.tool_render_calculator)
     # ------------------------------------ Development ------------------------------------
     if False:  # TODO - Replace with global variable
         menu.add_sub_menu("Develop",
-                          icon=resource_library.Icon.about,
+                          icon=resource_library.Icon.misc_about,
                           parent_to_root=True)
         menu.add_menu_item(label='Sample Tool',
                            command=partial(_open_named_tool, "sample_tool"),
                            tooltip="Opens sample tool.",
-                           icon=resource_library.Icon.about)
+                           icon=resource_library.Icon.misc_about)
     # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
     menu.add_sub_menu("Help",
@@ -419,18 +419,18 @@ def load_menu(*args):
     menu.add_menu_item(label='About',
                        command=partial(_open_named_tool, "package_setup", "open_about_window"),
                        tooltip="Opens about menu.",
-                       icon=resource_library.Icon.about)
+                       icon=resource_library.Icon.misc_about)
     menu.add_menu_item(label='Re-Build Menu',
                        command=_rebuild_menu,
                        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
-                       icon=resource_library.Icon.rebuild_menu)
+                       icon=resource_library.Icon.misc_rebuild_menu)
     menu.add_menu_item(label='Check for Updates',
                        command=partial(_open_named_tool, "check_for_updates"),
                        tooltip="Check for updates by comparing current version with latest release.",
-                       icon=resource_library.Icon.check_for_updates)
+                       icon=resource_library.Icon.tool_check_for_updates)
     menu.add_menu_item(label=f'Installed Version: {str(package_version)}',
                        enable=False,
-                       icon=resource_library.Icon.current_version)
+                       icon=resource_library.Icon.misc_current_version)
     # ------------------------------------ End ------------------------------------
     menu_path = menu.create_menu()
     return menu_path

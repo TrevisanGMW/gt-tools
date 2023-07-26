@@ -174,7 +174,7 @@ def build_gui_py_curve():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.crv_to_python)
+    icon = QIcon(resource_library.Icon.tool_crv_python)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

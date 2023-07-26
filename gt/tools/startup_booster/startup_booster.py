@@ -790,7 +790,7 @@ def build_gui_startup_booster():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_startup_booster)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.startup_booster)
+    icon = QIcon(resource_library.Icon.tool_startup_booster)
     widget.setWindowIcon(icon)
 
     # main dialog Ends Here =================================================================================

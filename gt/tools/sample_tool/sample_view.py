@@ -55,7 +55,7 @@ class SampleToolWindow(QMainWindow):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.cog_icon))
+        self.setWindowIcon(QIcon(resource_library.Icon.misc_cog))
 
         sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
         sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog

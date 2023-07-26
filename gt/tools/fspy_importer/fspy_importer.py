@@ -182,7 +182,7 @@ def build_gui_fspy_importer():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.fspy_importer)
+    icon = QIcon(resource_library.Icon.tool_fspy_importer)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

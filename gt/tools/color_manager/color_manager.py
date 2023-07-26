@@ -456,7 +456,7 @@ def build_gui_color_manager():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.color_manager)
+    icon = QIcon(resource_library.Icon.tool_color_manager)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

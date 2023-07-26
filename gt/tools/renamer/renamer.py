@@ -557,7 +557,7 @@ def build_gui_renamer():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.renamer)
+    icon = QIcon(resource_library.Icon.tool_renamer)
     widget.setWindowIcon(icon)
 
 

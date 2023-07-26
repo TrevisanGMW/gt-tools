@@ -605,7 +605,7 @@ def build_gui_auto_biped_rig():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.rig_auto_rigger)
+    icon = QIcon(resource_library.Icon.tool_auto_rigger)
     widget.setWindowIcon(icon)
 
     # ### GUI Functions ###
