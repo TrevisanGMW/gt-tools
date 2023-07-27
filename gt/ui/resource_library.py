@@ -269,6 +269,7 @@ class Icon:
     tool_connect_attributes = get_icon_path(r"tool_connect_attributes.svg")
     tool_create_fk = get_icon_path(r"tool_create_fk.svg")
     tool_testing_keys = get_icon_path(r"tool_testing_keys.svg")
+    tool_make_ik_stretchy = get_icon_path(r"tool_make_ik_stretchy.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")

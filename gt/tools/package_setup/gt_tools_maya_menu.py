@@ -202,7 +202,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Make IK Stretchy',
                        command=IMPORT_TOOL + 'initialize_tool("make_ik_stretchy")',
                        tooltip='Automated solution for making an IK system stretchy.',
-                       icon='ikSCsolver.svg')
+                       icon=resource_library.Icon.tool_make_ik_stretchy)
     menu.add_menu_item(label='Mirror Cluster Tool',
                        command=IMPORT_TOOL + 'initialize_tool("mirror_cluster_tool")',
                        tooltip='Automated solution for mirroring clusters.',
