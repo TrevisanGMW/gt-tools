@@ -182,7 +182,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Connect Attributes',
                        command=IMPORT_TOOL + 'initialize_tool("connect_attributes")',
                        tooltip='Automated solution for connecting multiple attributes.',
-                       icon='hsRearrange.png')
+                       icon=resource_library.Icon.tool_connect_attributes)
     menu.add_menu_item(label='Create Auto FK',
                        command=IMPORT_TOOL + 'initialize_tool("create_auto_fk")',
                        tooltip='Automated solution for created an FK control curve.',
