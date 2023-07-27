@@ -477,7 +477,7 @@ def build_gui_selection_manager():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.selection_manager)
+    icon = QIcon(resource_library.Icon.tool_selection_manager)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

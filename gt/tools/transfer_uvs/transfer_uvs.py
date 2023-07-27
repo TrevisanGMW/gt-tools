@@ -74,7 +74,7 @@ def build_gui_uv_transfer():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_uv_transfer)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.mod_transfer_uvs)
+    icon = QIcon(resource_library.Icon.tool_transfer_uvs)
 
     widget.setWindowIcon(icon)
 

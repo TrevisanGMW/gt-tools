@@ -482,7 +482,7 @@ def build_gui_transfer_transforms():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.transfer_transforms)
+    icon = QIcon(resource_library.Icon.tool_transfer_transforms)
     widget.setWindowIcon(icon)
 
     # Deselect Text Field

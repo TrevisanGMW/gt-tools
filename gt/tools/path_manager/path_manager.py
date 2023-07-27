@@ -86,7 +86,7 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         self.resize(self.width() + 250, 500)
 
         # Set Icon
-        self.setWindowIcon(QtGui.QIcon(resource_library.Icon.selection_manager))
+        self.setWindowIcon(QtGui.QIcon(resource_library.Icon.tool_selection_manager))
 
         # Setup Window Content and Signals
         self.create_widgets()

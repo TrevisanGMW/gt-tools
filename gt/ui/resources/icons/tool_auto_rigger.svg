@@ -2,7 +2,7 @@
 <!-- Generator: Adobe Illustrator 27.7.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
-<g id="rig_x5F_auto_x5F_rigger">
+<g id="tool_x5F_rig_x5F_auto_x5F_rigger">
 	<rect x="0" style="fill:none;" width="512" height="512"/>
 	<g>
 		<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#BDBDBD;" d="M308.693,475.2c-19.2,0-34.773-15.573-34.773-34.773V349.56
@@ -22,7 +22,7 @@
 			C325.76,59.627,294.4,28.48,256,28.48L256,28.48z"/>
 	</g>
 	<g>
-		<rect x="215.522" y="225.664" style="fill-rule:evenodd;clip-rule:evenodd;fill:#937CD8;" width="79.379" height="79.379"/>
+		<rect x="215.522" y="225.664" style="fill-rule:evenodd;clip-rule:evenodd;fill:#AE9DD9;" width="79.379" height="79.379"/>
 		<path style="fill:#1D1D1D;" d="M287.401,233.163v64.38h-64.38v-64.38H287.401 M302.401,218.163h-15h-64.38h-15v15v64.38v15h15
 			h64.38h15v-15v-64.38V218.163L302.401,218.163z"/>
 	</g>

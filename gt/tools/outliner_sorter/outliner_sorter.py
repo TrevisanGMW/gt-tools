@@ -327,7 +327,7 @@ def build_gui_outliner_sorter():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.outliner_sorter)
+    icon = QIcon(resource_library.Icon.tool_outliner_sorter)
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window
