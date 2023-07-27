@@ -263,6 +263,7 @@ class Icon:
     tool_rig_interface = get_icon_path(r"tool_rig_interface.svg")
     tool_retarget_assistant = get_icon_path(r"tool_retarget_assistant.svg")
     tool_game_fbx_exporter = get_icon_path(r"tool_game_fbx_exporter.svg")
+    tool_influence_joints = get_icon_path(r"tool_influence_joints.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")

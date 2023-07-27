@@ -233,7 +233,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Extract Influence Joints',
                        command=partial(_open_named_tool, "extract_influence_joints"),
                        tooltip='Generate Python code used to select influence (bound) joints.',
-                       icon='smoothSkin.png')
+                       icon=resource_library.Icon.tool_influence_joints)
     menu.add_menu_item(label='Generate In-Between',
                        command=partial(_open_named_tool, "generate_inbetween"),
                        tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
