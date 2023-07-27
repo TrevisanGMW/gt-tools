@@ -329,7 +329,7 @@ def build_gui_attr_to_python():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.attributes_to_python)
+    icon = QIcon(resource_library.Icon.tool_attributes_to_python)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================

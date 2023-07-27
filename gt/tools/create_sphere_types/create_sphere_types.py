@@ -70,7 +70,7 @@ def build_gui_sphere_type():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_gui_sphere_type)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.mod_sphere_types)
+    icon = QIcon(resource_library.Icon.tool_sphere_types)
 
     widget.setWindowIcon(icon)
 

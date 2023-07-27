@@ -183,7 +183,7 @@ def build_gui_render_calculator():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.render_calculator)
+    icon = QIcon(resource_library.Icon.tool_render_calculator)
     widget.setWindowIcon(icon)
 
     _recalculate_time()

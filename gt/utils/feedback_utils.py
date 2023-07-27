@@ -2,6 +2,7 @@
 Feedback Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.system_utils import callback
 from dataclasses import dataclass, field
 import maya.cmds as cmds
 from io import StringIO
@@ -239,16 +240,7 @@ def print_when_true(input_string, do_print=True, use_system_write=False, callbac
     if do_print:
         sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
     if callbacks:
-        if not isinstance(callbacks, list):
-            callbacks = [callbacks]  # Convert to list in case arg was provided as function
-        for func in callbacks:
-            if callable(func):
-                try:
-                    func(input_string)
-                except Exception as e:
-                    logger.debug(f"Unable to execute passthrough function. Issue: {e}")
-            else:
-                logger.debug(f"Error: {func} is not a callable function.")
+        callback(callbacks, input_string)
 
 
 def redirect_output_to_function(process_func, logger_level=logging.INFO):

@@ -280,7 +280,7 @@ def build_gui_gt_render_checklist():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.render_checklist)
+    icon = QIcon(resource_library.Icon.tool_render_checklist)
     widget.setWindowIcon(icon)
 
     # Main GUI Ends ==========================================================

@@ -250,7 +250,7 @@ def build_gui_world_space_baker():
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
     widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.world_space_baker)
+    icon = QIcon(resource_library.Icon.tool_world_space_baker)
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window

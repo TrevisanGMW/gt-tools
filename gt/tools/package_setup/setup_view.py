@@ -74,7 +74,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         self.setMinimumWidth(self.width())
         self.setMinimumHeight(self.height())
         self.center()
-        self.setWindowFlag(QtCore.Qt.Tool, True)  # Window Stay On Top Modality
+        self.setWindowFlag(QtCore.Qt.Tool, True)
         # self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)  # Todo: Custom window border
 
     def center(self):
