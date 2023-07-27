@@ -401,7 +401,7 @@ class TestSystemUtils(unittest.TestCase):
     def test_initialize_utility(self, mock_initialize_from_package):
         system_utils.initialize_utility("mocked_import_path", "mocked_entry_point_function")
         mock_initialize_from_package.assert_called_once()
-        expected_one = "import_path='utils.mocked_import_path'"
+        expected_one = "import_path='gt.utils.mocked_import_path'"
         expected_two = "entry_point_function='mocked_entry_point_function'"
         result = str(mock_initialize_from_package.call_args_list)
         for expected in [expected_one, expected_two]:
