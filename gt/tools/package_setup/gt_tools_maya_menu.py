@@ -223,11 +223,11 @@ def load_menu(*args):
     menu.add_menu_item(label='Reload File',
                        command=IMPORT_UTIL + 'initialize_utility("scene_utils", "force_reload_file")',
                        tooltip='Forces the re-opening of an opened file. (Changes are ignored)',
-                       icon='openScript.png')
+                       icon=resource_library.Icon.util_reload_file)
     menu.add_menu_item(label='Open File Directory',
                        command=IMPORT_UTIL + 'initialize_utility("scene_utils", "open_file_dir")',
                        tooltip='Opens the directory where the scene is located.',
-                       icon='openLoadGeneric.png')
+                       icon=resource_library.Icon.util_open_dir)
 
     menu.add_divider()  # General +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Complete HUD Toggle',

@@ -273,6 +273,9 @@ class Icon:
     tool_mirror_cluster = get_icon_path(r"tool_mirror_cluster.svg")
     tool_morphing_attributes = get_icon_path(r"tool_morphing_attributes.svg")
     tool_morphing_utils = get_icon_path(r"tool_morphing_utils.svg")
+    # Utils
+    util_reload_file = get_icon_path(r"util_reload_file.svg")
+    util_open_dir = get_icon_path(r"util_open_dir.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")
