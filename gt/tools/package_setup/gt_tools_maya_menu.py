@@ -94,26 +94,35 @@ def load_menu(*args):
     menu.add_sub_menu("General",
                       icon=resource_library.Icon.root_general,
                       parent_to_root=True)
-    menu.add_menu_item(label='Renamer',
-                       command=partial(_open_named_tool, "renamer"),
-                       tooltip='Script for renaming multiple objects.',
-                       icon=resource_library.Icon.tool_renamer)
-    menu.add_menu_item(label='Outliner Sorter',
-                       command=partial(_open_named_tool, "outliner_sorter"),
-                       tooltip='Manages the order of the elements in the outliner.',
-                       icon=resource_library.Icon.tool_outliner_sorter)
-    menu.add_menu_item(label='Selection Manager',
-                       command=partial(_open_named_tool, "selection_manager"),
-                       tooltip='Manages or creates custom selections.',
-                       icon=resource_library.Icon.tool_selection_manager)
-    menu.add_menu_item(label='Path Manager',
-                       command=partial(_open_named_tool, "path_manager"),
-                       tooltip='A script for managing and repairing the path of many nodes.',
-                       icon=resource_library.Icon.tool_path_manager)
+    menu.add_menu_item(label='Attributes to Python',
+                       command=partial(_open_named_tool, "attributes_to_python"),
+                       tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
+                       icon=resource_library.Icon.tool_attributes_to_python)
     menu.add_menu_item(label='Color Manager',
                        command=partial(_open_named_tool, "color_manager"),
                        tooltip='A way to quickly change colors of objects and objects names (outliner).',
                        icon=resource_library.Icon.tool_color_manager)
+    menu.add_menu_item(label='Outliner Sorter',
+                       command=partial(_open_named_tool, "outliner_sorter"),
+                       tooltip='Manages the order of the elements in the outliner.',
+                       icon=resource_library.Icon.tool_outliner_sorter)
+    menu.add_menu_item(label='Path Manager',
+                       command=partial(_open_named_tool, "path_manager"),
+                       tooltip='A script for managing and repairing the path of many nodes.',
+                       icon=resource_library.Icon.tool_path_manager)
+    menu.add_menu_item(label='Renamer',
+                       command=partial(_open_named_tool, "renamer"),
+                       tooltip='Script for renaming multiple objects.',
+                       icon=resource_library.Icon.tool_renamer)
+    menu.add_menu_item(label='Render Checklist',
+                       command=partial(_open_named_tool, "render_checklist"),
+                       tooltip='Performs a series of checks to detect common issues that are often accidentally '
+                               'ignored/unnoticed.',
+                       icon=resource_library.Icon.tool_render_checklist)
+    menu.add_menu_item(label='Selection Manager',
+                       command=partial(_open_named_tool, "selection_manager"),
+                       tooltip='Manages or creates custom selections.',
+                       icon=resource_library.Icon.tool_selection_manager)
     menu.add_menu_item(label='Transfer Transforms',
                        command=partial(_open_named_tool, "transfer_transforms"),
                        tooltip='Script for quickly transferring Translate, Rotate, and Scale between objects.',
@@ -122,28 +131,19 @@ def load_menu(*args):
                        command=partial(_open_named_tool, "world_space_baker"),
                        tooltip='Script for getting and setting translate and rotate world space data.',
                        icon=resource_library.Icon.tool_world_space_baker)
-    menu.add_menu_item(label='Attributes to Python',
-                       command=partial(_open_named_tool, "attributes_to_python"),
-                       tooltip='Converts attributes into Python code. TRS Channels or User-defined.',
-                       icon=resource_library.Icon.tool_attributes_to_python)
-    menu.add_menu_item(label='Render Checklist',
-                       command=partial(_open_named_tool, "render_checklist"),
-                       tooltip='Performs a series of checks to detect common issues that are often accidentally '
-                               'ignored/unnoticed.',
-                       icon=resource_library.Icon.tool_render_checklist)
 
     # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves",
                       icon=resource_library.Icon.root_curves,
                       parent_to_root=True)
-    menu.add_menu_item(label='Extract Python Curve',
-                       command=partial(_open_named_tool, "shape_curve_to_python"),
-                       tooltip='Generates the python code necessary to create a selected curve.',
-                       icon=resource_library.Icon.tool_crv_python)
     menu.add_menu_item(label='Generate Text Curve',
                        command=partial(_open_named_tool, "shape_text_to_curve"),
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
                        icon=resource_library.Icon.tool_crv_text)
+    menu.add_menu_item(label='Extract Python Curve',
+                       command=partial(_open_named_tool, "shape_curve_to_python"),
+                       tooltip='Generates the python code necessary to create a selected curve.',
+                       icon=resource_library.Icon.tool_crv_python)
     menu.add_menu_item(label='Extract Curve State',
                        command=partial(_open_named_tool, "shape_extract_state"),
                        tooltip='Generates the python command necessary to reshape curves back to their stored state.',
@@ -214,30 +214,14 @@ def load_menu(*args):
                        icon='QR_QuickRigTool.png')
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
-    menu.add_menu_item(label='Extract Influence Joints',
-                       command=partial(_open_named_tool, "extract_influence_joints"),
-                       tooltip='Generate Python code used to select influence (bound) joints.',
-                       icon='smoothSkin.png')
+    menu.add_menu_item(label='Add Sine Attributes',
+                       command=partial(_open_named_tool, "sine_attributes"),
+                       tooltip='Create Sine function without using third-party plugins or expressions.',
+                       icon='sineCurveProfile.png')
     menu.add_menu_item(label='Connect Attributes',
                        command=partial(_open_named_tool, "connect_attributes"),
                        tooltip='Automated solution for connecting multiple attributes.',
                        icon='hsRearrange.png')
-    menu.add_menu_item(label='Morphing Attributes',
-                       command=partial(_open_named_tool, "morphing_attributes"),
-                       tooltip='Creates attributes to drive selected blend shapes.',
-                       icon='blendShape.png')
-    menu.add_menu_item(label='Morphing Utilities',
-                       command=partial(_open_named_tool, "morphing_utilities"),
-                       tooltip='Morphing utilities (Blend Shapes).',
-                       icon='falloff_blend.png')
-    menu.add_menu_item(label='Mirror Cluster Tool',
-                       command=partial(_open_named_tool, "mirror_cluster_tool"),
-                       tooltip='Automated solution for mirroring clusters.',
-                       icon='cluster.png')
-    menu.add_menu_item(label='Generate In-Between',
-                       command=partial(_open_named_tool, "generate_inbetween"),
-                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
-                       icon='hsGraphMaterial.png')
     menu.add_menu_item(label='Create Auto FK',
                        command=partial(_open_named_tool, "create_auto_fk"),
                        tooltip='Automated solution for created an FK control curve.',
@@ -246,14 +230,30 @@ def load_menu(*args):
                        command=partial(_open_named_tool, "create_testing_keys"),
                        tooltip='Automated solution for creating testing keyframes.',
                        icon='setMaxInfluence.png')
+    menu.add_menu_item(label='Extract Influence Joints',
+                       command=partial(_open_named_tool, "extract_influence_joints"),
+                       tooltip='Generate Python code used to select influence (bound) joints.',
+                       icon='smoothSkin.png')
+    menu.add_menu_item(label='Generate In-Between',
+                       command=partial(_open_named_tool, "generate_inbetween"),
+                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
+                       icon='hsGraphMaterial.png')
     menu.add_menu_item(label='Make IK Stretchy',
                        command=partial(_open_named_tool, "make_ik_stretchy"),
                        tooltip='Automated solution for making an IK system stretchy.',
                        icon='ikSCsolver.svg')
-    menu.add_menu_item(label='Add Sine Attributes',
-                       command=partial(_open_named_tool, "sine_attributes"),
-                       tooltip='Create Sine function without using third-party plugins or expressions.',
-                       icon='sineCurveProfile.png')
+    menu.add_menu_item(label='Mirror Cluster Tool',
+                       command=partial(_open_named_tool, "mirror_cluster_tool"),
+                       tooltip='Automated solution for mirroring clusters.',
+                       icon='cluster.png')
+    menu.add_menu_item(label='Morphing Attributes',
+                       command=partial(_open_named_tool, "morphing_attributes"),
+                       tooltip='Creates attributes to drive selected blend shapes.',
+                       icon='blendShape.png')
+    menu.add_menu_item(label='Morphing Utilities',
+                       command=partial(_open_named_tool, "morphing_utilities"),
+                       tooltip='Morphing utilities (Blend Shapes).',
+                       icon='falloff_blend.png')
 
     # ------------------------------------ Utilities ------------------------------------
     menu.add_sub_menu("Utilities",
@@ -269,21 +269,24 @@ def load_menu(*args):
                        icon='openLoadGeneric.png')
 
     menu.add_divider()  # General +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Complete HUD Toggle',
+                       command=partial(_run_utility, "display_utils", "toggle_full_hud"),
+                       tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
+                               'the majority of them. (Keeps default elements intact when toggling it off)',
+                       icon='channelBox.png')
     menu.add_menu_item(label='Resource Browser',
                        command=partial(_run_utility, "misc_utils", "open_resource_browser"),
                        tooltip="Opens Maya's Resource Browser. "
                                "A good way to find icons or elements you may want to use.",
                        icon='bsd-head.png')
-    menu.add_menu_item(label='Unlock Default Channels',
-                       command=partial(_run_utility, "attribute_utils", "unlock_default_channels"),
-                       tooltip='Unlocks the default channels of the selected objects. '
-                               '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='Lock_OFF_grey.png')
-    menu.add_menu_item(label='Unhide Default Channels',
-                       command=partial(_run_utility, "attribute_utils", "unhide_default_channels"),
-                       tooltip='Un-hides the default channels of the selected objects. '
-                               '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='RS_filter_list.png')
+    menu.add_menu_item(label='Select Non-Unique Objects',
+                       command=partial(_run_utility, "selection_utils", "select_non_unique_objects"),
+                       tooltip='Selects all objects with the same short name. (non-unique objects)',
+                       icon='gotoLine.png')
+    menu.add_menu_item(label='Set Joint Name as Label',
+                       command=partial(_run_utility, "display_utils", "set_joint_name_as_label"),
+                       tooltip='Set the label of the selected joints to be the same as their short name.',
+                       icon='falloff_transfer.png')
     menu.add_menu_item(label='Uniform LRA Toggle',
                        command=partial(_run_utility, "display_utils", "toggle_uniform_lra"),
                        tooltip='Makes the visibility of the Local Rotation Axis uniform among the selected '
@@ -294,19 +297,16 @@ def load_menu(*args):
                        tooltip='Makes the visibility of the joint labels uniform according to the current '
                                'state of the majority of them.',
                        icon='QR_xRay.png')
-    menu.add_menu_item(label='Set Joint Name as Label',
-                       command=partial(_run_utility, "display_utils", "set_joint_name_as_label"),
-                       tooltip='Set the label of the selected joints to be the same as their short name.',
-                       icon='falloff_transfer.png')
-    menu.add_menu_item(label='Select Non-Unique Objects',
-                       command=partial(_run_utility, "selection_utils", "select_non_unique_objects"),
-                       tooltip='Selects all objects with the same short name. (non-unique objects)',
-                       icon='gotoLine.png')
-    menu.add_menu_item(label='Complete HUD Toggle',
-                       command=partial(_run_utility, "display_utils", "toggle_full_hud"),
-                       tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
-                               'the majority of them. (Keeps default elements intact when toggling it off)',
-                       icon='channelBox.png')
+    menu.add_menu_item(label='Unhide Default Channels',
+                       command=partial(_run_utility, "attribute_utils", "unhide_default_channels"),
+                       tooltip='Un-hides the default channels of the selected objects. '
+                               '(Default channels : Translate, Rotate, Scale and Visibility)',
+                       icon='RS_filter_list.png')
+    menu.add_menu_item(label='Unlock Default Channels',
+                       command=partial(_run_utility, "attribute_utils", "unlock_default_channels"),
+                       tooltip='Unlocks the default channels of the selected objects. '
+                               '(Default channels : Translate, Rotate, Scale and Visibility)',
+                       icon='Lock_OFF_grey.png')
 
     menu.add_divider()  # Convert Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Convert Joints to Mesh',
