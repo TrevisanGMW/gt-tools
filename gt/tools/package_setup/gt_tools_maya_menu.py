@@ -207,11 +207,11 @@ def load_menu(*args):
     menu.add_menu_item(label='Retarget Assistant',
                        command=partial(_open_named_tool, "auto_rigger", "launch_retarget_assistant"),
                        tooltip='Script with HumanIK patches.',
-                       icon='p-add.png')
+                       icon=resource_library.Icon.tool_retarget_assistant)
     menu.add_menu_item(label='Game FBX Exporter',
                        command=partial(_open_named_tool, "auto_rigger", "launch_game_exporter"),
                        tooltip='Automated solution for exporting real-time FBX files.',
-                       icon='QR_QuickRigTool.png')
+                       icon=resource_library.Icon.tool_game_fbx_exporter)
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Add Sine Attributes',
