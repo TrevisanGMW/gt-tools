@@ -206,15 +206,15 @@ def load_menu(*args):
     menu.add_menu_item(label='Mirror Cluster Tool',
                        command=IMPORT_TOOL + 'initialize_tool("mirror_cluster_tool")',
                        tooltip='Automated solution for mirroring clusters.',
-                       icon='cluster.png')
+                       icon=resource_library.Icon.tool_mirror_cluster)
     menu.add_menu_item(label='Morphing Attributes',
                        command=IMPORT_TOOL + 'initialize_tool("morphing_attributes")',
                        tooltip='Creates attributes to drive selected blend shapes.',
-                       icon='blendShape.png')
+                       icon=resource_library.Icon.tool_morphing_attributes)
     menu.add_menu_item(label='Morphing Utilities',
                        command=IMPORT_TOOL + 'initialize_tool("morphing_utilities")',
                        tooltip='Morphing utilities (Blend Shapes).',
-                       icon='falloff_blend.png')
+                       icon=resource_library.Icon.tool_morphing_utils)
 
     # ------------------------------------ Utilities ------------------------------------
     menu.add_sub_menu("Utilities",
