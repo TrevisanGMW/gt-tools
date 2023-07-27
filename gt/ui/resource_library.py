@@ -266,12 +266,12 @@ class Icon:
     tool_render_calculator = get_icon_path(r"tool_render_calculator.svg")
     tool_startup_booster = get_icon_path(r"tool_startup_booster.svg")
     # Help
-    misc_rebuild_menu = get_icon_path(r"misc_rebuild_menu.svg")
     tool_check_for_updates = get_icon_path(r"tool_check_for_updates.svg")
+    misc_rebuild_menu = get_icon_path(r"misc_rebuild_menu.svg")
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
     # Other
-    package_logo = get_icon_path(r"package_logo.png")
+    package_logo = get_icon_path(r"package_logo.svg")
     package_icon = get_icon_path(r"package_icon.svg")
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
