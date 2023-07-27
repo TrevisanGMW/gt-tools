@@ -447,3 +447,28 @@ class TestSystemUtils(unittest.TestCase):
 
         result = greet_person("Barbara", message="Hi")
         self.assertEqual(result, "Hi, Barbara!")
+
+    def test_single_valid_callback(self):
+        # Test with a single valid callback function
+        mock_callback = MagicMock()
+        system_utils.callback(mock_callback)
+        mock_callback.assert_called_once()
+
+    def test_multiple_valid_callbacks(self):
+        # Test with multiple valid callback functions
+        mock_callback1 = MagicMock()
+        mock_callback2 = MagicMock()
+        system_utils.callback([mock_callback1, mock_callback2])
+        mock_callback1.assert_called_once()
+        mock_callback2.assert_called_once()
+
+    def test_list_conversion(self):
+        # Test that the input is correctly converted to a list
+        mock_callback = MagicMock()
+        system_utils.callback(mock_callback)
+        mock_callback.assert_called_once()
+
+        # Make sure the function is called with correct arguments
+        mock_callback2 = MagicMock()
+        system_utils.callback(mock_callback2, 1, 2, key1='value1', key2='value2')
+        mock_callback2.assert_called_once_with(1, 2, key1='value1', key2='value2')

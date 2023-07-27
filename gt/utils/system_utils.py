@@ -538,11 +538,49 @@ def time_profiler(func):
     return time_profiler_wrapper
 
 
+def callback(callbacks, *args, **kwargs):
+    """Execute a list of callback functions with the given arguments and keyword arguments.
+
+    This function takes a list of callback functions, and for each function in the list,
+    it attempts to call the function with the provided arguments and keyword arguments.
+
+    Parameters:
+        callbacks (list or callable): A list of callable functions or a single callable function.
+            If a single function is provided, it will be converted into a list with one element.
+
+        *args: Variable-length argument list to be passed to the callback functions.
+
+        **kwargs: Arbitrary keyword arguments to be passed to the callback functions.
+
+    Note:
+        - If a callback function raises an exception during execution, the exception will be
+          caught and logged as a debug message using the logger.
+
+        - If an element in the 'callbacks' list is not a callable function, it will be ignored,
+          and an error message will be logged using the logger.
+    """
+    if callbacks:
+        if not isinstance(callbacks, list):
+            callbacks = [callbacks]  # Convert to list in case arg was provided as a function
+        for func in callbacks:
+            if callable(func):
+                try:
+                    func(*args, **kwargs)
+                except Exception as e:
+                    logger.debug(f"Unable to execute callback function. Issue: {e}")
+            else:
+                logger.debug(f"Error: {func} is not a callable function.")
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
     logger.setLevel(logging.DEBUG)
-    out = os.environ.keys()
-    out = get_maya_preferences_dir(get_system())
-    out = initialize_from_package()
+    # out = os.environ.keys()
+    # out = get_maya_preferences_dir(get_system())
+    # out = initialize_from_package()
+    def test(one, two):
+        print(one)
+        print(two)
+    callback(test, "a", "b")
     pprint(out)
