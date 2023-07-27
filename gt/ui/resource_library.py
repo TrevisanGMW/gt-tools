@@ -260,6 +260,7 @@ class Icon:
     util_mod_paste_material = get_icon_path(r"util_mod_paste_material.svg")
     # Rigging
     tool_auto_rigger = get_icon_path(r"tool_auto_rigger.svg")
+    tool_rig_interface = get_icon_path(r"tool_rig_interface.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")

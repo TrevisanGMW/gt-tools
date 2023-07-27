@@ -203,7 +203,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Biped Rig Interface',
                        command=partial(_open_named_tool, "auto_rigger", "launch_biped_rig_interface"),
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
-                       icon='animateSnapshot.png')
+                       icon=resource_library.Icon.tool_rig_interface)
     menu.add_menu_item(label='Retarget Assistant',
                        command=partial(_open_named_tool, "auto_rigger", "launch_retarget_assistant"),
                        tooltip='Script with HumanIK patches.',
