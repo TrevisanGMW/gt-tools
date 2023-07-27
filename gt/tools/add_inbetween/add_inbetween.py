@@ -9,7 +9,7 @@ from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 
 # Script Name
-script_name = "GT - In-between Generator"
+script_name = "GT - Add In-between"
 
 # Version
 script_version = "?.?.?"  # Module version (init)

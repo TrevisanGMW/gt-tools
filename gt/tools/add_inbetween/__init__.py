@@ -38,9 +38,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Generate Inbetween.
     """
-    from gt.tools.generate_inbetween import generate_inbetween
-    generate_inbetween.script_version = __version__
-    generate_inbetween.build_gui_generate_inbetween()
+    from gt.tools.add_inbetween import add_inbetween
+    add_inbetween.script_version = __version__
+    add_inbetween.build_gui_generate_inbetween()
 
 
 if __name__ == "__main__":

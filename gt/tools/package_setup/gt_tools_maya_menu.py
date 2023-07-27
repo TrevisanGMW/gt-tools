@@ -175,6 +175,10 @@ def load_menu(*args):
                        icon=resource_library.Icon.tool_game_fbx_exporter)
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Add In-Between',
+                       command=IMPORT_TOOL + 'initialize_tool("add_inbetween")',
+                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
+                       icon=resource_library.Icon.tool_add_inbetween)
     menu.add_menu_item(label='Add Sine Attributes',
                        command=IMPORT_TOOL + 'initialize_tool("sine_attributes")',
                        tooltip='Create Sine function without using third-party plugins or expressions.',
@@ -186,19 +190,15 @@ def load_menu(*args):
     menu.add_menu_item(label='Create Auto FK',
                        command=IMPORT_TOOL + 'initialize_tool("create_auto_fk")',
                        tooltip='Automated solution for created an FK control curve.',
-                       icon='kinInsert.png')
+                       icon=resource_library.Icon.tool_create_fk)
     menu.add_menu_item(label='Create Testing Keys',
                        command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
                        tooltip='Automated solution for creating testing keyframes.',
-                       icon='setMaxInfluence.png')
+                       icon=resource_library.Icon.tool_testing_keys)
     menu.add_menu_item(label='Extract Influence Joints',
                        command=IMPORT_TOOL + 'initialize_tool("extract_influence_joints")',
                        tooltip='Generate Python code used to select influence (bound) joints.',
                        icon=resource_library.Icon.tool_influence_joints)
-    menu.add_menu_item(label='Generate In-Between',
-                       command=IMPORT_TOOL + 'initialize_tool("generate_inbetween")',
-                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
-                       icon='hsGraphMaterial.png')
     menu.add_menu_item(label='Make IK Stretchy',
                        command=IMPORT_TOOL + 'initialize_tool("make_ik_stretchy")',
                        tooltip='Automated solution for making an IK system stretchy.',
