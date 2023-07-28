@@ -146,6 +146,14 @@ class TestSetupUtils(unittest.TestCase):
                 dir_path = os.path.join(test_temp_dir, requirement)
                 if not os.path.exists(dir_path):
                     os.mkdir(dir_path)
+        for requirement in setup_utils.PACKAGE_DIRS:
+            if "." in requirement:  # Assuming files have an extension
+                with open(os.path.join(test_temp_dir, setup_utils.PACKAGE_MAIN_MODULE, requirement), 'w'):
+                    pass
+            else:
+                dir_path = os.path.join(test_temp_dir, setup_utils.PACKAGE_MAIN_MODULE, requirement)
+                if not os.path.exists(dir_path):
+                    os.mkdir(dir_path)
         result = setup_utils.check_installation_integrity(package_target_folder=test_temp_dir)
         expected = True
         self.assertEqual(expected, result)

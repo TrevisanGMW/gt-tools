@@ -123,14 +123,18 @@ def check_installation_integrity(package_target_folder):
     """
     if not package_target_folder or not os.path.isdir(package_target_folder):
         return False
-    file_list = os.listdir(package_target_folder)
+    package_target_contents = os.listdir(package_target_folder)
     missing_list = []
     for requirement in PACKAGE_REQUIREMENTS:
-        if requirement not in file_list:
+        if requirement not in package_target_contents:
+            missing_list.append(requirement)
+    package_module_contents = os.listdir(os.path.join(package_target_folder, PACKAGE_MAIN_MODULE))
+    for requirement in PACKAGE_DIRS:
+        if requirement not in package_module_contents:
             missing_list.append(requirement)
     missing_string = ', '.join(missing_list)
     if len(missing_list) > 0:
-        print(f"Missing required files: {missing_string}")
+        print(f"Missing required elements: {missing_string}")
         return False
     return True
 
@@ -583,5 +587,5 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    out = is_legacy_version_install_present()
+    out = check_installation_integrity(r'C:\Users\guilherme.trevisan\Documents\maya\gt-tools')
     pprint(out)
