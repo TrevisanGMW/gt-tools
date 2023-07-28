@@ -234,16 +234,16 @@ def load_menu(*args):
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_full_hud")',
                        tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
                                'the majority of them. (Keeps default elements intact when toggling it off)',
-                       icon='channelBox.png')
+                       icon=resource_library.Icon.util_hud_toggle)
     menu.add_menu_item(label='Resource Browser',
                        command=IMPORT_UTIL + 'initialize_utility("misc_utils", "open_resource_browser")',
                        tooltip="Opens Maya's Resource Browser. "
                                "A good way to find icons or elements you may want to use.",
-                       icon='bsd-head.png')
+                       icon=resource_library.Icon.util_resource_browser)
     menu.add_menu_item(label='Select Non-Unique Objects',
                        command=IMPORT_UTIL + 'initialize_utility("selection_utils", "select_non_unique_objects")',
                        tooltip='Selects all objects with the same short name. (non-unique objects)',
-                       icon='gotoLine.png')
+                       icon=resource_library.Icon.util_sel_non_unique)
     menu.add_menu_item(label='Set Joint Name as Label',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "set_joint_name_as_label")',
                        tooltip='Set the label of the selected joints to be the same as their short name.',
