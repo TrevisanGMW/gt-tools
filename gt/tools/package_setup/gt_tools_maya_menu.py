@@ -247,77 +247,77 @@ def load_menu(*args):
     menu.add_menu_item(label='Set Joint Name as Label',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "set_joint_name_as_label")',
                        tooltip='Set the label of the selected joints to be the same as their short name.',
-                       icon='falloff_transfer.png')
+                       icon=resource_library.Icon.util_joint_to_label)
     menu.add_menu_item(label='Uniform LRA Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_uniform_lra")',
                        tooltip='Makes the visibility of the Local Rotation Axis uniform among the selected '
                                'objects according to the current state of the majority of them.',
-                       icon='srt.png')
+                       icon=resource_library.Icon.util_lra_toggle)
     menu.add_menu_item(label='Uniform Joint Label Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_uniform_jnt_label")',
                        tooltip='Makes the visibility of the joint labels uniform according to the current '
                                'state of the majority of them.',
-                       icon='QR_xRay.png')
+                       icon=resource_library.Icon.util_joint_label_toggle)
     menu.add_menu_item(label='Unhide Default Channels',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unhide_default_channels")',
                        tooltip='Un-hides the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='RS_filter_list.png')
+                       icon=resource_library.Icon.util_unhide_trs)
     menu.add_menu_item(label='Unlock Default Channels',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unlock_default_channels")',
                        tooltip='Unlocks the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='Lock_OFF_grey.png')
+                       icon=resource_library.Icon.util_unlock_trs)
 
     menu.add_divider()  # Convert Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Convert Joints to Mesh',
                        command=IMPORT_UTIL + 'initialize_utility("joint_utils", "convert_joints_to_mesh")',
                        tooltip='Converts joints to mesh. (Helpful when sending references to other applications)',
-                       icon='HIKCharacterToolSkeleton.png')
+                       icon=resource_library.Icon.util_convert_joint_mesh)
     menu.add_menu_item(label='Convert to Locators',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "convert_transforms_to_locators")',
                        tooltip="Converts transforms to locators. Function doesn't affect selected objects.",
-                       icon='locator.svg')
+                       icon=resource_library.Icon.util_convert_loc)
 
     menu.add_divider()  # References Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Import References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_import")',
                        tooltip="Imports all references.",
-                       icon='reference.svg')
+                       icon=resource_library.Icon.util_ref_import)
     menu.add_menu_item(label='Remove References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_remove")',
                        tooltip="Removes all references.",
-                       icon='referenceProxy.png')
+                       icon=resource_library.Icon.utils_ref_remove)
 
     menu.add_divider()  # Pivot Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Move Pivot to Top',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_pivot_top")',
                        tooltip="Moves pivot point to the top of the bounding box of every selected object.",
-                       icon='moveLayerUp.png')
+                       icon=resource_library.Icon.util_pivot_top)
     menu.add_menu_item(label='Move Pivot to Base',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_pivot_base")',
                        tooltip="Moves pivot point to the base of the bounding box of every selected object.",
-                       icon='moveLayerDown.png')
+                       icon=resource_library.Icon.util_pivot_bottom)
     menu.add_menu_item(label='Move Object to Origin',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_to_origin")',
                        tooltip="Moves selected objects to origin according to their pivot point.",
-                       icon='grid.svg')
+                       icon=resource_library.Icon.util_move_origin)
 
     menu.add_divider()  # Reset Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Reset Transforms',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "reset_transforms")',
                        tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
                                "if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)",
-                       icon='CenterPivot.png')
+                       icon=resource_library.Icon.util_reset_transforms)
     menu.add_menu_item(label='Reset Joints Display',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "reset_joint_display")',
                        tooltip="Resets the radius attribute back to one in all joints, then changes the global "
                                "multiplier (jointDisplayScale) back to one.",
-                       icon='kinJoint.png')
+                       icon=resource_library.Icon.util_reset_jnt_display)
     menu.add_menu_item(label='Reset "persp" Camera',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "reset_persp_shape_attributes")',
                        tooltip="If persp camera exists (default camera), reset its attributes.",
-                       icon='camera.svg')
+                       icon=resource_library.Icon.util_reset_persp)
 
     menu.add_divider()  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Namespaces',
