@@ -39,7 +39,7 @@ def create_poly_cube(*args, **kwargs):
 def create_node(node_type, *args, **kwargs):
     """
     Creates poly cube
-    Parameters:
+    Args:
         node_type (str): Node type to create (must exist) - When using 3rd party plugins, make sure to load them first.
     "createNode" relevant parameters:
         name (str): Name of the node
@@ -51,7 +51,7 @@ def set_attribute(obj_name, attr_name, value, *args, **kwargs):
     """
     Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
 
-    Parameters:
+    Args:
         obj_name (str): Name of the target object (object that will receive new values)
         attr_name (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
         value (float): Value used to set attribute. e.g. 1.5, 2, 5...
@@ -62,7 +62,7 @@ def set_attribute(obj_name, attr_name, value, *args, **kwargs):
 def get_attribute(obj_name, attr_name, *args, **kwargs):
     """
     This command returns the value of the named object's attribute.
-    Parameters:
+    Args:
         obj_name (str): Name of the object with the attribute (No need to add a ".")
         attr_name (str): Name of the attribute (must already exist)
     Returns:
@@ -87,7 +87,7 @@ def get_data_dir_path(module=None):
     """
     Get a path to the data folder using the path from where this script was called.
     NOTE: It does NOT return the expected path when called from inside a function in this same module.
-    Parameters:
+    Args:
         module (module, optional): Module object used to define source path. If not provided caller is used.
     Returns:
         Path to the data folder of the caller script.
@@ -123,7 +123,7 @@ def generate_test_temp_dir(folder_name="test_temp_dir"):
 def delete_test_temp_dir(folder_name="test_temp_dir"):
     """
     Deletes the temporary directory used for testing. (Only if existing)
-    Parameters:
+    Args:
         folder_name (str, optional): Name of the folder to delete. Default: "test_temp_dir"
     Returns:
         bool: True if it was deleted, False in case it was not found.
@@ -142,7 +142,7 @@ def unlock_file_permissions(file_path):
     """
     Unlocks write permissions for all users on the specified file.
 
-    Parameters:
+    Args:
         file_path (str): The path to the file whose permissions need to be unlocked.
 
     Raises:
@@ -167,7 +167,7 @@ def is_plugin_loaded(plugin):
     """
     Load provided plug-ins.
 
-    Parameters:
+    Args:
         plugin (str): Name of the plugin to check
     Returns:
         bool: True if the plug is active, false if it's inactive.
@@ -179,7 +179,7 @@ def load_plugins(plugin_list):
     """
     Load provided plug-ins.
 
-    Parameters:
+    Args:
         plugin_list (list): A list of strings containing the name of the plugins that should be loaded.
                             If a string is provided, it will be automatically converted to a list
     Returns:
@@ -206,7 +206,7 @@ def unload_plugins(plugin_list):
     """
     Load provided plug-ins.
 
-    Parameters:
+    Args:
         plugin_list (list): A list of strings containing the name of the plugins to  unloaded.
                             If a string is provided, it will be automatically converted to a list
     Returns:
@@ -232,7 +232,7 @@ def unload_plugins(plugin_list):
 def import_file(file_path):
     """
     Opens file_path in Maya using "cmds.file_path()"
-    Parameters:
+    Args:
         file_path (str): Path to the file_path to open
 
     Returns:
@@ -249,7 +249,7 @@ def import_file(file_path):
 def open_file(file_path):
     """
     Opens file in Maya using "cmds.file()"
-    Parameters:
+    Args:
         file_path (str): Path to the file to open
 
     Returns:
@@ -263,7 +263,7 @@ def import_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
     It automatically determines the position of the data folder using "get_data_dir_path()"
-    Parameters:
+    Args:
         file_name: Name of the file_path (must exist)
     Returns:
         list: Imported objects. (result of the "cmds.file(returnNewNodes=True)" function)
@@ -279,7 +279,7 @@ def open_data_file(file_name):
     """
     Open files from inside the test_*/data folder.
     It automatically determines the position of the data folder using "get_data_dir_path()"
-    Parameters:
+    Args:
         file_name: Name of the file (must exist)
     """
     frame = inspect.stack()[1]
@@ -292,7 +292,7 @@ def open_data_file(file_name):
 def import_maya_standalone(initialize=True):
     """
     Imports Maya Standalone
-    Parameters:
+    Args:
         initialize (bool, optional) If true, it will also attempt to initialize "maya.standalone" using "initialize()"
     """
     try:
@@ -305,7 +305,7 @@ def import_maya_standalone(initialize=True):
 
 def set_scene_framerate(time):
     """
-    Parameters:
+    Args:
     time (str): Sets the current scene frame rate
                     game: 15 fps
                     film: 24 fps
@@ -323,7 +323,7 @@ def set_scene_framerate(time):
 def set_current_time(frame):
     """
     Set scene current time
-    Parameters:
+    Args:
         frame (int): Frame where
     Returns:
         int: current time (frame) - Result of the "cmds.currentUnit" operation.
@@ -335,7 +335,7 @@ def eval_mel_code(mel_code_string):
     """
    Evaluates the given MEL (Maya Embedded Language) code string and returns the result.
 
-   Parameters:
+   Args:
        mel_code_string (str): The MEL code string to be evaluated.
 
    Returns:

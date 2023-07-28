@@ -3,12 +3,11 @@ Preferences Utilities - Settings and Getting persistent settings using JSONs
 This script should not directly import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
-import shutil
-
 from gt.utils.system_utils import get_maya_preferences_dir, get_system
 from gt.utils.data_utils import write_json, read_json_dict
 from gt.utils.setup_utils import PACKAGE_NAME
 import logging
+import shutil
 import os
 
 # Logging Setup
@@ -17,29 +16,31 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Constants
+PACKAGE_GLOBAL_PREFS = "package_prefs"
 PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
 
 
 class Prefs:
-    def __init__(self, filename, location_dir=None):
+    def __init__(self, prefs_name, location_dir=None):
         """
         Initialize the Prefs class.
 
         Args:
-            filename (str): The name of the file to save and load preferences.
+            prefs_name (str): The name of the preferences file to save and load. (File extension is not necessary)
+                              This name should ideally end with the suffix "_prefs" to clarify its use.
             location_dir (str, optional): Path to a folder where it should save the JSON file.
                                           By default, preferences are saved in the package installation path.
                                           e.g. "Documents/maya/gt-tools/prefs"
         """
         if location_dir:
             if os.path.exists(location_dir) and os.path.isdir(location_dir):
-                self.filename = os.path.join(location_dir, f'{filename}.{PACKAGE_PREFS_EXT}')
+                self.filename = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         else:
             _maya_preferences_dir = get_maya_preferences_dir(get_system())
             _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
             _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
-            self.filename = os.path.join(_prefs_dir, f'{filename}.{PACKAGE_PREFS_EXT}')
+            self.filename = os.path.join(_prefs_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         self.preferences = {}
         self.load()
 
@@ -187,7 +188,7 @@ class Prefs:
         This method deletes all preferences located in the directory containing the file specified by 'self.filename',
         provided that the 'purge_preferences' flag is set to True.
 
-        Parameters:
+        Args:
            purge_preferences (bool, optional): If True, the function will delete all preferences in the directory.
                If False or not provided, the function will not perform any deletion.
 

@@ -23,7 +23,7 @@ def get_skin_cluster(obj):
     This function looks for a skin cluster connected to the provided object and returns
     the name of the skin cluster if found.
 
-    Parameters:
+    Args:
         obj (str): The name of the Maya object, usually a mesh.
 
     Returns:
@@ -47,7 +47,7 @@ def get_influences(skin_cluster):
     """
     Retrieves the joint influences associated with the given skin cluster.
     This function returns a list of joint names that influence the specified skin cluster.
-    Parameters:
+    Args:
         skin_cluster (str): The name of the skin cluster to get influences of.
 
     Returns:
@@ -67,7 +67,7 @@ def get_influences(skin_cluster):
 def get_bound_joints(obj):
     """
     Gets a list of joints bound to the skin cluster of the object
-    Parameters:
+    Args:
         obj: Name of the object to extract joints from (must contain a skinCluster node)
 
     Returns:
@@ -98,7 +98,7 @@ def get_skin_cluster_geometry(skin_cluster):
     This function takes the name of a skin cluster as input and returns a list of connected
     geometry affected by the skin cluster.
 
-    Parameters:
+    Args:
         skin_cluster (str): The name of the skin cluster to query.
 
     Returns:
@@ -134,7 +134,7 @@ def get_skin_weights(skin_cluster):
     The skin weights represent the influence of each bone (influence object) on the vertices of the geometry
     associated with the skin cluster.
 
-    Parameters:
+    Args:
         skin_cluster (str): The name of the skin cluster to query.
 
     Raises:
@@ -217,7 +217,7 @@ def export_skin_weights_to_json(output_file_path, skin_weight_data):
     skin weight information for a model, and exports it to a JSON file specified
     by the output_file_path.
 
-    Parameters:
+    Args:
         output_file_path (str): The file path where the JSON data will be written.
         skin_weight_data (dict): A dictionary containing skin weight data for a model.
 
@@ -250,7 +250,7 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
     """
     Binds the specified joints to the given objects using the skinCluster command in Maya.
 
-    Parameters:
+    Args:
         joints (list): A list of joint names to be used as influences in the skinCluster.
         objects (list): A list of object names (geometries) to bind the skin to.
         bind_method (int, optional): The binding method used by the skinCluster command.

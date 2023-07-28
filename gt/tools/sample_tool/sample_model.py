@@ -20,7 +20,7 @@ class SampleToolModel:
     def add_item(self, item):
         """
         Add an item to the list.
-        Parameters:
+        Args:
             item: The item to be added.
         """
         self.items.append(item)
@@ -29,7 +29,7 @@ class SampleToolModel:
         """
         Remove an item from the list based on its index.
 
-        Parameters:
+        Args:
             index: The index of the item to be removed.
 
         """

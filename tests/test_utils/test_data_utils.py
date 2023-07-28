@@ -50,7 +50,7 @@ class TestDataUtils(unittest.TestCase):
         """
         Asserts that the content of a file at the specified file path is equal to the expected content.
 
-        Parameters:
+        Args:
             file_path (str): The path to the file whose content needs to be checked.
             expected_content (str): The expected content that the file should contain.
 
@@ -65,7 +65,7 @@ class TestDataUtils(unittest.TestCase):
         """
         Asserts that the content of a JSON file at the specified file path is equal to the expected content.
 
-        Parameters:
+        Args:
             file_path (str): The path to the JSON file whose content needs to be checked.
             expected_content (dict or list): The expected JSON content that the file should contain.
                                             It can be either a dictionary or a list.

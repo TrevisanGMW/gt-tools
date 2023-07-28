@@ -101,7 +101,7 @@ class AlembicNode:
         """
         List transform nodes found under the future history of the alembic node then returns the last
         node of the type "transform". If no transforms are found, the alembic node is returned instead.
-        Parameters:
+        Args:
             alembic_node (str): Name of the alembic node (must exist)
         Returns:
             str: Last transform node found in the future history of the alembic node.

@@ -544,7 +544,7 @@ def callback(callbacks, *args, **kwargs):
     This function takes a list of callback functions, and for each function in the list,
     it attempts to call the function with the provided arguments and keyword arguments.
 
-    Parameters:
+    Args:
         callbacks (list or callable): A list of callable functions or a single callable function.
             If a single function is provided, it will be converted into a list with one element.
 

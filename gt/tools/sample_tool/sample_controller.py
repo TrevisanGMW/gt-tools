@@ -22,7 +22,7 @@ class SampleToolController:
         """
         Initialize the SampleToolController object.
 
-        Parameters:
+        Args:
             model: The SampleToolModel object used for data manipulation.
             view: The view object to interact with the user interface.
         """

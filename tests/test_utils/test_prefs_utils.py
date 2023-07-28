@@ -25,7 +25,7 @@ class TestPrefsUtils(unittest.TestCase):
         self.mocked_dict = {"mocked_key_a": "mocked_value_a",
                             "mocked_key_b": "mocked_value_b"}
         self.temp_dir = maya_test_tools.generate_test_temp_dir()
-        self.prefs = prefs_utils.Prefs(filename="mock_prefs", location_dir=self.temp_dir)
+        self.prefs = prefs_utils.Prefs(prefs_name="mock_prefs", location_dir=self.temp_dir)
 
     def tearDown(self):
         maya_test_tools.delete_test_temp_dir()

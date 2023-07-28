@@ -104,7 +104,7 @@ def check_installation_integrity(package_target_folder):
     """
     Checks if all requirements were copied to the installation folder
 
-    Parameters:
+    Args:
         package_target_folder (str): Path to the installation folder
 
     Returns:
@@ -128,7 +128,7 @@ def add_entry_line(file_path, create_missing_file=True):
     """
     Add entry line to provided path. The entry line is a line of code used to initialize package.
 
-    Parameters:
+    Args:
         file_path (str): File path, usually an "userSetup" file
         create_missing_file (bool, optional): If provided file doesn't exist, a file is created.
     """
@@ -531,7 +531,7 @@ def is_legacy_version_install_present(check_version=None):
     to determine if the legacy version is fully installed. If the line is found, it indicates that the legacy version
     is present, and the function returns True.
 
-    Parameters:
+    Args:
         check_version (str, optional): A version to check. If provided, then it will not attempt to retrieve
                                        current version, but will instead use provided string. e.g. "2024"
 

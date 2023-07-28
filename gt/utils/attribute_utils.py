@@ -426,7 +426,7 @@ def delete_user_defined_attributes():
 def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     """
     Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
-    Parameters:
+    Args:
         obj (str): Name of the object to receive new attributes
         attr_name (str): Name of the attribute to be created
         suffix (str, optional) : Used as suffix for the three created attributes

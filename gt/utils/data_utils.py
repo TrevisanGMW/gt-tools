@@ -195,7 +195,7 @@ def set_file_permissions(file_path, permission_bits, keep_current=False):
     """
     Set the file permissions of the given file to the specified permission bits.
 
-    Parameters:
+    Args:
         file_path (str): The path to the file whose permissions need to be modified.
         permission_bits (int): The permission bits to set for the file. These bits represent
                                the desired permissions in octal format, e.g., 0o755.

@@ -118,7 +118,7 @@ def rgba_to_hex(r, g, b, a=255, include_alpha=False):
     """
     Convert RGBA (red, green, blue, alpha) values to a HEX color code.
 
-    Parameters:
+    Args:
         r (int): Red component (0-255).
         g (int): Green component (0-255).
         b (int): Blue component (0-255).
@@ -139,7 +139,7 @@ def rgb_to_hex(r, g, b):
     """
     Convert RGBA (red, green, blue, alpha) values to a HEX color code.
 
-    Parameters:
+    Args:
         r (int): Red component (0-255).
         g (int): Green component (0-255).
         b (int): Blue component (0-255).
@@ -156,7 +156,7 @@ def parse_rgb_numbers(rgb_string):
     All the ranges (RGB+A) are from 0-255.
     Alpha may be included, but it's not necessary.
 
-    Parameters:
+    Args:
         rgb_string (str): A string containing the RGB color in the format "rgb(R, G, B)" or "rgba(R, G, B, A)"
                           The range goes from "0" to "255". Numbers above 255 are set back to 255.
                           e.g. "300" becomes "255"
@@ -192,7 +192,7 @@ def rgba_string_to_hex(rgb_string):
     All the ranges (RGB+A) are from 0-255.
     Alpha may be included, but it's not necessary.
 
-    Parameters:
+    Args:
         rgb_string (str): A string containing the RGB color in the format "rgb(R, G, B)" or "rgba(R, G, B, A)"
                           The range goes from "0" to "255". Numbers above 255 are set back to 255.
                           e.g. "300" becomes "255"

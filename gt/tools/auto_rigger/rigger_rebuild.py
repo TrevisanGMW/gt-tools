@@ -124,7 +124,7 @@ def transfer_biped_base_settings(data_object, metadata):
     """
     Update base settings so when rebuilding the rig, it will follow the same rules
 
-    ARgs:
+    Args:
         data_object: biped data object, used to build the rig (carry the used settings)
         metadata: Extracted metadata, JSON format containing rigging settings
     """

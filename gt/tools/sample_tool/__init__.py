@@ -24,7 +24,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def build_tool_example_gui(standalone=True):
     """
     Creates Model, View and Controller
-    Parameters:
+    Args:
         standalone (bool, optional): If true, it will run the tool without the Maya window dependency.
                                      If false, it will attempt to retrieve the name of the main maya window as parent.
     """
