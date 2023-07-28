@@ -105,9 +105,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
      width="500"
      align="center">
 <ol>
-	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
-	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
-	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
+	<li><b>Install:</b> Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b> Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b> "One time use only"; Loads tools from current location without copying files.</li>
 </ol>
 
 <h3>Checksum Verification</h3>
