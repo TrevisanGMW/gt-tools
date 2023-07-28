@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.system_utils import get_maya_preferences_dir, get_system
 from gt.utils.data_utils import write_json, read_json_dict
+from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.setup_utils import PACKAGE_NAME
 import logging
 import shutil
@@ -88,16 +89,33 @@ class Prefs:
         """
         return self.preferences.get(key, default)
 
-    def get_raw_json(self):
+    def get_bool(self, key, default=None):
         """
-        Returns the entire raw JSON data as a dictionary.
+        Returns the value corresponding to key in the preference file if it exists.
+        It also has a second argument for a default value, which is returned when the key doesn't exist.
+
+        Args:
+            key (str): The key to retrieve the bool value from preferences.
+            default (bool, optional): The default value to return when the key doesn't exist. Defaults to None.
+
+        Returns:
+            bool: The bool value associated with the key, or the default value if the key is not found.
+        """
+        if self.is_key_available(key):
+            return bool(self.preferences.get(key))
+        else:
+            return default
+
+    def get_raw_preferences(self):
+        """
+        Returns the entire preferences raw dictionary data.
 
         Returns:
             dict: The raw JSON data as a dictionary.
         """
         return self.preferences
 
-    def has_key(self, key):
+    def is_key_available(self, key):
         """
         Returns True if the given key exists in Prefs, otherwise returns False.
 
@@ -116,7 +134,7 @@ class Prefs:
         Sets the float value of the preference identified by the given key.
 
         Args:
-            key (str): The key to set the float value in preferences.
+            key (str): The key to set the float value in preferences. (Keys should be snake_case)
             value (float): The float value to be set for the given key.
         """
         self.preferences[key] = float(value)
@@ -126,20 +144,42 @@ class Prefs:
         Sets a single integer value for the preference identified by the given key.
 
         Args:
-            key (str): The key to set the integer value in preferences.
+            key (str): The key to set the integer value in preferences. (Keys should be snake_case)
             value (int): The integer value to be set for the given key.
         """
         self.preferences[key] = int(value)
 
     def set_string(self, key, value):
         """
-        Sets a single string value for the preference identified by the given key.
+        Sets a single string value for the preference identified by the given key. (Keys should be snake_case)
 
         Args:
             key (str): The key to set the string value in preferences.
             value (str): The string value to be set for the given key.
         """
         self.preferences[key] = str(value)
+
+    def set_bool(self, key, value):
+        """
+        Sets a single bool value for the preference identified by the given key. (Keys should be snake_case)
+
+        Args:
+            key (str): The key to set the string value in preferences.
+            value (bool): The bool value to be set for the given key.
+        """
+        self.preferences[key] = bool(value)
+
+    def set_raw_preferences(self, pref_dict):
+        """
+        Sets a dictionary as the current preferences
+
+        Args:
+            pref_dict (dict): The dictionary to replace the preferences with.
+        """
+        if isinstance(pref_dict, dict):
+            self.preferences = pref_dict
+        else:
+            logger.warning(f"Unable to set raw preferences. Provided parameter is not a dictionary.")
 
     # ------------------------------------ Load/Save ------------------------------------
 
@@ -157,7 +197,7 @@ class Prefs:
         _prefs_dir = os.path.dirname(self.file_name)
         if not os.path.isdir(_prefs_dir):
             os.makedirs(_prefs_dir)
-            logger.debug(f'Prefs directory was missing and was created when saving: {_prefs_dir}')
+            logger.debug(f'Missing Prefs directory created during "save" command: "{_prefs_dir}".')
         write_json(path=self.file_name, data=self.preferences)
 
     # ------------------------------------ Utilities ------------------------------------
@@ -225,6 +265,85 @@ class PackagePrefs(Prefs):
         To be used as Package Preferences (or global preferences)
         """
         super().__init__(prefs_name=PACKAGE_GLOBAL_PREFS)
+
+    # Common Keys Start ------------------------------------------------------------------
+    def set_dev_mode(self, dev_mode_state):
+        """
+        Sets state of development mode. When active, package shows extra options used for development.
+        Args:
+            dev_mode_state (bool): New state of development mode.
+        """
+        self.set_bool("dev_mode", dev_mode_state)
+
+    def is_dev_mode_active(self):
+        """
+        Gets state of development mode. If not found it returns False
+        Returns:
+            bool: Stored settings for development mode
+        """
+        return self.get_bool("dev_mode", default=False)
+
+    def set_skip_menu_creation(self, skip_menu_creation):
+        """
+        Sets preference that determines if menu will be created when initializing package.
+        If active, it will not build the menu.
+        Args:
+            skip_menu_creation (bool): New state of "skip menu creation" preference.
+        """
+        self.set_bool("skip_menu_creation", skip_menu_creation)
+
+    def is_skipping_menu_creation(self):
+        """
+        Gets state of the "skip menu creation" preference. If not found it returns False
+        Returns:
+            bool: Stored settings for the key "skip menu creation"
+        """
+        return self.get_bool("skip_menu_creation", default=False)
+    # Common Keys End ------------------------------------------------------------------
+
+
+def toggle_dev_mode():
+    """
+    Toggles development mode preference.
+    If it's active, it becomes inactive, and vice-versa.
+    """
+    prefs = PackagePrefs()
+    inverted_state = not prefs.is_dev_mode_active()
+    prefs.set_dev_mode(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(intro='Development Mode set to:',
+                               conclusion=str(inverted_state),
+                               style_conclusion='color:#FF0000;text-decoration:underline;')
+    feedback.print_inview_message()
+
+
+def toggle_skip_menu_creation():
+    """
+    Toggles "skip_menu_creation" preference.
+    If it's active, it becomes inactive, and vice-versa.
+    """
+    prefs = PackagePrefs()
+    inverted_state = not prefs.is_skipping_menu_creation()
+    prefs.set_skip_menu_creation(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(intro='Skipping Menu Creation set to:',
+                               conclusion=str(inverted_state),
+                               style_conclusion='color:#FF0000;text-decoration:underline;')
+    feedback.print_inview_message()
+
+
+def purge_package_settings():
+    """
+    WARNING!!!! Be careful!!! This will delete all preferences files.
+    Purges the preferences' directory associated with the package.
+    """
+    prefs = PackagePrefs()
+    prefs.purge_preferences_dir(purge_preferences=True)
+    feedback = FeedbackMessage(intro='Package preferences were',
+                               conclusion="purged",
+                               suffix=".",
+                               style_conclusion='color:#FF0000;text-decoration:underline;')
+    feedback.print_inview_message()
 
 
 if __name__ == "__main__":
