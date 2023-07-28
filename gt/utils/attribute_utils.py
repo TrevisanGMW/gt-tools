@@ -5,8 +5,6 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.feedback_utils import FeedbackMessage
 import maya.cmds as cmds
 import logging
-import random
-import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -385,47 +383,6 @@ def unhide_default_channels():
                                plural='objects had their',
                                conclusion='default channels made visible.')
     feedback.print_inview_message()
-
-
-def reset_persp_shape_attributes():
-    """
-    If persp shape exists (default camera), reset its attributes
-    """
-    camera_transform = 'persp'
-    camera_shape = 'perspShape'
-    try:
-        if cmds.objExists(camera_transform):
-            cmds.setAttr(camera_transform + ".sx", 1)
-            cmds.setAttr(camera_transform + ".sy", 1)
-            cmds.setAttr(camera_transform + ".sz", 1)
-    except Exception as e:
-        logger.debug(str(e))
-
-    try:
-        if cmds.objExists(camera_shape):
-            cmds.setAttr(camera_shape + ".focalLength", 35)
-            cmds.setAttr(camera_shape + ".verticalFilmAperture", 0.945)
-            cmds.setAttr(camera_shape + ".horizontalFilmAperture", 1.417)
-            cmds.setAttr(camera_shape + ".lensSqueezeRatio", 1)
-            cmds.setAttr(camera_shape + ".fStop", 5.6)
-            cmds.setAttr(camera_shape + ".focusDistance", 5)
-            cmds.setAttr(camera_shape + ".shutterAngle", 144)
-            cmds.setAttr(camera_shape + ".locatorScale", 1)
-            cmds.setAttr(camera_shape + ".nearClipPlane", 0.100)
-            cmds.setAttr(camera_shape + ".farClipPlane", 10000.000)
-            cmds.setAttr(camera_shape + ".cameraScale", 1)
-            cmds.setAttr(camera_shape + ".preScale", 1)
-            cmds.setAttr(camera_shape + ".postScale", 1)
-            cmds.setAttr(camera_shape + ".depthOfField", 0)
-            cmds.viewFit(allObjects=True)
-
-            feedback_message = f'"{camera_transform}" camera attributes were reset back to default values.'
-            feedback = FeedbackMessage(general_overwrite=feedback_message)
-            feedback.print_inview_message()
-
-    except Exception as e:
-        print(e)
-        logger.debug(str(e))
 
 
 def delete_user_defined_attributes():

@@ -315,7 +315,7 @@ def load_menu(*args):
                                "multiplier (jointDisplayScale) back to one.",
                        icon=resource_library.Icon.util_reset_jnt_display)
     menu.add_menu_item(label='Reset "persp" Camera',
-                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "reset_persp_shape_attributes")',
+                       command=IMPORT_UTIL + 'initialize_utility("camera_utils", "reset_persp_shape_attributes")',
                        tooltip="If persp camera exists (default camera), reset its attributes.",
                        icon=resource_library.Icon.util_reset_persp)
 
