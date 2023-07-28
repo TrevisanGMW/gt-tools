@@ -20,6 +20,38 @@ from gt.ui import resource_library
 
 
 class TestResourceLibrary(unittest.TestCase):
+    def test_get_resource_path(self):
+        result = resource_library.get_resource_path(resource_name="name", resource_folder="folder")
+        expected = os.path.join("folder", "name")
+        self.assertEqual(expected, result)
+
+    def test_get_resource_path_sub_folder(self):
+        result = resource_library.get_resource_path(resource_name="name", resource_folder="folder", sub_folder="sub")
+        expected = os.path.join("folder", "sub", "name")
+        self.assertEqual(expected, result)
+
+    def test_get_icon_path(self):
+        result = resource_library.get_icon_path(icon_name="package_logo.svg")
+        expected = os.path.join(resource_library.ResourceDirConstants.DIR_ICONS, "package_logo.svg")
+        self.assertEqual(expected, result)
+
+    def test_get_font_path(self):
+        result = resource_library.get_font_path(font_name="Roboto-Regular.ttf")
+        expected = os.path.join(resource_library.ResourceDirConstants.DIR_FONTS, "Roboto-Regular.ttf")
+        self.assertEqual(expected, result)
+
+    def test_get_stylesheet_content(self):
+        result = resource_library.get_stylesheet_content(stylesheet_name="maya_basic_dialog")
+        expected = "QWidget"
+        self.assertIn(expected, result)
+
+    def test_process_stylesheet_variables(self):
+        mocked_variables = {"@original": "modified"}
+        result = resource_library.process_stylesheet_variables(stylesheet_content="@original",
+                                                               stylesheet_variables=mocked_variables)
+        expected = "modified;"
+        self.assertEqual(expected, result)
+
     def test_color_rgb_black_class(self):
         result = resource_library.Color.RGB.black
         expected = "rgba(0,0,0,255)"
@@ -104,6 +136,23 @@ class TestResourceLibrary(unittest.TestCase):
         result = resource_library.parse_rgb_numbers(rgb_string)
         self.assertIsNone(result)
 
+    def test_rgba_string_to_hex(self):
+        result = resource_library.rgba_string_to_hex("rgba(255,255,255,255)")
+        expected = "#FFFFFF"
+        self.assertEqual(expected, result)
+
+    def test_resource_dir_constants(self):
+
+        all_dirs_attributes = vars(resource_library.ResourceDirConstants)
+
+        all_dirs_keys = [attr for attr in all_dirs_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for dir_key in all_dirs_keys:
+            dir_path = getattr(resource_library.ResourceDirConstants, dir_key)
+            if not dir_path:
+                raise Exception(f'Missing proper file path for directory: {dir_key}')
+            if not os.path.exists(dir_path):
+                raise Exception(f'Missing constant directory: {dir_path}')
+
     def test_hex_color_pattern(self):
         all_attributes = dir(resource_library.Color.Hex)
         user_attributes = [attr for attr in all_attributes if not (attr.startswith('__') and attr.endswith('__'))]
@@ -130,3 +179,47 @@ class TestResourceLibrary(unittest.TestCase):
                                 f'\n2.It should always contain at least one "(" and one ")" '
                                 f'\n3.It can have 3 or 4 numbers, but not more or less than that.'
                                 f'\n4."rgb" or "rgba" should be lower case.')
+
+    def test_icon_paths_existence(self):
+        all_icon_attributes = vars(resource_library.Icon)
+        all_icon_keys = [attr for attr in all_icon_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for icon_key in all_icon_keys:
+            icon_path = getattr(resource_library.Icon, icon_key)
+            if not icon_path:
+                raise Exception(f'Missing file path for icon: {icon_key}')
+            if not os.path.exists(icon_path):
+                raise Exception(f'Missing file for an icon path: {icon_path}')
+
+    def test_stylesheet_variables(self):
+        all_attributes = dir(resource_library.StylesheetVariables)
+        stylesheet_keys = [attr for attr in all_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+
+        for stylesheet_key in stylesheet_keys:
+            stylesheet_content = getattr(resource_library.StylesheetVariables, stylesheet_key)
+            if not isinstance(stylesheet_content, dict):
+                raise Exception(f'Stylesheet output should be "dict" but returned "{type(stylesheet_content)}"'
+                                f' for stylesheet key: "{stylesheet_key}:.')
+            if len(stylesheet_content) == 0:
+                raise Exception(f'Stylesheet returned an empty dictionary: {stylesheet_key}')
+
+    def test_stylesheets(self):
+        all_attributes = dir(resource_library.Stylesheet)
+        stylesheet_keys = [attr for attr in all_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+
+        for stylesheet_key in stylesheet_keys:
+            stylesheet_content = getattr(resource_library.Stylesheet, stylesheet_key)
+            if not isinstance(stylesheet_content, str):
+                raise Exception(f'Stylesheet output should be "str" but returned "{type(stylesheet_content)}"'
+                                f' for stylesheet key: "{stylesheet_key}:.')
+            if stylesheet_content == "":
+                raise Exception(f'Stylesheet returned an empty string. Stylesheet key: "{stylesheet_key}".')
+
+    def test_font_paths_existence(self):
+        all_icon_attributes = vars(resource_library.Font)
+        all_font_keys = [attr for attr in all_icon_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for font_key in all_font_keys:
+            font_path = getattr(resource_library.Font, font_key)
+            if not font_path:
+                raise Exception(f'Missing file path for font: {font_key}')
+            if not os.path.exists(font_path):
+                raise Exception(f'Missing file for a font path: {font_path}')
