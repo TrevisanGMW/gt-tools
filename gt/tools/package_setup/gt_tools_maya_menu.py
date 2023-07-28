@@ -223,124 +223,124 @@ def load_menu(*args):
     menu.add_menu_item(label='Reload File',
                        command=IMPORT_UTIL + 'initialize_utility("scene_utils", "force_reload_file")',
                        tooltip='Forces the re-opening of an opened file. (Changes are ignored)',
-                       icon='openScript.png')
+                       icon=resource_library.Icon.util_reload_file)
     menu.add_menu_item(label='Open File Directory',
                        command=IMPORT_UTIL + 'initialize_utility("scene_utils", "open_file_dir")',
                        tooltip='Opens the directory where the scene is located.',
-                       icon='openLoadGeneric.png')
+                       icon=resource_library.Icon.util_open_dir)
 
     menu.add_divider()  # General +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Complete HUD Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_full_hud")',
                        tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
                                'the majority of them. (Keeps default elements intact when toggling it off)',
-                       icon='channelBox.png')
+                       icon=resource_library.Icon.util_hud_toggle)
     menu.add_menu_item(label='Resource Browser',
                        command=IMPORT_UTIL + 'initialize_utility("misc_utils", "open_resource_browser")',
                        tooltip="Opens Maya's Resource Browser. "
                                "A good way to find icons or elements you may want to use.",
-                       icon='bsd-head.png')
+                       icon=resource_library.Icon.util_resource_browser)
     menu.add_menu_item(label='Select Non-Unique Objects',
                        command=IMPORT_UTIL + 'initialize_utility("selection_utils", "select_non_unique_objects")',
                        tooltip='Selects all objects with the same short name. (non-unique objects)',
-                       icon='gotoLine.png')
+                       icon=resource_library.Icon.util_sel_non_unique)
     menu.add_menu_item(label='Set Joint Name as Label',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "set_joint_name_as_label")',
                        tooltip='Set the label of the selected joints to be the same as their short name.',
-                       icon='falloff_transfer.png')
+                       icon=resource_library.Icon.util_joint_to_label)
     menu.add_menu_item(label='Uniform LRA Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_uniform_lra")',
                        tooltip='Makes the visibility of the Local Rotation Axis uniform among the selected '
                                'objects according to the current state of the majority of them.',
-                       icon='srt.png')
+                       icon=resource_library.Icon.util_lra_toggle)
     menu.add_menu_item(label='Uniform Joint Label Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_uniform_jnt_label")',
                        tooltip='Makes the visibility of the joint labels uniform according to the current '
                                'state of the majority of them.',
-                       icon='QR_xRay.png')
+                       icon=resource_library.Icon.util_joint_label_toggle)
     menu.add_menu_item(label='Unhide Default Channels',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unhide_default_channels")',
                        tooltip='Un-hides the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='RS_filter_list.png')
+                       icon=resource_library.Icon.util_unhide_trs)
     menu.add_menu_item(label='Unlock Default Channels',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unlock_default_channels")',
                        tooltip='Unlocks the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
-                       icon='Lock_OFF_grey.png')
+                       icon=resource_library.Icon.util_unlock_trs)
 
     menu.add_divider()  # Convert Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Convert Joints to Mesh',
                        command=IMPORT_UTIL + 'initialize_utility("joint_utils", "convert_joints_to_mesh")',
                        tooltip='Converts joints to mesh. (Helpful when sending references to other applications)',
-                       icon='HIKCharacterToolSkeleton.png')
+                       icon=resource_library.Icon.util_convert_joint_mesh)
     menu.add_menu_item(label='Convert to Locators',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "convert_transforms_to_locators")',
                        tooltip="Converts transforms to locators. Function doesn't affect selected objects.",
-                       icon='locator.svg')
+                       icon=resource_library.Icon.util_convert_loc)
 
     menu.add_divider()  # References Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Import References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_import")',
                        tooltip="Imports all references.",
-                       icon='reference.svg')
+                       icon=resource_library.Icon.util_ref_import)
     menu.add_menu_item(label='Remove References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_remove")',
                        tooltip="Removes all references.",
-                       icon='referenceProxy.png')
+                       icon=resource_library.Icon.util_ref_remove)
 
     menu.add_divider()  # Pivot Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Move Pivot to Top',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_pivot_top")',
                        tooltip="Moves pivot point to the top of the bounding box of every selected object.",
-                       icon='moveLayerUp.png')
+                       icon=resource_library.Icon.util_pivot_top)
     menu.add_menu_item(label='Move Pivot to Base',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_pivot_base")',
                        tooltip="Moves pivot point to the base of the bounding box of every selected object.",
-                       icon='moveLayerDown.png')
+                       icon=resource_library.Icon.util_pivot_bottom)
     menu.add_menu_item(label='Move Object to Origin',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_to_origin")',
                        tooltip="Moves selected objects to origin according to their pivot point.",
-                       icon='grid.svg')
+                       icon=resource_library.Icon.util_move_origin)
 
     menu.add_divider()  # Reset Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Reset Transforms',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "reset_transforms")',
                        tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
                                "if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)",
-                       icon='CenterPivot.png')
+                       icon=resource_library.Icon.util_reset_transforms)
     menu.add_menu_item(label='Reset Joints Display',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "reset_joint_display")',
                        tooltip="Resets the radius attribute back to one in all joints, then changes the global "
                                "multiplier (jointDisplayScale) back to one.",
-                       icon='kinJoint.png')
+                       icon=resource_library.Icon.util_reset_jnt_display)
     menu.add_menu_item(label='Reset "persp" Camera',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "reset_persp_shape_attributes")',
                        tooltip="If persp camera exists (default camera), reset its attributes.",
-                       icon='camera.svg')
+                       icon=resource_library.Icon.util_reset_persp)
 
     menu.add_divider()  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Namespaces',
                        command=IMPORT_UTIL + 'initialize_utility("namespace_utils", "delete_namespaces")',
                        tooltip="Deletes all namespaces in the scene.",
-                       icon='renamePreset.png')
+                       icon=resource_library.Icon.util_delete_ns)
     menu.add_menu_item(label='Delete Display Layers',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "delete_display_layers")',
                        tooltip="Deletes all display layers.",
-                       icon='displayLayer.svg')
+                       icon=resource_library.Icon.util_delete_display_layers)
     menu.add_menu_item(label='Delete Unused Nodes',
                        command=IMPORT_UTIL + 'initialize_utility("cleanup_utils", "delete_unused_nodes")',
                        tooltip="Deletes unused nodes.",
-                       icon='nodeGrapherRemoveNodes.png')
+                       icon=resource_library.Icon.util_delete_unused_nodes)
     menu.add_menu_item(label='Delete Nucleus Nodes',
                        command=IMPORT_UTIL + 'initialize_utility("cleanup_utils", "delete_nucleus_nodes")',
                        tooltip="Deletes all nodes related to particles. "
                                "(Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)",
-                       icon='nParticle.svg')
+                       icon=resource_library.Icon.util_delete_nucleus_nodes)
     menu.add_menu_item(label='Delete Keyframes',
                        command=IMPORT_UTIL + 'initialize_utility("anim_utils", "delete_time_keyframes")',
                        tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
-                       icon='keyIntoclip.png')
+                       icon=resource_library.Icon.util_delete_keyframes)
 
     # ------------------------------------ Miscellaneous ------------------------------------
     menu.add_sub_menu("Miscellaneous",
