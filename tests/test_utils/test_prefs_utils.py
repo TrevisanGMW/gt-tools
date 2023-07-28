@@ -46,10 +46,15 @@ class TestPrefsUtils(unittest.TestCase):
         self.assertEqual(self.prefs.get_string('name'), 'John Doe')
         self.assertEqual(self.prefs.get_string('not_found', 'Unknown'), 'Unknown')
 
+    def test_set_and_get_bool(self):
+        self.prefs.set_bool('exists', True)
+        self.assertEqual(self.prefs.get_bool('exists'), True)
+        self.assertEqual(self.prefs.get_bool('not_found', 'Unknown'), 'Unknown')
+
     def test_delete_key(self):
         self.prefs.set_float('pi', 3.14159)
         self.prefs.delete_key('pi')
-        self.assertFalse(self.prefs.has_key('pi'))
+        self.assertFalse(self.prefs.is_key_available('pi'))
 
     def test_delete_all(self):
         self.prefs.set_float('pi', 3.14159)
@@ -57,22 +62,32 @@ class TestPrefsUtils(unittest.TestCase):
         self.prefs.set_string('name', 'John Doe')
 
         self.prefs.delete_all()
-        self.assertFalse(self.prefs.has_key('pi'))
-        self.assertFalse(self.prefs.has_key('age'))
-        self.assertFalse(self.prefs.has_key('name'))
+        self.assertFalse(self.prefs.is_key_available('pi'))
+        self.assertFalse(self.prefs.is_key_available('age'))
+        self.assertFalse(self.prefs.is_key_available('name'))
 
-    def test_get_raw_json(self):
+    def test_get_raw_preferences(self):
         self.prefs.set_float('pi', 3.14159)
         self.prefs.set_int('age', 25)
         self.prefs.set_string('name', 'John Doe')
 
-        raw_json_data = self.prefs.get_raw_json()
+        raw_json_data = self.prefs.get_raw_preferences()
         expected_json = {
             'pi': 3.14159,
             'age': 25,
             'name': 'John Doe'
         }
         self.assertEqual(raw_json_data, expected_json)
+
+    def test_set_raw_preferences(self):
+        expected_json = {
+            'pi': 3.14159,
+            'age': 25,
+            'name': 'John Doe'
+        }
+        self.prefs.set_raw_preferences(pref_dict=expected_json)
+        raw_dict_data = self.prefs.get_raw_preferences()
+        self.assertEqual(raw_dict_data, expected_json)
 
     def test_purge_prefs_folder(self):
         self.assertTrue(os.path.exists(self.temp_dir))
