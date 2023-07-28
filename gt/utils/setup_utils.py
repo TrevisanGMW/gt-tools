@@ -84,19 +84,30 @@ def copy_package_requirements(target_folder, package_requirements):
             shutil.copy(requirement_path, target_folder)
 
 
-def remove_previous_install(target_path):
+def remove_previous_install(target_path, clear_prefs=False):
     """
     Remove target path in case it exists and matches the name of the package.
     Function used to perform a clean installation.
     If package is not found or doesn't match the name, the operation is ignored.
     Args:
         target_path (str): Path to a directory that is a previous installation of the package
-    TODO:
-        Only Remove contents, leave folder for settings
+        clear_prefs (bool, optional): If active, it will also attempt to delete the prefs folder
     """
     if os.path.exists(target_path):
-        if os.path.basename(target_path) == PACKAGE_NAME:
-            logger.debug(f'Removing previous install: "{target_path}"')
+        contents = os.listdir(target_path)
+        folders = [item for item in contents if os.path.isdir(os.path.join(target_path, item))]
+        from gt.utils.prefs_utils import PACKAGE_PREFS_DIR
+        for folder in folders:
+            if folder == PACKAGE_MAIN_MODULE:
+                module_path = os.path.join(target_path, folder)
+                logger.debug(f'Removing previous install: "{module_path}"')
+                shutil.rmtree(module_path)
+            if clear_prefs and folder == PACKAGE_PREFS_DIR:
+                prefs_path = os.path.join(target_path, folder)
+                logger.debug(f'Removing previous preferences: "{prefs_path}"')
+                shutil.rmtree(prefs_path)
+        contents = os.listdir(target_path) or []
+        if len(contents) == 0:  # If parent folder is empty, remove it too.
             shutil.rmtree(target_path)
 
 
@@ -104,7 +115,7 @@ def check_installation_integrity(package_target_folder):
     """
     Checks if all requirements were copied to the installation folder
 
-    Parameters:
+    Args:
         package_target_folder (str): Path to the installation folder
 
     Returns:
@@ -112,14 +123,18 @@ def check_installation_integrity(package_target_folder):
     """
     if not package_target_folder or not os.path.isdir(package_target_folder):
         return False
-    file_list = os.listdir(package_target_folder)
+    package_target_contents = os.listdir(package_target_folder)
     missing_list = []
     for requirement in PACKAGE_REQUIREMENTS:
-        if requirement not in file_list:
+        if requirement not in package_target_contents:
+            missing_list.append(requirement)
+    package_module_contents = os.listdir(os.path.join(package_target_folder, PACKAGE_MAIN_MODULE))
+    for requirement in PACKAGE_DIRS:
+        if requirement not in package_module_contents:
             missing_list.append(requirement)
     missing_string = ', '.join(missing_list)
     if len(missing_list) > 0:
-        print(f"Missing required files: {missing_string}")
+        print(f"Missing required elements: {missing_string}")
         return False
     return True
 
@@ -128,7 +143,7 @@ def add_entry_line(file_path, create_missing_file=True):
     """
     Add entry line to provided path. The entry line is a line of code used to initialize package.
 
-    Parameters:
+    Args:
         file_path (str): File path, usually an "userSetup" file
         create_missing_file (bool, optional): If provided file doesn't exist, a file is created.
     """
@@ -531,7 +546,7 @@ def is_legacy_version_install_present(check_version=None):
     to determine if the legacy version is fully installed. If the line is found, it indicates that the legacy version
     is present, and the function returns True.
 
-    Parameters:
+    Args:
         check_version (str, optional): A version to check. If provided, then it will not attempt to retrieve
                                        current version, but will instead use provided string. e.g. "2024"
 
@@ -572,5 +587,5 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    out = is_legacy_version_install_present()
+    out = check_installation_integrity(r'C:\Users\guilherme.trevisan\Documents\maya\gt-tools')
     pprint(out)

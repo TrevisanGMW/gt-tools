@@ -230,15 +230,15 @@ class GTPathManagerDialog(QtWidgets.QDialog):
         """
         Get a tuple containing file_path, is_valid_path, obj_type, obj_icon, obj_attr
         
-                Parameters:
-                    obj (string): Name of the object.
-                    
-                Returns:
-                    file_path (string): The path extracted from the object.
-                    is_valid_path (bool): Whether the file exists in the system (or directory).
-                    obj_type (string): Type of object. E.g. "file".
-                    obj_icon (string): Icon path for the Node Type cell.
-                    obj_attr (string): Attribute used to get/set the new path.
+        Args:
+            obj (string): Name of the object.
+
+        Returns:
+            file_path (string): The path extracted from the object.
+            is_valid_path (bool): Whether the file exists in the system (or directory).
+            obj_type (string): Type of object. E.g. "file".
+            obj_icon (string): Icon path for the Node Type cell.
+            obj_attr (string): Attribute used to get/set the new path.
         """
         if cmds.objExists(obj):
             file_path = ''

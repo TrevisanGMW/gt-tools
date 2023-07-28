@@ -33,6 +33,7 @@ modules_to_test = [
     test_utils.test_feedback_utils,
     test_utils.test_list_utils,
     test_utils.test_namespace_utils,
+    test_utils.test_prefs_utils,
     test_utils.test_scene_utils,
     test_utils.test_session_utils,
     test_utils.test_setup_utils,

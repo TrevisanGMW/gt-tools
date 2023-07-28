@@ -24,7 +24,7 @@ def is_semantic_version(version_str, metadata_ok=True):
     """
    Checks if a given string adheres to the semantic versioning pattern.
 
-   Parameters:
+   Args:
        version_str (str): The version string to be checked.
        metadata_ok (bool, optional): Optionally, it may include build metadata as a suffix,
                                      preceded by a hyphen (e.g., "1.12.3-alpha").
@@ -51,7 +51,7 @@ def is_semantic_version(version_str, metadata_ok=True):
 def parse_semantic_version(version_string):
     """
     Parses semantic version string input into a tuple with major, minor and patch integers.
-    Parameters:
+    Args:
         version_string (str): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
                                  Only two separating "." are allowed, otherwise it throws a ValueError.
                                  Any extra characters that are not digits will be ignored e.g. "v1.2.3dev" = "1.2.3"
@@ -71,7 +71,7 @@ def parse_semantic_version(version_string):
 def compare_versions(version_a, version_b):
     """
     Compare two semantic versions and return the comparison result: newer, older or equal?
-    Parameters:
+    Args:
         version_a (str): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
         version_b (str): A string describing a version to be compared with version_a
     Returns:
@@ -102,7 +102,7 @@ def compare_versions(version_a, version_b):
 def get_comparison_feedback(version_current, version_expected):
     """
     Compares current version with expected versions and returns a string explaining current status.
-    Parameters:
+    Args:
         version_current (str): String describing the current version (must be semantic version) e.g. "1.2.3" or "2.14.5"
         version_expected (str): A string describing the expected version (so a comparison can happen)
     Returns:

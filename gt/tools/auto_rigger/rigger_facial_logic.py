@@ -783,11 +783,11 @@ def create_facial_controls(facial_data):
         Replaces "proxy" with "jnt"
         Replaces "endProxy" with "endJnt"
 
-                Parameters:
-                    old_name (string): Name of the proxy element
+        Args:
+            old_name (string): Name of the proxy element
 
-                Returns:
-                    new_name (string): Name of the joint to be created out of the element
+        Returns:
+            new_name (string): Name of the joint to be created out of the element
 
         """
         return old_name.replace(PROXY_SUFFIX, JNT_SUFFIX).replace('end' + PROXY_SUFFIX.capitalize(),

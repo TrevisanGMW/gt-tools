@@ -23,7 +23,7 @@ class Vector3:
     def __eq__(self, other):
         """
         Compare Vector3 objects, they are equal if their float values are all the same
-        Parameters:
+        Args:
             other (Vector3): Object to compare
         """
         if isinstance(other, Vector3):
@@ -44,7 +44,7 @@ class Transform:
     def __eq__(self, other):
         """
         Compare Transform objects, they are equal if all their Vector3 objects are the same
-        Parameters:
+        Args:
             other (Transform): Object to compare
         """
         if isinstance(other, Transform):

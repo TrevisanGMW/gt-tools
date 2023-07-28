@@ -594,11 +594,11 @@ def get_persistent_settings(data_object):
     Checks if persistent settings for exists and transfer them to the settings dictionary.
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
-        Parameters:
-            data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
+    Args:
+        data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.
 
-        Returns:
-            True or False (bool): Whether operation was successful
+    Returns:
+        True or False (bool): Whether operation was successful
     """
     # Basic Validation
     if not data_object:

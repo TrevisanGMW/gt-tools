@@ -91,7 +91,7 @@ def get_vertices(mesh):
     Retrieves the vertices of a given mesh.
     This function returns a list of vertex names that belong to the specified mesh.
 
-    Parameters:
+    Args:
         mesh (str): The name of the mesh for which vertices will be retrieved.
 
     Returns:

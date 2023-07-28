@@ -80,7 +80,7 @@ def open_file_dir():
     def open_dir(path):
         """
         Open path
-        Parameters:
+        Args:
             path (str): Path to open using
         """
         if sys.platform == "win32":  # Windows
