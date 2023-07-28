@@ -24,7 +24,7 @@ def get_resource_path(resource_name, resource_folder, sub_folder=None):
     if not sub_folder:
         resource_path = os.path.join(resource_folder, resource_name)
     else:
-        resource_path = os.path.join(resource_folder, resource_name)
+        resource_path = os.path.join(resource_folder, sub_folder, resource_name)
     return resource_path
 
 
@@ -67,6 +67,7 @@ def process_stylesheet_variables(stylesheet_content, stylesheet_variables=None):
     Replaces any instances of the given stylesheet variables in the given stylesheet
     If not stylesheet is provided, this function acts as passthrough (no changes to the content)
     If stylesheet variables are of an incorrect type, the raw content will be returned.
+    Adds a ";" at the end of the variable automatically
     Args:
         stylesheet_content (str): content found in a stylesheet
         stylesheet_variables (dict): A dictionary used to substitute stylesheet values/keys
@@ -85,7 +86,7 @@ def process_stylesheet_variables(stylesheet_content, stylesheet_variables=None):
     return stylesheet_content
 
 
-def get_stylesheet_path(stylesheet_name, sub_folder=None, file_extension="qss", stylesheet_variables=None):
+def get_stylesheet_content(stylesheet_name, sub_folder=None, file_extension="qss", stylesheet_variables=None):
     """
    Get the path to a stylesheet (qss) file. This file should exist inside the resources/stylesheet folder.
    Args:
@@ -298,8 +299,8 @@ class Icon:
     util_delete_ns = get_icon_path(r"util_delete_ns.svg")
     util_delete_display_layers = get_icon_path(r"util_delete_display_layers.svg")
     util_delete_unused_nodes = get_icon_path(r"util_delete_unused_nodes.svg")
-    delete_nucleus_nodes = get_icon_path(r"delete_nucleus_nodes.svg")
-    delete_keyframes = get_icon_path(r"delete_keyframes.svg")
+    util_delete_nucleus_nodes = get_icon_path(r"util_delete_nucleus_nodes.svg")
+    util_delete_keyframes = get_icon_path(r"util_delete_keyframes.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")
@@ -486,23 +487,23 @@ class Stylesheet:
         A library of stylesheets
         """
     # Stylesheets Without Variations
-    maya_basic_dialog = get_stylesheet_path(stylesheet_name="maya_basic_dialog",
-                                            stylesheet_variables=StylesheetVariables.maya_basic)
-    dark_progress_bar = get_stylesheet_path(stylesheet_name="dark_progress_bar",
-                                            stylesheet_variables=StylesheetVariables.dark_progress_bar)
-    dark_scroll_bar = get_stylesheet_path(stylesheet_name="dark_scroll_bar",
-                                          stylesheet_variables=StylesheetVariables.dark_scrollbar)
-    dark_list_widget = get_stylesheet_path(stylesheet_name="dark_list_widget",
-                                           stylesheet_variables=StylesheetVariables.dark_progress_bar)
+    maya_basic_dialog = get_stylesheet_content(stylesheet_name="maya_basic_dialog",
+                                               stylesheet_variables=StylesheetVariables.maya_basic)
+    dark_progress_bar = get_stylesheet_content(stylesheet_name="dark_progress_bar",
+                                               stylesheet_variables=StylesheetVariables.dark_progress_bar)
+    dark_scroll_bar = get_stylesheet_content(stylesheet_name="dark_scroll_bar",
+                                             stylesheet_variables=StylesheetVariables.dark_scrollbar)
+    dark_list_widget = get_stylesheet_content(stylesheet_name="dark_list_widget",
+                                              stylesheet_variables=StylesheetVariables.dark_progress_bar)
     # Metro Tool Button
-    metro_tool_button = get_stylesheet_path(stylesheet_name="metro_tool_button",
-                                            stylesheet_variables=StylesheetVariables.metro_tools_button_default)
-    metro_tool_button_red = get_stylesheet_path(stylesheet_name="metro_tool_button",
-                                                stylesheet_variables=StylesheetVariables.metro_tools_button_red)
-    metro_tool_button_blue = get_stylesheet_path(stylesheet_name="metro_tool_button",
-                                                 stylesheet_variables=StylesheetVariables.metro_tools_button_blue)
-    metro_tool_button_green = get_stylesheet_path(stylesheet_name="metro_tool_button",
-                                                  stylesheet_variables=StylesheetVariables.metro_tools_button_green)
+    metro_tool_button = get_stylesheet_content(stylesheet_name="metro_tool_button",
+                                               stylesheet_variables=StylesheetVariables.metro_tools_button_default)
+    metro_tool_button_red = get_stylesheet_content(stylesheet_name="metro_tool_button",
+                                                   stylesheet_variables=StylesheetVariables.metro_tools_button_red)
+    metro_tool_button_blue = get_stylesheet_content(stylesheet_name="metro_tool_button",
+                                                    stylesheet_variables=StylesheetVariables.metro_tools_button_blue)
+    metro_tool_button_green = get_stylesheet_content(stylesheet_name="metro_tool_button",
+                                                     stylesheet_variables=StylesheetVariables.metro_tools_button_green)
 
 
 class Font:
@@ -513,7 +514,7 @@ class Font:
         To use these fonts, wrap them around the function
         """
         self.kb = None
-    courier_new = "Courier New"
+
     roboto = get_font_path("Roboto-Regular.ttf")
     inter = get_font_path("Inter-Regular.ttf")
 

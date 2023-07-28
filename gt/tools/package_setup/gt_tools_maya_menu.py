@@ -336,11 +336,11 @@ def load_menu(*args):
                        command=IMPORT_UTIL + 'initialize_utility("cleanup_utils", "delete_nucleus_nodes")',
                        tooltip="Deletes all nodes related to particles. "
                                "(Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)",
-                       icon=resource_library.Icon.delete_nucleus_nodes)
+                       icon=resource_library.Icon.util_delete_nucleus_nodes)
     menu.add_menu_item(label='Delete Keyframes',
                        command=IMPORT_UTIL + 'initialize_utility("anim_utils", "delete_time_keyframes")',
                        tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
-                       icon=resource_library.Icon.delete_keyframes)
+                       icon=resource_library.Icon.util_delete_keyframes)
 
     # ------------------------------------ Miscellaneous ------------------------------------
     menu.add_sub_menu("Miscellaneous",
