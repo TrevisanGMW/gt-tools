@@ -287,7 +287,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Remove References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_remove")',
                        tooltip="Removes all references.",
-                       icon=resource_library.Icon.utils_ref_remove)
+                       icon=resource_library.Icon.util_ref_remove)
 
     menu.add_divider()  # Pivot Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Move Pivot to Top',
@@ -323,24 +323,24 @@ def load_menu(*args):
     menu.add_menu_item(label='Delete Namespaces',
                        command=IMPORT_UTIL + 'initialize_utility("namespace_utils", "delete_namespaces")',
                        tooltip="Deletes all namespaces in the scene.",
-                       icon='renamePreset.png')
+                       icon=resource_library.Icon.util_delete_ns)
     menu.add_menu_item(label='Delete Display Layers',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "delete_display_layers")',
                        tooltip="Deletes all display layers.",
-                       icon='displayLayer.svg')
+                       icon=resource_library.Icon.util_delete_display_layers)
     menu.add_menu_item(label='Delete Unused Nodes',
                        command=IMPORT_UTIL + 'initialize_utility("cleanup_utils", "delete_unused_nodes")',
                        tooltip="Deletes unused nodes.",
-                       icon='nodeGrapherRemoveNodes.png')
+                       icon=resource_library.Icon.util_delete_unused_nodes)
     menu.add_menu_item(label='Delete Nucleus Nodes',
                        command=IMPORT_UTIL + 'initialize_utility("cleanup_utils", "delete_nucleus_nodes")',
                        tooltip="Deletes all nodes related to particles. "
                                "(Nucleus, nHair, nCloth, nConstraints, Emitter, etc...)",
-                       icon='nParticle.svg')
+                       icon=resource_library.Icon.delete_nucleus_nodes)
     menu.add_menu_item(label='Delete Keyframes',
                        command=IMPORT_UTIL + 'initialize_utility("anim_utils", "delete_time_keyframes")',
                        tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
-                       icon='keyIntoclip.png')
+                       icon=resource_library.Icon.delete_keyframes)
 
     # ------------------------------------ Miscellaneous ------------------------------------
     menu.add_sub_menu("Miscellaneous",
