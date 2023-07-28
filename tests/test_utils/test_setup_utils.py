@@ -100,20 +100,38 @@ class TestSetupUtils(unittest.TestCase):
     def test_remove_previous_install(self):
         test_temp_dir = maya_test_tools.generate_test_temp_dir()  # Create test elements
         mocked_install_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
-        mocked_install_content_one = os.path.join(mocked_install_dir, "dir_one")
-        mocked_install_content_two = os.path.join(mocked_install_dir, "dir_two")
+        mocked_install_main_module = os.path.join(mocked_install_dir, setup_utils.PACKAGE_MAIN_MODULE)
+        from gt.utils.prefs_utils import PACKAGE_PREFS_DIR
+        mocked_install_prefs = os.path.join(mocked_install_dir, PACKAGE_PREFS_DIR)
         mocked_pyc = os.path.join(mocked_install_dir, "empty.pyc")
         mocked_py = os.path.join(mocked_install_dir, "empty.py")
-        for path in [mocked_install_dir, mocked_install_content_one, mocked_install_content_two]:
+        for path in [mocked_install_dir, mocked_install_main_module, mocked_install_prefs]:
             if not os.path.exists(path):
                 os.mkdir(path)
         for file in [mocked_pyc, mocked_py]:
             with open(file, 'w'):
                 pass  # Create empty file
         expected = True
-        result = os.path.exists(mocked_install_dir)
+        result = os.path.exists(mocked_install_main_module)
         self.assertEqual(expected, result)
         setup_utils.remove_previous_install(target_path=mocked_install_dir)
+        expected = False
+        result = os.path.exists(mocked_install_main_module)
+        self.assertEqual(expected, result)
+        expected = True
+        result = os.path.exists(mocked_install_dir)
+        self.assertEqual(expected, result)
+
+    def test_remove_previous_install_clear_prefs(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()  # Create test elements
+        mocked_install_dir = os.path.join(test_temp_dir, setup_utils.PACKAGE_NAME)
+        mocked_install_main_module = os.path.join(mocked_install_dir, setup_utils.PACKAGE_MAIN_MODULE)
+        from gt.utils.prefs_utils import PACKAGE_PREFS_DIR
+        mocked_install_prefs = os.path.join(mocked_install_dir, PACKAGE_PREFS_DIR)
+        for path in [mocked_install_dir, mocked_install_main_module, mocked_install_prefs]:
+            if not os.path.exists(path):
+                os.mkdir(path)
+        setup_utils.remove_previous_install(target_path=mocked_install_dir, clear_prefs=True)
         expected = False
         result = os.path.exists(mocked_install_dir)
         self.assertEqual(expected, result)

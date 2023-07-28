@@ -84,19 +84,30 @@ def copy_package_requirements(target_folder, package_requirements):
             shutil.copy(requirement_path, target_folder)
 
 
-def remove_previous_install(target_path):
+def remove_previous_install(target_path, clear_prefs=False):
     """
     Remove target path in case it exists and matches the name of the package.
     Function used to perform a clean installation.
     If package is not found or doesn't match the name, the operation is ignored.
     Args:
         target_path (str): Path to a directory that is a previous installation of the package
-    TODO:
-        Only Remove contents, leave folder for settings
+        clear_prefs (bool, optional): If active, it will also attempt to delete the prefs folder
     """
     if os.path.exists(target_path):
-        if os.path.basename(target_path) == PACKAGE_NAME:
-            logger.debug(f'Removing previous install: "{target_path}"')
+        contents = os.listdir(target_path)
+        folders = [item for item in contents if os.path.isdir(os.path.join(target_path, item))]
+        from gt.utils.prefs_utils import PACKAGE_PREFS_DIR
+        for folder in folders:
+            if folder == PACKAGE_MAIN_MODULE:
+                module_path = os.path.join(target_path, folder)
+                logger.debug(f'Removing previous install: "{module_path}"')
+                shutil.rmtree(module_path)
+            if clear_prefs and folder == PACKAGE_PREFS_DIR:
+                prefs_path = os.path.join(target_path, folder)
+                logger.debug(f'Removing previous preferences: "{prefs_path}"')
+                shutil.rmtree(prefs_path)
+        contents = os.listdir(target_path) or []
+        if len(contents) == 0:  # If parent folder is empty, remove it too.
             shutil.rmtree(target_path)
 
 
