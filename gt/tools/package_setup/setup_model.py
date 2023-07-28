@@ -169,7 +169,7 @@ class PackageSetupModel(QtCore.QObject):
     def set_status(self, new_status=None):
         """
         Sends a signal to the view, so it updates the status with a new string
-        Parameters:
+        Args:
             new_status (str): String to be used as the new status
         """
         if new_status:

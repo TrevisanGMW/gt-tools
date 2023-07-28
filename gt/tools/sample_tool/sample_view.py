@@ -24,7 +24,7 @@ class SampleToolWindow(QMainWindow):
         This window represents the main GUI window of the application.
         It contains a list of items, along with buttons to add and remove items.
 
-        Parameters:
+        Args:
             parent (str): Parent for this window
             controller (SampleToolController): SampleToolController, not to be used, here so it's not deleted by
                                                  the garbage collector.
@@ -68,7 +68,7 @@ class SampleToolWindow(QMainWindow):
         """
         Updates the view with the provided items.
 
-        Parameters:
+        Args:
             items (list): A list of items to be displayed in the view.
         """
         self.item_list.clear()

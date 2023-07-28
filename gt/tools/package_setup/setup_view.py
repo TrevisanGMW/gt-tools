@@ -19,7 +19,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         ButtonUninstallClicked: Signal emitted when the 'Uninstall' button is clicked.
         ButtonRunOnlyClicked: Signal emitted when the 'Run Only' button is clicked.
 
-    Parameters:
+    Args:
         parent (QWidget): The parent widget for this window.
         controller (PackageSetupController): The PackageSetupController instance, not used here, but retained to
                                              prevent it from being deleted by the garbage collector.
@@ -31,7 +31,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
     def __init__(self, parent=None, controller=None):
         """
         Initializes package setup model object
-        Parameters:
+        Args:
             parent (QWidget, str): The parent widget for this window.
             controller (PackageSetupController): PackageSetupController, not to be used, here so it's not deleted by
                                                  the garbage collector.
@@ -195,7 +195,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
     def update_installation_path_text_field(self, new_path):
         """
         Updates the installation path text field with the given new path.
-        Parameters:
+        Args:
             new_path (str): The new installation path to display.
         """
         self.line_edit_installation_path.setText(new_path)
@@ -212,7 +212,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
         """
         Updates the target QLabel with formatted text containing a title and text output.
 
-        Parameters:
+        Args:
            target_label (QtWidgets.QLabel): The QLabel to update with the formatted text.
            new_title (str): The title to be displayed before the new_text_output.
            new_text_output (str): The text output to be displayed after the new_title.
@@ -232,7 +232,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
     def update_version_current_setup(self, new_setup_version):
         """
         Updates the current setup version text with the given new version.
-        Parameters:
+        Args:
             new_setup_version (str): The new setup version to display.
         """
         self.update_formatted_label(target_label=self.label_setup_version,
@@ -243,7 +243,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
     def update_version_installed(self, new_installed_version):
         """
         Updates the installed version text with the given new version.
-        Parameters:
+        Args:
             new_installed_version (str): The new installed version to display.
         """
         self.update_formatted_label(target_label=self.label_installed_version,
@@ -253,7 +253,7 @@ class PackageSetupWindow(QtWidgets.QDialog):
     def update_status_text(self, new_status):
         """
         Updates the status text with the given new status.
-        Parameters:
+        Args:
             new_status (str): The new status to display.
         """
         self.update_formatted_label(target_label=self.label_status,

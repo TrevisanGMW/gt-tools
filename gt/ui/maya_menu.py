@@ -41,7 +41,7 @@ class MayaMenu:
     def __init__(self, name, parent=""):
         """
         Initializes Maya Menu Object
-        Parameters:
+        Args:
             name (str): Name of the menu. This also become its label.
             parent (str, optional): Menu parent. It could be a maya window for example.
                                     Optional: If not provided, Maya is used instead.

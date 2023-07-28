@@ -198,7 +198,7 @@ class FeedbackMessage:
                              print_message=True, system_write=True):
         """
         Prints feedback in Maya using the inview command.
-        Parameters:
+        Args:
             position (str, optional): Determines the position of the inView message. (Same as Maya's position arg)
                                       "topLeft"
                                       "topCenter"

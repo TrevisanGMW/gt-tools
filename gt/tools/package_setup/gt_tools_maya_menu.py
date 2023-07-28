@@ -4,6 +4,7 @@
 """
 from gt.utils.version_utils import get_package_version
 import gt.ui.resource_library as resource_library
+from gt.utils.prefs_utils import PackagePrefs
 from gt.ui.maya_menu import MayaMenu
 import logging
 import sys
@@ -315,7 +316,7 @@ def load_menu(*args):
                                "multiplier (jointDisplayScale) back to one.",
                        icon=resource_library.Icon.util_reset_jnt_display)
     menu.add_menu_item(label='Reset "persp" Camera',
-                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "reset_persp_shape_attributes")',
+                       command=IMPORT_UTIL + 'initialize_utility("camera_utils", "reset_persp_shape_attributes")',
                        tooltip="If persp camera exists (default camera), reset its attributes.",
                        icon=resource_library.Icon.util_reset_persp)
 
@@ -364,14 +365,24 @@ def load_menu(*args):
                        tooltip="Helps calculate how long it's going to take to render an image sequence.",
                        icon=resource_library.Icon.tool_render_calculator)
     # ------------------------------------ Development ------------------------------------
-    if False:  # TODO - Replace with global variable
+    if PackagePrefs().is_dev_mode_active():
         menu.add_sub_menu("Develop",
-                          icon=resource_library.Icon.misc_about,
+                          icon=resource_library.Icon.root_dev,
                           parent_to_root=True)
         menu.add_menu_item(label='Sample Tool',
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
-                           icon=resource_library.Icon.misc_about)
+                           icon=resource_library.Icon.dev_screwdriver)
+        menu.add_menu_item(label='Toggle Skip Menu Creation',
+                           command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
+                                   'toggle_skip_menu_creation()\n',
+                           tooltip="Opens sample tool.",
+                           icon=resource_library.Icon.dev_code)
+        menu.add_menu_item(label='Purge Package Settings',
+                           command='from gt.utils.prefs_utils import purge_package_settings\n'
+                                   'purge_package_settings()\n',
+                           tooltip="Opens sample tool.",
+                           icon=resource_library.Icon.dev_code)
     # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
     menu.add_sub_menu("Help",
@@ -381,19 +392,28 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("package_setup", "open_about_window")',
                        tooltip="Opens about menu.",
                        icon=resource_library.Icon.misc_about)
+    _rebuild_menu_command = "from gt.tools.package_setup.gt_tools_maya_menu import _rebuild_menu\n_rebuild_menu()"
     menu.add_menu_item(label='Re-Build Menu',
-                       command="from gt.tools.package_setup.gt_tools_maya_menu import _rebuild_menu\n"
-                               "_rebuild_menu()",
+                       command=_rebuild_menu_command,
                        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
                        icon=resource_library.Icon.misc_rebuild_menu)
     menu.add_menu_item(label='Check for Updates',
                        command=IMPORT_TOOL + 'initialize_tool("check_for_updates")',
                        tooltip="Check for updates by comparing current version with latest release.",
                        icon=resource_library.Icon.tool_check_for_updates)
+    menu.add_menu_item(label='Toggle Develop Mode',
+                       command='from gt.utils.prefs_utils import toggle_dev_mode\n'
+                               'toggle_dev_mode()\n' + _rebuild_menu_command,
+                       tooltip="Check for updates by comparing current version with latest release.",
+                       icon=resource_library.Icon.root_dev)
     menu.add_menu_item(label=f'Installed Version: {str(package_version)}',
                        enable=False,
                        icon=resource_library.Icon.misc_current_version)
     # ------------------------------------ End ------------------------------------
+    if PackagePrefs().is_skipping_menu_creation():
+        print('GT-Tools: "Skip Menu Creation" preference is active. Menu creation was skipped.')
+        unload_menu()
+        return
     menu_path = menu.create_menu()
     return menu_path
 

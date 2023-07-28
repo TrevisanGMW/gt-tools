@@ -131,7 +131,7 @@ def extract_digits(input_string):
     """
     Extracts and returns only the digits from a given input string.
 
-    Parameters:
+    Args:
         input_string (str): The input string from which digits will be extracted.
 
     Returns:

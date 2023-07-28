@@ -172,12 +172,11 @@ def create_main_control(name):
     """
     Creates a main control with an arrow pointing to +Z (Direction character should be facing)
 
-        Parameters:
-            name (str): Name of the new control
+    Args:
+        name (str): Name of the new control
 
-        Returns:
-            main_crv (str): Name of the generated control (in case it was different from what was provided)
-
+    Returns:
+        main_crv (str): Name of the generated control (in case it was different from what was provided)
     """
     main_crv_assembly = []
     main_crv_a = cmds.curve(name=name, p=[[-11.7, 0.0, 45.484], [-16.907, 0.0, 44.279], [-25.594, 0.0, 40.072],

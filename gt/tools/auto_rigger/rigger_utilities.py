@@ -55,19 +55,19 @@ def dist_center_to_center(obj_a, obj_b):
 
     def dist_position_to_position(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
         """
-            Calculates the distance between XYZ position A and XYZ position B
-            
-                        Parameters:
-                                pos_a_x (float) : Object A Position X
-                                pos_a_y (float) : Object A Position Y
-                                pos_a_z (float) : Object A Position Z
-                                pos_b_x (float) : Object B Position X
-                                pos_b_y (float) : Object B Position Y
-                                pos_b_z (float) : Object B Position Z
-                                
-                        Returns:
-                            distance (float): A distance value between object A and B. For example : 4.0
-            """
+        Calculates the distance between XYZ position A and XYZ position B
+
+        Args:
+                pos_a_x (float) : Object A Position X
+                pos_a_y (float) : Object A Position Y
+                pos_a_z (float) : Object A Position Z
+                pos_b_x (float) : Object B Position X
+                pos_b_y (float) : Object B Position Y
+                pos_b_z (float) : Object B Position Z
+
+        Returns:
+            distance (float): A distance value between object A and B. For example : 4.0
+        """
         dx = pos_a_x - pos_b_x
         dy = pos_a_y - pos_b_y
         dz = pos_a_z - pos_b_z
@@ -87,9 +87,9 @@ def combine_curves_list(curve_list):
     It moves the shape objects of all elements in the provided input (curve_list) to a single group (combining them)
     This version was changed to accept a list of objects (instead of selection)
     
-            Parameters:
-                    curve_list (list): A string of strings with the name of the curves to be combined.
-    
+    Args:
+            curve_list (list): A string of strings with the name of the curves to be combined.
+
     """
     errors = ''
     function_name = 'GTU Combine Curves List'
@@ -227,18 +227,18 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
     def calculate_distance(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
         """
         Calculates the magnitude (in this case distance) between two objects
-        
-                Parameters:
-                    pos_a_x (float): Position X for object A
-                    pos_a_y (float): Position Y for object A
-                    pos_a_z (float): Position Z for object A
-                    pos_b_x (float): Position X for object B
-                    pos_b_y (float): Position Y for object B
-                    pos_b_z (float): Position Z for object B
-                   
-                Returns:
-                    magnitude (float): Distance between two objects
-        
+
+        Args:
+            pos_a_x (float): Position X for object A
+            pos_a_y (float): Position Y for object A
+            pos_a_z (float): Position Z for object A
+            pos_b_x (float): Position X for object B
+            pos_b_y (float): Position Y for object B
+            pos_b_z (float): Position Z for object B
+
+        Returns:
+            magnitude (float): Distance between two objects
+
         """
         dx = pos_a_x - pos_b_x
         dy = pos_a_y - pos_b_y
@@ -249,13 +249,11 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
         """
         Given an int32 number, returns an English word for it.
         
-                Parameters:
-                    num (int) and integer to be converted to English words.
-                    
-                Returns:
-                    number (string): The input number as words
-        
-        
+        Args:
+            num (int) and integer to be converted to English words.
+
+        Returns:
+            number (string): The input number as words
         """
         d = {0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
              6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
@@ -533,22 +531,22 @@ def add_sine_attributes(obj, sine_prefix='sine', tick_source_attr='time1.outTime
     """
     Create Sine functions without using third-party plugins or expressions
     
-            Parameters:
-                obj (string): Name of the object
-                sine_prefix (string): Prefix given to the name of the attributes (default is "sine")
-                tick_source_attr (string): Name of the attribute used as the source for time.
-                                            It uses the default "time1" node if nothing else is specified
-                hide_unkeyable (bool): Hides the tick and output attributes
-                add_absolute_output (bool): Also creates an output version that gives only positive numbers much like
-                                            the abs() expression
-                nice_name_prefix (bool): Determines if the prefix should be used for the nice name
+    Args:
+        obj (string): Name of the object
+        sine_prefix (string): Prefix given to the name of the attributes (default is "sine")
+        tick_source_attr (string): Name of the attribute used as the source for time.
+                                    It uses the default "time1" node if nothing else is specified
+        hide_unkeyable (bool): Hides the tick and output attributes
+        add_absolute_output (bool): Also creates an output version that gives only positive numbers much like
+                                    the abs() expression
+        nice_name_prefix (bool): Determines if the prefix should be used for the nice name
 
-            Returns:
-                sine_output_attrs (list): String with the name of the object and the name of the sine output attribute.
-                                          E.g. "pSphere1.sineOutput"
-                                          In case an absolute output is added, it will be the second object in the list.
-                                          E.g. ["pSphere1.sineOutput", "pSphere1.sineAbsOutput"]
-                                          If add_absolute_output is False the second attribute is None
+    Returns:
+        sine_output_attrs (list): String with the name of the object and the name of the sine output attribute.
+                                  E.g. "pSphere1.sineOutput"
+                                  In case an absolute output is added, it will be the second object in the list.
+                                  E.g. ["pSphere1.sineOutput", "pSphere1.sineAbsOutput"]
+                                  If add_absolute_output is False the second attribute is None
     """
     # Load Required Plugins
     required_plugin = 'quatNodes'
@@ -769,13 +767,13 @@ def create_loc_joint_curve(name, scale, initial_position=(0, 0, 0)):
     """
     Creates a curve that looks like a joint and a locator to be used as a proxy 
     
-            Parameters:
-                name (string): Name of the generated curve
-                scale (float): The desired initial scale of the curve
-                initial_position (tuple): A tuple of three floats. Used to determine initial position of the curve.
+    Args:
+        name (string): Name of the generated curve
+        scale (float): The desired initial scale of the curve
+        initial_position (tuple): A tuple of three floats. Used to determine initial position of the curve.
 
-            Returns:
-                curve_crv (string): Name of the generated curve (in case it was changed during creation)
+    Returns:
+        curve_crv (string): Name of the generated curve (in case it was changed during creation)
     """
     curve_assembly = []
     joint_crv = cmds.curve(name=name, p=[[0.0, 2.428, 0.0], [0.0, 2.246, 0.93], [0.0, 1.72, 1.72], [0.0, 0.93, 2.246],
@@ -818,12 +816,12 @@ def create_aim_joint_curve(name, scale):
     Creates a curve that looks like a joint with an arrow to be used as a proxy 
     It needs the function "gtu_combine_curves_list()" and "create_joint_curve" to properly work.
     
-            Parameters:
-                name (string): Name of the generated curve
-                scale (float): The desired initial scale of the curve
+    Args:
+        name (string): Name of the generated curve
+        scale (float): The desired initial scale of the curve
 
-            Returns:
-                curve_crv (string): Name of the generated curve (in case it was changed during creation)
+    Returns:
+        curve_crv (string): Name of the generated curve (in case it was changed during creation)
     """
     curve_assembly = []
     curve_crv_a = create_joint_curve(name, 1)
@@ -850,12 +848,12 @@ def create_directional_joint_curve(name, scale):
     Creates a curve that looks like a joint with an up direction to be used as a proxy 
     It needs the function "gtu_combine_curves_list()" and "create_joint_curve" to properly work.
     
-            Parameters:
-                name (string): Name of the generated curve
-                scale (float): The desired initial scale of the curve
+    Args:
+        name (string): Name of the generated curve
+        scale (float): The desired initial scale of the curve
 
-            Returns:
-                curve_crv (string): Name of the generated curve (in case it was changed during creation)
+    Returns:
+        curve_crv (string): Name of the generated curve (in case it was changed during creation)
     """
     curve_assembly = []
     curve_crv_a = create_joint_curve(name, 1)
@@ -894,12 +892,11 @@ def create_main_control(name):
     """
     Creates a main control with an arrow pointing to +Z (Direction character should be facing)
     
-        Parameters:
-            name (string): Name of the new control
-            
-        Returns:
-            main_crv (string): Name of the generated control (in case it was different from what was provided)
-    
+    Args:
+        name (string): Name of the new control
+
+    Returns:
+        main_crv (string): Name of the generated control (in case it was different from what was provided)
     """
     main_crv_assembly = []
     main_crv_a = cmds.curve(name=name, p=[[-11.7, 0.0, 45.484], [-16.907, 0.0, 44.279], [-25.594, 0.0, 40.072],
@@ -929,19 +926,18 @@ def create_scalable_arrow(curve_name='arrow', initial_scale=1, custom_shape=None
     """
     Creates a curve in the shape of an arrow and rigs it so when scaling it up the curve doesn't lose its shape
     
-            Parameters:
-                curve_name (string): Name of the generated curve
-                initial_scale (float): Initial Scale of the curve
-                custom_shape (string): Doesn't generate an arrow. Use the provided shape instead. N
-                                       ame of a curve shape. (Use "start_cv_list" and "end_cv_list" to set cvs)
-                start_cv_list (list): A list of strings. In case you want to overwrite the original curve,
-                                      you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
-                end_cv_list (list):  A list of strings. In case you want to overwrite the original curve,
-                                     you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
-                
-            Returns:
-                generated_elements (list): A list with the generated elements: [curve_name, curve_scale_handle, rig_grp]
-    
+    Args:
+        curve_name (string): Name of the generated curve
+        initial_scale (float): Initial Scale of the curve
+        custom_shape (string): Doesn't generate an arrow. Use the provided shape instead. N
+                               ame of a curve shape. (Use "start_cv_list" and "end_cv_list" to set cvs)
+        start_cv_list (list): A list of strings. In case you want to overwrite the original curve,
+                              you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+        end_cv_list (list):  A list of strings. In case you want to overwrite the original curve,
+                             you might want to provide new cvs. e.g "["cv[0:2]", "cv[8:10]"]"
+
+    Returns:
+        generated_elements (list): A list with the generated elements: [curve_name, curve_scale_handle, rig_grp]
     """
     # Create Arrow
     if custom_shape:
@@ -1034,16 +1030,15 @@ def create_finger_curl_ctrl(ctrl_name, parent='world', scale_multiplier=1, x_off
     Creates a finger curl control. This function was made for a very specific use, so it already orients the control
     accordingly.
     
-            Parameters:
-                ctrl_name (string) : Name of the control (thumb, index, middle, ring, pinky)
-                parent (optional, string) : Name of the parent object. If not provided, it will be left in the world.
-                scale_multiplier (optional, float) : Number to multiply when scaling it.
-                x_offset (optional, float) : Number to multiply the scale offset into X
-                z_offset (optional, float) : Number to multiply the scale offset into Z
-                
-            Returns:
-                curl_ctrl (string) : Name of the generated curl ctrl.
-            
+    Args:
+        ctrl_name (string) : Name of the control (thumb, index, middle, ring, pinky)
+        parent (optional, string) : Name of the parent object. If not provided, it will be left in the world.
+        scale_multiplier (optional, float) : Number to multiply when scaling it.
+        x_offset (optional, float) : Number to multiply the scale offset into X
+        z_offset (optional, float) : Number to multiply the scale offset into Z
+
+    Returns:
+        curl_ctrl (string) : Name of the generated curl ctrl.
     """
     finger_curl_a = cmds.curve(name=ctrl_name, p=[[0.0, 0.127, -0.509], [0.047, 0.194, -0.474], [0.079, 0.237, -0.449],
                                                   [0.123, 0.292, -0.418], [0.158, 0.332, -0.383], [0.204, 0.364, -0.34],
@@ -1461,24 +1456,23 @@ def generate_no_ssc_skeleton(new_suffix='game', jnt_suffix='jnt', skeleton_root=
     on Maya's segment scale compensate system. It instead bakes the scale
     on to the children joints.
 
-            Parameters:
-                new_suffix (optional, string): The in-between word used to create a new suffix.
-                                               The new one will be new_suffix + "_" + jnt_suffix.
-                                               e.g. myJoint_jnt => myJoint_game_jnt
-                jnt_suffix (optional, string): The suffix the script expects
-                                               to find at the end of every joint
-                skeleton_root (optional, string): Root of the skeleton
-            Returns:
-                duplicated_joints (string): Generated joints
-                no_ssc_root_jnt (string): Root joint for the generated joints
+    Args:
+        new_suffix (optional, string): The in-between word used to create a new suffix.
+                                       The new one will be new_suffix + "_" + jnt_suffix.
+                                       e.g. myJoint_jnt => myJoint_game_jnt
+        jnt_suffix (optional, string): The suffix the script expects
+                                       to find at the end of every joint
+        skeleton_root (optional, string): Root of the skeleton
+    Returns:
+        duplicated_joints (string): Generated joints
+        no_ssc_root_jnt (string): Root joint for the generated joints
 
-            Dependencies:
-                get_short_name()
-                mimic_segment_scale_compensate_behaviour()
-                get_inverted_hierarchy_tree()
-                jnt_suffix : string variable
-                gt_ab_joints_default : list of joints
-
+    Dependencies:
+        get_short_name()
+        mimic_segment_scale_compensate_behaviour()
+        get_inverted_hierarchy_tree()
+        jnt_suffix : string variable
+        gt_ab_joints_default : list of joints
     """
     cmds.select(skeleton_root)
     game_skeleton = cmds.duplicate(renameChildren=True)
@@ -1575,11 +1569,11 @@ def create_limit_lock_attributes(obj, lock_attr='lockXY', primary_rotation_chann
     Creates two custom attributes. One for locking translate and another for locking two rotate channels.
     The primary rotation channels is left unlocked as it's assumed it will be used for animation
 
-            Parameters:
-                obj (string): Name of the target object
-                lock_attr (string) : Name of the rotation lock attribute
-                primary_rotation_channel (string) : Name of the rotation channel to be ignored (left unlocked)
-                ignore_rot (bool): Ignores rotate channels and creates online lock translate attribute
+    Args:
+        obj (string): Name of the target object
+        lock_attr (string) : Name of the rotation lock attribute
+        primary_rotation_channel (string) : Name of the rotation channel to be ignored (left unlocked)
+        ignore_rot (bool): Ignores rotate channels and creates online lock translate attribute
     """
     available_channels = ['X', 'Y', 'Z']
     cmds.addAttr(obj, ln='lockTranslate', at='bool', k=True)
@@ -1607,13 +1601,12 @@ def lock_hide_default_attr(obj, translate=True, rotate=True, scale=True, visibil
     """
     Lock and Hide default attributes
 
-            Parameters:
-                obj (string): Name of the object to be locked
-                translate (bool): Whether to lock and hide translate
-                rotate (bool): Whether to lock and hide rotate
-                scale (bool): Whether to lock and hide scale
-                visibility (bool): Whether to lock and hide visibility
-
+    Args:
+        obj (string): Name of the object to be locked
+        translate (bool): Whether to lock and hide translate
+        rotate (bool): Whether to lock and hide rotate
+        scale (bool): Whether to lock and hide scale
+        visibility (bool): Whether to lock and hide visibility
     """
     if translate:
         cmds.setAttr(obj + '.tx', lock=True, k=False, channelBox=False)
@@ -1640,15 +1633,15 @@ def setup_shape_switch(control, attr='controlShape',
     """
     Creates the nodes and connections necessary to switch between three shapes.
     One is the default 3D shape, another is a flat 2D shape and the third is a pin for when constraining
-            Dependencies:
-                CONSTANTS from gt_rigger_data
-            Parameters:
-                control (string): Name of the control to create the switch
-                attr (optional, string): Attribute name, default is "controlShape"
-                shape_names (optional, list): A list of three elements with the expected names of the shapes,
-                                             [3D, 2D, PIN] If using only two, the third one will be ignored.
-                shape_enum (optional, list): A list of three elements with the enum names of the shapes,
-                                            [3D, 2D, PIN]
+    Dependencies:
+        CONSTANTS from gt_rigger_data
+    Args:
+        control (string): Name of the control to create the switch
+        attr (optional, string): Attribute name, default is "controlShape"
+        shape_names (optional, list): A list of three elements with the expected names of the shapes,
+                                     [3D, 2D, PIN] If using only two, the third one will be ignored.
+        shape_enum (optional, list): A list of three elements with the enum names of the shapes,
+                                    [3D, 2D, PIN]
     """
     enum_string = ''
     for string in shape_enum:

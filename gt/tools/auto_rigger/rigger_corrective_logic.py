@@ -599,11 +599,11 @@ def create_corrective_setup(corrective_data):
         Replaces "proxy" with "jnt"
         Replaces "endProxy" with "endJnt"
 
-                Parameters:
-                    old_name (string): Name of the proxy element
+        Args:
+            old_name (string): Name of the proxy element
 
-                Returns:
-                    new_name (string): Name of the joint to be created out of the element
+        Returns:
+            new_name (string): Name of the joint to be created out of the element
 
         """
         new_name = old_name.replace(PROXY_SUFFIX, 'driver' + JNT_SUFFIX.capitalize())

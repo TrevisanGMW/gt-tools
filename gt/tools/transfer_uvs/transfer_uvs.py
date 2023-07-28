@@ -312,8 +312,8 @@ def delete_temp_namespace(temp_namespace):
     """
     Deletes the provided namespace
     
-                Parameters:
-                    temp_namespace (string): Namespace to be deleted
+    Args:
+        temp_namespace (string): Namespace to be deleted
     """
     default_namespaces = ['UI', 'shared']
 
