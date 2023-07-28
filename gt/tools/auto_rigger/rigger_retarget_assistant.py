@@ -231,7 +231,7 @@ def change_viewport_color(obj, rgb_color=(1, 1, 1)):
     """
     Changes the color of an object by changing the drawing override settings
 
-    Parameters:
+    Args:
         obj (string): Name of the object to change color
         rgb_color (tuple): RGB color
 
