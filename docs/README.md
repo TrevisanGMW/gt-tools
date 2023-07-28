@@ -146,6 +146,8 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 <p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
 
+<p><b>Help > Toggle Develop Mode: </b>Toggles the state of development mode. When active a new sub-menu "Develop" appears under the main drop-down menu. This sub-menu contains tools and functions used for the development of new tools.</p>
+
 <p><b>Help > Installed Version: </b>What version is currently installed.</p>
 <br>
 </div>
