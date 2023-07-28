@@ -61,7 +61,7 @@ def launcher_entry_point():
 
 def open_about_window():
     """ Opens about window for the package """
-    import about_window
+    from gt.tools.package_setup import about_window
     about_window.build_gui_about_gt_tools()
 
 
