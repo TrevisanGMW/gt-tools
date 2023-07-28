@@ -78,3 +78,10 @@ class TestPrefsUtils(unittest.TestCase):
         self.assertTrue(os.path.exists(self.temp_dir))
         self.prefs.purge_preferences_dir(purge_preferences=True)
         self.assertFalse(os.path.exists(self.temp_dir))
+
+    def test_package_prefs(self):
+        package_prefs = prefs_utils.PackagePrefs()
+        file_name = package_prefs.file_name
+        result = file_name.endswith(f"{prefs_utils.PACKAGE_GLOBAL_PREFS}.{prefs_utils.PACKAGE_PREFS_EXT}")
+        expected = True
+        self.assertTrue(expected, result)

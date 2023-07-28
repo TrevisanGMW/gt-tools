@@ -35,12 +35,12 @@ class Prefs:
         """
         if location_dir:
             if os.path.exists(location_dir) and os.path.isdir(location_dir):
-                self.filename = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
+                self.file_name = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         else:
             _maya_preferences_dir = get_maya_preferences_dir(get_system())
             _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
             _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
-            self.filename = os.path.join(_prefs_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
+            self.file_name = os.path.join(_prefs_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         self.preferences = {}
         self.load()
 
@@ -147,18 +147,18 @@ class Prefs:
         """
         Loads preferences from the JSON file if it exists.
         """
-        if os.path.exists(self.filename):
-            self.preferences = read_json_dict(path=self.filename)
+        if os.path.exists(self.file_name):
+            self.preferences = read_json_dict(path=self.file_name)
 
     def save(self):
         """
         Saves all modified preferences to the JSON file.
         """
-        _prefs_dir = os.path.dirname(self.filename)
+        _prefs_dir = os.path.dirname(self.file_name)
         if not os.path.isdir(_prefs_dir):
             os.makedirs(_prefs_dir)
             logger.debug(f'Prefs directory was missing and was created when saving: {_prefs_dir}')
-        write_json(path=self.filename, data=self.preferences)
+        write_json(path=self.file_name, data=self.preferences)
 
     # ------------------------------------ Utilities ------------------------------------
 
@@ -210,12 +210,21 @@ class Prefs:
            # Purge preferences from the directory
            result = obj.purge_preferences_dir(purge_preferences=True)
         """
-        _prefs_dir = os.path.dirname(self.filename)
+        _prefs_dir = os.path.dirname(self.file_name)
         if os.path.exists(_prefs_dir) and purge_preferences:
             logger.debug(f'Purging all preferences from: "{_prefs_dir}"')
             shutil.rmtree(_prefs_dir)
             return True
         return False
+
+
+class PackagePrefs(Prefs):
+    def __init__(self):
+        """
+        Creates a Prefs object with a predetermined name and location (default)
+        To be used as Package Preferences (or global preferences)
+        """
+        super().__init__(prefs_name=PACKAGE_GLOBAL_PREFS)
 
 
 if __name__ == "__main__":
