@@ -311,6 +311,9 @@ class Icon:
     misc_rebuild_menu = get_icon_path(r"misc_rebuild_menu.svg")
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
+    # Dev
+    dev_screwdriver = get_icon_path(r"dev_screwdriver.svg")
+    dev_code = get_icon_path(r"dev_code.svg")
     # Other
     package_logo = get_icon_path(r"package_logo.svg")
     package_icon = get_icon_path(r"package_icon.svg")
