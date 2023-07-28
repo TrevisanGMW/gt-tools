@@ -577,10 +577,6 @@ if __name__ == "__main__":
     out = None
     logger.setLevel(logging.DEBUG)
     # out = os.environ.keys()
-    # out = get_maya_preferences_dir(get_system())
+    out = get_maya_preferences_dir(get_system())
     # out = initialize_from_package()
-    def test(one, two):
-        print(one)
-        print(two)
-    callback(test, "a", "b")
     pprint(out)
