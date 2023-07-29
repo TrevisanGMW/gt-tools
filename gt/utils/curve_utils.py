@@ -2,7 +2,11 @@
 Curve Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from decimal import Decimal
+
 from gt.utils.attribute_utils import add_attr_double_three
+from gt.utils.naming_utils import get_short_name
+from gt.utils.transform_utils import Transform
 import maya.cmds as cmds
 import logging
 import sys
@@ -12,6 +16,8 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Constants
+CURVE_TYPES = ["nurbsCurve", "bezierCurve"]
 PROXY_ATTR_COLOR = "autoColor"
 
 
@@ -90,8 +96,8 @@ def combine_curves_list(curve_list):
     if errors != '':
         print('######## Errors: ########')
         print(errors)
-        
-        
+
+
 def add_snapping_shape(target_object):
     """
     Parents a locator shape to the target object so objects can be snapped to it.
@@ -273,22 +279,6 @@ def selected_curves_separate():
     """
     errors = ''
     acceptable_types = ['nurbsCurve', 'bezierCurve']
-
-    def get_short_name(full_name):
-        """
-        Get the name of the objects without its path (Maya returns full path if name is not unique)
-
-        Args:
-            full_name (string) - object to extract short name
-        """
-        short_name = ''
-        if full_name == '':
-            return ''
-        split_path = full_name.split('|')
-        if len(split_path) >= 1:
-            short_name = split_path[len(split_path) - 1]
-        return short_name
-
     function_name = 'Separate Curves'
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -340,3 +330,115 @@ def selected_curves_separate():
     if errors != '':
         print('######## Errors: ########')
         print(errors)
+
+
+class CurveShape:
+    # The x, y, z position of a point. "linear" means that this flag can take values with units.
+    # 	The degree of the new curve. Default is 3. Note that you need (degree+1) curve points to create a visible curve span. eg. you must place 4 points for a degree 3 curve.
+    # 	A knot value in a knot vector. One flag per knot value. There must be (numberOfPoints + degree - 1) knots and the knot vector must be non-decreasing.
+    # 	If on, creates a curve that is periodic. Default is off.
+    def __init__(self,
+                 file_name=None,
+                 existing_curve=None,
+                 name=None,
+                 points=None,
+                 degree=None,
+                 knot=None,
+                 periodic=None):
+        self.file_name = file_name
+        self.name = name
+        self.points = points
+        self.degree = degree
+        self.knot = knot
+        self.periodic = periodic
+
+        if existing_curve:
+            self.existing_curve_shape = existing_curve
+            self.extract_data_from_existing_curve_shape()
+
+    def is_curve_shape_valid(self):
+        pass
+
+    def extract_data_from_existing_curve_shape(self):
+        # Check Existence
+        if not self.existing_curve_shape or not cmds.objExists(self.existing_curve_shape):
+            logger.warning(f'Unable to extract curve data. Missing shape: "{str(self.existing_curve_shape)}"')
+            return
+        # Get Full Path
+        crv_shape = cmds.ls(self.existing_curve_shape, long=True)[0]
+        # Check Type
+        if cmds.objectType(crv_shape) not in CURVE_TYPES:
+            logger.warning(f'Unable to extract curve data. Missing acceptable curve shapes. '
+                           f'Acceptable types: {CURVE_TYPES}')
+            return
+        # Extract Data
+        crv_info_node = None
+        try:
+            periodic = cmds.getAttr(crv_shape + '.form')
+            knot = None
+            if periodic == 2: # 0: Open, 1: Closed: 2: Periodic
+                crv_info_node = cmds.arclen(crv_shape, ch=True)
+                knot = cmds.getAttr(crv_info_node + '.knots[*]')
+                cmds.delete(crv_info_node)
+
+            cvs = cmds.getAttr(crv_shape + '.cv[*]')
+            cvs_list = []
+
+            for c in cvs:
+                data = [float(Decimal("%.3f" % c[0])), float(Decimal("%.3f" % c[1])), float(Decimal("%.3f" % c[2]))]
+                cvs_list.append(data)
+
+            periodic_end_cvs = []
+            if periodic == 2 and len(cvs) > 2:
+                for i in range(3):
+                    # periodic_end_cvs.extend(cvs_list[i])
+                    periodic_end_cvs += [cvs_list[i]]
+
+            points = cvs_list
+            if periodic_end_cvs:
+                points.extend(periodic_end_cvs)
+
+            degree = cmds.getAttr(crv_shape + '.degree')
+            # Store Extracted Values
+            self.name = crv_shape
+            self.points = points
+            self.periodic = periodic
+            self.knot = knot
+            self.degree = degree
+        except Exception as e:
+            logger.warning(f'Unable to extract curve shape data. Issue: {str(e)}')
+        finally:  # Clean-up temp nodes - In case they were left behind
+            to_delete = [crv_info_node]
+            for obj in to_delete:
+                if obj and cmds.objExists(obj):
+                    try:
+                        cmds.delete(obj)
+                    except Exception as e:
+                        logger.debug(f'Unable to clean up scene after exacting curve. Issue: {str(e)}')
+
+    def create(self):
+        # Basic elements -----------------------------------------
+        if not self.points:
+            logger.warning(f'Unable to create curve. Missing points.')
+            return
+        parameters = {"point": self.points}
+        # Extra elements -----------------------------------------
+        named_parameters = {'name': self.name,
+                            'degree': self.degree,
+                            'periodic': self.periodic,
+                            'knot': self.knot,
+                            }
+        for key, value in named_parameters.items():
+            if value:
+                parameters[key] = value
+        cmds.curve(**parameters)
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    from pprint import pprint
+
+    out = None
+    out = CurveShape(existing_curve='nurbsCircleShape1')
+    out.create()
+    # pprint(out)
