@@ -7,6 +7,8 @@ the user. Instead, it focuses on managing data integrity, validation, and busine
 
 In the example below, it's adding, removing and getting items from a list.
 But it could be writing/reading a file or processing the data from a scene.
+
+Tests for this module can be found under "tests/test_sample_tool/test_sample_tool_model"
 """
 
 
