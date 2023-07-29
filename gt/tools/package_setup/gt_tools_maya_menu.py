@@ -365,7 +365,7 @@ def load_menu(*args):
                        tooltip="Helps calculate how long it's going to take to render an image sequence.",
                        icon=resource_library.Icon.tool_render_calculator)
     # ------------------------------------ Development ------------------------------------
-    if PackagePrefs().is_dev_mode_active():
+    if PackagePrefs().is_dev_menu_visible():
         menu.add_sub_menu("Develop",
                           icon=resource_library.Icon.root_dev,
                           parent_to_root=True)
@@ -373,7 +373,7 @@ def load_menu(*args):
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
-        menu.add_menu_item(label='Toggle Skip Menu Creation',
+        menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',
                            tooltip="Opens sample tool.",
@@ -401,9 +401,9 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("check_for_updates")',
                        tooltip="Check for updates by comparing current version with latest release.",
                        icon=resource_library.Icon.tool_check_for_updates)
-    menu.add_menu_item(label='Toggle Develop Mode',
-                       command='from gt.utils.prefs_utils import toggle_dev_mode\n'
-                               'toggle_dev_mode()\n' + _rebuild_menu_command,
+    menu.add_menu_item(label='Develop Menu Toggle',
+                       command='from gt.utils.prefs_utils import toggle_dev_sub_menu\n'
+                               'toggle_dev_sub_menu()\n' + _rebuild_menu_command,
                        tooltip="Check for updates by comparing current version with latest release.",
                        icon=resource_library.Icon.root_dev)
     menu.add_menu_item(label=f'Installed Version: {str(package_version)}',
