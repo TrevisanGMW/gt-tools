@@ -321,7 +321,8 @@ class Curve:
                  name=None,
                  transform=None,
                  shapes=None,
-                 read_curve_data=None,
+                 read_existing_curve=None,
+                 read_curve_data_from_dict=None,
                  read_curve_data_from_file=None):
         """
         Initializes a Curve object
@@ -331,7 +332,8 @@ class Curve:
                                              If not provided, it's created at the origin.
             shapes (list, optional): A list of shapes (CurveShape) objects used to describe the curve visuals.
                                      Only optional so the curve can be generated using a file, ultimately required.
-            read_curve_data (dict, optional): If provided, this dictionary is used to populate the curve data.
+            read_existing_curve (str, optional): Extracts data from an existing curve in the scene.
+            read_curve_data_from_dict (dict, optional): If provided, this dictionary is used to populate the curve data.
             read_curve_data_from_file (str, optional): Path to a JSON file describing the curve.
                                                        It reads the JSON content as a "read_curve_data" dictionary.
         """
@@ -339,8 +341,11 @@ class Curve:
         self.transform = transform
         self.shapes = shapes
 
-        if read_curve_data:
-            self.set_data_from_dict(data_dict=read_curve_data)
+        if read_existing_curve:
+            self.read_data_from_existing_curve(read_existing_curve)
+
+        if read_curve_data_from_dict:
+            self.set_data_from_dict(data_dict=read_curve_data_from_dict)
 
         if read_curve_data_from_file:
             self.read_curve_from_file(file_path=read_curve_data_from_file)
@@ -359,7 +364,7 @@ class Curve:
             return False
         return True
 
-    def create(self):
+    def build(self):
         """
         Use the loaded values (shapes) of the object to generate/create a Maya curve.
         Returns:
@@ -370,7 +375,7 @@ class Curve:
             return
         generated_shapes = []
         for shape in self.shapes:
-            generated_shapes.append(shape.create())
+            generated_shapes.append(shape.build())
         generated_curve = combine_curves_list(generated_shapes)
         if self.name:
             generated_curve = cmds.rename(generated_curve, self.name)
@@ -392,6 +397,55 @@ class Curve:
                            f'Expected "Transform", but got "{str(type(self.transform))}".')
             return
         self.transform.apply_transform(target_object=target_object)
+
+    def read_data_from_existing_curve(self, existing_curve):
+        """
+        Initializes Curve object using the data found in an existing curve.
+        Args:
+            existing_curve (str): The name of the curve object to extract the data from (must exist)
+        """
+        if not isinstance(existing_curve, str):
+            logger.warning(f'Unable to extract curve data. Expected string but got "{str(type(existing_curve))}"')
+            return
+
+        # Check Existence
+        if not existing_curve or not cmds.objExists(existing_curve):
+            logger.warning(f'Unable to extract curve data. Missing curve: "{str(existing_curve)}"')
+            return
+
+        # Get Relatives
+        nurbs_shapes = []
+        bezier_shapes = []
+        shapes = cmds.listRelatives(existing_curve, shapes=True, fullPath=True) or []
+        for shape in shapes:
+            if cmds.objectType(shape) == CURVE_TYPE_BEZIER:
+                bezier_shapes.append(shape)
+            if cmds.objectType(shape) == CURVE_TYPE_NURBS:
+                nurbs_shapes.append(shape)
+        if not nurbs_shapes and not bezier_shapes:  # No valid shapes
+            logger.warning(f'Unable to extract curve data. No valid shapes were found under the provided curve.')
+            return
+
+        # Extra Shapes
+        extracted_shapes = []
+        for crv_shapes in nurbs_shapes + bezier_shapes:
+            extracted_shapes.append(CurveShape(read_existing_shape=crv_shapes))
+
+        # Extra Transform
+        transform = None
+        position = cmds.getAttr(f'{existing_curve}.translate')[0]
+        rotation = cmds.getAttr(f'{existing_curve}.rotate')[0]
+        scale = cmds.getAttr(f'{existing_curve}.scale')[0]
+        if any(position) or any(rotation) and scale != [1, 1, 1]:
+            position = Vector3(position[0], position[1], position[2])
+            rotation = Vector3(rotation[0], rotation[1], rotation[2])
+            scale = Vector3(scale[0], scale[1], scale[2])
+            transform = Transform(position=position, rotation=rotation, scale=scale)
+
+        # Store Data
+        self.name = existing_curve
+        self.shapes = extracted_shapes
+        self.transform = transform
 
     def get_data_as_dict(self):
         """
@@ -550,10 +604,10 @@ class CurveShape:
         Example:
             curve_shape_b = CurveShape()
             curve_shape_b.read_data_from_existing_curve_shape(crv_shape="my_curve")
-            curve_shape_b.create()  # Creates the same curve
+            curve_shape_b.build()  # Creates the same curve
 
             curve_shape = CurveShape(read_existing_shape="my_curve")
-            curve_shape.create()  # Creates the same curve provided above
+            curve_shape.build()  # Creates the same curve provided above
         """
         if not isinstance(crv_shape, str):
             logger.warning(f'Unable to extract curve data. Expected string but got "{str(type(crv_shape))}"')
@@ -617,7 +671,7 @@ class CurveShape:
                     except Exception as e:
                         logger.debug(f'Unable to clean up scene after extracting curve. Issue: {str(e)}')
 
-    def create(self, replace_crv=None):
+    def build(self, replace_crv=None):
         """
         Use the loaded values of the object to generate/create a Maya curve.
         Since a shape can't exist on its own, a transform (group) is created for it.
@@ -718,13 +772,15 @@ class CurveShape:
             return
         if not self.is_curve_shape_valid():
             return
-        return self.create(replace_crv=target_curve)
+        return self.build(replace_crv=target_curve)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    sel = cmds.ls(selection=True)
-    combine_curves_list(sel)
+    import gt.utils.system_utils as sys_utils
+    import os
+    path = os.path.join(sys_utils.get_desktop_path(), 'two_lines_crv.json')
+    Curve(read_existing_curve='curve3').write_curve_to_file(path)
     pprint(out)
