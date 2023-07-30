@@ -23,81 +23,63 @@ CURVE_TYPES = [CURVE_TYPE_NURBS, CURVE_TYPE_BEZIER]
 PROXY_ATTR_COLOR = "autoColor"
 
 
-def combine_curves_list(curve_list):
+def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
     """
     Moves the shape objects of all elements in the provided input (curve_list) to a single group
     (essentially combining them under one transform)
 
     Args:
         curve_list (list): A string of strings with the name of the curves to be combined.
+        convert_bezier_to_nurbs (bool, optional): If active, "bezier" curves will automatically be converted to "nurbs".
     Returns:
-
+        str: Name of the generated curve when combining or name of the first curve in the list when only one found.
     """
-    errors = ''
     function_name = 'Combine Curves List'
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
-        valid_selection = True
-        acceptable_types = ['nurbsCurve', 'bezierCurve']
-        bezier_in_selection = []
+        nurbs_shapes = []
+        bezier_shapes = []
 
         for crv in curve_list:
             shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
             for shape in shapes:
-                if cmds.objectType(shape) == 'bezierCurve':
-                    bezier_in_selection.append(crv)
-                if cmds.objectType(shape) not in acceptable_types:
-                    valid_selection = False
-                    cmds.warning('Make sure you selected only curves.')
+                if cmds.objectType(shape) == CURVE_TYPE_BEZIER:
+                    bezier_shapes.append(shape)
+                if cmds.objectType(shape) == CURVE_TYPE_NURBS:
+                    nurbs_shapes.append(shape)
 
-        if valid_selection and len(curve_list) < 2:
-            cmds.warning('You need to select at least two curves.')
-            valid_selection = False
+        if not nurbs_shapes and not bezier_shapes:  # No valid shapes
+            logger.warning(f'Unable to combine curves. No valid shapes were found under the provided objects.')
+            return
 
-        if len(bezier_in_selection) > 0 and valid_selection:
-            message = 'A bezier curve was found in your selection.' \
-                      '\nWould you like to convert Bezier to NURBS before combining?'
-            user_input = cmds.confirmDialog(title='Bezier curve detected!',
-                                            message=message,
-                                            button=['Yes', 'No'],
-                                            defaultButton='Yes',
-                                            cancelButton='No',
-                                            dismissString='No',
-                                            icon='warning')
-            if user_input == 'Yes':
-                for bezier in bezier_in_selection:
-                    logger.debug(str(bezier))
-                    cmds.bezierCurveToNurbs()
+        if len(curve_list) == 1:  # Only one curve in provided list
+            return curve_list[0]
 
-        if valid_selection:
-            shapes = []
-            for crv in curve_list:
-                extracted_shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
-                for ext_shape in extracted_shapes:
-                    shapes.append(ext_shape)
+        if len(bezier_shapes) > 0 and convert_bezier_to_nurbs:
+            for bezier in bezier_shapes:
+                logger.debug(str(bezier))
+                cmds.select(bezier)
+                cmds.bezierCurveToNurbs()
 
-            for crv in range(len(curve_list)):
-                cmds.makeIdentity(curve_list[crv], apply=True, rotate=True, scale=True, translate=True)
+        shapes = nurbs_shapes + bezier_shapes
+        for crv in range(len(curve_list)):
+            cmds.makeIdentity(curve_list[crv], apply=True, rotate=True, scale=True, translate=True)
 
-            group = cmds.group(empty=True, world=True, name=curve_list[0])
-            cmds.select(shapes[0])
-            for crv in range(1, (len(shapes))):
-                cmds.select(shapes[crv], add=True)
+        group = cmds.group(empty=True, world=True, name=curve_list[0])
+        cmds.select(shapes[0])
+        for crv in range(1, (len(shapes))):
+            cmds.select(shapes[crv], add=True)
 
-            cmds.select(group, add=True)
-            cmds.parent(relative=True, shape=True)
-            cmds.delete(curve_list)
-            combined_curve = cmds.rename(group, curve_list[0])
-            return combined_curve
+        cmds.select(group, add=True)
+        cmds.parent(relative=True, shape=True)
+        cmds.delete(curve_list)
+        combined_curve = cmds.rename(group, curve_list[0])
+        return combined_curve
 
     except Exception as exception:
-        errors += str(exception) + '\n'
-        cmds.warning('An error occurred when combining the curves. Open the script editor for more information.')
+        logger.warning(f'An error occurred when combining the curves. Issue: {str(exception)}')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != '':
-        print('######## Errors: ########')
-        print(errors)
 
 
 def add_snapping_shape(target_object):
@@ -424,9 +406,12 @@ class Curve:
             shapes_data.append(shape.get_data_as_dict())
         transform_data = None
         if self.transform:
-            transform_data = [self.transform.position.x, self.transform.position.y, self.transform.position.z,
-                              self.transform.rotation.x, self.transform.rotation.y, self.transform.rotation.z,
-                              self.transform.scale.x, self.transform.scale.y, self.transform.scale.z]
+            pos_data = [self.transform.position.x, self.transform.position.y, self.transform.position.z]
+            rot_data = [self.transform.position.x, self.transform.position.y, self.transform.position.z]
+            sca_data = [self.transform.position.x, self.transform.position.y, self.transform.position.z]
+            transform_data = {"position": pos_data,
+                              "rotation": rot_data,
+                              "scale": sca_data}
         curve_data = {"name": self.name,
                       "transform": transform_data,
                       "shapes": shapes_data,
@@ -459,6 +444,17 @@ class Curve:
             rotation = Vector3(transform_data[3], transform_data[4], transform_data[5])
             scale = Vector3(transform_data[6], transform_data[7], transform_data[8])
             self.transform = Transform(position, rotation, scale)
+
+    def set_name(self, new_name):
+        """
+        Sets a new curve name. Useful when ingesting data from dictionary or file with undesired name.
+        Args:
+            new_name (str): New name to use on the curve.
+        """
+        if not new_name or not isinstance(new_name, str):
+            logger.warning(f'Unable to set new name. Expected string but got "{str(type(new_name))}"')
+            return
+        self.name = new_name
 
     def read_curve_from_file(self, file_path):
         """
@@ -698,6 +694,17 @@ class CurveShape:
         if data_dict.get('periodic'):
             self.periodic = data_dict.get('periodic')
 
+    def set_name(self, new_name):
+        """
+        Sets a new curve shape name. Useful when ingesting data from dictionary with undesired name.
+        Args:
+            new_name (str): New name to use on the curve shape.
+        """
+        if not new_name or not isinstance(new_name, str):
+            logger.warning(f'Unable to set new name. Expected string but got "{str(type(new_name))}"')
+            return
+        self.name = new_name
+
     def replace_target_curve(self, target_curve):
         """
         Replaces the target curve with the current stored data
@@ -717,29 +724,7 @@ class CurveShape:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-
     out = None
-
-    test_a = {'name': 'nameOne',
-              'points': [[0.0, 0.0, 5.0], [-2.5, 0.0, 3.333], [-7.5, 0.0, -0.0], [-2.5, 0.0, -3.333], [0.0, 0.0, -5.0]],
-              'degree': 3, 'knot': None, 'periodic': 0, 'is_bezier': False}
-    test_b = {'name': 'nameTwo',
-              'points': [[5.223, 0.0, 3.026], [2.606, 0.0, 1.521], [4.063, 0.0, 0.094], [4.14, 0.0, -1.585],
-                         [3.565, 0.0, -2.263], [3.03, 0.0, -3.452], [4.754, 0.0, -4.285], [4.901, 0.0, -5.54],
-                         [3.005, 0.0, -7.604]], 'degree': 3, 'knot': None, 'periodic': 0, 'is_bezier': False}
-
-    shape_a = CurveShape(read_curve_shape_data=test_a)
-    shape_b = CurveShape(read_curve_shape_data=test_b)
-    # shape_a.create()
-    # shape_b.create()
-    test_shapes = [shape_a]
-    test_shapes = [shape_a, shape_b]
-    test_path = r'C:\Users\guilherme.trevisan\Desktop\my_curve.json'
-    out = Curve(name="lalala", shapes=test_shapes)
-    out.write_curve_to_file(test_path)
-    # out = out.create()
-
-    new_curve = Curve(read_curve_data_from_file=test_path)
-    new_curve.create()
-
+    sel = cmds.ls(selection=True)
+    combine_curves_list(sel)
     pprint(out)
