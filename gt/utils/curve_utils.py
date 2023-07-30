@@ -332,11 +332,7 @@ def selected_curves_separate():
         print(errors)
 
 
-class CurveShape:
-    # The x, y, z position of a point. "linear" means that this flag can take values with units.
-    # 	The degree of the new curve. Default is 3. Note that you need (degree+1) curve points to create a visible curve span. eg. you must place 4 points for a degree 3 curve.
-    # 	A knot value in a knot vector. One flag per knot value. There must be (numberOfPoints + degree - 1) knots and the knot vector must be non-decreasing.
-    # 	If on, creates a curve that is periodic. Default is off.
+class Curve:
     def __init__(self,
                  file_name=None,
                  existing_curve=None,
@@ -346,26 +342,49 @@ class CurveShape:
                  knot=None,
                  periodic=None):
         self.file_name = file_name
+
+
+class CurveShape:
+    # The x, y, z position of a point. "linear" means that this flag can take values with units.
+    # The degree of the new curve. Default is 3. Note that you need (degree+1) curve points to create a visible curve span. eg. you must place 4 points for a degree 3 curve.
+    # A knot value in a knot vector. One flag per knot value. There must be (numberOfPoints + degree - 1) knots and the knot vector must be non-decreasing.
+    # If on, creates a curve that is periodic. Default is off.
+    def __init__(self,
+                 name=None,
+                 points=None,
+                 degree=None,
+                 knot=None,
+                 periodic=None,
+                 existing_curve_data=None,
+                 extract_existing_shape=None):
         self.name = name
         self.points = points
         self.degree = degree
         self.knot = knot
         self.periodic = periodic
 
-        if existing_curve:
-            self.existing_curve_shape = existing_curve
-            self.extract_data_from_existing_curve_shape()
+        if extract_existing_shape:
+            self.extract_data_from_existing_curve_shape(crv_shape=extract_existing_shape)
+
+        if existing_curve_data:
+            self.set_data_from_dict(data_dict=existing_curve_data)
 
     def is_curve_shape_valid(self):
-        pass
+        if not self.points:
+            logger.warning(f'Invalid curve shape. Missing points.')
+            return False
+        return True
 
-    def extract_data_from_existing_curve_shape(self):
+    def extract_data_from_existing_curve_shape(self, crv_shape):
+        if not isinstance(crv_shape, str):
+            logger.warning(f'Unable to extract curve data. Expected string but got "{str(type(crv_shape))}"')
+            return
         # Check Existence
-        if not self.existing_curve_shape or not cmds.objExists(self.existing_curve_shape):
-            logger.warning(f'Unable to extract curve data. Missing shape: "{str(self.existing_curve_shape)}"')
+        if not crv_shape or not cmds.objExists(crv_shape):
+            logger.warning(f'Unable to extract curve data. Missing shape: "{str(crv_shape)}"')
             return
         # Get Full Path
-        crv_shape = cmds.ls(self.existing_curve_shape, long=True)[0]
+        crv_shape = cmds.ls(crv_shape, long=True)[0]
         # Check Type
         if cmds.objectType(crv_shape) not in CURVE_TYPES:
             logger.warning(f'Unable to extract curve data. Missing acceptable curve shapes. '
@@ -418,12 +437,11 @@ class CurveShape:
 
     def create(self):
         # Basic elements -----------------------------------------
-        if not self.points:
-            logger.warning(f'Unable to create curve. Missing points.')
+        if not self.is_curve_shape_valid():
             return
         parameters = {"point": self.points}
         # Extra elements -----------------------------------------
-        named_parameters = {'name': self.name,
+        named_parameters = {'name': get_short_name(self.name),
                             'degree': self.degree,
                             'periodic': self.periodic,
                             'knot': self.knot,
@@ -433,12 +451,52 @@ class CurveShape:
                 parameters[key] = value
         cmds.curve(**parameters)
 
+    def get_data_as_dict(self):
+        if not self.is_curve_shape_valid():
+            return
+        return self.__dict__
+
+    def set_data_from_dict(self, data_dict):
+        if not isinstance(data_dict, dict):
+            logger.warning(f'Unable to ingest curve data. Data must be a dictionary, but was: {str(type(data_dict))}"')
+            return
+        if not data_dict.get('points'):
+            logger.warning(f'Unable to ingest curve data. Missing points. Data: {data_dict}"')
+            return
+        if data_dict.get('points'):
+            self.points = data_dict.get('points')
+        if data_dict.get('name'):
+            self.name = data_dict.get('name')
+        if data_dict.get('degree'):
+            self.degree = data_dict.get('degree')
+        if data_dict.get('knot'):
+            self.knot = data_dict.get('knot')
+        if data_dict.get('periodic'):
+            self.periodic = data_dict.get('periodic')
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
 
     out = None
-    out = CurveShape(existing_curve='nurbsCircleShape1')
+    test = {'degree': 3,
+ 'knot': [-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+ 'name': '|nurbsCircle1|nurbsCircleShape1',
+ 'periodic': 2,
+ 'points': [[0.784, 0.0, -0.784],
+            [0.0, 0.0, -1.108],
+            [-0.784, 0.0, -0.784],
+            [-1.108, 0.0, -0.0],
+            [-0.784, -0.0, 0.784],
+            [-0.0, -0.0, 1.108],
+            [0.784, -0.0, 0.784],
+            [1.108, -0.0, 0.0],
+            [0.784, 0.0, -0.784],
+            [0.0, 0.0, -1.108],
+            [-0.784, 0.0, -0.784]]}
+
+    out = CurveShape(extract_existing_shape=test)
+    # out.create()
     out.create()
-    # pprint(out)
+    pprint(out)
