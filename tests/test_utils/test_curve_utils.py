@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import logging
 import unittest
 
@@ -33,6 +34,45 @@ class TestCurveUtils(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
+
+    def tearDown(self):
+        maya_test_tools.delete_test_temp_dir()
+
+    def assertAlmostEqualSigFig(self, arg1, arg2, tolerance=2):
+        """
+        Asserts that two numbers are almost equal up to a given number of significant figures.
+
+        Args:
+            self (object): The current test case or class object.
+            arg1 (float): The first number for comparison.
+            arg2 (float): The second number for comparison.
+            tolerance (int, optional): The number of significant figures to consider for comparison. Default is 2.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If the significands of arg1 and arg2 differ by more than the specified tolerance.
+
+        Example:
+            obj = TestClass()
+            obj.assertAlmostEqualSigFig(3.145, 3.14159, tolerance=3)
+            # No assertion error will be raised as the first 3 significant figures are equal (3.14)
+        """
+        if tolerance > 1:
+            tolerance = tolerance - 1
+
+        str_formatter = '{0:.' + str(tolerance) + 'e}'
+        significand_1 = float(str_formatter.format(arg1).split('e')[0])
+        significand_2 = float(str_formatter.format(arg2).split('e')[0])
+
+        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
+        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
+
+        self.assertEqual(significand_1, significand_2)
+        self.assertEqual(exponent_1, exponent_2)
+
+        return
 
     def test_combine_curves_list_two(self):
         import_curve_test_file()
@@ -140,7 +180,7 @@ class TestCurveUtils(unittest.TestCase):
                                              points=[[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]],
                                              degree=1,
                                              is_bezier=False)
-        result = curve_shape.create()
+        result = curve_shape.build()
         expected = "my_curve_transform"
         self.assertEqual(expected, result)
 
@@ -150,7 +190,7 @@ class TestCurveUtils(unittest.TestCase):
                                              points=[[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]],
                                              degree=1,
                                              is_bezier=False)
-        created_crv = curve_shape.create()
+        created_crv = curve_shape.build()
         shapes = maya_test_tools.list_relatives(created_crv, shapes=True)
         new_curve_shape = curve_utils.CurveShape(read_existing_shape=shapes[0])
         result = new_curve_shape.get_data_as_dict()
@@ -162,7 +202,7 @@ class TestCurveUtils(unittest.TestCase):
                     'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
         self.assertEqual(expected, result)
 
-    def test_curve_shape_set_data_from_dict(self):
+    def test_curve_shape_set_data_from_dict_init(self):
         import_curve_test_file()
         curve_shape_data = {'degree': 1,
                             'is_bezier': False,
@@ -171,6 +211,20 @@ class TestCurveUtils(unittest.TestCase):
                             'periodic': 0,
                             'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
         curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        result = curve_shape.points
+        expected = curve_shape_data.get("points")
+        self.assertEqual(expected, result)
+
+    def test_curve_shape_set_data_from_dict(self):
+        import_curve_test_file()
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape()
+        curve_shape.set_data_from_dict(data_dict=curve_shape_data)
         result = curve_shape.points
         expected = curve_shape_data.get("points")
         self.assertEqual(expected, result)
@@ -193,4 +247,199 @@ class TestCurveUtils(unittest.TestCase):
                     'name': 'my_curve',
                     'periodic': 0,
                     'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        self.assertEqual(expected, result)
+
+    def test_curve_init(self):
+        import_curve_test_file()
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        result = curve.get_data_as_dict()
+        expected = {'name': "my_curve",
+                    'shapes': [{'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'my_curve',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}],
+                    'transform': None}
+        self.assertEqual(expected, result)
+
+    def test_curve_read_from_existing(self):
+        import_curve_test_file()
+        curve = curve_utils.Curve(read_existing_curve='curve1')
+        result = curve.get_data_as_dict()
+        expected = {'name': 'curve1',
+                    'shapes': [{'degree': 3,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'curveShape1',
+                                'periodic': 0,
+                                'points': [[0.0, 0.0, 5.0],
+                                           [-5.0, 0.0, 5.0],
+                                           [-5.0, 0.0, 0.0],
+                                           [0.0, 0.0, 0.0]]}],
+                    'transform': None}
+        self.assertEqual(expected, result)
+
+    def test_curve_read_from_dict(self):
+        data_path = maya_test_tools.get_data_dir_path()
+        two_lines_crv = os.path.join(data_path, 'two_lines_crv.json')
+        with open(two_lines_crv, 'r') as file:
+            data_dict = json.load(file)
+        curve = curve_utils.Curve(read_curve_data_from_dict=data_dict)
+        result = curve.get_data_as_dict()
+        expected = {'name': 'curve3',
+                    'shapes': [{'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'curveShape1',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]},
+                               {'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'curveShape2',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]}],
+                    'transform': None}
+        self.assertEqual(expected, result)
+
+    def test_curve_read_from_file(self):
+        data_path = maya_test_tools.get_data_dir_path()
+        two_lines_crv = os.path.join(data_path, 'two_lines_crv.json')
+        curve = curve_utils.Curve(read_curve_data_from_file=two_lines_crv)
+        result = curve.get_data_as_dict()
+        expected = {'name': 'curve3',
+                    'shapes': [{'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'curveShape1',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]},
+                               {'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'curveShape2',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]}],
+                    'transform': None}
+        self.assertEqual(expected, result)
+
+    def test_curve_is_valid_valid(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        result = curve.is_curve_valid()
+        self.assertTrue(result)
+
+    def test_curve_is_valid_invalid(self):
+        curve = curve_utils.Curve(name="my_curve")
+        logging.disable(logging.WARNING)
+        result = curve.is_curve_valid()
+        logging.disable(logging.NOTSET)
+        self.assertFalse(result)
+
+    def test_curve_build(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        result = curve.build()
+        expected = "|my_curve"
+        self.assertEqual(expected, result)
+
+    def test_curve_transform(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        from gt.utils.transform_utils import Vector3, Transform
+        pos = Vector3(1, 2, 3)
+        rot = Vector3(4, 5, 6)
+        sca = Vector3(7, 8, 9)
+        trans = Transform(pos, rot, sca)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape], transform=trans)
+        curve_name = curve.build()
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="tx")
+        expected = 1
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="ty")
+        expected = 2
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="tz")
+        expected = 3
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="rx")
+        expected = 4
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="ry")
+        expected = 5
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="rz")
+        expected = 6
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sx")
+        expected = 7
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sy")
+        expected = 8
+        self.assertAlmostEqualSigFig(expected, result)
+        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sz")
+        expected = 9
+        self.assertAlmostEqualSigFig(expected, result)
+
+    def test_curve_set_name(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        curve.set_name("mocked_curve")
+        result = curve.build()
+        expected = "mocked_curve"
+        self.assertEqual(expected, result)
+
+    def test_curve_write_curve_to_file(self):
+        data_dir = maya_test_tools.generate_test_temp_dir()
+        temp_file = os.path.join(data_dir, "output.json")
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        curve.write_curve_to_file(temp_file)
+        with open(temp_file, 'r') as file:
+            result = json.load(file)
+        expected = {'name': 'my_curve',
+                    'shapes': [{'degree': 1,
+                                'is_bezier': False,
+                                'knot': None,
+                                'name': 'my_curve',
+                                'periodic': None,
+                                'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}],
+                    'transform': None}
         self.assertEqual(expected, result)
