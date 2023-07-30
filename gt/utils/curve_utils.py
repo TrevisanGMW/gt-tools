@@ -2,11 +2,11 @@
 Curve Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from decimal import Decimal
-
 from gt.utils.attribute_utils import add_attr_double_three
+from gt.utils.data_utils import read_json_dict, write_json
+from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.naming_utils import get_short_name
-from gt.utils.transform_utils import Transform
+from decimal import Decimal
 import maya.cmds as cmds
 import logging
 import sys
@@ -25,12 +25,12 @@ PROXY_ATTR_COLOR = "autoColor"
 
 def combine_curves_list(curve_list):
     """
-    This is a modified version of the GT Utility "Combine Curves"
-    It moves the shape objects of all elements in the provided input (curve_list) to a single group (combining them)
-    This version was changed to accept a list of objects (instead of selection)
+    Moves the shape objects of all elements in the provided input (curve_list) to a single group
+    (essentially combining them under one transform)
 
     Args:
         curve_list (list): A string of strings with the name of the curves to be combined.
+    Returns:
 
     """
     errors = ''
@@ -335,8 +335,149 @@ def selected_curves_separate():
 
 
 class Curve:
-    def __init__(self):
-        pass
+    def __init__(self,
+                 name=None,
+                 transform=None,
+                 shapes=None,
+                 read_curve_data=None,
+                 read_curve_data_from_file=None):
+        """
+        Initializes a Curve object
+        Args:
+            name (str, optional): Curve transform name (shapes names are determined by the CurveShape objects)
+            transform (Transform, optional): TRS Transform data used to determine initial position of the curve.
+                                             If not provided, it's created at the origin.
+            shapes (list, optional): A list of shapes (CurveShape) objects used to describe the curve visuals.
+                                     Only optional so the curve can be generated using a file, ultimately required.
+            read_curve_data (dict, optional): If provided, this dictionary is used to populate the curve data.
+            read_curve_data_from_file (str, optional): Path to a JSON file describing the curve.
+                                                       It reads the JSON content as a "read_curve_data" dictionary.
+        """
+        self.name = name
+        self.transform = transform
+        self.shapes = shapes
+
+        if read_curve_data:
+            self.set_data_from_dict(data_dict=read_curve_data)
+
+        if read_curve_data_from_file:
+            self.read_curve_from_file(file_path=read_curve_data_from_file)
+
+    def is_curve_valid(self):
+        """
+        Checks if the Curve object has enough data to create/generate a curve.
+        Returns:
+            bool: True if it's valid (can create a curve), False if invalid.
+        """
+        if not self.shapes:
+            logger.warning(f'Invalid curve. Missing shapes.')
+            return False
+        if self.name and not isinstance(self.name, str):
+            logger.warning(f'Invalid curve. Current name is not a string. Name type: {str(type(self.name))}')
+            return False
+        return True
+
+    def create(self):
+        """
+        Use the loaded values (shapes) of the object to generate/create a Maya curve.
+        Returns:
+            str: Name of the transform of the newly generated curve.
+        """
+        # Basic elements -----------------------------------------
+        if not self.is_curve_valid():
+            return
+        generated_shapes = []
+        for shape in self.shapes:
+            generated_shapes.append(shape.create())
+        generated_curve = combine_curves_list(generated_shapes)
+        if self.name:
+            generated_curve = cmds.rename(generated_curve, self.name)
+        if self.transform:
+            self.apply_curve_transform(generated_curve)
+        return generated_curve
+
+    def apply_curve_transform(self, target_object):
+        """
+        Uses the provided Transform data to set the TRS data of the curve object.
+        Args:
+            target_object (str): Name of the curve to set with stored Transform data
+        """
+        if not target_object:
+            logger.warning(f'Unable to apply curve transform. Missing transform data.')
+            return
+        if not isinstance(self.transform, Transform):
+            logger.warning(f'Unable to apply curve transform. '
+                           f'Expected "Transform", but got "{str(type(self.transform))}".')
+            return
+        self.transform.apply_transform(target_object=target_object)
+
+    def get_data_as_dict(self):
+        """
+        Gets the object values as a dictionary
+        Returns:
+            dict: The CurveShape object properties and its values.
+        """
+        if not self.is_curve_valid():
+            return
+        shapes_data = []
+        for shape in self.shapes:
+            shapes_data.append(shape.get_data_as_dict())
+        transform_data = None
+        if self.transform:
+            transform_data = [self.transform.position.x, self.transform.position.y, self.transform.position.z,
+                              self.transform.rotation.x, self.transform.rotation.y, self.transform.rotation.z,
+                              self.transform.scale.x, self.transform.scale.y, self.transform.scale.z]
+        curve_data = {"name": self.name,
+                      "transform": transform_data,
+                      "shapes": shapes_data,
+                      }
+        return curve_data
+
+    def set_data_from_dict(self, data_dict):
+        """
+        Sets the object values from a dictionary
+        Args:
+            data_dict (dict): A dictionary with property names and values describing a Curve object.
+        """
+        if not isinstance(data_dict, dict):
+            logger.warning(f'Unable to ingest curve data. Data must be a dictionary, but was: {str(type(data_dict))}"')
+            return
+        if not data_dict.get('shapes'):
+            logger.warning(f'Unable to ingest curve data. Missing shapes. Shapes data: {str(data_dict.get("shapes"))}"')
+            return
+        shapes = []
+        input_shapes = data_dict.get('shapes')
+        if input_shapes:
+            for shape in input_shapes:
+                shapes.append(CurveShape(read_curve_shape_data=shape))
+        self.shapes = shapes
+        if data_dict.get('name'):
+            self.name = data_dict.get('name')
+        transform_data = data_dict.get('transform')
+        if transform_data:
+            position = Vector3(transform_data[0], transform_data[1], transform_data[2])
+            rotation = Vector3(transform_data[3], transform_data[4], transform_data[5])
+            scale = Vector3(transform_data[6], transform_data[7], transform_data[8])
+            self.transform = Transform(position, rotation, scale)
+
+    def read_curve_from_file(self, file_path):
+        """
+        Reads the data from a file.
+        Args:
+            file_path (str): Path to an existing file containing a curve description.
+        """
+        received_data = read_json_dict(file_path)
+        self.set_data_from_dict(received_data)
+
+    def write_curve_to_file(self, file_path):
+        """
+        Writes data necessary to re-create this curve to a file.
+        Args:
+            file_path (str): Path to the file where the data is going to be stored.
+        """
+        if not self.is_curve_valid():
+            return
+        write_json(path=file_path, data=self.get_data_as_dict())
 
 
 class CurveShape:
@@ -347,7 +488,7 @@ class CurveShape:
                  knot=None,
                  periodic=None,
                  is_bezier=False,
-                 read_existing_curve_data=None,
+                 read_curve_shape_data=None,
                  read_existing_shape=None):
         """
         Initializes a curve shape object.
@@ -363,7 +504,7 @@ class CurveShape:
                                    the knot vector must be non-decreasing.
             periodic (bool, optional):  If on, creates a curve that is periodic. Default is (None) off.
             is_bezier= (bool, optional): Determines the curve type. If active, the curve is bezier, off (default) nurbs.
-            read_existing_curve_data (dict, optional): A dictionary describing the curve shape.
+            read_curve_shape_data (dict, optional): A dictionary describing the curve shape.
                                                        It populates the properties according to the values found in it.
             read_existing_shape (str, optional): Uses an existing shape in the scene to initialize the CurveShape.
         """
@@ -377,8 +518,20 @@ class CurveShape:
         if read_existing_shape:
             self.read_data_from_existing_curve_shape(crv_shape=read_existing_shape)
 
-        if read_existing_curve_data:
-            self.set_data_from_dict(data_dict=read_existing_curve_data)
+        if read_curve_shape_data:
+            self.set_data_from_dict(data_dict=read_curve_shape_data)
+
+    def __repr__(self):
+        """
+        Generates a custom string message to return a proper sentence when printing or casting this object to string.
+        """
+        obj_dict = self.__dict__
+        output_lines = []
+        for key, value in obj_dict.items():
+            output_lines.append(f'"{key}": {value}')
+        output_string = 'CurveShape:\n'
+        print_data = "\n\t".join(output_lines)
+        return f'{output_string}\t{print_data}'
 
     def is_curve_shape_valid(self):
         """
@@ -466,35 +619,44 @@ class CurveShape:
                     try:
                         cmds.delete(obj)
                     except Exception as e:
-                        logger.debug(f'Unable to clean up scene after exacting curve. Issue: {str(e)}')
+                        logger.debug(f'Unable to clean up scene after extracting curve. Issue: {str(e)}')
 
     def create(self, replace_crv=None):
         """
         Use the loaded values of the object to generate/create a Maya curve.
+        Since a shape can't exist on its own, a transform (group) is created for it.
+        When a name is provided, it uses the name variable followed by "_transform" as the name of the transform group.
         Args:
             replace_crv (str): Name of the curve to replace
         Returns:
-            str: output of the "cmds.curve()" operation. - The path to the new curve or the replaced curve
+            str: Name of the generated shape
         """
         # Basic elements -----------------------------------------
         if not self.is_curve_shape_valid():
             return
         parameters = {"point": self.points}
         # Extra elements -----------------------------------------
-        named_parameters = {'name': self.name,
-                            'degree': self.degree,
+        named_parameters = {'degree': self.degree,
                             'periodic': self.periodic,
                             'knot': self.knot,
                             }
+        if self.name:
+            named_parameters['name'] = f'{self.name}_transform'
         if self.is_bezier:
             named_parameters['bezier'] = True
         for key, value in named_parameters.items():
             if value:
                 parameters[key] = value
         if replace_crv:
-            return cmds.curve(replace_crv, replace=True, **parameters)
+            curve_output = cmds.curve(replace_crv, replace=True, **parameters)
+            for shape in cmds.listRelatives(curve_output, shapes=True) or []:
+                cmds.rename(shape, self.name)
+            return curve_output
         else:
-            return cmds.curve(**parameters)
+            curve_output = cmds.curve(**parameters)
+            for shape in cmds.listRelatives(curve_output, shapes=True) or []:
+                cmds.rename(shape, self.name)
+            return curve_output
 
     def get_data_as_dict(self):
         """
@@ -510,7 +672,7 @@ class CurveShape:
         """
         Sets the object values from a dictionary
         Args:
-            data_dict (dict): A dictionary with property names and values for the properties.
+            data_dict (dict): A dictionary with property names and values describing the properties of a CurveShape.
             e.g.
             {'degree': 1,
              'is_bezier': False,
@@ -558,27 +720,26 @@ if __name__ == "__main__":
 
     out = None
 
-    test = {'degree': 3,
-     'knot': None,
-     'name': '|bezier1|bezierShape1',
-     'periodic': 0,
-     'points': [[-9.143, 0.0, -8.987],
-                [-10.898, 0.0, -5.828],
-                [-12.353, 0.0, -1.904],
-                [-6.122, 0.0, 4.59],
-                [0.11, 0.0, 11.084],
-                [-1.565, 0.0, 12.292],
-                [2.954, 0.0, 11.666],
-                [7.473, 0.0, 11.04],
-                [8.275, 0.0, 13.158],
-                [11.867, 0.0, 6.791],
-                [15.459, 0.0, 0.424],
-                [15.643, 0.0, -1.505],
-                [15.546, 0.0, -1.654]]}
-    out = CurveShape(read_existing_shape="curveShape1")
-    # out = CurveShape(read_existing_shape="bezierShape1")
-    # out.create()
-    # out.create()
-    out = out.replace_target_curve(target_curve='curveShape2')
+    test_a = {'name': 'nameOne',
+              'points': [[0.0, 0.0, 5.0], [-2.5, 0.0, 3.333], [-7.5, 0.0, -0.0], [-2.5, 0.0, -3.333], [0.0, 0.0, -5.0]],
+              'degree': 3, 'knot': None, 'periodic': 0, 'is_bezier': False}
+    test_b = {'name': 'nameTwo',
+              'points': [[5.223, 0.0, 3.026], [2.606, 0.0, 1.521], [4.063, 0.0, 0.094], [4.14, 0.0, -1.585],
+                         [3.565, 0.0, -2.263], [3.03, 0.0, -3.452], [4.754, 0.0, -4.285], [4.901, 0.0, -5.54],
+                         [3.005, 0.0, -7.604]], 'degree': 3, 'knot': None, 'periodic': 0, 'is_bezier': False}
+
+    shape_a = CurveShape(read_curve_shape_data=test_a)
+    shape_b = CurveShape(read_curve_shape_data=test_b)
+    # shape_a.create()
+    # shape_b.create()
+    test_shapes = [shape_a]
+    test_shapes = [shape_a, shape_b]
+    test_path = r'C:\Users\guilherme.trevisan\Desktop\my_curve.json'
+    out = Curve(name="lalala", shapes=test_shapes)
+    out.write_curve_to_file(test_path)
+    # out = out.create()
+
+    new_curve = Curve(read_curve_data_from_file=test_path)
+    new_curve.create()
 
     pprint(out)
