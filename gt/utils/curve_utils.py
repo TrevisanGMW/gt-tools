@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Constants
-CURVE_TYPES = ["nurbsCurve", "bezierCurve"]
+CURVE_TYPE_NURBS = "nurbsCurve"
+CURVE_TYPE_BEZIER = "bezierCurve"
+CURVE_TYPES = [CURVE_TYPE_NURBS, CURVE_TYPE_BEZIER]
 PROXY_ATTR_COLOR = "autoColor"
 
 
@@ -333,49 +335,77 @@ def selected_curves_separate():
 
 
 class Curve:
-    def __init__(self,
-                 file_name=None,
-                 existing_curve=None,
-                 name=None,
-                 points=None,
-                 degree=None,
-                 knot=None,
-                 periodic=None):
-        self.file_name = file_name
+    def __init__(self):
+        pass
 
 
 class CurveShape:
-    # The x, y, z position of a point. "linear" means that this flag can take values with units.
-    # The degree of the new curve. Default is 3. Note that you need (degree+1) curve points to create a visible curve span. eg. you must place 4 points for a degree 3 curve.
-    # A knot value in a knot vector. One flag per knot value. There must be (numberOfPoints + degree - 1) knots and the knot vector must be non-decreasing.
-    # If on, creates a curve that is periodic. Default is off.
     def __init__(self,
                  name=None,
                  points=None,
                  degree=None,
                  knot=None,
                  periodic=None,
-                 existing_curve_data=None,
-                 extract_existing_shape=None):
+                 is_bezier=False,
+                 read_existing_curve_data=None,
+                 read_existing_shape=None):
+        """
+        Initializes a curve shape object.
+
+        Args:
+            name (str, optional): Name of the curve shape.
+            points (list, optional):  The x, y, z position of a point. This flag can take values with units.
+            degree (int, optional): The degree of the new curve. Default is "None" which becomes 3 during creation.
+                                    Note that you need (degree+1) curve points to create a visible curve span.
+                                    e.g. you must place 4 points for a degree 3 curve.
+            knot (list, optional): A knot value in a knot vector. One flag per knot value.
+                                   There must be (numberOfPoints + degree - 1) knots and
+                                   the knot vector must be non-decreasing.
+            periodic (bool, optional):  If on, creates a curve that is periodic. Default is (None) off.
+            is_bezier= (bool, optional): Determines the curve type. If active, the curve is bezier, off (default) nurbs.
+            read_existing_curve_data (dict, optional): A dictionary describing the curve shape.
+                                                       It populates the properties according to the values found in it.
+            read_existing_shape (str, optional): Uses an existing shape in the scene to initialize the CurveShape.
+        """
         self.name = name
         self.points = points
         self.degree = degree
         self.knot = knot
         self.periodic = periodic
+        self.is_bezier = is_bezier
 
-        if extract_existing_shape:
-            self.extract_data_from_existing_curve_shape(crv_shape=extract_existing_shape)
+        if read_existing_shape:
+            self.read_data_from_existing_curve_shape(crv_shape=read_existing_shape)
 
-        if existing_curve_data:
-            self.set_data_from_dict(data_dict=existing_curve_data)
+        if read_existing_curve_data:
+            self.set_data_from_dict(data_dict=read_existing_curve_data)
 
     def is_curve_shape_valid(self):
+        """
+        Checks if the CurveShape object has enough data to create a curve.
+        Returns:
+            bool: True if it's valid (can create a curve), False if invalid.
+        """
         if not self.points:
             logger.warning(f'Invalid curve shape. Missing points.')
             return False
         return True
 
-    def extract_data_from_existing_curve_shape(self, crv_shape):
+    def read_data_from_existing_curve_shape(self, crv_shape):
+        """
+        Reads/Extracts data from an existing curve.
+
+        Args:
+            crv_shape (str): Name of the curve. (Must exist in the Maya scene - with unique or long name)
+
+        Example:
+            curve_shape_b = CurveShape()
+            curve_shape_b.read_data_from_existing_curve_shape(crv_shape="my_curve")
+            curve_shape_b.create()  # Creates the same curve
+
+            curve_shape = CurveShape(read_existing_shape="my_curve")
+            curve_shape.create()  # Creates the same curve provided above
+        """
         if not isinstance(crv_shape, str):
             logger.warning(f'Unable to extract curve data. Expected string but got "{str(type(crv_shape))}"')
             return
@@ -390,12 +420,15 @@ class CurveShape:
             logger.warning(f'Unable to extract curve data. Missing acceptable curve shapes. '
                            f'Acceptable types: {CURVE_TYPES}')
             return
+        is_bezier = False
+        if cmds.objectType(crv_shape) == CURVE_TYPE_BEZIER:
+            is_bezier = True
         # Extract Data
         crv_info_node = None
         try:
             periodic = cmds.getAttr(crv_shape + '.form')
             knot = None
-            if periodic == 2: # 0: Open, 1: Closed: 2: Periodic
+            if is_bezier or periodic == 2:  # 0: Open, 1: Closed: 2: Periodic
                 crv_info_node = cmds.arclen(crv_shape, ch=True)
                 knot = cmds.getAttr(crv_info_node + '.knots[*]')
                 cmds.delete(crv_info_node)
@@ -410,7 +443,6 @@ class CurveShape:
             periodic_end_cvs = []
             if periodic == 2 and len(cvs) > 2:
                 for i in range(3):
-                    # periodic_end_cvs.extend(cvs_list[i])
                     periodic_end_cvs += [cvs_list[i]]
 
             points = cvs_list
@@ -419,11 +451,12 @@ class CurveShape:
 
             degree = cmds.getAttr(crv_shape + '.degree')
             # Store Extracted Values
-            self.name = crv_shape
+            self.name = get_short_name(crv_shape)
             self.points = points
             self.periodic = periodic
             self.knot = knot
             self.degree = degree
+            self.is_bezier = is_bezier
         except Exception as e:
             logger.warning(f'Unable to extract curve shape data. Issue: {str(e)}')
         finally:  # Clean-up temp nodes - In case they were left behind
@@ -435,33 +468,62 @@ class CurveShape:
                     except Exception as e:
                         logger.debug(f'Unable to clean up scene after exacting curve. Issue: {str(e)}')
 
-    def create(self):
+    def create(self, replace_crv=None):
+        """
+        Use the loaded values of the object to generate/create a Maya curve.
+        Args:
+            replace_crv (str): Name of the curve to replace
+        Returns:
+            str: output of the "cmds.curve()" operation. - The path to the new curve or the replaced curve
+        """
         # Basic elements -----------------------------------------
         if not self.is_curve_shape_valid():
             return
         parameters = {"point": self.points}
         # Extra elements -----------------------------------------
-        named_parameters = {'name': get_short_name(self.name),
+        named_parameters = {'name': self.name,
                             'degree': self.degree,
                             'periodic': self.periodic,
                             'knot': self.knot,
                             }
+        if self.is_bezier:
+            named_parameters['bezier'] = True
         for key, value in named_parameters.items():
             if value:
                 parameters[key] = value
-        cmds.curve(**parameters)
+        if replace_crv:
+            return cmds.curve(replace_crv, replace=True, **parameters)
+        else:
+            return cmds.curve(**parameters)
 
     def get_data_as_dict(self):
+        """
+        Gets the object values as a dictionary
+        Returns:
+            dict: The CurveShape object properties and its values.
+        """
         if not self.is_curve_shape_valid():
             return
         return self.__dict__
 
     def set_data_from_dict(self, data_dict):
+        """
+        Sets the object values from a dictionary
+        Args:
+            data_dict (dict): A dictionary with property names and values for the properties.
+            e.g.
+            {'degree': 1,
+             'is_bezier': False,
+             'knot': None,
+             'name': 'curveShape1',
+             'periodic': 0,
+             'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        """
         if not isinstance(data_dict, dict):
             logger.warning(f'Unable to ingest curve data. Data must be a dictionary, but was: {str(type(data_dict))}"')
             return
         if not data_dict.get('points'):
-            logger.warning(f'Unable to ingest curve data. Missing points. Data: {data_dict}"')
+            logger.warning(f'Unable to ingest curve data. Missing points. Points data: {str(data_dict.get("points"))}"')
             return
         if data_dict.get('points'):
             self.points = data_dict.get('points')
@@ -474,29 +536,49 @@ class CurveShape:
         if data_dict.get('periodic'):
             self.periodic = data_dict.get('periodic')
 
+    def replace_target_curve(self, target_curve):
+        """
+        Replaces the target curve with the current stored data
+        Args:
+            target_curve (str): Name of the target curve transform or shape (the one that will be replaced/overwritten)
+        Returns::
+            str: Output of the cmds.curve(target_curve, replace=True) operation.
+        """
+        if not isinstance(target_curve, str):
+            logger.warning(f'Unable to replace curve. Expected string as input, but got "{str(type(target_curve))}"')
+            return
+        if not self.is_curve_shape_valid():
+            return
+        return self.create(replace_crv=target_curve)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
 
     out = None
-    test = {'degree': 3,
- 'knot': [-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
- 'name': '|nurbsCircle1|nurbsCircleShape1',
- 'periodic': 2,
- 'points': [[0.784, 0.0, -0.784],
-            [0.0, 0.0, -1.108],
-            [-0.784, 0.0, -0.784],
-            [-1.108, 0.0, -0.0],
-            [-0.784, -0.0, 0.784],
-            [-0.0, -0.0, 1.108],
-            [0.784, -0.0, 0.784],
-            [1.108, -0.0, 0.0],
-            [0.784, 0.0, -0.784],
-            [0.0, 0.0, -1.108],
-            [-0.784, 0.0, -0.784]]}
 
-    out = CurveShape(extract_existing_shape=test)
+    test = {'degree': 3,
+     'knot': None,
+     'name': '|bezier1|bezierShape1',
+     'periodic': 0,
+     'points': [[-9.143, 0.0, -8.987],
+                [-10.898, 0.0, -5.828],
+                [-12.353, 0.0, -1.904],
+                [-6.122, 0.0, 4.59],
+                [0.11, 0.0, 11.084],
+                [-1.565, 0.0, 12.292],
+                [2.954, 0.0, 11.666],
+                [7.473, 0.0, 11.04],
+                [8.275, 0.0, 13.158],
+                [11.867, 0.0, 6.791],
+                [15.459, 0.0, 0.424],
+                [15.643, 0.0, -1.505],
+                [15.546, 0.0, -1.654]]}
+    out = CurveShape(read_existing_shape="curveShape1")
+    # out = CurveShape(read_existing_shape="bezierShape1")
     # out.create()
-    out.create()
+    # out.create()
+    out = out.replace_target_curve(target_curve='curveShape2')
+
     pprint(out)
