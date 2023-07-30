@@ -83,6 +83,33 @@ def list_objects(*args, **kwargs):
     return cmds.ls(*args, **kwargs)
 
 
+def list_relatives(*args, **kwargs):
+    """
+    Same as "cmds.listRelatives()"
+    "listRelatives" relevant parameters:
+        children (bool): List object children
+        shapes (bool): List object shapes
+    Returns:
+        list: A list of relative objects
+    """
+    return cmds.listRelatives(*args, **kwargs)
+
+
+def list_obj_types(obj_list):
+    """
+    Returns a dictionary with the object types
+    Args:
+        obj_list (list): List of objects. e.g. ["pCube1", "pCube2"]
+    Returns:
+        dict: A dictionary with object name as key and object type as value.
+    """
+    obj_types = {}
+    for obj in obj_list:
+        if obj and cmds.objExists(obj):
+            obj_types[obj] = cmds.objectType(obj)
+    return obj_types
+
+
 def get_data_dir_path(module=None):
     """
     Get a path to the data folder using the path from where this script was called.
