@@ -1,6 +1,7 @@
 from . import test_alembic_utils
 from . import test_anim_utils
 from . import test_color_utils
+from . import test_curve_utils
 from . import test_data_utils
 from . import test_feedback_utils
 from . import test_list_utils
