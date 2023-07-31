@@ -1,6 +1,6 @@
 //Maya ASCII 2022 scene
 //Name: curves_nurbs_bezier.ma
-//Last modified: Sun, Jul 30, 2023 02:52:40 PM
+//Last modified: Mon, Jul 31, 2023 02:59:29 PM
 //Codeset: 1252
 requires maya "2022";
 currentUnit -l centimeter -a degree -t film;
@@ -9,7 +9,7 @@ fileInfo "product" "Maya 2022";
 fileInfo "version" "2022";
 fileInfo "cutIdentifier" "202205171752-c25c06f306";
 fileInfo "osv" "Windows 10 Pro v2009 (Build: 19044)";
-fileInfo "UUID" "23E1A72D-476C-662E-D82B-958AB48629BA";
+fileInfo "UUID" "F922BE79-45B7-3B08-D79C-F4A02F242806";
 createNode transform -s -n "persp";
 	rename -uid "09E1FB54-4E3B-95A4-B681-C39BE047228D";
 	setAttr ".v" no;
@@ -71,9 +71,9 @@ createNode camera -s -n "sideShape" -p "side";
 	setAttr ".man" -type "string" "side_mask";
 	setAttr ".hc" -type "string" "viewSet -s %camera";
 	setAttr ".o" yes;
-createNode transform -n "curve1";
+createNode transform -n "curve_01";
 	rename -uid "FD8B98BB-44F0-EB98-5A5F-82807D360FF1";
-createNode nurbsCurve -n "curveShape1" -p "curve1";
+createNode nurbsCurve -n "curve_Shape1" -p "curve_01";
 	rename -uid "2F5D90FD-41EB-2347-C2E9-10BC190300DB";
 	setAttr -k off ".v";
 	setAttr ".cc" -type "nurbsCurve" 
@@ -85,9 +85,9 @@ createNode nurbsCurve -n "curveShape1" -p "curve1";
 		-5 0 0
 		0 0 0
 		;
-createNode transform -n "curve2";
+createNode transform -n "curve_02";
 	rename -uid "08C477E7-40DE-4807-B68F-5289F5DC5BE8";
-createNode nurbsCurve -n "curveShape2" -p "curve2";
+createNode nurbsCurve -n "curve_Shape2" -p "curve_02";
 	rename -uid "A62700C6-44A5-9B97-EDE3-6F8088A02CB0";
 	setAttr -k off ".v";
 	setAttr ".cc" -type "nurbsCurve" 
@@ -99,9 +99,9 @@ createNode nurbsCurve -n "curveShape2" -p "curve2";
 		-5 0 -5
 		0 0 -5
 		;
-createNode transform -n "bezier1";
+createNode transform -n "bezier_01";
 	rename -uid "22C0A109-4550-239D-7B71-F8A069D577C7";
-createNode bezierCurve -n "bezierShape1" -p "bezier1";
+createNode bezierCurve -n "bezier_Shape1" -p "bezier_01";
 	rename -uid "A317D023-4432-38ED-DA31-D8951E95077D";
 	setAttr -k off ".v";
 	setAttr ".cc" -type "nurbsCurve" 
@@ -125,9 +125,9 @@ createNode bezierCurve -n "bezierShape1" -p "bezier1";
 		0 0 -5
 		0 0 -5
 		;
-createNode transform -n "bezier2";
+createNode transform -n "bezier_02";
 	rename -uid "F6A61B7A-4E82-C2D0-54C3-E789FF92E1D1";
-createNode bezierCurve -n "bezierShape2" -p "bezier2";
+createNode bezierCurve -n "bezier_Shape2" -p "bezier_02";
 	rename -uid "584A441C-45AB-7424-7145-DF9CDDC7BB17";
 	setAttr -k off ".v";
 	setAttr ".cc" -type "nurbsCurve" 
@@ -166,20 +166,42 @@ createNode bezierCurve -n "bezierShape2" -p "bezier2";
 		0 0 0
 		0 0 0
 		;
+createNode transform -n "combined_curve_01";
+	rename -uid "8CEA3360-4866-5F36-5855-55A38338C1E9";
+createNode nurbsCurve -n "combined_curve_Shape1" -p "combined_curve_01";
+	rename -uid "07D82968-4846-1D8D-7460-A982B5DA8992";
+	setAttr -k off ".v";
+	setAttr ".cc" -type "nurbsCurve" 
+		1 1 0 no 3
+		2 0 1
+		2
+		6 0 2
+		7 0 2
+		;
+createNode nurbsCurve -n "combined_curve_Shape2" -p "combined_curve_01";
+	rename -uid "62D7F6B3-413F-81ED-FF3B-8E88FF825CA4";
+	setAttr -k off ".v";
+	setAttr ".cc" -type "nurbsCurve" 
+		1 1 0 no 3
+		2 0 1
+		2
+		6 0 1
+		7 0 1
+		;
 createNode lightLinker -s -n "lightLinker1";
-	rename -uid "0F1AC55E-4144-6150-193A-8C92C3FFAE9F";
+	rename -uid "395AACFA-4133-DF0C-50C1-07AC81DFE8F2";
 	setAttr -s 2 ".lnk";
 	setAttr -s 2 ".slnk";
 createNode shapeEditorManager -n "shapeEditorManager";
-	rename -uid "8D3CF4FC-4B39-2BF7-D2CC-CA88729E1EB7";
+	rename -uid "568576C9-4621-F388-9FC5-36BCFF547896";
 createNode poseInterpolatorManager -n "poseInterpolatorManager";
-	rename -uid "6B4BA287-4C00-0FD5-2881-67850AF8B269";
+	rename -uid "B83F689B-40DF-B300-F5A7-0F95E4DB2B85";
 createNode displayLayerManager -n "layerManager";
-	rename -uid "1F5860C8-4194-1551-130C-719282B5A874";
+	rename -uid "E3F9458C-4121-D711-F05B-D68E56807A40";
 createNode displayLayer -n "defaultLayer";
 	rename -uid "94F92593-485B-5F4F-23AC-569691AE4083";
 createNode renderLayerManager -n "renderLayerManager";
-	rename -uid "AB4A7133-4C78-015D-282E-9FA50BE2B3B4";
+	rename -uid "A28B2F35-482A-477A-5F8D-7888241E5265";
 createNode renderLayer -n "defaultRenderLayer";
 	rename -uid "2197C579-44FF-3D12-F75A-24B1F96E3AB5";
 	setAttr ".g" yes;
@@ -189,6 +211,8 @@ createNode script -n "sceneConfigurationScriptNode";
 	rename -uid "0D03AB30-431A-E674-5C2B-8888AC03A4B0";
 	setAttr ".b" -type "string" "playbackOptions -min 1 -max 120 -ast 1 -aet 200 ";
 	setAttr ".st" 6;
+createNode script -n "uiConfigurationScriptNode1";
+	rename -uid "E72B52C6-41A4-B495-FCD2-979CB70E263D";
 select -ne :time1;
 	setAttr ".o" 1;
 	setAttr ".unw" 1;

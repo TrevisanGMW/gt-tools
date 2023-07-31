@@ -76,43 +76,73 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_combine_curves_list_two(self):
         import_curve_test_file()
-        combined_crv = curve_utils.combine_curves_list(["curve1", "curve2"])
+        combined_crv = curve_utils.combine_curves_list(["curve_01", "curve_02"])
         result = maya_test_tools.list_relatives(combined_crv, shapes=True)
-        expected = ['curveShape1', 'curveShape2']
+        expected = ['curve_Shape1', 'curve_Shape2']
         self.assertEqual(expected, result)
 
     def test_combine_curves_list_multiple(self):
         import_curve_test_file()
-        combined_crv = curve_utils.combine_curves_list(["curve1", "curve2", "bezier1", "bezier2"])
+        combined_crv = curve_utils.combine_curves_list(["curve_01", "curve_02", "bezier_01", "bezier_02"])
         result = maya_test_tools.list_relatives(combined_crv, shapes=True)
-        expected = ['curveShape1', 'curveShape2', 'bezierShape1', 'bezierShape2']
+        expected = ['curve_Shape1', 'curve_Shape2', 'bezier_Shape1', 'bezier_Shape2']
         self.assertEqual(expected, result)
 
     def test_combine_curves_list_bezier_to_nurbs(self):
         import_curve_test_file()
-        combined_crv = curve_utils.combine_curves_list(["bezier1", "bezier2"], convert_bezier_to_nurbs=True)
+        combined_crv = curve_utils.combine_curves_list(["bezier_01", "bezier_02"], convert_bezier_to_nurbs=True)
         shapes = maya_test_tools.list_relatives(combined_crv, shapes=True)
         result = maya_test_tools.list_obj_types(shapes)
-        expected = {'bezierShape1': 'nurbsCurve', 'bezierShape2': 'nurbsCurve'}
+        expected = {'bezier_Shape1': 'nurbsCurve', 'bezier_Shape2': 'nurbsCurve'}
         self.assertEqual(expected, result)
 
     def test_combine_curves_list_no_bezier_to_nurbs(self):
         import_curve_test_file()
-        combined_crv = curve_utils.combine_curves_list(["bezier1", "bezier2"], convert_bezier_to_nurbs=False)
+        combined_crv = curve_utils.combine_curves_list(["bezier_01", "bezier_02"], convert_bezier_to_nurbs=False)
         shapes = maya_test_tools.list_relatives(combined_crv, shapes=True)
         result = maya_test_tools.list_obj_types(shapes)
-        expected = {'bezierShape1': 'bezierCurve', 'bezierShape2': 'bezierCurve'}
+        expected = {'bezier_Shape1': 'bezierCurve', 'bezier_Shape2': 'bezierCurve'}
+        self.assertEqual(expected, result)
+
+    def test_separate_curve_shapes_into_transforms(self):
+        import_curve_test_file()
+        result = curve_utils.separate_curve_shapes_into_transforms("combined_curve_01")
+        expected = ['combined_curve_1', 'combined_curve_2']
+        self.assertEqual(expected, result)
+
+    def test_combine_separate_curve_shapes_into_transforms(self):
+        import_curve_test_file()
+        combined_crv = curve_utils.combine_curves_list(["curve_01", "bezier_02"], convert_bezier_to_nurbs=False)
+        result = curve_utils.separate_curve_shapes_into_transforms(combined_crv)
+        expected = ['curve_1', 'bezier_2']
+        self.assertEqual(expected, result)
+
+    def test_selected_curves_combine(self):
+        import_curve_test_file()
+        maya_test_tools.cmds.select(["curve_01", "curve_02"])
+        result = curve_utils.selected_curves_combine(show_bezier_conversion_dialog=False)
+        expected = 'curve_01'
+        self.assertEqual(expected, result)
+        children = maya_test_tools.list_relatives(result, children=True)
+        expected = ['curve_Shape1', 'curve_Shape2']
+        self.assertEqual(expected, children)
+
+    def test_selected_curves_separate(self):
+        import_curve_test_file()
+        maya_test_tools.cmds.select("combined_curve_01")
+        result = curve_utils.selected_curves_separate()
+        expected = ['combined_curve_1', 'combined_curve_2']
         self.assertEqual(expected, result)
 
     def test_curve_shape_read_existing(self):
         import_curve_test_file()
-        curve_shape = curve_utils.CurveShape(read_existing_shape='curveShape1')
+        curve_shape = curve_utils.CurveShape(read_existing_shape='curve_Shape1')
 
         result = curve_shape.get_data_as_dict()
         expected = {'degree': 3,
                     'is_bezier': False,
                     'knot': None,
-                    'name': 'curveShape1',
+                    'name': 'curve_Shape1',
                     'periodic': 0,
                     'points': [[0.0, 0.0, 5.0],
                                [-5.0, 0.0, 5.0],
@@ -122,7 +152,7 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_curve_shape_set_name(self):
         import_curve_test_file()
-        curve_shape = curve_utils.CurveShape(read_existing_shape='bezierShape1')
+        curve_shape = curve_utils.CurveShape(read_existing_shape='bezier_Shape1')
         curve_shape.set_name(new_name="new_name")
         result = curve_shape.get_data_as_dict().get("name")
         expected = "new_name"
@@ -238,7 +268,7 @@ class TestCurveUtils(unittest.TestCase):
                             'periodic': 0,
                             'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
         curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
-        curve_shape.replace_target_curve(target_curve='curve1')
+        curve_shape.replace_target_curve(target_curve='curve_01')
         new_curve_shape = curve_utils.CurveShape(read_existing_shape='my_curve')
         result = new_curve_shape.get_data_as_dict()
         expected = {'degree': 1,
@@ -272,13 +302,13 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_curve_read_from_existing(self):
         import_curve_test_file()
-        curve = curve_utils.Curve(read_existing_curve='curve1')
+        curve = curve_utils.Curve(read_existing_curve='curve_01')
         result = curve.get_data_as_dict()
-        expected = {'name': 'curve1',
+        expected = {'name': 'curve_01',
                     'shapes': [{'degree': 3,
                                 'is_bezier': False,
                                 'knot': None,
-                                'name': 'curveShape1',
+                                'name': 'curve_Shape1',
                                 'periodic': 0,
                                 'points': [[0.0, 0.0, 5.0],
                                            [-5.0, 0.0, 5.0],
@@ -289,7 +319,7 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_curve_read_from_dict(self):
         data_path = maya_test_tools.get_data_dir_path()
-        two_lines_crv = os.path.join(data_path, 'two_lines_crv.json')
+        two_lines_crv = os.path.join(data_path, 'two_lines.crv')
         with open(two_lines_crv, 'r') as file:
             data_dict = json.load(file)
         curve = curve_utils.Curve(read_curve_data_from_dict=data_dict)
@@ -312,7 +342,7 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_curve_read_from_file(self):
         data_path = maya_test_tools.get_data_dir_path()
-        two_lines_crv = os.path.join(data_path, 'two_lines_crv.json')
+        two_lines_crv = os.path.join(data_path, 'two_lines.crv')
         curve = curve_utils.Curve(read_curve_data_from_file=two_lines_crv)
         result = curve.get_data_as_dict()
         expected = {'name': 'curve3',
