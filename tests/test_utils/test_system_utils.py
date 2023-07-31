@@ -472,3 +472,13 @@ class TestSystemUtils(unittest.TestCase):
         mock_callback2 = MagicMock()
         system_utils.callback(mock_callback2, 1, 2, key1='value1', key2='value2')
         mock_callback2.assert_called_once_with(1, 2, key1='value1', key2='value2')
+
+    def test_data_dir_constants(self):
+        path_attributes = vars(system_utils.DataDirConstants)
+        path_keys = [attr for attr in path_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for path_key in path_keys:
+            path = getattr(system_utils.DataDirConstants, path_key)
+            if not path:
+                raise Exception(f'Missing constant data dir path: {path_key}')
+            if not os.path.exists(path):
+                raise Exception(f'Missing constant data dir path: {path_key}')

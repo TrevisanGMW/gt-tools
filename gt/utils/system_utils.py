@@ -25,6 +25,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class DataDirConstants:
+    def __init__(self):
+        """
+        Expected locations - Used to retrieve data
+        """
+    DIR_UTILS = os.path.dirname(__file__)
+    DIR_PACKAGE = os.path.dirname(DIR_UTILS)
+    DIR_RESOURCES = os.path.join(DIR_UTILS, "data")
+    DIR_SCRIPTS = os.path.join(DIR_RESOURCES, 'scripts')
+    DIR_CURVES = os.path.join(DIR_RESOURCES, 'curves')
+
+
 def get_system():
     """
     Get system in which this script is running
@@ -469,21 +481,20 @@ def load_package_menu(launch_latest_maya=False):
         launch_latest_maya (bool, optional): If true, it will launch the latest detected version of Maya and inject
                                             the necessary code to import the package and create its maya menu.
     """
-    utils_dir = os.path.dirname(__file__)
-    package_loader_script = os.path.join(utils_dir, "data", "package_loader.py")  # utils/data/package_loader.py
-    package_dir = os.path.dirname(utils_dir)
+    # utils/data/scripts/package_loader.py
+    package_loader_script = os.path.join(DataDirConstants.DIR_SCRIPTS, "package_loader.py")
     file_content = ""
     if os.path.exists(package_loader_script):
         with open(package_loader_script, "r") as file:
             file_content = file.read()
     search_string = 'utils.executeDeferred(load_package_menu)'
-    replace_string = f'utils.executeDeferred(load_package_menu, """{str(package_dir)}""")'
+    replace_string = f'utils.executeDeferred(load_package_menu, """{str(DataDirConstants.DIR_PACKAGE)}""")'
     injection_script = file_content.replace(search_string, replace_string)
     if launch_latest_maya:
         launch_maya(python_script=injection_script)
     else:
-        if package_dir not in sys.path:
-            sys.path.append(package_dir)
+        if DataDirConstants.DIR_PACKAGE not in sys.path:
+            sys.path.append(DataDirConstants.DIR_PACKAGE)
         try:
             from gt.tools.package_setup import gt_tools_maya_menu
             gt_tools_maya_menu.load_menu()
