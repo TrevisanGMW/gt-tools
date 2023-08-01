@@ -3,6 +3,7 @@ System Utilities - Utilities related to system activities, such as paths, open e
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.data_utils import DataDirConstants
 from functools import wraps
 import subprocess
 import tempfile
@@ -23,18 +24,6 @@ known_systems = [OS_WINDOWS, OS_MAC, OS_LINUX]
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-class DataDirConstants:
-    def __init__(self):
-        """
-        Expected locations - Used to retrieve data
-        """
-    DIR_UTILS = os.path.dirname(__file__)
-    DIR_PACKAGE = os.path.dirname(DIR_UTILS)
-    DIR_RESOURCES = os.path.join(DIR_UTILS, "data")
-    DIR_SCRIPTS = os.path.join(DIR_RESOURCES, 'scripts')
-    DIR_CURVES = os.path.join(DIR_RESOURCES, 'curves')
 
 
 def get_system():
