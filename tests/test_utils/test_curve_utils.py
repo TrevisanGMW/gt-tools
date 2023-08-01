@@ -119,7 +119,8 @@ class TestCurveUtils(unittest.TestCase):
         expected = ['curve_1', 'bezier_2']
         self.assertEqual(expected, result)
 
-    def test_selected_curves_combine(self):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_selected_curves_combine(self, mocked_stout):
         import_curve_test_file()
         maya_test_tools.cmds.select(["curve_01", "curve_02"])
         result = curve_utils.selected_curves_combine(show_bezier_conversion_dialog=False)
@@ -129,7 +130,8 @@ class TestCurveUtils(unittest.TestCase):
         expected = ['curve_Shape1', 'curve_Shape2']
         self.assertEqual(expected, children)
 
-    def test_selected_curves_separate(self):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_selected_curves_separate(self, mocked_stout):
         import_curve_test_file()
         maya_test_tools.cmds.select("combined_curve_01")
         result = curve_utils.selected_curves_separate()
@@ -544,7 +546,8 @@ class TestCurveUtils(unittest.TestCase):
             if not curve_obj.shapes:
                 raise Exception(f'Missing shapes for a curve: {curve_obj}')
 
-    def test_add_thumbnail_metadata_attr_to_selection(self):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_add_thumbnail_metadata_attr_to_selection(self, mock_stdout):
         import_curve_test_file()
         curves_to_test = ["curve_01", "curve_02"]
         maya_test_tools.cmds.select(curves_to_test)

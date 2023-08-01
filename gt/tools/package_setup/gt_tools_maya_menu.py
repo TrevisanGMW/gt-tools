@@ -373,6 +373,23 @@ def load_menu(*args):
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
+        menu.add_divider()  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(label='Add Thumbnail Metadata to Selection',
+                           command='from gt.utils.curve_utils import add_thumbnail_metadata_attr_to_selection\n'
+                                   'add_thumbnail_metadata_attr_to_selection()\n',
+                           tooltip="Add thumbnail metadata attributes to selection.",
+                           icon=resource_library.Icon.dev_code)
+        menu.add_menu_item(label='Write Curve Files from Selection',
+                           command='from gt.utils.curve_utils import write_curve_files_from_selection\n'
+                                   'write_curve_files_from_selection()\n',
+                           tooltip="Write curve data attributes to a desktop folder.",
+                           icon=resource_library.Icon.dev_code)
+        menu.add_menu_item(label='Render Curves Thumbnails',
+                           command='from gt.utils.curve_utils import generate_curves_thumbnails\n'
+                                   'generate_curves_thumbnails()\n',
+                           tooltip="Render thumbnails for current curves to a desktop folder.",
+                           icon=resource_library.Icon.dev_code)
+        menu.add_divider()  # Misc Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',

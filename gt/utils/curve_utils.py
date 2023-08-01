@@ -897,6 +897,9 @@ def add_thumbnail_metadata_attr_to_selection():
     This metadata is later used to automatically generate thumbnails for the curve.
     """
     selection = cmds.ls(selection=True, long=True) or []
+    if not selection:
+        logger.warning("Nothing selected!")
+        return
     for obj in selection:
         if not cmds.objExists(f'{obj}.{PROJECTION_AXIS_KEY}'):
             cmds.addAttr(obj, longName=PROJECTION_AXIS_KEY, dataType='string', k=True)
@@ -904,9 +907,10 @@ def add_thumbnail_metadata_attr_to_selection():
             cmds.addAttr(obj, longName=PROJECTION_SCALE_KEY, at='double', k=True, minValue=0)
         if not cmds.objExists(f'{obj}.{PROJECTION_FIT_KEY}'):
             cmds.addAttr(obj, longName=PROJECTION_FIT_KEY, at='bool', k=True)
+        sys.stdout.write('Metadata attributes were added to selection.')
 
 
-def write_curve_files_from_selection(target_dir,
+def write_curve_files_from_selection(target_dir=None,
                                      projection_axis=None,
                                      projection_scale=None,
                                      projection_fit=None,
@@ -914,7 +918,7 @@ def write_curve_files_from_selection(target_dir,
     """
     Internal function used to extract curve files from selection
     Args:
-        target_dir (str): Path to a folder where the curve file is going to be written to.
+        target_dir (str, optional): Path to a folder where the curve file is going to be written to.
         projection_axis (str, optional): Project axis stored as metadata in the curve file.
                                          Later used to automatically generate thumbnails
                                          Can be "x", "y", "z" or "persp". If set to "None", then default is "y".
@@ -931,6 +935,14 @@ def write_curve_files_from_selection(target_dir,
                                          during thumbnail creation. Default is None/False (not created)
         overwrite (bool, optional): If active, it will overwrite existing files.
     """
+    if not target_dir or not os.path.exists(target_dir):
+        from gt.utils.system_utils import get_desktop_path
+        target_dir = os.path.join(get_desktop_path(), "curves_data")
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        from gt.utils.system_utils import open_file_dir
+        open_file_dir(target_dir)
+
     for crv in cmds.ls(selection=True):
         curve = Curve(read_existing_curve=crv)
         # Get projection axis ----------------------------
