@@ -3,6 +3,8 @@ import sys
 import json
 import logging
 import unittest
+from io import StringIO
+from unittest.mock import patch
 
 # Logging Setup
 logging.basicConfig()
@@ -324,7 +326,7 @@ class TestCurveUtils(unittest.TestCase):
             data_dict = json.load(file)
         curve = curve_utils.Curve(read_curve_data_from_dict=data_dict)
         result = curve.get_data_as_dict()
-        expected = {'name': 'curve3',
+        expected = {'name': 'two_lines',
                     'shapes': [{'degree': 1,
                                 'is_bezier': False,
                                 'knot': None,
@@ -345,7 +347,7 @@ class TestCurveUtils(unittest.TestCase):
         two_lines_crv = os.path.join(data_path, 'two_lines.crv')
         curve = curve_utils.Curve(read_curve_data_from_file=two_lines_crv)
         result = curve.get_data_as_dict()
-        expected = {'name': 'curve3',
+        expected = {'name': 'two_lines',
                     'shapes': [{'degree': 1,
                                 'is_bezier': False,
                                 'knot': None,
@@ -531,3 +533,77 @@ class TestCurveUtils(unittest.TestCase):
         result = os.path.basename(path)
         expected = "circle_arrow.crv"
         self.assertEqual(expected, result)
+
+    def test_curves_existence(self):
+        curve_attributes = vars(curve_utils.Curves)
+        curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for curve_key in curve_keys:
+            curve_obj = getattr(curve_utils.Curves, curve_key)
+            if not curve_obj:
+                raise Exception(f'Missing curve: {curve_obj}')
+            if not curve_obj.shapes:
+                raise Exception(f'Missing shapes for a curve: {curve_obj}')
+
+    def test_add_thumbnail_metadata_attr_to_selection(self):
+        import_curve_test_file()
+        curves_to_test = ["curve_01", "curve_02"]
+        maya_test_tools.cmds.select(curves_to_test)
+        curve_utils.add_thumbnail_metadata_attr_to_selection()
+        for crv in curves_to_test:
+            axis = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_AXIS_KEY}')
+            scale = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_SCALE_KEY}')
+            fit = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_FIT_KEY}')
+            self.assertTrue(axis)
+            self.assertTrue(scale)
+            self.assertTrue(fit)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_write_curve_files_from_selection(self, mock_stdout):
+        import_curve_test_file()
+        temp_folder = maya_test_tools.generate_test_temp_dir()
+        curves_to_test = ["curve_01", "curve_02"]
+        maya_test_tools.cmds.select(curves_to_test)
+        curve_utils.add_thumbnail_metadata_attr_to_selection()
+        maya_test_tools.set_attribute(obj_name="curve_01",
+                                      attr_name=curve_utils.PROJECTION_AXIS_KEY,
+                                      value="persp", type="string")
+        curve_utils.write_curve_files_from_selection(target_dir=temp_folder)
+        expected = ['curve_01.crv', 'curve_02.crv']
+        result = os.listdir(temp_folder)
+        self.assertEqual(expected, result)
+        curve_file = os.path.join(temp_folder, 'curve_01.crv')
+        with open(curve_file, 'r') as file:
+            data_dict = json.load(file)
+        result = data_dict.get("metadata").get(curve_utils.PROJECTION_AXIS_KEY)
+        expected = "persp"
+        self.assertEqual(expected, result)
+
+    @patch('maya.cmds.viewFit')
+    @patch('maya.cmds.lookThru')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_generate_curve_thumbnail(self, mock_stdout, mock_look_thru, mock_view_fit):
+        temp_folder = maya_test_tools.generate_test_temp_dir()
+        curve_data_path = os.path.join(maya_test_tools.get_data_dir_path(), 'two_lines.crv')
+        curve = curve_utils.Curve(read_curve_data_from_file=curve_data_path)
+        curve_utils.generate_curve_thumbnail(target_dir=temp_folder, curve=curve)
+        expected = ['two_lines.jpg']
+        result = os.listdir(temp_folder)
+        self.assertEqual(expected, result)
+
+    @patch('gt.utils.system_utils.open_file_dir')
+    @patch('maya.cmds.viewFit')
+    @patch('maya.cmds.lookThru')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_generate_curves_thumbnails(self, mock_stdout, mock_look_thru, mock_view_fit, mock_open_file_dir):
+        curve_data_path = os.path.join(maya_test_tools.get_data_dir_path(), 'two_lines.crv')
+        curve = curve_utils.Curve(read_curve_data_from_file=curve_data_path)
+
+        class Curves:  # Mocked curves class
+            two_lines = curve
+
+        with patch('gt.utils.curve_utils.Curves', new=Curves):
+            temp_folder = maya_test_tools.generate_test_temp_dir()
+            curve_utils.generate_curves_thumbnails(target_dir=temp_folder)
+            expected = ['two_lines.jpg']
+            result = os.listdir(temp_folder)
+            self.assertEqual(expected, result)

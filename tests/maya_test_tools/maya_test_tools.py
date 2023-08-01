@@ -54,7 +54,7 @@ def set_attribute(obj_name, attr_name, value, *args, **kwargs):
     Args:
         obj_name (str): Name of the target object (object that will receive new values)
         attr_name (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-        value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+        value (any): Value used to set attribute. e.g. 1.5, 2, 5...
     """
     cmds.setAttr(f"{obj_name}.{attr_name}", value, *args, **kwargs)
 
