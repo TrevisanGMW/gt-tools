@@ -7,8 +7,6 @@ from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
 from gt.utils.naming_utils import get_short_name
-import gt.utils.string_utils as string_utils
-from maya.api import OpenMayaUI, OpenMaya
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
@@ -28,6 +26,7 @@ CURVE_ATTR_COLOR = "autoColor"
 CURVE_FILE_EXTENSION = "crv"
 PROJECTION_AXIS_KEY = 'projectionAxis'
 PROJECTION_SCALE_KEY = 'projectionScale'
+PROJECTION_FIT_KEY = 'projectionFit'
 
 
 def get_curve_path(curve_file):
@@ -301,6 +300,19 @@ def add_snapping_shape(target_object):
 
 
 def add_side_color_setup(obj, left_clr=(0, 0.5, 1), right_clr=(1, 0.5, 0.5)):
+    """
+    This function sets up a side color setup for the specified object in the Maya scene.
+    It creates connections and attributes to control the color of the object based on its position in the scene.
+
+    Parameters:
+        obj (str): The name of the object to set up the color for.
+        left_clr (tuple, optional): The RGB color values for the left side of the object. Default is (0, 0.5, 1).
+        right_clr (tuple, optional): The RGB color values for the right side of the object. Default is (1, 0.5, 0.5).
+
+    Example:
+        # Example usage in Maya Python script editor:
+        add_side_color_setup("pCube1", left_clr=(0, 1, 0), right_clr=(1, 0, 0))
+    """
     if not obj or not cmds.objExists(obj):
         return
 
@@ -855,38 +867,69 @@ class CurveShape:
         return self.build(replace_crv=target_curve)
 
 
-class CurveCustom:
-    # Todo: Able to run functions when creating curves (with "build()")
-    def __init__(self):
-        pass
-
-
 class Curves:
     def __init__(self):
         """
         A library of curve objects
-        Use "build()" to create them.
+        Use "build()" to create them in Maya.
         """
     circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
+    arrow_two_sided_1d = Curve(read_curve_data_from_file=get_curve_path("arrow_two_sided_1d"))
+    circle = Curve(read_curve_data_from_file=get_curve_path("circle"))
+    circle_wavy = Curve(read_curve_data_from_file=get_curve_path("circle_wavy"))
+    cube = Curve(read_curve_data_from_file=get_curve_path("cube"))
+    diamond = Curve(read_curve_data_from_file=get_curve_path("diamond"))
+    half_circle_arrow = Curve(read_curve_data_from_file=get_curve_path("half_circle_arrow"))
+    half_circle_double_arrows = Curve(read_curve_data_from_file=get_curve_path("half_circle_double_arrows"))
+    half_moon = Curve(read_curve_data_from_file=get_curve_path("half_moon"))
+    joint = Curve(read_curve_data_from_file=get_curve_path("joint"))
+    locator = Curve(read_curve_data_from_file=get_curve_path("locator"))
+    peanut = Curve(read_curve_data_from_file=get_curve_path("peanut"))
+    pin = Curve(read_curve_data_from_file=get_curve_path("pin"))
+    switch_ik_fk_left = Curve(read_curve_data_from_file=get_curve_path("switch_ik_fk_left"))
+    switch_ik_fk_right = Curve(read_curve_data_from_file=get_curve_path("switch_ik_fk_right"))
 
 
-def write_curve_files_from_selection(target_folder, projection_axis=None, projection_scale=None):
+def add_thumbnail_metadata_attr_to_selection():
+    """
+    Adds projection attributes to the selected objects.
+    Such attributes are used to determine if metadata should be added to the curve file.
+    This metadata is later used to automatically generate thumbnails for the curve.
+    """
+    selection = cmds.ls(selection=True, long=True) or []
+    for obj in selection:
+        if not cmds.objExists(f'{obj}.{PROJECTION_AXIS_KEY}'):
+            cmds.addAttr(obj, longName=PROJECTION_AXIS_KEY, dataType='string', k=True)
+        if not cmds.objExists(f'{obj}.{PROJECTION_SCALE_KEY}'):
+            cmds.addAttr(obj, longName=PROJECTION_SCALE_KEY, at='double', k=True, minValue=0)
+        if not cmds.objExists(f'{obj}.{PROJECTION_FIT_KEY}'):
+            cmds.addAttr(obj, longName=PROJECTION_FIT_KEY, at='bool', k=True)
+
+
+def write_curve_files_from_selection(target_dir,
+                                     projection_axis=None,
+                                     projection_scale=None,
+                                     projection_fit=None,
+                                     overwrite=True):
     """
     Internal function used to extract curve files from selection
     Args:
-        target_folder (str): Path to a folder where the curve file is going to be written to.
+        target_dir (str): Path to a folder where the curve file is going to be written to.
         projection_axis (str, optional): Project axis stored as metadata in the curve file.
                                          Later used to automatically generate thumbnails
                                          Can be "x", "y", "z" or "persp". If set to "None", then default is "y".
                                          Similar to UV projection, that's the direction where the camera will be.
                                          Note: If an attribute with the name "projection_axis" exists on the object,
                                          this function will attempt to retrieve it automatically.
-        projection_scale (int, optional): Scale of the curve as a magnitude starting at the origin.
-                                          Used to determine camera position when creating thumbnails.
-                                          Bigger means that the camera will be further away.
-                                          Note: If an attribute with the name "projection_scale" exists on the object,
-                                          this function will attempt to retrieve it automatically.
-                                          If set to None, then default is "5".
+        projection_scale (float, optional): Scale of the curve as a magnitude starting at the origin.
+                                            Used to determine camera position when creating thumbnails.
+                                            Bigger means that the camera will be further away.
+                                            Note: If an attribute with the name "projection_scale" exists on the object,
+                                            this function will attempt to retrieve it automatically.
+                                            If set to None, then default is "5".
+        projection_fit (bool, optional): Fit view metadata. Later used to determine if a fit view operation should run
+                                         during thumbnail creation. Default is None/False (not created)
+        overwrite (bool, optional): If active, it will overwrite existing files.
     """
     for crv in cmds.ls(selection=True):
         curve = Curve(read_existing_curve=crv)
@@ -904,29 +947,58 @@ def write_curve_files_from_selection(target_folder, projection_axis=None, projec
                 projection_scale_value = cmds.getAttr(f'{crv}.{PROJECTION_SCALE_KEY}')
             if not projection_scale_value:
                 projection_scale_value = 5
+        # Get projection fit view ----------------------------
+        projection_fit_value = projection_fit
+        if not projection_fit:
+            if cmds.objExists(f'{crv}.{PROJECTION_FIT_KEY}'):
+                projection_fit_value = cmds.getAttr(f'{crv}.{PROJECTION_FIT_KEY}')
+            if not projection_scale_value:
+                projection_fit_value = None
         curve.add_to_metadata(key=PROJECTION_AXIS_KEY, value=projection_axis_value)  # x, y, z or persp
         curve.add_to_metadata(key=PROJECTION_SCALE_KEY, value=projection_scale_value)  # int
-        file_path = os.path.join(target_folder, f'{crv}.crv')
-        curve.write_curve_to_file(file_path)
-        sys.stdout.write(f'Curve exported to: "{file_path}". '
-                         f'(Axis:{projection_axis_value}, Scale: {projection_scale_value})\n')
+        curve.add_to_metadata(key=PROJECTION_FIT_KEY, value=projection_fit_value)  # bool
+        file_path = os.path.join(target_dir, f'{crv}.crv')
+        if os.path.exists(file_path) and not overwrite:
+            sys.stdout.write(f'Existing file was skipped: "{file_path}".')
+        else:
+            curve.write_curve_to_file(file_path)
+            sys.stdout.write(f'Curve exported to: "{file_path}". '
+                             f'(Axis:{projection_axis_value}, Scale: {projection_scale_value})\n')
 
 
-def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=4, rgb_color=(1, 1, 0.1)):
-
+def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=5, rgb_color=(1, 1, 0.1)):
+    """
+    Generate curve thumbnail
+    Args:
+        target_dir (str): Path to a directory where the curve thumbnails will be stored.
+        curve (Curve): The curve object to be displayed in the thumbnail
+        image_format (str, optional): Format of the output file. Can be "jpg" or "png". Default: "jpg"
+        line_width (float, optional): Width of the line used for the rendered curves.
+        rgb_color (tuple, optional): A tuple representing red, green and blue values. e.g. (1, 0, 0) = Red
+                                     This is used to set the color of the curve.
+    Returns:
+        str: Target directory
+    """
     # Create New Scene
     cmds.file(new=True, force=True)
 
     # Unpack or Generate Projection Values
     projection_axis = "persp"
     projection_scale = 5
-    metadata = curve.get_metadata()
+    projection_fit = False
+    metadata = curve.get_metadata() or {}
     stored_projection_axis = metadata.get(PROJECTION_AXIS_KEY)
     stored_projection_scale = metadata.get(PROJECTION_SCALE_KEY)
+    stored_projection_fit = metadata.get(PROJECTION_FIT_KEY)
     if stored_projection_axis and isinstance(stored_projection_axis, str):
         projection_axis = stored_projection_axis
-    if stored_projection_scale and isinstance(stored_projection_axis, int):
-        projection_scale = stored_projection_scale
+    if stored_projection_scale:
+        try:
+            projection_scale = float(stored_projection_scale)
+        except Exception as e:
+            logger.debug(f'Unable to retrieve projection scale data. Failed to cast to integer. Issue: {str(e)}')
+    if stored_projection_fit and isinstance(stored_projection_fit, bool):
+        projection_fit = stored_projection_fit
 
     # Prepare Curve
     curve_name = curve.build()
@@ -942,9 +1014,10 @@ def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=4
     cam_and_shape = cmds.camera(orthographic=orthographic)
     cam_name = cam_and_shape[0]
     cam_shape = cam_and_shape[1]
+    cmds.lookThru(cam_shape)
 
     # Projection Scale
-    translation_value = projection_scale*4
+    translation_value = projection_scale*2
     # Projection Axis
     if projection_axis == "y":
         cmds.setAttr(f'{cam_name}.rx', -90)
@@ -965,30 +1038,76 @@ def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=4
         cmds.setAttr(f'{cam_name}.ry', 40)
         cmds.viewFit(all=True)
 
-    # Setup Viewport
-    cmds.lookThru(cam_shape)
-    view = OpenMayaUI.M3dView.active3dView()
-    # model_editor = cmds.modelPanel(view, query=True, modelEditor=True)
-    # if model_editor:
-    #     # Check if the resolution gate is already active
-    #     if not cmds.modelEditor(model_editor, query=True, activeOnly=True):
-    #         cmds.modelEditor(model_editor, edit=True, activeOnly=True)
+    if projection_fit:
+        cmds.viewFit(all=True)
 
-    # Create Image File
-    image = OpenMaya.MImage()
-    view.readColorBuffer(image, True)
+    # Setup Viewport and Render Image
+    cmds.setAttr(f'hardwareRenderingGlobals.lineAAEnable', 1)
+    cmds.setAttr(f'hardwareRenderingGlobals.multiSampleEnable', 1)
+    cmds.setAttr(f'hardwareRenderingGlobals.multiSampleCount', 16)
+    cmds.refresh()
     image_file = os.path.join(target_dir, f'{curve_name}.{image_format}')
-    image.writeToFile(image_file)
-    print(f"Thumbnail Generated: {image_file}")
-    return image_file
+    current_image_format = cmds.getAttr("defaultRenderGlobals.imageFormat")
+    if image_format == "jpg" or image_format == "jpeg":
+        cmds.setAttr("defaultRenderGlobals.imageFormat", 8)  # JPEG
+    elif image_format == "png":
+        cmds.setAttr("defaultRenderGlobals.imageFormat", 32)  # PNG
+    cmds.playblast(completeFilename=image_file, startTime=True, endTime=True, forceOverwrite=True, showOrnaments=False,
+                   viewer=0, format="image", qlt=100, p=100, framePadding=0, w=512, h=512)
+    cmds.setAttr("defaultRenderGlobals.imageFormat", current_image_format)
+    sys.stdout.write(f'Thumbnail Generated: "{image_file}". (Axis: "{projection_axis}", Scale: "{projection_scale}")')
+    return target_dir
+
+
+def generate_curves_thumbnails(target_dir=None, force=False):
+    """
+    Iterates through the Curves class attributes rendering a thumbnail for each one of the found Curves.
+    At the end of the operation, it opens the target directory.
+    Args:
+        target_dir (str, optional): Path to a directory where the thumbnails will be stored.
+                                    If not provided, they are rendered to Desktop/curves_thumbnails
+        force (bool, optional): If activated, it will skip the unsaved changes detected dialog and run.
+    """
+    if cmds.file(q=True, modified=True) and not force:
+        user_input = cmds.confirmDialog(title='Unsaved changes detected.',
+                                        message='Unsaved changes detected.\n'
+                                                'This operation will close the scene.\n'
+                                                'Are you sure you want to proceed?\n'
+                                                '(Unsaved changes will be lost)',
+                                        button=['Yes', 'No'],
+                                        defaultButton='No',
+                                        cancelButton='No',
+                                        dismissString='No',
+                                        icon="warning")
+        if user_input == 'No':
+            logger.warning("Thumbnail generation cancelled.")
+            return
+
+    if not target_dir or not os.path.exists(target_dir):
+        from gt.utils.system_utils import get_desktop_path
+        target_dir = os.path.join(get_desktop_path(), "curves_thumbnails")
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+
+    curve_attributes = vars(Curves)
+    curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+    for curve_key in curve_keys:
+        curve_obj = getattr(Curves, curve_key)
+        if not curve_obj:
+            raise Exception(f'Missing curve: {curve_key}')
+        if not curve_obj.shapes:
+            raise Exception(f'Missing shapes for a curve: {curve_obj}')
+        generate_curve_thumbnail(target_dir=target_dir, curve=curve_obj)
+    from gt.utils.system_utils import open_file_dir
+    open_file_dir(target_dir)
+    cmds.file(new=True, force=True)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    # write_curve_files_from_selection(target_folder=DataDirConstants.DIR_CURVES)
-    from gt.utils.system_utils import get_desktop_path
-    generate_curve_thumbnail(get_desktop_path(), Curves.circle_arrow)
-    # generate_curve_thumbnail(target_dir=get_desktop_path(), curve=Curves.circle_arrow)
+    add_thumbnail_metadata_attr_to_selection()
+    # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
+    # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
     pprint(out)
