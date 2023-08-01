@@ -155,6 +155,7 @@
     ],
     "metadata": {
         "projectionAxis": "y",
-        "projectionScale": "5"
+        "projectionScale": 5.0,
+        "projectionFit": false
     }
 }

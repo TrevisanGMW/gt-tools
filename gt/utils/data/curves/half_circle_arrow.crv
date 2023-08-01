@@ -473,6 +473,7 @@
     ],
     "metadata": {
         "projectionAxis": "persp",
-        "projectionScale": "1"
+        "projectionScale": 1.0,
+        "projectionFit": false
     }
 }
