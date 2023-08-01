@@ -602,6 +602,19 @@ class Curve:
         """
         return self.metadata
 
+    def get_name(self, formatted=False):
+        """
+        Gets the name property of the curve.
+        Args:
+            formatted (bool, optional): If active, it will convert snake_case names to Title Sentences
+                                        e.g. "circle_arrow" will become "Circle Arrow"
+        Returns:
+            str or None: Name of the curve, None if it's not set.
+        """
+        if formatted and self.name:
+            return self.name.replace("_", " ").title()
+        return self.name
+
     def read_curve_from_file(self, file_path):
         """
         Reads the data from a file.
@@ -873,6 +886,7 @@ class Curves:
         A library of curve objects
         Use "build()" to create them in Maya.
         """
+
     circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
     arrow_two_sided_1d = Curve(read_curve_data_from_file=get_curve_path("arrow_two_sided_1d"))
     circle = Curve(read_curve_data_from_file=get_curve_path("circle"))
@@ -1119,7 +1133,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    add_thumbnail_metadata_attr_to_selection()
+    # add_thumbnail_metadata_attr_to_selection()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
+    out = Curves.get_curves()
     pprint(out)

@@ -610,3 +610,21 @@ class TestCurveUtils(unittest.TestCase):
             expected = ['two_lines.jpg']
             result = os.listdir(temp_folder)
             self.assertEqual(expected, result)
+
+    def test_curve_get_name(self):
+        curve_shape_data = {'name': 'my_curve',
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        result = curve.get_name()
+        expected = "my_curve"
+        self.assertEqual(expected, result)
+
+    def test_curve_get_name_formatted(self):
+        curve_shape_data = {'name': 'my_curve',
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        result = curve.get_name(formatted=True)
+        expected = "My Curve"
+        self.assertEqual(expected, result)
