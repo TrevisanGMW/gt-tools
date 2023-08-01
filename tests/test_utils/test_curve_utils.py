@@ -473,3 +473,61 @@ class TestCurveUtils(unittest.TestCase):
                                 'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}],
                     'transform': None}
         self.assertEqual(expected, result)
+
+    def test_curve_set_metadata(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        metadata_dict = {"mocked_key": "mocked_value"}
+        curve.set_metadata_dict(new_metadata=metadata_dict)
+        result = curve.metadata
+        expected = metadata_dict
+        self.assertEqual(expected, result)
+
+    def test_curve_get_metadata(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        metadata_dict = {"mocked_key": "mocked_value"}
+        curve.set_metadata_dict(new_metadata=metadata_dict)
+        result = curve.get_metadata()
+        expected = metadata_dict
+        self.assertEqual(expected, result)
+
+    def test_curve_add_metadata(self):
+        curve_shape_data = {'degree': 1,
+                            'is_bezier': False,
+                            'knot': None,
+                            'name': 'my_curve',
+                            'periodic': 0,
+                            'points': [[0.0, 0.0, 0.0], [0.0, 0.0, -1.0]]}
+        curve_shape = curve_utils.CurveShape(read_curve_shape_data=curve_shape_data)
+        curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape])
+        curve.add_to_metadata(key="mocked_key_one", value="mocked_value_one")
+        result = curve.get_metadata()
+        expected = {"mocked_key_one": "mocked_value_one"}
+        self.assertEqual(expected, result)
+        curve.add_to_metadata(key="mocked_key_two", value="mocked_value_two")
+        result = curve.get_metadata()
+        expected = {"mocked_key_one": "mocked_value_one",
+                    "mocked_key_two": "mocked_value_two"}
+        curve.add_to_metadata(key="mocked_key_two", value="mocked_value_two")
+        self.assertEqual(expected, result)
+
+    def test_get_curve_path(self):
+        path = curve_utils.get_curve_path("circle_arrow")
+        result = os.path.exists(path)
+        self.assertTrue(result)
+        result = os.path.basename(path)
+        expected = "circle_arrow.crv"
+        self.assertEqual(expected, result)

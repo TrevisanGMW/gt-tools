@@ -5,11 +5,14 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.attribute_utils import add_attr_double_three
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
+from gt.utils.system_utils import DataDirConstants
 from gt.utils.naming_utils import get_short_name
+from maya.api import OpenMayaUI, OpenMaya
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
 import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -21,6 +24,44 @@ CURVE_TYPE_NURBS = "nurbsCurve"
 CURVE_TYPE_BEZIER = "bezierCurve"
 CURVE_TYPES = [CURVE_TYPE_NURBS, CURVE_TYPE_BEZIER]
 CURVE_ATTR_COLOR = "autoColor"
+CURVE_FILE_EXTENSION = "crv"
+
+
+def get_curve_path(curve_file):
+    """
+    Get the path to a curve data file. This file should exist inside the utils/data/curves folder.
+    Args:
+        curve_file (str): Name of the file. It doesn't need to contain its extension as it will always be "crv"
+    Returns:
+        str: Path to the curve description file.
+    """
+    if not isinstance(curve_file, str):
+        logger.debug(f'Unable to retrieve curve file. Incorrect argument type: "{str(type(curve_file))}".')
+        return
+    if not curve_file.endswith(f'.{CURVE_FILE_EXTENSION}'):
+        curve_file = f'{curve_file}.{CURVE_FILE_EXTENSION}'
+    path_to_curve = os.path.join(DataDirConstants.DIR_CURVES, curve_file)
+    return path_to_curve
+
+
+def generate_curve_thumbnail(target_dir, curve, axis="Y"):
+    cmds.file(new=True, force=True)
+    cmds.select(clear=True)
+    curve_name = curve.build()
+    for shape in cmds.listRelatives(curve_name, shapes=True) or []:
+        cmds.setAttr(f'{shape}.lineWidth', 4)
+    camera_temp = "temp_crv_thumbnail_cam"
+    camera_temp = cmds.camera(name=camera_temp, orthographic=True)
+    cmds.setAttr(f'{camera_temp[0]}.rx', 90)
+    cmds.lookThru(camera_temp[1])
+    cmds.viewFit(all=True)
+    view = OpenMayaUI.M3dView.active3dView()
+    image = OpenMaya.MImage()
+    view.readColorBuffer(image, True)
+    image_file = os.path.join(target_dir, curve_name)
+    image.writeToFile(image_file)
+    print("Snapshot Taken")
+    return image_file
 
 
 def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
@@ -334,6 +375,7 @@ class Curve:
                  name=None,
                  transform=None,
                  shapes=None,
+                 metadata=None,
                  read_existing_curve=None,
                  read_curve_data_from_dict=None,
                  read_curve_data_from_file=None):
@@ -345,6 +387,7 @@ class Curve:
                                              If not provided, it's created at the origin.
             shapes (list, optional): A list of shapes (CurveShape) objects used to describe the curve visuals.
                                      Only optional so the curve can be generated using a file, ultimately required.
+            metadata (dict, optional): A dictionary with any extra information used to further describe the curve.
             read_existing_curve (str, optional): Extracts data from an existing curve in the scene.
             read_curve_data_from_dict (dict, optional): If provided, this dictionary is used to populate the curve data.
             read_curve_data_from_file (str, optional): Path to a JSON file describing the curve.
@@ -353,6 +396,10 @@ class Curve:
         self.name = name
         self.transform = transform
         self.shapes = shapes
+        self.metadata = None
+
+        if metadata:
+            self.set_metadata_dict(new_metadata=metadata)
 
         if read_existing_curve:
             self.read_data_from_existing_curve(read_existing_curve)
@@ -394,6 +441,7 @@ class Curve:
             generated_curve = cmds.rename(generated_curve, self.name)
         if self.transform:
             self.apply_curve_transform(generated_curve)
+        cmds.select(clear=True)
         return generated_curve
 
     def apply_curve_transform(self, target_object):
@@ -464,7 +512,7 @@ class Curve:
         """
         Gets the object values as a dictionary
         Returns:
-            dict: The CurveShape object properties and its values.
+            dict: The Curve object properties and its values.
         """
         if not self.is_curve_valid():
             return
@@ -483,6 +531,8 @@ class Curve:
                       "transform": transform_data,
                       "shapes": shapes_data,
                       }
+        if self.metadata:
+            curve_data['metadata'] = self.metadata
         return curve_data
 
     def set_data_from_dict(self, data_dict):
@@ -511,6 +561,9 @@ class Curve:
             rotation = Vector3(transform_data[3], transform_data[4], transform_data[5])
             scale = Vector3(transform_data[6], transform_data[7], transform_data[8])
             self.transform = Transform(position, rotation, scale)
+        metadata = data_dict.get('metadata')
+        if data_dict.get('metadata'):
+            self.metadata = metadata
 
     def set_name(self, new_name):
         """
@@ -522,6 +575,37 @@ class Curve:
             logger.warning(f'Unable to set new name. Expected string but got "{str(type(new_name))}"')
             return
         self.name = new_name
+
+    def set_metadata_dict(self, new_metadata):
+        """
+        Sets the metadata property. The metadata is any extra value used to further describe the curve.
+        Args:
+            new_metadata (dict): A dictionary describing extra information about the curve
+        """
+        if not isinstance(new_metadata, dict):
+            logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(new_metadata))}"')
+            return
+        self.metadata = new_metadata
+
+    def add_to_metadata(self, key, value):
+        """
+        Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
+        If an element with the same key already exists in the metadata dictionary, it will be overwritten
+        Args:
+            key (str): Key of the new metadata element
+            value (Any): Value of the new metadata element
+        """
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        self.metadata[key] = value
+
+    def get_metadata(self):
+        """
+        Gets the metadata property.
+        Returns:
+            dict: Metadata dictionary
+        """
+        return self.metadata
 
     def read_curve_from_file(self, file_path):
         """
@@ -634,7 +718,7 @@ class CurveShape:
         # Check Type
         if cmds.objectType(crv_shape) not in CURVE_TYPES:
             logger.warning(f'Unable to extract curve data. Missing acceptable curve shapes. '
-                           f'Acceptable types: {CURVE_TYPES}')
+                           f'Acceptable shape types: {CURVE_TYPES}')
             return
         is_bezier = False
         if cmds.objectType(crv_shape) == CURVE_TYPE_BEZIER:
@@ -794,8 +878,22 @@ class CurveCustom:
         pass
 
 
+class Curves:
+    def __init__(self):
+        """
+        A library of curve objects
+        Use "build()" to create them.
+        """
+    circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
+    from gt.utils.system_utils import get_desktop_path
+    first_selection = cmds.ls(selection=True)[0]
+    curve = Curve(read_existing_curve=first_selection)
+    curve.write_curve_to_file(os.path.join(get_desktop_path(), first_selection))
+    # generate_curve_thumbnail(target_dir=get_desktop_path(), curve=Curves.circle_arrow)
     pprint(out)
