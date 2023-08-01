@@ -21,7 +21,7 @@ __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
-def build_tool_example_gui(standalone=True):
+def build_sample_tool_gui(standalone=True):
     """
     Creates Model, View and Controller
     Args:
@@ -57,9 +57,9 @@ def launch_tool():
     Entry point for when using this tool.
     """
     if session_utils.is_script_in_py_maya():
-        build_tool_example_gui(standalone=True)
+        build_sample_tool_gui(standalone=True)
     else:
-        build_tool_example_gui(standalone=False)
+        build_sample_tool_gui(standalone=False)
 
 
 if __name__ == "__main__":
