@@ -26,6 +26,8 @@ CURVE_TYPE_BEZIER = "bezierCurve"
 CURVE_TYPES = [CURVE_TYPE_NURBS, CURVE_TYPE_BEZIER]
 CURVE_ATTR_COLOR = "autoColor"
 CURVE_FILE_EXTENSION = "crv"
+PROJECTION_AXIS_KEY = 'projectionAxis'
+PROJECTION_SCALE_KEY = 'projectionScale'
 
 
 def get_curve_path(curve_file):
@@ -43,26 +45,6 @@ def get_curve_path(curve_file):
         curve_file = f'{curve_file}.{CURVE_FILE_EXTENSION}'
     path_to_curve = os.path.join(DataDirConstants.DIR_CURVES, curve_file)
     return path_to_curve
-
-
-def generate_curve_thumbnail(target_dir, curve, axis="Y"):
-    cmds.file(new=True, force=True)
-    cmds.select(clear=True)
-    curve_name = curve.build()
-    for shape in cmds.listRelatives(curve_name, shapes=True) or []:
-        cmds.setAttr(f'{shape}.lineWidth', 4)
-    camera_temp = "temp_crv_thumbnail_cam"
-    camera_temp = cmds.camera(name=camera_temp, orthographic=True)
-    cmds.setAttr(f'{camera_temp[0]}.rx', 90)
-    cmds.lookThru(camera_temp[1])
-    cmds.viewFit(all=True)
-    view = OpenMayaUI.M3dView.active3dView()
-    image = OpenMaya.MImage()
-    view.readColorBuffer(image, True)
-    image_file = os.path.join(target_dir, curve_name)
-    image.writeToFile(image_file)
-    print("Snapshot Taken")
-    return image_file
 
 
 def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
@@ -888,7 +870,7 @@ class Curves:
     circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
 
 
-def write_curve_file_from_selection(target_folder, projection_axis=None, projection_scale=None):
+def write_curve_files_from_selection(target_folder, projection_axis=None, projection_scale=None):
     """
     Internal function used to extract curve files from selection
     Args:
@@ -906,39 +888,107 @@ def write_curve_file_from_selection(target_folder, projection_axis=None, project
                                           this function will attempt to retrieve it automatically.
                                           If set to None, then default is "5".
     """
-    projection_axis_key = 'projection_axis'
-    projection_scale_key = 'projection_scale'
-
-    projection_axis_attr = string_utils.snake_to_camel(projection_axis_key)  # projectionAxis
-    projection_scale_attr = string_utils.snake_to_camel(projection_scale_key)  # projectionScale
     for crv in cmds.ls(selection=True):
         curve = Curve(read_existing_curve=crv)
         # Get projection axis ----------------------------
         projection_axis_value = projection_axis
         if not projection_axis:
-            if cmds.objExists(f'{crv}.{projection_axis_attr}'):
-                projection_axis_value = cmds.getAttr(f'{crv}.{projection_axis_attr}')
+            if cmds.objExists(f'{crv}.{PROJECTION_AXIS_KEY}'):
+                projection_axis_value = cmds.getAttr(f'{crv}.{PROJECTION_AXIS_KEY}')
             if not projection_axis_value:
                 projection_axis_value = "y"
         # Get projection scale ----------------------------
         projection_scale_value = projection_scale
         if not projection_scale:
-            if cmds.objExists(f'{crv}.{projection_scale_attr}'):
-                projection_scale_value = cmds.getAttr(f'{crv}.{projection_scale_attr}')
+            if cmds.objExists(f'{crv}.{PROJECTION_SCALE_KEY}'):
+                projection_scale_value = cmds.getAttr(f'{crv}.{PROJECTION_SCALE_KEY}')
             if not projection_scale_value:
                 projection_scale_value = 5
-        curve.add_to_metadata(key=projection_axis_attr, value=projection_axis_value)  # x, y, z or persp
-        curve.add_to_metadata(key=projection_scale_attr, value=projection_scale_value)  # int
+        curve.add_to_metadata(key=PROJECTION_AXIS_KEY, value=projection_axis_value)  # x, y, z or persp
+        curve.add_to_metadata(key=PROJECTION_SCALE_KEY, value=projection_scale_value)  # int
         file_path = os.path.join(target_folder, f'{crv}.crv')
         curve.write_curve_to_file(file_path)
         sys.stdout.write(f'Curve exported to: "{file_path}". '
                          f'(Axis:{projection_axis_value}, Scale: {projection_scale_value})\n')
 
 
+def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=4, rgb_color=(1, 1, 0.1)):
+
+    # Create New Scene
+    cmds.file(new=True, force=True)
+
+    # Unpack or Generate Projection Values
+    projection_axis = "persp"
+    projection_scale = 5
+    metadata = curve.get_metadata()
+    stored_projection_axis = metadata.get(PROJECTION_AXIS_KEY)
+    stored_projection_scale = metadata.get(PROJECTION_SCALE_KEY)
+    if stored_projection_axis and isinstance(stored_projection_axis, str):
+        projection_axis = stored_projection_axis
+    if stored_projection_scale and isinstance(stored_projection_axis, int):
+        projection_scale = stored_projection_scale
+
+    # Prepare Curve
+    curve_name = curve.build()
+    from gt.utils.color_utils import set_color_override_viewport
+    set_color_override_viewport(obj=curve_name, rgb_color=rgb_color)
+    for shape in cmds.listRelatives(curve_name, shapes=True) or []:
+        cmds.setAttr(f'{shape}.lineWidth', line_width)
+
+    # Create Camera
+    orthographic = False
+    if projection_axis == "y" or projection_axis == "x" or projection_axis == "z":
+        orthographic = True
+    cam_and_shape = cmds.camera(orthographic=orthographic)
+    cam_name = cam_and_shape[0]
+    cam_shape = cam_and_shape[1]
+
+    # Projection Scale
+    translation_value = projection_scale*4
+    # Projection Axis
+    if projection_axis == "y":
+        cmds.setAttr(f'{cam_name}.rx', -90)
+        cmds.setAttr(f'{cam_name}.ty', translation_value)
+        cmds.setAttr(f'{cam_name}.orthographicWidth', translation_value)
+    elif projection_axis == "x":
+        cmds.setAttr(f'{cam_name}.ry', 90)
+        cmds.setAttr(f'{cam_name}.tx', translation_value)
+        cmds.setAttr(f'{cam_name}.orthographicWidth', translation_value)
+    elif projection_axis == "z":
+        cmds.setAttr(f'{cam_name}.tz', translation_value)
+        cmds.setAttr(f'{cam_name}.orthographicWidth', translation_value)
+    else:  # Persp
+        cmds.setAttr(f'{cam_name}.tx', 500)
+        cmds.setAttr(f'{cam_name}.ty', 500)
+        cmds.setAttr(f'{cam_name}.tz', 500)
+        cmds.setAttr(f'{cam_name}.rx', -30)
+        cmds.setAttr(f'{cam_name}.ry', 40)
+        cmds.viewFit(all=True)
+
+    # Setup Viewport
+    cmds.lookThru(cam_shape)
+    view = OpenMayaUI.M3dView.active3dView()
+    # model_editor = cmds.modelPanel(view, query=True, modelEditor=True)
+    # if model_editor:
+    #     # Check if the resolution gate is already active
+    #     if not cmds.modelEditor(model_editor, query=True, activeOnly=True):
+    #         cmds.modelEditor(model_editor, edit=True, activeOnly=True)
+
+    # Create Image File
+    image = OpenMaya.MImage()
+    view.readColorBuffer(image, True)
+    image_file = os.path.join(target_dir, f'{curve_name}.{image_format}')
+    image.writeToFile(image_file)
+    print(f"Thumbnail Generated: {image_file}")
+    return image_file
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    write_curve_file_from_selection(target_folder=DataDirConstants.DIR_CURVES)
+    # write_curve_files_from_selection(target_folder=DataDirConstants.DIR_CURVES)
+    from gt.utils.system_utils import get_desktop_path
+    generate_curve_thumbnail(get_desktop_path(), Curves.circle_arrow)
     # generate_curve_thumbnail(target_dir=get_desktop_path(), curve=Curves.circle_arrow)
     pprint(out)
