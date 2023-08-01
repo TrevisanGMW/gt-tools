@@ -7,6 +7,7 @@ from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
 from gt.utils.naming_utils import get_short_name
+import gt.utils.string_utils as string_utils
 from maya.api import OpenMayaUI, OpenMaya
 from decimal import Decimal
 import maya.cmds as cmds
@@ -887,13 +888,57 @@ class Curves:
     circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
 
 
+def write_curve_file_from_selection(target_folder, projection_axis=None, projection_scale=None):
+    """
+    Internal function used to extract curve files from selection
+    Args:
+        target_folder (str): Path to a folder where the curve file is going to be written to.
+        projection_axis (str, optional): Project axis stored as metadata in the curve file.
+                                         Later used to automatically generate thumbnails
+                                         Can be "x", "y", "z" or "persp". If set to "None", then default is "y".
+                                         Similar to UV projection, that's the direction where the camera will be.
+                                         Note: If an attribute with the name "projection_axis" exists on the object,
+                                         this function will attempt to retrieve it automatically.
+        projection_scale (int, optional): Scale of the curve as a magnitude starting at the origin.
+                                          Used to determine camera position when creating thumbnails.
+                                          Bigger means that the camera will be further away.
+                                          Note: If an attribute with the name "projection_scale" exists on the object,
+                                          this function will attempt to retrieve it automatically.
+                                          If set to None, then default is "5".
+    """
+    projection_axis_key = 'projection_axis'
+    projection_scale_key = 'projection_scale'
+
+    projection_axis_attr = string_utils.snake_to_camel(projection_axis_key)  # projectionAxis
+    projection_scale_attr = string_utils.snake_to_camel(projection_scale_key)  # projectionScale
+    for crv in cmds.ls(selection=True):
+        curve = Curve(read_existing_curve=crv)
+        # Get projection axis ----------------------------
+        projection_axis_value = projection_axis
+        if not projection_axis:
+            if cmds.objExists(f'{crv}.{projection_axis_attr}'):
+                projection_axis_value = cmds.getAttr(f'{crv}.{projection_axis_attr}')
+            else:
+                projection_axis_value = "y"
+        # Get projection scale ----------------------------
+        projection_scale_value = projection_scale
+        if not projection_scale:
+            if cmds.objExists(f'{crv}.{projection_scale_attr}'):
+                projection_scale_value = cmds.getAttr(f'{crv}.{projection_scale_attr}')
+            else:
+                projection_scale_value = 5
+        curve.add_to_metadata(key=projection_axis_attr, value=projection_axis_value)  # x, y, z or persp
+        curve.add_to_metadata(key=projection_scale_attr, value=projection_scale_value)  # int
+        file_path = os.path.join(target_folder, f'{crv}.crv')
+        curve.write_curve_to_file(file_path)
+        sys.stdout.write(f'Curve exported to: "{file_path}". '
+                         f'(Axis:{projection_axis_value}, Scale: {projection_scale_value})\n')
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    from gt.utils.system_utils import get_desktop_path
-    first_selection = cmds.ls(selection=True)[0]
-    curve = Curve(read_existing_curve=first_selection)
-    curve.write_curve_to_file(os.path.join(get_desktop_path(), first_selection))
+    write_curve_file_from_selection(target_folder=DataDirConstants.DIR_CURVES)
     # generate_curve_thumbnail(target_dir=get_desktop_path(), curve=Curves.circle_arrow)
     pprint(out)
