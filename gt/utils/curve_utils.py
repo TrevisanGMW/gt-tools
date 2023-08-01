@@ -918,14 +918,14 @@ def write_curve_file_from_selection(target_folder, projection_axis=None, project
         if not projection_axis:
             if cmds.objExists(f'{crv}.{projection_axis_attr}'):
                 projection_axis_value = cmds.getAttr(f'{crv}.{projection_axis_attr}')
-            else:
+            if not projection_axis_value:
                 projection_axis_value = "y"
         # Get projection scale ----------------------------
         projection_scale_value = projection_scale
         if not projection_scale:
             if cmds.objExists(f'{crv}.{projection_scale_attr}'):
                 projection_scale_value = cmds.getAttr(f'{crv}.{projection_scale_attr}')
-            else:
+            if not projection_scale_value:
                 projection_scale_value = 5
         curve.add_to_metadata(key=projection_axis_attr, value=projection_axis_value)  # x, y, z or persp
         curve.add_to_metadata(key=projection_scale_attr, value=projection_scale_value)  # int
