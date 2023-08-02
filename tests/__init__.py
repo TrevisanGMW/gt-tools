@@ -20,6 +20,7 @@ for to_append in [source_dir, tools_root_dir]:
         sys.path.append(to_append)
 
 # Import Tests
+from tests import test_curve_library
 from tests import test_sample_tool
 from tests import test_utils
 from tests import test_ui
@@ -43,6 +44,7 @@ modules_to_test = [
     test_utils.test_system_utils,
     test_utils.test_version_utils,
     test_ui.test_resource_library,
+    test_curve_library.test_curve_library_model,
     test_sample_tool.test_sample_tool_model,
 ]
 
