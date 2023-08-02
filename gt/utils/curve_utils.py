@@ -35,7 +35,7 @@ def get_curve_path(curve_file):
     Args:
         curve_file (str): Name of the file. It doesn't need to contain its extension as it will always be "crv"
     Returns:
-        str: Path to the curve description file.
+        str or None: Path to the curve description file. None if not found.
     """
     if not isinstance(curve_file, str):
         logger.debug(f'Unable to retrieve curve file. Incorrect argument type: "{str(type(curve_file))}".')
@@ -44,6 +44,25 @@ def get_curve_path(curve_file):
         curve_file = f'{curve_file}.{CURVE_FILE_EXTENSION}'
     path_to_curve = os.path.join(DataDirConstants.DIR_CURVES, curve_file)
     return path_to_curve
+
+
+def get_curve_preview_image_path(curve_name):
+    """
+    Get the path to a curve data file. This file should exist inside the utils/data/curves folder.
+    Args:
+        curve_name (str): Name of the curve (same as curve file). It doesn't need to contain extension.
+                          Function will automatically look for JPG or PNG files.
+    Returns:
+        str or None: Path to the curve preview image file. None if not found.
+    """
+    if not isinstance(curve_name, str):
+        logger.debug(f'Unable to retrieve curve preview image. Incorrect argument type: "{str(type(curve_name))}".')
+        return
+
+    for ext in ["jpg", "png"]:
+        path_to_curve = os.path.join(DataDirConstants.DIR_CURVES, f'{curve_name}.{ext}')
+        if os.path.exists(path_to_curve):
+            return path_to_curve
 
 
 def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):

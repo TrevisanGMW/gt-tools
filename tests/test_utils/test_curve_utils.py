@@ -529,11 +529,19 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_curve_path(self):
-        path = curve_utils.get_curve_path("circle_arrow")
+        path = curve_utils.get_curve_path("circle")
         result = os.path.exists(path)
         self.assertTrue(result)
         result = os.path.basename(path)
-        expected = "circle_arrow.crv"
+        expected = "circle.crv"
+        self.assertEqual(expected, result)
+
+    def test_get_curve_preview_image_path(self):
+        path = curve_utils.get_curve_preview_image_path("circle")
+        result = os.path.exists(path)
+        self.assertTrue(result)
+        result = os.path.basename(path)
+        expected = "circle.jpg"
         self.assertEqual(expected, result)
 
     def test_curves_existence(self):
