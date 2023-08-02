@@ -21,15 +21,26 @@ class CurveLibraryController:
         """
         self.model = model
         self.view = view
+        self.view.controller = self
+        # Connections
         self.view.build_button.clicked.connect(self.build_view_selected_curve)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
-        self.view.controller = self
+        self.view.search_edit.textChanged.connect(self.filter_list)
+        self.populate_curve_library()
 
     def on_item_selection_changed(self):
         selected_item = self.view.item_list.currentItem().text()
         new_preview_image = self.model.get_preview_image(curve_name=selected_item)
         if new_preview_image:
             self.view.update_preview_image(new_image_path=new_preview_image)
+
+    def filter_list(self):
+        search_text = self.view.search_edit.text().lower()
+        self.view.item_list.clear()
+        curve_names = self.model.get_curve_names()
+        filtered_items = [item for item in curve_names if search_text in item.lower()]
+        self.view.item_list.addItems(filtered_items)
+        self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def build_view_selected_curve(self):
         selected_curve_name = self.view.item_list.currentItem().text()
@@ -42,7 +53,7 @@ class CurveLibraryController:
         item_text, ok = QInputDialog.getText(self.view, "Enter item name", "Item name:")
         if ok:
             self.model.add_item(item_text)
-            self.update_view()
+            self.populate_curve_library()
 
     def remove_item_view(self):
         """
@@ -51,9 +62,9 @@ class CurveLibraryController:
         selected_item = self.view.item_list.currentRow()
         if selected_item >= 0:
             self.model.remove_item(selected_item)
-            self.update_view()
+            self.populate_curve_library()
 
-    def update_view(self):
+    def populate_curve_library(self):
         """
         Update the view with the current list of items from the model.
         """

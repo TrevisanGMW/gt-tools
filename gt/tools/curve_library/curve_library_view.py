@@ -1,7 +1,7 @@
 """
 Curve Library Window
 """
-from PySide2.QtWidgets import QListWidget, QPushButton, QDialog, QWidget, QSplitter
+from PySide2.QtWidgets import QListWidget, QPushButton, QDialog, QWidget, QSplitter, QLineEdit, QDesktopWidget
 from PySide2.QtGui import QIcon, QPainter, QPixmap
 import gt.ui.resource_library as resource_library
 from PySide2.QtCore import QRect, QSize
@@ -53,6 +53,7 @@ class CurveLibraryWindow(QDialog):
         super().__init__(parent=parent)
 
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
+        self.search_edit = None
         self.item_list = None
         self.build_button = None
         self.preview_image = None
@@ -72,7 +73,8 @@ class CurveLibraryWindow(QDialog):
         sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
         sample_stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(sample_stylesheet)
-
+        self.resize_to_screen()
+        self.center()
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
 
     def update_preview_image(self, new_image_path):
@@ -82,13 +84,15 @@ class CurveLibraryWindow(QDialog):
     def create_widgets(self):
         self.item_list = QListWidget()
         self.build_button = QPushButton("Build")
-        # self.preview_container = LabelBWidget(self)
+        self.search_edit = QLineEdit(self)
+        self.search_edit.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self)
         self.update_preview_image(resource_library.Icon.curve_library_missing_file)
 
     def create_layout(self):
         list_button_container = QWidget()
         list_button_layout = QtWidgets.QVBoxLayout()
+        list_button_layout.addWidget(self.search_edit)
         list_button_layout.addWidget(self.item_list)
         list_button_layout.addWidget(self.build_button)
         list_button_container.setLayout(list_button_layout)
@@ -134,6 +138,28 @@ class CurveLibraryWindow(QDialog):
         center_position = qt_utils.get_screen_center()
         rect.moveCenter(center_position)
         self.move(rect.topLeft())
+
+    def resize_to_screen(self, percentage=20):
+        """
+        Resizes the window to match a percentage of the screen size.
+
+        Args:
+            percentage (int, optional): The percentage of the screen size that the window should inherit.
+                                        Must be a value between 0 and 100. Default is 20.
+
+        Raises:
+            ValueError: If the percentage is not within the range [0, 100].
+        """
+        if not 0 <= percentage <= 100:
+            raise ValueError("Percentage should be between 0 and 100")
+
+        # Get the primary screen's geometry
+        screen_geometry = QDesktopWidget().availableGeometry(self)
+        width = screen_geometry.width() * percentage / 100
+        height = screen_geometry.height() * percentage / 100
+
+        # Set the window size to match the specified percentage of the screen size
+        self.setGeometry(0, 0, width, height)
 
 
 if __name__ == "__main__":

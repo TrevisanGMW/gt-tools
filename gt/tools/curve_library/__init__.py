@@ -40,7 +40,6 @@ def build_curve_library_gui(standalone=True):
     # Create connections
     _model = curve_library_model.CurveLibraryModel()
     _controller = curve_library_controller.CurveLibraryController(model=_model, view=_view)
-    _controller.update_view()
 
     # Show window
     if standalone:
