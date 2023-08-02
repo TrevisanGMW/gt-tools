@@ -51,8 +51,8 @@ class CurveLibraryWindow(QDialog):
                                                  the garbage collector.
         """
         super().__init__(parent=parent)
-
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
+        self.splitter = None
         self.search_edit = None
         self.item_list = None
         self.build_button = None
@@ -67,7 +67,7 @@ class CurveLibraryWindow(QDialog):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.dev_screwdriver))
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
 
         sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
         sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
@@ -77,9 +77,12 @@ class CurveLibraryWindow(QDialog):
         self.center()
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
 
-    def update_preview_image(self, new_image_path):
+    def update_preview_image(self, new_image_path=None):
         # Add check, in case it doesn't exist here
-        self.preview_image.setPixmap(QPixmap(new_image_path))
+        if new_image_path:
+            self.preview_image.setPixmap(QPixmap(new_image_path))
+        else:
+            self.preview_image.setPixmap(QPixmap(resource_library.Icon.curve_library_missing_file))
 
     def create_widgets(self):
         self.item_list = QListWidget()
@@ -87,7 +90,7 @@ class CurveLibraryWindow(QDialog):
         self.search_edit = QLineEdit(self)
         self.search_edit.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self)
-        self.update_preview_image(resource_library.Icon.curve_library_missing_file)
+        self.update_preview_image()
 
     def create_layout(self):
         list_button_container = QWidget()
@@ -110,16 +113,15 @@ class CurveLibraryWindow(QDialog):
         preview_container.setMinimumWidth(200)
         preview_container.setMinimumHeight(200)
 
-        splitter = QSplitter(self)
-        splitter.setHandleWidth(5)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(list_button_container)
-        splitter.addWidget(preview_container)
-        splitter.setMaximumWidth(200)
+        self.splitter = QSplitter(self)
+        self.splitter.setHandleWidth(5)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.addWidget(list_button_container)
+        self.splitter.addWidget(preview_container)
 
         main_layout = QtWidgets.QHBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 11)  # Make Margins Uniform LTRB
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.splitter)
 
     def update_view_library(self, items):
         """
@@ -153,12 +155,10 @@ class CurveLibraryWindow(QDialog):
         if not 0 <= percentage <= 100:
             raise ValueError("Percentage should be between 0 and 100")
 
-        # Get the primary screen's geometry
         screen_geometry = QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
         height = screen_geometry.height() * percentage / 100
-
-        # Set the window size to match the specified percentage of the screen size
+        self.splitter.setSizes([width*.70, width*.65])
         self.setGeometry(0, 0, width, height)
 
 

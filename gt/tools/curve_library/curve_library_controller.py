@@ -41,6 +41,8 @@ class CurveLibraryController:
         filtered_items = [item for item in curve_names if search_text in item.lower()]
         self.view.item_list.addItems(filtered_items)
         self.view.item_list.setCurrentRow(0)  # Select index 0
+        if not filtered_items:
+            self.view.update_preview_image()
 
     def build_view_selected_curve(self):
         selected_curve_name = self.view.item_list.currentItem().text()
