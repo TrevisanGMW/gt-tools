@@ -326,6 +326,7 @@ class Icon:
     setup_uninstall = get_icon_path(r"setup_uninstall.svg")
     setup_run_only = get_icon_path(r"setup_run_only.svg")
     setup_close = get_icon_path(r"setup_close.svg")
+    curve_library_missing_file = get_icon_path(r"curve_library_missing_file.svg")
 
 
 class Color:
