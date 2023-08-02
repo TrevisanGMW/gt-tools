@@ -1,7 +1,8 @@
 """
 Curve Library Model
 """
-from gt.utils.curve_utils import Curves
+from gt.utils.curve_utils import Curves, get_curve_preview_image_path
+from gt.ui import resource_library
 import logging
 
 # Logging Setup
@@ -81,11 +82,33 @@ class CurveLibraryModel:
         Args:
             curve_name (str): Name of the curve to build
         Returns:
-            str: Name of the built curve
+            str or None: Name of the built curve
+        """
+        crv = self.get_curve_from_name(curve_name)
+        result = None
+        if crv:
+            result = crv.build()
+        return result
+
+    def get_curve_from_name(self, curve_name):
+        """
+        Gets a curve based on the provided name. (Curve name, not file name)
+        Args:
+            curve_name (str): Name of the curve to build
+        Returns:
+            Curve or None: Curve object with the requested name. None if not found.
         """
         for crv in self.curves:
             if curve_name == crv.get_name():
-                return crv.build()
+                return crv
+
+    @staticmethod
+    def get_preview_image(curve_name):
+        preview_image = get_curve_preview_image_path(curve_name)
+        if preview_image:
+            return preview_image
+        else:
+            return resource_library.Icon.curve_library_missing_file
 
 
 if __name__ == "__main__":

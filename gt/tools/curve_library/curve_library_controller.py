@@ -27,7 +27,9 @@ class CurveLibraryController:
 
     def on_item_selection_changed(self):
         selected_item = self.view.item_list.currentItem().text()
-        logger.debug(f"Selected item: {selected_item}")
+        new_preview_image = self.model.get_preview_image(curve_name=selected_item)
+        if new_preview_image:
+            self.view.update_preview_image(new_image_path=new_preview_image)
 
     def build_view_selected_curve(self):
         selected_curve_name = self.view.item_list.currentItem().text()
