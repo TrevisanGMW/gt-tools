@@ -98,6 +98,10 @@ def load_menu(*args):
     menu.add_sub_menu("Curves",
                       icon=resource_library.Icon.root_curves,
                       parent_to_root=True)
+    menu.add_menu_item(label='Curve Library',
+                       command=IMPORT_TOOL + 'initialize_tool("curve_library")',
+                       tooltip="Opens sample tool.",
+                       icon=resource_library.Icon.tool_crv_library)
     menu.add_menu_item(label='Generate Text Curve',
                        command=IMPORT_TOOL + 'initialize_tool("shape_text_to_curve")',
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
@@ -321,6 +325,10 @@ def load_menu(*args):
                        icon=resource_library.Icon.util_reset_persp)
 
     menu.add_divider()  # Delete Section +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Delete Custom Attributes',
+                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "delete_user_defined_attributes")',
+                       tooltip='Deletes user-defined (custom) attributes found on the selected objects.',
+                       icon=resource_library.Icon.util_delete_custom_attr)
     menu.add_menu_item(label='Delete Namespaces',
                        command=IMPORT_UTIL + 'initialize_utility("namespace_utils", "delete_namespaces")',
                        tooltip="Deletes all namespaces in the scene.",
@@ -371,10 +379,6 @@ def load_menu(*args):
                           parent_to_root=True)
         menu.add_menu_item(label='Sample Tool',
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
-                           tooltip="Opens sample tool.",
-                           icon=resource_library.Icon.dev_screwdriver)
-        menu.add_menu_item(label='Curve Library',
-                           command=IMPORT_TOOL + 'initialize_tool("curve_library")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
         menu.add_divider()  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++

@@ -32,6 +32,8 @@ def create_poly_cube(*args, **kwargs):
     Creates poly cube
     "polyCube" relevant parameters:
         name (str): Name of the poly cube
+    Returns:
+        list: Output of the "cmds.polyCube" command.
     """
     return cmds.polyCube(*args, **kwargs)
 

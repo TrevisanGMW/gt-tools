@@ -385,8 +385,12 @@ def unhide_default_channels():
     feedback.print_inview_message()
 
 
-def delete_user_defined_attributes():
-    """ Deletes all User defined attributes for the selected objects. """
+def delete_user_defined_attributes(delete_locked=True):
+    """
+    Deletes all User defined attributes for the selected objects.
+    Args:
+        delete_locked (bool, optional): If active, it will also delete locked attributes.
+    """
     function_name = 'Delete User Defined Attributes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
 
@@ -400,19 +404,21 @@ def delete_user_defined_attributes():
         for sel in selection:
             attributes = cmds.listAttr(sel, userDefined=True) or []
             for attr in attributes:
-                custom_attributes.append(sel + '.' + attr)
+                custom_attributes.append(f'{sel}.{attr}')
 
         deleted_counter = 0
-        for obj in custom_attributes:
+        for attr in custom_attributes:
             try:
-                cmds.deleteAttr(obj)
+                if delete_locked:
+                    cmds.setAttr(f"{attr}", lock=False)
+                cmds.deleteAttr(attr)
                 deleted_counter += 1
             except Exception as e:
                 logger.debug(str(e))
 
         feedback = FeedbackMessage(quantity=deleted_counter,
-                                   singular='user defined attribute was',
-                                   plural='user defined attributes were',
+                                   singular='user-defined attribute was',
+                                   plural='user-defined attributes were',
                                    conclusion='deleted.',
                                    zero_overwrite_message='No user defined attributes were deleted.')
         feedback.print_inview_message()
