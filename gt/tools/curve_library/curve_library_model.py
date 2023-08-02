@@ -27,17 +27,6 @@ class CurveLibraryModel:
         """
         self.curves.append(curve)
 
-    def remove_indexed_curve(self, index):
-        """
-        Remove an item from the list based on its index.
-
-        Args:
-            index: The index of the item to be removed.
-
-        """
-        if 0 <= index < len(self.curves):
-            del self.curves[index]
-
     def get_curves(self):
         """
         Get the list of items.
