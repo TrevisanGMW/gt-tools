@@ -2,7 +2,7 @@
 Curve Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attribute_utils import add_attr_double_three
+from gt.utils.attribute_utils import add_attr_double_three, add_separator_attr
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
@@ -391,8 +391,8 @@ class Curve:
                  shapes=None,
                  metadata=None,
                  read_existing_curve=None,
-                 read_curve_data_from_dict=None,
-                 read_curve_data_from_file=None):
+                 data_from_dict=None,
+                 data_from_file=None):
         """
         Initializes a Curve object
         Args:
@@ -403,8 +403,8 @@ class Curve:
                                      Only optional so the curve can be generated using a file, ultimately required.
             metadata (dict, optional): A dictionary with any extra information used to further describe the curve.
             read_existing_curve (str, optional): Extracts data from an existing curve in the scene.
-            read_curve_data_from_dict (dict, optional): If provided, this dictionary is used to populate the curve data.
-            read_curve_data_from_file (str, optional): Path to a JSON file describing the curve.
+            data_from_dict (dict, optional): If provided, this dictionary is used to populate the curve data.
+            data_from_file (str, optional): Path to a JSON file describing the curve.
                                                        It reads the JSON content as a "read_curve_data" dictionary.
         """
         self.name = name
@@ -418,11 +418,11 @@ class Curve:
         if read_existing_curve:
             self.read_data_from_existing_curve(read_existing_curve)
 
-        if read_curve_data_from_dict:
-            self.set_data_from_dict(data_dict=read_curve_data_from_dict)
+        if data_from_dict:
+            self.set_data_from_dict(data_dict=data_from_dict)
 
-        if read_curve_data_from_file:
-            self.read_curve_from_file(file_path=read_curve_data_from_file)
+        if data_from_file:
+            self.read_curve_from_file(file_path=data_from_file)
 
     def is_curve_valid(self):
         """
@@ -808,11 +808,22 @@ class CurveShape:
         # Basic elements -----------------------------------------
         if not self.is_curve_shape_valid():
             return
+
+        # Check if knots are valid
+        knot = self.knot
+        periodic = self.periodic
+        if self.degree and self.points and self.knot:
+            expected_knot_length = len(self.points) + self.degree - 1
+            if len(self.knot) != expected_knot_length:  # Invalid knots - Must have length (#CVs + degree - 1)
+                knot = None
+                periodic = None
+                logger.debug(f'CurveShape had an invalid number of knots:\n{self}')
+
         parameters = {"point": self.points}
         # Extra elements -----------------------------------------
         named_parameters = {'degree': self.degree,
-                            'periodic': self.periodic,
-                            'knot': self.knot,
+                            'periodic': periodic,
+                            'knot': knot,
                             }
         if self.name:
             named_parameters['name'] = f'{self.name}_transform'
@@ -906,27 +917,134 @@ class Curves:
         Use "build()" to create them in Maya.
         """
 
-    circle_arrow = Curve(read_curve_data_from_file=get_curve_path("circle_arrow"))
-    arrow_two_sided_1d = Curve(read_curve_data_from_file=get_curve_path("arrow_two_sided_1d"))
-    circle = Curve(read_curve_data_from_file=get_curve_path("circle"))
-    circle_wavy = Curve(read_curve_data_from_file=get_curve_path("circle_wavy"))
-    cube = Curve(read_curve_data_from_file=get_curve_path("cube"))
-    diamond = Curve(read_curve_data_from_file=get_curve_path("diamond"))
-    half_circle_arrow = Curve(read_curve_data_from_file=get_curve_path("half_circle_arrow"))
-    half_circle_double_arrows = Curve(read_curve_data_from_file=get_curve_path("half_circle_double_arrows"))
-    half_moon = Curve(read_curve_data_from_file=get_curve_path("half_moon"))
-    joint = Curve(read_curve_data_from_file=get_curve_path("joint"))
-    locator = Curve(read_curve_data_from_file=get_curve_path("locator"))
-    peanut = Curve(read_curve_data_from_file=get_curve_path("peanut"))
-    pin = Curve(read_curve_data_from_file=get_curve_path("pin"))
-    switch_ik_fk_left = Curve(read_curve_data_from_file=get_curve_path("switch_ik_fk_left"))
-    switch_ik_fk_right = Curve(read_curve_data_from_file=get_curve_path("switch_ik_fk_right"))
+    arrow_direction_eight_sides = Curve(data_from_file=get_curve_path("arrow_direction_eight_sides"))
+    arrow_direction_four_sides = Curve(data_from_file=get_curve_path("arrow_direction_four_sides"))
+    arrow_direction_four_sides_skinny = Curve(data_from_file=get_curve_path("arrow_direction_four_sides_skinny"))
+    arrow_direction_two_sides = Curve(data_from_file=get_curve_path("arrow_direction_two_sides"))
+    arrow_direction_two_sides_skinny = Curve(data_from_file=get_curve_path("arrow_direction_two_sides_skinny"))
+    arrow_direction_two_sides_skinny_heads = Curve(data_from_file=get_curve_path("arrow_direction_two_"
+                                                                                 "sides_skinny_heads"))
+    arrow_direction_two_sides_small = Curve(data_from_file=get_curve_path("arrow_direction_two_sides_small"))
+    arrow_direction_two_sides_smaller = Curve(data_from_file=get_curve_path("arrow_direction_two_sides_smaller"))
+    arrow_fletching_nock_flat = Curve(data_from_file=get_curve_path("arrow_fletching_nock_flat"))
+    arrow_head_aim_flat_four_sides = Curve(data_from_file=get_curve_path("arrow_head_aim_flat_four_sides"))
+    arrow_head_candy_corn_smooth = Curve(data_from_file=get_curve_path("arrow_head_candy_corn_smooth"))
+    arrow_head_flat_aim = Curve(data_from_file=get_curve_path("arrow_head_flat_aim"))
+    arrow_head_flat_concave = Curve(data_from_file=get_curve_path("arrow_head_flat_concave"))
+    arrow_head_flat_triangle = Curve(data_from_file=get_curve_path("arrow_head_flat_triangle"))
+    arrow_head_flat_triangle_small = Curve(data_from_file=get_curve_path("arrow_head_flat_triangle_small"))
+    arrow_head_outline_no_base = Curve(data_from_file=get_curve_path("arrow_head_outline_no_base"))
+    arrow_head_stylized = Curve(data_from_file=get_curve_path("arrow_head_stylized"))
+    arrow_long = Curve(data_from_file=get_curve_path("arrow_long"))
+    arrow_skinny = Curve(data_from_file=get_curve_path("arrow_skinny"))
+    arrow_small = Curve(data_from_file=get_curve_path("arrow_small"))
+    arrow_suit_spades_beet = Curve(data_from_file=get_curve_path("arrow_suit_spades_beet"))
+    asterisk = Curve(data_from_file=get_curve_path("asterisk"))
+    circle = Curve(data_from_file=get_curve_path("circle"))
+    circle_arrow = Curve(data_from_file=get_curve_path("circle_arrow"))
+    circle_arrow_rotation_half = Curve(data_from_file=get_curve_path("circle_arrow_rotation_half"))
+    circle_arrow_rotation_half_skinny = Curve(data_from_file=get_curve_path("circle_arrow_rotation_half_skinny"))
+    circle_arrow_rotation_half_thick = Curve(data_from_file=get_curve_path("circle_arrow_rotation_half_thick"))
+    circle_arrow_rotation_short = Curve(data_from_file=get_curve_path("circle_arrow_rotation_short"))
+    circle_arrow_rotation_short_skinny = Curve(data_from_file=get_curve_path("circle_arrow_rotation_short_skinny"))
+    circle_arrow_rotation_short_thick = Curve(data_from_file=get_curve_path("circle_arrow_rotation_short_thick"))
+    circle_four_arrows = Curve(data_from_file=get_curve_path("circle_four_arrows"))
+    circle_four_arrows_detached = Curve(data_from_file=get_curve_path("circle_four_arrows_detached"))
+    circle_four_arrows_stylized = Curve(data_from_file=get_curve_path("circle_four_arrows_stylized"))
+    circle_four_arrows_thick = Curve(data_from_file=get_curve_path("circle_four_arrows_thick"))
+    circle_pipe = Curve(data_from_file=get_curve_path("circle_pipe"))
+    circle_rotation_arrow_skinny = Curve(data_from_file=get_curve_path("circle_rotation_arrow_skinny"))
+    circle_wavy_eight_sides = Curve(data_from_file=get_curve_path("circle_wavy_eight_sides"))
+    circle_wavy_eight_sides_sun = Curve(data_from_file=get_curve_path("circle_wavy_eight_sides_sun"))
+    circle_wavy_hips = Curve(data_from_file=get_curve_path("circle_wavy_hips"))
+    circle_wavy_ten_sides = Curve(data_from_file=get_curve_path("circle_wavy_ten_sides"))
+    concave_half_moon = Curve(data_from_file=get_curve_path("concave_half_moon"))
+    concave_half_moon_handle = Curve(data_from_file=get_curve_path("concave_half_moon_handle"))
+    concave_half_moon_skinny = Curve(data_from_file=get_curve_path("concave_half_moon_skinny"))
+    creature_paw = Curve(data_from_file=get_curve_path("creature_paw"))
+    creature_tentacle = Curve(data_from_file=get_curve_path("creature_tentacle"))
+    cross_circle_heads = Curve(data_from_file=get_curve_path("cross_circle_heads"))
+    cross_plus = Curve(data_from_file=get_curve_path("cross_plus"))
+    cross_plus_small = Curve(data_from_file=get_curve_path("cross_plus_small"))
+    gear_crown_eight_sides = Curve(data_from_file=get_curve_path("gear_crown_eight_sides"))
+    gear_eight_sides = Curve(data_from_file=get_curve_path("gear_eight_sides"))
+    gear_four_sides = Curve(data_from_file=get_curve_path("gear_four_sides"))
+    gear_sixteen_sides = Curve(data_from_file=get_curve_path("gear_sixteen_sides"))
+    gear_six_sides = Curve(data_from_file=get_curve_path("gear_six_sides"))
+    gear_twelve_sides = Curve(data_from_file=get_curve_path("gear_twelve_sides"))
+    gear_twenty_sides = Curve(data_from_file=get_curve_path("gear_twenty_sides"))
+    human_ear = Curve(data_from_file=get_curve_path("human_ear"))
+    human_fist = Curve(data_from_file=get_curve_path("human_fist"))
+    human_foot_outline = Curve(data_from_file=get_curve_path("human_foot_outline"))
+    human_foot_shoe_heel = Curve(data_from_file=get_curve_path("human_foot_shoe_heel"))
+    human_hand_cartoon = Curve(data_from_file=get_curve_path("human_hand_cartoon"))
+    human_hand_cartoon_swirl = Curve(data_from_file=get_curve_path("human_hand_cartoon_swirl"))
+    human_hand_squared = Curve(data_from_file=get_curve_path("human_hand_squared"))
+    human_head = Curve(data_from_file=get_curve_path("human_head"))
+    human_mouth_lips = Curve(data_from_file=get_curve_path("human_mouth_lips"))
+    line_two_points = Curve(data_from_file=get_curve_path("line_two_points"))
+    locator = Curve(data_from_file=get_curve_path("locator"))
+    locator_handle_xyz = Curve(data_from_file=get_curve_path("locator_handle_xyz"))
+    locator_with_axis = Curve(data_from_file=get_curve_path("locator_with_axis"))
+    peanut = Curve(data_from_file=get_curve_path("peanut"))
+    pin = Curve(data_from_file=get_curve_path("pin"))
+    pin_arrow_to_circle = Curve(data_from_file=get_curve_path("pin_arrow_to_circle"))
+    pin_arrow_to_target = Curve(data_from_file=get_curve_path("pin_arrow_to_target"))
+    pin_circle_to_arrow = Curve(data_from_file=get_curve_path("pin_circle_to_arrow"))
+    pin_diamond_six_sides = Curve(data_from_file=get_curve_path("pin_diamond_six_sides"))
+    pin_flag = Curve(data_from_file=get_curve_path("pin_flag"))
+    pin_four_sides_flat_pyramids = Curve(data_from_file=get_curve_path("pin_four_sides_flat_pyramids"))
+    pin_hollow_two_sides = Curve(data_from_file=get_curve_path("pin_hollow_two_sides"))
+    pin_large = Curve(data_from_file=get_curve_path("pin_large"))
+    pin_large_four_sides = Curve(data_from_file=get_curve_path("pin_large_four_sides"))
+    pin_large_two_sides = Curve(data_from_file=get_curve_path("pin_large_two_sides"))
+    pin_speech_bubble = Curve(data_from_file=get_curve_path("pin_speech_bubble"))
+    pin_target_to_arrow = Curve(data_from_file=get_curve_path("pin_target_to_arrow"))
+    primitive_cone = Curve(data_from_file=get_curve_path("primitive_cone"))
+    primitive_cube = Curve(data_from_file=get_curve_path("primitive_cube"))
+    primitive_hexagonal_tube = Curve(data_from_file=get_curve_path("primitive_hexagonal_tube"))
+    primitive_pyramid = Curve(data_from_file=get_curve_path("primitive_pyramid"))
+    primitive_pyramid_half = Curve(data_from_file=get_curve_path("primitive_pyramid_half"))
+    primitive_tube = Curve(data_from_file=get_curve_path("primitive_tube"))
+    primitive_tube_half = Curve(data_from_file=get_curve_path("primitive_tube_half"))
+    primitive_tube_ring = Curve(data_from_file=get_curve_path("primitive_tube_ring"))
+    rhombus = Curve(data_from_file=get_curve_path("rhombus"))
+    rhombus_long = Curve(data_from_file=get_curve_path("rhombus_long"))
+    sphere_dome = Curve(data_from_file=get_curve_path("sphere_dome"))
+    sphere_four_directions = Curve(data_from_file=get_curve_path("sphere_four_directions"))
+    sphere_half_arrow = Curve(data_from_file=get_curve_path("sphere_half_arrow"))
+    sphere_half_double_arrows = Curve(data_from_file=get_curve_path("sphere_half_double_arrows"))
+    sphere_half_double_arrows_skinny = Curve(data_from_file=get_curve_path("sphere_half_double_arrows_skinny"))
+    sphere_half_four_arrows = Curve(data_from_file=get_curve_path("sphere_half_four_arrows"))
+    sphere_half_top_four_arrows = Curve(data_from_file=get_curve_path("sphere_half_top_four_arrows"))
+    sphere_half_two_arrows = Curve(data_from_file=get_curve_path("sphere_half_two_arrows"))
+    sphere_joint = Curve(data_from_file=get_curve_path("sphere_joint"))
+    sphere_joint_loc = Curve(data_from_file=get_curve_path("sphere_joint_loc"))
+    sphere_joint_smooth = Curve(data_from_file=get_curve_path("sphere_joint_smooth"))
+    sphere_two_directions = Curve(data_from_file=get_curve_path("sphere_two_directions"))
+    spring = Curve(data_from_file=get_curve_path("spring"))
+    spring_high_frequency = Curve(data_from_file=get_curve_path("spring_high_frequency"))
+    spring_low_frequency = Curve(data_from_file=get_curve_path("spring_low_frequency"))
+    square = Curve(data_from_file=get_curve_path("square"))
+    square_corner_flat = Curve(data_from_file=get_curve_path("square_corner_flat"))
+    square_corner_flat_skinny = Curve(data_from_file=get_curve_path("square_corner_flat_skinny"))
+    swirl_five_spaces = Curve(data_from_file=get_curve_path("swirl_five_spaces"))
+    swirl_two_spaces = Curve(data_from_file=get_curve_path("swirl_two_spaces"))
+    switch_ik_fk_left = Curve(data_from_file=get_curve_path("switch_ik_fk_left"))
+    switch_ik_fk_right = Curve(data_from_file=get_curve_path("switch_ik_fk_right"))
+    symbol_female = Curve(data_from_file=get_curve_path("symbol_female"))
+    symbol_male = Curve(data_from_file=get_curve_path("symbol_male"))
+    symbol_snowflake = Curve(data_from_file=get_curve_path("symbol_snowflake"))
+    target_circle = Curve(data_from_file=get_curve_path("target_circle"))
+    target_squared = Curve(data_from_file=get_curve_path("target_squared"))
+    triangle_pyramid_flat_four_arrows = Curve(data_from_file=get_curve_path("triangle_pyramid_flat_four_arrows"))
+    triangle_pyramid_flat_two_arrows = Curve(data_from_file=get_curve_path("triangle_pyramid_flat_two_arrows"))
 
 
 def add_thumbnail_metadata_attr_to_selection():
     """
     Adds projection attributes to the selected objects.
-    Such attributes are used to determine if metadata should be added to the curve file.
+    These attributes are used to determine if metadata should be added to the curve file.
     This metadata is later used to automatically generate thumbnails for the curve.
     """
     selection = cmds.ls(selection=True, long=True) or []
@@ -934,12 +1052,45 @@ def add_thumbnail_metadata_attr_to_selection():
         logger.warning("Nothing selected!")
         return
     for obj in selection:
-        if not cmds.objExists(f'{obj}.{PROJECTION_AXIS_KEY}'):
-            cmds.addAttr(obj, longName=PROJECTION_AXIS_KEY, dataType='string', k=True)
-        if not cmds.objExists(f'{obj}.{PROJECTION_SCALE_KEY}'):
+        path_axis_attr = f'{obj}.{PROJECTION_AXIS_KEY}'
+        path_scale_attr = f'{obj}.{PROJECTION_SCALE_KEY}'
+        path_fit_attr = f'{obj}.{PROJECTION_FIT_KEY}'
+        initial_axis = None
+        initial_scale = None
+        initial_fit = None
+
+        # Extract and delete if existing
+        if cmds.objExists(path_axis_attr):
+            cmds.setAttr(path_axis_attr, lock=False)
+            initial_axis = cmds.getAttr(path_axis_attr)
+            cmds.deleteAttr(path_axis_attr)
+        if cmds.objExists(path_scale_attr):
+            cmds.setAttr(path_scale_attr, lock=False)
+            initial_scale = cmds.getAttr(path_scale_attr)
+            cmds.deleteAttr(path_scale_attr)
+        if cmds.objExists(path_fit_attr):
+            cmds.setAttr(path_fit_attr, lock=False)
+            initial_fit = cmds.getAttr(path_fit_attr)
+            cmds.deleteAttr(path_fit_attr)
+
+        # Create
+        add_separator_attr(target_object=obj, attr_name='projectionAttributes')
+        if not cmds.objExists(path_axis_attr):
+            cmds.addAttr(obj, longName=PROJECTION_AXIS_KEY, at='enum', en="persp:x:y:z", keyable=True)
+        if not cmds.objExists(path_scale_attr):
             cmds.addAttr(obj, longName=PROJECTION_SCALE_KEY, at='double', k=True, minValue=0)
-        if not cmds.objExists(f'{obj}.{PROJECTION_FIT_KEY}'):
+        if not cmds.objExists(path_fit_attr):
             cmds.addAttr(obj, longName=PROJECTION_FIT_KEY, at='bool', k=True)
+
+        # Set Extracted
+        if initial_axis:
+            cmds.setAttr(path_axis_attr, initial_axis)
+        if initial_scale:
+            cmds.setAttr(path_scale_attr, initial_scale)
+        if initial_fit:
+            cmds.setAttr(path_fit_attr, initial_fit)
+
+        # Feedback
         sys.stdout.write('Metadata attributes were added to selection.')
 
 
@@ -954,7 +1105,7 @@ def write_curve_files_from_selection(target_dir=None,
         target_dir (str, optional): Path to a folder where the curve file is going to be written to.
         projection_axis (str, optional): Project axis stored as metadata in the curve file.
                                          Later used to automatically generate thumbnails
-                                         Can be "x", "y", "z" or "persp". If set to "None", then default is "y".
+                                         Can be "x", "y", "z" or "persp". If set to "None", then default is "persp".
                                          Similar to UV projection, that's the direction where the camera will be.
                                          Note: If an attribute with the name "projection_axis" exists on the object,
                                          this function will attempt to retrieve it automatically.
@@ -982,9 +1133,9 @@ def write_curve_files_from_selection(target_dir=None,
         projection_axis_value = projection_axis
         if not projection_axis:
             if cmds.objExists(f'{crv}.{PROJECTION_AXIS_KEY}'):
-                projection_axis_value = cmds.getAttr(f'{crv}.{PROJECTION_AXIS_KEY}')
+                projection_axis_value = cmds.getAttr(f'{crv}.{PROJECTION_AXIS_KEY}', asString=True) or "persp"
             if not projection_axis_value:
-                projection_axis_value = "y"
+                projection_axis_value = "persp"
         # Get projection scale ----------------------------
         projection_scale_value = projection_scale
         if not projection_scale:
@@ -1148,12 +1299,34 @@ def generate_curves_thumbnails(target_dir=None, force=False):
     cmds.file(new=True, force=True)
 
 
+def print_code_for_crv_files(target_dir=None):
+    """
+    Internal function used to create Python code lines for every ".crv" file found in the "target_dir"
+    It prints all lines, so they can be copied/pasted into the Curves class.
+    Args:
+        target_dir (str, optional): If provided, this path will be used instead of the default "utils/data/curves" path.\
+    Returns:
+        list: List of printed lines
+    """
+    if not target_dir:
+        target_dir = DataDirConstants.DIR_CURVES
+    printed_lines = []
+    for file in os.listdir(target_dir):
+        if file.endswith(".crv"):
+            file_stripped = file.replace('.crv', '')
+            line = f'{file_stripped} = Curve(data_from_file=get_curve_path("{file_stripped}"))'
+            printed_lines.append(line)
+            print(line)
+    sys.stdout.write(f'Python lines for "Curves" class were printed. (If in Maya, open the script editor)')
+    return printed_lines
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
     # add_thumbnail_metadata_attr_to_selection()
+    # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    out = Curves.get_curves()
     pprint(out)
