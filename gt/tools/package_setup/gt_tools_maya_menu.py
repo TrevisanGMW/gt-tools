@@ -428,7 +428,7 @@ def load_menu(*args):
                        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
                        icon=resource_library.Icon.misc_rebuild_menu)
     menu.add_menu_item(label='Check for Updates',
-                       command=IMPORT_TOOL + 'initialize_tool("check_for_updates")',
+                       command=IMPORT_TOOL + 'initialize_tool("package_updater")',
                        tooltip="Check for updates by comparing current version with latest release.",
                        icon=resource_library.Icon.tool_check_for_updates)
     menu.add_menu_item(label='Develop Menu Toggle',

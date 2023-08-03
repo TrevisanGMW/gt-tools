@@ -1,30 +1,6 @@
 """
  GT Check for Updates - This script compares your current GT Tools version with the latest release.
  github.com/TrevisanGMW/gt-tools - 2020-11-10
-
-    Debugging Lines:
-        # GT Tools Version Query/Overwrite
-        cmds.optionVar(q=("gt_tools_version"))
-        cmds.optionVar( sv=('gt_tools_version', str("1.2.3")))
-
-        # Remove optionVars
-        cmds.optionVar( remove='gt_check_for_updates_last_date' )
-        cmds.optionVar( remove='gt_check_for_updates_auto_active' )
-        cmds.optionVar( remove='gt_check_for_updates_interval_days' )
-
-        # Set optionVars
-        date_time_str = '2020-01-01 17:08:00'
-        cmds.optionVar( sv=('gt_check_for_updates_last_date', str(date_time_str)))
-        is_active = True
-        cmds.optionVar( iv=('gt_check_for_updates_auto_active', int(is_active)))
-        how_often_days = 15
-        cmds.optionVar( iv=('gt_check_for_updates_interval_days', int(how_often_days)))
-        
-        # Query optionVars
-        cmds.optionVar(q=("gt_check_for_updates_last_date"))
-        cmds.optionVar(q=("gt_check_for_updates_auto_active"))
-        cmds.optionVar(q=("gt_check_for_updates_interval_days"))
-
 """
 
 from maya import OpenMayaUI as OpenMayaUI

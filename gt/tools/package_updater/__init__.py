@@ -71,9 +71,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Check for Updates.
     """
-    from gt.tools.check_for_updates import check_for_updates
-    check_for_updates.script_version = __version__
-    check_for_updates.build_gui_check_for_updates()
+    from gt.tools.package_updater import package_updater
+    package_updater.script_version = __version__
+    package_updater.build_gui_check_for_updates()
 
 
 if __name__ == "__main__":
