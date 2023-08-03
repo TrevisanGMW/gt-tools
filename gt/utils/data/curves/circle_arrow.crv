@@ -173,7 +173,7 @@
     ],
     "metadata": {
         "projectionAxis": "y",
-        "projectionScale": 1.0,
+        "projectionScale": 5.0,
         "projectionFit": true
     }
 }

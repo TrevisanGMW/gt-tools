@@ -1,0 +1,75 @@
+{
+    "name": "primitive_pyramid",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "primitive_pyramidShape",
+            "points": [
+                [
+                    0.0,
+                    2.0,
+                    0.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    -1.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    0.0,
+                    2.0,
+                    0.0
+                ],
+                [
+                    -1.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    0.0,
+                    2.0,
+                    0.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    -1.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    -1.0,
+                    0.0,
+                    -1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "persp",
+        "projectionScale": 6.0,
+        "projectionFit": true
+    }
+}

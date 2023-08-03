@@ -82,7 +82,7 @@
         }
     ],
     "metadata": {
-        "projectionAxis": "z",
+        "projectionAxis": "persp",
         "projectionScale": 1.2,
         "projectionFit": false
     }
