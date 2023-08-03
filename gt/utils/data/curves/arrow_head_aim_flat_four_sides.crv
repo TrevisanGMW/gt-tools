@@ -1,0 +1,60 @@
+{
+    "name": "arrow_head_aim_flat_four_sides",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "arrow_head_aim_flat_four_sidesShape",
+            "points": [
+                [
+                    0.0,
+                    0.0,
+                    -2.0
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    2.0,
+                    -1.0
+                ],
+                [
+                    0.0,
+                    -2.0,
+                    -1.0
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    -2.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    2.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "persp",
+        "projectionScale": 3.0,
+        "projectionFit": true
+    }
+}

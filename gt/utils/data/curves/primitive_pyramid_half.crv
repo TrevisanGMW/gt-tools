@@ -1,0 +1,65 @@
+{
+    "name": "primitive_pyramid_half",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "primitive_pyramid_halfShape",
+            "points": [
+                [
+                    -1.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    0.0,
+                    1.0,
+                    0.0
+                ],
+                [
+                    -1.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    1.0,
+                    0.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "persp",
+        "projectionScale": 5.0,
+        "projectionFit": true
+    }
+}

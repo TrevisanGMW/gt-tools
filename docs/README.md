@@ -105,9 +105,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
      width="500"
      align="center">
 <ol>
-	<li><b>Install:</b>: Copies the files to the installation path and loads (reloads) the package. </li>
-	<li><b>Uninstall:</b>: Deletes the files from the installation path and unloads the package.</li>
-	<li><b>Run Only:</b>: "One time use only"; Loads tools from current location without copying files.</li>
+	<li><b>Install:</b> Copies the files to the installation path and loads (reloads) the package. </li>
+	<li><b>Uninstall:</b> Deletes the files from the installation path and unloads the package.</li>
+	<li><b>Run Only:</b> "One time use only"; Loads tools from current location without copying files.</li>
 </ol>
 
 <h3>Checksum Verification</h3>
@@ -145,6 +145,8 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <p><b>Help > Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts.</p>
 
 <p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
+
+<p><b>Help > Toggle Develop Mode: </b>Toggles the state of development mode. When active a new sub-menu "Develop" appears under the main drop-down menu. This sub-menu contains tools and functions used for the development of new tools.</p>
 
 <p><b>Help > Installed Version: </b>What version is currently installed.</p>
 <br>

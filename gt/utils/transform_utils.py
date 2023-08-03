@@ -55,6 +55,18 @@ class Transform:
                    )
         return False
 
+    def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
+        if not target_object or not cmds.objExists(target_object):
+            logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
+            return
+        cmds.move(self.position.x, self.position.y, self.position.z,
+                  worldSpace=world_space, relative=relative, objectSpace=object_space)
+        cmds.rotate(self.rotation.x, self.rotation.y, self.rotation.z,
+                    worldSpace=world_space, relative=relative, objectSpace=object_space)
+        cmds.setAttr(f'{target_object}.sx', self.scale.x)
+        cmds.setAttr(f'{target_object}.sy', self.scale.y)
+        cmds.setAttr(f'{target_object}.sz', self.scale.z)
+
 
 def move_pivot_top():
     """ Moves pivot point to the top of the boundary box """

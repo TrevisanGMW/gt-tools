@@ -68,7 +68,7 @@ def string_list_to_snake_case(string_list, separating_string="_", force_lowercas
     return result_string
 
 
-def camel_case_to_snake_case(camel_case_string):
+def camel_to_snake(camel_case_string):
     """
     Uses "string_list_to_snake_case" and "camel_case_split" to convert camelCase to snake_case
     Args:
@@ -146,6 +146,34 @@ def extract_digits(input_string):
     pattern = r'\d+'
     digits_list = re.findall(pattern, input_string)
     return ''.join(digits_list)
+
+
+def snake_to_camel(snake_case_str):
+    """
+    Converts a string from snake_case to camelCase.
+
+    Snake case is a convention where words are separated by underscores, e.g., "hello_world".
+    Camel case is a convention where words are joined together, and each word starts with a capital letter except the first one, e.g., "helloWorld".
+
+    Parameters:
+        snake_case_str (str): The input string in snake_case format.
+
+    Returns:
+        str: The converted string in camelCase format.
+
+    Example:
+        snake_to_camel("hello_world")
+        # Output: "helloWorld"
+
+        snake_to_camel("my_variable_name")
+        # Output: "myVariableName"
+
+        snake_to_camel("python_is_awesome")
+        # Output: "pythonIsAwesome"
+    """
+    words = snake_case_str.split('_')
+    camel_case_str = words[0] + ''.join(word.capitalize() for word in words[1:])
+    return camel_case_str
 
 
 if __name__ == "__main__":

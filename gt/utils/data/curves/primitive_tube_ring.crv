@@ -1,0 +1,407 @@
+{
+    "name": "primitive_tube_ring",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "ringCurve01Shape",
+            "points": [
+                [
+                    0.866,
+                    0.25,
+                    -0.5
+                ],
+                [
+                    0.5,
+                    0.25,
+                    -0.866
+                ],
+                [
+                    0.0,
+                    0.25,
+                    -1.0
+                ],
+                [
+                    -0.5,
+                    0.25,
+                    -0.866
+                ],
+                [
+                    -0.866,
+                    0.25,
+                    -0.5
+                ],
+                [
+                    -1.0,
+                    0.25,
+                    0.0
+                ],
+                [
+                    -0.866,
+                    0.25,
+                    0.5
+                ],
+                [
+                    -0.5,
+                    0.25,
+                    0.866
+                ],
+                [
+                    0.0,
+                    0.25,
+                    1.0
+                ],
+                [
+                    0.5,
+                    0.25,
+                    0.866
+                ],
+                [
+                    0.866,
+                    0.25,
+                    0.5
+                ],
+                [
+                    1.0,
+                    0.25,
+                    0.0
+                ],
+                [
+                    0.866,
+                    0.25,
+                    -0.5
+                ],
+                [
+                    0.5,
+                    0.25,
+                    -0.866
+                ],
+                [
+                    0.0,
+                    0.25,
+                    -1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve02Shape",
+            "points": [
+                [
+                    0.866,
+                    -0.25,
+                    -0.5
+                ],
+                [
+                    0.5,
+                    -0.25,
+                    -0.866
+                ],
+                [
+                    0.0,
+                    -0.25,
+                    -1.0
+                ],
+                [
+                    -0.5,
+                    -0.25,
+                    -0.866
+                ],
+                [
+                    -0.866,
+                    -0.25,
+                    -0.5
+                ],
+                [
+                    -1.0,
+                    -0.25,
+                    0.0
+                ],
+                [
+                    -0.866,
+                    -0.25,
+                    0.5
+                ],
+                [
+                    -0.5,
+                    -0.25,
+                    0.866
+                ],
+                [
+                    0.0,
+                    -0.25,
+                    1.0
+                ],
+                [
+                    0.5,
+                    -0.25,
+                    0.866
+                ],
+                [
+                    0.866,
+                    -0.25,
+                    0.5
+                ],
+                [
+                    1.0,
+                    -0.25,
+                    0.0
+                ],
+                [
+                    0.866,
+                    -0.25,
+                    -0.5
+                ],
+                [
+                    0.5,
+                    -0.25,
+                    -0.866
+                ],
+                [
+                    0.0,
+                    -0.25,
+                    -1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve03Shape",
+            "points": [
+                [
+                    0.0,
+                    0.25,
+                    1.0
+                ],
+                [
+                    0.0,
+                    -0.25,
+                    1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve04Shape",
+            "points": [
+                [
+                    0.5,
+                    0.25,
+                    0.866
+                ],
+                [
+                    0.5,
+                    -0.25,
+                    0.866
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve05Shape",
+            "points": [
+                [
+                    0.866,
+                    0.25,
+                    0.5
+                ],
+                [
+                    0.866,
+                    -0.25,
+                    0.5
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve06Shape",
+            "points": [
+                [
+                    1.0,
+                    0.25,
+                    0.0
+                ],
+                [
+                    1.0,
+                    -0.25,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve07Shape",
+            "points": [
+                [
+                    0.866,
+                    0.25,
+                    -0.5
+                ],
+                [
+                    0.866,
+                    -0.25,
+                    -0.5
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve08Shape",
+            "points": [
+                [
+                    0.5,
+                    0.25,
+                    -0.866
+                ],
+                [
+                    0.5,
+                    -0.25,
+                    -0.866
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve09Shape",
+            "points": [
+                [
+                    0.0,
+                    0.25,
+                    -1.0
+                ],
+                [
+                    0.0,
+                    -0.25,
+                    -1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve10Shape",
+            "points": [
+                [
+                    -0.5,
+                    0.25,
+                    -0.866
+                ],
+                [
+                    -0.5,
+                    -0.25,
+                    -0.866
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve11Shape",
+            "points": [
+                [
+                    -0.866,
+                    0.25,
+                    -0.5
+                ],
+                [
+                    -0.866,
+                    -0.25,
+                    -0.5
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve12Shape",
+            "points": [
+                [
+                    -1.0,
+                    0.25,
+                    0.0
+                ],
+                [
+                    -1.0,
+                    -0.25,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve13Shape",
+            "points": [
+                [
+                    -0.866,
+                    0.25,
+                    0.5
+                ],
+                [
+                    -0.866,
+                    -0.25,
+                    0.5
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "ringCurve14Shape",
+            "points": [
+                [
+                    -0.5,
+                    0.25,
+                    0.866
+                ],
+                [
+                    -0.5,
+                    -0.25,
+                    0.866
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "persp",
+        "projectionScale": 1.0,
+        "projectionFit": true
+    }
+}

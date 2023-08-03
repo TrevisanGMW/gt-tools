@@ -32,6 +32,8 @@ def create_poly_cube(*args, **kwargs):
     Creates poly cube
     "polyCube" relevant parameters:
         name (str): Name of the poly cube
+    Returns:
+        list: Output of the "cmds.polyCube" command.
     """
     return cmds.polyCube(*args, **kwargs)
 
@@ -54,7 +56,7 @@ def set_attribute(obj_name, attr_name, value, *args, **kwargs):
     Args:
         obj_name (str): Name of the target object (object that will receive new values)
         attr_name (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-        value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+        value (any): Value used to set attribute. e.g. 1.5, 2, 5...
     """
     cmds.setAttr(f"{obj_name}.{attr_name}", value, *args, **kwargs)
 
@@ -81,6 +83,33 @@ def list_objects(*args, **kwargs):
         list: A list of objects found in the scene (according to provided parameters)
     """
     return cmds.ls(*args, **kwargs)
+
+
+def list_relatives(*args, **kwargs):
+    """
+    Same as "cmds.listRelatives()"
+    "listRelatives" relevant parameters:
+        children (bool): List object children
+        shapes (bool): List object shapes
+    Returns:
+        list: A list of relative objects
+    """
+    return cmds.listRelatives(*args, **kwargs)
+
+
+def list_obj_types(obj_list):
+    """
+    Returns a dictionary with the object types
+    Args:
+        obj_list (list): List of objects. e.g. ["pCube1", "pCube2"]
+    Returns:
+        dict: A dictionary with object name as key and object type as value.
+    """
+    obj_types = {}
+    for obj in obj_list:
+        if obj and cmds.objExists(obj):
+            obj_types[obj] = cmds.objectType(obj)
+    return obj_types
 
 
 def get_data_dir_path(module=None):

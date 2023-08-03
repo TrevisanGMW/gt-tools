@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class DataDirConstants:
+    def __init__(self):
+        """
+        Expected locations - Used to retrieve data
+        """
+    DIR_UTILS = os.path.dirname(__file__)
+    DIR_PACKAGE = os.path.dirname(DIR_UTILS)
+    DIR_RESOURCES = os.path.join(DIR_UTILS, "data")
+    DIR_SCRIPTS = os.path.join(DIR_RESOURCES, 'scripts')
+    DIR_CURVES = os.path.join(DIR_RESOURCES, 'curves')
+
+
 def write_data(path, data):
     """
     Write data to a file.

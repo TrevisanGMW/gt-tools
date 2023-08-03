@@ -5,6 +5,7 @@ from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_p
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
 from gt.utils.session_utils import remove_modules_startswith, get_maya_version
 from gt.utils.feedback_utils import print_when_true
+from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
 import shutil
@@ -322,8 +323,7 @@ def copy_package_loader_to_maya_installs():
     e.g. Windows: "Documents/scripts/gt_tools_loader.py"
     """
     to_copy_list = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=False)
-    utils_dir = os.path.dirname(__file__)
-    package_loader_script = os.path.join(utils_dir, "data", "package_loader.py")  # utils/data/package_loader.py
+    package_loader_script = os.path.join(DataDirConstants.DIR_SCRIPTS, "package_loader.py")
     if os.path.isfile(package_loader_script):
         for path in to_copy_list:
             shutil.copy(package_loader_script, path)
