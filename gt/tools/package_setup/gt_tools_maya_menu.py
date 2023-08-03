@@ -115,7 +115,7 @@ def load_menu(*args):
                        tooltip='Generates the python command necessary to reshape curves back to their stored state.',
                        icon=resource_library.Icon.tool_crv_extract_state)
 
-    menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Utilities")  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Combine Curves',
                        command=IMPORT_UTIL + 'initialize_utility("curve_utils", "selected_curves_combine")',
                        tooltip='Combine curves by moving all the shape objects inside one single transform.',
@@ -138,7 +138,7 @@ def load_menu(*args):
                        tooltip='A reminder for students that there are other sphere types.',
                        icon=resource_library.Icon.tool_sphere_types)
 
-    menu.add_divider()  # Utility Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Utilities")  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Preview All UDIMs',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "generate_udim_previews")',
                        tooltip='Generates UDIM previews for all file nodes.',
@@ -149,7 +149,7 @@ def load_menu(*args):
                                'If used with volume or particles the output will be empty.',
                        icon=resource_library.Icon.util_mod_bif_to_mesh)
 
-    menu.add_divider()  # Material Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Copy/Paste Utilities")  # Material Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Copy Material',
                        command=IMPORT_UTIL + 'initialize_utility("misc_utils", "material_copy")',
                        tooltip='Copies material to clipboard.',
@@ -234,7 +234,7 @@ def load_menu(*args):
                        tooltip='Opens the directory where the scene is located.',
                        icon=resource_library.Icon.util_open_dir)
 
-    menu.add_divider()  # General +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="General Utilities")  # General +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Complete HUD Toggle',
                        command=IMPORT_UTIL + 'initialize_utility("display_utils", "toggle_full_hud")',
                        tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
@@ -274,7 +274,7 @@ def load_menu(*args):
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
                        icon=resource_library.Icon.util_unlock_trs)
 
-    menu.add_divider()  # Convert Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Convert Utilities")  # Convert Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Convert Joints to Mesh',
                        command=IMPORT_UTIL + 'initialize_utility("joint_utils", "convert_joints_to_mesh")',
                        tooltip='Converts joints to mesh. (Helpful when sending references to other applications)',
@@ -284,7 +284,7 @@ def load_menu(*args):
                        tooltip="Converts transforms to locators. Function doesn't affect selected objects.",
                        icon=resource_library.Icon.util_convert_loc)
 
-    menu.add_divider()  # References Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Reference Utilities")  # References Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Import References',
                        command=IMPORT_UTIL + 'initialize_utility("reference_utils", "references_import")',
                        tooltip="Imports all references.",
@@ -294,7 +294,7 @@ def load_menu(*args):
                        tooltip="Removes all references.",
                        icon=resource_library.Icon.util_ref_remove)
 
-    menu.add_divider()  # Pivot Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Pivot Utilities")  # Pivot Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Move Pivot to Top',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_pivot_top")',
                        tooltip="Moves pivot point to the top of the bounding box of every selected object.",
@@ -308,7 +308,7 @@ def load_menu(*args):
                        tooltip="Moves selected objects to origin according to their pivot point.",
                        icon=resource_library.Icon.util_move_origin)
 
-    menu.add_divider()  # Reset Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Reset Utilities")  # Reset Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Reset Transforms',
                        command=IMPORT_UTIL + 'initialize_utility("transform_utils", "reset_transforms")',
                        tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
@@ -324,7 +324,7 @@ def load_menu(*args):
                        tooltip="If persp camera exists (default camera), reset its attributes.",
                        icon=resource_library.Icon.util_reset_persp)
 
-    menu.add_divider()  # Delete Section +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Delete Utilities")  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Custom Attributes',
                        command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "delete_user_defined_attributes")',
                        tooltip='Deletes user-defined (custom) attributes found on the selected objects.',
@@ -381,7 +381,7 @@ def load_menu(*args):
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
-        menu.add_divider()  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
+        menu.add_divider(divider_label="Curves")  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Add Thumbnail Metadata to Selection',
                            command='from gt.utils.curve_utils import add_thumbnail_metadata_attr_to_selection\n'
                                    'add_thumbnail_metadata_attr_to_selection()\n',
@@ -392,12 +392,17 @@ def load_menu(*args):
                                    'write_curve_files_from_selection()\n',
                            tooltip="Write curve data attributes to a desktop folder.",
                            icon=resource_library.Icon.dev_code)
+        menu.add_menu_item(label='Print CRV files to Python for Curves',
+                           command='from gt.utils.curve_utils import print_code_for_crv_files\n'
+                                   'print_code_for_crv_files()\n',
+                           tooltip='Prints Python Lines used to call curves from "Curves" class.',
+                           icon=resource_library.Icon.dev_code)
         menu.add_menu_item(label='Render Curves Thumbnails',
                            command='from gt.utils.curve_utils import generate_curves_thumbnails\n'
                                    'generate_curves_thumbnails()\n',
                            tooltip="Render thumbnails for current curves to a desktop folder.",
                            icon=resource_library.Icon.dev_code)
-        menu.add_divider()  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_divider(divider_label="Package")  # Misc Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',
