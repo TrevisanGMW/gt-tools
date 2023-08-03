@@ -58,3 +58,16 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True) or []
         expected = ['custom_attr_two']
         self.assertEqual(expected, result)
+
+    def test_add_separator_attr(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attribute_utils.add_separator_attr(target_object=cube, attr_name='mySeparator')
+        result = maya_test_tools.cmds.objExists(f'{cube}.mySeparator')
+        self.assertTrue(result)
+
+    def test_add_separator_attr_custom_value(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attribute_utils.add_separator_attr(target_object=cube, attr_name='mySeparator', custom_value="test")
+        result = maya_test_tools.cmds.getAttr(f'{cube}.mySeparator', asString=True)
+        expected = 'test'
+        self.assertEqual(expected, result)
