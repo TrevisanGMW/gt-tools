@@ -90,6 +90,46 @@ class TestStringUtils(unittest.TestCase):
                                                          undesired_string_list=to_remove_list)
         self.assertEqual(expected, result)
 
+    def test_remove_strings(self):
+        # Test removing strings from the input
+        input_string = "left_elbow_ctrl"
+        undesired_string_list = ["left", "ctrl"]
+        result = string_utils.remove_strings_from_string(input_string, undesired_string_list)
+        expected = "_elbow_"
+        self.assertEqual(expected, result)
+
+    def test_remove_prefix_only(self):
+        # Test removing prefix strings only
+        input_string = "one_two"
+        undesired_string_list = ["one"]
+        result = string_utils.remove_strings_from_string(input_string, undesired_string_list, only_prefix=True)
+        expected = "_two"
+        self.assertEqual(expected, result)
+
+    def test_remove_suffix_only(self):
+        # Test removing suffix strings only
+        input_string = "one_two"
+        undesired_string_list = ["two"]
+        result = string_utils.remove_strings_from_string(input_string, undesired_string_list, only_suffix=True)
+        expected = "one_"
+        self.assertEqual(expected, result)
+
+    def test_remove_prefix_and_suffix_raises_error(self):
+        # Test that an error is raised when both only_prefix and only_suffix are True
+        input_string = "test_string"
+        undesired_string_list = ["test"]
+        with self.assertRaises(ValueError):
+            string_utils.remove_strings_from_string(input_string, undesired_string_list,
+                                                    only_prefix=True, only_suffix=True)
+
+    def test_no_strings_to_remove(self):
+        # Test when there are no strings to remove
+        input_string = "hello_world"
+        undesired_string_list = ["not_present", "something_else"]
+        result = string_utils.remove_strings_from_string(input_string, undesired_string_list)
+        expected = "hello_world"
+        self.assertEqual(expected, result)
+
     def test_extract_digits_no_digits(self):
         input_string = "No digits here!"
         self.assertEqual(string_utils.extract_digits(input_string), "")

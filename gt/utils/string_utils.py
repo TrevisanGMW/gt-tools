@@ -112,18 +112,41 @@ def remove_digits(input_string):
     return ''.join([i for i in input_string if not i.isdigit()])
 
 
-def remove_strings_from_string(input_string, undesired_string_list):
+def remove_strings_from_string(input_string, undesired_string_list, only_prefix=False, only_suffix=False):
     """
     Removes provided strings from input
     Args:
         input_string (str): String to be modified. E.g. "left_elbow_ctrl"
         undesired_string_list (list): A list of strings to be removed. E.g. ['left', 'ctrl'] # Outputs: "_elbow_"
+        only_prefix (bool, optional): If active, it will only remove strings in case they are found at the beginning
+                                      of the input string.  - e.g. "one_two" with ["one'] would become "_two",
+                                      while if processed with ["two"] the output would not change: "one_two"
+        only_suffix (bool, optional): If active, it will only remove strings in case they are found at the end of the
+                                      input string.  - e.g. "one_two" with ["two'] would become "one_",
+                                      while if processed with ["one"] the output would not change: "one_two"
+
+    Raises:
+        ValueError: If both `only_prefix` and `only_suffix` are set to True.
 
     Returns:
         str: The "input_string" after without strings provided in the "undesired_string_list" list
     """
+    # for undesired in undesired_string_list:
+    #     input_string = input_string.replace(undesired, '')
+    # return input_string
+    if only_prefix and only_suffix:
+        raise ValueError('"only_prefix" and "only_suffix" cannot both be True. Please choose one or the other.')
+
     for undesired in undesired_string_list:
-        input_string = input_string.replace(undesired, '')
+        if only_prefix:
+            if input_string.startswith(undesired):
+                input_string = input_string[len(undesired):]
+        elif only_suffix:
+            if input_string.endswith(undesired):
+                input_string = input_string[:-len(undesired)]
+        else:
+            input_string = input_string.replace(undesired, '')
+
     return input_string
 
 
