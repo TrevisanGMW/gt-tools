@@ -1,0 +1,55 @@
+{
+    "name": "square_corner_flat_skinny",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "square_corner_flat_skinnyShape",
+            "points": [
+                [
+                    -0.125,
+                    0.0,
+                    -0.499
+                ],
+                [
+                    -0.0,
+                    0.0,
+                    -0.499
+                ],
+                [
+                    -0.0,
+                    0.0,
+                    -0.0
+                ],
+                [
+                    -0.499,
+                    0.0,
+                    -0.0
+                ],
+                [
+                    -0.499,
+                    0.0,
+                    -0.125
+                ],
+                [
+                    -0.125,
+                    0.0,
+                    -0.125
+                ],
+                [
+                    -0.125,
+                    0.0,
+                    -0.499
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "y",
+        "projectionScale": 1.0,
+        "projectionFit": true
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "name": "line_two_points",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "line_two_pointsShape",
+            "points": [
+                [
+                    0.5,
+                    0.0,
+                    0.0
+                ],
+                [
+                    -0.5,
+                    0.0,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "y",
+        "projectionScale": 1.0,
+        "projectionFit": true
+    }
+}

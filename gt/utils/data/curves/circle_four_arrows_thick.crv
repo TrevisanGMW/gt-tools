@@ -1,0 +1,337 @@
+{
+    "name": "circle_four_arrows_thick",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "circle_four_arrows_thick01Shape",
+            "points": [
+                [
+                    -0.384,
+                    0.0,
+                    -0.695
+                ],
+                [
+                    -0.449,
+                    0.0,
+                    -0.659
+                ],
+                [
+                    -0.57,
+                    0.0,
+                    -0.57
+                ],
+                [
+                    -0.659,
+                    0.0,
+                    -0.449
+                ],
+                [
+                    -0.695,
+                    0.0,
+                    -0.384
+                ]
+            ],
+            "degree": 3,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick02Shape",
+            "points": [
+                [
+                    -1.152,
+                    0.0,
+                    -0.384
+                ],
+                [
+                    -1.152,
+                    0.0,
+                    -0.768
+                ],
+                [
+                    -1.92,
+                    0.0,
+                    0.0
+                ],
+                [
+                    -1.152,
+                    0.0,
+                    0.768
+                ],
+                [
+                    -1.152,
+                    0.0,
+                    0.384
+                ],
+                [
+                    -0.695,
+                    0.0,
+                    0.384
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick03Shape",
+            "points": [
+                [
+                    -0.695,
+                    -0.0,
+                    0.384
+                ],
+                [
+                    -0.659,
+                    -0.0,
+                    0.449
+                ],
+                [
+                    -0.57,
+                    -0.0,
+                    0.57
+                ],
+                [
+                    -0.449,
+                    -0.0,
+                    0.659
+                ],
+                [
+                    -0.384,
+                    -0.0,
+                    0.695
+                ]
+            ],
+            "degree": 3,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick04Shape",
+            "points": [
+                [
+                    0.384,
+                    -0.0,
+                    0.695
+                ],
+                [
+                    0.449,
+                    -0.0,
+                    0.659
+                ],
+                [
+                    0.57,
+                    -0.0,
+                    0.57
+                ],
+                [
+                    0.659,
+                    -0.0,
+                    0.449
+                ],
+                [
+                    0.695,
+                    -0.0,
+                    0.384
+                ]
+            ],
+            "degree": 3,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick05Shape",
+            "points": [
+                [
+                    0.695,
+                    0.0,
+                    -0.384
+                ],
+                [
+                    0.659,
+                    0.0,
+                    -0.449
+                ],
+                [
+                    0.57,
+                    0.0,
+                    -0.57
+                ],
+                [
+                    0.449,
+                    0.0,
+                    -0.659
+                ],
+                [
+                    0.384,
+                    0.0,
+                    -0.695
+                ]
+            ],
+            "degree": 3,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick06Shape",
+            "points": [
+                [
+                    -0.384,
+                    0.0,
+                    0.695
+                ],
+                [
+                    -0.384,
+                    0.0,
+                    1.152
+                ],
+                [
+                    -0.768,
+                    0.0,
+                    1.152
+                ],
+                [
+                    0.0,
+                    0.0,
+                    1.92
+                ],
+                [
+                    0.768,
+                    0.0,
+                    1.152
+                ],
+                [
+                    0.384,
+                    0.0,
+                    1.152
+                ],
+                [
+                    0.384,
+                    0.0,
+                    0.695
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick07Shape",
+            "points": [
+                [
+                    0.695,
+                    0.0,
+                    0.384
+                ],
+                [
+                    1.152,
+                    0.0,
+                    0.384
+                ],
+                [
+                    1.152,
+                    0.0,
+                    0.768
+                ],
+                [
+                    1.92,
+                    0.0,
+                    0.0
+                ],
+                [
+                    1.152,
+                    0.0,
+                    -0.768
+                ],
+                [
+                    1.152,
+                    0.0,
+                    -0.384
+                ],
+                [
+                    0.695,
+                    0.0,
+                    -0.384
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick08Shape",
+            "points": [
+                [
+                    0.384,
+                    0.0,
+                    -0.695
+                ],
+                [
+                    0.384,
+                    0.0,
+                    -1.152
+                ],
+                [
+                    0.768,
+                    0.0,
+                    -1.152
+                ],
+                [
+                    0.0,
+                    0.0,
+                    -1.92
+                ],
+                [
+                    -0.768,
+                    0.0,
+                    -1.152
+                ],
+                [
+                    -0.384,
+                    0.0,
+                    -1.152
+                ],
+                [
+                    -0.384,
+                    0.0,
+                    -0.695
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "circle_four_arrows_thick09Shape",
+            "points": [
+                [
+                    -0.695,
+                    0.0,
+                    -0.384
+                ],
+                [
+                    -1.152,
+                    0.0,
+                    -0.384
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "y",
+        "projectionScale": 2.0,
+        "projectionFit": true
+    }
+}

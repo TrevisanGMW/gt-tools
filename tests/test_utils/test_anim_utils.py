@@ -23,8 +23,6 @@ def import_anim_test_file():
     """
     Import test alembic file from inside the .../data folder/<name>.abc
     Scene forces alembic plugin to be loaded when importing ("AbcExport", "AbcImport")
-    Returns:
-        str: Name of the test alembic node: "cube_move_z_AlembicNode"
     """
     maya_test_tools.import_data_file("cube_animated.ma")
 

@@ -1,0 +1,44 @@
+{
+    "name": "two_lines",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "curveShape1",
+            "points": [
+                [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        },
+        {
+            "name": "curveShape2",
+            "points": [
+                [
+                    0.0,
+                    0.0,
+                    -1.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    -1.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ]
+}

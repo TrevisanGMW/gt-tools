@@ -170,3 +170,13 @@ class TestDataUtils(unittest.TestCase):
         test_permission_bits = 438
         data_utils.set_file_permission_modifiable(test_file)
         self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
+
+    def test_data_dir_constants(self):
+        path_attributes = vars(data_utils.DataDirConstants)
+        path_keys = [attr for attr in path_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for path_key in path_keys:
+            path = getattr(data_utils.DataDirConstants, path_key)
+            if not path:
+                raise Exception(f'Missing constant data dir path: {path_key}')
+            if not os.path.exists(path):
+                raise Exception(f'Missing constant data dir path: {path_key}')

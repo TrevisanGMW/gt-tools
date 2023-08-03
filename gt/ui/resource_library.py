@@ -248,6 +248,7 @@ class Icon:
     tool_attributes_to_python = get_icon_path(r"tool_attributes_to_python.svg")
     tool_render_checklist = get_icon_path(r"tool_render_checklist.svg")
     # Curves
+    tool_crv_library = get_icon_path(r"tool_crv_library.svg")
     tool_crv_python = get_icon_path(r"tool_crv_python.svg")
     tool_crv_text = get_icon_path(r"tool_crv_text.svg")
     tool_crv_extract_state = get_icon_path(r"tool_crv_extract_state.svg")
@@ -296,6 +297,7 @@ class Icon:
     util_reset_transforms = get_icon_path(r"util_reset_transforms.svg")
     util_reset_jnt_display = get_icon_path(r"util_reset_jnt_display.svg")
     util_reset_persp = get_icon_path(r"util_reset_persp.svg")
+    util_delete_custom_attr = get_icon_path(r"util_delete_custom_attr.svg")
     util_delete_ns = get_icon_path(r"util_delete_ns.svg")
     util_delete_display_layers = get_icon_path(r"util_delete_display_layers.svg")
     util_delete_unused_nodes = get_icon_path(r"util_delete_unused_nodes.svg")
@@ -326,6 +328,7 @@ class Icon:
     setup_uninstall = get_icon_path(r"setup_uninstall.svg")
     setup_run_only = get_icon_path(r"setup_run_only.svg")
     setup_close = get_icon_path(r"setup_close.svg")
+    curve_library_missing_file = get_icon_path(r"curve_library_missing_file.svg")
 
 
 class Color:

@@ -267,21 +267,21 @@ class PackagePrefs(Prefs):
         super().__init__(prefs_name=PACKAGE_GLOBAL_PREFS)
 
     # Common Keys Start ------------------------------------------------------------------
-    def set_dev_mode(self, dev_mode_state):
+    def set_dev_menu_visibility(self, dev_mode_state):
         """
         Sets state of development mode. When active, package shows extra options used for development.
         Args:
             dev_mode_state (bool): New state of development mode.
         """
-        self.set_bool("dev_mode", dev_mode_state)
+        self.set_bool("dev_menu_visible", dev_mode_state)
 
-    def is_dev_mode_active(self):
+    def is_dev_menu_visible(self):
         """
         Gets state of development mode. If not found it returns False
         Returns:
             bool: Stored settings for development mode
         """
-        return self.get_bool("dev_mode", default=False)
+        return self.get_bool("dev_menu_visible", default=False)
 
     def set_skip_menu_creation(self, skip_menu_creation):
         """
@@ -302,16 +302,16 @@ class PackagePrefs(Prefs):
     # Common Keys End ------------------------------------------------------------------
 
 
-def toggle_dev_mode():
+def toggle_dev_sub_menu():
     """
     Toggles development mode preference.
     If it's active, it becomes inactive, and vice-versa.
     """
     prefs = PackagePrefs()
-    inverted_state = not prefs.is_dev_mode_active()
-    prefs.set_dev_mode(inverted_state)
+    inverted_state = not prefs.is_dev_menu_visible()
+    prefs.set_dev_menu_visibility(inverted_state)
     prefs.save()
-    feedback = FeedbackMessage(intro='Development Mode set to:',
+    feedback = FeedbackMessage(intro='Development Menu Visibility set to:',
                                conclusion=str(inverted_state),
                                style_conclusion='color:#FF0000;text-decoration:underline;')
     feedback.print_inview_message()

@@ -1,0 +1,55 @@
+{
+    "name": "arrow_head_outline_no_base",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "arrow_head_outline_no_baseShape",
+            "points": [
+                [
+                    0.5,
+                    0.0,
+                    -0.5
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                [
+                    -0.5,
+                    0.0,
+                    -0.5
+                ],
+                [
+                    -0.3,
+                    0.0,
+                    -0.5
+                ],
+                [
+                    0.0,
+                    0.0,
+                    -0.2
+                ],
+                [
+                    0.3,
+                    0.0,
+                    -0.5
+                ],
+                [
+                    0.5,
+                    0.0,
+                    -0.5
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "y",
+        "projectionScale": 1.0,
+        "projectionFit": true
+    }
+}
