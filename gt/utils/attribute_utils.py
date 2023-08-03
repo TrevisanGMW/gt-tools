@@ -445,8 +445,33 @@ def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     cmds.addAttr(obj, ln=attr_name + suffix[2], at='double', k=keyable, parent=attr_name)
 
 
+def add_separator_attr(target_object, attr_name="separator", custom_value=None):
+    """
+    Creates a locked enum attribute to be used as a separator
+    Args:
+        target_object (str): Name of the object to affect in the operation
+        attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
+                                   "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
+        custom_value (str, None, optional): Enum value for the separator value.
+                                               If not provided, default is "-------------".
+    Returns:
+        str: Full path to created attribute. 'target_object.attr_name'
+    """
+    separator_value = "-"*13
+    if custom_value:
+        separator_value = custom_value
+    attribute_path = f'{target_object}.{attr_name}'
+    if not cmds.objExists(attribute_path):
+        cmds.addAttr(target_object, ln=attr_name, at='enum', en=separator_value, keyable=True)
+        cmds.setAttr(attribute_path, e=True, lock=True)
+    else:
+        logger.warning(f'Separator attribute "{attribute_path}" already exists. Add Separator operation skipped.')
+    return f'{target_object}.{attr_name}'
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
+    add_separator_attr(cmds.ls(selection=True)[0])
     out = None
     pprint(out)
