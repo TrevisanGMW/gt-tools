@@ -1,5 +1,8 @@
 """
 Curve Library Controller
+
+This module contains the CurveLibraryController class responsible for managing interactions between the
+CurveLibraryModel and the user interface.
 """
 from PySide2.QtWidgets import QInputDialog
 import logging
@@ -13,10 +16,10 @@ logger.setLevel(logging.INFO)
 class CurveLibraryController:
     def __init__(self, model, view):
         """
-        Initialize the SampleToolController object.
+        Initialize the CurveLibraryController object.
 
         Args:
-            model: The SampleToolModel object used for data manipulation.
+            model: The CurveLibraryModel object used for data manipulation.
             view: The view object to interact with the user interface.
         """
         self.model = model
@@ -29,12 +32,18 @@ class CurveLibraryController:
         self.populate_curve_library()
 
     def on_item_selection_changed(self):
+        """
+        Update the preview image in the view when the selected item in the list changes.
+        """
         selected_item = self.view.item_list.currentItem().text()
         new_preview_image = self.model.get_preview_image(curve_name=selected_item)
         if new_preview_image:
             self.view.update_preview_image(new_image_path=new_preview_image)
 
     def filter_list(self):
+        """
+        Filter the curve library list based on the search text entered by the user.
+        """
         search_text = self.view.search_edit.text().lower()
         self.view.item_list.clear()
         curve_names = self.model.get_curve_names()
@@ -45,6 +54,9 @@ class CurveLibraryController:
             self.view.update_preview_image()
 
     def build_view_selected_curve(self):
+        """
+        Build the selected curve from the curve library in the model.
+        """
         selected_curve_name = self.view.item_list.currentItem().text()
         self.model.build_curve(curve_name=selected_curve_name)
 

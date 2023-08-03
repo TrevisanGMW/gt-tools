@@ -1,5 +1,5 @@
 """
-Curve Library Window
+Curve Library Window - The main GUI window class for the Curve Library tool.
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QDialog, QWidget, QSplitter, QLineEdit, QDesktopWidget
 from PySide2.QtGui import QIcon, QPainter, QPixmap
@@ -12,20 +12,44 @@ import sys
 
 class SquaredWidget(QWidget):
     def __init__(self, parent=None):
+        """
+        A custom QWidget that displays a square image.
+
+        Args:
+            parent (QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent=parent)
         self.p = QPixmap()
 
     def setPixmap(self, p):
+        """
+        Set the QPixmap to be displayed in the widget.
+
+        Args:
+            p (QPixmap): The QPixmap to be displayed.
+        """
         self.p = p
         self.update()
 
     def paintEvent(self, event):
+        """
+        Override the paintEvent to draw the QPixmap on the widget.
+
+        Args:
+            event (QPaintEvent): The paint event.
+        """
         if not self.p.isNull():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.SmoothPixmapTransform)
             painter.drawPixmap(self.squareRect(), self.p)
 
     def squareRect(self):
+        """
+        Calculate the square QRect within the widget.
+
+        Returns:
+            QRect: The QRect representing the square area.
+        """
         widget_rect = self.rect()
         size = min(widget_rect.width(), widget_rect.height())
         square_rect = QRect(0, 0, size, size)
@@ -33,6 +57,12 @@ class SquaredWidget(QWidget):
         return square_rect
 
     def resizeEvent(self, event):
+        """
+        Override the resizeEvent to maintain a square aspect ratio.
+
+        Args:
+            event (QResizeEvent): The resize event.
+        """
         new_size = QSize(event.size().width(), event.size().height())
         square_size = min(new_size.width(), new_size.height())
         self.resize(square_size, square_size)
@@ -48,7 +78,7 @@ class CurveLibraryWindow(QDialog):
         Args:
             parent (str): Parent for this window
             controller (CurveLibraryController): CurveLibraryController, not to be used, here so it's not deleted by
-                                                 the garbage collector.
+                                                 the garbage collector.  Defaults to None.
         """
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
@@ -69,22 +99,29 @@ class CurveLibraryWindow(QDialog):
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
 
-        sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
-        sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
-        sample_stylesheet += resource_library.Stylesheet.dark_list_widget
-        self.setStyleSheet(sample_stylesheet)
+        stylesheet = resource_library.Stylesheet.dark_scroll_bar
+        stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        stylesheet += resource_library.Stylesheet.dark_list_widget
+        self.setStyleSheet(stylesheet)
         self.resize_to_screen()
         self.center()
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
 
     def update_preview_image(self, new_image_path=None):
-        # Add check, in case it doesn't exist here
+        """
+        Update the preview image displayed in the window.
+
+        Args:
+            new_image_path (str, optional): The path to the new image file.
+                                            Defaults to None, which becomes "missing_preview_file"
+        """
         if new_image_path:
             self.preview_image.setPixmap(QPixmap(new_image_path))
         else:
             self.preview_image.setPixmap(QPixmap(resource_library.Icon.curve_library_missing_file))
 
     def create_widgets(self):
+        """Create the widgets for the window."""
         self.item_list = QListWidget()
         self.build_button = QPushButton("Build")
         self.search_edit = QLineEdit(self)
@@ -93,6 +130,7 @@ class CurveLibraryWindow(QDialog):
         self.update_preview_image()
 
     def create_layout(self):
+        """Create the layout for the window."""
         list_button_container = QWidget()
         list_button_layout = QtWidgets.QVBoxLayout()
         list_button_layout.addWidget(self.search_edit)

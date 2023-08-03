@@ -1,5 +1,12 @@
 """
 Curve Library Model
+
+This module contains the CurveLibraryModel class, which manages a library of curves. It allows adding, retrieving,
+and building curves based on their names. The curves are represented as instances of the Curve class from
+"gt.utils.curve_utils".
+
+Classes:
+    CurveLibraryModel: A class for managing a library of curves.
 """
 from gt.utils.curve_utils import Curves, get_curve_preview_image_path
 from gt.ui import resource_library
@@ -14,14 +21,14 @@ logger.setLevel(logging.INFO)
 class CurveLibraryModel:
     def __init__(self):
         """
-        Initialize the SampleToolModel object.
+        Initialize the CurveLibraryModel object.
         """
         self.curves = []
         self.import_default_library()
 
     def add_curve(self, curve):
         """
-        Add an item to the list.
+        Add a curve to the list.
         Args:
             curve (Curve): The curve to be added
         """
@@ -29,9 +36,9 @@ class CurveLibraryModel:
 
     def get_curves(self):
         """
-        Get the list of items.
+        Get all curves
         Returns:
-            list: A list containing all the items in the SampleToolModel.
+            list: A list containing all the curves in the CurveLibraryModel.
         """
         return self.curves
 
@@ -42,7 +49,7 @@ class CurveLibraryModel:
             formatted (bool, optional): If active, it will return a formatted version of the name.
                                         e.g. "circle_arrow" becomes "Circle Arrow"
         Returns:
-            list: A list containing all the items in the SampleToolModel.
+            list: A list containing all the items in the CurveLibraryModel.
         """
         names = []
         for crv in self.curves:
@@ -51,7 +58,7 @@ class CurveLibraryModel:
 
     def import_default_library(self):
         """
-        Returns all curves found in "curve_utils.Curves"
+        Imports all curves found in "curve_utils.Curves" to the CurveLibraryModel list
         """
         curve_attributes = vars(Curves)
         curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
@@ -93,6 +100,15 @@ class CurveLibraryModel:
 
     @staticmethod
     def get_preview_image(curve_name):
+        """
+        Gets the preview image path for the given curve name.
+
+        Args:
+            curve_name (str): Name of the curve
+
+        Returns:
+            str: The path to the preview image, or the path to the default missing file icon if the image is not found.
+        """
         preview_image = get_curve_preview_image_path(curve_name)
         if preview_image:
             return preview_image
