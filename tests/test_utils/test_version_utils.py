@@ -127,3 +127,23 @@ class TestVersionUtils(unittest.TestCase):
         result = version_utils.get_legacy_package_version()
         expected = None
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.version_utils.http_request')
+    def test_get_latest_github_release_content(self, http_request):
+        mocked_response = MagicMock()
+        mocked_response.status = 200
+        mocked_content = {"tag_name": "v1.2.3"}
+        http_request.return_value = (mocked_response, mocked_content)
+        response = version_utils.get_latest_github_release_content(verbose=False)
+        expected = mocked_content
+        self.assertEqual(expected, response)
+
+    @patch('gt.utils.version_utils.http_request')
+    def test_get_latest_github_release_version(self, http_request):
+        mocked_response = MagicMock()
+        mocked_response.status = 200
+        mocked_content = '{"tag_name":"v1.2.3"}'
+        http_request.return_value = (mocked_response, mocked_content)
+        response = version_utils.get_latest_github_release_version(verbose=True)
+        expected = "1.2.3"
+        self.assertEqual(expected, response)
