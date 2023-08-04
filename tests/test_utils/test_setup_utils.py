@@ -564,3 +564,17 @@ class TestSetupUtils(unittest.TestCase):
         expected = False
         result = os.path.exists(mocked_target_dir)
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    def test_get_installed_module_path(self, mocked_get_prefs):
+        mocked_get_prefs.return_value = "mocked_path"
+        result = setup_utils.get_installed_core_module_path()
+        expected = 'mocked_path\\gt-tools\\gt'
+        self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    def test_get_installed_module_path_only_existing(self, mocked_get_prefs):
+        mocked_get_prefs.return_value = "mocked_path"
+        result = setup_utils.get_installed_core_module_path(only_existing=True)
+        expected = None
+        self.assertEqual(expected, result)

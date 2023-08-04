@@ -580,6 +580,19 @@ def is_legacy_version_install_present(check_version=None):
     return False
 
 
+def get_installed_core_module_path(only_existing=False):
+    """
+    Returns the path to where the installed package is or will be when installed.
+    Args:
+        only_existing (bool, optional): If true, it will only return the path if it exists
+    """
+    maya_preferences_dir = get_maya_preferences_dir()
+    package_core_module = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME, PACKAGE_MAIN_MODULE))
+    if only_existing and not os.path.exists(package_core_module):
+        return
+    return package_core_module
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
@@ -587,5 +600,5 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    out = check_installation_integrity(r'C:\Users\guilherme.trevisan\Documents\maya\gt-tools')
+    out = get_installed_core_module_path(only_existing=True)
     pprint(out)
