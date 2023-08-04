@@ -201,7 +201,17 @@ def get_installed_version(verbose=True):
         return installed_version
 
 
-def get_latest_github_release_version(verbose=True, also_return_response=False):
+def get_latest_github_release_content(verbose=True):
+    """
+    Retrieves the content of the latest GitHub release for this package.
+    Exceptions are handled inside the function (seen through "verbose" mode)
+
+    Args:
+        verbose (bool, optional): If True, prints detailed information. Default is True.
+
+    Returns:
+        str: The content of the latest GitHub release.
+    """
     response, response_content = http_request(PACKAGE_RELEASE_URL)
     try:
         response_type = get_http_response_type(response.status)
@@ -215,11 +225,42 @@ def get_latest_github_release_version(verbose=True, also_return_response=False):
                       f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
             print_when_true(message, do_print=verbose, use_system_write=True)
             return
+        return response_content
+    except Exception as e:
+        message = f'An error occurred while getting latest release content. Issue: {e}'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+
+
+def get_latest_github_release_version(verbose=True):
+    """
+    Retrieves the version from the latest GitHub released content for this package.
+
+    Args:
+        verbose (bool, optional): If True, prints detailed information. Default is True.
+
+    Returns:
+        str or None: The version of the latest GitHub release, formatted as a dot-separated string. e.g. "1.2.3"
+                     None if operation failed to retrieve it.
+    """
+    response_content = get_latest_github_release_content(verbose=verbose)
+    content = {}
+    try:
         from json import loads
         content = loads(response_content)
-        return content
     except Exception as e:
-        raise e
+        message = f'Failed to extract JSON data from response. Issue: "{e}".'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        return
+    tag_name = content.get("tag_name")
+    if not tag_name:
+        message = f'HTTP requested content is missing "tag_name". ' \
+                  f'URL: "{PACKAGE_RELEASE_URL}'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        return
+
+    version = parse_semantic_version(tag_name)
+    version_string = [str(num) for num in list(version)]
+    return ".".join(version_string)
 
 
 if __name__ == "__main__":
