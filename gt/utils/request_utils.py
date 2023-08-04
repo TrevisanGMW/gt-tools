@@ -4,6 +4,8 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.string_utils import remove_strings_from_string
 import http.client as http_client
+import urllib.request
+import webbrowser
 import logging
 
 # Logging Setup
@@ -69,6 +71,41 @@ def http_request(url, host_overwrite=None, path_overwrite=None):
         return response
     except Exception as e:
         logger.warning(f'Unable to retrieve response. Issue: {e}')
+
+
+def read_url_content(url):
+    """
+    Reads the content of a URL and returns it as a decoded UTF-8 string.
+
+    Args:
+        url (str): The URL to read the content from.
+
+    Returns:
+        str or None: The content of the URL as a UTF-8 string if the URL was opened successfully,
+                     None if there was an error.
+    """
+    try:
+        with urllib.request.urlopen(url) as response:
+            if response.getcode() == 200:
+                return response.read().decode('utf-8')
+            else:
+                logger.warning(f"Failed to open URL. Status code: {response.getcode()}")
+    except urllib.error.URLError as e:
+        logger.warning(f"Unable to read URL content. Issue: {e}")
+    return None
+
+
+def open_url_in_browser(url):
+    """
+    Opens a URL in a web browser, preferably in a new tab.
+
+    Args:
+        url (str): The URL to open in the web browser.
+    """
+    try:
+        webbrowser.open(url, new=2)  # Opens in a new tab if possible
+    except Exception as e:
+        logger.warning(f"An error occurred when opening URL in browser: {e}")
 
 
 if __name__ == "__main__":
