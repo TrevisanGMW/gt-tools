@@ -30,11 +30,6 @@ class TestRequestUtils(unittest.TestCase):
         expected = ('api.github.com', '')
         self.assertEqual(expected, result)
 
-    # @patch('http.client.HTTPSConnection.read')
-    # @patch('http.client.HTTPSConnection.getresponse')
-    # @patch('http.client.HTTPSConnection.request')
-    # def test_http_request(self, mock_request, mock_getresponse, mock_read):
-
     @patch('http.client.HTTPSConnection')
     def test_http_request(self, mock_http_connection):
         mock_connection = MagicMock()
