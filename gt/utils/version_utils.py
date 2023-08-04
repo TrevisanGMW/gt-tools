@@ -2,18 +2,22 @@
 Version Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.request_utils import http_request, get_http_response_type
+from gt.utils.feedback_utils import print_when_true
 from collections import namedtuple
 import importlib.util
 import logging
 import os
 import re
 
+
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
+PACKAGE_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
+PACKAGE_TAG_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
 VERSION_BIGGER = 1
 VERSION_SMALLER = -1
 VERSION_EQUAL = 0
@@ -176,11 +180,53 @@ def get_legacy_package_version():
         return legacy_version
 
 
+def get_installed_version(verbose=True):
+    """
+    Get Installed Package Version
+    Args:
+        verbose (bool, optional): If active, it will print feedback messages
+    Returns:
+        str or None: A semantic version string or None if not installed. e.g. "1.2.3"
+    """
+    from gt.utils.setup_utils import is_legacy_version_install_present, get_installed_core_module_path
+    package_core_module = get_installed_core_module_path(only_existing=False)
+    if not os.path.exists(package_core_module):
+        message = f'Package not installed. Missing path: "{package_core_module}"'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        return
+    installed_version = get_package_version(package_path=package_core_module)
+    if not installed_version and is_legacy_version_install_present():
+        installed_version = get_legacy_package_version()
+    if installed_version and is_semantic_version(installed_version, metadata_ok=False):
+        return installed_version
+
+
+def get_latest_github_release_version(verbose=True, also_return_response=False):
+    response, response_content = http_request(PACKAGE_RELEASE_URL)
+    try:
+        response_type = get_http_response_type(response.status)
+        if response_type != "successful":
+            message = f'HTTP response returned unsuccessful status code. ' \
+                      f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
+            print_when_true(message, do_print=verbose, use_system_write=True)
+            return
+        if not response_content:
+            message = f'HTTP requested content is empty or missing. ' \
+                      f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
+            print_when_true(message, do_print=verbose, use_system_write=True)
+            return
+        from json import loads
+        content = loads(response_content)
+        return content
+    except Exception as e:
+        raise e
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     # import maya.standalone
     # maya.standalone.initialize()
     out = None
-    out = is_semantic_version("1.22.3", metadata_ok=False)
+    out = get_latest_github_release_version()
     pprint(out)
