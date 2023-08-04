@@ -4,9 +4,13 @@ Package Updater Model
 Classes:
     PackageUpdaterModel: A class for checking for updates
 """
+from gt.utils.setup_utils import is_legacy_version_install_present, get_installed_core_module_path
+from gt.utils.version_utils import get_package_version, get_legacy_package_version
+from gt.utils.feedback_utils import print_when_true
 from gt.utils.prefs_utils import Prefs
 from datetime import datetime
 import logging
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -51,11 +55,24 @@ class PackageUpdaterModel:
         self.preferences.set_int(key=PREFS_INTERVAL_DAYS, value=self.interval_days)
         self.preferences.save()
 
-    def check_for_updates(self):
-        pass
+    def check_for_updates(self, verbose=True):
+        # Get Installed Package Version
+        package_core_module = get_installed_core_module_path(only_existing=False)
+        if not os.path.exists(package_core_module):
+            message = f'Package not installed. Missing path: "{package_core_module}"'
+            print_when_true(message, do_print=verbose, use_system_write=True)
+            return
+        installed_version = get_package_version(package_path=package_core_module)
+        if not installed_version and is_legacy_version_install_present():
+            installed_version = get_legacy_package_version()
+        return installed_version
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    import maya.standalone
+    maya.standalone.initialize()
     model = PackageUpdaterModel()
     # model.set_preferences()
-    print(model.last_date)
+    model.check_for_updates()
+

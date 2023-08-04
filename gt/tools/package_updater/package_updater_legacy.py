@@ -498,7 +498,6 @@ def silent_update_check():
     
     if is_active:
         def compare_current_latest():
-                        
             # Get Interval
             check_interval = gt_check_for_updates.get('def_auto_updater_interval')
             persistent_check_interval_exists = cmds.optionVar(exists='gt_check_for_updates_interval_days')
