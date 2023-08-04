@@ -13,9 +13,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-PACKAGE_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
-PACKAGE_TAG_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
-
 
 def parse_http_request_url(url):
     """
@@ -53,9 +50,12 @@ def http_request(url, host_overwrite=None, path_overwrite=None):
                               If provided, it will replace whatever was parsed out of the URL. Default None (do nothing)
 
     Returns:
-        HTTPResponse: http.client.HTTPResponse object. Use "response.read()" to retrieve contents.
-                      "response.status" for response status (e.g. 200)
-                      "response.reason" for response reason (e.g. "OK")
+        tuple: A tuple with (HTTPResponse, response content)
+               1: http.client.HTTPResponse object. Use examples:
+                "response.status" for response status (e.g. 200)
+                "response.reason" for response reason (e.g. "OK")
+               2: response content is the output of the HTTPResponse.read() operation.
+                 It's retrieved during the function execution because the connection is closed after retrieving it.
     """
     try:
         host, path = parse_http_request_url(url)
@@ -67,10 +67,16 @@ def http_request(url, host_overwrite=None, path_overwrite=None):
         connection.request("GET", path, headers={'Content-Type': 'application/json; charset=UTF-8',
                                                  'User-Agent': 'packaage_updater'})
         response = connection.getresponse()
+        response_content = None
+        try:
+            response_content = response.read().decode('utf-8')
+        except Exception as e:
+            logger.debug(f'Failed to read HTTP response. Issue: "{e}".')
         connection.close()
-        return response
+        return response, response_content
     except Exception as e:
         logger.warning(f'Unable to retrieve response. Issue: {e}')
+        return None, None
 
 
 def read_url_content(url):
@@ -106,6 +112,37 @@ def open_url_in_browser(url):
         webbrowser.open(url, new=2)  # Opens in a new tab if possible
     except Exception as e:
         logger.warning(f"An error occurred when opening URL in browser: {e}")
+
+
+def get_http_response_type(status_code):
+    """
+    Determine the type of HTTP response based on the status code.
+
+    Args:
+        status_code (int): The HTTP status code.
+
+    Returns:
+        str: A string indicating the type of HTTP response based on the status code.
+            Possible values:
+            - "Informational" for status codes in the range 100 - 199
+            - "Successful" for status codes in the range 200 - 299
+            - "Redirection" for status codes in the range 300 - 399
+            - "Client error" for status codes in the range 400 - 499
+            - "Server error" for status codes in the range 500 - 599
+            - "Unknown response" if the status code does not fall into any of the above ranges.
+    """
+    if 100 <= status_code < 200:
+        return "informational"
+    elif 200 <= status_code < 300:
+        return "successful"
+    elif 300 <= status_code < 400:
+        return "redirection"
+    elif 400 <= status_code < 500:
+        return "client error"
+    elif 500 <= status_code < 600:
+        return "server error"
+    else:
+        return "unknown response"
 
 
 if __name__ == "__main__":

@@ -30,18 +30,27 @@ class TestRequestUtils(unittest.TestCase):
         expected = ('api.github.com', '')
         self.assertEqual(expected, result)
 
-    @patch('http.client.HTTPSConnection.getresponse')
-    @patch('http.client.HTTPSConnection.request')
-    def test_http_request(self, mock_request, mock_getresponse):
-        mock_response = b'This is a mock response'
-        mock_getresponse.return_value = mock_response
+    # @patch('http.client.HTTPSConnection.read')
+    # @patch('http.client.HTTPSConnection.getresponse')
+    # @patch('http.client.HTTPSConnection.request')
+    # def test_http_request(self, mock_request, mock_getresponse, mock_read):
+
+    @patch('http.client.HTTPSConnection')
+    def test_http_request(self, mock_http_connection):
+        mock_connection = MagicMock()
+        mock_getresponse = MagicMock()
+        mock_read = MagicMock()
+        mock_read.decode.return_value = "mocked_decode"
+        mock_getresponse.read.return_value = mock_read
+        mock_connection.getresponse.return_value = mock_getresponse
+        mock_connection.__enter__.return_value = mock_connection
+        mock_http_connection.return_value = mock_connection
         url = 'https://api.github.com/mocked_path'
-        result = request_utils.http_request(url=url)
-        mock_request.assert_called_once_with('GET', "/mocked_path",
-                                             headers={'Content-Type': 'application/json; charset=UTF-8',
-                                                      'User-Agent': 'packaage_updater'})
-        mock_getresponse.assert_called_once()
-        self.assertEqual(mock_response, result)
+        response, response_content = request_utils.http_request(url=url)
+        expected = mock_getresponse
+        self.assertEqual(expected, response)
+        expected = "mocked_decode"
+        self.assertEqual(expected, response_content)
 
     @patch('urllib.request.urlopen')
     def test_read_url_content(self, mock_urlopen):
@@ -74,3 +83,27 @@ class TestRequestUtils(unittest.TestCase):
     def test_open_url_in_browser(self, mock_webbrowser_open):
         request_utils.open_url_in_browser('http://example.com')
         mock_webbrowser_open.assert_called_once_with('http://example.com', new=2)
+
+    def test_get_http_response_type_informational_response(self):
+        self.assertEqual(request_utils.get_http_response_type(100), "informational")
+        self.assertEqual(request_utils.get_http_response_type(199), "informational")
+
+    def test_get_http_response_type_successful_response(self):
+        self.assertEqual(request_utils.get_http_response_type(200), "successful")
+        self.assertEqual(request_utils.get_http_response_type(299), "successful")
+
+    def test_get_http_response_type_redirection_message(self):
+        self.assertEqual(request_utils.get_http_response_type(300), "redirection")
+        self.assertEqual(request_utils.get_http_response_type(399), "redirection")
+
+    def test_get_http_response_type_client_error_response(self):
+        self.assertEqual(request_utils.get_http_response_type(400), "client error")
+        self.assertEqual(request_utils.get_http_response_type(499), "client error")
+
+    def test_get_http_response_type_server_error_response(self):
+        self.assertEqual(request_utils.get_http_response_type(500), "server error")
+        self.assertEqual(request_utils.get_http_response_type(599), "server error")
+
+    def test_get_http_response_type_unknown_response_type(self):
+        self.assertEqual(request_utils.get_http_response_type(0), "unknown response")
+        self.assertEqual(request_utils.get_http_response_type(999), "unknown response")
