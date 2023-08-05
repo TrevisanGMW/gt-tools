@@ -1,3 +1,4 @@
+from unittest.mock import patch, Mock
 import unittest
 import logging
 import json
@@ -180,3 +181,30 @@ class TestDataUtils(unittest.TestCase):
                 raise Exception(f'Missing constant data dir path: {path_key}')
             if not os.path.exists(path):
                 raise Exception(f'Missing constant data dir path: {path_key}')
+
+    def test_unzip_zip_file(self):
+        extract_path = os.path.join(self.temp_dir, 'extracted')
+        zip_file_path = os.path.join(maya_test_tools.get_data_dir_path(), "zip_file.zip")
+
+        data_utils.unzip_zip_file(zip_file_path, extract_path)
+
+        # Check if the extracted file exists
+        self.assertTrue(os.path.exists(extract_path))
+        result = os.listdir(extract_path)
+        expected = ['script_01.py', 'text_01.txt', 'text_02.txt']
+        self.assertEqual(expected, result)
+
+        # Check if the content of the extracted file is correct
+        extracted_script = os.path.join(extract_path, 'script_01.py')
+        with open(extracted_script, 'rb') as extracted_file:
+            content = extracted_file.read()
+            expected = b'print("script")'
+            self.assertEqual(expected, content)
+
+    def test_progress_callback(self):
+        def progress_callback(current_file, total_files):
+            self.assertTrue(current_file <= total_files)
+
+        extract_path = os.path.join(self.temp_dir, 'extracted')
+        zip_file_path = os.path.join(maya_test_tools.get_data_dir_path(), "zip_file.zip")
+        data_utils.unzip_zip_file(zip_file_path, extract_path, progress_callback)
