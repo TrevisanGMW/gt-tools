@@ -82,3 +82,12 @@ class TestSessionUtils(unittest.TestCase):
         mock_import_module.assert_called_once_with(module_name)
         mock_print_when_true.assert_not_called()
         self.assertIsNone(result)
+
+    @patch('os.path.exists')
+    @patch('gt.utils.session_utils.get_module_path')
+    def test_get_loaded_package_module_paths(self, mocked_module_path, mocked_exists):
+        mocked_module_path.return_value = "Documents/gt-tools/gt/__init__.py"
+        mocked_exists.return_value = True
+        result = session_utils.get_loaded_package_module_paths()
+        expected = ['Documents/gt-tools/gt/__init__.py', 'Documents/gt-tools/gt', 'Documents/gt-tools']
+        self.assertEqual(expected, result)
