@@ -1,16 +1,16 @@
 """
 Setup Utilities - install/uninstall package from system
 """
-import sys
-
 from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
 from gt.utils.session_utils import remove_modules_startswith, get_maya_version
+from gt.utils.session_utils import get_loaded_package_module_paths
 from gt.utils.feedback_utils import print_when_true
 from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
 import shutil
+import sys
 import os
 
 # Logging Setup
@@ -488,7 +488,8 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
                     callbacks=callbacks)
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
-            prepend_sys_path_with_default_install_location()
+            paths_to_remove = get_loaded_package_module_paths()
+            prepend_sys_path_with_default_install_location(remove_paths=paths_to_remove)
             reload_package_loaded_modules()
             print_when_true("Loading package drop-down menu..", do_print=verbose, callbacks=callbacks)
             load_package_menu(launch_latest_maya=False)  # Already in Maya
