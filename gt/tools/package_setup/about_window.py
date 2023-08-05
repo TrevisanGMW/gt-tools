@@ -1,5 +1,6 @@
 from maya import OpenMayaUI as OpenMayaUI
 from PySide2.QtWidgets import QWidget
+from gt.utils import version_utils
 from shiboken2 import wrapInstance
 from PySide2.QtGui import QIcon
 import maya.cmds as cmds
@@ -8,13 +9,7 @@ import maya.cmds as cmds
 def build_gui_about_gt_tools():
     """ Creates "About" window for the GT Tools menu """
 
-    stored_gt_tools_version_exists = cmds.optionVar(exists="gt_tools_version")
-
-    # Define Version
-    if stored_gt_tools_version_exists:
-        gt_version = cmds.optionVar(q="gt_tools_version")
-    else:
-        gt_version = '?'
+    gt_version = version_utils.get_installed_version()
 
     window_name = "build_gui_about_gt_tools"
     if cmds.window(window_name, exists=True):
