@@ -403,6 +403,11 @@ def load_menu(*args):
                            tooltip="Render thumbnails for current curves to a desktop folder.",
                            icon=resource_library.Icon.dev_code)
         menu.add_divider(divider_label="Package")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(label='Get Loaded Package Location',
+                           command='from gt.utils.session_utils import get_module_path\n'
+                                   'get_module_path(module_name="gt", verbose=True)\n',
+                           tooltip="Gets the loaded package path location.",
+                           icon=resource_library.Icon.dev_code)
         menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',

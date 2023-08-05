@@ -3,7 +3,10 @@ Session Utilities
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 """
 from gt.utils.data_utils import write_json, read_json_dict
+from gt.utils.feedback_utils import print_when_true
 from gt.utils.system_utils import get_temp_folder
+import importlib
+import inspect
 import logging
 import sys
 import os
@@ -260,11 +263,37 @@ def is_maya_standalone_initialized():
         return False    # If an exception is raised, it means maya.standalone has not been initialized
 
 
+def get_module_path(module_name, verbose=False):
+    """
+    Retrieves the file path of a Python module.
+
+    This function attempts to import the specified module and then retrieves its file path.
+    If the module is successfully imported, its file path is returned.
+    If the module cannot be imported, None is returned.
+
+    Args:
+        module_name (str): The name of the Python module.
+        verbose (bool, optional): If True, enables verbose mode and prints additional information.
+            Defaults to False.
+
+    Returns:
+        str or None: The file path of the imported module, or None if import fails.
+    """
+    try:
+        module = importlib.import_module(module_name)
+        module_file = inspect.getfile(module)
+        print_when_true(module_file, use_system_write=True, do_print=verbose)
+        return module_file
+    except ImportError:
+        return None
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
     out = None
     # out = filter_loaded_modules_path_containing(["gt-tools", "sys"])
-    out = is_maya_standalone_initialized()
+    # out = is_maya_standalone_initialized()
+    out = get_module_path("gt")
     pprint(out)
