@@ -201,6 +201,17 @@ class TestDataUtils(unittest.TestCase):
             expected = b'print("script")'
             self.assertEqual(expected, content)
 
+    def test_unzip_zip_file_return(self):
+        extract_path = os.path.join(self.temp_dir, 'extracted')
+        zip_file_path = os.path.join(maya_test_tools.get_data_dir_path(), "zip_file.zip")
+
+        result = data_utils.unzip_zip_file(zip_file_path, extract_path)
+
+        # Check if the extracted file exists
+        self.assertTrue(os.path.exists(extract_path))
+        expected = [os.path.join(extract_path, file) for file in os.listdir(extract_path)]
+        self.assertEqual(expected, result)
+
     def test_progress_callback(self):
         def progress_callback(current_file, total_files):
             self.assertTrue(current_file <= total_files)

@@ -253,31 +253,36 @@ def set_file_permission_modifiable(file_path):
     set_file_permissions(file_path, PermissionBits.ALL_PERMISSIONS)
 
 
-def unzip_zip_file(zip_file_path, extract_path, progress_callback=None):
+def unzip_zip_file(zip_file_path, extract_path, callback=None):
     """
     Unzips a zip file to the specified extraction path using standard libraries.
 
     Args:
         zip_file_path (str): Path to the zip file to be extracted. (Must exist)
         extract_path (str): Path to the directory where the contents will be extracted.
-        progress_callback (callable, optional): A callback function to track extraction progress.
+        callback (callable, optional): A callback function to track extraction progress.
             It should accept two arguments: the current file being extracted and the total number of files.
+
+    Returns:
+        List[str]: A list of file paths to the extracted files.
 
     Example progress callback function:
         def progress_callback(current_file, total_files):
             percent_complete = (current_file / total_files) * 100
             print(f"Progress: {percent_complete:.2f}% - Extracting file {current_file}/{total_files}")
     """
+    extracted_files_list = []
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         total_files = len(zip_ref.infolist())
         extracted_files = 0
-
         for member in zip_ref.infolist():
             extracted_files += 1
-            if progress_callback is not None:
-                progress_callback(extracted_files, total_files)
+            if callback is not None:
+                callback(extracted_files, total_files)
 
-            zip_ref.extract(member, extract_path)
+            extracted_path = zip_ref.extract(member, extract_path)
+            extracted_files_list.append(extracted_path)  # Append the extracted file path to the list
+    return extracted_files_list
 
 
 if __name__ == "__main__":
