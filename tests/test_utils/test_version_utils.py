@@ -134,8 +134,8 @@ class TestVersionUtils(unittest.TestCase):
         mocked_response.status = 200
         mocked_content = {"tag_name": "v1.2.3"}
         http_request.return_value = (mocked_response, mocked_content)
-        response = version_utils.get_latest_github_release_content(verbose=False)
-        expected = mocked_content
+        response = version_utils.get_latest_github_release(verbose=False)
+        expected = mocked_response, mocked_content
         self.assertEqual(expected, response)
 
     @patch('gt.utils.version_utils.http_request')
@@ -146,4 +146,10 @@ class TestVersionUtils(unittest.TestCase):
         http_request.return_value = (mocked_response, mocked_content)
         response = version_utils.get_latest_github_release_version(verbose=True)
         expected = "1.2.3"
+        self.assertEqual(expected, response)
+
+    def test_get_latest_github_release_version_provided_response(self):
+        mocked_content = '{"tag_name":"v3.4.5"}'
+        response = version_utils.get_latest_github_release_version(verbose=True, response_content=mocked_content)
+        expected = "3.4.5"
         self.assertEqual(expected, response)

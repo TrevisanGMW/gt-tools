@@ -4,13 +4,11 @@ Package Updater Model
 Classes:
     PackageUpdaterModel: A class for checking for updates
 """
-from gt.utils.setup_utils import is_legacy_version_install_present, get_installed_core_module_path
-from gt.utils.version_utils import get_package_version, get_legacy_package_version
-from gt.utils.feedback_utils import print_when_true
 from gt.utils.prefs_utils import Prefs
+from gt.utils import version_utils
 from datetime import datetime
+import threading
 import logging
-import os
 
 # Logging Setup
 logging.basicConfig()
@@ -36,6 +34,11 @@ class PackageUpdaterModel:
         self.auto_check = True
         self.interval_days = 15
         self.update_preferences()
+        # Status
+        self.status = "Not Installed"
+        self.web_response = None
+        self.installed_version = "0.0.0"
+        self.latest_github_version = "0.0.0"
 
     def get_preferences(self):
         return self.preferences.get_raw_preferences()
@@ -55,24 +58,40 @@ class PackageUpdaterModel:
         self.preferences.set_int(key=PREFS_INTERVAL_DAYS, value=self.interval_days)
         self.preferences.save()
 
-    def check_for_updates(self, verbose=True):
-        # Get Installed Package Version
-        package_core_module = get_installed_core_module_path(only_existing=False)
-        if not os.path.exists(package_core_module):
-            message = f'Package not installed. Missing path: "{package_core_module}"'
-            print_when_true(message, do_print=verbose, use_system_write=True)
-            return
-        installed_version = get_package_version(package_path=package_core_module)
-        if not installed_version and is_legacy_version_install_present():
-            installed_version = get_legacy_package_version()
-        return installed_version
+    def check_for_updates(self):
+        """ Checks current version against web version and updates stored values with retrieved data """
+        # Current Version
+        self.installed_version = version_utils.get_installed_version()
+        # Latest Version
+        response, response_content = version_utils.get_latest_github_release()
+        self.latest_github_version = version_utils.get_latest_github_release_version(response_content=response_content)
+        # Status
+        if not version_utils.is_semantic_version(self.installed_version, metadata_ok=False) or \
+                not version_utils.is_semantic_version(self.latest_github_version, metadata_ok=False):
+            self.status = "Unknown"
+        comparison_result = version_utils.compare_versions(self.installed_version, self.latest_github_version)
+        if comparison_result == version_utils.VERSION_BIGGER:
+            self.status = "Unreleased update!"
+        elif comparison_result == version_utils.VERSION_SMALLER:
+            self.status = "New Update Available!"
+        else:
+            self.status = "You're up to date!"
+        # Web Response
+        self.web_response = response.status
+
+    def threaded_check_for_updates(self):
+        """ Threaded Check for updates """
+        thread = threading.Thread(None, target=self.check_for_updates)
+        thread.start()
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     import maya.standalone
-    maya.standalone.initialize()
+    # maya.standalone.initialize()
     model = PackageUpdaterModel()
     # model.set_preferences()
-    model.check_for_updates()
+    # get_installed_version()
+    model.threaded_check_for_updates()
+
 

@@ -103,27 +103,6 @@ def compare_versions(version_a, version_b):
         return VERSION_EQUAL
 
 
-def get_comparison_feedback(version_current, version_expected):
-    """
-    Compares current version with expected versions and returns a string explaining current status.
-    Args:
-        version_current (str): String describing the current version (must be semantic version) e.g. "1.2.3" or "2.14.5"
-        version_expected (str): A string describing the expected version (so a comparison can happen)
-    Returns:
-        str: A string describing the comparison result. It can be "unreleased", "outdated", "current" or "unknown"
-    """
-    if not is_semantic_version(version_current, metadata_ok=False) or \
-            not is_semantic_version(version_expected, metadata_ok=False):
-        return "unknown"
-    comparison_result = compare_versions(version_current, version_expected)
-    if comparison_result == VERSION_BIGGER:
-        return "updated"
-    elif comparison_result == VERSION_SMALLER:
-        return "outdated"
-    else:
-        return "current"
-
-
 def get_package_version(package_path=None):
     """
     Gets the package version, independently of the package folder name.
@@ -201,16 +180,16 @@ def get_installed_version(verbose=True):
         return installed_version
 
 
-def get_latest_github_release_content(verbose=True):
+def get_latest_github_release(verbose=True):
     """
-    Retrieves the content of the latest GitHub release for this package.
+    Retrieves the content of the latest "GitHub release" for this package.
     Exceptions are handled inside the function (seen through "verbose" mode)
 
     Args:
         verbose (bool, optional): If True, prints detailed information. Default is True.
 
     Returns:
-        str: The content of the latest GitHub release.
+        tuple: A tuple with the web-response and the content of the latest GitHub release. (response, None) if it fails.
     """
     response, response_content = http_request(PACKAGE_RELEASE_URL)
     try:
@@ -219,30 +198,38 @@ def get_latest_github_release_content(verbose=True):
             message = f'HTTP response returned unsuccessful status code. ' \
                       f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
             print_when_true(message, do_print=verbose, use_system_write=True)
-            return
+            return response, None
         if not response_content:
             message = f'HTTP requested content is empty or missing. ' \
                       f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
             print_when_true(message, do_print=verbose, use_system_write=True)
-            return
-        return response_content
+        return response, response_content
     except Exception as e:
         message = f'An error occurred while getting latest release content. Issue: {e}'
         print_when_true(message, do_print=verbose, use_system_write=True)
+        if response:
+            return response, None
+        return None, None
 
 
-def get_latest_github_release_version(verbose=True):
+def get_latest_github_release_version(verbose=True, response_content=None):
     """
     Retrieves the version from the latest GitHub released content for this package.
 
     Args:
         verbose (bool, optional): If True, prints detailed information. Default is True.
+        response_content (JSON, optional): If provided, this response will be used instead of requesting a new one.
+                                           The purpose of this parameter is to reduce the number of requests while
+                                           retrieving data from Github.
 
     Returns:
         str or None: The version of the latest GitHub release, formatted as a dot-separated string. e.g. "1.2.3"
                      None if operation failed to retrieve it.
     """
-    response_content = get_latest_github_release_content(verbose=verbose)
+    if response_content:
+        response_content = response_content
+    else:
+        _, response_content = get_latest_github_release(verbose=verbose)
     content = {}
     try:
         from json import loads
@@ -269,5 +256,5 @@ if __name__ == "__main__":
     # import maya.standalone
     # maya.standalone.initialize()
     out = None
-    out = get_latest_github_release_version()
+    out = get_latest_github_release()
     pprint(out)
