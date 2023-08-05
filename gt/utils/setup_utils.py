@@ -1,6 +1,8 @@
 """
 Setup Utilities - install/uninstall package from system
 """
+import sys
+
 from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
 from gt.utils.session_utils import remove_modules_startswith, get_maya_version
@@ -396,6 +398,30 @@ def remove_package_loaded_modules():
     return removed_modules
 
 
+def prepend_sys_path_with_default_install_location(remove_paths=None):
+    """
+    Prepends "sys.path" with the default install location for this package.
+    Args:
+        remove_paths (list, optional): A list of paths (strings) to be removed in case a new path was prepended.
+                                       These will only be removed if found and if the installed module exists.
+    Returns:
+        bool: True if the operation was successful, False if not.
+    """
+    # Prepend sys path with drag and drop location
+    installed_core_module_path = get_installed_core_module_path(only_existing=True)
+    if not installed_core_module_path:
+        logger.debug(f'Unable to prepend "sys.path". Missing installed core module.')
+        return False
+    parent_dir = os.path.dirname(installed_core_module_path)
+    sys.path.insert(0, parent_dir)
+    sys.path.insert(0, installed_core_module_path)
+    if remove_paths and isinstance(remove_paths, list):
+        for path in remove_paths:
+            if path in sys.path:
+                sys.path.remove(path)
+    return True
+
+
 def install_package(clean_install=True, verbose=True, callbacks=None):
     """
     Installs package in the Maya Settings directory
@@ -462,6 +488,7 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
                     callbacks=callbacks)
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
+            prepend_sys_path_with_default_install_location()
             reload_package_loaded_modules()
             print_when_true("Loading package drop-down menu..", do_print=verbose, callbacks=callbacks)
             load_package_menu(launch_latest_maya=False)  # Already in Maya

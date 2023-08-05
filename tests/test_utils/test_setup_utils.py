@@ -578,3 +578,19 @@ class TestSetupUtils(unittest.TestCase):
         result = setup_utils.get_installed_core_module_path(only_existing=True)
         expected = None
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_installed_core_module_path')
+    def test_successful_prepend(self, mock_get_installed_core_module_path):
+        mock_get_installed_core_module_path.return_value = '/path/to/installed/core/module'
+        remove_paths = ['/some/old/path']
+
+        initial_sys_path = sys.path.copy()
+        sys.path.insert(0, remove_paths[0])
+        result = setup_utils.prepend_sys_path_with_default_install_location(remove_paths)
+
+        self.assertTrue(result)
+        self.assertIn('/path/to/installed/core/module', sys.path)
+        self.assertNotIn('/some/old/path', sys.path)
+
+        # Clean up sys.path modifications
+        sys.path = initial_sys_path
