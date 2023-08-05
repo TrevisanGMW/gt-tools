@@ -52,22 +52,28 @@ def is_semantic_version(version_str, metadata_ok=True):
     return bool(re.match(pattern, str(version_str)))
 
 
-def parse_semantic_version(version_string):
+def parse_semantic_version(version_string, as_tuple=False):
     """
     Parses semantic version string input into a tuple with major, minor and patch integers.
     Args:
         version_string (str): String describing a version (must be semantic version) e.g. "1.2.3" or "2.14.5"
                                  Only two separating "." are allowed, otherwise it throws a ValueError.
                                  Any extra characters that are not digits will be ignored e.g. "v1.2.3dev" = "1.2.3"
+        as_tuple (bool, optional): If active, it will return a namedtuple with the version e.g. (1, 2, 3)
+                                   if inactive, it will return a string. e.g. "1.2.3"
     Returns:
-        namedtuple: SemanticVersion: A named tuple with major, minor and patch information for the version.
-                    e.g. (1, 2, 3)
-                    e.g. (major=1, minor=2, patch=3)
+        str or namedtuple: String: When "as_tuple" is inactive, a string with the version is returned. e.g. "1.2.3"
+                           SemanticVersion: A named tuple with major, minor and patch information for the version.
+                           e.g. (1, 2, 3)
+                           e.g. (major=1, minor=2, patch=3)
     """
     try:
         version_string = re.sub("[^\d.]", "", version_string)  # Remove non-digits (keeps ".")
         major, minor, patch = map(int, version_string.split('.')[:3])
-        return SemanticVersion(major=major, minor=minor, patch=patch)
+        if as_tuple:
+            return SemanticVersion(major=major, minor=minor, patch=patch)
+        else:
+            return f'{str(major)}.{str(minor)}.{str(patch)}'
     except ValueError:
         raise ValueError(f'Invalid version format: "{version_string}". Use semantic versioning: e.g. "1.2.3".')
 
@@ -84,8 +90,8 @@ def compare_versions(version_a, version_b):
              0: if equal,
              1: if newer ("a" newer than "b")
     """
-    major_a, minor_a, patch_a = parse_semantic_version(version_a)
-    major_b, minor_b, patch_b = parse_semantic_version(version_b)
+    major_a, minor_a, patch_a = parse_semantic_version(version_a, as_tuple=True)
+    major_b, minor_b, patch_b = parse_semantic_version(version_b, as_tuple=True)
 
     if major_a > major_b:
         return VERSION_BIGGER
@@ -246,8 +252,10 @@ def get_latest_github_release_version(verbose=True, response_content=None):
         return
 
     version = parse_semantic_version(tag_name)
-    version_string = [str(num) for num in list(version)]
-    return ".".join(version_string)
+    return version
+
+
+# def get_previous_semantic_version
 
 
 if __name__ == "__main__":
@@ -256,5 +264,6 @@ if __name__ == "__main__":
     # import maya.standalone
     # maya.standalone.initialize()
     out = None
-    out = get_latest_github_release()
+    # out = http_request(PACKAGE_TAG_RELEASE_URL + "v3.0.4")
     pprint(out)
+

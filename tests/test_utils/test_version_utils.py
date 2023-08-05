@@ -24,33 +24,63 @@ class TestVersionUtils(unittest.TestCase):
     def tearDown(self):
         maya_test_tools.delete_test_temp_dir()
 
-    def test_parse_semantic_version(self):
+    def test_parse_semantic_tuple_version(self):
         expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="1.2.3")
+        result = version_utils.parse_semantic_version(version_string="1.2.3", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_bigger_numbers(self):
+        expected = (123, 456, 789)
+        result = version_utils.parse_semantic_version(version_string="123.456.789", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_with_string(self):
+        expected = (1, 2, 3)
+        result = version_utils.parse_semantic_version(version_string="v1.2.3", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_with_string_symbols(self):
+        expected = (1, 2, 3)
+        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_error(self):
+        with self.assertRaises(ValueError):
+            # No version to be extracted/parsed
+            version_utils.parse_semantic_version(version_string="random.string", as_tuple=True)
+
+    def test_parse_semantic_tuple_version_error_two(self):
+        with self.assertRaises(ValueError):
+            version_utils.parse_semantic_version(version_string="1.2", as_tuple=True)   # Missing patch version
+
+    def test_parse_semantic_version(self):
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="1.2.3", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_bigger_numbers(self):
-        expected = (123, 456, 789)
-        result = version_utils.parse_semantic_version(version_string="123.456.789")
+        expected = "123.456.789"
+        result = version_utils.parse_semantic_version(version_string="123.456.789", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_with_string(self):
-        expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="v1.2.3")
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="v1.2.3", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_with_string_symbols(self):
-        expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp")
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_error(self):
         with self.assertRaises(ValueError):
-            version_utils.parse_semantic_version(version_string="random.string")  # No version to be extracted/parsed
+            # No version to be extracted/parsed
+            version_utils.parse_semantic_version(version_string="random.string", as_tuple=False)
 
     def test_parse_semantic_version_error_two(self):
         with self.assertRaises(ValueError):
-            version_utils.parse_semantic_version(version_string="1.2")  # Missing patch version
+            version_utils.parse_semantic_version(version_string="1.2", as_tuple=False)   # Missing patch version
 
     def test_compare_versions(self):
         expected = 0  # equal
