@@ -274,9 +274,5 @@ if __name__ == "__main__":
     # import maya.standalone
     # maya.standalone.initialize()
     out = None
-    # out = http_request(PACKAGE_TAG_RELEASE_URL + "v3.0.4")
-    out = get_github_releases()
-
-    # get_latest_github_release_version
     pprint(out)
 

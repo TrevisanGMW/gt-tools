@@ -19,25 +19,25 @@ class TestStringUtils(unittest.TestCase):
     def test_remove_string_prefix(self):
         string_to_test = "oneTwoThree"
         expected = "TwoThree"
-        result = string_utils.remove_string_prefix(input_string=string_to_test, prefix="one")
+        result = string_utils.remove_prefix(input_string=string_to_test, prefix="one")
         self.assertEqual(expected, result)
 
     def test_remove_string_prefix_no_change(self):
         string_to_test = "oneTwoThree"
         expected = string_to_test
-        result = string_utils.remove_string_prefix(input_string=string_to_test, prefix="Two")
+        result = string_utils.remove_prefix(input_string=string_to_test, prefix="Two")
         self.assertEqual(expected, result)
 
     def test_remove_string_suffix(self):
         string_to_test = "oneTwoThree"
         expected = "oneTwo"
-        result = string_utils.remove_string_suffix(input_string=string_to_test, suffix="Three")
+        result = string_utils.remove_suffix(input_string=string_to_test, suffix="Three")
         self.assertEqual(expected, result)
 
     def test_remove_string_suffix_no_change(self):
         string_to_test = "oneTwoThree"
         expected = string_to_test
-        result = string_utils.remove_string_suffix(input_string=string_to_test, suffix="Two")
+        result = string_utils.remove_suffix(input_string=string_to_test, suffix="Two")
         self.assertEqual(expected, result)
 
     def test_camel_case_to_snake_case(self):

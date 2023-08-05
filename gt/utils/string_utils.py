@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def remove_string_prefix(input_string, prefix):
+def remove_prefix(input_string, prefix):
     """
     Removes prefix from a string (if found). It only removes in case it's a prefix.
     This function does NOT use replace
@@ -28,7 +28,7 @@ def remove_string_prefix(input_string, prefix):
     return input_string
 
 
-def remove_string_suffix(input_string, suffix):
+def remove_suffix(input_string, suffix):
     """
     Removes suffix from a string (if found). It only removes in case it's a suffix.
     This function does NOT use replace
