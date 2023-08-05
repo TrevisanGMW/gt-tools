@@ -145,8 +145,45 @@ def get_http_response_type(status_code):
         return "unknown response"
 
 
+def download_file(url, destination, chunk_size=8192, callback=None):
+    """
+    Downloads a file from a given URL and saves it to a specified destination.
+
+    Args:
+        url (str): The URL of the file to download.
+        destination (str): The local path where the downloaded file will be saved.
+        chunk_size (int, optional): The size of each download chunk in bytes. Defaults to 8192.
+        callback (function, optional): A callback function that accepts a progress value (0-100)
+                                       as an argument and can be used to track the download progress. Defaults to None.
+
+    Example usage of the callback function:
+        def print_progress(progress):
+            print(f"Download progress: {progress:.2f}%")
+
+        download_file(download_link, download_destination, callback=print_progress)
+    """
+    with urllib.request.urlopen(url) as response, open(destination, 'wb') as file:
+        headers = response.info()
+        total_size = int(headers.get('Content-Length', 0))
+        chunk_size = chunk_size
+        downloaded = 0
+
+        while True:
+            data = response.read(chunk_size)
+            if not data:
+                break
+            file.write(data)
+            downloaded += len(data)
+            if total_size > 0 and callback:
+                progress = (downloaded / total_size) * 100
+                callback(progress)
+        if callback:
+            callback(100)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
     pprint(out)
+

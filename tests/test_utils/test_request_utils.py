@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock, MagicMock, mock_open
 import unittest
 import urllib
 import logging
@@ -102,3 +102,28 @@ class TestRequestUtils(unittest.TestCase):
     def test_get_http_response_type_unknown_response_type(self):
         self.assertEqual(request_utils.get_http_response_type(0), "unknown response")
         self.assertEqual(request_utils.get_http_response_type(999), "unknown response")
+
+    @patch('urllib.request.urlopen')
+    @patch('builtins.open', new_callable=mock_open())
+    def test_download_file(self, mock_open, mock_urlopen):
+        # Mock response from urlopen
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.info.return_value = {'Content-Length': '10000'}
+        mock_response.read.side_effect = [b'chunk1', b'chunk2', b'']
+
+        mock_urlopen.return_value = mock_response
+
+        # Mock callback function
+        mock_callback = MagicMock()
+
+        # Call the function
+        request_utils.download_file("http://example.com/file.txt", "downloaded/file.txt",
+                                    chunk_size=5, callback=mock_callback)
+
+        # Assertions
+        mock_urlopen.assert_called_once_with("http://example.com/file.txt")
+        mock_open.assert_called_once_with("downloaded/file.txt", 'wb')
+        mock_response.read.assert_called()
+        self.assertEqual(mock_response.read.call_count, 3)
+        mock_callback.assert_called_with(100.0)
