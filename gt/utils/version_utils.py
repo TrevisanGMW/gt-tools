@@ -16,8 +16,10 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-PACKAGE_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/latest'
-PACKAGE_TAG_RELEASE_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools/releases/tags/'
+PACKAGE_GITHUB_URL = 'https://api.github.com/repos/TrevisanGMW/gt-tools'
+PACKAGE_RELEASES_URL = f'{PACKAGE_GITHUB_URL}/releases'
+PACKAGE_LATEST_RELEASE_URL = f'{PACKAGE_RELEASES_URL}/latest'
+PACKAGE_TAGS_URL = f'{PACKAGE_RELEASES_URL}/tags/'
 VERSION_BIGGER = 1
 VERSION_SMALLER = -1
 VERSION_EQUAL = 0
@@ -186,28 +188,32 @@ def get_installed_version(verbose=True):
         return installed_version
 
 
-def get_latest_github_release(verbose=True):
+def get_github_releases(verbose=True, only_latest=False):
     """
     Retrieves the content of the latest "GitHub release" for this package.
     Exceptions are handled inside the function (seen through "verbose" mode)
 
     Args:
         verbose (bool, optional): If True, prints detailed information. Default is True.
+        only_latest (bool, optional): If active, it will only return the latest release.
 
     Returns:
         tuple: A tuple with the web-response and the content of the latest GitHub release. (response, None) if it fails.
     """
-    response, response_content = http_request(PACKAGE_RELEASE_URL)
+    if only_latest:
+        response, response_content = http_request(PACKAGE_LATEST_RELEASE_URL)
+    else:
+        response, response_content = http_request(PACKAGE_RELEASES_URL)
     try:
         response_type = get_http_response_type(response.status)
         if response_type != "successful":
             message = f'HTTP response returned unsuccessful status code. ' \
-                      f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
+                      f'URL: "{PACKAGE_RELEASES_URL} (Status: "{response.status})'
             print_when_true(message, do_print=verbose, use_system_write=True)
             return response, None
         if not response_content:
             message = f'HTTP requested content is empty or missing. ' \
-                      f'URL: "{PACKAGE_RELEASE_URL} (Status: "{response.status})'
+                      f'URL: "{PACKAGE_RELEASES_URL} (Status: "{response.status})'
             print_when_true(message, do_print=verbose, use_system_write=True)
         return response, response_content
     except Exception as e:
@@ -224,22 +230,29 @@ def get_latest_github_release_version(verbose=True, response_content=None):
 
     Args:
         verbose (bool, optional): If True, prints detailed information. Default is True.
-        response_content (JSON, optional): If provided, this response will be used instead of requesting a new one.
-                                           The purpose of this parameter is to reduce the number of requests while
-                                           retrieving data from Github.
+        response_content (str, optional): If provided, this response will be used instead of requesting a new one.
+                                          The purpose of this parameter is to reduce the number of requests while
+                                          retrieving data from "Github". It can be a string or a list.
 
     Returns:
         str or None: The version of the latest GitHub release, formatted as a dot-separated string. e.g. "1.2.3"
                      None if operation failed to retrieve it.
     """
     if response_content:
-        response_content = response_content
+        _response_content = response_content
     else:
-        _, response_content = get_latest_github_release(verbose=verbose)
+        _, _response_content = get_github_releases(verbose=verbose)
     content = {}
     try:
         from json import loads
-        content = loads(response_content)
+        content = loads(_response_content)
+        if isinstance(content, list):
+            if len(content) > 0:
+                content = content[0]  # First one is the latest release
+            else:
+                message = f'Unable to get version. Response content was an empty list.'
+                print_when_true(message, do_print=verbose, use_system_write=True)
+                return
     except Exception as e:
         message = f'Failed to extract JSON data from response. Issue: "{e}".'
         print_when_true(message, do_print=verbose, use_system_write=True)
@@ -247,15 +260,12 @@ def get_latest_github_release_version(verbose=True, response_content=None):
     tag_name = content.get("tag_name")
     if not tag_name:
         message = f'HTTP requested content is missing "tag_name". ' \
-                  f'URL: "{PACKAGE_RELEASE_URL}'
+                  f'URL: "{PACKAGE_RELEASES_URL}'
         print_when_true(message, do_print=verbose, use_system_write=True)
         return
 
     version = parse_semantic_version(tag_name)
     return version
-
-
-# def get_previous_semantic_version
 
 
 if __name__ == "__main__":
@@ -265,5 +275,8 @@ if __name__ == "__main__":
     # maya.standalone.initialize()
     out = None
     # out = http_request(PACKAGE_TAG_RELEASE_URL + "v3.0.4")
+    out = get_github_releases()
+
+    # get_latest_github_release_version
     pprint(out)
 
