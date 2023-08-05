@@ -20,7 +20,6 @@ PREFS_NAME = "package_updater"
 PREFS_LAST_DATE = "last_date"  # Format: '2020-01-01 17:08:00'
 PREFS_AUTO_CHECK = "auto_check"
 PREFS_INTERVAL_DAYS = "interval_days"
-PACKAGE_RELEASES_URL = 'https://github.com/TrevisanGMW/gt-tools/releases/latest'
 
 
 class PackageUpdaterModel:
@@ -39,6 +38,7 @@ class PackageUpdaterModel:
         self.web_response = None
         self.installed_version = "0.0.0"
         self.latest_github_version = "0.0.0"
+        self.needs_update = False
 
     def get_preferences(self):
         return self.preferences.get_raw_preferences()
@@ -63,21 +63,28 @@ class PackageUpdaterModel:
         # Current Version
         self.installed_version = version_utils.get_installed_version()
         # Latest Version
-        response, response_content = version_utils.get_latest_github_release()
+        response, response_content = version_utils.get_github_releases()
         self.latest_github_version = version_utils.get_latest_github_release_version(response_content=response_content)
         # Status
+        self.refresh_status()
+        # Web Response
+        self.web_response = response.status
+
+    def refresh_status(self):
+        """ Updates status and  by comparing installed version with the latest GitHub version """
         if not version_utils.is_semantic_version(self.installed_version, metadata_ok=False) or \
                 not version_utils.is_semantic_version(self.latest_github_version, metadata_ok=False):
             self.status = "Unknown"
         comparison_result = version_utils.compare_versions(self.installed_version, self.latest_github_version)
         if comparison_result == version_utils.VERSION_BIGGER:
             self.status = "Unreleased update!"
+            self.needs_update = False
         elif comparison_result == version_utils.VERSION_SMALLER:
             self.status = "New Update Available!"
+            self.needs_update = True
         else:
             self.status = "You're up to date!"
-        # Web Response
-        self.web_response = response.status
+            self.needs_update = False
 
     def threaded_check_for_updates(self):
         """ Threaded Check for updates """
@@ -88,7 +95,7 @@ class PackageUpdaterModel:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     import maya.standalone
-    # maya.standalone.initialize()
+    maya.standalone.initialize()
     model = PackageUpdaterModel()
     # model.set_preferences()
     # get_installed_version()

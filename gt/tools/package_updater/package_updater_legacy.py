@@ -361,7 +361,7 @@ def build_gui_check_for_updates():
                                 before_previous_v = 'v' + str(previous_v_major-1) + '.' + \
                                                     str(previous_version_minor) + '.' + \
                                                     str(previous_v_patch)
-                    
+
                     previous_v_response = get_github_release(gt_tools_tag_release_api + previous_version)
                     before_previous_v_response = get_github_release(gt_tools_tag_release_api + before_previous_v)
                     
