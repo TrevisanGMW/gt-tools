@@ -236,6 +236,20 @@ class TestDataUtils(unittest.TestCase):
         self.assertFalse(os.path.exists(file1))
         self.assertFalse(os.path.exists(file2))
 
+    def test_delete_files_string(self):
+        # Create temporary files
+        file1 = os.path.join(self.temp_dir, "test_file1.txt")
+        file2 = os.path.join(self.temp_dir, "test_file2.txt")
+        with open(file1, "w") as f1, open(file2, "w") as f2:
+            f1.write("Test content")
+            f2.write("Test content")
+
+        data_utils.delete_paths(file1)
+        data_utils.delete_paths(file2)
+
+        self.assertFalse(os.path.exists(file1))
+        self.assertFalse(os.path.exists(file2))
+
     def test_delete_folders(self):
         # Create temporary folder
         folder = os.path.join(self.temp_dir, "test_folder")

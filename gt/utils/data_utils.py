@@ -291,7 +291,8 @@ def delete_paths(paths):
     Deletes files or folders at the specified paths.
 
     Args:
-        paths (list): A list of paths (strings) to files or folders.
+        paths (list, str): A list of paths (strings) to files or folders.
+                           If a string is provided, it's automatically added to a list. e.g. "path" becomes ["path"]
 
     Returns:
         bool: True if all provided files were deleted, False if not.
@@ -304,6 +305,8 @@ def delete_paths(paths):
         ]
         delete_paths(paths_to_delete)
     """
+    if isinstance(paths, str):
+        paths = [paths]
     if not isinstance(paths, list):
         logger.warning(f'Unable to run delete operation. Input must be a list of paths (strings).')
         return False
