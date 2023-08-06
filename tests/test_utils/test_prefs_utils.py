@@ -100,3 +100,41 @@ class TestPrefsUtils(unittest.TestCase):
         result = file_name.endswith(f"{prefs_utils.PACKAGE_GLOBAL_PREFS}.{prefs_utils.PACKAGE_PREFS_EXT}")
         expected = True
         self.assertTrue(expected, result)
+
+    def test_set_user_files_sub_folder(self):
+        self.prefs.set_user_files_sub_folder('new_sub_folder')
+        self.assertEqual(self.prefs.sub_folder, 'new_sub_folder')
+
+    def test_set_user_files_sub_folder_unchanged(self):
+        self.assertEqual(self.prefs.sub_folder, 'mock_prefs')
+
+    def test_set_user_files_sub_folder_created(self):
+        self.prefs.write_user_file(file_name="user_file.txt", content="mocked_content", is_json=False)
+        custom_file = os.path.join(self.temp_dir, 'mock_prefs')
+        is_dir = os.path.isdir(custom_file)
+        self.assertTrue(is_dir)
+
+    def test_write_user_file(self):
+        self.prefs.write_user_file(file_name="user_file.txt", content="mocked_content", is_json=False)
+        custom_file = os.path.join(self.temp_dir, 'mock_prefs', 'user_file.txt')
+        with open(custom_file, "r") as data_file:
+            result = data_file.read()
+        expected = 'mocked_content'
+        self.assertEqual(expected, result)
+
+    def test_get_user_file(self):
+        self.prefs.write_user_file(file_name="user_file.txt", content="mocked_content", is_json=False)
+        result = self.prefs.get_user_file(file_name='user_file.txt')
+        expected = os.path.join(self.temp_dir, 'mock_prefs', 'user_file.txt')
+        self.assertEqual(expected, result)
+
+    def test_get_user_file_missing_sub_folder(self):
+        result = self.prefs.get_user_file(file_name='mocked_missing_file.ext', verbose=False)
+        expected = None
+        self.assertEqual(expected, result)
+
+    def test_get_user_file_missing_file(self):
+        self.prefs.write_user_file(file_name="user_file.txt", content="mocked_content", is_json=False)
+        result = self.prefs.get_user_file(file_name='mocked_missing_file.ext', verbose=False)
+        expected = None
+        self.assertEqual(expected, result)

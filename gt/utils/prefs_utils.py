@@ -4,7 +4,7 @@ This script should not directly import "maya.cmds" as it's also intended to be u
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.system_utils import get_maya_preferences_dir, get_system
-from gt.utils.data_utils import write_json, read_json_dict
+from gt.utils.data_utils import write_json, read_json_dict, write_data
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.setup_utils import PACKAGE_NAME
 import logging
@@ -34,6 +34,8 @@ class Prefs:
                                           By default, preferences are saved in the package installation path.
                                           e.g. "Documents/maya/gt-tools/prefs"
         """
+        self.prefs_name = prefs_name
+        self.sub_folder = prefs_name
         if location_dir:
             if os.path.exists(location_dir) and os.path.isdir(location_dir):
                 self.file_name = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
@@ -256,6 +258,74 @@ class Prefs:
             shutil.rmtree(_prefs_dir)
             return True
         return False
+
+    def set_user_files_sub_folder(self, sub_folder_name):
+        """
+        sub_folder_name (str): Name of the sub-folder created for the user file.
+                               If not provided, it will use the preferences name as the name of the sub-folder.
+                               This variable will also be stored in "self.user_files_sub_folders" used to later
+                               retrieve the data from the correct folder. This value can be set
+        """
+        if not sub_folder_name or not isinstance(sub_folder_name, str):
+            logger.warning(f'Unable to set sub-folder. Invalid input. (Must be a non-empty string)')
+            return
+        self.sub_folder = sub_folder_name
+
+    def write_user_file(self, file_name, content, is_json=False):
+        """
+        Writes user-defined file to the preferences' folder.
+        NOTE: This function doesn't require "save()" to be run to create the file. It writes it immediately when called.
+        Args:
+            file_name (str): Name of the file to be created. This is not a path, justa  file name. e.g. "my_file.json"
+            content (any): Data to write to the file. If "is_json" is active, it would be a dictionary,
+                           but it's often a string or bytes.
+            is_json (bool, optional): If active, it will write JSON data instead of directly writing it.
+                                      When this option is active, the content must be a dictionary.
+        Returns:
+            str or None: Path to the generated file. None if it failed the operation.
+        """
+        _prefs_dir = os.path.dirname(self.file_name)
+        if not os.path.isdir(_prefs_dir):
+            os.makedirs(_prefs_dir)
+            logger.debug(f'Missing Prefs directory created during the writing of a custom file: "{_prefs_dir}".')
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.isdir(_sub_folder):
+            os.makedirs(_sub_folder)
+        user_file_path = os.path.join(_sub_folder, file_name)
+
+        if is_json:
+            write_json(path=user_file_path ,data=content)
+        else:
+            write_data(path=user_file_path, data=content)
+
+        return user_file_path
+
+    def get_user_file(self, file_name, verbose=False):
+        """
+        Gets a user file from prefs/sub-folder
+        Args:
+            file_name (str): Name of the file with its extension. e.g. "my_file.txt" (not a path)
+            verbose (bool, optional): If active, it will give warnings when files are missing.
+        Returns:
+            str or None: Path to the requested file, or None if not found.
+        """
+        _prefs_dir = os.path.dirname(self.file_name)
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.exists(_sub_folder):
+            if verbose:
+                logger.warning(f'Unable to retrieve user file. '
+                               f'User file sub-folder does not exist. Path: "{_sub_folder}".')
+            return
+        folder_files = os.listdir(_sub_folder)
+        if file_name in folder_files:
+            return os.path.join(_sub_folder, file_name)
+        else:
+            if verbose:
+                logger.warning(f'Requested user file not found. File: "{file_name}". - Search dir: "{_sub_folder}".')
 
 
 class PackagePrefs(Prefs):
