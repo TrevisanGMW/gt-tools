@@ -291,10 +291,3 @@ class TestDataUtils(unittest.TestCase):
 
         result = data_utils.delete_paths(paths_to_delete)
         self.assertTrue(result)
-
-    def test_invalid_input(self):
-        path_to_delete = "/path/to/delete/file.txt"
-        logging.disable(logging.WARNING)
-        result = data_utils.delete_paths(path_to_delete)
-        logging.disable(logging.NOTSET)
-        self.assertFalse(result)

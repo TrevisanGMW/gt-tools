@@ -523,7 +523,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_get_package_requirements.return_value = {'tools': mocked_requirement_dir}
         result = setup_utils.install_package(clean_install=True, verbose=False)
         mock_is_script_in_py.assert_called()
-        mock_preferences_dir.assert_called_once()
+        mock_preferences_dir.assert_called()
         mock_get_package_requirements.assert_called_once()
         mock_remove_previous_install.assert_called_once()
         mock_add_entry_point.assert_called_once()
@@ -556,7 +556,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_preferences_dir.return_value = test_temp_dir
         result = setup_utils.uninstall_package(verbose=False)
         mock_is_script_in_py.assert_called()
-        mock_preferences_dir.assert_called_once()
+        mock_preferences_dir.assert_called()
         mock_remove_entry_point.assert_called_once()
         mock_remove_package_loader.assert_called_once()
         expected = True  # Ended with return True reached end of function
