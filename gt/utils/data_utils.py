@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 """
 import zipfile
 import logging
+import shutil
 import stat
 import json
 import os
@@ -283,6 +284,44 @@ def unzip_zip_file(zip_file_path, extract_path, callback=None):
             extracted_path = zip_ref.extract(member, extract_path)
             extracted_files_list.append(extracted_path)  # Append the extracted file path to the list
     return extracted_files_list
+
+
+def delete_paths(paths):
+    """
+    Deletes files or folders at the specified paths.
+
+    Args:
+        paths (list): A list of paths (strings) to files or folders.
+
+    Returns:
+        bool: True if all provided files were deleted, False if not.
+
+    Example:
+        paths_to_delete = [
+            "/path/to/delete/file.txt",
+            "/path/to/delete/folder/",
+            "/path/that/does/not/exist/"
+        ]
+        delete_paths(paths_to_delete)
+    """
+    if not isinstance(paths, list):
+        logger.warning(f'Unable to run delete operation. Input must be a list of paths (strings).')
+        return False
+    deleted_count = 0
+    for path in paths:
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+        except OSError as e:
+            logger.debug(f'Unable to delete "{path}". Issue: {e}')
+        if not os.path.exists(path):
+            deleted_count += 1
+    if len(paths) == deleted_count:
+        return True
+    else:
+        return False
 
 
 if __name__ == "__main__":

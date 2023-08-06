@@ -219,3 +219,68 @@ class TestDataUtils(unittest.TestCase):
         extract_path = os.path.join(self.temp_dir, 'extracted')
         zip_file_path = os.path.join(maya_test_tools.get_data_dir_path(), "zip_file.zip")
         data_utils.unzip_zip_file(zip_file_path, extract_path, progress_callback)
+
+    def test_delete_files(self):
+        # Create temporary files
+        file1 = os.path.join(self.temp_dir, "test_file1.txt")
+        file2 = os.path.join(self.temp_dir, "test_file2.txt")
+        with open(file1, "w") as f1, open(file2, "w") as f2:
+            f1.write("Test content")
+            f2.write("Test content")
+
+        paths_to_delete = [file1, file2]
+
+        result = data_utils.delete_paths(paths_to_delete)
+
+        self.assertTrue(result)
+        self.assertFalse(os.path.exists(file1))
+        self.assertFalse(os.path.exists(file2))
+
+    def test_delete_folders(self):
+        # Create temporary folder
+        folder = os.path.join(self.temp_dir, "test_folder")
+        os.makedirs(folder)
+        sub_folder = os.path.join(folder, "sub_folder")
+        os.makedirs(sub_folder)
+
+        paths_to_delete = [folder]
+
+        result = data_utils.delete_paths(paths_to_delete)
+
+        self.assertTrue(result)
+        self.assertFalse(os.path.exists(folder))
+
+    def test_delete_mixed_paths(self):
+        # Create temporary files and folder
+        file1 = os.path.join(self.temp_dir, "test_file1.txt")
+        folder1 = os.path.join(self.temp_dir, "test_folder1")
+        os.makedirs(folder1)
+        sub_folder1 = os.path.join(folder1, "sub_folder")
+        os.makedirs(sub_folder1)
+
+        with open(file1, "w") as f1:
+            f1.write("Test content")
+
+        paths_to_delete = [file1, folder1]
+
+        result = data_utils.delete_paths(paths_to_delete)
+
+        self.assertTrue(result)
+        self.assertFalse(os.path.exists(file1))
+        self.assertFalse(os.path.exists(folder1))
+
+    def test_nonexistent_paths(self):
+        paths_to_delete = [
+            "nonexistent_file.txt",
+            "nonexistent_folder/"
+        ]
+
+        result = data_utils.delete_paths(paths_to_delete)
+        self.assertTrue(result)
+
+    def test_invalid_input(self):
+        path_to_delete = "/path/to/delete/file.txt"
+        logging.disable(logging.WARNING)
+        result = data_utils.delete_paths(path_to_delete)
+        logging.disable(logging.NOTSET)
+        self.assertFalse(result)
