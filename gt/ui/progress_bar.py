@@ -121,6 +121,16 @@ class ProgressBarWindow(QMainWindow):
         new_value = self.progress_bar.value() + increase_value
         self.set_progress_bar_value(new_value)
 
+    def get_output_box_plain_text(self):
+        """
+        Returns the content found in the "output_textbox" QTextEdit object as a string.
+        Returns:
+            str: Content found in the "output_textbox" QTextEdit object. If not available, it returns "" (empty string)
+        """
+        if not self.output_textbox:
+            return ""
+        return self.output_textbox.toPlainText()
+
     def add_text_to_output_box(self, input_string, color=None, as_new_line=True):
         """
         Appends new_text to the output_textbox.
@@ -154,7 +164,7 @@ class ProgressBarWindow(QMainWindow):
         new_line_symbol = ''
         if as_new_line:
             new_line_symbol = '\n'
-        cursor.insertText(new_line_symbol + input_string if not is_empty else input_string)
+        cursor.insertText(new_line_symbol + str(input_string) if not is_empty else str(input_string))
 
         # Scroll the text edit to the end
         self.output_textbox.ensureCursorVisible()
@@ -282,6 +292,7 @@ if __name__ == '__main__':
         time.sleep(0.1)
     window.change_line_color(2, QColor("red"))  # Change color of line 2 to red
     window.change_last_line_color("#0000FF")
-
+    out = window.get_output_box_plain_text()
+    print(out)
     sys.exit(app.exec_())
 

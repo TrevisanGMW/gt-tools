@@ -3,7 +3,9 @@ Data Utilities - Reading and Writing data (JSONs, TXT, etc..)
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+import zipfile
 import logging
+import shutil
 import stat
 import json
 import os
@@ -252,11 +254,81 @@ def set_file_permission_modifiable(file_path):
     set_file_permissions(file_path, PermissionBits.ALL_PERMISSIONS)
 
 
+def unzip_zip_file(zip_file_path, extract_path, callback=None):
+    """
+    Unzips a zip file to the specified extraction path using standard libraries.
+
+    Args:
+        zip_file_path (str): Path to the zip file to be extracted. (Must exist)
+        extract_path (str): Path to the directory where the contents will be extracted.
+        callback (callable, optional): A callback function to track extraction progress.
+            It should accept two arguments: the current file being extracted and the total number of files.
+
+    Returns:
+        List[str]: A list of file paths to the extracted files.
+
+    Example progress callback function:
+        def progress_callback(current_file, total_files):
+            percent_complete = (current_file / total_files) * 100
+            print(f"Progress: {percent_complete:.2f}% - Extracting file {current_file}/{total_files}")
+    """
+    extracted_files_list = []
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        total_files = len(zip_ref.infolist())
+        extracted_files = 0
+        for member in zip_ref.infolist():
+            extracted_files += 1
+            if callback is not None:
+                callback(extracted_files, total_files)
+
+            extracted_path = zip_ref.extract(member, extract_path)
+            extracted_files_list.append(extracted_path)  # Append the extracted file path to the list
+    return extracted_files_list
+
+
+def delete_paths(paths):
+    """
+    Deletes files or folders at the specified paths.
+
+    Args:
+        paths (list, str): A list of paths (strings) to files or folders.
+                           If a string is provided, it's automatically added to a list. e.g. "path" becomes ["path"]
+
+    Returns:
+        bool: True if all provided files were deleted, False if not.
+
+    Example:
+        paths_to_delete = [
+            "/path/to/delete/file.txt",
+            "/path/to/delete/folder/",
+            "/path/that/does/not/exist/"
+        ]
+        delete_paths(paths_to_delete)
+    """
+    if isinstance(paths, str):
+        paths = [paths]
+    if not isinstance(paths, list):
+        logger.warning(f'Unable to run delete operation. Input must be a list of paths (strings).')
+        return False
+    deleted_count = 0
+    for path in paths:
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+        except OSError as e:
+            logger.debug(f'Unable to delete "{path}". Issue: {e}')
+        if not os.path.exists(path):
+            deleted_count += 1
+    if len(paths) == deleted_count:
+        return True
+    else:
+        return False
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
-    from system_utils import get_desktop_path
-    test_file = os.path.join(get_desktop_path(), "test.txt")
-    set_file_permissions(test_file, PermissionBits.READ_ONLY)
     pprint(out)

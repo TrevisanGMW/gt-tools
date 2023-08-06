@@ -523,7 +523,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_get_package_requirements.return_value = {'tools': mocked_requirement_dir}
         result = setup_utils.install_package(clean_install=True, verbose=False)
         mock_is_script_in_py.assert_called()
-        mock_preferences_dir.assert_called_once()
+        mock_preferences_dir.assert_called()
         mock_get_package_requirements.assert_called_once()
         mock_remove_previous_install.assert_called_once()
         mock_add_entry_point.assert_called_once()
@@ -556,7 +556,7 @@ class TestSetupUtils(unittest.TestCase):
         mock_preferences_dir.return_value = test_temp_dir
         result = setup_utils.uninstall_package(verbose=False)
         mock_is_script_in_py.assert_called()
-        mock_preferences_dir.assert_called_once()
+        mock_preferences_dir.assert_called()
         mock_remove_entry_point.assert_called_once()
         mock_remove_package_loader.assert_called_once()
         expected = True  # Ended with return True reached end of function
@@ -564,3 +564,33 @@ class TestSetupUtils(unittest.TestCase):
         expected = False
         result = os.path.exists(mocked_target_dir)
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    def test_get_installed_module_path(self, mocked_get_prefs):
+        mocked_get_prefs.return_value = "mocked_path"
+        result = setup_utils.get_installed_core_module_path()
+        expected = 'mocked_path\\gt-tools\\gt'
+        self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_maya_preferences_dir')
+    def test_get_installed_module_path_only_existing(self, mocked_get_prefs):
+        mocked_get_prefs.return_value = "mocked_path"
+        result = setup_utils.get_installed_core_module_path(only_existing=True)
+        expected = None
+        self.assertEqual(expected, result)
+
+    @patch('gt.utils.setup_utils.get_installed_core_module_path')
+    def test_successful_prepend(self, mock_get_installed_core_module_path):
+        mock_get_installed_core_module_path.return_value = '/path/to/installed/core/module'
+        remove_paths = ['/some/old/path']
+
+        initial_sys_path = sys.path.copy()
+        sys.path.insert(0, remove_paths[0])
+        result = setup_utils.prepend_sys_path_with_default_install_location(remove_paths)
+
+        self.assertTrue(result)
+        self.assertIn('/path/to/installed/core/module', sys.path)
+        self.assertNotIn('/some/old/path', sys.path)
+
+        # Clean up sys.path modifications
+        sys.path = initial_sys_path

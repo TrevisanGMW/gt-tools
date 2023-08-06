@@ -3,7 +3,10 @@ Session Utilities
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 """
 from gt.utils.data_utils import write_json, read_json_dict
-from gt.utils.system_utils import get_temp_folder
+from gt.utils.feedback_utils import print_when_true
+from gt.utils.system_utils import get_temp_dir
+import importlib
+import inspect
 import logging
 import sys
 import os
@@ -112,7 +115,7 @@ def get_initial_state_file_path():
     """
     Generates a path to a JSON file used to store the JSON initial state
     """
-    temp_dir = get_temp_folder()
+    temp_dir = get_temp_dir()
     state_filename = os.path.join(temp_dir, "initial_state_module_list.json")
     return state_filename
 
@@ -260,11 +263,60 @@ def is_maya_standalone_initialized():
         return False    # If an exception is raised, it means maya.standalone has not been initialized
 
 
+def get_module_path(module_name, verbose=False):
+    """
+    Retrieves the file path of a Python module.
+
+    This function attempts to import the specified module and then retrieves its file path.
+    If the module is successfully imported, its file path is returned.
+    If the module cannot be imported, None is returned.
+
+    Args:
+        module_name (str): The name of the Python module.
+        verbose (bool, optional): If True, enables verbose mode and prints additional information.
+            Defaults to False.
+
+    Returns:
+        str or None: The file path of the imported module, or None if import fails.
+    """
+    try:
+        module = importlib.import_module(module_name)
+        module_file = inspect.getfile(module)
+        print_when_true(module_file, use_system_write=True, do_print=verbose)
+        return module_file
+    except ImportError:
+        return None
+
+
+def get_loaded_package_module_paths():
+    """
+    Gets a list of paths representing the full core module path, its parent and the package path.
+    Errors are handled inside the function. A list will be returned even if it gets an error.
+    Returns:
+        list: List of "sys.path" paths that are related to the currently loaded package.
+             e.g. ["Documents/maya/gt-tools/gt/__init__.py", "Documents/maya/gt-tools/gt/", "Documents/maya/gt-tools/"]
+    """
+    try:
+        from gt.utils.setup_utils import PACKAGE_MAIN_MODULE, PACKAGE_NAME
+        current_module_path = get_module_path(PACKAGE_MAIN_MODULE) or ""
+        result_list = []
+        if current_module_path and os.path.exists(current_module_path):
+            module_dir = os.path.dirname(current_module_path)
+            result_list.append(current_module_path)
+            if module_dir.endswith(PACKAGE_MAIN_MODULE):
+                result_list.append(module_dir)
+                module_parent_dir = os.path.dirname(module_dir)
+                if module_parent_dir.endswith(PACKAGE_NAME):
+                    result_list.append(module_parent_dir)
+        return result_list
+    except Exception as e:
+        logger.warning(f'Unable to loaded package paths. Issue: {str(e)}')
+        return []
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
     standalone.initialize()
     out = None
-    # out = filter_loaded_modules_path_containing(["gt-tools", "sys"])
-    out = is_maya_standalone_initialized()
     pprint(out)

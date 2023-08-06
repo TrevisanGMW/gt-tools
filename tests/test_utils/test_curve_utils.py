@@ -609,10 +609,10 @@ class TestCurveUtils(unittest.TestCase):
         curve_data_path = os.path.join(maya_test_tools.get_data_dir_path(), 'two_lines.crv')
         curve = curve_utils.Curve(data_from_file=curve_data_path)
 
-        class Curves:  # Mocked curves class
+        class MockedCurves:  # Mocked curves class
             two_lines = curve
 
-        with patch('gt.utils.curve_utils.Curves', new=Curves):
+        with patch('gt.utils.curve_utils.Curves', new=MockedCurves):
             temp_folder = maya_test_tools.generate_test_temp_dir()
             curve_utils.generate_curves_thumbnails(target_dir=temp_folder)
             expected = ['two_lines.jpg']

@@ -24,33 +24,63 @@ class TestVersionUtils(unittest.TestCase):
     def tearDown(self):
         maya_test_tools.delete_test_temp_dir()
 
-    def test_parse_semantic_version(self):
+    def test_parse_semantic_tuple_version(self):
         expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="1.2.3")
+        result = version_utils.parse_semantic_version(version_string="1.2.3", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_bigger_numbers(self):
+        expected = (123, 456, 789)
+        result = version_utils.parse_semantic_version(version_string="123.456.789", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_with_string(self):
+        expected = (1, 2, 3)
+        result = version_utils.parse_semantic_version(version_string="v1.2.3", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_with_string_symbols(self):
+        expected = (1, 2, 3)
+        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp", as_tuple=True)
+        self.assertEqual(expected, result)
+
+    def test_parse_semantic_tuple_version_error(self):
+        with self.assertRaises(ValueError):
+            # No version to be extracted/parsed
+            version_utils.parse_semantic_version(version_string="random.string", as_tuple=True)
+
+    def test_parse_semantic_tuple_version_error_two(self):
+        with self.assertRaises(ValueError):
+            version_utils.parse_semantic_version(version_string="1.2", as_tuple=True)   # Missing patch version
+
+    def test_parse_semantic_version(self):
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="1.2.3", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_bigger_numbers(self):
-        expected = (123, 456, 789)
-        result = version_utils.parse_semantic_version(version_string="123.456.789")
+        expected = "123.456.789"
+        result = version_utils.parse_semantic_version(version_string="123.456.789", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_with_string(self):
-        expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="v1.2.3")
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="v1.2.3", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_with_string_symbols(self):
-        expected = (1, 2, 3)
-        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp")
+        expected = "1.2.3"
+        result = version_utils.parse_semantic_version(version_string="v1.2.3-alpha.2.exp", as_tuple=False)
         self.assertEqual(expected, result)
 
     def test_parse_semantic_version_error(self):
         with self.assertRaises(ValueError):
-            version_utils.parse_semantic_version(version_string="random.string")  # No version to be extracted/parsed
+            # No version to be extracted/parsed
+            version_utils.parse_semantic_version(version_string="random.string", as_tuple=False)
 
     def test_parse_semantic_version_error_two(self):
         with self.assertRaises(ValueError):
-            version_utils.parse_semantic_version(version_string="1.2")  # Missing patch version
+            version_utils.parse_semantic_version(version_string="1.2", as_tuple=False)   # Missing patch version
 
     def test_compare_versions(self):
         expected = 0  # equal
@@ -127,3 +157,35 @@ class TestVersionUtils(unittest.TestCase):
         result = version_utils.get_legacy_package_version()
         expected = None
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.version_utils.http_request')
+    def test_get_latest_github_release_content(self, http_request):
+        mocked_response = MagicMock()
+        mocked_response.status = 200
+        mocked_content = {"tag_name": "v1.2.3"}
+        http_request.return_value = (mocked_response, mocked_content)
+        response = version_utils.get_github_releases(verbose=False)
+        expected = mocked_response, mocked_content
+        self.assertEqual(expected, response)
+
+    @patch('gt.utils.version_utils.http_request')
+    def test_get_latest_github_release_version(self, http_request):
+        mocked_response = MagicMock()
+        mocked_response.status = 200
+        mocked_content = '{"tag_name":"v1.2.3"}'
+        http_request.return_value = (mocked_response, mocked_content)
+        response = version_utils.get_latest_github_release_version(verbose=True)
+        expected = "1.2.3"
+        self.assertEqual(expected, response)
+
+    def test_get_latest_github_release_version_provided_response(self):
+        mocked_content = '{"tag_name":"v3.4.5"}'
+        response = version_utils.get_latest_github_release_version(verbose=True, response_content=mocked_content)
+        expected = "3.4.5"
+        self.assertEqual(expected, response)
+
+    def test_get_latest_github_release_version_provided_response_list(self):
+        mocked_content = '[{"tag_name":"v3.4.5"}, {"tag_name":"v3.4.4"}]'
+        response = version_utils.get_latest_github_release_version(verbose=True, response_content=mocked_content)
+        expected = "3.4.5"
+        self.assertEqual(expected, response)

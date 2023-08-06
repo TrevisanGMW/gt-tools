@@ -249,3 +249,47 @@ class TestFeedbackUtils(unittest.TestCase):
         expected_logs = ""
         process_func.assert_called_with(expected_output, expected_logs)
 
+    def test_log_when_true_debug(self):
+        mock_logger = MagicMock()
+        input_string = "Debug message"
+        feedback_utils.log_when_true(mock_logger, input_string, level=logging.DEBUG)
+        mock_logger.debug.assert_called_once_with(input_string)
+
+    def test_log_when_true_info(self):
+        mock_logger = MagicMock()
+        input_string = "Info message"
+        feedback_utils.log_when_true(mock_logger, input_string, level=logging.INFO)
+        mock_logger.info.assert_called_once_with(input_string)
+
+    def test_log_when_true_warning(self):
+        mock_logger = MagicMock()
+        input_string = "Warning message"
+        feedback_utils.log_when_true(mock_logger, input_string, level=logging.WARNING)
+        mock_logger.warning.assert_called_once_with(input_string)
+
+    def test_log_when_true_error(self):
+        mock_logger = MagicMock()
+        input_string = "Error message"
+        feedback_utils.log_when_true(mock_logger, input_string, level=logging.ERROR)
+        mock_logger.error.assert_called_once_with(input_string)
+
+    def test_log_when_true_critical(self):
+        mock_logger = MagicMock()
+        input_string = "Critical message"
+        feedback_utils.log_when_true(mock_logger, input_string, level=logging.CRITICAL)
+        mock_logger.critical.assert_called_once_with(input_string)
+
+    def test_log_when_true_custom_level(self):
+        mock_logger = MagicMock()
+        input_string = "Custom message"
+        custom_level = logging.DEBUG + 1
+
+        # Define the custom level name
+        custom_level_name = "CUSTOM_LEVEL"
+        logging.addLevelName(custom_level, custom_level_name)
+
+        feedback_utils.log_when_true(mock_logger, input_string, level=custom_level)
+
+        # Assert that the custom level method is called with the input string
+        custom_log_method = getattr(mock_logger, custom_level_name.lower())
+        custom_log_method.assert_called_once_with(input_string)

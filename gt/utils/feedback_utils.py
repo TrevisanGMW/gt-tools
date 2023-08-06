@@ -229,8 +229,8 @@ def print_when_true(input_string, do_print=True, use_system_write=False, callbac
     Print input string only when the parameter "do_print" is true
     Args:
         input_string (str): String to print
-        do_print (optional, bool): If it should print or not (if active, it prints) - Default is active/True
-        use_system_write (optional, bool): If active, it will uses "sys.stdout.write()" to print instead of
+        do_print (bool, optional): If it should print or not (if active, it prints) - Default is active/True
+        use_system_write (bool, optional): If active, it will uses "sys.stdout.write()" to print instead of
                                            the standard "print()" function. Default is inactive/False
         callbacks (list, callable, optional): A list of callable functions that will be called with the
                                               input string as their first argument.
@@ -327,11 +327,26 @@ def redirect_output_to_function(process_func, logger_level=logging.INFO):
     return decorator
 
 
+def log_when_true(input_logger, input_string, do_log=True, level=logging.DEBUG):
+    """
+    Log input string only when the parameter "do_log" is true
+    Args:
+        input_logger (Logger): A logging.Logger object to log messages
+        input_string (str): String to log
+        do_log (bool, optional): If it should log or not (if active, it prints) - Default is active/True
+        level (int, optional): If provided, it will use the provided level to log the message. Default is logging.DEBUG.
+                               Example values: logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR,
+                                               logging.CRITICAL, logging.FATAL, or int.
+    """
+    if do_log:
+        log_function = getattr(input_logger, logging.getLevelName(level).lower(), input_logger.debug)
+        log_function(input_string)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     # import maya.standalone
     # maya.standalone.initialize()
     out = None
-    # out = inview_number_feedback(number=123)
     pprint(out)

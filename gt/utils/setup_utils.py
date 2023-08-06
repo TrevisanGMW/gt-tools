@@ -4,11 +4,13 @@ Setup Utilities - install/uninstall package from system
 from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_path_containing
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
 from gt.utils.session_utils import remove_modules_startswith, get_maya_version
+from gt.utils.session_utils import get_loaded_package_module_paths
 from gt.utils.feedback_utils import print_when_true
 from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
 import shutil
+import sys
 import os
 
 # Logging Setup
@@ -396,6 +398,30 @@ def remove_package_loaded_modules():
     return removed_modules
 
 
+def prepend_sys_path_with_default_install_location(remove_paths=None):
+    """
+    Prepends "sys.path" with the default install location for this package.
+    Args:
+        remove_paths (list, optional): A list of paths (strings) to be removed in case a new path was prepended.
+                                       These will only be removed if found and if the installed module exists.
+    Returns:
+        bool: True if the operation was successful, False if not.
+    """
+    # Prepend sys path with drag and drop location
+    installed_core_module_path = get_installed_core_module_path(only_existing=True)
+    if not installed_core_module_path:
+        logger.debug(f'Unable to prepend "sys.path". Missing installed core module.')
+        return False
+    parent_dir = os.path.dirname(installed_core_module_path)
+    sys.path.insert(0, parent_dir)
+    sys.path.insert(0, installed_core_module_path)
+    if remove_paths and isinstance(remove_paths, list):
+        for path in remove_paths:
+            if path in sys.path:
+                sys.path.remove(path)
+    return True
+
+
 def install_package(clean_install=True, verbose=True, callbacks=None):
     """
     Installs package in the Maya Settings directory
@@ -462,6 +488,8 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
                     callbacks=callbacks)
     if check_installation_integrity(package_target_folder):
         if not is_script_in_py_maya():
+            paths_to_remove = get_loaded_package_module_paths()
+            prepend_sys_path_with_default_install_location(remove_paths=paths_to_remove)
             reload_package_loaded_modules()
             print_when_true("Loading package drop-down menu..", do_print=verbose, callbacks=callbacks)
             load_package_menu(launch_latest_maya=False)  # Already in Maya
@@ -580,6 +608,19 @@ def is_legacy_version_install_present(check_version=None):
     return False
 
 
+def get_installed_core_module_path(only_existing=False):
+    """
+    Returns the path to where the installed package is or will be when installed.
+    Args:
+        only_existing (bool, optional): If true, it will only return the path if it exists
+    """
+    maya_preferences_dir = get_maya_preferences_dir()
+    package_core_module = os.path.normpath(os.path.join(maya_preferences_dir, PACKAGE_NAME, PACKAGE_MAIN_MODULE))
+    if only_existing and not os.path.exists(package_core_module):
+        return
+    return package_core_module
+
+
 if __name__ == "__main__":
     from pprint import pprint
     import maya.standalone as standalone
@@ -587,5 +628,5 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     out = None
     # out = install_package()
-    out = check_installation_integrity(r'C:\Users\guilherme.trevisan\Documents\maya\gt-tools')
+    out = get_installed_core_module_path(only_existing=True)
     pprint(out)

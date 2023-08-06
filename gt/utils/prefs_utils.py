@@ -3,8 +3,8 @@ Preferences Utilities - Settings and Getting persistent settings using JSONs
 This script should not directly import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.system_utils import get_maya_preferences_dir, get_system
-from gt.utils.data_utils import write_json, read_json_dict
+from gt.utils.system_utils import get_maya_preferences_dir, get_system, get_temp_dir
+from gt.utils.data_utils import write_json, read_json_dict, write_data, delete_paths
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.setup_utils import PACKAGE_NAME
 import logging
@@ -22,6 +22,18 @@ PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
 
 
+def get_prefs_dir():
+    """
+    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt-tools/prefs"
+    Returns:
+        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
+    """
+    _maya_preferences_dir = get_maya_preferences_dir(get_system())
+    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
+    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+    return _prefs_dir
+
+
 class Prefs:
     def __init__(self, prefs_name, location_dir=None):
         """
@@ -34,13 +46,13 @@ class Prefs:
                                           By default, preferences are saved in the package installation path.
                                           e.g. "Documents/maya/gt-tools/prefs"
         """
+        self.prefs_name = prefs_name
+        self.sub_folder = prefs_name
         if location_dir:
             if os.path.exists(location_dir) and os.path.isdir(location_dir):
                 self.file_name = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         else:
-            _maya_preferences_dir = get_maya_preferences_dir(get_system())
-            _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
-            _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+            _prefs_dir = get_prefs_dir()
             self.file_name = os.path.join(_prefs_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         self.preferences = {}
         self.load()
@@ -257,6 +269,97 @@ class Prefs:
             return True
         return False
 
+    def set_user_files_sub_folder(self, sub_folder_name):
+        """
+        sub_folder_name (str): Name of the sub-folder created for the user file.
+                               If not provided, it will use the preferences name as the name of the sub-folder.
+                               This variable will also be stored in "self.user_files_sub_folders" used to later
+                               retrieve the data from the correct folder. This value can be set
+        """
+        if not sub_folder_name or not isinstance(sub_folder_name, str):
+            logger.warning(f'Unable to set sub-folder. Invalid input. (Must be a non-empty string)')
+            return
+        self.sub_folder = sub_folder_name
+
+    def write_user_file(self, file_name, content, is_json=False):
+        """
+        Writes user-defined file to the preferences' folder.
+        NOTE: This function doesn't require "save()" to be run to create the file. It writes it immediately when called.
+        Args:
+            file_name (str): Name of the file to be created. This is not a path, justa  file name. e.g. "my_file.json"
+            content (any): Data to write to the file. If "is_json" is active, it would be a dictionary,
+                           but it's often a string or bytes.
+            is_json (bool, optional): If active, it will write JSON data instead of directly writing it.
+                                      When this option is active, the content must be a dictionary.
+        Returns:
+            str or None: Path to the generated file. None if it failed the operation.
+        """
+        _prefs_dir = os.path.dirname(self.file_name)
+        if not os.path.isdir(_prefs_dir):
+            os.makedirs(_prefs_dir)
+            logger.debug(f'Missing Prefs directory created during the writing of a custom file: "{_prefs_dir}".')
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.isdir(_sub_folder):
+            os.makedirs(_sub_folder)
+        user_file_path = os.path.join(_sub_folder, file_name)
+
+        if is_json:
+            write_json(path=user_file_path ,data=content)
+        else:
+            write_data(path=user_file_path, data=content)
+
+        return user_file_path
+
+    def get_user_file(self, file_name, verbose=False):
+        """
+        Gets a user file from prefs/sub-folder
+        Args:
+            file_name (str): Name of the file with its extension. e.g. "my_file.txt" (not a path)
+            verbose (bool, optional): If active, it will give warnings when files are missing.
+        Returns:
+            str or None: Path to the requested file, or None if not found.
+        """
+        _prefs_dir = os.path.dirname(self.file_name)
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.exists(_sub_folder):
+            if verbose:
+                logger.warning(f'Unable to retrieve user file. '
+                               f'User file sub-folder does not exist. Path: "{_sub_folder}".')
+            return
+        folder_files = os.listdir(_sub_folder)
+        if file_name in folder_files:
+            return os.path.join(_sub_folder, file_name)
+        else:
+            if verbose:
+                logger.warning(f'Requested user file not found. File: "{file_name}". - Search dir: "{_sub_folder}".')
+
+    def get_all_user_files(self, verbose=False):
+        """
+        Returns a list of all user files (custom files stored in prefs/sub_folder)
+        Returns:
+            dict: A dictionary of files in the preferences sub-folder. Dictionary pattern: {"file_name.ext": "path"}
+        """
+        files_dict = {}
+        _prefs_dir = os.path.dirname(self.file_name)
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.exists(_sub_folder):
+            if verbose:
+                logger.warning(f'Unable to retrieve user files. '
+                               f'User file sub-folder does not exist. Path: "{_sub_folder}".')
+            return files_dict
+
+        for filename in os.listdir(_sub_folder):
+            file_path = os.path.join(_sub_folder, filename)
+            if os.path.isfile(file_path):
+                files_dict[filename] = file_path
+        return files_dict
+
 
 class PackagePrefs(Prefs):
     def __init__(self):
@@ -300,6 +403,61 @@ class PackagePrefs(Prefs):
         """
         return self.get_bool("skip_menu_creation", default=False)
     # Common Keys End ------------------------------------------------------------------
+
+
+class PackageCache:
+    def __init__(self, custom_cache_dir=None):
+        _package_installation_dir = os.path.dirname(get_prefs_dir())
+        if os.path.exists(_package_installation_dir):
+            _cache_dir = os.path.join(_package_installation_dir, "cache")
+        else:
+            _cache_dir = os.path.join(get_temp_dir(), f'{PACKAGE_NAME}_cache')
+        self.cache_dir = _cache_dir
+        if custom_cache_dir and os.path.exists(custom_cache_dir):
+            self.cache_dir = custom_cache_dir
+        self.cache_paths = []
+
+    def clear_cache(self):
+        """
+        Deletes all paths found under "cache_files" - If the "cache_dir" is empty, it is deleted too.
+        """
+        delete_paths(self.cache_paths)
+        # Delete cache folder in case it's empty
+        if os.path.exists(self.cache_dir):
+            all_cache_files = os.listdir(self.cache_dir)
+            if not all_cache_files:
+                delete_paths(self.cache_dir)
+
+    def get_cache_dir(self):
+        """
+        Gets the path to the cache directory. If the direction doesn't exist, this function creates it.
+        Returns:
+            str: Path to the cache directory
+        """
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+        return self.cache_dir
+
+    def add_path_to_cache_list(self, path_to_add):
+        """
+        Adds path to path list.
+        Used to purge cache at the end.
+        Args:
+            path_to_add (str, list): Path(s) to add. Only added if it exists.
+        """
+        if isinstance(path_to_add, str):
+            path_to_add = [path_to_add]
+        for path in path_to_add:
+            if os.path.exists(path):
+                self.cache_paths.append(path)
+
+    def get_cache_paths_list(self):
+        """
+        Gets the cache_paths list. These are the elements added to the cache folder.
+        Returns:
+            list: A list stored in "cache_paths"
+        """
+        return self.cache_paths
 
 
 def toggle_dev_sub_menu():
@@ -350,4 +508,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
+    test = PackageCache()
+    print(test.__dict__)
     pprint(out)
