@@ -4,7 +4,7 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 """
 from gt.utils.data_utils import write_json, read_json_dict
 from gt.utils.feedback_utils import print_when_true
-from gt.utils.system_utils import get_temp_folder
+from gt.utils.system_utils import get_temp_dir
 import importlib
 import inspect
 import logging
@@ -115,7 +115,7 @@ def get_initial_state_file_path():
     """
     Generates a path to a JSON file used to store the JSON initial state
     """
-    temp_dir = get_temp_folder()
+    temp_dir = get_temp_dir()
     state_filename = os.path.join(temp_dir, "initial_state_module_list.json")
     return state_filename
 

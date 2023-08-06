@@ -41,7 +41,7 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_temp_folder(self):
-        result = system_utils.get_temp_folder()
+        result = system_utils.get_temp_dir()
         expected = tempfile.gettempdir()
         self.assertEqual(expected, result)
 

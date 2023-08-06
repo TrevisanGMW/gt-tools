@@ -31,7 +31,7 @@ class TestSessionUtils(unittest.TestCase):
 
     def test_get_temp_folder(self):
         expected = tempfile.gettempdir()
-        result = session_utils.get_temp_folder()
+        result = session_utils.get_temp_dir()
         self.assertEqual(expected, result)
 
     def test_get_loaded_modules(self):

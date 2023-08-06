@@ -39,7 +39,7 @@ def get_system():
     return system
 
 
-def get_temp_folder():
+def get_temp_dir():
     """
     Get path to the tempo folder. It will be different depending on the system
     e.g. "C:\\Users\\<User-Name>>\\AppData\\Local\\Temp"
