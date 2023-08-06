@@ -155,7 +155,7 @@ class PackageUpdaterModel:
             changelog_data.append(text_line)
         return changelog_data
 
-    def update_package(self, cache=None, force_update=True):
+    def update_package(self, cache=None, force_update=False):
         """
         Updates the package to the latest release found on GitHub.
         Args:
@@ -167,7 +167,7 @@ class PackageUpdaterModel:
             force_update (bool, optional): If active, it will update even if the update is not necessary.
         """
         if not self.needs_update and not force_update:
-            logger.debug("Package does not need to be updated.")
+            logger.info("Package does not need to be updated.")
             return
 
         zip_file_url = None
