@@ -438,7 +438,7 @@ class PackageCache:
             os.makedirs(self.cache_dir)
         return self.cache_dir
 
-    def add_path_list(self, path_to_add):
+    def add_path_to_cache_list(self, path_to_add):
         """
         Adds path to path list.
         Used to purge cache at the end.

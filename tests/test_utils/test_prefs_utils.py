@@ -170,7 +170,7 @@ class TestPrefsUtils(unittest.TestCase):
         test_file = os.path.join(custom_cache_dir, 'test_file.txt')
         with open(test_file, 'w') as f:
             f.write('Test content')
-        cache.add_path_list(test_file)
+        cache.add_path_to_cache_list(test_file)
         cache.clear_cache()
         self.assertFalse(os.path.exists(test_file))
         self.assertFalse(os.path.exists(cache.cache_dir))
@@ -185,7 +185,7 @@ class TestPrefsUtils(unittest.TestCase):
         test_file = os.path.join(self.temp_dir, 'test_file.txt')
         with open(test_file, 'w') as f:
             f.write('Test content')
-        cache.add_path_list(test_file)
+        cache.add_path_to_cache_list(test_file)
         self.assertEqual(cache.cache_paths, [test_file])
 
     def test_get_cache_paths_list(self):
@@ -193,7 +193,7 @@ class TestPrefsUtils(unittest.TestCase):
         test_file = os.path.join(self.temp_dir, 'test_file.txt')
         with open(test_file, 'w') as f:
             f.write('Test content')
-        cache.add_path_list(test_file)
+        cache.add_path_to_cache_list(test_file)
         self.assertEqual(cache.get_cache_paths_list(), [test_file])
 
     def test_add_path_list_multiple_paths(self):
@@ -204,5 +204,5 @@ class TestPrefsUtils(unittest.TestCase):
             f.write('Test content')
         with open(test_file2, 'w') as f:
             f.write('Test content')
-        cache.add_path_list([test_file1, test_file2])
+        cache.add_path_to_cache_list([test_file1, test_file2])
         self.assertEqual(cache.cache_paths, [test_file1, test_file2])
