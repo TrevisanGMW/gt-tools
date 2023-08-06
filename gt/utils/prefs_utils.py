@@ -3,8 +3,8 @@ Preferences Utilities - Settings and Getting persistent settings using JSONs
 This script should not directly import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.system_utils import get_maya_preferences_dir, get_system
-from gt.utils.data_utils import write_json, read_json_dict, write_data
+from gt.utils.system_utils import get_maya_preferences_dir, get_system, get_temp_dir
+from gt.utils.data_utils import write_json, read_json_dict, write_data, delete_paths
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.setup_utils import PACKAGE_NAME
 import logging
@@ -20,6 +20,18 @@ logger.setLevel(logging.INFO)
 PACKAGE_GLOBAL_PREFS = "package_prefs"
 PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
+
+
+def get_prefs_dir():
+    """
+    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt-tools/prefs"
+    Returns:
+        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
+    """
+    _maya_preferences_dir = get_maya_preferences_dir(get_system())
+    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
+    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+    return _prefs_dir
 
 
 class Prefs:
@@ -40,9 +52,7 @@ class Prefs:
             if os.path.exists(location_dir) and os.path.isdir(location_dir):
                 self.file_name = os.path.join(location_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         else:
-            _maya_preferences_dir = get_maya_preferences_dir(get_system())
-            _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
-            _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+            _prefs_dir = get_prefs_dir()
             self.file_name = os.path.join(_prefs_dir, f'{prefs_name}.{PACKAGE_PREFS_EXT}')
         self.preferences = {}
         self.load()
@@ -327,6 +337,29 @@ class Prefs:
             if verbose:
                 logger.warning(f'Requested user file not found. File: "{file_name}". - Search dir: "{_sub_folder}".')
 
+    def get_all_user_files(self, verbose=False):
+        """
+        Returns a list of all user files (custom files stored in prefs/sub_folder)
+        Returns:
+            dict: A dictionary of files in the preferences sub-folder. Dictionary pattern: {"file_name.ext": "path"}
+        """
+        files_dict = {}
+        _prefs_dir = os.path.dirname(self.file_name)
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.exists(_sub_folder):
+            if verbose:
+                logger.warning(f'Unable to retrieve user files. '
+                               f'User file sub-folder does not exist. Path: "{_sub_folder}".')
+            return files_dict
+
+        for filename in os.listdir(_sub_folder):
+            file_path = os.path.join(_sub_folder, filename)
+            if os.path.isfile(file_path):
+                files_dict[filename] = file_path
+        return files_dict
+
 
 class PackagePrefs(Prefs):
     def __init__(self):
@@ -370,6 +403,61 @@ class PackagePrefs(Prefs):
         """
         return self.get_bool("skip_menu_creation", default=False)
     # Common Keys End ------------------------------------------------------------------
+
+
+class PackageCache:
+    def __init__(self, custom_cache_dir=None):
+        _package_installation_dir = os.path.dirname(get_prefs_dir())
+        if os.path.exists(_package_installation_dir):
+            _cache_dir = os.path.join(_package_installation_dir, "cache")
+        else:
+            _cache_dir = os.path.join(get_temp_dir(), f'{PACKAGE_NAME}_cache')
+        self.cache_dir = _cache_dir
+        if custom_cache_dir and os.path.exists(custom_cache_dir):
+            self.cache_dir = custom_cache_dir
+        self.cache_paths = []
+
+    def clear_cache(self):
+        """
+        Deletes all paths found under "cache_files" - If the "cache_dir" is empty, it is deleted too.
+        """
+        delete_paths(self.cache_paths)
+        # Delete cache folder in case it's empty
+        if os.path.exists(self.cache_dir):
+            all_cache_files = os.listdir(self.cache_dir)
+            if not all_cache_files:
+                delete_paths(self.cache_dir)
+
+    def get_cache_dir(self):
+        """
+        Gets the path to the cache directory. If the direction doesn't exist, this function creates it.
+        Returns:
+            str: Path to the cache directory
+        """
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+        return self.cache_dir
+
+    def add_path_list(self, path_to_add):
+        """
+        Adds path to path list.
+        Used to purge cache at the end.
+        Args:
+            path_to_add (str, list): Path(s) to add. Only added if it exists.
+        """
+        if isinstance(path_to_add, str):
+            path_to_add = [path_to_add]
+        for path in path_to_add:
+            if os.path.exists(path):
+                self.cache_paths.append(path)
+
+    def get_cache_paths_list(self):
+        """
+        Gets the cache_paths list. These are the elements added to the cache folder.
+        Returns:
+            list: A list stored in "cache_paths"
+        """
+        return self.cache_paths
 
 
 def toggle_dev_sub_menu():
@@ -420,4 +508,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
+    test = PackageCache()
+    print(test.__dict__)
     pprint(out)
