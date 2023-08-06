@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QWidget
+from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtGui import QFontDatabase, QColor
 import logging
@@ -119,6 +119,40 @@ def get_qt_color(color):
         return color
     elif color is not None:
         logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
+
+
+def resize_to_screen(window, percentage=20):
+    """
+    Resizes the window to match a percentage of the screen size.
+
+    Args:
+        window (QDialog, any): Window to be resized.
+        percentage (int, optional): The percentage of the screen size that the window should inherit.
+                                    Must be a value between 0 and 100. Default is 20.
+
+    Raises:
+        ValueError: If the percentage is not within the range [0, 100].
+    """
+    if not 0 <= percentage <= 100:
+        raise ValueError("Percentage should be between 0 and 100")
+
+    screen_geometry = QDesktopWidget().availableGeometry(window)
+    width = screen_geometry.width() * percentage / 100
+    height = screen_geometry.height() * percentage / 100
+    window.setGeometry(0, 0, width, height)
+
+
+def center_window(window):
+    """
+    Moves the given window to the center of the screen.
+
+    Args:
+        window (QDialog, any): The window to be centered on the screen.
+    """
+    rect = window.frameGeometry()
+    center_position = get_screen_center()
+    rect.moveCenter(center_position)
+    window.move(rect.topLeft())
 
 
 if __name__ == "__main__":
