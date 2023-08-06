@@ -4,13 +4,23 @@ Package Updater Model
 Classes:
     PackageUpdaterModel: A class for checking for updates
 """
+from gt.utils.setup_utils import remove_package_loaded_modules
+from gt.utils.setup_utils import PACKAGE_MAIN_MODULE
+from gt.utils.request_utils import download_file
 from gt.utils.string_utils import remove_prefix
+from gt.utils.data_utils import unzip_zip_file
+from PySide2.QtWidgets import QApplication
 from gt.utils.prefs_utils import Prefs
+from gt.utils import feedback_utils
 from gt.utils import version_utils
+from gt.ui import resource_library
+from gt.ui import progress_bar
 from datetime import datetime
 from json import loads
 import threading
 import logging
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -43,6 +53,8 @@ class PackageUpdaterModel:
         # Request Data
         self.web_response = None
         self.response_content = None
+        # Misc
+        self.progress_win = None
 
     def get_preferences(self):
         """
@@ -143,15 +155,160 @@ class PackageUpdaterModel:
             changelog_data.append(text_line)
         return changelog_data
 
+    def update_package(self):
+        # if not self.needs_update:
+        #     logger.debug("Package does not need to be updated.")
+        #     return
+
+        # zip_file_url = None
+        # try:
+        #     content = loads(self.response_content)
+        #     if isinstance(content, list):
+        #         content = content[0]
+        #     zip_file_url = content.get('zipball_url')
+        #     if not zip_file_url:
+        #         raise Exception('Missing "zipball_url" value.')
+        # except Exception as e:
+        #     logger.warning(f'Unable to update. Failed to interpret content data. Issue: "{str(e)}".')
+        #     return
+        # print(zip_file_url)
+        #
+        # if not QApplication.instance():
+        #     app = QApplication(sys.argv)
+        #     print(app)
+
+        self.progress_win = progress_bar.ProgressBarWindow()
+        self.progress_win.show()
+        self.progress_win.set_progress_bar_name("Updating Script Package...")
+        # Create connections
+        self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
+        # Number of print functions inside installer (7) + download (1) + extract (1) + clean-up (1)
+        self.progress_win.set_progress_bar_max_value(10)
+        self.progress_win.increase_progress_bar_value()
+        zip_file_url = r'https://api.github.com/repos/TrevisanGMW/gt-tools/zipball/v3.0.5'
+        download_path = r'C:\Users\guilherme.trevisan\Desktop\target\sample_file.zip'
+        extract_path = r'C:\Users\guilherme.trevisan\Desktop\target\extract'
+
+        # Download Update --------------------------------------------------
+        self.progress_win.add_text_to_output_box("Downloading Update...")
+        output_box_content = self.progress_win.get_output_box_plain_text()
+
+        def print_download_progress(progress):
+            output_box = output_box_content
+            output_box += f"\nDownload progress: {progress:.2f}%"
+            self.progress_win.clear_output_box()
+            self.progress_win.add_text_to_output_box(output_box, as_new_line=True)
+
+        try:
+            download_file(url=zip_file_url, destination=download_path, chunk_size=65536,
+                          callback=print_download_progress)
+            self.progress_win.increase_progress_bar_value()
+        except Exception as e:
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            return
+
+        # Extract Update ----------------------------------------------------
+        self.progress_win.add_text_to_output_box("Extracting zip file...", as_new_line=True)
+        output_box_content = self.progress_win.get_output_box_plain_text()
+
+        def print_extract_progress(current_file, total_files):
+            percent_complete = (current_file / total_files) * 100
+            output_box = output_box_content
+            output_box += f"\nExtract progress: {percent_complete:.2f}% ({current_file}/{total_files})"
+            self.progress_win.clear_output_box()
+            self.progress_win.add_text_to_output_box(output_box)
+
+        try:
+            unzip_zip_file(zip_file_path=download_path, extract_path=extract_path, callback=print_extract_progress)
+            self.progress_win.increase_progress_bar_value()
+        except Exception as e:
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            return
+
+        # Validate Extraction ----------------------------------------------------
+        extracted_content = os.listdir(extract_path)  # TODO this must be purged to only have one folder
+        if not extracted_content:
+            message = f'Extraction returned no files.\nExtraction Path: "{extract_path}".'
+            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
+            return
+        extracted_dir_name = extracted_content[0]
+        extracted_dir_path = os.path.join(extract_path, extracted_dir_name)
+        extracted_module_path = None
+        if os.path.exists(extracted_dir_path) and os.path.isdir(extracted_dir_path):
+            extracted_module_path = os.path.join(extracted_dir_path, PACKAGE_MAIN_MODULE)
+        if not extracted_module_path:
+            message = f'Extracted files are missing core module.\nExtraction Path: "{extract_path}".'
+            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
+            return
+
+        # Remove existing loaded modules (So it uses the new one) ----------------
+        removed_modules = remove_package_loaded_modules()
+        if removed_modules:
+            self.progress_win.add_text_to_output_box("Initializing downloaded files...", as_new_line=True)
+
+        # Prepend sys path with download location
+        sys.path.insert(0, extracted_dir_path)
+        sys.path.insert(0, extracted_module_path)
+
+        # Import and run installer -----------------------------------------------
+        import gt.utils.setup_utils as setup_utils
+        is_installed = False
+        try:
+            is_installed = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
+                                                                  self.progress_win.increase_progress_bar_value])
+        except Exception as e:
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+
+        # Update feedback package ------------------------------------------------
+        if is_installed:
+            self.progress_win.set_progress_bar_done()
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+            feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
+                                                      style_intro=f"color:{resource_library.Color.Hex.lime};"
+                                                                  f"text-decoration:underline;",
+                                                      conclusion="has been updated and is now active.")
+            feedback.print_inview_message(stay_time=4000)
+        else:
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
+
+
+        # result = None
+        # try:
+        #     result = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
+        #                                                     self.progress_win.increase_progress_bar_value])
+        # except Exception as e:
+        #     self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+        #
+        # # Installation Result
+        # if result:
+        #     self.update_version()
+        #     self.update_status()
+        #     self.progress_win.set_progress_bar_done()
+        #     self.progress_win.first_button.clicked.connect(self.close_view)  # Closes parent (Package Setup View)
+        #     self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+        #     feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
+        #                                               style_intro=f"color:{self.package_name_color};"
+        #                                                           f"text-decoration:underline;",
+        #                                               conclusion="has been installed and is now active.")
+        #     feedback.print_inview_message(stay_time=4000)
+        # else:
+        #     self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
+        #
+        # Show window
+        if QApplication.instance():
+            try:
+                sys.exit(app.exec_())
+            except Exception as e:
+                logger.debug(e)
+        return self.progress_win
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     import maya.standalone
-    maya.standalone.initialize()
+    # maya.standalone.initialize()
     model = PackageUpdaterModel()
-    model.check_for_updates()
-    changelog = model.get_releases_changelog()
-    from pprint import pprint
-    print(changelog)
+    # model.check_for_updates()
+    model.update_package()
     # print(model.__dict__)
 
