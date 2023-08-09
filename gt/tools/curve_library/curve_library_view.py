@@ -94,7 +94,6 @@ class CurveLibraryWindow(QDialog):
             window_title += f' - (v{str(version)})'
         self.setWindowTitle(window_title)
 
-        self.setWindowTitle()
         self.setGeometry(100, 100, 400, 300)
 
         self.create_widgets()
