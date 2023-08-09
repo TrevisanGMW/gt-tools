@@ -70,7 +70,7 @@ class SquaredWidget(QWidget):
 
 
 class CurveLibraryWindow(QDialog):
-    def __init__(self, parent=None, controller=None):
+    def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the CurveLibraryWindow.
         This window represents the main GUI window of the tool.
@@ -79,6 +79,7 @@ class CurveLibraryWindow(QDialog):
             parent (str): Parent for this window
             controller (CurveLibraryController): CurveLibraryController, not to be used, here so it's not deleted by
                                                  the garbage collector.  Defaults to None.
+            version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
@@ -88,7 +89,12 @@ class CurveLibraryWindow(QDialog):
         self.build_button = None
         self.preview_image = None
 
-        self.setWindowTitle("GT Curve Library")
+        window_title = "GT Curve Library"
+        if version:
+            window_title += f' - (v{str(version)})'
+        self.setWindowTitle(window_title)
+
+        self.setWindowTitle()
         self.setGeometry(100, 100, 400, 300)
 
         self.create_widgets()
