@@ -121,7 +121,7 @@ def get_qt_color(color):
         logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
 
 
-def resize_to_screen(window, percentage=20):
+def resize_to_screen(window, percentage=20, width_percentage=None, height_percentage=None):
     """
     Resizes the window to match a percentage of the screen size.
 
@@ -129,6 +129,8 @@ def resize_to_screen(window, percentage=20):
         window (QDialog, any): Window to be resized.
         percentage (int, optional): The percentage of the screen size that the window should inherit.
                                     Must be a value between 0 and 100. Default is 20.
+        width_percentage (int, optional): If provided, it will overwrite general set percentage when setting width
+        height_percentage (int, optional): If provided, it will overwrite general set percentage when setting height
 
     Raises:
         ValueError: If the percentage is not within the range [0, 100].
@@ -139,6 +141,10 @@ def resize_to_screen(window, percentage=20):
     screen_geometry = QDesktopWidget().availableGeometry(window)
     width = screen_geometry.width() * percentage / 100
     height = screen_geometry.height() * percentage / 100
+    if height_percentage:
+        height = screen_geometry.height() * height_percentage / 100
+    if width_percentage:
+        width = screen_geometry.height() * width_percentage / 100
     window.setGeometry(0, 0, width, height)
 
 
@@ -155,11 +161,37 @@ def center_window(window):
     window.move(rect.topLeft())
 
 
+def update_formatted_label(target_label,
+                           new_title,
+                           new_text_output,
+                           title_size=3,
+                           title_color="grey",
+                           version_size=4,
+                           version_color="white",
+                           overall_alignment="center"):
+    """
+    Updates the target QLabel with formatted text containing a title and text output.
+
+    Args:
+       target_label (QtWidgets.QLabel): The QLabel to update with the formatted text.
+       new_title (str): The title to be displayed before the new_text_output.
+       new_text_output (str): The text output to be displayed after the new_title.
+       title_size (int, optional): The font size of the title. Default is 3.
+       title_color (str, optional): The color of the title. Default is "grey".
+       version_size (int, optional): The font size of the text output. Default is 4.
+       version_color (str, optional): The color of the text output. Default is "white".
+       overall_alignment (str, optional): The overall alignment of the formatted text. Default is "center".
+                                          Possible values are "left", "center", and "right".
+    """
+    _html = f"<html><div style='text-align:{overall_alignment};'>"
+    _html += f"<font size='{str(title_size)}' color='{title_color}'>{new_title}: </font>"
+    _html += f"<b><font size='{str(version_size)}' color='{version_color}'>{new_text_output}</font></b>"
+    _html += "</div></html>"
+    target_label.setText(_html)
+
+
 if __name__ == "__main__":
     import sys
-    import resource_library
     app = QApplication(sys.argv)
     out = None
-    # out = is_font_available(resource_library.Font.inter)
-    out = get_qt_color("#FF00FF")
     print(out)
