@@ -435,7 +435,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Check for Updates',
                        command=IMPORT_TOOL + 'initialize_tool("package_updater")',
                        tooltip="Check for updates by comparing current version with latest release.",
-                       icon=resource_library.Icon.tool_check_for_updates)
+                       icon=resource_library.Icon.tool_package_updater)
     menu.add_menu_item(label='Develop Menu Toggle',
                        command='from gt.utils.prefs_utils import toggle_dev_sub_menu\n'
                                'toggle_dev_sub_menu()\n' + _rebuild_menu_command,
