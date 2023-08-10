@@ -309,7 +309,7 @@ class Icon:
     tool_render_calculator = get_icon_path(r"tool_render_calculator.svg")
     tool_startup_booster = get_icon_path(r"tool_startup_booster.svg")
     # Help
-    tool_check_for_updates = get_icon_path(r"tool_check_for_updates.svg")
+    tool_package_updater = get_icon_path(r"tool_check_for_updates.svg")
     misc_rebuild_menu = get_icon_path(r"misc_rebuild_menu.svg")
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
@@ -356,8 +356,10 @@ class Color:
         grey_ghosted = 'rgba(68,68,68,75)'
         grey_mid = 'rgba(73,73,73,255)'
         grey_mid_light = 'rgba(82,82,82,255)'
-        grey_light = 'rgba(93,93,93,255)'
-        grey_lighter = 'rgba(112,112,112,255)'
+        grey_mid_lighter = 'rgba(93,93,93,255)'
+        grey_mid_much_lighter = 'rgba(112,112,112,255)'
+        grey_light = 'rgba(145,145,145,255)'
+        grey_lighter = 'rgba(160,160,160,255)'
         grey_much_lighter = 'rgba(180,180,180,255)'
 
         black = 'rgba(0,0,0,255)'
@@ -415,7 +417,6 @@ class Color:
             """
             A library of colors Gradient colors.
             """
-
         conical_rainbow = 'qconicalgradient(cx:0.5, cy:0.5, angle:90, stop:0.0 rgba(255, 0, 0, 255), ' \
                           'stop:0.15 rgba(255, 127, 0, 255), stop:0.3 rgba(255, 255, 0, 255), ' \
                           'stop:0.45 rgba(0, 255, 0, 255), stop:0.6 rgba(0, 0, 255, 255), ' \
@@ -436,8 +437,8 @@ class StylesheetVariables:
         "@maya_background_dark;": Color.RGB.grey_dark,
         "@maya_background_darker;": Color.RGB.grey_darker,
         "@maya_background_light;": Color.RGB.grey_mid,
-        "@maya_button;": Color.RGB.grey_light,
-        "@maya_button_hover;": Color.RGB.grey_lighter,
+        "@maya_button;": Color.RGB.grey_mid_lighter,
+        "@maya_button_hover;": Color.RGB.grey_mid_much_lighter,
         "@maya_button_clicked;": Color.RGB.grey_darker,
         "@maya_selection;": Color.RGB.blue_soft_dark,
         "@maya_text;": Color.RGB.white_soft,
@@ -448,10 +449,10 @@ class StylesheetVariables:
     dark_scrollbar = {
         "@background_mid;": Color.RGB.grey,
         "@background_dark;": Color.RGB.grey_dark,
-        "@scroll_area_border;": Color.RGB.grey_lighter,
+        "@scroll_area_border;": Color.RGB.grey_mid_much_lighter,
         "@scrollbar_line_background;": Color.RGB.grey_darker,
         "@scrollbar_sub_line;": Color.RGB.grey,
-        "@scrollbar_handle;": Color.RGB.grey_lighter,
+        "@scrollbar_handle;": Color.RGB.grey_mid_much_lighter,
         "@scrollbar_handle_pressed;": Color.RGB.grey_much_lighter,
         "@scrollbar_background;": Color.RGB.grey_dark,
         # Icons
@@ -460,14 +461,26 @@ class StylesheetVariables:
     }
     dark_progress_bar = {
         # Colors
-        "@progress_bar_background;": Color.RGB.grey_lighter,
+        "@progress_bar_background;": Color.RGB.grey_mid_much_lighter,
         "@progress_bar_chunk;": Color.RGB.blue_soft,
+    }
+    bright_push_button = {
+        # Colors
+        "@background_color;": Color.RGB.grey_light,
+        "@background_hover_color;": Color.RGB.grey_lighter,
+        "@background_pressed_color;": Color.RGB.grey_mid_lighter,
+        "@background_disabled_color;": Color.RGB.grey_mid_light,
+        "@text_color;": Color.RGB.black,
+        "@disabled_text_color;": Color.RGB.grey_mid_much_lighter,
+
+        # Formatting
+        "@button_padding;": "15",
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     metro_tools_button_default = {
         # Colors
         "@tool_button_text;": Color.RGB.white,
-        "@tool_bg_hover_color;": Color.RGB.grey_lighter,
+        "@tool_bg_hover_color;": Color.RGB.grey_mid_much_lighter,
         "@tool_bg_click_color;": Color.RGB.grey_darker,
 
         # Formatting
@@ -501,6 +514,8 @@ class Stylesheet:
                                              stylesheet_variables=StylesheetVariables.dark_scrollbar)
     dark_list_widget = get_stylesheet_content(stylesheet_name="dark_list_widget",
                                               stylesheet_variables=StylesheetVariables.dark_progress_bar)
+    bright_push_button = get_stylesheet_content(stylesheet_name="bright_push_button",
+                                                stylesheet_variables=StylesheetVariables.bright_push_button)
     # Metro Tool Button
     metro_tool_button = get_stylesheet_content(stylesheet_name="metro_tool_button",
                                                stylesheet_variables=StylesheetVariables.metro_tools_button_default)
