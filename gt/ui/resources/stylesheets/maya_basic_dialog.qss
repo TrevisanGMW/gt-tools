@@ -1,5 +1,5 @@
 QWidget{
-    background-color: @maya_background_mid;
+    background-color: @maya_background_grey;
 }
 
 QPushButton, QToolButton{
@@ -50,6 +50,7 @@ QComboBox::text{
 
 QTextEdit {
 	color: @maya_text;
+	background-color: @maya_background_grey_dark;
 	border: 1px solid @text_edit_border;
 	border-radius: 4px;
 	padding: 5px;
