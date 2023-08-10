@@ -1,0 +1,19 @@
+QPushButton {
+            background-color: @background_color;
+            color: @text_color;
+            border: none;
+            padding: @button_padding;
+        }
+        
+QPushButton:hover {
+	background-color: @background_hover_color;
+}
+
+QPushButton:pressed {
+	background-color: @background_pressed_color;
+}
+
+QPushButton:disabled {
+	background-color: @background_disabled_color;
+	color: @disabled_text_color;
+}
