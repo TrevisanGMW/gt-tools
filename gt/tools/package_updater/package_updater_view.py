@@ -55,12 +55,13 @@ class PackageUpdaterView(QDialog):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.dev_screwdriver))
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_package_updater))
 
         stylesheet = resource_library.Stylesheet.dark_scroll_bar
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(stylesheet)
+        self.update_button.setStyleSheet(resource_library.Stylesheet.bright_push_button)
         qt_utils.resize_to_screen(self, percentage=35, width_percentage=30)
         qt_utils.center_window(self)
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
@@ -69,7 +70,7 @@ class PackageUpdaterView(QDialog):
         """Create the widgets for the window."""
         self.title_label = QtWidgets.QLabel("GT-Tools - Package Updater")
         self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
-                                        color: rgb(255, 255, 255); padding: 5px; ')
+                                        color: rgb(255, 255, 255); padding: 5px; margin-bottom: 10px')
         self.status_label = QLabel("Status:")
         self.status_content = QLabel("<status>")
 
@@ -83,7 +84,8 @@ class PackageUpdaterView(QDialog):
         self.latest_release_content = QLabel("<latest-version>")
 
         self.changelog_label = QLabel("Latest Release Changelog:")
-        self.changelog_label.setStyleSheet("font-weight: bold; font-size: 8pt; margin-top: 10px")
+        self.changelog_label.setStyleSheet(f"font-weight: bold; font-size: 8pt; margin-top: 15; "
+                                           f"color: {resource_library.Color.RGB.grey_lighter};")
 
         self.changelog_box = QLineEdit()
         self.changelog_box.setMinimumHeight(150)
@@ -107,10 +109,17 @@ class PackageUpdaterView(QDialog):
         self.changelog_box.setSizePolicy(self.changelog_box.sizePolicy().Expanding,
                                          self.changelog_box.sizePolicy().Expanding)
 
-        self.update_button = QPushButton("Update")
-        self.refresh_button = QPushButton("Refresh")
-        self.interval_button = QPushButton("Auto Check For Updates: Activated")
+        self.interval_button = QPushButton("Auto Check: Activated")
+        self.interval_button.setStyleSheet("padding: 10;")
+        self.interval_button.setToolTip("Change Check for Updates State (Activated/Deactivated)")
         self.auto_check_button = QPushButton("Interval: 15 Days")
+        self.auto_check_button.setStyleSheet("padding: 10;")
+        self.auto_check_button.setToolTip("Change Check for Updates Interval (5, 10, 15 days)")
+        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button.setStyleSheet("padding: 10; margin-bottom: 2;")
+        self.refresh_button.setToolTip("Check Github Again for New Updates")
+        self.update_button = QPushButton("Update")
+        self.update_button.setToolTip("Download and Install Latest Update")
 
     def create_layout(self):
         """Create the layout for the window."""
@@ -134,20 +143,33 @@ class PackageUpdaterView(QDialog):
         bottom_layout.addWidget(self.changelog_label)
         bottom_layout.addWidget(self.changelog_box)
 
-        bottom_layout.addWidget(self.auto_check_button)
-        bottom_layout.addWidget(self.interval_button)
+        settings_buttons_layout = QtWidgets.QHBoxLayout()
+        settings_buttons_layout.addWidget(self.interval_button)
+        settings_buttons_layout.addWidget(self.auto_check_button)
+        settings_buttons_layout.setContentsMargins(0, 5, 0, 2)  # @@@
+        bottom_layout.addLayout(settings_buttons_layout)
         bottom_layout.addWidget(self.refresh_button)
         bottom_layout.addWidget(self.update_button)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(self.title_label)
-        main_layout.setContentsMargins(15, 15, 15, 11)  # Make Margins Uniform LTRB
+        main_layout.setContentsMargins(15, 15, 15, 15)  # Make Margins Uniform LTRB
         main_layout.addLayout(top_layout)
         main_layout.addLayout(bottom_layout)
+
+    def change_update_button_state(self, state):
+        """
+        Change the state of the "Update" button
+        Args:
+                state (bool): New state of the button: Disable/Enable the button True = Active, False = Inactive.
+        """
+        if isinstance(state, bool):
+            self.update_button.setEnabled(state)
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
     window = PackageUpdaterView(version="1.2.3")  # View
     window.show()  # Open Windows
+    # window.change_update_button_state(state=False)
     sys.exit(app.exec_())
