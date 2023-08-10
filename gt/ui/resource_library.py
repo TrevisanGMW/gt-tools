@@ -433,10 +433,10 @@ class StylesheetVariables:
         """
     maya_basic = {
         # Colors
-        "@maya_background_mid;": Color.RGB.grey,
+        "@maya_background_grey;": Color.RGB.grey,
         "@maya_background_dark;": Color.RGB.grey_dark,
         "@maya_background_darker;": Color.RGB.grey_darker,
-        "@maya_background_light;": Color.RGB.grey_mid,
+        "@maya_background_grey_dark;": Color.RGB.grey_dark,
         "@maya_button;": Color.RGB.grey_mid_lighter,
         "@maya_button_hover;": Color.RGB.grey_mid_much_lighter,
         "@maya_button_clicked;": Color.RGB.grey_darker,
