@@ -207,8 +207,12 @@ class PackageSetupWindow(QtWidgets.QDialog):
             new_setup_version (str): The new setup version to display.
         """
         qt_utils.update_formatted_label(target_label=self.label_setup_version,
-                                        new_title="Setup Version",
-                                        new_text_output=new_setup_version,
+                                        text="Setup Version: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_text=new_setup_version,
+                                        output_size=4,
+                                        output_color="white",
                                         overall_alignment="left")
 
     def update_version_installed(self, new_installed_version):
@@ -218,8 +222,12 @@ class PackageSetupWindow(QtWidgets.QDialog):
             new_installed_version (str): The new installed version to display.
         """
         qt_utils.update_formatted_label(target_label=self.label_installed_version,
-                                        new_title="Installed Version",
-                                        new_text_output=new_installed_version)
+                                        text="Installed Version: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_size=4,
+                                        output_color="white",
+                                        output_text=new_installed_version)
 
     def update_status_text(self, new_status):
         """
@@ -228,8 +236,12 @@ class PackageSetupWindow(QtWidgets.QDialog):
             new_status (str): The new status to display.
         """
         qt_utils.update_formatted_label(target_label=self.label_status,
-                                        new_title="Status",
-                                        new_text_output=new_status,
+                                        text="Status: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_text=new_status,
+                                        output_size=4,
+                                        output_color="white",
                                         overall_alignment="right")
 
 
