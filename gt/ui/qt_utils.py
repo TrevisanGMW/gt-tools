@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget
+from PySide2.QtGui import QFontDatabase, QColor, QFont
 from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtGui import QFontDatabase, QColor
 import logging
 import os
 import re
@@ -45,22 +45,29 @@ def load_custom_font(font_path, point_size=-1, weight=-1, italic=False):
         font_path (str): Path to a font file. (Accepted formats: ".ttf", "otf")
         point_size (int, optional): Font size (default -1)
         weight (int, optional): Font weight (default -1)
-        italic (bool, optional): Font itallic state (default False)
+        italic (bool, optional): Font italic state (default False)
     Returns:
         QFont: A QFont object for the provided custom font or a default one if the operation failed
     """
     custom_font = QtGui.QFont()  # default font
     if QApplication.instance():
-        font_id = QFontDatabase.addApplicationFont(font_path)
-        if font_id == -1:
-            logger.debug(f"Failed to load the font:{font_path}")
+        # Open the font file using QFile
+        file = QtCore.QFile(font_path)
+        if file.open(QtCore.QIODevice.ReadOnly):
+            data = file.readAll()
+            file.close()
+
+            # Load the font from the memory data
+            font_id = QtGui.QFontDatabase.addApplicationFontFromData(data)
+            if font_id != -1:
+                font_families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                if len(font_families) > 0:
+                    custom_font = QtGui.QFont(font_families[0],
+                                              pointSize=point_size,
+                                              weight=weight,
+                                              italic=italic)
         else:
-            font_families = QFontDatabase.applicationFontFamilies(font_id)
-            if len(font_families) > 0:
-                custom_font = QtGui.QFont(font_families[0],
-                                          pointSize=point_size,
-                                          weight=weight,
-                                          italic=italic)
+            logger.debug(f"Failed to open the font file: {font_path}")
     return custom_font
 
 
