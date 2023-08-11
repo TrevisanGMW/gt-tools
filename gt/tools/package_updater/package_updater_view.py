@@ -305,6 +305,10 @@ class PackageUpdaterView(QDialog):
         if time_period:
             self.interval_btn.setText(f'Interval: {str(time_period)}')
 
+    def close_window(self):
+        """ Closes this window """
+        self.close()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya

@@ -165,17 +165,25 @@ class PackageUpdaterController:
         else:
             sys.stdout.write('Auto Check For Updates: Deactivated\n')
 
-    def update_package_threaded_maya(self):
+    def update_package(self, cache=None):
         """
         Updates package to the latest version found on GitHub
         """
+        self.model.update_package(cache=cache)
+        self.refresh_view_values()
+        if self.model.progress_win and self.model.progress_win.first_button:
+            self.model.progress_win.first_button.clicked.connect(self.view.close_window)
+
+    def update_package_threaded_maya(self):
+        """
+        Updates package to the latest version found on GitHub - Threaded for Maya
+        """
         cache = PackageCache()
-        kwargs = {"cache": cache, "force_update": False}
 
         def _maya_update_latest_package():
             """ Internal function used to update package using threads in Maya """
             from maya import utils
-            utils.executeDeferred(self.model.update_package, **kwargs)
+            utils.executeDeferred(self.update_package, cache)
 
         try:
             thread = threading.Thread(None, target=_maya_update_latest_package)

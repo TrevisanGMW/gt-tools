@@ -432,6 +432,10 @@ class PackageUpdaterModel:
             self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
         _cache.clear_cache()
 
+        # Update Model Data
+        self.installed_version = self.latest_github_version
+        self.refresh_status_description()
+
         if QApplication.instance():
             try:
                 sys.exit(app.exec_())
