@@ -1,5 +1,5 @@
 QWidget{
-    background-color: @maya_background_mid;
+    background-color: @maya_background_grey;
 }
 
 QPushButton, QToolButton{
@@ -17,6 +17,11 @@ QPushButton:hover, QToolButton:hover{
 QPushButton:pressed, QToolButton:pressed{
     background-color: @maya_button_clicked;
     color: @maya_text;
+}
+
+QPushButton:disabled, QToolButton:disabled{
+	background-color: @background_disabled_color;
+	color: @disabled_text_color;
 }
 
 QLabel{
@@ -50,6 +55,7 @@ QComboBox::text{
 
 QTextEdit {
 	color: @maya_text;
+	background-color: @maya_background_grey_dark;
 	border: 1px solid @text_edit_border;
 	border-radius: 4px;
 	padding: 5px;

@@ -31,11 +31,11 @@ def build_curve_library_gui(standalone=True):
     # Determine Parent
     if session_utils.is_script_in_py_maya():
         app = QApplication(sys.argv)
-        _view = curve_library_view.CurveLibraryWindow()
+        _view = curve_library_view.CurveLibraryWindow(version=__version__)
     else:
         from gt.ui.qt_utils import get_maya_main_window
         maya_window = get_maya_main_window()
-        _view = curve_library_view.CurveLibraryWindow(parent=maya_window)
+        _view = curve_library_view.CurveLibraryWindow(parent=maya_window, version=__version__)
 
     # Create connections
     _model = curve_library_model.CurveLibraryModel()

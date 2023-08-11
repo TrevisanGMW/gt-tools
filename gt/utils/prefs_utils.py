@@ -459,6 +459,13 @@ class PackageCache:
         """
         return self.cache_paths
 
+    def purge_cache_dir(self):
+        """
+        Deletes cache directory without any checks
+        WARNING: This will delete other caches too, it deletes the entire cache folder
+        """
+        delete_paths(self.cache_dir)
+
 
 def toggle_dev_sub_menu():
     """

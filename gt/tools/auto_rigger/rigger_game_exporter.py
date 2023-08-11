@@ -24,7 +24,7 @@ import logging
 import sys
 
 from gt.tools.auto_rigger.rigger_utilities import find_joint, find_transform, get_metadata, select_items, get_children
-from gt.utils.list_utils import make_flat_list
+from gt.utils.iterable_utils import make_flat_list
 from collections import namedtuple
 from functools import partial
 

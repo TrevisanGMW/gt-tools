@@ -1,11 +1,10 @@
+from unittest.mock import patch
 import unittest
 import logging
 import sys
 import os
 
 # Logging Setup
-from unittest.mock import patch
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

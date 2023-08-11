@@ -61,23 +61,24 @@ class ProgressBarWindow(QMainWindow):
         # Window
         self.setGeometry(0, 0, _min_width, _min_height)  # Args X, Y, W, H
         self.setMinimumWidth(_min_width*.8)  # 80% of the maximum width
-        self.center()
+        qt_utils.center_window(self)
         # Window Details
         self.setWindowTitle("Progress Bar")
         progress_bar_stylesheet = resource_library.Stylesheet.maya_basic_dialog
         progress_bar_stylesheet += resource_library.Stylesheet.dark_progress_bar
         progress_bar_stylesheet += resource_library.Stylesheet.dark_scroll_bar
         self.setStyleSheet(progress_bar_stylesheet)
-        self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
+        self.set_window_icon(resource_library.Icon.package_icon)
         # self.setWindowFlag(QtCore.Qt.Tool, True)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Stay On Top Modality
 
-    def center(self):
-        """ Moves window to the center of the screen """
-        rect = self.frameGeometry()
-        center_position = qt_utils.get_screen_center()
-        rect.moveCenter(center_position)
-        self.move(rect.topLeft())
+    def set_window_icon(self, icon_path):
+        """
+        Sets a new icon for the progress bar window
+        Args:
+            icon_path (str): Path to an image to be used as an icon.
+        """
+        self.setWindowIcon(QIcon(icon_path))
 
     def set_progress_bar_name(self, name):
         """

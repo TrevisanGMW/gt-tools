@@ -27,6 +27,8 @@ def load_package_menu(package_path=None):
     try:
         from gt.tools.package_setup import gt_tools_maya_menu
         gt_tools_maya_menu.load_menu()
+        from gt.tools.package_updater import silently_check_for_updates
+        silently_check_for_updates()
     except Exception as e:
         logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
 
