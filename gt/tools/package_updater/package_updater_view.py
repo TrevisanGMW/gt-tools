@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QPushButton, QDialog, QLabel, QTextEdit, QVBoxLayo
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore, QtGui
 import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QTextCursor
 from PySide2.QtCore import Qt
 import sys
 
@@ -71,7 +71,7 @@ class PackageUpdaterView(QDialog):
         """Create the widgets for the window."""
         self.title_label = QtWidgets.QLabel("GT-Tools - Package Updater")
         self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
-                                        color: rgb(255, 255, 255); padding: 5px; margin-bottom: 10px')
+                                        color: rgb(255, 255, 255); padding: 0px; margin-bottom: 15')
         self.status_label = QLabel("Status:")
         self.status_content = QLabel("<status>")
 
@@ -123,12 +123,13 @@ class PackageUpdaterView(QDialog):
         self.auto_check_btn.setToolTip("Change Check for Updates State (Activated/Deactivated)")
         self.interval_btn = QPushButton("Interval: 15 Days")
         self.interval_btn.setStyleSheet("padding: 10;")
-        self.interval_btn.setToolTip("Change Check for Updates Interval (5, 10, 15 days)")
+        self.interval_btn.setToolTip("Change Check for Updates Interval")
         self.refresh_btn = QPushButton("Refresh")
         self.refresh_btn.setStyleSheet("padding: 10; margin-bottom: 2;")
         self.refresh_btn.setToolTip("Check Github Again for New Updates")
         self.update_btn = QPushButton("Update")
         self.update_btn.setToolTip("Download and Install Latest Update")
+        self.update_btn.setEnabled(False)
 
     def create_layout(self):
         """Create the layout for the window."""
@@ -171,10 +172,23 @@ class PackageUpdaterView(QDialog):
         """
         Change the state of the "Update" button
         Args:
-                state (bool): New state of the button: Disable/Enable the button True = Active, False = Inactive.
+            state (bool): New state of the button: Disable/Enable the button True = Active, False = Inactive.
         """
         if isinstance(state, bool):
             self.update_btn.setEnabled(state)
+
+    def change_interval_button_state(self, state):
+        """
+        Change the state of the "Interval: <Number> days" button
+        Args:
+            state (bool): New state of the button: Disable/Enable the button True = Active, False = Inactive.
+        """
+        if isinstance(state, bool):
+            self.interval_btn.setEnabled(state)
+
+    def clear_changelog_box(self):
+        """ Removes all text from the changelog box """
+        self.changelog_box.clear()
 
     def add_text_to_changelog(self, text, text_color_hex=None):
         """
@@ -186,7 +200,7 @@ class PackageUpdaterView(QDialog):
         """
         cursor = self.changelog_box.textCursor()
         if text_color_hex:
-            formatted_text = f'<font color="{text_color_hex}">{text}</font>'
+            formatted_text = f'<span style="white-space: pre-line"><font color="{text_color_hex}">{text}</font></span>'
         else:
             formatted_text = text
 
@@ -194,6 +208,10 @@ class PackageUpdaterView(QDialog):
         cursor.insertHtml(formatted_text)
         cursor.insertText("\n")  # Add a new line
 
+        self.changelog_box.setTextCursor(cursor)
+        # Move to the top
+        cursor = QTextCursor(self.changelog_box.document())
+        cursor.movePosition(QTextCursor.Start)
         self.changelog_box.setTextCursor(cursor)
 
     @staticmethod
@@ -278,14 +296,14 @@ class PackageUpdaterView(QDialog):
         else:
             self.auto_check_btn.setText(f'{title}Deactivated')
 
-    def update_interval_button(self, num_days):
+    def update_interval_button(self, time_period):
         """
         Updates the status content:
         Args:
-            num_days (str, int): Number of days to update the interval button with.
+            time_period (str): Number of days to update the interval button with.
         """
-        if num_days:
-            self.interval_btn.setText(f'Interval: {str(num_days)} days')
+        if time_period:
+            self.interval_btn.setText(f'Interval: {str(time_period)}')
 
 
 if __name__ == "__main__":
@@ -301,4 +319,5 @@ if __name__ == "__main__":
     window.update_latest_release("v4.5.6")
     window.update_auto_check_status_btn(False)
     window.update_interval_button(5)
+    window.change_interval_button_state(False)
     sys.exit(app.exec_())

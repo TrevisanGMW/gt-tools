@@ -46,16 +46,19 @@ class PackageUpdaterModel:
         self.interval_days = 15
         self.update_preferences()
         # Status
-        self.status = "Not Installed"
+        self.status = "Unknown"
         self.installed_version = "0.0.0"
         self.latest_github_version = "0.0.0"
         self.needs_update = False
         # Request Data
-        self.web_response = None
+        self.web_response_code = None
+        self.web_response_reason = None
         self.response_content = None
         # Misc
         self.progress_win = None
+        self.requested_online_data = False
 
+    # Preferences Start -------------------------------------------------------------------------------
     def get_preferences(self):
         """
         Returns existing preferences in raw form (dictionary)
@@ -79,7 +82,109 @@ class PackageUpdaterModel:
         self.preferences.set_int(key=PREFS_INTERVAL_DAYS, value=self.interval_days)
         self.preferences.save()
 
-    def refresh_status(self):
+    def get_auto_check(self):
+        """
+        Get the current auto check status.
+        Returns:
+            bool: The current auto check status.
+        """
+        return self.auto_check
+
+    def get_interval_days(self):
+        """
+        Get the interval in days.
+        Returns:
+            int: The interval in days.
+        """
+        return self.interval_days
+
+    def set_auto_check(self, auto_check):
+        """
+        Set the auto check status.
+        Args:
+            auto_check (bool): The new auto check status.
+        """
+        if not isinstance(auto_check, bool):
+            logger.warning(f'Unable to set "Auto Check" status. Incorrect data type. (Must be bool)')
+        self.auto_check = auto_check
+
+    def set_interval_days(self, interval_days):
+        """
+        Set the interval in days.
+        Args:
+            interval_days (int): The new interval in days.
+        """
+        if not isinstance(interval_days, int):
+            logger.warning(f'Unable to set "Interval Days". Incorrect data type. (Must be int)')
+        self.interval_days = interval_days
+
+    def update_last_check_date_to_now(self):
+        """
+        This function will change the "last_date" variable to now (str) and save the settings.
+        """
+        today_date = datetime(datetime.now().year, datetime.now().month, datetime.now().day)
+        self.last_date = str(today_date)
+        self.save_preferences()
+    # Preferences End -------------------------------------------------------------------------------
+
+    def get_web_response_code(self):
+        """
+        Gets the value stored in "web_response_code"
+        Returns:
+            int or None: Web response status code. e.g. 200, 404...
+        """
+        return self.web_response_code
+
+    def get_web_response_reason(self):
+        """
+        Gets the value stored in "web_response_reason"
+        Returns:
+            str or None: Web response reason. e.g. OK
+        """
+        return self.web_response_reason
+
+    def get_installed_version(self):
+        """
+        Returns the installed version
+        Returns:
+            str: Installed version. e.g. "1.2.3"
+        """
+        return self.installed_version
+
+    def get_latest_github_version(self):
+        """
+        Returns the latest version found on GitHub
+        Returns:
+            str: Latest version. e.g. "1.2.3"
+        """
+        return self.latest_github_version
+
+    def is_time_to_update(self):
+        """
+        Checks if the delta between the last updated date (saved as preference) in now (today's date) exceeds
+        the interval in days when the model is supposed to check for new updates.
+        All of this is ignored in case auto check is deactivated.
+        Returns:
+            bool: True if it's time to check for updates, False if it's not (or inactive)
+        """
+        if not self.auto_check:
+            return False
+        last_check_date = None
+        today_date = datetime(datetime.now().year, datetime.now().month, datetime.now().day)
+        try:
+            last_check_date = datetime.strptime(self.last_date, '%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            logger.debug(str(e))
+
+        # Calculate Delta
+        delta = today_date - last_check_date
+        days_since_last_check = delta.days
+
+        if days_since_last_check < self.interval_days:
+            return False
+        return True
+
+    def refresh_status_description(self):
         """ Updates status and  by comparing installed version with the latest GitHub version """
         if not version_utils.is_semantic_version(self.installed_version, metadata_ok=False) or \
                 not version_utils.is_semantic_version(self.latest_github_version, metadata_ok=False):
@@ -95,11 +200,38 @@ class PackageUpdaterModel:
             self.status = "You're up to date!"
             self.needs_update = False
 
+    def get_status_description(self):
+        """
+        Gets a text explaining current status
+        Returns:
+            str: Text description. e.g. "You're up to date!"
+        """
+        return self.status
+
+    def has_requested_online_data(self):
+        """
+        Returns whether online data has been requested or not.
+        Returns:
+            bool: True if online data has already been requested, False if not.
+        """
+        return self.requested_online_data
+
+    def is_update_needed(self):
+        """
+        Returns True if updated is needed. False if not.
+        Returns:
+            bool: True if update is need, False if not.
+        """
+        return self.needs_update
+
     def request_github_data(self):
-        """ Requests GitHub data and stores it """
+        """ Requests GitHub data and updates the requested online data status """
         response, response_content = version_utils.get_github_releases()
         self.response_content = response_content
-        self.web_response = response.status
+        if response:
+            self.web_response_code = response.status
+            self.web_response_reason = response.reason
+            self.requested_online_data = True
 
     def check_for_updates(self):
         """ Checks current version against web version and updates stored values with retrieved data """
@@ -110,12 +242,7 @@ class PackageUpdaterModel:
         response_content = self.response_content
         self.latest_github_version = version_utils.get_latest_github_release_version(response_content=response_content)
         # Status
-        self.refresh_status()
-
-    def threaded_check_for_updates(self):
-        """ Threaded Check for updates """
-        thread = threading.Thread(None, target=self.check_for_updates)
-        thread.start()
+        self.refresh_status_description()
 
     def get_releases_changelog(self, num_releases=3):
         """
@@ -128,10 +255,10 @@ class PackageUpdaterModel:
                                           variable is set to 3, then only the 3 latest releases will be returned.
                                           If num_releases = 3, but only 2 were found, then 2 will be returned.
         Returns:
-            list: A list of strings with tag name, release date and body.
+            dict: A dictionary with version (tag name) and date as key and description (body) as value
         """
         content = None
-        changelog_data = []
+        changelog_data = {}
         if not self.response_content:
             logger.warning("Unable to retrieve changelog. Request content is empty")
             return
@@ -145,14 +272,15 @@ class PackageUpdaterModel:
         if isinstance(content, list) and len(content) >= num_releases:
             content = content[:3]
         for data in content:
-            text_line = ''
-            text_line += data.get('tag_name', '')
+            key_text = ''
+            key_text += data.get('tag_name', '')
             published_at = data.get('published_at', '').split('T')[0]
-            text_line += f' - ({published_at})\n'
+            key_text += f' - ({published_at})\n'
             body = data.get('body', '')
-            text_line += remove_prefix(body, "\r\n## What's Changed\r\n\r\n")
-            text_line += "\n"
-            changelog_data.append(text_line)
+            value_text = ''
+            value_text += remove_prefix(body, "\r\n## What's Changed\r\n\r\n")
+            value_text += "\n"
+            changelog_data[key_text] = value_text
         return changelog_data
 
     def update_package(self, cache=None, force_update=False):
@@ -306,7 +434,9 @@ if __name__ == "__main__":
     import maya.standalone
     # maya.standalone.initialize()
     model = PackageUpdaterModel()
-    model.check_for_updates()
-    model.update_package()
+    # print(model.is_time_to_update())
+    # model.check_for_updates()
+    # print(model.latest_github_version)
+    # model.update_package()
     # print(model.__dict__)
 
