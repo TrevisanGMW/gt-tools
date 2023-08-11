@@ -175,6 +175,17 @@ class TestPrefsUtils(unittest.TestCase):
         self.assertFalse(os.path.exists(test_file))
         self.assertFalse(os.path.exists(cache.cache_dir))
 
+    def test_clear_purge_cache_dir(self):
+        custom_cache_dir = os.path.join(self.temp_dir, "mocked_cache")
+        os.makedirs(custom_cache_dir)
+        cache = prefs_utils.PackageCache(custom_cache_dir=custom_cache_dir)
+        test_file = os.path.join(custom_cache_dir, 'test_file.txt')
+        with open(test_file, 'w') as f:
+            f.write('Test content')
+        cache.purge_cache_dir()
+        self.assertFalse(os.path.exists(test_file))
+        self.assertFalse(os.path.exists(cache.cache_dir))
+
     def test_get_cache_dir(self):
         cache = prefs_utils.PackageCache(custom_cache_dir=self.temp_dir)
         self.assertEqual(cache.get_cache_dir(), self.temp_dir)
