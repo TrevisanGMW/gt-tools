@@ -50,6 +50,7 @@ class PackageUpdaterModel:
         self.installed_version = "0.0.0"
         self.latest_github_version = "0.0.0"
         self.needs_update = False
+        self.comparison_result = None
         # Request Data
         self.web_response_code = None
         self.web_response_reason = None
@@ -127,6 +128,15 @@ class PackageUpdaterModel:
         self.save_preferences()
     # Preferences End -------------------------------------------------------------------------------
 
+    def get_version_comparison_result(self):
+        """
+        Gets the result of the version comparison
+        Returns:
+            int or None: Integer if a comparison was made (through refresh), None if it was never made.
+                         VERSION_BIGGER = 1 , VERSION_SMALLER = -1, VERSION_EQUAL = 0
+        """
+        return self.comparison_result
+
     def get_web_response_code(self):
         """
         Gets the value stored in "web_response_code"
@@ -190,6 +200,7 @@ class PackageUpdaterModel:
                 not version_utils.is_semantic_version(self.latest_github_version, metadata_ok=False):
             self.status = "Unknown"
         comparison_result = version_utils.compare_versions(self.installed_version, self.latest_github_version)
+        self.comparison_result = comparison_result
         if comparison_result == version_utils.VERSION_BIGGER:
             self.status = "Unreleased update!"
             self.needs_update = False

@@ -7,6 +7,7 @@ CurveLibraryModel and the user interface.
 from gt.utils.iterable_utils import get_next_dict_item
 from gt.utils.prefs_utils import PackageCache
 from gt.ui import resource_library
+from gt.utils import version_utils
 import threading
 import logging
 
@@ -39,6 +40,24 @@ class PackageUpdaterController:
         if not model.has_requested_online_data():
             self.refresh_updater_data_threaded_maya()
 
+    def update_view_status_with_color(self, status):
+        """
+        Updates the status description using the appropriate color.
+        Green = Same, Red = Lower, Purple = Unreleased.
+        Args:
+            status (str): String to be used in the status description
+        """
+        comparison_result = self.model.get_version_comparison_result()
+        if comparison_result == version_utils.VERSION_BIGGER:
+            bg_color = resource_library.Color.Hex.purple
+        elif comparison_result == version_utils.VERSION_SMALLER:
+            bg_color = resource_library.Color.Hex.red_soft
+        else:
+            bg_color = resource_library.Color.Hex.green_soft
+        self.view.update_status(status=status,
+                                text_color_hex=resource_library.Color.Hex.black,
+                                bg_color_hex=bg_color)
+
     def set_view_to_waiting(self):
         """ Clear view values showing that it's waiting for a refresh """
         self.view.change_update_button_state(state=False)
@@ -63,7 +82,7 @@ class PackageUpdaterController:
         latest_github_version = self.model.get_latest_github_version()
         self.view.update_latest_release(version=f'v{latest_github_version}')
         status_description = self.model.get_status_description()
-        self.view.update_status(status=status_description)
+        self.update_view_status_with_color(status=status_description)
         web_response = self.model.get_web_response_reason()
         self.view.update_web_response(response=str(web_response))
         self.update_auto_check()
