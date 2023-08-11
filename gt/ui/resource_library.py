@@ -390,6 +390,7 @@ class Color:
         white_soft = '#EEEEEE'
         grey = '#444444'
         grey_dark = '#2B2B2B'
+        grey_lighter = '#A0A0A0'
         red = '#FF0000'
         red_soft = '#FFAAAA'
         red_softer = '#D45757'
@@ -442,6 +443,8 @@ class StylesheetVariables:
         "@maya_button_clicked;": Color.RGB.grey_darker,
         "@maya_selection;": Color.RGB.blue_soft_dark,
         "@maya_text;": Color.RGB.white_soft,
+        "@background_disabled_color;": Color.RGB.grey_mid_light,
+        "@disabled_text_color;": Color.RGB.grey_mid_much_lighter,
         "@text_edit_border;": Color.RGB.grey,
         # Formatting
         "@maya_small_button_padding;": "5",

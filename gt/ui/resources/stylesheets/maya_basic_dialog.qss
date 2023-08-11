@@ -19,6 +19,11 @@ QPushButton:pressed, QToolButton:pressed{
     color: @maya_text;
 }
 
+QPushButton:disabled, QToolButton:disabled{
+	background-color: @background_disabled_color;
+	color: @disabled_text_color;
+}
+
 QLabel{
     background-color: transparent;
     font-weight: 700;
