@@ -119,7 +119,7 @@ class PackageUpdaterModel:
             logger.warning(f'Unable to set "Interval Days". Incorrect data type. (Must be int)')
         self.interval_days = interval_days
 
-    def update_last_check_date_to_now(self):
+    def save_last_check_date_as_now(self):
         """
         This function will change the "last_date" variable to now (str) and save the settings.
         """
@@ -255,7 +255,7 @@ class PackageUpdaterModel:
         # Status
         self.refresh_status_description()
 
-    def get_releases_changelog(self, num_releases=3):
+    def get_releases_changelog(self, num_releases=5):
         """
         Creates a list of strings with the tag name, release date and body for the latest releases.
         Useful for when presenting a list of changes to the user.
@@ -281,7 +281,7 @@ class PackageUpdaterModel:
             logger.warning("Unable to retrieve changelog. Request content is empty")
             return
         if isinstance(content, list) and len(content) >= num_releases:
-            content = content[:3]
+            content = content[:num_releases]
         for data in content:
             key_text = ''
             key_text += data.get('tag_name', '')

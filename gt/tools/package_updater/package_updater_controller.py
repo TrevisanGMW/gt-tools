@@ -6,10 +6,12 @@ CurveLibraryModel and the user interface.
 """
 from gt.utils.iterable_utils import get_next_dict_item
 from gt.utils.prefs_utils import PackageCache
+from datetime import datetime, timedelta
 from gt.ui import resource_library
 from gt.utils import version_utils
 import threading
 import logging
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -39,6 +41,8 @@ class PackageUpdaterController:
         # Initial Checks:
         if not model.has_requested_online_data():
             self.refresh_updater_data_threaded_maya()
+        else:
+            self.refresh_view_values()
 
     def update_view_status_with_color(self, status):
         """
@@ -132,6 +136,11 @@ class PackageUpdaterController:
         self.view.update_interval_button(time_period=time_period)
         self.model.set_interval_days(interval_days=current_interval)
         self.model.save_preferences()
+        # Create feedback
+        current_date = datetime.now()
+        updated_date = current_date + timedelta(days=current_interval)
+        formatted_date = updated_date.strftime('%Y-%B-%d')
+        sys.stdout.write(f'Interval Set To: {time_period}. - (Next check date: {str(formatted_date)})\n')
 
     def update_auto_check(self):
         """
@@ -146,11 +155,15 @@ class PackageUpdaterController:
         Update the auto check button by cycling through Activated/Deactivated.
         Also updates to enabled state of the interval button as an interval is only necessary when activated.
         """
-        state = self.model.get_auto_check()
-        self.view.update_auto_check_status_btn(is_active=not state)
-        self.view.change_interval_button_state(state=not state)
-        self.model.set_auto_check(auto_check=not state)
+        new_state = not self.model.get_auto_check()
+        self.view.update_auto_check_status_btn(is_active=new_state)
+        self.view.change_interval_button_state(state=new_state)
+        self.model.set_auto_check(auto_check=new_state)
         self.model.save_preferences()
+        if new_state:
+            sys.stdout.write('Auto Check For Updates: Activated\n')
+        else:
+            sys.stdout.write('Auto Check For Updates: Deactivated\n')
 
     def update_package_threaded_maya(self):
         """
@@ -178,6 +191,7 @@ class PackageUpdaterController:
         Checks for updates and refreshes the updater UI to reflect retrieved data
         """
         self.model.check_for_updates()
+        self.model.save_last_check_date_as_now()
         self.refresh_view_values()
 
     def refresh_updater_data_threaded_maya(self):
