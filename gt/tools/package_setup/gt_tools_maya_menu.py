@@ -403,6 +403,10 @@ def load_menu(*args):
                            tooltip="Render thumbnails for current curves to a desktop folder.",
                            icon=resource_library.Icon.dev_code)
         menu.add_divider(divider_label="Package")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(label='Silently Check for Updates',
+                           command=IMPORT_TOOL + 'initialize_tool("package_updater", "silently_check_for_updates")',
+                           tooltip="Silently checks for updates.",
+                           icon=resource_library.Icon.dev_code)
         menu.add_menu_item(label='Get Loaded Package Location',
                            command='from gt.utils.session_utils import get_module_path\n'
                                    'get_module_path(module_name="gt", verbose=True)\n',
