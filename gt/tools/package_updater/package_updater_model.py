@@ -8,7 +8,6 @@ from gt.utils.setup_utils import remove_package_loaded_modules
 from gt.utils.setup_utils import PACKAGE_MAIN_MODULE
 from gt.utils.prefs_utils import Prefs, PackageCache
 from gt.utils.request_utils import download_file
-from gt.utils.string_utils import remove_prefix
 from gt.utils.data_utils import unzip_zip_file
 from PySide2.QtWidgets import QApplication
 from gt.utils import feedback_utils
@@ -17,7 +16,6 @@ from gt.ui import resource_library
 from gt.ui import progress_bar
 from datetime import datetime
 from json import loads
-import threading
 import logging
 import sys
 import os
@@ -289,7 +287,7 @@ class PackageUpdaterModel:
             key_text += f' - ({published_at})\n'
             body = data.get('body', '')
             value_text = ''
-            value_text += remove_prefix(body, "\r\n## What's Changed\r\n\r\n")
+            value_text += body
             value_text += "\n"
             changelog_data[key_text] = value_text
         return changelog_data
@@ -386,11 +384,12 @@ class PackageUpdaterModel:
             return
 
         # Validate Extraction ----------------------------------------------------
-        extracted_content = os.listdir(cache_extract)  # TODO this must be purged to only have one folder
+        extracted_content = os.listdir(cache_extract)
         if not extracted_content:
             message = f'Extraction returned no files.\nExtraction Path: "{cache_extract}".'
             self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
             return
+
         extracted_dir_name = extracted_content[0]
         extracted_dir_path = os.path.join(cache_extract, extracted_dir_name)
         extracted_module_path = None
