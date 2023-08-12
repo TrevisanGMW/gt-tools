@@ -38,12 +38,13 @@ def parse_http_request_url(url):
     return host_out, repo
 
 
-def http_request(url, host_overwrite=None, path_overwrite=None):
+def http_get_request(url, timeout_ms=2000, host_overwrite=None, path_overwrite=None):
     """
     Make an HTTP GET request to a REST API and return the response.
 
     Args:
         url (str): Rest API
+        timeout_ms (int): Timeout for the request in milliseconds. Default is 2000 milliseconds (2 seconds).
         host_overwrite (str): String for the host overwrite. For example: "api.github.com"
                               If provided, it will replace whatever was parsed out of the URL. Default None (do nothing)
         path_overwrite (str): String for the path overwrite. For example: "/repos/**USER**/**REPO**/releases/latest"
@@ -63,7 +64,8 @@ def http_request(url, host_overwrite=None, path_overwrite=None):
             host = host_overwrite
         if isinstance(path_overwrite, str):
             path = path_overwrite
-        connection = http_client.HTTPSConnection(host)
+        timeout_sec = timeout_ms / 1000  # Convert milliseconds to seconds
+        connection = http_client.HTTPSConnection(host, timeout=timeout_sec)
         connection.request("GET", path, headers={'Content-Type': 'application/json; charset=UTF-8',
                                                  'User-Agent': 'packaage_updater'})
         response = connection.getresponse()
@@ -181,8 +183,35 @@ def download_file(url, destination, chunk_size=8192, callback=None):
             callback(100)
 
 
+def is_connected_to_internet(timeout_ms=1000, server="8.8.8.8", port=53):
+    """
+    Check if the device is connected to the internet using the provided server and port (default: Google DNS servers).
+
+    Args:
+        timeout_ms (int): Timeout value in milliseconds for the connection attempt.
+        server (str): The IP address or hostname of the server to check connectivity with.
+        port (int): The port number on which to check connectivity.
+
+    Returns:
+        bool: True if connected to the internet, False otherwise.
+    """
+    import socket
+    timeout_sec = timeout_ms / 1000.0  # Convert milliseconds to seconds
+    try:
+        # Create a socket and attempt to connect to Google's DNS server (8.8.8.8) on port 53 (DNS)
+        socket.setdefaulttimeout(timeout_sec)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((server, port))
+        sock.close()
+        return True
+    except Exception as e:
+        logger.debug(f'Unable to connect to "{str(server)}:{str(port)}". Issue: {e}')
+        return False
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     out = None
+    print()
     pprint(out)
