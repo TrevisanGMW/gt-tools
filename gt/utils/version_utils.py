@@ -2,14 +2,13 @@
 Version Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.request_utils import http_request, get_http_response_type
+from gt.utils.request_utils import http_get_request, get_http_response_type
 from gt.utils.feedback_utils import print_when_true
 from collections import namedtuple
 import importlib.util
 import logging
 import os
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -201,9 +200,9 @@ def get_github_releases(verbose=True, only_latest=False):
         tuple: A tuple with the web-response and the content of the latest GitHub release. (response, None) if it fails.
     """
     if only_latest:
-        response, response_content = http_request(PACKAGE_LATEST_RELEASE_URL)
+        response, response_content = http_get_request(PACKAGE_LATEST_RELEASE_URL)
     else:
-        response, response_content = http_request(PACKAGE_RELEASES_URL)
+        response, response_content = http_get_request(PACKAGE_RELEASES_URL)
     try:
         response_type = get_http_response_type(response.status)
         if response_type != "successful":
