@@ -29,12 +29,18 @@ PACKAGE_USER_SETUP = "userSetup.mel"
 
 def get_maya_preferences_dir():
     """
-    Get maya preferences dir using cmds
-    Usually Documents/maya
+    Get maya preferences dir using "cmds".
+    If it fails to retrieve it using "cmds" , then it tries with the system version of it (no Maya commands)
+    Result is usually ".../Documents/maya"
     Returns:
-        Path to maya settings directory. Usually "C:/Users/<user-name>/Documents/maya"
+        str: Path to maya settings directory. Usually "C:/Users/<user-name>/Documents/maya"
     """
-    return os.path.dirname(cmds.about(preferences=True))
+    try:
+        return os.path.dirname(cmds.about(preferences=True))
+    except Exception as e:
+        logger.debug(f'Unable to retrieve preferences directory using "cmds". Using system tools instead. Issue: {e}')
+        import gt.utils.system_utils as system_utils
+        return system_utils.get_maya_preferences_dir(system_utils.get_system())
 
 
 def get_package_requirements():
