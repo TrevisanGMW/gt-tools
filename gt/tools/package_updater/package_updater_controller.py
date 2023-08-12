@@ -5,6 +5,7 @@ This module contains the CurveLibraryController class responsible for managing i
 CurveLibraryModel and the user interface.
 """
 from gt.utils.iterable_utils import get_next_dict_item
+from gt.utils.system_utils import execute_deferred
 from gt.utils.prefs_utils import PackageCache
 from datetime import datetime, timedelta
 from gt.ui import resource_library
@@ -52,15 +53,37 @@ class PackageUpdaterController:
             status (str): String to be used in the status description
         """
         comparison_result = self.model.get_version_comparison_result()
+        text_color_hex = resource_library.Color.Hex.black
         if comparison_result == version_utils.VERSION_BIGGER:
             bg_color = resource_library.Color.Hex.purple
         elif comparison_result == version_utils.VERSION_SMALLER:
             bg_color = resource_library.Color.Hex.red_soft
-        else:
+        elif comparison_result == version_utils.VERSION_EQUAL:
             bg_color = resource_library.Color.Hex.green_soft
+        else:
+            text_color_hex = resource_library.Color.Hex.white
+            bg_color = resource_library.Color.Hex.grey_dark
         self.view.update_status(status=status,
-                                text_color_hex=resource_library.Color.Hex.black,
+                                text_color_hex=text_color_hex,
                                 bg_color_hex=bg_color)
+
+    def update_view_web_response_with_color(self, response_description):
+        """
+        Updates the web-response description using the appropriate color.
+        Args:
+            response_description (str): String to be used in the web-response description
+        """
+        text_color_hex = resource_library.Color.Hex.black
+        if response_description == "Requesting...":
+            bg_color = resource_library.Color.Hex.yellow
+        elif response_description == "None":
+            bg_color = resource_library.Color.Hex.red_soft
+        else:
+            text_color_hex = resource_library.Color.Hex.white
+            bg_color = resource_library.Color.Hex.grey
+        self.view.update_web_response(response=response_description,
+                                      text_color_hex=text_color_hex,
+                                      bg_color_hex=bg_color)
 
     def set_view_to_waiting(self):
         """ Clear view values showing that it's waiting for a refresh """
@@ -68,7 +91,7 @@ class PackageUpdaterController:
         self.view.update_installed_version(version=f'v?.?.?')
         self.view.update_latest_release(version=f'v?.?.?')
         self.view.update_status(status="Unknown")
-        self.view.update_web_response(response="Requesting...")
+        self.update_view_web_response_with_color(response_description="Requesting...")
         self.view.clear_changelog_box()
 
     def refresh_view_values(self):
@@ -88,7 +111,7 @@ class PackageUpdaterController:
         status_description = self.model.get_status_description()
         self.update_view_status_with_color(status=status_description)
         web_response = self.model.get_web_response_reason()
-        self.view.update_web_response(response=str(web_response))
+        self.update_view_web_response_with_color(response_description=str(web_response))
         self.update_auto_check()
         self.view.change_update_button_state(state=self.model.is_update_needed())
         self.populate_changelog_box()
@@ -96,7 +119,9 @@ class PackageUpdaterController:
     def populate_changelog_box(self):
         """ Populates the changelog box with changelog data """
         self.view.clear_changelog_box()
-        changelog = self.model.get_releases_changelog()
+        if self.model.has_failed_online_request():
+            return
+        changelog = self.model.get_releases_changelog() or {}
         for tag_name, description in changelog.items():
             self.view.add_text_to_changelog(text=tag_name,
                                             text_color_hex=resource_library.Color.Hex.white)
@@ -184,8 +209,7 @@ class PackageUpdaterController:
 
         def _maya_update_latest_package():
             """ Internal function used to update package using threads in Maya """
-            from maya import utils
-            utils.executeDeferred(self.update_package, cache)
+            execute_deferred(self.update_package, cache)
 
         try:
             thread = threading.Thread(None, target=_maya_update_latest_package)
@@ -211,8 +235,8 @@ class PackageUpdaterController:
         """
         def _maya_retrieve_update_data():
             """ Internal function used to check for updates using threads in Maya """
-            from maya import utils
-            utils.executeDeferred(self.refresh_updater_data)
+            execute_deferred(self.refresh_updater_data)
+
         try:
             thread = threading.Thread(None, target=_maya_retrieve_update_data)
             thread.start()

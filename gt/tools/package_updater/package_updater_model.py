@@ -4,10 +4,10 @@ Package Updater Model
 Classes:
     PackageUpdaterModel: A class for checking for updates
 """
+from gt.utils.request_utils import download_file, is_connected_to_internet
 from gt.utils.setup_utils import remove_package_loaded_modules
 from gt.utils.setup_utils import PACKAGE_MAIN_MODULE
 from gt.utils.prefs_utils import Prefs, PackageCache
-from gt.utils.request_utils import download_file
 from gt.utils.data_utils import unzip_zip_file
 from PySide2.QtWidgets import QApplication
 from gt.utils import feedback_utils
@@ -225,6 +225,16 @@ class PackageUpdaterModel:
         """
         return self.requested_online_data
 
+    def has_failed_online_request(self):
+        """
+        Returns whether it failed to get online data.
+        Returns:
+            bool: True if failed to get online data has already been requested, False if not.
+        """
+        if self.requested_online_data and not self.response_content:
+            return True
+        return False
+
     def is_update_needed(self):
         """
         Returns True if updated is needed. False if not.
@@ -246,6 +256,9 @@ class PackageUpdaterModel:
         """ Checks current version against web version and updates stored values with retrieved data """
         # Current Version
         self.installed_version = version_utils.get_installed_version()
+        if not is_connected_to_internet(server="github.com", port=80):
+            logger.debug('Unable to request online data. Failed to connect to "github.com".')
+            return
         # Latest Version
         self.request_github_data()
         response_content = self.response_content
@@ -269,14 +282,14 @@ class PackageUpdaterModel:
         content = None
         changelog_data = {}
         if not self.response_content:
-            logger.warning("Unable to retrieve changelog. Request content is empty")
+            logger.debug("Unable to retrieve changelog. Request content is empty")
             return
         try:
             content = loads(self.response_content)
         except Exception as e:
             logger.warning(f'Unable to interpret content data. Issue: "{str(e)}".')
         if not content:
-            logger.warning("Unable to retrieve changelog. Request content is empty")
+            logger.debug("Unable to retrieve changelog. Request content is empty")
             return
         if isinstance(content, list) and len(content) >= num_releases:
             content = content[:num_releases]
@@ -448,9 +461,5 @@ if __name__ == "__main__":
     import maya.standalone
     # maya.standalone.initialize()
     model = PackageUpdaterModel()
-    # print(model.is_time_to_update())
-    # model.check_for_updates()
-    # print(model.latest_github_version)
-    # model.update_package()
-    # print(model.__dict__)
-
+    model.check_for_updates()
+    print(model.latest_github_version)
