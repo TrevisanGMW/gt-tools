@@ -63,7 +63,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Color Manager',
                        command=IMPORT_TOOL + 'initialize_tool("color_manager")',
                        tooltip='A way to quickly change colors of objects and objects names (outliner).',
-                       icon=resource_library.Icon.tool_color_manager)
+                       icon=resource_library.Icon.tool_color_manager_roller)
     menu.add_menu_item(label='Outliner Sorter',
                        command=IMPORT_TOOL + 'initialize_tool("outliner_sorter")',
                        tooltip='Manages the order of the elements in the outliner.',
@@ -386,23 +386,32 @@ def load_menu(*args):
                            command='from gt.utils.curve_utils import add_thumbnail_metadata_attr_to_selection\n'
                                    'add_thumbnail_metadata_attr_to_selection()\n',
                            tooltip="Add thumbnail metadata attributes to selection.",
-                           icon=resource_library.Icon.dev_code)
+                           icon=resource_library.Icon.dev_filter)
         menu.add_menu_item(label='Write Curve Files from Selection',
                            command='from gt.utils.curve_utils import write_curve_files_from_selection\n'
                                    'write_curve_files_from_selection()\n',
                            tooltip="Write curve data attributes to a desktop folder.",
-                           icon=resource_library.Icon.dev_code)
+                           icon=resource_library.Icon.dev_binary)
         menu.add_menu_item(label='Print CRV files to Python for Curves',
                            command='from gt.utils.curve_utils import print_code_for_crv_files\n'
                                    'print_code_for_crv_files()\n',
                            tooltip='Prints Python Lines used to call curves from "Curves" class.',
-                           icon=resource_library.Icon.dev_code)
+                           icon=resource_library.Icon.dev_binary)
         menu.add_menu_item(label='Render Curves Thumbnails',
                            command='from gt.utils.curve_utils import generate_curves_thumbnails\n'
                                    'generate_curves_thumbnails()\n',
                            tooltip="Render thumbnails for current curves to a desktop folder.",
-                           icon=resource_library.Icon.dev_code)
+                           icon=resource_library.Icon.dev_picker)
         menu.add_divider(divider_label="Package")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(label='Silently Check for Updates',
+                           command=IMPORT_TOOL + 'initialize_tool("package_updater", "silently_check_for_updates")',
+                           tooltip="Silently checks for updates.",
+                           icon=resource_library.Icon.dev_git_pull_request)
+        menu.add_menu_item(label='Get Loaded Package Location',
+                           command='from gt.utils.session_utils import get_module_path\n'
+                                   'get_module_path(module_name="gt", verbose=True)\n',
+                           tooltip="Gets the loaded package path location.",
+                           icon=resource_library.Icon.dev_code)
         menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',
@@ -412,7 +421,7 @@ def load_menu(*args):
                            command='from gt.utils.prefs_utils import purge_package_settings\n'
                                    'purge_package_settings()\n',
                            tooltip="Opens sample tool.",
-                           icon=resource_library.Icon.dev_code)
+                           icon=resource_library.Icon.dev_trash)
     # ------------------------------------ About/Help ------------------------------------
     menu.add_divider(parent_to_root=True)
     menu.add_sub_menu("Help",
@@ -428,9 +437,9 @@ def load_menu(*args):
                        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
                        icon=resource_library.Icon.misc_rebuild_menu)
     menu.add_menu_item(label='Check for Updates',
-                       command=IMPORT_TOOL + 'initialize_tool("check_for_updates")',
+                       command=IMPORT_TOOL + 'initialize_tool("package_updater")',
                        tooltip="Check for updates by comparing current version with latest release.",
-                       icon=resource_library.Icon.tool_check_for_updates)
+                       icon=resource_library.Icon.tool_package_updater)
     menu.add_menu_item(label='Develop Menu Toggle',
                        command='from gt.utils.prefs_utils import toggle_dev_sub_menu\n'
                                'toggle_dev_sub_menu()\n' + _rebuild_menu_command,

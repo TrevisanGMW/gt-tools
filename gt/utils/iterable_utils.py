@@ -1,5 +1,5 @@
 """
-List Utilities - Utilities used for dealing with list
+Iterable Utilities - Utilities used for dealing with iterable elements, such as lists, sets and dictionaries
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
@@ -50,7 +50,68 @@ def get_list_missing_elements(expected_list, result_list):
     """
     difference = get_list_difference(expected_list, result_list)[0]
     return difference
-    
+
+
+def get_next_dict_item(dictionary, key, cycle=False):
+    """
+    Get the next item in a dictionary after the given key.
+
+    Args:
+        dictionary (dict): The dictionary.
+        key: The key after which you want to find the next item.
+        cycle (bool): If True, enables cycling through the dictionary.
+
+    Returns:
+        tuple: A tuple containing the key-value pair of the next item, or None if no next item exists.
+    """
+    iterator = iter(dictionary)
+    try:
+        while True:
+            current_key = next(iterator)
+            if current_key == key:
+                next_key = next(iterator, None)
+                if next_key is not None:
+                    return next_key, dictionary[next_key]
+                elif cycle:
+                    first_key = next(iter(dictionary))
+                    return first_key, dictionary[first_key]
+                else:
+                    return None
+    except StopIteration:
+        return None
+
+
+def remove_list_duplicates(input_list):
+    """
+    Remove duplicates from a list using a set.
+
+    Args:
+        input_list (list): The input list with duplicates.
+
+    Returns:
+        list: A new list with duplicates removed.
+    """
+    return list(set(input_list))
+
+
+def remove_list_duplicates_ordered(input_list):
+    """
+    Remove duplicates from a list while preserving the order.
+
+    Args:
+        input_list (list): The input list with duplicates.
+
+    Returns:
+        list: A new list with duplicates removed and the original order preserved.
+    """
+    seen = set()
+    unique_list = []
+    for item in input_list:
+        if item not in seen:
+            unique_list.append(item)
+            seen.add(item)
+    return unique_list
+
 
 def make_flat_list(*args):
     """

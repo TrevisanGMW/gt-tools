@@ -200,45 +200,20 @@ class PackageSetupWindow(QtWidgets.QDialog):
         """
         self.line_edit_installation_path.setText(new_path)
 
-    @staticmethod
-    def update_formatted_label(target_label,
-                               new_title,
-                               new_text_output,
-                               title_size=3,
-                               title_color="grey",
-                               version_size=4,
-                               version_color="white",
-                               overall_alignment="center"):
-        """
-        Updates the target QLabel with formatted text containing a title and text output.
-
-        Args:
-           target_label (QtWidgets.QLabel): The QLabel to update with the formatted text.
-           new_title (str): The title to be displayed before the new_text_output.
-           new_text_output (str): The text output to be displayed after the new_title.
-           title_size (int, optional): The font size of the title. Default is 3.
-           title_color (str, optional): The color of the title. Default is "grey".
-           version_size (int, optional): The font size of the text output. Default is 4.
-           version_color (str, optional): The color of the text output. Default is "white".
-           overall_alignment (str, optional): The overall alignment of the formatted text. Default is "center".
-                                              Possible values are "left", "center", and "right".
-        """
-        _html = f"<html><div style='text-align:{overall_alignment};'>"
-        _html += f"<font size='{str(title_size)}' color='{title_color}'>{new_title}: </font>"
-        _html += f"<b><font size='{str(version_size)}' color='{version_color}'>{new_text_output}</font></b>"
-        _html += "</div></html>"
-        target_label.setText(_html)
-
     def update_version_current_setup(self, new_setup_version):
         """
         Updates the current setup version text with the given new version.
         Args:
             new_setup_version (str): The new setup version to display.
         """
-        self.update_formatted_label(target_label=self.label_setup_version,
-                                    new_title="Setup Version",
-                                    new_text_output=new_setup_version,
-                                    overall_alignment="left")
+        qt_utils.update_formatted_label(target_label=self.label_setup_version,
+                                        text="Setup Version: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_text=new_setup_version,
+                                        output_size=4,
+                                        output_color="white",
+                                        overall_alignment="left")
 
     def update_version_installed(self, new_installed_version):
         """
@@ -246,9 +221,13 @@ class PackageSetupWindow(QtWidgets.QDialog):
         Args:
             new_installed_version (str): The new installed version to display.
         """
-        self.update_formatted_label(target_label=self.label_installed_version,
-                                    new_title="Installed Version",
-                                    new_text_output=new_installed_version)
+        qt_utils.update_formatted_label(target_label=self.label_installed_version,
+                                        text="Installed Version: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_size=4,
+                                        output_color="white",
+                                        output_text=new_installed_version)
 
     def update_status_text(self, new_status):
         """
@@ -256,10 +235,14 @@ class PackageSetupWindow(QtWidgets.QDialog):
         Args:
             new_status (str): The new status to display.
         """
-        self.update_formatted_label(target_label=self.label_status,
-                                    new_title="Status",
-                                    new_text_output=new_status,
-                                    overall_alignment="right")
+        qt_utils.update_formatted_label(target_label=self.label_status,
+                                        text="Status: ",
+                                        text_size=3,
+                                        text_color="grey",
+                                        output_text=new_status,
+                                        output_size=4,
+                                        output_color="white",
+                                        overall_alignment="right")
 
 
 if __name__ == "__main__":

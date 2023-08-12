@@ -21,12 +21,17 @@ for to_append in [source_dir, tools_root_dir]:
 
 # Import Tests
 from tests import test_curve_library
+from tests import test_package_updater
 from tests import test_sample_tool
 from tests import test_utils
 from tests import test_ui
 
 # Modules to Test
 modules_to_test = [
+    test_curve_library.test_curve_library_model,
+    test_package_updater.test_package_updater_model,
+    test_sample_tool.test_sample_tool_model,
+    test_ui.test_resource_library,
     test_utils.test_alembic_utils,
     test_utils.test_anim_utils,
     test_utils.test_attribute_utils,
@@ -34,18 +39,16 @@ modules_to_test = [
     test_utils.test_curve_utils,
     test_utils.test_data_utils,
     test_utils.test_feedback_utils,
-    test_utils.test_list_utils,
+    test_utils.test_iterable_utils,
     test_utils.test_namespace_utils,
     test_utils.test_prefs_utils,
+    test_utils.test_request_utils,
     test_utils.test_scene_utils,
     test_utils.test_session_utils,
     test_utils.test_setup_utils,
     test_utils.test_string_utils,
     test_utils.test_system_utils,
     test_utils.test_version_utils,
-    test_ui.test_resource_library,
-    test_curve_library.test_curve_library_model,
-    test_sample_tool.test_sample_tool_model,
 ]
 
 

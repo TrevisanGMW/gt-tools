@@ -144,16 +144,19 @@ def generate_test_temp_dir(folder_name="test_temp_dir"):
     module = inspect.getmodule(frame[0])
     data_folder = get_data_dir_path(module=module)
     test_temp_dir = os.path.join(data_folder, folder_name)  # e.g. ".../data/test_temp_dir"
+    if not os.path.exists(data_folder):
+        os.mkdir(data_folder)
     if not os.path.exists(test_temp_dir):
         os.mkdir(test_temp_dir)
     return test_temp_dir
 
 
-def delete_test_temp_dir(folder_name="test_temp_dir"):
+def delete_test_temp_dir(folder_name="test_temp_dir", auto_delete_empty_data_dir=True):
     """
     Deletes the temporary directory used for testing. (Only if existing)
     Args:
         folder_name (str, optional): Name of the folder to delete. Default: "test_temp_dir"
+        auto_delete_empty_data_dir (bool, optional): If active, it will delete the data when it's empty.
     Returns:
         bool: True if it was deleted, False in case it was not found.
     """
@@ -163,6 +166,10 @@ def delete_test_temp_dir(folder_name="test_temp_dir"):
     test_temp_dir = os.path.join(data_folder, folder_name)  # e.g. ".../data/test_temp_dir"
     if os.path.exists(test_temp_dir):
         shutil.rmtree(test_temp_dir)
+        if auto_delete_empty_data_dir:
+            data_content = os.listdir(data_folder)
+            if len(data_content) == 0:
+                shutil.rmtree(data_folder)
         return True
     return False
 

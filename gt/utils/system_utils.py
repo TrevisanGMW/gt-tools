@@ -39,7 +39,7 @@ def get_system():
     return system
 
 
-def get_temp_folder():
+def get_temp_dir():
     """
     Get path to the tempo folder. It will be different depending on the system
     e.g. "C:\\Users\\<User-Name>>\\AppData\\Local\\Temp"
@@ -570,6 +570,54 @@ def callback(callbacks, *args, **kwargs):
                     logger.debug(f"Unable to execute callback function. Issue: {e}")
             else:
                 logger.debug(f"Error: {func} is not a callable function.")
+
+
+def execute_deferred(func, *args, **kwargs):
+    """
+    Execute a function or code either immediately or deferred based on the Maya application state.
+
+    This function checks if Maya is in interactive mode and either executes the provided function
+    immediately or defers its execution. If Maya is not in interactive mode, it can execute the
+    provided function as a string of code or a regular callable.
+
+
+    Args:
+        func: The function to be executed. It can be a callable function, a string containing code,
+              or any other executable entity. If providing a function as a string, args and kwargs will be ignored.
+        *args: Arguments to be passed to the function.
+        **kwargs: Keyword arguments to be passed to the function.
+
+    Example:
+        # Defining a simple function
+        def my_function(arg1, arg2):
+            print(arg1 + arg2)
+
+        # Calling execute_deferred with a regular function
+        execute_deferred(my_function, 10, 20)  # This will be executed immediately
+
+        # Calling execute_deferred with a code string
+        code_str = "print('Code execution within Maya')"
+        execute_deferred(code_str)  # This will be executed immediately if not in interactive mode
+
+        # Using execute_deferred in interactive mode
+        def print_message(msg):
+            print(msg)
+
+        execute_deferred(print_message, "Deferred execution in interactive mode")
+        # This will be deferred if Maya is in interactive mode
+    """
+    try:
+        import maya.utils
+        import maya.OpenMaya
+        if maya.OpenMaya.MGlobal.mayaState() == maya.OpenMaya.MGlobal.kInteractive:
+            maya.utils.executeDeferred(func, *args, **kwargs)
+            return
+    except Exception as e:
+        logger.debug(f'Unable to use "maya.utils.executeDeferred" to call function. Calling it normally. Issue: {e}')
+    if isinstance(func, str):
+        exec(func)
+    else:
+        func(*args, **kwargs)
 
 
 if __name__ == "__main__":
