@@ -76,7 +76,7 @@ class PackageUpdaterController:
         auto_check = self.model.get_auto_check()
         self.view.update_auto_check_status_btn(is_active=auto_check)
         interval_days = self.model.get_interval_days()
-        self.update_view_interval_button(new_interval=interval_days, cycle=False)
+        self.update_view_interval_button(new_interval=interval_days, cycle=False, verbose=False)
         if self.model.is_update_needed():
             self.view.change_update_button_state(state=True)
         else:
@@ -103,13 +103,14 @@ class PackageUpdaterController:
             self.view.add_text_to_changelog(text=description.replace("\r\n", "\n"),
                                             text_color_hex=resource_library.Color.Hex.grey_lighter)
 
-    def update_view_interval_button(self, new_interval=None, cycle=True):
+    def update_view_interval_button(self, new_interval=None, cycle=True, verbose=True):
         """
         Updates the interval button text.
         Args:
             new_interval (int, optional): If provided, this value will be used as the new interval.
                                           Note: It will be converted to string and "days" will be added to the end.
             cycle (bool, optional): If active, it will cycle through a pre-determined list of available periods.
+            verbose (bool, optional): If active, it will print the changes so the user knows how it's been updated.
         """
         current_interval = new_interval
         if not new_interval:
@@ -136,11 +137,12 @@ class PackageUpdaterController:
         self.view.update_interval_button(time_period=time_period)
         self.model.set_interval_days(interval_days=current_interval)
         self.model.save_preferences()
-        # Create feedback
-        current_date = datetime.now()
-        updated_date = current_date + timedelta(days=current_interval)
-        formatted_date = updated_date.strftime('%Y-%B-%d')
-        sys.stdout.write(f'Interval Set To: {time_period}. - (Next check date: {str(formatted_date)})\n')
+        if verbose:
+            # Create feedback
+            current_date = datetime.now()
+            updated_date = current_date + timedelta(days=current_interval)
+            formatted_date = updated_date.strftime('%Y-%B-%d')
+            sys.stdout.write(f'Interval Set To: {time_period}. - (Next check date: {str(formatted_date)})\n')
 
     def update_auto_check(self):
         """
