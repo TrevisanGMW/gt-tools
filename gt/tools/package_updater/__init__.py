@@ -33,6 +33,7 @@ import logging
 import sys
 
 # Logging Setup
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -92,16 +93,13 @@ def silently_check_for_updates():
         _model.check_for_updates()
         _model.save_last_check_date_as_now()
         if _model.is_update_needed():
-            print("Updated was needed, starting tool")
             build_package_updater_gui(standalone=False, model=_model)
-        else:
-            print("Updated was not needed.")
 
     def _maya_retrieve_update_data():
         """ Internal function used to run a thread in Maya """
         """ Internal function used to check for updates using threads in Maya """
-        from maya import utils
-        utils.executeDeferred(_initialize_tool_if_updating)
+        from gt.utils.system_utils import execute_deferred
+        execute_deferred(_initialize_tool_if_updating)
     try:
         thread = threading.Thread(None, target=_maya_retrieve_update_data)
         thread.start()
@@ -123,4 +121,3 @@ def launch_tool():
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # launch_tool()
-    silently_check_for_updates()

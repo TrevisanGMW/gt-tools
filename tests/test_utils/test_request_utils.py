@@ -31,7 +31,7 @@ class TestRequestUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('http.client.HTTPSConnection')
-    def test_http_request(self, mock_http_connection):
+    def test_http_get_request(self, mock_http_connection):
         mock_connection = MagicMock()
         mock_getresponse = MagicMock()
         mock_read = MagicMock()
@@ -41,7 +41,7 @@ class TestRequestUtils(unittest.TestCase):
         mock_connection.__enter__.return_value = mock_connection
         mock_http_connection.return_value = mock_connection
         url = 'https://api.github.com/mocked_path'
-        response, response_content = request_utils.http_request(url=url)
+        response, response_content = request_utils.http_get_request(url=url)
         expected = mock_getresponse
         self.assertEqual(expected, response)
         expected = "mocked_decode"
@@ -127,3 +127,21 @@ class TestRequestUtils(unittest.TestCase):
         mock_response.read.assert_called()
         self.assertEqual(mock_response.read.call_count, 3)
         mock_callback.assert_called_with(100.0)
+
+    @patch('socket.socket')
+    def test_connected_to_internet(self, mock_socket):
+        # Mock the socket to simulate a successful connection
+        instance = mock_socket.return_value
+        instance.connect.return_value = None
+
+        result = request_utils.is_connected_to_internet()
+        self.assertTrue(result)
+
+    @patch('socket.socket')
+    def test_not_connected_to_internet(self, mock_socket):
+        # Mock the socket to simulate a failed connection
+        instance = mock_socket.return_value
+        instance.connect.side_effect = Exception("Test exception")
+
+        result = request_utils.is_connected_to_internet()
+        self.assertFalse(result)

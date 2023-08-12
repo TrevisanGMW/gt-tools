@@ -158,7 +158,7 @@ class TestVersionUtils(unittest.TestCase):
         expected = None
         self.assertEqual(expected, result)
 
-    @patch('gt.utils.version_utils.http_request')
+    @patch('gt.utils.version_utils.http_get_request')
     def test_get_latest_github_release_content(self, http_request):
         mocked_response = MagicMock()
         mocked_response.status = 200
@@ -168,7 +168,7 @@ class TestVersionUtils(unittest.TestCase):
         expected = mocked_response, mocked_content
         self.assertEqual(expected, response)
 
-    @patch('gt.utils.version_utils.http_request')
+    @patch('gt.utils.version_utils.http_get_request')
     def test_get_latest_github_release_version(self, http_request):
         mocked_response = MagicMock()
         mocked_response.status = 200

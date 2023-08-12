@@ -472,3 +472,16 @@ class TestSystemUtils(unittest.TestCase):
         mock_callback2 = MagicMock()
         system_utils.callback(mock_callback2, 1, 2, key1='value1', key2='value2')
         mock_callback2.assert_called_once_with(1, 2, key1='value1', key2='value2')
+
+    def test_execute_deferred(self):
+        mocked_function = MagicMock()
+        system_utils.execute_deferred(func=mocked_function)
+        mocked_function.assert_called_once()
+
+    def test_execute_deferred_string(self):
+        system_utils.execute_deferred(func="logger.debug('')")
+
+    @patch('maya.OpenMaya.MGlobal.mayaState')
+    def test_execute_deferred_called(self, mocked_maya_state):
+        system_utils.execute_deferred(func="logger.debug('')")
+        mocked_maya_state.assert_called_once()
