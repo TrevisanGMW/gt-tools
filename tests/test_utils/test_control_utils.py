@@ -51,3 +51,11 @@ class TestControlUtils(unittest.TestCase):
                 raise Exception(f'Missing control: {ctrl_key}')
             if not control_obj.is_curve_valid():
                 raise Exception(f'Invalid control. Missing build function: "{ctrl_key}"')
+
+    def test_get_control_preview_image_path(self):
+        path = control_utils.get_control_preview_image_path("scalable_arrow")
+        result = os.path.exists(path)
+        self.assertTrue(result)
+        result = os.path.basename(path)
+        expected = "scalable_arrow.jpg"
+        self.assertEqual(expected, result)

@@ -6,9 +6,11 @@ Dependencies: "gt.utils.curve_utils" and "gt.utils.data.controls"
 """
 from gt.utils.attribute_utils import add_attr_double_three
 from gt.utils.data.controls import cluster_driven
+from gt.utils.data_utils import DataDirConstants
 from gt.utils.curve_utils import Curve
 import maya.cmds as cmds
 import logging
+import os
 
 # Logging Setup
 
@@ -110,6 +112,25 @@ def add_snapping_shape(target_object):
     return locator_shape[0]
 
 
+def get_control_preview_image_path(control_name):
+    """
+    Get the path to a curve data file. This file should exist inside the utils/data/curves folder.
+    Args:
+        control_name (str): Name of the curve (same as curve file). It doesn't need to contain extension.
+                          Function will automatically look for JPG or PNG files.
+    Returns:
+        str or None: Path to the curve preview image file. None if not found.
+    """
+    if not isinstance(control_name, str):
+        logger.debug(f'Unable to retrieve control preview image. Incorrect argument type: "{str(type(control_name))}".')
+        return
+
+    for ext in ["jpg", "png"]:
+        path_to_image = os.path.join(DataDirConstants.DIR_CONTROLS, "preview_images", f'{control_name}.{ext}')
+        if os.path.exists(path_to_image):
+            return path_to_image
+
+
 class Control(Curve):
     def __init__(self, name=None, build_function=None):
         """
@@ -181,10 +202,12 @@ class Controls:
         A library of controls (complex curves) objects. These are created using a callable function.
         Use "build()" to create them in Maya.
         """
-    scalable_arrow = Control(build_function=cluster_driven.create_scalable_arrow)
+    scalable_arrow = Control(name="scalable_arrow",
+                             build_function=cluster_driven.create_scalable_arrow)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = Controls.scalable_arrow
     out.build()
+
