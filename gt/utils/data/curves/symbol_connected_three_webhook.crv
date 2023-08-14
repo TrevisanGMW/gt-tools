@@ -1,9 +1,9 @@
 {
-    "name": "symbol_misc_connected_three",
+    "name": "symbol_connected_three_webhook",
     "transform": null,
     "shapes": [
         {
-            "name": "symbol_misc_connected_threeAShape",
+            "name": "symbol_connected_three_webhookAShape",
             "points": [
                 [
                     -0.834,
@@ -377,7 +377,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_threeBShape",
+            "name": "symbol_connected_three_webhookBShape",
             "points": [
                 [
                     -3.095,
@@ -727,7 +727,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_threeCShape",
+            "name": "symbol_connected_three_webhookCShape",
             "points": [
                 [
                     0.217,

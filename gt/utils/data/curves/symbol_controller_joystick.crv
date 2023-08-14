@@ -1,9 +1,9 @@
 {
-    "name": "symbol_controller_old",
+    "name": "symbol_controller_joystick",
     "transform": null,
     "shapes": [
         {
-            "name": "symbol_controller_oldAShape",
+            "name": "symbol_controller_joystickAShape",
             "points": [
                 [
                     3.0,
@@ -191,7 +191,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_controller_oldBShape",
+            "name": "symbol_controller_joystickBShape",
             "points": [
                 [
                     0.0,

@@ -1,9 +1,9 @@
 {
-    "name": "symbol_misc_connected_four",
+    "name": "symbol_connected_four",
     "transform": null,
     "shapes": [
         {
-            "name": "symbol_misc_connected_fourAShape",
+            "name": "symbol_connected_fourAShape",
             "points": [
                 [
                     -3.75,
@@ -461,7 +461,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_fourBShape",
+            "name": "symbol_connected_fourBShape",
             "points": [
                 [
                     2.5,
@@ -583,7 +583,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_fourCShape",
+            "name": "symbol_connected_fourCShape",
             "points": [
                 [
                     2.5,
@@ -705,7 +705,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_fourDShape",
+            "name": "symbol_connected_fourDShape",
             "points": [
                 [
                     -2.917,
@@ -827,7 +827,7 @@
             "is_bezier": false
         },
         {
-            "name": "symbol_misc_connected_fourEShape",
+            "name": "symbol_connected_fourEShape",
             "points": [
                 [
                     -2.5,
