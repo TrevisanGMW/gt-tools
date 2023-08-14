@@ -100,7 +100,7 @@ def load_menu(*args):
                       parent_to_root=True)
     menu.add_menu_item(label='Curve Library',
                        command=IMPORT_TOOL + 'initialize_tool("curve_library")',
-                       tooltip="Opens sample tool.",
+                       tooltip="Open Curve Library tools.",
                        icon=resource_library.Icon.tool_crv_library)
     menu.add_menu_item(label='Generate Text Curve',
                        command=IMPORT_TOOL + 'initialize_tool("shape_text_to_curve")',
@@ -304,7 +304,7 @@ def load_menu(*args):
                        tooltip="Moves pivot point to the base of the bounding box of every selected object.",
                        icon=resource_library.Icon.util_pivot_bottom)
     menu.add_menu_item(label='Move Object to Origin',
-                       command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_to_origin")',
+                       command=IMPORT_UTIL + 'initialize_utility("transform_utils", "move_selection_to_origin")',
                        tooltip="Moves selected objects to origin according to their pivot point.",
                        icon=resource_library.Icon.util_move_origin)
 
