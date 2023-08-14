@@ -151,7 +151,16 @@ def move_pivot_base():
     feedback.print_inview_message()
 
 
-def move_to_origin():
+def move_to_origin(obj):
+    """
+    Moves the provided object to the center of the grid
+    Args:
+        obj: Name of the object (string)
+    """
+    cmds.move(0, 0, 0, obj, a=True, rpr=True) # rpr flag moves it according to the pivot
+
+
+def move_selection_to_origin():
     """ Moves selected objects back to origin """
     function_name = 'Move to Origin'
     cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
@@ -167,7 +176,7 @@ def move_to_origin():
     try:
         for obj in selection:
             try:
-                cmds.move(0, 0, 0, obj, a=True, rpr=True)  # rpr flag moves it according to the pivot
+                move_to_origin(obj=obj)
                 counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
@@ -332,6 +341,23 @@ def convert_transforms_to_locators():
         feedback.print_inview_message(system_write=False)
         feedback.conclusion = f'created. Find generated elements in the group "{str(locators_grp)}".'
         sys.stdout.write(f'\n{feedback.get_string_message()}')
+
+
+def rescale(obj, scale, freeze=True):
+    """
+    Sets the scaleXYZ to the provided scale value.
+    It's also possible to freeze the object, so its components receive a new scale instead.
+    Args:
+        obj (string) Name of the object, for example "pSphere1"
+        scale (float) The new scale value, for example 0.5
+                      (this would cause it to be half of its initial size in case it was previously one)
+        freeze: (bool) Determines if the object scale should be frozen after updated
+    """
+    cmds.setAttr(obj + '.scaleX', scale)
+    cmds.setAttr(obj + '.scaleY', scale)
+    cmds.setAttr(obj + '.scaleZ', scale)
+    if freeze:
+        cmds.makeIdentity(obj, apply=True, scale=True)
 
 
 if __name__ == "__main__":

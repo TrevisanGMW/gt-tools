@@ -1,7 +1,9 @@
-import os
-import sys
-import logging
+from unittest.mock import patch
+from io import StringIO
 import unittest
+import logging
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -115,3 +117,57 @@ class TestTransformUtils(unittest.TestCase):
         result = transform_object_one == transform_object_two
         expected = False
         self.assertEqual(expected, result)
+
+    def test_move_to_origin(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
+        transform_utils.move_to_origin(cube)
+        expected = 0
+        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        self.assertEqual(expected, result_x)
+        self.assertEqual(expected, result_y)
+        self.assertEqual(expected, result_z)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_move_selection_to_origin(self, mocked_stdout):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
+        maya_test_tools.cmds.select(cube)
+        transform_utils.move_selection_to_origin()
+        expected = 0
+        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        self.assertEqual(expected, result_x)
+        self.assertEqual(expected, result_y)
+        self.assertEqual(expected, result_z)
+        printed_value = mocked_stdout.getvalue()
+        expected = '"pCube1" was moved to the origin\n'
+        self.assertEqual(expected, printed_value)
+
+    def test_rescale(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        result_y = maya_test_tools.cmds.xform(cube + ".vtx[0]", query=True, translation=True, worldSpace=True)
+        expected = [-0.5, -0.5, 0.5]  # Unchanged
+        self.assertEqual(expected, result_y)
+        transform_utils.rescale(obj=cube, scale=5, freeze=True)
+        expected = [-2.5, -2.5, 2.5]  # Changed
+        result_y = maya_test_tools.cmds.xform(cube + ".vtx[0]", query=True, translation=True, worldSpace=True)
+        self.assertEqual(expected, result_y)
+
+    def test_rescale_no_freeze(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        expected = 5
+        transform_utils.rescale(obj=cube, scale=expected, freeze=False)
+        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
+        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
+        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        self.assertEqual(expected, result_x)
+        self.assertEqual(expected, result_y)
+        self.assertEqual(expected, result_z)

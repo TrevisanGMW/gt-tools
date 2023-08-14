@@ -36,7 +36,7 @@ class CurveLibraryController:
         Update the preview image in the view when the selected item in the list changes.
         """
         selected_item = self.view.item_list.currentItem().text()
-        new_preview_image = self.model.get_preview_image(curve_name=selected_item)
+        new_preview_image = self.model.get_preview_image(object_name=selected_item)
         if new_preview_image:
             self.view.update_preview_image(new_image_path=new_preview_image)
 
