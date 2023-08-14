@@ -59,9 +59,9 @@ def get_curve_preview_image_path(curve_name):
         return
 
     for ext in ["jpg", "png"]:
-        path_to_curve = os.path.join(DataDirConstants.DIR_CURVES, f'{curve_name}.{ext}')
-        if os.path.exists(path_to_curve):
-            return path_to_curve
+        path_to_image = os.path.join(DataDirConstants.DIR_CURVES, f'{curve_name}.{ext}')
+        if os.path.exists(path_to_image):
+            return path_to_image
 
 
 def get_curve(file_name, curve_dir=None):
@@ -1417,5 +1417,4 @@ if __name__ == "__main__":
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    create_text("test")
     pprint(out)
