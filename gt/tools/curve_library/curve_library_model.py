@@ -8,7 +8,8 @@ and building curves based on their names. The curves are represented as instance
 Classes:
     CurveLibraryModel: A class for managing a library of curves.
 """
-from gt.utils.curve_utils import Curves, get_curve_preview_image_path
+from gt.utils.control_utils import Controls, get_control_preview_image_path, Control
+from gt.utils.curve_utils import Curves, get_curve_preview_image_path, Curve
 from gt.ui import resource_library
 import logging
 
@@ -25,6 +26,7 @@ class CurveLibraryModel:
         """
         self.curves = []
         self.import_default_library()
+        self.import_controls_library()
 
     def add_curve(self, curve):
         """
@@ -62,15 +64,28 @@ class CurveLibraryModel:
         """
         curve_attributes = vars(Curves)
         curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
-        curves = []
         for curve_key in curve_keys:
             curve_obj = getattr(Curves, curve_key)
             if not curve_obj:
-                logger.warning(f'Missing curve: {curve_key}')
-            curves.append(curve_obj)
+                logger.debug(f'Missing curve: {curve_key}')
+                continue
             if not curve_obj.shapes:
-                logger.warning(f'Missing shapes for a curve: {curve_obj}')
+                logger.debug(f'Missing shapes for a curve: {curve_obj}')
+                continue
             self.add_curve(curve_obj)
+
+    def import_controls_library(self):
+        control_attributes = vars(Controls)
+        control_keys = [attr for attr in control_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for ctrl_key in control_keys:
+            control_obj = getattr(Controls, ctrl_key)
+            if not control_obj:
+                logger.debug(f'Missing control: {ctrl_key}')
+                continue
+            if not control_obj.is_curve_valid():
+                logger.debug(f'Invalid control. Missing build function: "{ctrl_key}"')
+                continue
+            self.add_curve(control_obj)
 
     def build_curve(self, curve_name):
         """
@@ -98,18 +113,22 @@ class CurveLibraryModel:
             if curve_name == crv.get_name():
                 return crv
 
-    @staticmethod
-    def get_preview_image(curve_name):
+    def get_preview_image(self, object_name):
         """
         Gets the preview image path for the given curve name.
 
         Args:
-            curve_name (str): Name of the curve
+            object_name (str): Name of the curve or control
 
         Returns:
             str: The path to the preview image, or the path to the default missing file icon if the image is not found.
         """
-        preview_image = get_curve_preview_image_path(curve_name)
+        curve = self.get_curve_from_name(object_name)
+        preview_image = None
+        if curve and isinstance(curve, Curve):
+            preview_image = get_curve_preview_image_path(object_name)
+        if curve and isinstance(curve, Control):
+            preview_image = get_control_preview_image_path(object_name)
         if preview_image:
             return preview_image
         else:
@@ -119,6 +138,5 @@ class CurveLibraryModel:
 if __name__ == "__main__":
     # The model should be able to work without the controller or view
     model = CurveLibraryModel()
-    model.import_default_library()
-    items = model.get_curve_names(formatted=True)
-    print(items)
+    # items = model.get_curve_names(formatted=True)
+    print(get_control_preview_image_path("scalable_arrow"))
