@@ -1,10 +1,10 @@
-import os
-import sys
-import json
-import logging
-import unittest
-from io import StringIO
 from unittest.mock import patch
+from io import StringIO
+import unittest
+import logging
+import json
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -637,9 +637,65 @@ class TestCurveUtils(unittest.TestCase):
         expected = "My Curve"
         self.assertEqual(expected, result)
 
+    def test_get_curve(self):
+        curve = curve_utils.get_curve(file_name="_scalable_arrow")
+        self.assertIsInstance(curve, curve_utils.Curve)
+
+    def test_get_curve_custom_dir(self):
+        curve = curve_utils.get_curve(file_name="two_lines", curve_dir=maya_test_tools.get_data_dir_path())
+        self.assertIsInstance(curve, curve_utils.Curve)
+
+    def test_get_curve_missing_file(self):
+        curve = curve_utils.get_curve(file_name="mocked_missing_file", curve_dir=maya_test_tools.get_data_dir_path())
+        self.assertFalse(curve)
+
     @patch('sys.stdout', new_callable=StringIO)
     def test_print_code_for_crv_files(self, mocked_stdout):
         data_dir = maya_test_tools.get_data_dir_path()
         result = curve_utils.print_code_for_crv_files(target_dir=data_dir)
-        expected = ['two_lines = Curve(data_from_file=get_curve_path("two_lines"))']
+        expected = ['two_lines = get_curve(file_name="two_lines")']
         self.assertEqual(expected, result)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_code_for_crv_files_ignore_private_files(self, mocked_stdout):
+        temp_dir = maya_test_tools.generate_test_temp_dir()
+        private_curve = os.path.join(temp_dir, "_private.crv")
+        public_curve = os.path.join(temp_dir, "public.crv")
+        for file_path in [private_curve, public_curve]:
+            with open(file_path, 'w'):
+                pass
+        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir, ignore_private=True)
+        expected = ['public = get_curve(file_name="public")']
+        self.assertEqual(expected, result)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_print_code_for_crv_files_include_private_files(self, mocked_stdout):
+        temp_dir = maya_test_tools.generate_test_temp_dir()
+        private_curve = os.path.join(temp_dir, "_private.crv")
+        public_curve = os.path.join(temp_dir, "public.crv")
+        for file_path in [private_curve, public_curve]:
+            with open(file_path, 'w'):
+                pass
+        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir, ignore_private=False)
+        expected = ['public = get_curve(file_name="public")', '_private = get_curve(file_name="_private")']
+        self.assertEqual(expected, result)
+
+    def test_create_text(self):
+        result = curve_utils.create_text("curve")
+        expected = "curve_crv"
+        self.assertEqual(expected, result)
+
+    def test_create_text_shapes(self):
+        curve = curve_utils.create_text("curve")
+        result = maya_test_tools.list_relatives(curve, shapes=True)
+        expected = ['curve_crv_01Shape', 'curve_crv_02Shape', 'curve_crv_03Shape',
+                    'curve_crv_04Shape', 'curve_crv_05Shape', 'curve_crv_06Shape']
+        self.assertEqual(expected, result)
+
+    def test_create_text_shape_types(self):
+        curve = curve_utils.create_text("curve")
+        shapes = maya_test_tools.list_relatives(curve, shapes=True)
+        type_dict = maya_test_tools.list_obj_types(shapes)
+        expected = "nurbsCurve"
+        for obj, obj_type in type_dict.items():
+            self.assertEqual(expected, obj_type)
