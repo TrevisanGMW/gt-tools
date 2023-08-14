@@ -1,75 +1,21 @@
 """
-Work in Progress file
+Slider Controls - Work in Progress File
 """
+from gt.utils.color_utils import set_color_override_viewport, set_color_override_outliner
+from gt.utils.curve_utils import combine_curves_list, create_text
+from gt.utils.transform_utils import move_to_origin, rescale
+from gt.utils.naming_utils import NamingConstants
 import maya.cmds as cmds
-from gt.utils.data.controls import CRV_SUFFIX
-from gt.utils.curve_utils import combine_curves_list
+import logging
 
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-def create_finger_curl_ctrl(ctrl_name, parent='world', scale_multiplier=1, x_offset=0, z_offset=0):
-    """
-    Creates a finger curl control. This function was made for a very specific use, so it already orients the control
-    accordingly.
-
-    Args:
-        ctrl_name (string) : Name of the control (thumb, index, middle, ring, pinky)
-        parent (optional, string) : Name of the parent object. If not provided, it will be left in the world.
-        scale_multiplier (optional, float) : Number to multiply when scaling it.
-        x_offset (optional, float) : Number to multiply the scale offset into X
-        z_offset (optional, float) : Number to multiply the scale offset into Z
-
-    Returns:
-        curl_ctrl (string) : Name of the generated curl ctrl.
-    """
-    finger_curl_a = cmds.curve(name=ctrl_name, p=[[0.0, 0.127, -0.509], [0.047, 0.194, -0.474], [0.079, 0.237, -0.449],
-                                                  [0.123, 0.292, -0.418], [0.158, 0.332, -0.383], [0.204, 0.364, -0.34],
-                                                  [0.204, 0.364, -0.34], [0.204, 0.364, -0.34], [0.17, 0.374, -0.33],
-                                                  [0.17, 0.374, -0.33], [0.17, 0.374, -0.33], [0.17, 0.374, -0.33],
-                                                  [0.129, 0.347, -0.368], [0.091, 0.311, -0.402],
-                                                  [0.062, 0.269, -0.429], [0.062, 0.269, -0.429],
-                                                  [0.062, 0.269, -0.429], [0.062, 0.454, -0.268], [0.062, 0.519, 0.024],
-                                                  [0.062, 0.445, 0.232], [0.062, 0.355, 0.343], [0.062, 0.224, 0.445],
-                                                  [0.062, 0.0, 0.509], [0.062, -0.224, 0.445], [0.062, -0.355, 0.343],
-                                                  [0.062, -0.445, 0.232], [0.062, -0.519, 0.024],
-                                                  [0.062, -0.454, -0.268], [0.062, -0.269, -0.429],
-                                                  [0.062, -0.269, -0.429], [0.062, -0.269, -0.429],
-                                                  [0.091, -0.311, -0.402], [0.129, -0.347, -0.368],
-                                                  [0.17, -0.374, -0.33], [0.17, -0.374, -0.33], [0.17, -0.374, -0.33],
-                                                  [0.17, -0.374, -0.33], [0.204, -0.364, -0.34], [0.204, -0.364, -0.34],
-                                                  [0.204, -0.364, -0.34], [0.158, -0.332, -0.383],
-                                                  [0.123, -0.292, -0.418], [0.079, -0.237, -0.449],
-                                                  [0.047, -0.194, -0.474], [0.0, -0.127, -0.509]], d=3)
-    finger_curl_b = cmds.curve(name=ctrl_name + '_tempShape_b',
-                               p=[[0.0, 0.127, -0.509], [-0.047, 0.194, -0.474], [-0.079, 0.237, -0.449],
-                                  [-0.123, 0.292, -0.418], [-0.158, 0.332, -0.383], [-0.204, 0.364, -0.34],
-                                  [-0.204, 0.364, -0.34], [-0.204, 0.364, -0.34], [-0.17, 0.374, -0.33],
-                                  [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33], [-0.17, 0.374, -0.33],
-                                  [-0.129, 0.347, -0.368], [-0.091, 0.311, -0.402], [-0.062, 0.269, -0.429],
-                                  [-0.062, 0.269, -0.429], [-0.062, 0.269, -0.429], [-0.062, 0.454, -0.268],
-                                  [-0.062, 0.519, 0.024], [-0.062, 0.445, 0.232], [-0.062, 0.355, 0.343],
-                                  [-0.062, 0.224, 0.445], [-0.062, 0.0, 0.509], [-0.062, -0.224, 0.445],
-                                  [-0.062, -0.355, 0.343], [-0.062, -0.445, 0.232], [-0.062, -0.519, 0.024],
-                                  [-0.062, -0.454, -0.268], [-0.062, -0.269, -0.429], [-0.062, -0.269, -0.429],
-                                  [-0.062, -0.269, -0.429], [-0.091, -0.311, -0.402], [-0.129, -0.347, -0.368],
-                                  [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33], [-0.17, -0.374, -0.33],
-                                  [-0.17, -0.374, -0.33], [-0.204, -0.364, -0.34], [-0.204, -0.364, -0.34],
-                                  [-0.204, -0.364, -0.34], [-0.158, -0.332, -0.383], [-0.123, -0.292, -0.418],
-                                  [-0.079, -0.237, -0.449], [-0.047, -0.194, -0.474], [0.0, -0.127, -0.509]], d=3)
-    finger_curl_ctrl = combine_curves_list([finger_curl_a, finger_curl_b])
-    shapes = cmds.listRelatives(finger_curl_ctrl, s=True, f=True) or []
-    cmds.rename(shapes[0], '{0}Shape'.format('arrow_l'))
-    cmds.rename(shapes[1], '{0}Shape'.format('arrow_r'))
-    cmds.setAttr(finger_curl_ctrl + '.rotateY', -90)
-    cmds.setAttr(finger_curl_ctrl + '.scaleX', scale_multiplier * .1)
-    cmds.setAttr(finger_curl_ctrl + '.scaleY', scale_multiplier * .1)
-    cmds.setAttr(finger_curl_ctrl + '.scaleZ', scale_multiplier * .1)
-    cmds.makeIdentity(finger_curl_ctrl, apply=True, scale=True, rotate=True)
-    if parent != 'world':
-        cmds.parent(finger_curl_ctrl, parent)
-
-    cmds.move(scale_multiplier * z_offset, finger_curl_ctrl, z=True, relative=True, objectSpace=True)
-    cmds.move(scale_multiplier * x_offset, finger_curl_ctrl, x=True, relative=True, objectSpace=True)
-    return finger_curl_ctrl
+LEFT_CTRL_COLOR = (0, .3, 1)  # Soft Blue
+RIGHT_CTRL_COLOR = (1, 0, 0)  # Red
+CENTER_CTRL_COLOR = (1, 1, 0)  # Yellow
 
 
 def create_slider_control(name, initial_position='middle', lock_unused_channels=True):
@@ -94,10 +40,10 @@ def create_slider_control(name, initial_position='middle', lock_unused_channels=
     ctrl = cmds.curve(name=name,
                       p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0]],
                       d=1)
-    ctrl_bg = cmds.curve(name=name + '_bg_' + CRV_SUFFIX,
+    ctrl_bg = cmds.curve(name=name + '_bg_' + NamingConstants.Suffix.CRV,
                          p=[[-1.0, -6.0, 0.0], [-1.0, 6.0, 0.0], [1.0, 6.0, 0.0], [1.0, -6.0, 0.0], [-1.0, -6.0, 0.0]],
                          d=1)
-    ctrl_grp = cmds.group(name=ctrl + GRP_SUFFIX.capitalize(), world=True, empty=True)
+    ctrl_grp = cmds.group(name=ctrl + NamingConstants.Suffix.GRP.capitalize(), world=True, empty=True)
     cmds.parent(ctrl, ctrl_grp)
     cmds.parent(ctrl_bg, ctrl_grp)
 
@@ -166,10 +112,10 @@ def create_2d_slider_control(name, initial_position_y='middle', initial_position
     ctrl = cmds.curve(name=name,
                       p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0], [1.0, 1.0, 0], [1.0, -1.0, 0], [-1.0, -1.0, 0]],
                       d=1)
-    ctrl_bg = cmds.curve(name=name + '_bg_' + CRV_SUFFIX,
+    ctrl_bg = cmds.curve(name=name + '_bg_' + NamingConstants.Suffix.CRV,
                          p=[[-6.0, -6.0, 0.0], [-6.0, 6.0, 0.0], [6.0, 6.0, 0.0], [6.0, -6.0, 0.0], [-6.0, -6.0, 0.0]],
                          d=1)
-    ctrl_grp = cmds.group(name=ctrl + GRP_SUFFIX.capitalize(), world=True, empty=True)
+    ctrl_grp = cmds.group(name=ctrl + NamingConstants.Suffix.GRP.capitalize(), world=True, empty=True)
     cmds.parent(ctrl, ctrl_grp)
     cmds.parent(ctrl_bg, ctrl_grp)
 
@@ -254,9 +200,9 @@ def create_mouth_controls():
         create_slider_control()
         create_2d_slider_control()
         create_text()
-        force_center_pivot()
+        move_to_origin()
         change_outliner_color()
-        change_viewport_color()
+        set_color_override_viewport()
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
@@ -268,7 +214,7 @@ def create_mouth_controls():
 
     # Top Label
     mouth_crv = create_text('MOUTH')
-    force_center_pivot(mouth_crv)
+    move_to_origin(mouth_crv)
     rescale(mouth_crv, 1.75)
     cmds.setAttr(mouth_crv + '.ty', 10.5)
     cmds.setAttr(mouth_crv + '.overrideDisplayType', 2)
@@ -366,14 +312,14 @@ def create_mouth_controls():
 
     # Jaw Label
     jaw_crv = create_text('JAW')
-    force_center_pivot(jaw_crv)
+    move_to_origin(jaw_crv)
     cmds.setAttr(jaw_crv + '.ty', -20.5)
     cmds.setAttr(jaw_crv + '.overrideDisplayType', 2)
     background.append(jaw_crv)
 
     # Tongue Label
     tongue_crv = create_text('TONGUE')
-    force_center_pivot(tongue_crv)
+    move_to_origin(tongue_crv)
     cmds.setAttr(tongue_crv + '.ty', -20.5)
     cmds.setAttr(tongue_crv + '.tx', -15)
     cmds.setAttr(tongue_crv + '.overrideDisplayType', 2)
@@ -381,7 +327,7 @@ def create_mouth_controls():
 
     # Tongue Label
     tongue_crv = create_text('UP/DOWN')
-    force_center_pivot(tongue_crv)
+    move_to_origin(tongue_crv)
     cmds.setAttr(tongue_crv + '.ty', -20.5)
     cmds.setAttr(tongue_crv + '.tx', 10.75)
     cmds.setAttr(tongue_crv + '.overrideDisplayType', 2)
@@ -429,14 +375,14 @@ def create_mouth_controls():
     for obj in controls:
         cmds.parent(obj[1], gui_grp)
         if 'left_' in obj[0]:
-            change_viewport_color(obj[0], LEFT_CTRL_COLOR)
-            change_outliner_color(obj[1], (0.21, 0.59, 1))  # Soft Blue
+            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj[0]:
-            change_viewport_color(obj[0], RIGHT_CTRL_COLOR)
-            change_outliner_color(obj[1], RIGHT_CTRL_COLOR)
+            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
         else:
-            change_viewport_color(obj[0], CENTER_CTRL_COLOR)
-            change_outliner_color(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -444,12 +390,12 @@ def create_mouth_controls():
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    change_outliner_color(bg_grp, (0, 0, 0))
+    set_color_override_outliner(bg_grp, (0, 0, 0))
 
     # Final Color Adjustments
-    change_viewport_color(main_mouth_offset_ctrl[0], (1, 0.35, 0.55))
-    change_viewport_color(tongue_ctrl[0], (1, 0.35, 0.55))
-    change_viewport_color(in_out_tongue_ctrl[0], (1, 0.35, 0.55))
+    set_color_override_viewport(main_mouth_offset_ctrl[0], (1, 0.35, 0.55))
+    set_color_override_viewport(tongue_ctrl[0], (1, 0.35, 0.55))
+    set_color_override_viewport(in_out_tongue_ctrl[0], (1, 0.35, 0.55))
 
     return gui_grp, controls
 
@@ -461,9 +407,9 @@ def create_eyebrow_controls():
         create_slider_control()
         create_2d_slider_control()
         create_text()
-        force_center_pivot()
-        change_outliner_color()
-        change_viewport_color()
+        move_to_origin()
+        set_color_override_outliner()
+        set_color_override_viewport()
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
@@ -476,7 +422,7 @@ def create_eyebrow_controls():
 
     # Top Label
     eyebrows_crv = create_text('EYEBROWS')
-    force_center_pivot(eyebrows_crv)
+    move_to_origin(eyebrows_crv)
     rescale(eyebrows_crv, 1.75)
     cmds.setAttr(eyebrows_crv + '.ty', 7.3)
     cmds.setAttr(eyebrows_crv + '.overrideDisplayType', 2)
@@ -555,14 +501,14 @@ def create_eyebrow_controls():
     for obj in controls:
         cmds.parent(obj[1], gui_grp)
         if 'left_' in obj[0]:
-            change_viewport_color(obj[0], LEFT_CTRL_COLOR)
-            change_outliner_color(obj[1], (0.21, 0.59, 1))  # Soft Blue
+            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj[0]:
-            change_viewport_color(obj[0], RIGHT_CTRL_COLOR)
-            change_outliner_color(obj[1], RIGHT_CTRL_COLOR)
+            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
         else:
-            change_viewport_color(obj[0], CENTER_CTRL_COLOR)
-            change_outliner_color(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -570,7 +516,7 @@ def create_eyebrow_controls():
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    change_outliner_color(bg_grp, (0, 0, 0))
+    set_color_override_outliner(bg_grp, (0, 0, 0))
 
     return gui_grp, controls
 
@@ -582,9 +528,9 @@ def create_cheek_nose_controls():
         create_slider_control()
         create_2d_slider_control()
         create_text()
-        force_center_pivot()
-        change_outliner_color()
-        change_viewport_color()
+        move_to_origin()
+        set_color_override_outliner()
+        set_color_override_viewport()
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
@@ -601,7 +547,7 @@ def create_cheek_nose_controls():
     right_nose_crv = create_text('RIGHT NOSE')
     left_cheek_in_out_crv = create_text('IN/OUT')
     right_cheek_in_out_crv = create_text('IN/OUT')
-    force_center_pivot(nose_cheek_crv)
+    move_to_origin(nose_cheek_crv)
     rescale(nose_cheek_crv, 1.75)
     cmds.setAttr(nose_cheek_crv + '.ty', 7.3)
     for ctrl in [nose_cheek_crv, left_nose_crv, right_nose_crv, left_cheek_in_out_crv, right_cheek_in_out_crv]:
@@ -737,14 +683,14 @@ def create_cheek_nose_controls():
     for obj in controls:
         cmds.parent(obj[1], gui_grp)
         if 'left_' in obj[0]:
-            change_viewport_color(obj[0], LEFT_CTRL_COLOR)
-            change_outliner_color(obj[1], (0.21, 0.59, 1))  # Soft Blue
+            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj[0]:
-            change_viewport_color(obj[0], RIGHT_CTRL_COLOR)
-            change_outliner_color(obj[1], RIGHT_CTRL_COLOR)
+            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
         else:
-            change_viewport_color(obj[0], CENTER_CTRL_COLOR)
-            change_outliner_color(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -752,7 +698,7 @@ def create_cheek_nose_controls():
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    change_outliner_color(bg_grp, (0, 0, 0))
+    set_color_override_outliner(bg_grp, (0, 0, 0))
 
     return gui_grp, controls
 
@@ -764,9 +710,9 @@ def create_eye_controls():
         create_slider_control()
         create_2d_slider_control()
         create_text()
-        force_center_pivot()
-        change_outliner_color()
-        change_viewport_color()
+        move_to_origin()
+        set_color_override_outliner()
+        set_color_override_viewport()
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
@@ -779,7 +725,7 @@ def create_eye_controls():
 
     # Top Label
     eyebrows_crv = create_text('EYES')
-    force_center_pivot(eyebrows_crv)
+    move_to_origin(eyebrows_crv)
     rescale(eyebrows_crv, 1.75)
     cmds.setAttr(eyebrows_crv + '.ty', 8.6)
     cmds.setAttr(eyebrows_crv + '.overrideDisplayType', 2)
@@ -867,7 +813,7 @@ def create_eye_controls():
     # Main Label
     blink_crv = create_text('BLINK')
     blink_crv = cmds.rename(blink_crv, 'left_eye_' + blink_crv)
-    force_center_pivot(blink_crv)
+    move_to_origin(blink_crv)
     rescale(blink_crv, .7)
     cmds.setAttr(blink_crv + '.ty', -7.3)
     cmds.setAttr(blink_crv + '.tx', 3.615)
@@ -891,14 +837,14 @@ def create_eye_controls():
     for obj in controls:
         cmds.parent(obj[1], gui_grp)
         if 'left_' in obj[0]:
-            change_viewport_color(obj[0], LEFT_CTRL_COLOR)
-            change_outliner_color(obj[1], (0.21, 0.59, 1))  # Soft Blue
+            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj[0]:
-            change_viewport_color(obj[0], RIGHT_CTRL_COLOR)
-            change_outliner_color(obj[1], RIGHT_CTRL_COLOR)
+            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
         else:
-            change_viewport_color(obj[0], CENTER_CTRL_COLOR)
-            change_outliner_color(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -906,7 +852,7 @@ def create_eye_controls():
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    change_outliner_color(bg_grp, (0, 0, 0))
+    set_color_override_outliner(bg_grp, (0, 0, 0))
 
     return gui_grp, controls
 
@@ -930,3 +876,56 @@ def create_facial_side_gui(add_nose_cheeks=False):
         cmds.move(62, eyebrow_ctrls[0], moveY=True)
     cmds.select(selection)
     return parent_grp
+
+
+def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
+    """
+    Offsets the slider range updating its limits and shapes to conform to the new values
+    Args:
+        create_slider_output (tuple): The tuple output returned from the function "create_slider_control"
+        offset_by: How much to offset, use positive numbers to make it bigger or negative to make it smaller
+        offset_thickness: Amount to update the shape curves, so it continues to look proportional after the offset.
+
+    """
+    ctrl = create_slider_output[0]
+    ctrl_grp = create_slider_output[1]
+
+    current_min_trans_y_limit = cmds.getAttr(ctrl + '.minTransYLimit')
+    current_max_trans_y_limit = cmds.getAttr(ctrl + '.maxTransYLimit')
+
+    cmds.setAttr(ctrl + '.minTransYLimit', current_min_trans_y_limit - offset_by)
+    cmds.setAttr(ctrl + '.maxTransYLimit', current_max_trans_y_limit + offset_by)
+
+    children = cmds.listRelatives(ctrl_grp, children=True) or []
+    for child in children:
+        if '_bg_crv' in child:
+            # Top
+            cmds.move(offset_by, child + '.cv[1]', moveY=True, relative=True)
+            cmds.move(offset_by, child + '.cv[2]', moveY=True, relative=True)
+            # Bottom
+            cmds.move(-offset_by, child + '.cv[3]', moveY=True, relative=True)
+            cmds.move(-offset_by, child + '.cv[4]', moveY=True, relative=True)
+            cmds.move(-offset_by, child + '.cv[0]', moveY=True, relative=True)
+
+    if offset_thickness:
+        for child in children:
+            # Left
+            cmds.move(-offset_thickness, child + '.cv[1]', moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[4]', moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[0]', moveX=True, relative=True)
+            # Right
+            cmds.move(offset_thickness, child + '.cv[2]', moveX=True, relative=True)
+            cmds.move(offset_thickness, child + '.cv[3]', moveX=True, relative=True)
+
+            # Top
+            cmds.move(offset_thickness, child + '.cv[1]', moveY=True, relative=True)
+            cmds.move(offset_thickness, child + '.cv[2]', moveY=True, relative=True)
+            # Bottom
+            cmds.move(-offset_thickness, child + '.cv[3]', moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[4]', moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + '.cv[0]', moveY=True, relative=True)
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    create_facial_side_gui()

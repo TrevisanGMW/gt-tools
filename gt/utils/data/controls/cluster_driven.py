@@ -1,7 +1,8 @@
 """
 Controls driven by clusters
 """
-from gt.utils.data.controls import ControlData, get_control_curve
+from gt.utils.data.controls.control_data import ControlData
+from gt.utils.curve_utils import get_curve
 import maya.cmds as cmds
 import logging
 
@@ -22,7 +23,7 @@ def create_scalable_arrow(name='scalable_arrow', initial_scale=1):
     Returns:
         ControlData: object containing: name=curve_transform, drivers=curve_scale_crv, setup=curve_rig_grp
     """
-    arrow_curve = get_control_curve('scalable_arrow')
+    arrow_curve = get_curve('_scalable_arrow')
     arrow_curve.set_name(new_name=name)
     curve_transform = arrow_curve.build()
     curve_shape = cmds.listRelatives(curve_transform, s=True, f=True)[0]
