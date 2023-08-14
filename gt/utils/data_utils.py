@@ -23,9 +23,10 @@ class DataDirConstants:
         """
     DIR_UTILS = os.path.dirname(__file__)
     DIR_PACKAGE = os.path.dirname(DIR_UTILS)
-    DIR_RESOURCES = os.path.join(DIR_UTILS, "data")
-    DIR_SCRIPTS = os.path.join(DIR_RESOURCES, 'scripts')
-    DIR_CURVES = os.path.join(DIR_RESOURCES, 'curves')
+    DIR_DATA = os.path.join(DIR_UTILS, "data")
+    DIR_SCRIPTS = os.path.join(DIR_DATA, 'scripts')
+    DIR_CURVES = os.path.join(DIR_DATA, 'curves')
+    DIR_CONTROLS = os.path.join(DIR_DATA, 'controls')
 
 
 def write_data(path, data):
