@@ -38,14 +38,14 @@ class NamingConstants:
         IK_HANDLE_SPRING = "ikSpring"
 
     class Position:
-        MID = "mid"  # - center (other positions go clockwise)
-        UPPER = "up"  # ^
+        MID = "mid"  # - center (other positions go clockwise starting at 12 o'clock)
+        UPPER = "upper"  # ^
         INNER_UP = "inUp"  # >^
-        INNER = "in"  # >
-        INNER_LOWER = "outLo"  # >v
-        LOWER = "lo"  # v
-        OUTER_LOWER = "lo"  # <v
-        OUTER = "out"  # <
+        INNER = "inner"  # >
+        INNER_LO = "outLo"  # >v
+        LOWER = "lower"  # v
+        OUTER_LO = "loOut"  # <v
+        OUTER = "outer"  # <
         OUTER_UP = "outUp"  # <^
 
 
