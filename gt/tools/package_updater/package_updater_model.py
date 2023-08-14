@@ -6,9 +6,9 @@ Classes:
 """
 from gt.utils.request_utils import download_file, is_connected_to_internet
 from gt.utils.setup_utils import remove_package_loaded_modules
+from gt.utils.data_utils import unzip_zip_file, delete_paths
 from gt.utils.setup_utils import PACKAGE_MAIN_MODULE
 from gt.utils.prefs_utils import Prefs, PackageCache
-from gt.utils.data_utils import unzip_zip_file
 from PySide2.QtWidgets import QApplication
 from gt.utils import feedback_utils
 from gt.utils import version_utils
@@ -405,6 +405,8 @@ class PackageUpdaterModel:
 
         extracted_dir_name = extracted_content[0]
         extracted_dir_path = os.path.join(cache_extract, extracted_dir_name)
+        if os.path.exists(extracted_dir_path):  # Remove extracted cache in case it exists
+            delete_paths(extracted_dir_path)
         extracted_module_path = None
         if os.path.exists(extracted_dir_path) and os.path.isdir(extracted_dir_path):
             extracted_module_path = os.path.join(extracted_dir_path, PACKAGE_MAIN_MODULE)
