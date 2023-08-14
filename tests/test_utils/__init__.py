@@ -7,6 +7,7 @@ from . import test_data_utils
 from . import test_feedback_utils
 from . import test_iterable_utils
 from . import test_namespace_utils
+from . import test_naming_utils
 from . import test_prefs_utils
 from . import test_request_utils
 from . import test_scene_utils
