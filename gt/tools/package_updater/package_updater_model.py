@@ -405,8 +405,9 @@ class PackageUpdaterModel:
 
         extracted_dir_name = extracted_content[0]
         extracted_dir_path = os.path.join(cache_extract, extracted_dir_name)
-        if os.path.exists(extracted_dir_path):  # Remove extracted cache in case it exists
+        if os.path.exists(extracted_dir_path):  # Enforce clear extracted cache (In case it exists)
             delete_paths(extracted_dir_path)
+            os.makedirs(extracted_dir_path)
         extracted_module_path = None
         if os.path.exists(extracted_dir_path) and os.path.isdir(extracted_dir_path):
             extracted_module_path = os.path.join(extracted_dir_path, PACKAGE_MAIN_MODULE)
