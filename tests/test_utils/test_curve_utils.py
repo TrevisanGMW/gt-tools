@@ -580,7 +580,7 @@ class TestCurveUtils(unittest.TestCase):
                                       value=0)
         curve_utils.write_curve_files_from_selection(target_dir=temp_folder)
         expected = ['curve_01.crv', 'curve_02.crv']
-        result = os.listdir(temp_folder)
+        result = sorted(os.listdir(temp_folder))  # Sorted because MacOS might change the order
         self.assertEqual(expected, result)
         curve_file = os.path.join(temp_folder, 'curve_01.crv')
         with open(curve_file, 'r') as file:
@@ -681,12 +681,12 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_create_text(self):
-        result = curve_utils.create_text("curve")
+        result = curve_utils.create_text("curve", font="Arial")
         expected = "curve_crv"
         self.assertEqual(expected, result)
 
     def test_create_text_shapes(self):
-        curve = curve_utils.create_text("curve")
+        curve = curve_utils.create_text("curve", font="Arial")
         result = maya_test_tools.list_relatives(curve, shapes=True)
         expected = ['curve_crv_01Shape', 'curve_crv_02Shape', 'curve_crv_03Shape',
                     'curve_crv_04Shape', 'curve_crv_05Shape', 'curve_crv_06Shape']
