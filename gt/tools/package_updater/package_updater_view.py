@@ -4,13 +4,14 @@ Curve Library Window - The main GUI window class for the Curve Library tool.
 from PySide2.QtWidgets import QPushButton, QDialog, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore, QtGui
-import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon, QTextCursor
+from gt.ui.qt_utils import MayaDockableMeta
+import gt.ui.qt_utils as qt_utils
 from PySide2.QtCore import Qt
 import sys
 
 
-class PackageUpdaterView(QDialog):
+class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the PackageUpdater.

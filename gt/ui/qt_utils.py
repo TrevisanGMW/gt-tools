@@ -1,4 +1,5 @@
 from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget
+from gt.utils.session_utils import is_script_in_interactive_maya
 from PySide2.QtGui import QFontDatabase, QColor, QFont
 from PySide2 import QtGui, QtCore, QtWidgets
 import logging
@@ -9,6 +10,32 @@ import re
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class MayaDockableMeta(type):
+    """
+    Maya Dockable Metaclass. Used to make a QT Window dockable in Maya.
+    """
+    def __new__(mcs, name, bases, attrs, base_inheritance):
+        """
+        Changes the class base to use "MayaQWidgetDockableMixin" + "base_inheritance"
+        """
+        if not isinstance(base_inheritance, tuple):
+            base_inheritance = (base_inheritance,)
+        if is_script_in_interactive_maya():
+            from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+            bases = (MayaQWidgetDockableMixin, ) + base_inheritance
+        else:
+            bases = base_inheritance
+        # Overwrite "show"
+        if "show" in attrs:
+            original_show = attrs["show"]
+
+            def new_show(self, *args, **kwargs):
+                original_show(self, dockable=True, *args, **kwargs)
+
+            attrs['show'] = new_show
+        return type(name, bases, attrs)
 
 
 def get_cursor_position(offset_x=0, offset_y=0):

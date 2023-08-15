@@ -4,13 +4,14 @@ Curve Library Window - The main GUI window class for the Curve Library tool.
 from PySide2.QtWidgets import QListWidget, QPushButton, QDialog, QWidget, QSplitter, QLineEdit, QDesktopWidget
 import gt.ui.resource_library as resource_library
 from gt.ui.squared_widget import SquaredWidget
+from gt.ui.qt_utils import MayaDockableMeta
 from PySide2.QtGui import QIcon, QPixmap
 from PySide2 import QtWidgets, QtCore
 import gt.ui.qt_utils as qt_utils
 import sys
 
 
-class CurveLibraryWindow(QDialog):
+class CurveLibraryWindow(metaclass=MayaDockableMeta, base_inheritance=QDialog):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the CurveLibraryWindow.
@@ -22,6 +23,7 @@ class CurveLibraryWindow(QDialog):
                                                  the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
+        # super(CurveLibraryWindow, self).__init__(parent=parent)
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.splitter = None
@@ -151,5 +153,5 @@ class CurveLibraryWindow(QDialog):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
     window = CurveLibraryWindow()  # View
-    window.show()  # Open Windows
+    window.show()
     sys.exit(app.exec_())
