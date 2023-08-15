@@ -203,7 +203,7 @@ class PermissionBits:
     READ_WRITE = READ_ONLY | WRITE_ONLY
     READ_EXECUTE = READ_ONLY | EXECUTE_ONLY
     WRITE_EXECUTE = WRITE_ONLY | EXECUTE_ONLY
-    ALL_PERMISSIONS = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+    ALL_PERMISSIONS = 438  # Owner: Read (4) + Write (2) Group: Read (4) Others: Read (4)
 
 
 def set_file_permissions(file_path, permission_bits, keep_current=False):

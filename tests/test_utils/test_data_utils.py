@@ -164,7 +164,6 @@ class TestDataUtils(unittest.TestCase):
 
     def test_set_file_permission_read_only(self):
         test_file = self.create_temp_test_file()
-        #test_permission_bits = 292
         test_permission_bits = PermissionBits.READ_ONLY
         data_utils.set_file_permission_read_only(test_file)
         file_mode = stat.S_IMODE(os.lstat(test_file).st_mode)
@@ -172,11 +171,10 @@ class TestDataUtils(unittest.TestCase):
 
     def test_set_file_permission_modifiable(self):
         test_file = self.create_temp_test_file()
-        #test_permission_bits = 438
         test_permission_bits = PermissionBits.ALL_PERMISSIONS
         data_utils.set_file_permission_modifiable(test_file)
         file_mode = stat.S_IMODE(os.lstat(test_file).st_mode)
-        self.assertEqual(file_mode, test_permission_bits)
+        self.assertEqual(test_permission_bits, file_mode)
 
     def test_data_dir_constants(self):
         path_attributes = vars(data_utils.DataDirConstants)
