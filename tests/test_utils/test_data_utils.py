@@ -1,4 +1,3 @@
-from unittest.mock import patch, Mock
 import unittest
 import logging
 import json
@@ -18,6 +17,7 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
+from gt.utils.data_utils import PermissionBits
 from tests import maya_test_tools
 from gt.utils import data_utils
 
@@ -150,9 +150,11 @@ class TestDataUtils(unittest.TestCase):
 
     def test_set_file_permissions(self):
         test_file = self.create_temp_test_file()
-        test_permission_bits = 438
-        data_utils.set_file_permissions(test_file, data_utils.PermissionBits.ALL_PERMISSIONS)
-        self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
+        # test_permission_bits = 438
+        test_permission_bits = PermissionBits.ALL_PERMISSIONS
+        data_utils.set_file_permissions(test_file, PermissionBits.ALL_PERMISSIONS)
+        file_mode = stat.S_IMODE(os.lstat(test_file).st_mode)
+        self.assertEqual(file_mode, test_permission_bits)
 
     def test_set_file_permissions_raises_error(self):
         # Test that FileNotFoundError is raised for non-existent file
@@ -162,15 +164,19 @@ class TestDataUtils(unittest.TestCase):
 
     def test_set_file_permission_read_only(self):
         test_file = self.create_temp_test_file()
-        test_permission_bits = 292
+        #test_permission_bits = 292
+        test_permission_bits = PermissionBits.READ_ONLY
         data_utils.set_file_permission_read_only(test_file)
+        file_mode = stat.S_IMODE(os.lstat(test_file).st_mode)
         self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
 
     def test_set_file_permission_modifiable(self):
         test_file = self.create_temp_test_file()
-        test_permission_bits = 438
+        #test_permission_bits = 438
+        test_permission_bits = PermissionBits.ALL_PERMISSIONS
         data_utils.set_file_permission_modifiable(test_file)
-        self.assertEqual(stat.S_IMODE(os.lstat(test_file).st_mode), test_permission_bits)
+        file_mode = stat.S_IMODE(os.lstat(test_file).st_mode)
+        self.assertEqual(file_mode, test_permission_bits)
 
     def test_data_dir_constants(self):
         path_attributes = vars(data_utils.DataDirConstants)
@@ -190,7 +196,7 @@ class TestDataUtils(unittest.TestCase):
 
         # Check if the extracted file exists
         self.assertTrue(os.path.exists(extract_path))
-        result = os.listdir(extract_path)
+        result = sorted(os.listdir(extract_path))  # Sorted for MacOS
         expected = ['script_01.py', 'text_01.txt', 'text_02.txt']
         self.assertEqual(expected, result)
 
@@ -209,7 +215,7 @@ class TestDataUtils(unittest.TestCase):
 
         # Check if the extracted file exists
         self.assertTrue(os.path.exists(extract_path))
-        expected = [os.path.join(extract_path, file) for file in os.listdir(extract_path)]
+        expected = sorted([os.path.join(extract_path, file) for file in os.listdir(extract_path)])
         self.assertEqual(expected, result)
 
     def test_progress_callback(self):

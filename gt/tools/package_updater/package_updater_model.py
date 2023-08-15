@@ -351,6 +351,7 @@ class PackageUpdaterModel:
             _cache = cache
         else:
             _cache = PackageCache()
+
         cache_dir = _cache.get_cache_dir()
         cache_download = os.path.join(cache_dir, "package_update.zip")
         cache_extract = os.path.join(cache_dir, "update_extract")

@@ -268,6 +268,19 @@ class TestCurveLibraryModel(unittest.TestCase):
         temp_dir_extract = os.path.join(temp_dir, PACKAGE_MAIN_MODULE, "extracted")
         os.makedirs(temp_dir_extract)
         mocked_os_dir.return_value = [temp_dir_extract]
+
+        class MockedPackageCache:
+            @staticmethod
+            def get_cache_dir():
+                return temp_dir
+
+            def add_path_to_cache_list(self, path_to_add):
+                pass
+
+            def clear_cache(self):
+                pass
+
+        mocked_cache.return_value = MockedPackageCache()
         self.model.update_package(cache=None, force_update=False)
         mocked_cache.assert_called()
         mocked_os_dir.assert_called()
