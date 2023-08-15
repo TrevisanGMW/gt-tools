@@ -77,7 +77,7 @@ def http_get_request(url, timeout_ms=2000, host_overwrite=None, path_overwrite=N
         connection.close()
         return response, response_content
     except Exception as e:
-        logger.warning(f'Unable to retrieve response. Issue: {e}')
+        logger.warning(f'Unable to get HTTP response. Issue: {e}')
         return None, None
 
 
