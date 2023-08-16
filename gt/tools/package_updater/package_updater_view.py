@@ -1,17 +1,16 @@
 """
 Curve Library Window - The main GUI window class for the Curve Library tool.
 """
-from PySide2.QtWidgets import QPushButton, QDialog, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
+from PySide2.QtWidgets import QPushButton, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtGui import QIcon, QTextCursor
-from gt.ui.qt_utils import MayaDockableMeta
+from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtCore import Qt
-import sys
 
 
-class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
+class PackageUpdaterView(metaclass=MayaWindowMeta, dockable=True):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the PackageUpdater.
@@ -24,6 +23,7 @@ class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
         super().__init__(parent=parent)
+
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         # Labels
         self.title_label = None
@@ -64,8 +64,7 @@ class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
         stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(stylesheet)
         self.update_btn.setStyleSheet(resource_library.Stylesheet.bright_push_button)
-        qt_utils.resize_to_screen(self, percentage=35, width_percentage=30)
-        qt_utils.center_window(self)
+        self.adjust_size()
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
 
     def create_widgets(self):
@@ -168,6 +167,33 @@ class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
         main_layout.setContentsMargins(15, 15, 15, 15)  # Make Margins Uniform LTRB
         main_layout.addLayout(top_layout)
         main_layout.addLayout(bottom_layout)
+
+    def adjust_size(self):
+        """ Adjusts size of the window """
+        # qt_utils.resize_to_screen(self, percentage=35, width_percentage=30)
+        # qt_utils.center_window(self)
+        # TEMP
+        from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
+        from gt.utils.session_utils import is_script_in_interactive_maya
+        from PySide2.QtGui import QFontDatabase, QColor, QFont
+        from gt.utils.system_utils import get_system, OS_MAC
+        from PySide2 import QtGui, QtCore, QtWidgets
+        from PySide2.QtCore import QPoint
+
+        screen_geometry = QDesktopWidget().availableGeometry(self)
+        width = self.geometry().width()
+        height = self.geometry().height()
+        print(width)
+        print(height)
+
+        height = 735
+        width = 630
+        self.resize(width, height)
+        width2 = self.geometry().width()
+        height2 = self.geometry().height()
+        print(width2)
+        print(height2)
+
 
     def change_update_button_state(self, state):
         """
@@ -312,9 +338,8 @@ class PackageUpdaterView(metaclass=MayaDockableMeta, base_inheritance=QDialog):
 
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
+    # app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
     window = PackageUpdaterView(version="1.2.3")  # View
-    window.show()  # Open Windows
     window.change_update_button_state(state=False)
     window.add_text_to_changelog("hello hello helo hello")
     window.add_text_to_changelog("hello hello helo hello", text_color_hex="#0000FF")
@@ -325,4 +350,5 @@ if __name__ == "__main__":
     window.update_auto_check_status_btn(False)
     window.update_interval_button(5)
     window.change_interval_button_state(False)
-    sys.exit(app.exec_())
+    window.show()
+    # sys.exit(app.exec_())
