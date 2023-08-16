@@ -8,13 +8,7 @@ from gt.tools.package_setup import setup_view
 from PySide2.QtWidgets import QApplication
 from gt.utils import session_utils
 from gt.utils import setup_utils
-import logging
 import sys
-
-# Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Tool Version
 __version_tuple__ = (1, 0, 0)
