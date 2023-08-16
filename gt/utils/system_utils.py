@@ -6,6 +6,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.data_utils import DataDirConstants
 from functools import wraps
 import subprocess
+import importlib
 import tempfile
 import logging
 import pathlib
@@ -618,6 +619,32 @@ def execute_deferred(func, *args, **kwargs):
         exec(func)
     else:
         func(*args, **kwargs)
+
+
+def import_from_path(path):
+    """
+    Dynamically imports modules or objects using their full path.
+
+    Args:
+        path (str): The full path to the module or object (e.g., "module.submodule" or "module.submodule.ClassName").
+
+    Returns:
+        type: The imported module or object if successful, otherwise None.
+    """
+    try:
+        module_path, object_name = path.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+
+        if object_name:
+            imported_object = getattr(module, object_name, None)
+            if imported_object is not None:
+                return imported_object
+        else:
+            return module
+
+        return None
+    except (ImportError, AttributeError, ValueError, ModuleNotFoundError) as e:
+        return None
 
 
 if __name__ == "__main__":

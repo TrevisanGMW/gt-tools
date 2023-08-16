@@ -485,3 +485,26 @@ class TestSystemUtils(unittest.TestCase):
     def test_execute_deferred_called(self, mocked_maya_state):
         system_utils.execute_deferred(func="logger.debug('')")
         mocked_maya_state.assert_called_once()
+
+    def test_successful_import(self):
+        # Test importing a valid class
+        imported_object = system_utils.import_from_path('math.sqrt')
+        import math
+        self.assertEqual(math.sqrt, imported_object)
+
+    def test_import_non_class_int(self):
+        imported_object = system_utils.import_from_path('builtins.int')
+        self.assertEqual(int, imported_object)
+
+    def test_import_non_class_print(self):
+        """
+        Test importing a non-class object.
+        """
+        imported_object = system_utils.import_from_path("builtins.print")
+        import builtins
+        self.assertEqual(imported_object, builtins.print)
+
+    def test_import_invalid_path(self):
+        # Test importing an invalid class path
+        imported_object = system_utils.import_from_path('nonexistent_module.NonexistentClass')
+        self.assertIsNone(imported_object)
