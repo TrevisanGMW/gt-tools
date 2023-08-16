@@ -68,14 +68,10 @@ def build_package_updater_gui(standalone=True, model=None):
     else:
         _model = package_updater_model.PackageUpdaterModel()
     _controller = package_updater_controller.PackageUpdaterController(model=_model, view=_view)
-
+    _view.adjust_size()
     # Show window
     if standalone:
-        _view.show()
         sys.exit(app.exec_())
-    else:
-        _view.show()
-    return _view
 
 
 def silently_check_for_updates():
