@@ -11,13 +11,13 @@ One should be able to import it and run the tool without its GUI.
 """
 from PySide2.QtWidgets import QVBoxLayout, QListWidget, QPushButton, QWidget, QMainWindow
 import gt.ui.resource_library as resource_library
-from PySide2 import QtWidgets, QtCore
+from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
-import sys
+from PySide2 import QtCore
 
 
-class SampleToolWindow(QMainWindow):
+class SampleToolWindow(metaclass=MayaWindowMeta, base_inheritance=QMainWindow):
     def __init__(self, parent=None, controller=None):
         """
         Initialize the SampleToolWindow.
@@ -37,9 +37,11 @@ class SampleToolWindow(QMainWindow):
         self.setGeometry(100, 100, 400, 300)
 
         self.central_widget = QWidget(self)
+
         self.setCentralWidget(self.central_widget)
 
         self.layout = QVBoxLayout()
+
         self.central_widget.setLayout(self.layout)
 
         self.item_list = QListWidget()
@@ -55,14 +57,12 @@ class SampleToolWindow(QMainWindow):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.misc_cog))
+        self.setWindowIcon(QIcon(resource_library.Icon.dev_screwdriver))
 
         sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
         sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
         sample_stylesheet += resource_library.Stylesheet.dark_list_widget
         self.setStyleSheet(sample_stylesheet)
-
-        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue
 
     def update_view(self, items):
         """
@@ -84,7 +84,6 @@ class SampleToolWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
-    window = SampleToolWindow()  # View
-    window.show()  # Open Windows
-    sys.exit(app.exec_())
+    with qt_utils.QtApplicationContext():
+        window = SampleToolWindow()  # View
+        window.show()  # Open Window
