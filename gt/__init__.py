@@ -1,9 +1,7 @@
-import gt.tools
-import gt.utils
 import sys
 
 # Package Variables
-__version_tuple__ = (3, 1, 2)
+__version_tuple__ = (3, 1, 3)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 __authors__ = ['Guilherme Trevisan']

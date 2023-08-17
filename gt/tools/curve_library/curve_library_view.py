@@ -152,4 +152,5 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = CurveLibraryWindow()
+        window.update_view_library(["curve_one", "curve_two"])
         window.show()

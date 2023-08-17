@@ -47,7 +47,7 @@ class CurveLibraryController:
         """
         search_text = self.view.search_edit.text().lower()
         self.view.item_list.clear()
-        curve_names = self.model.get_curve_names()
+        curve_names = self.model.get_base_curve_names()
         filtered_items = [item for item in curve_names if search_text in item.lower()]
         self.view.item_list.addItems(filtered_items)
         self.view.item_list.setCurrentRow(0)  # Select index 0
@@ -83,7 +83,7 @@ class CurveLibraryController:
         """
         Update the view with the current list of items from the model.
         """
-        self.view.update_view_library(self.model.get_curve_names())
+        self.view.update_view_library(self.model.get_base_curve_names())
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
 
