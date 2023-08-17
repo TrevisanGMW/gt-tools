@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
 from gt.utils.session_utils import is_script_in_interactive_maya
 from PySide2.QtGui import QFontDatabase, QColor, QFont
-from gt.utils.system_utils import get_system, OS_MAC
+from gt.utils.system_utils import is_system_macos
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtCore import QPoint
 import logging
@@ -56,7 +56,7 @@ class MayaWindowMeta(type):
             dockable = False
         if not base_inheritance:
             base_inheritance = (QDialog, )
-            if get_system() == OS_MAC:
+            if is_system_macos():
                 base_inheritance = (QDialog, )
         if not isinstance(base_inheritance, tuple):
             base_inheritance = (base_inheritance,)
@@ -116,12 +116,10 @@ class MayaWindowMeta(type):
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
-                # Check if Needs Mac Modality
+                # Stay On Top macOS Tool Modality
                 try:
-                    if get_system() == OS_MAC and not dockable:
-                        print("ran")
-                        print(self.windowIcon)
-                        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality for macOS
+                    if is_system_macos() and not dockable:
+                        self.setWindowFlag(QtCore.Qt.Tool, True)
                 except Exception as e:
                     logger.debug(f'Unable to set MacOS Tool Modality. Issue: "{str(e)}".')
             new_class.__init__ = custom_init
