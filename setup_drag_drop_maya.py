@@ -14,7 +14,7 @@ def onMayaDroppedPythonFile(*args):
         # String formatting for this error should remain compatible to Python 2 to guarantee feedback
         user_version = "{}.{}.{}".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
         error = "Incompatible Python Version. Expected to find 3+. Found version: " + user_version
-        error += "For Python 2, use an older version of GT-Tools below 3. (e.g. 2.5.5)\n"
+        error += " For Python 2, use an older version of GT-Tools below 3. (e.g. 2.5.5)\n"
         raise ImportError(error)
 
     # Initial Feedback
@@ -30,7 +30,7 @@ def onMayaDroppedPythonFile(*args):
     # Prepend sys path with drag and drop location
     print("Prepending system paths with drag-and-drop location...")
     parent_dir = os.path.dirname(__file__)
-    print(f'Current location: "{parent_dir}"')
+    print('Current location: "' + parent_dir + '"')
     package_dir = os.path.join(parent_dir, "gt")
     sys.path.insert(0, parent_dir)
     sys.path.insert(0, package_dir)
