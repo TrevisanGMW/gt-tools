@@ -82,7 +82,13 @@ class MayaWindowMeta(type):
                     found_elements = get_maya_main_window_qt_elements(type(self))
                     close_ui_elements(found_elements)
                 except Exception as e:
-                    logger.debug(f'Unable to close previous QT elements. Issue {str(e)}')
+                    logger.debug(f'Unable to close previous QT elements. Issue: "{str(e)}".')
+                try:
+                    if get_system() == OS_MAC and not dockable:
+                        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality for macOS
+                except Exception as e:
+                    logger.debug(f'Unable to set MacOS Tool modality. Issue: "{str(e)}".')
+
                 # Overwrite Show
                 _class_dir = dir(self)
                 if "show" in _class_dir and dockable:
@@ -107,10 +113,10 @@ class MayaWindowMeta(type):
                             window_parent = self.parent().parent().parent().parent().parent()
                             QWidget.setWindowIcon(window_parent, self.windowIcon())
                             if hasattr(self, '_original_geometry'):
-                                _org_geometry = self._original_geometry
-                                window_parent.move(_org_geometry[0], _org_geometry[1])
-                                window_parent.resize(_org_geometry[2], _org_geometry[3])
-                        except AttributeError:
+                                x, y, width, height = self._original_geometry
+                                window_parent.move(x, y)
+                                window_parent.resize(width, height)
+                        except (AttributeError, ValueError):
                             pass
                     self.show = custom_show
                 # Call Original Init
