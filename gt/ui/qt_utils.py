@@ -5,6 +5,7 @@ from gt.utils.system_utils import get_system, OS_MAC
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtCore import QPoint
 import logging
+import sys
 import os
 import re
 
@@ -45,14 +46,21 @@ class MayaWindowMeta(type):
                                        (In this case "MayaQWidgetDockableMixin" is not added as a base class)
         Returns:
             type: The newly created class with adjusted inheritance for Maya dock function.
+
+        Example:
+            class ToolView(metaclass=MayaWindowMeta, base_inheritance=QDialog):
+            or
+            class ToolView(metaclass=MayaWindowMeta):
         """
+        if not is_script_in_interactive_maya():
+            dockable = False
         if not base_inheritance:
             base_inheritance = (QDialog, )
             if get_system() == OS_MAC:
                 base_inheritance = (QDialog, )
         if not isinstance(base_inheritance, tuple):
             base_inheritance = (base_inheritance,)
-        if is_script_in_interactive_maya() and dockable:
+        if dockable:
             from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
             bases = (MayaQWidgetDockableMixin,) + base_inheritance
         else:
@@ -88,8 +96,22 @@ class MayaWindowMeta(type):
                             *args_show: Additional positional arguments for the "show" method.
                             **kwargs_show: Additional keyword arguments for the "show" method.
                         """
+                        if not hasattr(self, '_original_geometry'):
+                            width = self.geometry().width()
+                            height = self.geometry().height()
+                            pos_x = self.pos().x()
+                            pos_y = self.pos().y()
+                            self._original_geometry = [pos_x, pos_y, width, height]
                         original_show(*args_show, **kwargs_show, dockable=True)
-                        QWidget.setWindowIcon(self.parent().parent().parent().parent().parent(), self.iconData)
+                        try:
+                            window_parent = self.parent().parent().parent().parent().parent()
+                            QWidget.setWindowIcon(window_parent, self.windowIcon())
+                            if hasattr(self, '_original_geometry'):
+                                _org_geometry = self._original_geometry
+                                window_parent.move(_org_geometry[0], _org_geometry[1])
+                                window_parent.resize(_org_geometry[2], _org_geometry[3])
+                        except AttributeError:
+                            pass
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
@@ -289,8 +311,6 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
         height = screen_geometry.height() * height_percentage / 100
     if width_percentage:
         width = screen_geometry.height() * width_percentage / 100
-    print(f'width:{width}')
-    print(f'height:{height}')
     window.setGeometry(0, 0, width, height)
 
 
@@ -385,8 +405,76 @@ def update_formatted_label(target_label,
     target_label.setText(_html)
 
 
+class QtApplicationContext:
+    """
+    A context manager for managing a PySide2 QtWidgets.QApplication.
+
+    Usage:
+    with QtContext() as context:
+        # Your Qt application code here
+
+    When the context is exited, the Qt application will be properly closed.
+
+    Attributes:
+        app (QtWidgets.QApplication): The PySide2 QApplication instance.
+    """
+    def __init__(self):
+        """ Initializes QtApplicationContext """
+        self.app = None
+        self.is_script_in_interactive_maya = is_script_in_interactive_maya()
+        self.parent = None
+
+    def is_script_in_interactive_maya(self):
+        """
+        Gets if script is running from inside of Maya or not (interactive Maya, not PyMaya)
+        Returns:
+            bool: True if inside Maya, False if not (also False if running it in mayapy.exe - Not interactive)
+        """
+        return self.is_script_in_interactive_maya
+
+    def get_parent(self):
+        """
+        Gets the parent. (Maya window if inside Maya, or None if outside)
+        Returns:
+            str or None: Parent to be used by a QtWidget or element.
+        """
+        return self.parent
+
+    def __enter__(self):
+        """
+        Initialize the QApplication when entering the context.
+
+        Returns:
+            QtApplicationContext: The QtContext instance.
+        """
+        if self.is_script_in_interactive_maya:
+            self.parent = get_maya_main_window()
+        else:
+            logger.debug('Running Qt outside Maya. Initializing QApplication.')
+            self.app = QtWidgets.QApplication(sys.argv)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Clean up and close the QApplication when exiting the context.
+
+        Args:
+            exc_type (type): The type of the exception raised, if any.
+            exc_value (Exception): The exception object raised, if any.
+            traceback (traceback): The traceback object associated with the exception.
+
+        Returns:
+            bool: True to suppress the exception, False to propagate it.
+        """
+        if self.app and not self.is_script_in_interactive_maya:
+            sys.exit(self.app.exec_())
+        if exc_type is not None:
+            logger.warning(f"An exception of type {exc_type} occurred with value: {exc_value}")
+        return False
+
+
 if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
+    with QtApplicationContext() as context:
+        print(context)
     out = None
     print(out)
