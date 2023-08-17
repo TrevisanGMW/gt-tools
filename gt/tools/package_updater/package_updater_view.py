@@ -1,16 +1,16 @@
 """
 Curve Library Window - The main GUI window class for the Curve Library tool.
 """
-from PySide2.QtWidgets import QPushButton, QDialog, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
+from PySide2.QtWidgets import QPushButton, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore, QtGui
-import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon, QTextCursor
+from gt.ui.qt_utils import MayaWindowMeta
+import gt.ui.qt_utils as qt_utils
 from PySide2.QtCore import Qt
-import sys
 
 
-class PackageUpdaterView(QDialog):
+class PackageUpdaterView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the PackageUpdater.
@@ -23,6 +23,7 @@ class PackageUpdaterView(QDialog):
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
         super().__init__(parent=parent)
+
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         # Labels
         self.title_label = None
@@ -311,17 +312,16 @@ class PackageUpdaterView(QDialog):
 
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)  # Application - To launch without Maya
-    window = PackageUpdaterView(version="1.2.3")  # View
-    window.show()  # Open Windows
-    window.change_update_button_state(state=False)
-    window.add_text_to_changelog("hello hello helo hello")
-    window.add_text_to_changelog("hello hello helo hello", text_color_hex="#0000FF")
-    window.update_status("New Update Available!", text_color_hex="black", bg_color_hex="#FF7F7F")
-    window.update_web_response("OK")
-    window.update_installed_version("v1.2.3")
-    window.update_latest_release("v4.5.6")
-    window.update_auto_check_status_btn(False)
-    window.update_interval_button(5)
-    window.change_interval_button_state(False)
-    sys.exit(app.exec_())
+    with qt_utils.QtApplicationContext():
+        window = PackageUpdaterView(version="1.2.3")  # View
+        window.change_update_button_state(state=False)
+        window.add_text_to_changelog("hello hello helo hello")
+        window.add_text_to_changelog("hello hello helo hello", text_color_hex="#0000FF")
+        window.update_status("New Update Available!", text_color_hex="black", bg_color_hex="#FF7F7F")
+        window.update_web_response("OK")
+        window.update_installed_version("v1.2.3")
+        window.update_latest_release("v4.5.6")
+        window.update_auto_check_status_btn(False)
+        window.update_interval_button(5)
+        window.change_interval_button_state(False)
+        window.show()

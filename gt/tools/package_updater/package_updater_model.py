@@ -197,6 +197,8 @@ class PackageUpdaterModel:
         if not version_utils.is_semantic_version(self.installed_version, metadata_ok=False) or \
                 not version_utils.is_semantic_version(self.latest_github_version, metadata_ok=False):
             self.status = "Unknown"
+            self.latest_github_version = "0.0.0"
+            return
         comparison_result = version_utils.compare_versions(self.installed_version, self.latest_github_version)
         self.comparison_result = comparison_result
         if comparison_result == version_utils.VERSION_BIGGER:
@@ -349,6 +351,7 @@ class PackageUpdaterModel:
             _cache = cache
         else:
             _cache = PackageCache()
+
         cache_dir = _cache.get_cache_dir()
         cache_download = os.path.join(cache_dir, "package_update.zip")
         cache_extract = os.path.join(cache_dir, "update_extract")
