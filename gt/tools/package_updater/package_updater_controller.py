@@ -45,7 +45,6 @@ class PackageUpdaterController:
         else:
             self.refresh_view_values()
         self.view.show()
-        self.view.adjust_size()
 
     def update_view_status_with_color(self, status):
         """
