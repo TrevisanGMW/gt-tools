@@ -44,6 +44,7 @@ class PackageUpdaterController:
             self.refresh_updater_data_threaded_maya()
         else:
             self.refresh_view_values()
+        self.view.show()
 
     def update_view_status_with_color(self, status):
         """

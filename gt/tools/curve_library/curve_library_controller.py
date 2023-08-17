@@ -30,6 +30,7 @@ class CurveLibraryController:
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.view.search_edit.textChanged.connect(self.filter_list)
         self.populate_curve_library()
+        self.view.show()
 
     def on_item_selection_changed(self):
         """

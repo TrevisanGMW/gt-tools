@@ -36,6 +36,13 @@
  Aligned path to the left
  Added padding to table cells
 """
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 # Tool Version
 __version_tuple__ = (1, 2, 3)
 __version_suffix__ = ''
@@ -52,9 +59,8 @@ def launch_tool():
     try:
         path_manager_dialog.close()
         path_manager_dialog.deleteLater()
-    except Exception as exception:
-        print(exception)
-        pass
+    except Exception as e:
+        logger.debug(f'Initializing tool variable for the first time. Debug description: "{str(e)}".')
     path_manager.try_to_close_gt_path_manager()
     path_manager_dialog = path_manager.GTPathManagerDialog()
     path_manager_dialog.show()

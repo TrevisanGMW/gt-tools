@@ -1,7 +1,11 @@
-from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget
+from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
+from gt.utils.session_utils import is_script_in_interactive_maya
 from PySide2.QtGui import QFontDatabase, QColor, QFont
+from gt.utils.system_utils import get_system, OS_MAC
 from PySide2 import QtGui, QtCore, QtWidgets
+from PySide2.QtCore import QPoint
 import logging
+import sys
 import os
 import re
 
@@ -9,6 +13,149 @@ import re
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class MayaWindowMeta(type):
+    """
+    Maya Window Metaclass. Used to make a QT Windows in Maya with extra functionalities such as docking and overwrites.
+    It also handles the Singleton and Mac focus behaviour of the window (when in Maya)
+
+    This metaclass modifies the base class of a QT object class to enable the dock ability in Maya.
+    It dynamically adjusts the class inheritance to include "MayaQWidgetDockableMixin" based on the context
+    (interactive Maya session or not).
+    """
+    def __new__(mcs, name, bases, attrs, base_inheritance=None, dockable=True):
+        """
+        Create a new class with modified inheritance for the dock ability in Maya.
+
+        This method is responsible for creating a new class with modified base inheritance, which enables the dock
+        ability in Maya. It checks whether the script is running in an interactive Maya session or not, and adjusts
+        the base class accordingly. If running interactively, the "MayaQWidgetDockableMixin" is included in the
+        inheritance; otherwise, only the specified base classes are used.
+
+        Args:
+            mcs (type): The metaclass instance (MayaDockableMeta).
+            name (str): The name of the new class to be created.
+            bases (tuple): The base classes of the new class.
+            attrs (dict): The attributes and methods of the new class.
+            base_inheritance (type, tuple, optional): The base class or classes to be included in inheritance.
+                                                      Default is None, which becomes "QDialog".
+                                                      If something is provided then that will be used instead.
+            dockable (bool, optional): If active, then it will make the window dockable in Maya.
+                                       If inactive, it will only attempt to delete existing windows before opening one.
+                                       (In this case "MayaQWidgetDockableMixin" is not added as a base class)
+        Returns:
+            type: The newly created class with adjusted inheritance for Maya dock function.
+
+        Example:
+            class ToolView(metaclass=MayaWindowMeta, base_inheritance=QDialog):
+            or
+            class ToolView(metaclass=MayaWindowMeta):
+        """
+        if not is_script_in_interactive_maya():
+            dockable = False
+        if not base_inheritance:
+            base_inheritance = (QDialog, )
+            if get_system() == OS_MAC:
+                base_inheritance = (QDialog, )
+        if not isinstance(base_inheritance, tuple):
+            base_inheritance = (base_inheritance,)
+        if dockable:
+            from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+            bases = (MayaQWidgetDockableMixin,) + base_inheritance
+        else:
+            bases = base_inheritance
+        new_class = type(name, bases, attrs)
+
+        # Overwrites
+        base_class_vars = vars(new_class)
+        if "__init__" in base_class_vars:
+            original_init = base_class_vars["__init__"]
+
+            def custom_init(self, *args, **kwargs):
+                """
+                Init injection (custom version of the init)
+                It attempts to first close existing QT view of the same class type before opening a new one.
+                It also overwrites the "show" function when using the dockable version of this metaclass.
+                """
+                try:
+                    found_elements = get_maya_main_window_qt_elements(type(self))
+                    close_ui_elements(found_elements)
+                except Exception as e:
+                    logger.debug(f'Unable to close previous QT elements. Issue {str(e)}')
+                # Overwrite Show
+                _class_dir = dir(self)
+                if "show" in _class_dir and dockable:
+                    original_show = self.show
+
+                    def custom_show(*args_show, **kwargs_show):
+                        """
+                        This is a custom function to override the original "show".
+                        It calls the original "show" method with the addition of the "dockable" argument set to True.
+                        Args:
+                            *args_show: Additional positional arguments for the "show" method.
+                            **kwargs_show: Additional keyword arguments for the "show" method.
+                        """
+                        if not hasattr(self, '_original_geometry'):
+                            width = self.geometry().width()
+                            height = self.geometry().height()
+                            pos_x = self.pos().x()
+                            pos_y = self.pos().y()
+                            self._original_geometry = [pos_x, pos_y, width, height]
+                        original_show(*args_show, **kwargs_show, dockable=True)
+                        try:
+                            window_parent = self.parent().parent().parent().parent().parent()
+                            QWidget.setWindowIcon(window_parent, self.windowIcon())
+                            if hasattr(self, '_original_geometry'):
+                                _org_geometry = self._original_geometry
+                                window_parent.move(_org_geometry[0], _org_geometry[1])
+                                window_parent.resize(_org_geometry[2], _org_geometry[3])
+                        except AttributeError:
+                            pass
+                    self.show = custom_show
+                # Call Original Init
+                original_init(self, *args, **kwargs)
+            new_class.__init__ = custom_init
+        return new_class
+
+
+def get_maya_main_window_qt_elements(class_object):
+    """
+    Get PySide2.QtWidgets.QWidget elements of a specific class from the main Maya window.
+
+    Args:
+        class_object (type or str): The class type or fully qualified string name of the class.
+
+    Returns:
+        list: A list of PySide2.QtWidgets.QWidget elements matching the given class in the Maya window.
+    """
+    if isinstance(class_object, str):
+        from gt.utils.system_utils import import_from_path
+        class_object = import_from_path(class_object)
+    if not class_object:
+        logger.debug(f'The requested class was not found or is "None".')
+        return []
+    maya_win = get_maya_main_window()
+    if not maya_win:
+        logger.debug(f'Maya window was not found.')
+        return []
+    return maya_win.findChildren(class_object)
+
+
+def close_ui_elements(obj_list):
+    """
+    Close and delete a list of UI elements.
+
+    Args:
+        obj_list (list): A list of UI elements to be closed and deleted.
+    """
+    for obj in obj_list:
+        try:
+            obj.close()
+            obj.deleteLater()
+        except Exception as e:
+            logger.debug(f'Unable to close and delete window object. Issue: {str(e)}')
+            pass
 
 
 def get_cursor_position(offset_x=0, offset_y=0):
@@ -29,11 +176,17 @@ def get_cursor_position(offset_x=0, offset_y=0):
 
 def get_screen_center():
     """
-    Gets the screen center
+    Gets the center of the screen where the parent is located.
+
     Returns:
-        QPoint: With X and Y coordinates for the center of the screen
+        QPoint: A QPoint object with X and Y coordinates for the center of the screen.
     """
-    return QtWidgets.QDesktopWidget().availableGeometry().center()
+    screen_number = get_main_window_screen_number()
+    screen = QApplication.screens()[screen_number]
+    center_x = screen.geometry().center().x()
+    center_y = screen.geometry().center().y()
+    center = QPoint(center_x, center_y)
+    return center
 
 
 def load_custom_font(font_path, point_size=-1, weight=-1, italic=False):
@@ -161,6 +314,21 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
     window.setGeometry(0, 0, width, height)
 
 
+def get_main_window_screen_number():
+    """
+    Determine the screen number where the main Qt instance is located.
+
+    Returns:
+        int: Index of the screen where the main window is located.
+    """
+    app = QApplication.instance()
+    if app is None:
+        return -1  # No instance found
+    main_window = app.activeWindow() or QMainWindow()
+    screen_number = QApplication.desktop().screenNumber(main_window)
+    return screen_number
+
+
 def center_window(window):
     """
     Moves the given window to the center of the screen.
@@ -237,8 +405,76 @@ def update_formatted_label(target_label,
     target_label.setText(_html)
 
 
+class QtApplicationContext:
+    """
+    A context manager for managing a PySide2 QtWidgets.QApplication.
+
+    Usage:
+    with QtContext() as context:
+        # Your Qt application code here
+
+    When the context is exited, the Qt application will be properly closed.
+
+    Attributes:
+        app (QtWidgets.QApplication): The PySide2 QApplication instance.
+    """
+    def __init__(self):
+        """ Initializes QtApplicationContext """
+        self.app = None
+        self.is_script_in_interactive_maya = is_script_in_interactive_maya()
+        self.parent = None
+
+    def is_script_in_interactive_maya(self):
+        """
+        Gets if script is running from inside of Maya or not (interactive Maya, not PyMaya)
+        Returns:
+            bool: True if inside Maya, False if not (also False if running it in mayapy.exe - Not interactive)
+        """
+        return self.is_script_in_interactive_maya
+
+    def get_parent(self):
+        """
+        Gets the parent. (Maya window if inside Maya, or None if outside)
+        Returns:
+            str or None: Parent to be used by a QtWidget or element.
+        """
+        return self.parent
+
+    def __enter__(self):
+        """
+        Initialize the QApplication when entering the context.
+
+        Returns:
+            QtApplicationContext: The QtContext instance.
+        """
+        if self.is_script_in_interactive_maya:
+            self.parent = get_maya_main_window()
+        else:
+            logger.debug('Running Qt outside Maya. Initializing QApplication.')
+            self.app = QtWidgets.QApplication(sys.argv)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Clean up and close the QApplication when exiting the context.
+
+        Args:
+            exc_type (type): The type of the exception raised, if any.
+            exc_value (Exception): The exception object raised, if any.
+            traceback (traceback): The traceback object associated with the exception.
+
+        Returns:
+            bool: True to suppress the exception, False to propagate it.
+        """
+        if self.app and not self.is_script_in_interactive_maya:
+            sys.exit(self.app.exec_())
+        if exc_type is not None:
+            logger.warning(f"An exception of type {exc_type} occurred with value: {exc_value}")
+        return False
+
+
 if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
+    with QtApplicationContext() as context:
+        print(context)
     out = None
     print(out)

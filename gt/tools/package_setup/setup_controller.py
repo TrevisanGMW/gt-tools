@@ -36,6 +36,9 @@ class PackageSetupController:
         self.model.update_status()
         self.model.update_version()
 
+        # Show
+        self.view.show()
+
 
 if __name__ == "__main__":
     controller = PackageSetupController(None, None)

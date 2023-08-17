@@ -3,6 +3,7 @@ Package Setup View - GUI
 """
 from PySide2.QtWidgets import QToolButton, QSizePolicy
 import gt.ui.resource_library as resource_library
+from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
@@ -10,7 +11,7 @@ from PySide2.QtCore import Qt
 import sys
 
 
-class PackageSetupWindow(QtWidgets.QDialog):
+class PackageSetupWindow(metaclass=MayaWindowMeta):
     """
     PackageSetupWindow class represents a dialog window for package setup.
 
@@ -246,14 +247,12 @@ class PackageSetupWindow(QtWidgets.QDialog):
 
 
 if __name__ == "__main__":
-    # Application - To launch without Maya
-    app = QtWidgets.QApplication(sys.argv)
-    # Connections
-    window = PackageSetupWindow()  # View
-    # Sample Updates
-    window.update_status_text(r"Not Installed")
-    window.update_version_current_setup("3.0.0")
-    window.update_version_installed("2.5.5")
-    # Open Windows
-    window.show()
-    sys.exit(app.exec_())
+    with qt_utils.QtApplicationContext():
+        # Connections
+        window = PackageSetupWindow()  # View
+        # Sample Updates
+        window.update_status_text(r"Not Installed")
+        window.update_version_current_setup("3.0.0")
+        window.update_version_installed("2.5.5")
+        # Open Windows
+        window.show()
