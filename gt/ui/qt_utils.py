@@ -83,11 +83,6 @@ class MayaWindowMeta(type):
                     close_ui_elements(found_elements)
                 except Exception as e:
                     logger.debug(f'Unable to close previous QT elements. Issue: "{str(e)}".')
-                try:
-                    if get_system() == OS_MAC and not dockable:
-                        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality for macOS
-                except Exception as e:
-                    logger.debug(f'Unable to set MacOS Tool modality. Issue: "{str(e)}".')
 
                 # Overwrite Show
                 _class_dir = dir(self)
@@ -121,6 +116,14 @@ class MayaWindowMeta(type):
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
+                # Check if Needs Mac Modality
+                try:
+                    if get_system() == OS_MAC and not dockable:
+                        print("ran")
+                        print(self.windowIcon)
+                        self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality for macOS
+                except Exception as e:
+                    logger.debug(f'Unable to set MacOS Tool Modality. Issue: "{str(e)}".')
             new_class.__init__ = custom_init
         return new_class
 
