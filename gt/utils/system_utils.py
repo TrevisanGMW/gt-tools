@@ -40,6 +40,39 @@ def get_system():
     return system
 
 
+def is_system_macos():
+    """
+    Checks if the current operating system is macOS.
+    Returns:
+        bool: True if the operating system is macOS, False otherwise.
+    """
+    if get_system() == OS_MAC:
+        return True
+    return False
+
+
+def is_system_windows():
+    """
+    Checks if the current operating system is Windows.
+    Returns:
+        bool: True if the operating system is Windows, False otherwise.
+    """
+    if get_system() == OS_WINDOWS:
+        return True
+    return False
+
+
+def is_system_linux():
+    """
+    Checks if the current operating system is Linux.
+    Returns:
+        bool: True if the operating system is Linux, False otherwise.
+    """
+    if get_system() == OS_LINUX:
+        return True
+    return False
+
+
 def get_temp_dir():
     """
     Get path to the tempo folder. It will be different depending on the system

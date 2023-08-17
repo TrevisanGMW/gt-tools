@@ -409,7 +409,8 @@ def load_menu(*args):
                            icon=resource_library.Icon.dev_git_pull_request)
         menu.add_menu_item(label='Get Loaded Package Location',
                            command='from gt.utils.session_utils import get_module_path\n'
-                                   'get_module_path(module_name="gt", verbose=True)\n',
+                                   'from gt.utils.system_utils import open_file_dir\n'
+                                   'open_file_dir(get_module_path(module_name="gt", verbose=True))\n',
                            tooltip="Gets the loaded package path location.",
                            icon=resource_library.Icon.dev_code)
         menu.add_menu_item(label='Skip Menu Creation Toggle',

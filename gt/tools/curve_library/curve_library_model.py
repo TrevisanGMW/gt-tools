@@ -24,74 +24,205 @@ class CurveLibraryModel:
         """
         Initialize the CurveLibraryModel object.
         """
-        self.curves = []
+        self.base_curves = []
+        self.user_curves = []  # User-defined curves
+        self.controls = []
         self.import_default_library()
+        self.import_user_curve_library()
         self.import_controls_library()
 
-    def add_curve(self, curve):
+    def is_conflicting_name(self, name):
+        """
+        Checks if curve name already exists in any of the lists
+        Args:
+            name (str): Name of the curve to check
+        Returns:
+            bool: True if it's conflict (already in the list), False if not.
+        """
+        current_names = self.get_all_curve_names()
+        if name in current_names:
+            return True
+        return False
+
+    def validate_curve(self, curve):
+        """
+        Validates object to make sure it's valid
+        Args:
+            curve (Curve, Control, any): A Curve, Control or any element to be validated
+        Returns:
+            bool: True if valid (can be built, has expected attributes, etc...), False if not.
+        """
+        if not curve:
+            logger.debug(f'Invalid Curve detected. "None" or empty element')
+            return False
+        if not curve.is_curve_valid():
+            logger.debug(f'Invalid Curve. Missing required elements for a curve: {curve}')
+            return False
+        if self.is_conflicting_name(curve.get_name()):
+            logger.debug(f'Invalid Name. This curve name is already in the list. No duplicates allowed.')
+            return False
+        return True
+
+    def add_base_curve(self, curve):
         """
         Add a curve to the list.
         Args:
             curve (Curve): The curve to be added
         """
-        self.curves.append(curve)
+        if not self.validate_curve(curve):
+            logger.debug(f'Unable to add Curve to base curves. Curve failed validation.')
+            return
+        self.base_curves.append(curve)
 
-    def get_curves(self):
+    def add_user_curve(self, user_curve):
+        """
+        Add a curve to the list.
+        Args:
+            user_curve (Curve): The curve to be added
+        """
+        if not self.validate_curve(user_curve):
+            logger.debug(f'Unable to add Curve to user-defined curves. Curve failed validation.')
+            return
+        self.user_curves.append(user_curve)
+
+    def add_control(self, control):
+        """
+        Add a curve to the list.
+        Args:
+            control (Control): The curve to be added
+        """
+        if not self.validate_curve(control):
+            logger.debug(f'Unable to add Control to control curves. Curve failed validation.')
+            return
+        self.controls.append(control)
+
+    def get_base_curves(self):
         """
         Get all curves
         Returns:
             list: A list containing all the curves in the CurveLibraryModel.
         """
-        return self.curves
+        return self.base_curves
 
-    def get_curve_names(self, formatted=False):
+    def get_user_curves(self):
+        """
+        Get all user-defined curves
+        Returns:
+            list: A list containing all the user-defined curves in the CurveLibraryModel.
+        """
+        return self.user_curves
+
+    def get_controls(self):
+        """
+        Get all controls
+        Returns:
+            list: A list containing all the controls in the CurveLibraryModel.
+        """
+        return self.controls
+
+    def get_all_curves(self):
+        """
+        Get all curves, controls and user-defined curves. (All elements stored in this model)
+        Returns:
+            list: A list containing all the user-defined curves in the CurveLibraryModel.
+        """
+        return self.base_curves + self.user_curves + self.controls
+
+    @staticmethod
+    def __get_names(obj_list, formatted=False):
         """
         Get the list of items.
+        Args:
+            obj_list (list): List of objects to look through (Must be Curves or Controls)
+            formatted (bool, optional): If active, it will return a formatted version of the name.
+                                        e.g. "circle_arrow" becomes "Circle Arrow"
+        Returns:
+            list: A list containing the names of the items fed through the object list.
+        """
+        names = []
+        for crv in obj_list:
+            names.append(crv.get_name(formatted=formatted))
+        return names
+
+    def get_base_curve_names(self, formatted=False):
+        """
+        Get the list of names from self.curves.
+        Args:
+            formatted (bool, optional): If active, it will return a formatted version of the name.
+                                        e.g. "circle_arrow" becomes "Circle Arrow"
+        Returns:
+            list: A list containing all curve names in the CurveLibraryModel.
+        """
+        return self.__get_names(obj_list=self.get_base_curves(), formatted=formatted)
+
+    def get_user_curve_names(self, formatted=False):
+        """
+        Get the list of names from self.user_curves.
+        Args:
+            formatted (bool, optional): If active, it will return a formatted version of the name.
+                                        e.g. "circle_arrow" becomes "Circle Arrow"
+        Returns:
+            list: A list containing all user curve names in the CurveLibraryModel.
+        """
+        return self.__get_names(obj_list=self.get_user_curves(), formatted=formatted)
+
+    def get_control_names(self, formatted=False):
+        """
+        Get the list of names from self.controls.
+        Args:
+            formatted (bool, optional): If active, it will return a formatted version of the name.
+                                        e.g. "circle_arrow" becomes "Circle Arrow"
+        Returns:
+            list: A list containing all control names in the CurveLibraryModel.
+        """
+        return self.__get_names(obj_list=self.get_controls(), formatted=formatted)
+
+    def get_all_curve_names(self, formatted=False):
+        """
+        Get the list of names from all curves (curves, controls, user_curves).
         Args:
             formatted (bool, optional): If active, it will return a formatted version of the name.
                                         e.g. "circle_arrow" becomes "Circle Arrow"
         Returns:
             list: A list containing all the items in the CurveLibraryModel.
         """
-        names = []
-        for crv in self.curves:
-            names.append(crv.get_name(formatted=formatted))
-        return names
+        all_curves = self.get_base_curves() + self.get_controls() + self.get_user_curves()
+        return self.__get_names(obj_list=all_curves, formatted=formatted)
 
     def import_default_library(self):
         """
-        Imports all curves found in "curve_utils.Curves" to the CurveLibraryModel list
+        Imports all curves found in "curve_utils.Curves" to the CurveLibraryModel curves list
         """
         curve_attributes = vars(Curves)
         curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for curve_key in curve_keys:
             curve_obj = getattr(Curves, curve_key)
-            if not curve_obj:
-                logger.debug(f'Missing curve: {curve_key}')
-                continue
-            if not curve_obj.shapes:
-                logger.debug(f'Missing shapes for a curve: {curve_obj}')
-                continue
-            self.add_curve(curve_obj)
+            self.add_base_curve(curve_obj)
+
+    def import_user_curve_library(self):
+        """
+        Imports all control curves found in "control_utils.Controls" to the CurveLibraryModel controls list
+        TODO: Handle custom curve storage. This function doesn't do anything at the moment @@@
+        """
+        # self.add_user_curve(user_curve_obj)
+        return
 
     def import_controls_library(self):
+        """
+        Imports all control curves found in "control_utils.Controls" to the CurveLibraryModel controls list
+        """
         control_attributes = vars(Controls)
         control_keys = [attr for attr in control_attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for ctrl_key in control_keys:
             control_obj = getattr(Controls, ctrl_key)
-            if not control_obj:
-                logger.debug(f'Missing control: {ctrl_key}')
-                continue
-            if not control_obj.is_curve_valid():
-                logger.debug(f'Invalid control. Missing build function: "{ctrl_key}"')
-                continue
-            self.add_curve(control_obj)
+            self.add_control(control_obj)
 
     def build_curve(self, curve_name):
         """
         Builds a curve based on the provided name. (Curve name, not file name)
+        In this context, curve is considered anything found inside "curves", "controls" or "user_curves".
         Args:
-            curve_name (str): Name of the curve to build
+            curve_name (str): Name of the element to build. Must exist in "curves", "controls" or "user_curves".
         Returns:
             str or None: Name of the built curve
         """
@@ -109,8 +240,8 @@ class CurveLibraryModel:
         Returns:
             Curve or None: Curve object with the requested name. None if not found.
         """
-        for crv in self.curves:
-            if curve_name == crv.get_name():
+        for crv in self.get_all_curves():
+            if isinstance(crv, Curve) and curve_name == crv.get_name():
                 return crv
 
     def get_preview_image(self, object_name):
@@ -136,7 +267,7 @@ class CurveLibraryModel:
 
 
 if __name__ == "__main__":
-    # The model should be able to work without the controller or view
+    logger.setLevel(logging.DEBUG)
     model = CurveLibraryModel()
     # items = model.get_curve_names(formatted=True)
-    print(get_control_preview_image_path("scalable_arrow"))
+    print(model.get_all_curves())

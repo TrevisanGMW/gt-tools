@@ -35,10 +35,40 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch('sys.platform', 'mocked_platform')
-    def test_get_system_two(self):
+    def test_get_system_mocked(self):
         result = system_utils.get_system()
         expected = "mocked_platform"
         self.assertEqual(expected, result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_MAC)
+    def test_is_system_macos_returns_true(self, mock_get_system):
+        result = system_utils.is_system_macos()
+        self.assertTrue(result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_WINDOWS)
+    def test_is_system_macos_returns_false(self, mock_get_system):
+        result = system_utils.is_system_macos()
+        self.assertFalse(result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_WINDOWS)
+    def test_is_system_windows_returns_true(self, mock_get_system):
+        result = system_utils.is_system_windows()
+        self.assertTrue(result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_MAC)
+    def test_is_system_windows_returns_false(self, mock_get_system):
+        result = system_utils.is_system_windows()
+        self.assertFalse(result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_LINUX)
+    def test_is_system_linux_returns_true(self, mock_get_system):
+        result = system_utils.is_system_linux()
+        self.assertTrue(result)
+
+    @patch('gt.utils.system_utils.get_system', return_value=system_utils.OS_MAC)
+    def test_is_system_linux_returns_false(self, mock_get_system):
+        result = system_utils.is_system_linux()
+        self.assertFalse(result)
 
     def test_get_temp_folder(self):
         result = system_utils.get_temp_dir()
