@@ -392,6 +392,11 @@ class PackageUpdaterModel:
             self.progress_win.clear_output_box()
             self.progress_win.add_text_to_output_box(output_box)
 
+        # Enforce clear extracted cache (In case it exists)
+        if os.path.exists(cache_extract):
+            delete_paths(cache_extract)
+            os.makedirs(cache_extract)
+
         try:
             unzip_zip_file(zip_file_path=cache_download, extract_path=cache_extract, callback=print_extract_progress)
             self.progress_win.increase_progress_bar_value()
@@ -408,9 +413,6 @@ class PackageUpdaterModel:
 
         extracted_dir_name = extracted_content[0]
         extracted_dir_path = os.path.join(cache_extract, extracted_dir_name)
-        if os.path.exists(extracted_dir_path):  # Enforce clear extracted cache (In case it exists)
-            delete_paths(extracted_dir_path)
-            os.makedirs(extracted_dir_path)
         extracted_module_path = None
         if os.path.exists(extracted_dir_path) and os.path.isdir(extracted_dir_path):
             extracted_module_path = os.path.join(extracted_dir_path, PACKAGE_MAIN_MODULE)
@@ -468,4 +470,5 @@ if __name__ == "__main__":
     # maya.standalone.initialize()
     model = PackageUpdaterModel()
     model.check_for_updates()
+    model.update_package(force_update=True)
     print(model.latest_github_version)
