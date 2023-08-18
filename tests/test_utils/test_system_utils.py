@@ -532,9 +532,34 @@ class TestSystemUtils(unittest.TestCase):
         """
         imported_object = system_utils.import_from_path("builtins.print")
         import builtins
-        self.assertEqual(imported_object, builtins.print)
+        self.assertEqual(builtins.print, imported_object)
 
     def test_import_invalid_path(self):
         # Test importing an invalid class path
         imported_object = system_utils.import_from_path('nonexistent_module.NonexistentClass')
         self.assertIsNone(imported_object)
+
+    def test_query_files_in_directory(self):
+        # Create a temporary directory structure for testing
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        temp_file = os.path.join(test_temp_dir, "temp_file.temp")
+        with open(temp_file, 'w') as f:
+            f.write("Test content")
+
+        result = system_utils.query_files_in_directory(test_temp_dir)
+        expected = [temp_file]
+        self.assertEqual(expected, result)
+
+    def test_make_directory(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        temp_sub_dir = os.path.join(test_temp_dir, "subdir")
+        result = system_utils.make_directory(temp_sub_dir)
+        self.assertTrue(os.path.exists(temp_sub_dir))
+        self.assertEqual(temp_sub_dir, result)
+
+    def test_make_empty_file(self):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        temp_file = os.path.join(test_temp_dir, "temp_file.temp")
+        system_utils.make_empty_file(temp_file)
+        self.assertTrue(os.path.exists(temp_file))
+        self.assertTrue(os.path.isfile(temp_file))

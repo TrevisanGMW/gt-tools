@@ -680,6 +680,62 @@ def import_from_path(path):
         return None
 
 
+def query_files_in_directory(root_dir):
+    """
+    Query and return a list of all files in the specified directory and its subdirectories.
+
+    Args:
+        root_dir (str): The root directory to start the search from.
+
+    Returns:
+        list: A list of absolute file paths.
+    """
+    all_files = []
+    for root, dir_names, filenames in os.walk(root_dir):
+        current_dir = ""
+        if dir_names:
+            current_dir = dir_names[0]
+
+        full_path = os.path.join(root, current_dir)
+
+        for file in filenames:
+            all_files.append(os.path.join(full_path, file))
+
+    return all_files
+
+
+def make_directory(path):
+    """
+    Create a directory at the specified path if it doesn't already exist.
+
+    Args:
+        path (str): The path of the directory to be created.
+
+    Returns:
+        str: The created directory path.
+    """
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
+
+def make_empty_file(path):
+    """
+    Create an empty file at the specified path.
+
+    Args:
+        path (str): The path of the file to be created.
+
+    Raises:
+        IOError: If there is an error creating the file.
+    """
+    try:
+        with open(path, 'w'):
+            pass  # Create empty file
+    except IOError as e:
+        logger.debug(f'Unable to create empty file. Issue {str(e)}')
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
