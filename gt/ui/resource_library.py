@@ -343,11 +343,16 @@ class Icon:
     misc_cog = get_icon_path(r"misc_cog.svg")
     scrollbar_up = get_icon_path(r"scrollbar_up.svg")
     scrollbar_down = get_icon_path(r"scrollbar_down.svg")
+    scrollbar_left = get_icon_path(r"scrollbar_left.svg")
+    scrollbar_right = get_icon_path(r"scrollbar_right.svg")
     setup_install = get_icon_path(r"setup_install.svg")
     setup_uninstall = get_icon_path(r"setup_uninstall.svg")
     setup_run_only = get_icon_path(r"setup_run_only.svg")
     setup_close = get_icon_path(r"setup_close.svg")
     curve_library_missing_file = get_icon_path(r"curve_library_missing_file.svg")
+    curve_library_base_curve = get_icon_path(r"curve_library_base_curve.svg")
+    curve_library_user_curve = get_icon_path(r"curve_library_user_curve.svg")
+    curve_library_control = get_icon_path(r"curve_library_control.svg")
 
 
 class Color:
