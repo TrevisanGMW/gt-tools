@@ -204,7 +204,9 @@ class CurveLibraryModel:
         Imports all control curves found in "control_utils.Controls" to the CurveLibraryModel controls list
         TODO: Handle custom curve storage. This function doesn't do anything at the moment @@@
         """
-        # self.add_user_curve(user_curve_obj)
+        temp_curve = Curve("mocked_user_curve")
+        temp_curve.shapes = Curves.circle.shapes
+        self.add_user_curve(temp_curve)
         return
 
     def import_controls_library(self):
@@ -217,7 +219,7 @@ class CurveLibraryModel:
             control_obj = getattr(Controls, ctrl_key)
             self.add_control(control_obj)
 
-    def build_curve(self, curve_name):
+    def build_curve_from_name(self, curve_name):
         """
         Builds a curve based on the provided name. (Curve name, not file name)
         In this context, curve is considered anything found inside "curves", "controls" or "user_curves".
@@ -230,6 +232,21 @@ class CurveLibraryModel:
         result = None
         if crv:
             result = crv.build()
+        return result
+
+    @staticmethod
+    def build_curve(curve):
+        """
+        Builds a curve based on the provided curve object.
+        In this context, curve is considered anything found inside "curves", "controls" or "user_curves".
+        Args:
+            curve (Curve, Control): Curve to build
+        Returns:
+            str or None: Name of the built curve
+        """
+        result = None
+        if curve and isinstance(curve, Curve):
+            result = curve.build()
         return result
 
     def get_curve_from_name(self, curve_name):
@@ -270,4 +287,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     model = CurveLibraryModel()
     # items = model.get_curve_names(formatted=True)
-    print(model.get_all_curves())
+    print(model.get_user_curves())
