@@ -4,8 +4,8 @@ Package Updater Model
 Classes:
     PackageUpdaterModel: A class for checking for updates
 """
+from gt.utils.setup_utils import remove_package_loaded_modules, reload_package_loaded_modules
 from gt.utils.request_utils import download_file, is_connected_to_internet
-from gt.utils.setup_utils import remove_package_loaded_modules
 from gt.utils.data_utils import unzip_zip_file, delete_paths
 from gt.utils.setup_utils import PACKAGE_MAIN_MODULE
 from gt.utils.prefs_utils import Prefs, PackageCache
@@ -427,6 +427,7 @@ class PackageUpdaterModel:
             self.progress_win.add_text_to_output_box("Initializing downloaded files...", as_new_line=True)
 
         # Prepend sys path with download location
+        _sys_path = sys.path
         sys.path.insert(0, extracted_dir_path)
         sys.path.insert(0, extracted_module_path)
 
@@ -441,6 +442,9 @@ class PackageUpdaterModel:
 
         # Update feedback package ------------------------------------------------
         if is_installed:
+            sys.path = _sys_path
+            remove_package_loaded_modules()
+            reload_package_loaded_modules()
             self.progress_win.set_progress_bar_done()
             self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
             feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
