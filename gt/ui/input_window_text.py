@@ -89,6 +89,9 @@ class InputWindowText(QWidget):
         progress_bar_stylesheet += resource_library.Stylesheet.dark_scroll_bar
         self.setStyleSheet(progress_bar_stylesheet)
 
+        # Create connections
+        self.cancel_button.clicked.connect(self.close_window)
+
     def set_confirm_button_text(self, text):
         """
         Set the text for the confirm button.
@@ -186,6 +189,10 @@ class InputWindowText(QWidget):
         layout_main.addLayout(layout_button)
         self.setLayout(layout_main)
 
+    def close_window(self):
+        """ Closes Input Window """
+        self.close()
+
 
 if __name__ == "__main__":
     sample_dict = {
@@ -206,4 +213,5 @@ if __name__ == "__main__":
                                             image_scale_pct=10)
         text_input_window.set_text_field_placeholder("placeholder")
         text_input_window.set_text_field_text(formatted_dict)
+        text_input_window.set_window_title("New Window Title")
         text_input_window.show()
