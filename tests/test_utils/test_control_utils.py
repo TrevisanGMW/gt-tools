@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock, patch
 import unittest
 import logging
 import sys
@@ -23,6 +24,16 @@ from gt.utils import control_utils
 class TestControlUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
+        self.mocked_parameters = {'param1': 10, 'param2': 'test'}
+        self.mocked_parameters_different_values = {'param1': 20, 'param2': 'test_two'}
+        self.mocked_original_parameters = {'param1': 10, 'param2': 'test'}
+        self.mocked_function_one = MagicMock(return_value='dummy_curve')
+        self.control = Control()
+
+        def mocked_function_two(key1=None, key2=None):
+            pass
+        self.mocked_function_two = mocked_function_two
+        self.mocked_function_two_parameters = {"key1": None, "key2": None}
 
     @classmethod
     def setUpClass(cls):
@@ -41,6 +52,133 @@ class TestControlUtils(unittest.TestCase):
         expected = ['pCube1', 'polyCube1']
         self.assertEqual(expected, result)
         self.assertEqual(expected, ctrl.get_last_callable_output())
+
+    def test_init_with_name(self):
+        expected = 'my_control'
+        control = Control(name=expected)
+        result = control.get_name()
+        self.assertEqual(expected, result)
+
+    def test_init_with_build_function(self):
+        expected = self.mocked_function_one
+        control = Control(build_function=expected)
+        result = control.build_function
+        self.assertEqual(expected, result)
+
+    def test_set_parameters_dict(self):
+        expected = self.mocked_parameters
+        self.control.set_parameters(expected)
+        result = self.control.parameters
+        self.assertEqual(expected, result)
+
+    def test_set_parameters_json(self):
+        dummy_parameters_dict = '{"param1": 10, "param2": "test"}'
+        expected = self.mocked_parameters
+        self.control.set_parameters(dummy_parameters_dict)
+        result = self.control.parameters
+        self.assertEqual(expected, result)
+
+    def test_set_parameters_invalid_json(self):
+        invalid_dict = 'invalid_dict'
+        expected = {}
+        logging.disable(logging.WARNING)
+        self.control.set_parameters(invalid_dict)
+        logging.disable(logging.NOTSET)
+        result = self.control.parameters
+        self.assertEqual(expected, result)
+
+    def test_get_parameters(self):
+        expected = self.mocked_parameters
+        self.control.set_parameters(expected)
+        result = self.control.get_parameters()
+        self.assertEqual(expected, result)
+
+    def test_validate_parameters_valid(self):
+        self.control.set_parameters(self.mocked_parameters)
+        self.control._set_original_parameters(self.mocked_original_parameters)
+        expected = True
+        result = self.control.validate_parameters()
+        self.assertEqual(expected, result)
+        self.control.set_parameters(self.mocked_parameters_different_values)
+        expected = True
+        result = self.control.validate_parameters()
+        self.assertEqual(expected, result)
+
+    def test_validate_parameters_invalid_keys(self):
+        self.control.set_parameters(self.mocked_parameters)
+        invalid_parameters = {'param1': 20, 'param3': 'new'}
+        self.control._set_original_parameters(invalid_parameters)
+        expected = False
+        result = self.control.validate_parameters()
+        self.assertEqual(expected, result)
+
+    def test_validate_parameters_invalid_value_types(self):
+        self.control.set_parameters(self.mocked_parameters)
+        invalid_parameters = {'param1': 'string', 'param2': 10}
+        self.control._set_original_parameters(invalid_parameters)
+        expected = False
+        result = self.control.validate_parameters()
+        self.assertEqual(expected, result)
+
+    def test_set_build_function(self):
+        expected = self.mocked_function_one
+        self.control.set_build_function(expected)
+        result = self.control.build_function
+        self.assertEqual(expected, result)
+
+    def test_build_valid_parameters(self):
+        self.control.set_build_function(self.mocked_function_one)
+        self.control.set_parameters(self.mocked_parameters)
+        expected = 'dummy_curve'
+        logging.disable(logging.WARNING)
+        result = self.control.build()
+        logging.disable(logging.NOTSET)
+        self.assertEqual(expected, result)
+
+    def test_build_invalid_parameters(self):
+        self.control.set_build_function(self.mocked_function_two)
+        self.control._set_original_parameters(self.mocked_original_parameters)
+        expected = False
+        result = self.control.validate_parameters()
+        self.assertEqual(expected, result)
+
+    def test_is_curve_valid_with_function(self):
+        self.control.set_build_function(self.mocked_function_one)
+        expected = True
+        result = self.control.is_curve_valid()
+        self.assertEqual(expected, result)
+
+    def test_is_curve_valid_without_function(self):
+        expected = False
+        result = self.control.is_curve_valid()
+        self.assertEqual(expected, result)
+
+    def test_get_last_callable_output(self):
+        self.control.set_build_function(self.mocked_function_one)
+        self.control.set_parameters(self.mocked_parameters)
+        logging.disable(logging.WARNING)
+        self.control.build()
+        logging.disable(logging.NOTSET)
+        expected = 'dummy_curve'
+        result = self.control.get_last_callable_output()
+        self.assertEqual(expected, result)
+
+    def test_get_docstrings_no_function(self):
+        expected = None
+        result = self.control.get_docstrings()
+        self.assertEqual(expected, result)
+
+    def test_get_docstrings_no_docstring(self):
+        self.control.set_build_function(self.mocked_function_two)
+        expected = None
+        result = self.control.get_docstrings()
+        self.assertEqual(expected, result)
+
+    def test_get_docstrings_docstring(self):
+        self.control.set_build_function(self.mocked_function_one)
+        expected = True
+        result = isinstance(self.control.get_docstrings(), str)
+        self.assertEqual(expected, result)
 
     def test_curves_existence(self):
         controls_attributes = vars(control_utils.Controls)
