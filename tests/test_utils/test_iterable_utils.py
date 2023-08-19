@@ -97,3 +97,54 @@ class TestListUtils(unittest.TestCase):
         self.assertEqual(iterable_utils.remove_list_duplicates_ordered([1, 1, 1, 1, 1]), [1])
         self.assertEqual(iterable_utils.remove_list_duplicates_ordered([5, 4, 3, 2, 1]), [5, 4, 3, 2, 1])
         self.assertEqual(iterable_utils.remove_list_duplicates_ordered([]), [])
+
+    def test_identical_keys(self):
+        dict1 = {'a': 1, 'b': 2, 'c': 3}
+        dict2 = {'c': 3, 'a': 1, 'b': 2}
+        expected = True
+        result = iterable_utils.compare_identical_dict_keys(dict1, dict2)
+        self.assertEqual(expected, result)
+
+    def test_different_keys(self):
+        dict1 = {'a': 1, 'b': 2}
+        dict2 = {'c': 3, 'd': 4}
+        expected = False
+        result = iterable_utils.compare_identical_dict_keys(dict1, dict2)
+        self.assertEqual(expected, result)
+
+    def test_empty_dicts(self):
+        dict1 = {}
+        dict2 = {}
+        expected = True
+        result = iterable_utils.compare_identical_dict_keys(dict1, dict2)
+        self.assertEqual(expected, result)
+
+    def test_one_empty_dict(self):
+        dict1 = {'a': 1, 'b': 2}
+        dict2 = {}
+        expected = False
+        result1 = iterable_utils.compare_identical_dict_keys(dict1, dict2)
+        result2 = iterable_utils.compare_identical_dict_keys(dict2, dict1)
+        self.assertEqual(expected, result1)
+        self.assertEqual(expected, result2)
+
+    def test_identical_dicts(self):
+        dict1 = {'a': 1, 'b': 'hello', 'c': [1, 2, 3]}
+        dict2 = {'a': 2, 'b': 'world', 'c': [4, 5, 6]}
+        expected = True
+        result = iterable_utils.compare_identical_dict_values_types(dict1, dict2)
+        self.assertEqual(expected, result)
+
+    def test_different_types(self):
+        dict1 = {'a': 1, 'b': 'hello'}
+        dict2 = {'a': 'string', 'b': 123}
+        expected = False
+        result = iterable_utils.compare_identical_dict_values_types(dict1, dict2)
+        self.assertEqual(expected, result)
+
+    def test_missing_key(self):
+        dict1 = {'a': 1, 'b': 'hello'}
+        dict2 = {'a': 1, 'c': 'world'}
+        expected = False
+        result = iterable_utils.compare_identical_dict_values_types(dict1, dict2)
+        self.assertEqual(expected, result)

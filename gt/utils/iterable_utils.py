@@ -81,6 +81,41 @@ def get_next_dict_item(dictionary, key, cycle=False):
         return None
 
 
+def compare_identical_dict_keys(dict1, dict2):
+    """
+    Compare two dictionaries and check if they have exactly the same keys.
+
+    Args:
+        dict1 (dict): The first dictionary.
+        dict2 (dict): The second dictionary.
+
+    Returns:
+        bool: True if both dictionaries have exactly the same keys, False otherwise.
+    """
+    return set(dict1.keys()) == set(dict2.keys())
+
+
+def compare_identical_dict_values_types(dict1, dict2):
+    """
+    Compare the types of values in two dictionaries.
+
+    Args:
+        dict1 (dict): The first dictionary.
+        dict2 (dict): The second dictionary.
+
+    Returns:
+        bool: True if all corresponding values have the same type, False otherwise.
+    """
+    keys1 = set(dict1.keys())
+    keys2 = set(dict2.keys())
+    if keys1 != keys2:
+        return False
+    for key in keys1:
+        if type(dict1[key]) != type(dict2[key]):
+            return False
+    return True
+
+
 def remove_list_duplicates(input_list):
     """
     Remove duplicates from a list using a set.
@@ -132,10 +167,11 @@ def make_flat_list(*args):
         else:
             _flat.append(_arg)
     return _flat
-    
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
+
     out = None
     pprint(out)
