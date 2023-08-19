@@ -680,60 +680,49 @@ def import_from_path(path):
         return None
 
 
-def query_files_in_directory(root_dir):
+def get_function_arguments(func, kwargs_as_dict=False):
     """
-    Query and return a list of all files in the specified directory and its subdirectories.
+    Get the arguments and keyword arguments of a given function.
 
     Args:
-        root_dir (str): The root directory to start the search from.
+        func (callable): The function to inspect.
+        kwargs_as_dict (bool, optional): If active, it will return the kwargs as a dictionary with
+                                          the keyword names and their default values.
 
     Returns:
-        list: A list of absolute file paths.
+        tuple: A tuple containing two lists:
+            - List of argument names
+            - List of keyword argument names (or a dictionary in case "kwargs_as_dict" is True)
     """
-    all_files = []
-    for root, dir_names, filenames in os.walk(root_dir):
-        current_dir = ""
-        if dir_names:
-            current_dir = dir_names[0]
+    import inspect
 
-        full_path = os.path.join(root, current_dir)
+    signature = inspect.signature(func)
+    args = []
+    kwargs = []
+    kwargs_dict = {}
 
-        for file in filenames:
-            all_files.append(os.path.join(full_path, file))
+    for param_name, param in signature.parameters.items():
+        if param.default == inspect.Parameter.empty:
+            args.append(param_name)
+        else:
+            kwargs.append(param_name)
+            kwargs_dict[param_name] = param.default
+    if kwargs_as_dict:
+        return args, kwargs_dict
+    return args, kwargs
 
-    return all_files
 
-
-def make_directory(path):
+def get_docstring(func):
     """
-    Create a directory at the specified path if it doesn't already exist.
+    Get the docstring of a target function.
 
     Args:
-        path (str): The path of the directory to be created.
+        func (callable): The function whose docstring needs to be retrieved.
 
     Returns:
-        str: The created directory path.
+        str: The docstring of the target function.
     """
-    if not os.path.exists(path):
-        os.mkdir(path)
-    return path
-
-
-def make_empty_file(path):
-    """
-    Create an empty file at the specified path.
-
-    Args:
-        path (str): The path of the file to be created.
-
-    Raises:
-        IOError: If there is an error creating the file.
-    """
-    try:
-        with open(path, 'w'):
-            pass  # Create empty file
-    except IOError as e:
-        logger.debug(f'Unable to create empty file. Issue {str(e)}')
+    return func.__doc__
 
 
 if __name__ == "__main__":

@@ -527,9 +527,7 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(int, imported_object)
 
     def test_import_non_class_print(self):
-        """
-        Test importing a non-class object.
-        """
+        # Test importing a non-class object
         imported_object = system_utils.import_from_path("builtins.print")
         import builtins
         self.assertEqual(builtins.print, imported_object)
@@ -539,27 +537,60 @@ class TestSystemUtils(unittest.TestCase):
         imported_object = system_utils.import_from_path('nonexistent_module.NonexistentClass')
         self.assertIsNone(imported_object)
 
-    def test_query_files_in_directory(self):
-        # Create a temporary directory structure for testing
-        test_temp_dir = maya_test_tools.generate_test_temp_dir()
-        temp_file = os.path.join(test_temp_dir, "temp_file.temp")
-        with open(temp_file, 'w') as f:
-            f.write("Test content")
+    def test_no_arguments(self):
+        def func():
+            pass
 
-        result = system_utils.query_files_in_directory(test_temp_dir)
-        expected = [temp_file]
-        self.assertEqual(expected, result)
+        args, kwargs = system_utils.get_function_arguments(func)
+        self.assertEqual(args, [])
+        self.assertEqual(kwargs, [])
 
-    def test_make_directory(self):
-        test_temp_dir = maya_test_tools.generate_test_temp_dir()
-        temp_sub_dir = os.path.join(test_temp_dir, "subdir")
-        result = system_utils.make_directory(temp_sub_dir)
-        self.assertTrue(os.path.exists(temp_sub_dir))
-        self.assertEqual(temp_sub_dir, result)
+    def test_with_arguments(self):
+        def func(a, b, c=0, d=1):
+            pass
 
-    def test_make_empty_file(self):
-        test_temp_dir = maya_test_tools.generate_test_temp_dir()
-        temp_file = os.path.join(test_temp_dir, "temp_file.temp")
-        system_utils.make_empty_file(temp_file)
-        self.assertTrue(os.path.exists(temp_file))
-        self.assertTrue(os.path.isfile(temp_file))
+        args, kwargs = system_utils.get_function_arguments(func)
+        self.assertEqual(args, ['a', 'b'])
+        self.assertEqual(kwargs, ['c', 'd'])
+
+    def test_kwargs_as_dict_true(self):
+        def sample_function(a, b=10, c="hello"):
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(sample_function, kwargs_as_dict=True)
+
+        expected_args = ['a']
+        expected_kwargs = {'b': 10, 'c': 'hello'}
+
+        self.assertEqual(args, expected_args)
+        self.assertEqual(kwargs, expected_kwargs)
+
+    def test_kwargs_as_dict_false(self):
+        def sample_function(a, b=10, c="hello"):
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(sample_function, kwargs_as_dict=False)
+
+        expected_args = ['a']
+        expected_kwargs = ['b', 'c']
+
+        self.assertEqual(args, expected_args)
+        self.assertEqual(kwargs, expected_kwargs)
+
+    def test_get_docstring(self):
+        def function_with_docstring():
+            """
+            This is an example function.
+            It does nothing but demonstrate how to use the get_docstring function.
+            """
+            pass
+        self.assertEqual(system_utils.get_docstring(function_with_docstring), function_with_docstring.__doc__)
+
+    def test_get_docstring_empty(self):
+        def no_docstring_function():
+            pass
+
+        self.assertIsNone(system_utils.get_docstring(no_docstring_function))
+
+    def test_get_docstring_no_function(self):
+        self.assertIsNone(system_utils.get_docstring(None))
