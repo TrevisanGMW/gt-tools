@@ -148,3 +148,53 @@ class TestListUtils(unittest.TestCase):
         expected = False
         result = iterable_utils.compare_identical_dict_values_types(dict1, dict2)
         self.assertEqual(expected, result)
+
+    def test_default_keys_per_line(self):
+        sample_dict = {
+            'name': 'John Doe',
+            'age': 30,
+            'city': 'Vancouver',
+            'email': 'john@example.com',
+            'occupation': 'Software Engineer'
+        }
+        expected_result = ('{"name": "John Doe", "age": 30,\n'
+                           '"city": "Vancouver", "email": "john@example.com",\n'
+                           '"occupation": "Software Engineer"}')
+        result = iterable_utils.format_dict_with_keys_per_line(sample_dict)
+        self.assertEqual(result, expected_result)
+
+    def test_custom_keys_per_line(self):
+        sample_dict = {
+            'a': 1,
+            'b': 2,
+            'c': 3,
+            'd': 4,
+            'e': 5,
+        }
+        expected_result = ('{'
+                           '"a": 1, "b": 2,\n'
+                           '"c": 3, "d": 4,\n'
+                           '"e": 5}')
+        result = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=2)
+        self.assertEqual(result, expected_result)
+
+    def test_single_key_per_line(self):
+        sample_dict = {
+            'key1': 'value1',
+            'key2': 'value2',
+            'key3': 'value3'
+        }
+        expected_result = ('{"key1": "value1",\n'
+                           '"key2": "value2",\n'
+                           '"key3": "value3"}')
+        result = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=1)
+        self.assertEqual(result, expected_result)
+
+    def test_bracket_new_line(self):
+        input_dict = {
+            'key1': 'value1',
+            'key2': 'value2',
+        }
+        expected = '{\n"key1": "value1", "key2": "value2"\n}'
+        result = iterable_utils.format_dict_with_keys_per_line(input_dict, bracket_new_line=True)
+        self.assertEqual(expected, result)
