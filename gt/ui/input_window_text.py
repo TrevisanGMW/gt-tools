@@ -1,5 +1,6 @@
 from PySide2.QtWidgets import QPushButton, QTextEdit, QVBoxLayout, QWidget, QHBoxLayout
 from gt.ui import resource_library, qt_utils
+from gt.ui.qt_utils import MayaWindowMeta
 from PySide2.QtWidgets import QLabel
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class InputWindowText(QWidget):
+class InputWindowText(metaclass=MayaWindowMeta):
     ALIGN_TOP = "top"
     ALIGN_BOTTOM = "bottom"
     ALIGN_LEFT = "left"
@@ -91,6 +92,10 @@ class InputWindowText(QWidget):
 
         # Create connections
         self.cancel_button.clicked.connect(self.close_window)
+
+        # Adjust window
+        qt_utils.resize_to_screen(self, percentage=20)
+        qt_utils.center_window(self)
 
     def set_confirm_button_text(self, text):
         """
