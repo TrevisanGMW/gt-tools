@@ -282,6 +282,28 @@ class CurveLibraryModel:
         else:
             return resource_library.Icon.curve_library_missing_file
 
+    @staticmethod
+    def build_control_with_custom_parameters(parameters, target_control):
+        """
+        Attempts to build a control using custom parameters
+        Args:
+            parameters (Callable, dict): Function used to get parameters or dictionary with parameters.
+            target_control (Control): Control object to build
+        """
+        new_parameters = None
+        if callable(parameters):
+            new_parameters = parameters()
+        elif isinstance(parameters, dict):
+            new_parameters = parameters
+        if new_parameters:
+            try:
+                target_control.set_parameters(new_parameters)
+                target_control.build()
+            except Exception as e:
+                logger.warning(f'Unable to build curve. Issue: "{e}".')
+            finally:
+                target_control.reset_parameters()
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
