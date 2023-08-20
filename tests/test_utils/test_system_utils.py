@@ -590,7 +590,39 @@ class TestSystemUtils(unittest.TestCase):
         def no_docstring_function():
             pass
 
-        self.assertIsNone(system_utils.get_docstring(no_docstring_function))
+        expected_docstring = ""
+        result = system_utils.get_docstring(no_docstring_function)
+        self.assertEqual(expected_docstring, result)
 
-    def test_get_docstring_no_function(self):
-        self.assertIsNone(system_utils.get_docstring(None))
+    def test_get_docstring_without_tabs_or_new_lines(self):
+        def example_function():
+            """
+            This is an example docstring.
+
+                This line has a leading tab.
+            """
+            pass
+        expected_docstring = "This is an example docstring.\n\nThis line has a leading tab."
+        result = system_utils.get_docstring(example_function, strip=True, strip_new_lines=True)
+        self.assertEqual(expected_docstring, result)
+
+    def test_get_docstring_without_tabs(self):
+        def example_function():
+            """
+            This is an example docstring.
+
+                This line has a leading tab.
+            """
+            pass
+        expected_docstring = "\nThis is an example docstring.\n\nThis line has a leading tab.\n"
+        result = system_utils.get_docstring(example_function, strip=True, strip_new_lines=False)
+        self.assertEqual(expected_docstring, result)
+
+    def test_get_docstring_non_callable(self):
+        non_callable_object = 42
+        with self.assertRaises(ValueError):
+            system_utils.get_docstring(non_callable_object)
+
+    def test_get_docstring_non_callable_none(self):
+        with self.assertRaises(ValueError):
+            system_utils.get_docstring(None)

@@ -712,17 +712,34 @@ def get_function_arguments(func, kwargs_as_dict=False):
     return args, kwargs
 
 
-def get_docstring(func):
+def get_docstring(func, strip=False, strip_new_lines=False):
     """
     Get the docstring of a target function.
 
     Args:
         func (callable): The function whose docstring needs to be retrieved.
+        strip (bool, optional): If True, leading empty space will be removed from each line of the docstring.
+        strip_new_lines (bool, optional): If True, it will remove new lines from the beginning of the docstring and end.
 
     Returns:
         str: The docstring of the target function.
     """
-    return func.__doc__
+    if not callable(func):
+        raise ValueError("Input 'func' must be a callable function.")
+
+    docstring = func.__doc__
+    if docstring is None:
+        return ""
+
+    if strip:
+        # Remove leading empty spaces from each line of the docstring
+        docstring = '\n'.join(line.lstrip() for line in docstring.split('\n'))
+    if strip_new_lines:
+        docstring = docstring.lstrip('\n')
+        if docstring.endswith(docstring):
+            docstring = docstring[:-len('\n')]
+
+    return docstring
 
 
 if __name__ == "__main__":
