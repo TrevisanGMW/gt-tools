@@ -596,7 +596,7 @@ class TestCurveUtils(unittest.TestCase):
         temp_folder = maya_test_tools.generate_test_temp_dir()
         curve_data_path = os.path.join(maya_test_tools.get_data_dir_path(), 'two_lines.crv')
         curve = curve_utils.Curve(data_from_file=curve_data_path)
-        curve_utils.generate_curve_thumbnail(target_dir=temp_folder, curve=curve)
+        curve_utils.generate_package_curve_thumbnail(target_dir=temp_folder, curve=curve)
         expected = ['two_lines.jpg']
         result = os.listdir(temp_folder)
         self.assertEqual(expected, result)
@@ -614,7 +614,7 @@ class TestCurveUtils(unittest.TestCase):
 
         with patch('gt.utils.curve_utils.Curves', new=MockedCurves):
             temp_folder = maya_test_tools.generate_test_temp_dir()
-            curve_utils.generate_curves_thumbnails(target_dir=temp_folder)
+            curve_utils.generate_package_curves_thumbnails(target_dir=temp_folder)
             expected = ['two_lines.jpg']
             result = os.listdir(temp_folder)
             self.assertEqual(expected, result)
