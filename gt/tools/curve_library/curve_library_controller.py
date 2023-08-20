@@ -4,8 +4,11 @@ Curve Library Controller
 This module contains the CurveLibraryController class responsible for managing interactions between the
 CurveLibraryModel and the user interface.
 """
+from gt.ui.input_window_text import InputWindowText
+from gt.utils import iterable_utils
 from gt.ui import resource_library
 from PySide2.QtGui import QIcon
+from functools import partial
 from PySide2.QtCore import Qt
 import logging
 
@@ -35,6 +38,7 @@ class CurveLibraryController:
         self.view.build_button.clicked.connect(self.build_view_selected_curve)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.view.search_edit.textChanged.connect(self.filter_list)
+        self.view.parameters_button.clicked.connect(self.open_parameter_editor)
         self.populate_curve_library()
         self.view.show()
 
@@ -58,7 +62,6 @@ class CurveLibraryController:
             elif metadata.get("item_type") == self.CURVE_TYPE_USER:
                 self.set_view_user_curve_mode()
             elif metadata.get("item_type") == self.CURVE_TYPE_CONTROL:
-                print("got here")
                 self.set_view_control_curve_mode()
 
     def set_view_base_curve_mode(self):
@@ -96,15 +99,25 @@ class CurveLibraryController:
         """
         Build the selected curve from the curve library in the model.
         """
+        current_curve = self.get_selected_item_curve()
+        self.model.build_curve(curve=current_curve)
+
+    def get_selected_item_curve(self):
+        """
+        Gets the curve of the currently selected element in the list
+        Returns:
+            Curve, Control or None: Object stored in the metadata of the selected item.
+                                    None if not found or nothing selected.
+        """
         item = self.view.item_list.currentItem()
         if not item:
-            logger.debug(f'No item selected. Skipping UI update.')
+            logger.debug(f'No item selected.')
             return
         metadata = item.data(Qt.UserRole)
         if not metadata or not metadata.get("object"):
-            logger.debug(f'Selected item "{item}" is missing the metadata necessary to build the curve.')
+            logger.debug(f'Selected item "{item}" is missing the metadata necessary to retrieve a curve.')
             return
-        self.model.build_curve(curve=metadata.get("object"))
+        return metadata.get("object")
 
     def remove_item_view(self):
         """
@@ -137,7 +150,38 @@ class CurveLibraryController:
             self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_user_crv, metadata=metadata_user_crv)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
+    def open_parameter_editor(self):
+        """ Opens an input window so the user can update the parameters of a control """
+        item = self.view.item_list.currentItem()
+        if not item:
+            logger.warning(f'No item selected. Unable to open parameter editor.')
+            return
+        item_name = self.view.item_list.currentItem().text()
+        control = self.get_selected_item_curve()
+        from gt.utils.control_utils import Control
+        if not isinstance(control, Control):
+            logger.warning(f'Unable to edit parameters. Selected item is not of the type "Control."')
+            return
+        print(control.get_docstrings())
+        param_win = InputWindowText(parent=self.view,
+                                    message=control.get_docstrings(),
+                                    window_title=f'Parameters for "{item_name}"',
+                                    image=resource_library.Icon.dev_code,
+                                    image_scale_pct=10)
+        parameters = control.get_parameters()
+        formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=2,
+                                                                       bracket_new_line=True)
+        param_win.set_text_field_text(formatted_dict)
+        param_win.confirm_button.clicked.connect(partial(self.__apply_updated_parameters,
+                                                         param_win.get_text_field_text,
+                                                         control))
+        param_win.set_confirm_button_text("Build")
+        param_win.show()
+
+    def __apply_updated_parameters(self, parameters_getter, target_curve):
+        new_parameters = parameters_getter()
+        target_curve.set_parameters(new_parameters)
+
 
 if __name__ == "__main__":
-
     print('Run it from "__init__.py".')
