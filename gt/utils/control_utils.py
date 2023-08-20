@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 Dependencies: "gt.utils.curve_utils" and "gt.utils.data.controls"
 """
 from gt.utils.attribute_utils import add_attr_double_three
-from gt.utils.data.controls import cluster_driven
+from gt.utils.data.controls import cluster_driven, slider
 from gt.utils.data_utils import DataDirConstants
 from gt.utils.curve_utils import Curve
 from gt.utils import iterable_utils
@@ -164,6 +164,10 @@ class Control(Curve):
         if parameters and isinstance(parameters, dict):
             self._original_parameters = parameters
 
+    def reset_parameters(self):
+        """ Resets parameters to the original value """
+        self.parameters = self._original_parameters
+
     def set_parameters(self, new_parameters):
         """
         Sets the control parameters
@@ -188,9 +192,12 @@ class Control(Curve):
         """
         return self.parameters
 
-    def get_docstrings(self):
+    def get_docstrings(self, strip=True, strip_new_lines=True):
         """
         Returns the docstrings from the build function.
+        Args:
+            strip (bool, optional): If True, leading empty space will be removed from each line of the docstring.
+            strip_new_lines (bool, optional): If True, it will remove new lines from start and end.
         Returns:
             str or None: Docstring of the build function.
                          None in case no function was set or function doesn't have a docstring
@@ -198,7 +205,7 @@ class Control(Curve):
         if not self.build_function:
             logger.debug(f'Build function was not yet set. Returning None as docstrings.')
             return
-        return system_utils.get_docstring(func=self.build_function)
+        return system_utils.get_docstring(func=self.build_function, strip=strip, strip_new_lines=strip_new_lines)
 
     def validate_parameters(self):
         """
@@ -304,11 +311,24 @@ class Controls:
         A library of controls (complex curves) objects. These are created using a callable function.
         Use "build()" to create them in Maya.
         """
-    scalable_arrow = Control(build_function=cluster_driven.create_scalable_arrow)
+    scalable_one_side_arrow = Control(build_function=cluster_driven.create_scalable_one_side_arrow)
+    scalable_two_sides_arrow = Control(build_function=cluster_driven.create_scalable_two_sides_arrow)
+    squared_slider_one_dimension = Control(build_function=slider.create_slider_squared_one_dimension)
+    slider_squared_two_dimensions = Control(build_function=slider.create_slider_squared_two_dimensions)
+    sliders_squared_mouth = Control(name="sliders_squared_mouth",
+                                    build_function=slider.create_sliders_squared_mouth)
+    sliders_squared_eyebrows = Control(name="sliders_squared_eyebrows",
+                                       build_function=slider.create_sliders_squared_eyebrows)
+    sliders_squared_cheek_nose = Control(name="sliders_squared_cheek_nose",
+                                         build_function=slider.create_sliders_squared_cheek_nose)
+    sliders_squared_eyes = Control(name="sliders_squared_eyes",
+                                   build_function=slider.create_sliders_squared_eyes)
+    sliders_squared_facial_side_gui = Control(name="sliders_squared_facial_side_gui",
+                                              build_function=slider.create_sliders_squared_facial_side_gui)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    out = Controls.scalable_arrow
+    out = Controls.scalable_two_sides_arrow
     out.build()
 
