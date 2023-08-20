@@ -4,6 +4,7 @@ Slider Controls - Work in Progress File
 from gt.utils.color_utils import set_color_override_viewport, set_color_override_outliner
 from gt.utils.curve_utils import combine_curves_list, create_text
 from gt.utils.transform_utils import move_to_origin, rescale
+from gt.utils.data.controls.control_data import ControlData
 from gt.utils.naming_utils import NamingConstants
 import maya.cmds as cmds
 import logging
@@ -18,13 +19,16 @@ RIGHT_CTRL_COLOR = (1, 0, 0)  # Red
 CENTER_CTRL_COLOR = (1, 1, 0)  # Yellow
 
 
-def create_slider_control(name, initial_position='middle', lock_unused_channels=True):
+def create_slider_squared_one_dimension(name="slider_one_dimension",
+                                        initial_position='middle',
+                                        lock_unused_channels=True):
     """
+    Creates a one dimensional slider control
 
     Args:
-        name:  Object name (string)
-        initial_position:  "middle", "top" or "bottom" (string)
-        lock_unused_channels:  locks and hides unused channels (TX, TZ, ROT...)
+        name (str): Name of the generated curves.
+        initial_position (str, optional): Determines initial driver position. Can be "middle", "top" or "bottom".
+        lock_unused_channels (bool, optional):  locks and hides unused channels (TX, TZ, ROT...)
 
     Returns:
         ctrl_elements: A list with the control name and control group name
@@ -87,16 +91,19 @@ def create_slider_control(name, initial_position='middle', lock_unused_channels=
     return [ctrl, ctrl_grp]
 
 
-def create_2d_slider_control(name, initial_position_y='middle', initial_position_x='middle',
-                             lock_unused_channels=True, ignore_range=None):
+def create_slider_squared_two_dimensions(name="slider_two_dimensions",
+                                         initial_position_y='middle', initial_position_x='middle',
+                                         lock_unused_channels=True, ignore_range=None):
     """
+    Creates a one dimensional slider control
 
     Args:
-        name:  Object name (string)
-        initial_position_y:  "middle", "top" or "bottom" (string)
-        initial_position_x:  "middle", "right" or "left" (string)
-        lock_unused_channels:  locks and hides unused channels (TX, TZ, ROT...)
-        ignore_range: "right", "left", "bottom" or "up". 2D Area to be ignored and removed from the available range
+        name (str): Name of the generated curves.
+        initial_position_y (str):  Determines initial Y driver position. Can be "middle", "top" or "bottom"
+        initial_position_x (str):  Determines initial X driver position. Can be "middle", "right" or "left"
+        lock_unused_channels (bool):  locks and hides unused channels (TX, TZ, ROT...)
+        ignore_range (str): 2D Area to be ignored and removed from the available range.
+                            Can be: "right", "left", "bottom" or "up".
 
     Returns:
         ctrl_elements: A list with the control name and control group name
@@ -193,16 +200,9 @@ def create_2d_slider_control(name, initial_position_y='middle', initial_position
     return [ctrl, ctrl_grp]
 
 
-def create_mouth_controls():
+def create_sliders_squared_mouth():
     """
-    Dependencies:
-        rescale()
-        create_slider_control()
-        create_2d_slider_control()
-        create_text()
-        move_to_origin()
-        change_outliner_color()
-        set_color_override_viewport()
+    Creates
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
@@ -221,18 +221,18 @@ def create_mouth_controls():
     background.append(mouth_crv)
 
     # 1D Controls
-    mid_upper_lip_ctrl = create_slider_control('mid_upperLip_offset_ctrl')
-    mid_lower_lip_ctrl = create_slider_control('mid_lowerLip_offset_ctrl')
-    left_upper_outer_lip_ctrl = create_slider_control('left_upperOuterLip_offset_ctrl')
-    left_lower_outer_lip_ctrl = create_slider_control('left_lowerOuterLip_offset_ctrl')
-    left_upper_corner_lip_ctrl = create_slider_control('left_upperCornerLip_offset_ctrl')
-    left_lower_corner_lip_ctrl = create_slider_control('left_lowerCornerLip_offset_ctrl')
-    right_upper_outer_lip_ctrl = create_slider_control('right_upperOuterLip_offset_ctrl')
-    right_lower_outer_lip_ctrl = create_slider_control('right_lowerOuterLip_offset_ctrl')
-    right_upper_corner_lip_ctrl = create_slider_control('right_upperCornerLip_offset_ctrl')
-    right_lower_corner_lip_ctrl = create_slider_control('right_lowerCornerLip_offset_ctrl')
-    main_mouth_offset_ctrl = create_slider_control('mainMouth_offset_ctrl')
-    in_out_tongue_ctrl = create_slider_control('inOutTongue_offset_ctrl', initial_position='top')
+    mid_upper_lip_ctrl = create_slider_squared_one_dimension('mid_upperLip_offset_ctrl')
+    mid_lower_lip_ctrl = create_slider_squared_one_dimension('mid_lowerLip_offset_ctrl')
+    left_upper_outer_lip_ctrl = create_slider_squared_one_dimension('left_upperOuterLip_offset_ctrl')
+    left_lower_outer_lip_ctrl = create_slider_squared_one_dimension('left_lowerOuterLip_offset_ctrl')
+    left_upper_corner_lip_ctrl = create_slider_squared_one_dimension('left_upperCornerLip_offset_ctrl')
+    left_lower_corner_lip_ctrl = create_slider_squared_one_dimension('left_lowerCornerLip_offset_ctrl')
+    right_upper_outer_lip_ctrl = create_slider_squared_one_dimension('right_upperOuterLip_offset_ctrl')
+    right_lower_outer_lip_ctrl = create_slider_squared_one_dimension('right_lowerOuterLip_offset_ctrl')
+    right_upper_corner_lip_ctrl = create_slider_squared_one_dimension('right_upperCornerLip_offset_ctrl')
+    right_lower_corner_lip_ctrl = create_slider_squared_one_dimension('right_lowerCornerLip_offset_ctrl')
+    main_mouth_offset_ctrl = create_slider_squared_one_dimension('mainMouth_offset_ctrl')
+    in_out_tongue_ctrl = create_slider_squared_one_dimension('inOutTongue_offset_ctrl', initial_position='top')
 
     # TY
     cmds.setAttr(mid_upper_lip_ctrl[1] + '.ty', 6)
@@ -277,10 +277,10 @@ def create_mouth_controls():
         cmds.setAttr(ctrl[1] + '.sz', 0.5)
 
     # 2D Controls
-    left_corner_lip_ctrl = create_2d_slider_control('left_cornerLip_offset_ctrl')
-    right_corner_lip_ctrl = create_2d_slider_control('right_cornerLip_offset_ctrl')
-    jaw_ctrl = create_2d_slider_control('jaw_offset_ctrl')
-    tongue_ctrl = create_2d_slider_control('tongue_offset_ctrl')
+    left_corner_lip_ctrl = create_slider_squared_two_dimensions('left_cornerLip_offset_ctrl')
+    right_corner_lip_ctrl = create_slider_squared_two_dimensions('right_cornerLip_offset_ctrl')
+    jaw_ctrl = create_slider_squared_two_dimensions('jaw_offset_ctrl')
+    tongue_ctrl = create_slider_squared_two_dimensions('tongue_offset_ctrl')
 
     # Inverted Right Controls
     cmds.setAttr(right_corner_lip_ctrl[1] + '.ry', 180)
@@ -400,7 +400,7 @@ def create_mouth_controls():
     return gui_grp, controls
 
 
-def create_eyebrow_controls():
+def create_sliders_squared_eyebrows():
     """
     Dependencies:
         rescale()
@@ -429,10 +429,10 @@ def create_eyebrow_controls():
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_mid_brow_ctrl = create_slider_control('left_midBrow_offset_ctrl')
-    left_outer_brow_ctrl = create_slider_control('left_outerBrow_offset_ctrl')
-    right_mid_brow_ctrl = create_slider_control('right_midBrow_offset_ctrl')
-    right_outer_brow_ctrl = create_slider_control('right_outerBrow_offset_ctrl')
+    left_mid_brow_ctrl = create_slider_squared_one_dimension('left_midBrow_offset_ctrl')
+    left_outer_brow_ctrl = create_slider_squared_one_dimension('left_outerBrow_offset_ctrl')
+    right_mid_brow_ctrl = create_slider_squared_one_dimension('right_midBrow_offset_ctrl')
+    right_outer_brow_ctrl = create_slider_squared_one_dimension('right_outerBrow_offset_ctrl')
 
     # TY
     cmds.setAttr(left_mid_brow_ctrl[1] + '.tx', 11)
@@ -440,8 +440,8 @@ def create_eyebrow_controls():
     cmds.setAttr(right_mid_brow_ctrl[1] + '.tx', -11)
     cmds.setAttr(right_outer_brow_ctrl[1] + '.tx', -15)
 
-    left_inner_brow_ctrl = create_2d_slider_control('left_innerBrow_offset_ctrl', ignore_range='right')
-    right_inner_brow_ctrl = create_2d_slider_control('right_innerBrow_offset_ctrl', ignore_range='right')
+    left_inner_brow_ctrl = create_slider_squared_two_dimensions('left_innerBrow_offset_ctrl', ignore_range='right')
+    right_inner_brow_ctrl = create_slider_squared_two_dimensions('right_innerBrow_offset_ctrl', ignore_range='right')
 
     # Invert Right Side
     cmds.setAttr(right_inner_brow_ctrl[1] + '.ry', 180)
@@ -521,7 +521,7 @@ def create_eyebrow_controls():
     return gui_grp, controls
 
 
-def create_cheek_nose_controls():
+def create_sliders_squared_cheek_nose():
     """
     Dependencies:
         rescale()
@@ -559,15 +559,15 @@ def create_cheek_nose_controls():
     background.append(right_cheek_in_out_crv)
 
     # 1D Controls
-    left_cheek_in_out_ctrl = create_slider_control('left_cheek_in_out_offset_ctrl')
-    right_cheek_in_out_ctrl = create_slider_control('right_cheek_in_out_offset_ctrl')
+    left_cheek_in_out_ctrl = create_slider_squared_one_dimension('left_cheek_in_out_offset_ctrl')
+    right_cheek_in_out_ctrl = create_slider_squared_one_dimension('right_cheek_in_out_offset_ctrl')
 
     # 2D Controls
-    left_cheek_ctrl = create_2d_slider_control('left_cheek_offset_ctrl')
-    right_cheek_ctrl = create_2d_slider_control('right_cheek_offset_ctrl')
-    left_nose_ctrl = create_2d_slider_control('left_nose_offset_ctrl')
-    right_nose_ctrl = create_2d_slider_control('right_nose_offset_ctrl')
-    main_nose_ctrl = create_2d_slider_control('main_nose_offset_ctrl')
+    left_cheek_ctrl = create_slider_squared_two_dimensions('left_cheek_offset_ctrl')
+    right_cheek_ctrl = create_slider_squared_two_dimensions('right_cheek_offset_ctrl')
+    left_nose_ctrl = create_slider_squared_two_dimensions('left_nose_offset_ctrl')
+    right_nose_ctrl = create_slider_squared_two_dimensions('right_nose_offset_ctrl')
+    main_nose_ctrl = create_slider_squared_two_dimensions('main_nose_offset_ctrl')
 
     # Reposition / Rescale BG
     left_nose_crv_tx = 0.05
@@ -703,7 +703,7 @@ def create_cheek_nose_controls():
     return gui_grp, controls
 
 
-def create_eye_controls():
+def create_sliders_squared_eyes():
     """
     Dependencies:
         rescale()
@@ -732,20 +732,20 @@ def create_eye_controls():
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_upper_eyelid_ctrl = create_slider_control('left_upperEyelid_offset_ctrl')
-    left_lower_eyelid_ctrl = create_slider_control('left_lowerEyelid_offset_ctrl')
-    left_blink_eyelid_ctrl = create_slider_control('left_blinkEyelid_ctrl')
-    right_upper_eyelid_ctrl = create_slider_control('right_upperEyelid_offset_ctrl')
-    right_lower_eyelid_ctrl = create_slider_control('right_lowerEyelid_offset_ctrl')
-    right_blink_eyelid_ctrl = create_slider_control('right_blinkEyelid_ctrl')
+    left_upper_eyelid_ctrl = create_slider_squared_one_dimension('left_upperEyelid_offset_ctrl')
+    left_lower_eyelid_ctrl = create_slider_squared_one_dimension('left_lowerEyelid_offset_ctrl')
+    left_blink_eyelid_ctrl = create_slider_squared_one_dimension('left_blinkEyelid_ctrl')
+    right_upper_eyelid_ctrl = create_slider_squared_one_dimension('right_upperEyelid_offset_ctrl')
+    right_lower_eyelid_ctrl = create_slider_squared_one_dimension('right_lowerEyelid_offset_ctrl')
+    right_blink_eyelid_ctrl = create_slider_squared_one_dimension('right_blinkEyelid_ctrl')
 
-    offset_slider_range(left_upper_eyelid_ctrl, offset_thickness=1)
-    offset_slider_range(left_lower_eyelid_ctrl, offset_thickness=1)
-    offset_slider_range(left_blink_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(left_upper_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(left_lower_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(left_blink_eyelid_ctrl, offset_thickness=1)
     #
-    offset_slider_range(right_upper_eyelid_ctrl, offset_thickness=1)
-    offset_slider_range(right_lower_eyelid_ctrl, offset_thickness=1)
-    offset_slider_range(right_blink_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(right_upper_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(right_lower_eyelid_ctrl, offset_thickness=1)
+    _offset_slider_range(right_blink_eyelid_ctrl, offset_thickness=1)
 
     # to_scale_down = [left_upper_eyelid_ctrl, left_lower_eyelid_ctrl, left_blink_eyelid_ctrl,
     #                  right_upper_eyelid_ctrl, right_lower_eyelid_ctrl, right_blink_eyelid_ctrl]
@@ -857,28 +857,35 @@ def create_eye_controls():
     return gui_grp, controls
 
 
-def create_facial_side_gui(add_nose_cheeks=False):
+def create_sliders_squared_facial_side_gui(add_nose_cheeks=True):
+    """
+    Creates squared sliders for facial controls
+    Args:
+        add_nose_cheeks (bool): If active, the nose and cheek sliders will be included in the creation.
+    Returns:
+        ControlData: object containing: name=parent_grp
+    """
     selection = cmds.ls(selection=True)
     parent_grp = cmds.group(empty=True, world=True, name='facial_side_gui_grp')
-    eyebrow_ctrls = create_eyebrow_controls()
-    eye_ctrls = create_eye_controls()
-    mouth_ctrls = create_mouth_controls()
+    eyebrow_ctrls = create_sliders_squared_eyebrows()
+    eye_ctrls = create_sliders_squared_eyes()
+    mouth_ctrls = create_sliders_squared_mouth()
     cmds.move(43, eyebrow_ctrls[0], moveY=True)
     cmds.move(23, eye_ctrls[0], moveY=True)
     cmds.parent(eyebrow_ctrls[0], parent_grp)
     cmds.parent(eye_ctrls[0], parent_grp)
     cmds.parent(mouth_ctrls[0], parent_grp)
     if add_nose_cheeks:
-        nose_cheek_ctrls = create_cheek_nose_controls()
+        nose_cheek_ctrls = create_sliders_squared_cheek_nose()
         cmds.parent(nose_cheek_ctrls[0], parent_grp)
         cmds.move(22, nose_cheek_ctrls[0], moveY=True)
         cmds.move(42, eye_ctrls[0], moveY=True)
         cmds.move(62, eyebrow_ctrls[0], moveY=True)
     cmds.select(selection)
-    return parent_grp
+    return ControlData(name=parent_grp)
 
 
-def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
+def _offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
     """
     Offsets the slider range updating its limits and shapes to conform to the new values
     Args:
@@ -928,4 +935,5 @@ def offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    create_facial_side_gui()
+    # create_facial_side_gui()
+    create_slider_squared_one_dimension()

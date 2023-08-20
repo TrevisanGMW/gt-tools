@@ -13,7 +13,7 @@ e.g.
     Function definition
     >>> def create_scalable_arrow(name='scalable_arrow', initial_scale=1):
     Control object creation
-    >>> scalable_arrow = Control(build_function=cluster_driven.create_scalable_arrow)
+    >>> scalable_arrow = Control(build_function=cluster_driven.create_scalable_two_sides_arrow)
     Name value = "scalable_arrow"
     >>> print(scalable_arrow.get_name())
 """
