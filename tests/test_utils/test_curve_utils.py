@@ -638,7 +638,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_curve(self):
-        curve = curve_utils.get_curve(file_name="_scalable_arrow")
+        curve = curve_utils.get_curve(file_name="_scalable_one_side_arrow")
         self.assertIsInstance(curve, curve_utils.Curve)
 
     def test_get_curve_custom_dir(self):

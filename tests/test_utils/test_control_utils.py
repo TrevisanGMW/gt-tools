@@ -170,7 +170,7 @@ class TestControlUtils(unittest.TestCase):
 
     def test_get_docstrings_no_docstring(self):
         self.control.set_build_function(self.mocked_function_two)
-        expected = None
+        expected = ""
         result = self.control.get_docstrings()
         self.assertEqual(expected, result)
 
@@ -191,9 +191,9 @@ class TestControlUtils(unittest.TestCase):
                 raise Exception(f'Invalid control. Missing build function: "{ctrl_key}"')
 
     def test_get_control_preview_image_path(self):
-        path = control_utils.get_control_preview_image_path("scalable_arrow")
+        path = control_utils.get_control_preview_image_path("scalable_one_side_arrow")
         result = os.path.exists(path)
         self.assertTrue(result)
         result = os.path.basename(path)
-        expected = "scalable_arrow.jpg"
+        expected = "scalable_one_side_arrow.jpg"
         self.assertEqual(expected, result)
