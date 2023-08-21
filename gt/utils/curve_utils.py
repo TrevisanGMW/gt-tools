@@ -543,10 +543,16 @@ class Curve:
             self.name = data_dict.get('name')
         transform_data = data_dict.get('transform')
         if transform_data:
-            position = Vector3(transform_data[0], transform_data[1], transform_data[2])
-            rotation = Vector3(transform_data[3], transform_data[4], transform_data[5])
-            scale = Vector3(transform_data[6], transform_data[7], transform_data[8])
-            self.transform = Transform(position, rotation, scale)
+            try:
+                pos_data = transform_data.get("position")
+                rot_data = transform_data.get("rotation")
+                sca_data = transform_data.get("scale")
+                position = Vector3(pos_data[0], pos_data[1], pos_data[2])
+                rotation = Vector3(rot_data[0], rot_data[1], rot_data[2])
+                scale = Vector3(sca_data[0], sca_data[1], sca_data[2])
+                self.transform = Transform(position, rotation, scale)
+            except Exception as e:
+                logger.debug(f'Unable to read transform data. Issue: "{e}".')
         metadata = data_dict.get('metadata')
         if data_dict.get('metadata'):
             self.metadata = metadata
@@ -1240,7 +1246,7 @@ def write_curve_files_from_selection(target_dir=None,
                              f'(Axis:{projection_axis_value}, Scale: {projection_scale_value})\n')
 
 
-def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=5, rgb_color=(1, 1, 0.1)):
+def generate_package_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=5, rgb_color=(1, 1, 0.1)):
     """
     Generate curve thumbnail
     Args:
@@ -1333,7 +1339,7 @@ def generate_curve_thumbnail(target_dir, curve, image_format="jpg", line_width=5
     return target_dir
 
 
-def generate_curves_thumbnails(target_dir=None, force=False):
+def generate_package_curves_thumbnails(target_dir=None, force=False):
     """
     Iterates through the Curves class attributes rendering a thumbnail for each one of the found Curves.
     At the end of the operation, it opens the target directory.
@@ -1371,7 +1377,7 @@ def generate_curves_thumbnails(target_dir=None, force=False):
             raise Exception(f'Missing curve: {curve_key}')
         if not curve_obj.shapes:
             raise Exception(f'Missing shapes for a curve: {curve_obj}')
-        generate_curve_thumbnail(target_dir=target_dir, curve=curve_obj)
+        generate_package_curve_thumbnail(target_dir=target_dir, curve=curve_obj)
     from gt.utils.system_utils import open_file_dir
     open_file_dir(target_dir)
     cmds.file(new=True, force=True)
@@ -1418,3 +1424,4 @@ if __name__ == "__main__":
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
     pprint(out)
+    generate_package_curve_thumbnail

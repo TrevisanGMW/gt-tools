@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Tool Version
-__version_tuple__ = (2, 0, 3)
+__version_tuple__ = (2, 0, 4)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

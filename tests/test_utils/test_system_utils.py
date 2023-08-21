@@ -1,12 +1,13 @@
-import os
-import io
-import sys
-import pathlib
-import logging
-import unittest
-import tempfile
-from contextlib import redirect_stdout
 from unittest.mock import patch, MagicMock
+from contextlib import redirect_stdout
+from datetime import datetime
+import tempfile
+import unittest
+import logging
+import pathlib
+import sys
+import io
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -527,14 +528,113 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(int, imported_object)
 
     def test_import_non_class_print(self):
-        """
-        Test importing a non-class object.
-        """
+        # Test importing a non-class object
         imported_object = system_utils.import_from_path("builtins.print")
         import builtins
-        self.assertEqual(imported_object, builtins.print)
+        self.assertEqual(builtins.print, imported_object)
 
     def test_import_invalid_path(self):
         # Test importing an invalid class path
         imported_object = system_utils.import_from_path('nonexistent_module.NonexistentClass')
         self.assertIsNone(imported_object)
+
+    def test_no_arguments(self):
+        def func():
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(func)
+        self.assertEqual(args, [])
+        self.assertEqual(kwargs, [])
+
+    def test_with_arguments(self):
+        def func(a, b, c=0, d=1):
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(func)
+        self.assertEqual(args, ['a', 'b'])
+        self.assertEqual(kwargs, ['c', 'd'])
+
+    def test_kwargs_as_dict_true(self):
+        def sample_function(a, b=10, c="hello"):
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(sample_function, kwargs_as_dict=True)
+
+        expected_args = ['a']
+        expected_kwargs = {'b': 10, 'c': 'hello'}
+
+        self.assertEqual(args, expected_args)
+        self.assertEqual(kwargs, expected_kwargs)
+
+    def test_kwargs_as_dict_false(self):
+        def sample_function(a, b=10, c="hello"):
+            pass
+
+        args, kwargs = system_utils.get_function_arguments(sample_function, kwargs_as_dict=False)
+
+        expected_args = ['a']
+        expected_kwargs = ['b', 'c']
+
+        self.assertEqual(args, expected_args)
+        self.assertEqual(kwargs, expected_kwargs)
+
+    def test_get_docstring(self):
+        def function_with_docstring():
+            """
+            This is an example function.
+            It does nothing but demonstrate how to use the get_docstring function.
+            """
+            pass
+        self.assertEqual(system_utils.get_docstring(function_with_docstring), function_with_docstring.__doc__)
+
+    def test_get_docstring_empty(self):
+        def no_docstring_function():
+            pass
+
+        expected_docstring = ""
+        result = system_utils.get_docstring(no_docstring_function)
+        self.assertEqual(expected_docstring, result)
+
+    def test_get_docstring_without_tabs_or_new_lines(self):
+        def example_function():
+            """
+            This is an example docstring.
+
+                This line has a leading tab.
+            """
+            pass
+        expected_docstring = "This is an example docstring.\n\nThis line has a leading tab."
+        result = system_utils.get_docstring(example_function, strip=True, strip_new_lines=True)
+        self.assertEqual(expected_docstring, result)
+
+    def test_get_docstring_without_tabs(self):
+        def example_function():
+            """
+            This is an example docstring.
+
+                This line has a leading tab.
+            """
+            pass
+        expected_docstring = "\nThis is an example docstring.\n\nThis line has a leading tab.\n"
+        result = system_utils.get_docstring(example_function, strip=True, strip_new_lines=False)
+        self.assertEqual(expected_docstring, result)
+
+    def test_get_docstring_non_callable(self):
+        non_callable_object = 42
+        with self.assertRaises(ValueError):
+            system_utils.get_docstring(non_callable_object)
+
+    def test_get_docstring_non_callable_none(self):
+        with self.assertRaises(ValueError):
+            system_utils.get_docstring(None)
+
+    def test_default_format(self):
+        expected = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = system_utils.get_formatted_time()
+        self.assertEqual(expected, result)
+
+    def test_custom_format(self):
+        custom_format = "%A, %B %d, %Y - %I:%M %p"
+        expected = datetime.now().strftime(custom_format)
+        result = system_utils.get_formatted_time(format_str=custom_format)
+        self.assertEqual(expected, result)

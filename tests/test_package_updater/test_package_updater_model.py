@@ -250,16 +250,18 @@ class TestCurveLibraryModel(unittest.TestCase):
         expected = None
         self.assertEqual(expected, result)
 
-    @patch('gt.utils.feedback_utils.FeedbackMessage')
-    @patch('gt.utils.setup_utils.install_package')
-    @patch('gt.tools.package_updater.package_updater_model.remove_package_loaded_modules')
     @patch('os.listdir')
+    @patch('gt.utils.setup_utils.install_package')
+    @patch('gt.utils.feedback_utils.FeedbackMessage')
     @patch('gt.tools.package_updater.package_updater_model.unzip_zip_file')
     @patch('gt.tools.package_updater.package_updater_model.download_file')
     @patch('gt.tools.package_updater.package_updater_model.progress_bar')
+    @patch('gt.tools.package_updater.package_updater_model.remove_package_loaded_modules')
+    @patch('gt.tools.package_updater.package_updater_model.reload_package_loaded_modules')
     @patch('gt.tools.package_updater.package_updater_model.PackageCache', spec_set=PackageCache)
-    def test_update_package(self, mocked_cache, mocked_progress_bar, mocked_download_file, mocked_unzip_zip_file,
-                            mocked_os_dir, mocked_remove_modules, mocked_install_package, mocked_feedback):
+    def test_update_package(self, mocked_cache, mocked_reload_modules, mocked_remove_modules,
+                            mocked_progress_bar, mocked_download_file, mocked_unzip_zip_file, mocked_feedback,
+                            mocked_install_package, mocked_os_dir):
         initial_sys_path = sys.path.copy()
         self.model.needs_update = True
         self.model.response_content = '[{"zipball_url":"mocked_url","published_at":"date1", "body":"body1"}]'
@@ -287,6 +289,7 @@ class TestCurveLibraryModel(unittest.TestCase):
         mocked_download_file.assert_called()
         mocked_unzip_zip_file.assert_called()
         mocked_remove_modules.assert_called()
+        mocked_reload_modules.assert_called()
         self.assertIn(temp_dir_extract, sys.path)
         mocked_install_package.return_value = False
         mocked_install_package.assert_called()

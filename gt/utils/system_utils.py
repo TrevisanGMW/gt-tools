@@ -4,6 +4,7 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.data_utils import DataDirConstants
+from datetime import datetime
 from functools import wraps
 import subprocess
 import importlib
@@ -678,6 +679,83 @@ def import_from_path(path):
         return None
     except (ImportError, AttributeError, ValueError, ModuleNotFoundError) as e:
         return None
+
+
+def get_function_arguments(func, kwargs_as_dict=False):
+    """
+    Get the arguments and keyword arguments of a given function.
+
+    Args:
+        func (callable): The function to inspect.
+        kwargs_as_dict (bool, optional): If active, it will return the kwargs as a dictionary with
+                                          the keyword names and their default values.
+
+    Returns:
+        tuple: A tuple containing two lists:
+            - List of argument names
+            - List of keyword argument names (or a dictionary in case "kwargs_as_dict" is True)
+    """
+    import inspect
+
+    signature = inspect.signature(func)
+    args = []
+    kwargs = []
+    kwargs_dict = {}
+
+    for param_name, param in signature.parameters.items():
+        if param.default == inspect.Parameter.empty:
+            args.append(param_name)
+        else:
+            kwargs.append(param_name)
+            kwargs_dict[param_name] = param.default
+    if kwargs_as_dict:
+        return args, kwargs_dict
+    return args, kwargs
+
+
+def get_docstring(func, strip=False, strip_new_lines=False):
+    """
+    Get the docstring of a target function.
+
+    Args:
+        func (callable): The function whose docstring needs to be retrieved.
+        strip (bool, optional): If True, leading empty space will be removed from each line of the docstring.
+        strip_new_lines (bool, optional): If True, it will remove new lines from the beginning of the docstring and end.
+
+    Returns:
+        str: The docstring of the target function.
+    """
+    if not callable(func):
+        raise ValueError("Input 'func' must be a callable function.")
+
+    docstring = func.__doc__
+    if docstring is None:
+        return ""
+
+    if strip:
+        # Remove leading empty spaces from each line of the docstring
+        docstring = '\n'.join(line.lstrip() for line in docstring.split('\n'))
+    if strip_new_lines:
+        docstring = docstring.lstrip('\n')
+        if docstring.endswith(docstring):
+            docstring = docstring[:-len('\n')]
+
+    return docstring
+
+
+def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
+    """
+    Get the current time and return it as a formatted string.
+
+    Args:
+        format_str (str, optional): Format string for formatting the time. Defaults to "%Y-%m-%d %H:%M:%S".
+
+    Returns:
+        str: Formatted string representing the current time.
+    """
+    current_time = datetime.now()
+    formatted_time = current_time.strftime(format_str)
+    return formatted_time
 
 
 if __name__ == "__main__":
