@@ -42,11 +42,14 @@ class NamingConstants:
         UPPER = "upper"  # ^
         INNER_UP = "inUp"  # >^
         INNER = "inner"  # >
-        INNER_LO = "outLo"  # >v
+        INNER_LO = "inLo"  # >v
         LOWER = "lower"  # v
-        OUTER_LO = "loOut"  # <v
+        OUTER_LO = "outLo"  # <v
         OUTER = "outer"  # <
         OUTER_UP = "outUp"  # <^
+
+    class Description:
+        OFFSET = "offset"
 
 
 def get_short_name(long_name):
