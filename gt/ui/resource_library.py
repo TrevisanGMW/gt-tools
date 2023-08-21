@@ -316,6 +316,7 @@ class Icon:
     misc_current_version = get_icon_path(r"misc_current_version.svg")
     # Dev
     dev_brain = get_icon_path(r"dev_brain.svg")
+    dev_parameters = get_icon_path(r"dev_parameters.svg")
     dev_git_fork = get_icon_path(r"dev_git_fork.svg")
     dev_git_pull_request = get_icon_path(r"dev_git_pull_request.svg")
     dev_binary = get_icon_path(r"dev_binary.svg")
@@ -343,11 +344,23 @@ class Icon:
     misc_cog = get_icon_path(r"misc_cog.svg")
     scrollbar_up = get_icon_path(r"scrollbar_up.svg")
     scrollbar_down = get_icon_path(r"scrollbar_down.svg")
+    scrollbar_left = get_icon_path(r"scrollbar_left.svg")
+    scrollbar_right = get_icon_path(r"scrollbar_right.svg")
     setup_install = get_icon_path(r"setup_install.svg")
     setup_uninstall = get_icon_path(r"setup_uninstall.svg")
     setup_run_only = get_icon_path(r"setup_run_only.svg")
     setup_close = get_icon_path(r"setup_close.svg")
     curve_library_missing_file = get_icon_path(r"curve_library_missing_file.svg")
+    curve_library_base_curve = get_icon_path(r"curve_library_base_curve.svg")
+    curve_library_user_curve = get_icon_path(r"curve_library_user_curve.svg")
+    curve_library_control = get_icon_path(r"curve_library_control.svg")
+    curve_library_parameters = get_icon_path(r"curve_library_parameters.svg")
+    curve_library_build = get_icon_path(r"curve_library_build.svg")
+    curve_library_edit = get_icon_path(r"curve_library_edit.svg")
+    curve_library_snapshot = get_icon_path(r"curve_library_snapshot.svg")
+    curve_library_remove = get_icon_path(r"curve_library_remove.svg")
+    curve_library_add = get_icon_path(r"curve_library_add.svg")
+    ui_exclamation = get_icon_path(r"ui_exclamation.svg")
 
 
 class Color:

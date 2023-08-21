@@ -1,9 +1,9 @@
 {
-    "name": "scalable_arrow",
+    "name": "scalable_two_sides_arrow",
     "transform": null,
     "shapes": [
         {
-            "name": "scalable_arrowShape",
+            "name": "scalable_two_sides_arrowShape",
             "points": [
                 [
                     0.0,

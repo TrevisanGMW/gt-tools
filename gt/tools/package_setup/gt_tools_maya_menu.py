@@ -392,17 +392,24 @@ def load_menu(*args):
                                    'write_curve_files_from_selection()\n',
                            tooltip="Write curve data attributes to a desktop folder.",
                            icon=resource_library.Icon.dev_binary)
-        menu.add_menu_item(label='Print CRV files to Python for Curves',
+        menu.add_menu_item(label='Print Package CRV files to Python',
                            command='from gt.utils.curve_utils import print_code_for_crv_files\n'
                                    'print_code_for_crv_files()\n',
                            tooltip='Prints Python Lines used to call curves from "Curves" class.',
                            icon=resource_library.Icon.dev_binary)
-        menu.add_menu_item(label='Render Curves Thumbnails',
-                           command='from gt.utils.curve_utils import generate_curves_thumbnails\n'
-                                   'generate_curves_thumbnails()\n',
-                           tooltip="Render thumbnails for current curves to a desktop folder.",
+        menu.add_menu_item(label='Render Package Curves Thumbnails',
+                           command='from gt.utils.curve_utils import generate_package_curves_thumbnails\n'
+                                   'generate_package_curves_thumbnails()\n',
+                           tooltip="Render thumbnails for the package curves to a desktop folder.",
                            icon=resource_library.Icon.dev_picker)
-        menu.add_divider(divider_label="Package")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_divider(divider_label="General")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(label='Take Viewport Snapshot',
+                           command='from gt.utils.playblast_utils import render_viewport_snapshot\n'
+                                   'from gt.utils.system_utils import get_desktop_path, get_formatted_time\n'
+                                   'render_viewport_snapshot(get_formatted_time(format_str="Snapshot %Y-%m-%d %H%M%S"),'
+                                   ' get_desktop_path())',
+                           tooltip="Saves a viewport snapshot to the desktop.",
+                           icon=resource_library.Icon.dev_picker)
         menu.add_menu_item(label='Silently Check for Updates',
                            command=IMPORT_TOOL + 'initialize_tool("package_updater", "silently_check_for_updates")',
                            tooltip="Silently checks for updates.",
@@ -413,6 +420,7 @@ def load_menu(*args):
                                    'open_file_dir(get_module_path(module_name="gt", verbose=True))\n',
                            tooltip="Gets the loaded package path location.",
                            icon=resource_library.Icon.dev_code)
+        menu.add_divider(divider_label="Dangerous")  # Misc Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Skip Menu Creation Toggle',
                            command='from gt.utils.prefs_utils import toggle_skip_menu_creation\n'
                                    'toggle_skip_menu_creation()\n',

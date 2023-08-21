@@ -45,6 +45,7 @@ modules_to_test = [
     test_utils.test_iterable_utils,
     test_utils.test_namespace_utils,
     test_utils.test_naming_utils,
+    test_utils.test_playblast_utils,
     test_utils.test_prefs_utils,
     test_utils.test_request_utils,
     test_utils.test_scene_utils,

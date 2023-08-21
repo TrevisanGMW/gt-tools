@@ -81,6 +81,90 @@ def get_next_dict_item(dictionary, key, cycle=False):
         return None
 
 
+def compare_identical_dict_keys(dict1, dict2):
+    """
+    Compare two dictionaries and check if they have exactly the same keys.
+
+    Args:
+        dict1 (dict): The first dictionary.
+        dict2 (dict): The second dictionary.
+
+    Returns:
+        bool: True if both dictionaries have exactly the same keys, False otherwise.
+    """
+    return set(dict1.keys()) == set(dict2.keys())
+
+
+def compare_identical_dict_values_types(dict1, dict2):
+    """
+    Compare the types of values in two dictionaries.
+
+    Args:
+        dict1 (dict): The first dictionary.
+        dict2 (dict): The second dictionary.
+
+    Returns:
+        bool: True if all corresponding values have the same type, False otherwise.
+    """
+    keys1 = set(dict1.keys())
+    keys2 = set(dict2.keys())
+    if keys1 != keys2:
+        return False
+    for key in keys1:
+        if type(dict1[key]) != type(dict2[key]):
+            return False
+    return True
+
+
+def format_dict_with_keys_per_line(input_dict, keys_per_line=2, bracket_new_line=False):
+    """
+    Format a dictionary with a specified number of keys per line.
+
+    Args:
+        input_dict (dict): The dictionary to be formatted.
+        keys_per_line (int, optional): The number of keys to include per line. Default is 2.
+        bracket_new_line (bool, optional): If active, it adds a new line after the first bracket and
+                                               before the last. e.g. "{\n"key":"value"\n}
+    Returns:
+        str: The formatted dictionary as a string.
+
+    Example:
+        sample_dict = {
+            'name': 'John Doe',
+            'age': 30,
+            'city': 'New York',
+            'email': 'john@example.com',
+            'occupation': 'Software Engineer'
+        }
+        keys_per_line = 2
+        formatted_dict = format_dict_with_keys_per_line(sample_dict, keys_per_line)
+        print(formatted_dict)
+        {
+            "name": "John Doe", "age": 30,
+            "city": "New York", "email": "john@example.com",
+            "occupation": "Software Engineer"
+        }
+    """
+    formatted_lines = []
+    keys = list(input_dict.keys())
+
+    for i in range(0, len(keys), keys_per_line):
+        line_keys = keys[i:i + keys_per_line]
+        line_entries = []
+        for key in line_keys:
+            value = input_dict[key]
+            if isinstance(value, str):
+                line_entries.append(f'"{key}": "{value}"')
+            else:
+                line_entries.append(f'"{key}": {repr(value)}')
+        formatted_lines.append(", ".join(line_entries))
+
+    _bracket_new_line = ""
+    if bracket_new_line:
+        _bracket_new_line = "\n"
+    return "{" + _bracket_new_line + ",\n".join(formatted_lines) + _bracket_new_line + "}"
+
+
 def remove_list_duplicates(input_list):
     """
     Remove duplicates from a list using a set.
@@ -132,10 +216,11 @@ def make_flat_list(*args):
         else:
             _flat.append(_arg)
     return _flat
-    
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
+
     out = None
     pprint(out)

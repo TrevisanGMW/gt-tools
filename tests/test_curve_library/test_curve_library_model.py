@@ -190,8 +190,12 @@ class TestCurveLibraryModel(unittest.TestCase):
             expected = [curve]
             self.assertEqual(expected, result)
 
+    def test_build_curve_from_name(self):
+        self.model.build_curve_from_name(curve_name="circle_arrow")
+        self.assertTrue(maya_test_tools.cmds.objExists("circle_arrow"))
+
     def test_build_curve(self):
-        self.model.build_curve(curve_name="circle_arrow")
+        self.model.build_curve(curve=Curves.circle_arrow)
         self.assertTrue(maya_test_tools.cmds.objExists("circle_arrow"))
 
     def test_get_curve_from_name(self):

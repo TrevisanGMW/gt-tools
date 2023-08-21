@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
 from gt.utils.session_utils import is_script_in_interactive_maya
-from PySide2.QtGui import QFontDatabase, QColor, QFont
+from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap
 from gt.utils.system_utils import is_system_macos
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtCore import QPoint
@@ -410,6 +410,37 @@ def update_formatted_label(target_label,
             _html += "</b>"
     _html += "</div></html>"
     target_label.setText(_html)
+
+
+def load_and_scale_pixmap(image_path, scale_percentage, exact_height=None, exact_width=None):
+    """
+    Load an image from the given path, and scale it by the specified percentage,
+    then return the scaled QPixmap.
+
+    Args:
+        image_path (str): Path to the image file.
+        scale_percentage (float): Percentage to scale the image by.
+                                  100 = Same resolution. 50 = half the resolution. 200 = double the resolution.
+        exact_height (int, optional): If provided, it will overwrite scale percentage and use this height instead.
+        exact_width (int, optional): If provided, it will overwrite scale percentage and use this width instead.
+
+    Returns:
+        QPixmap: Scaled QPixmap object with loaded image (Using SmoothTransformation mode)
+    """
+    pixmap = QPixmap(image_path)
+    pixmap_height = pixmap.height()
+    pixmap_width = pixmap.width()
+
+    scaled_width = int(pixmap_width * (scale_percentage / 100))
+    scaled_height = int(pixmap_height * (scale_percentage / 100))
+
+    if exact_height and isinstance(exact_height, int):
+        scaled_height = exact_height
+    if exact_width and isinstance(exact_width, int):
+        scaled_height = exact_width
+
+    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=QtCore.Qt.SmoothTransformation)
+    return scaled_pixmap
 
 
 class QtApplicationContext:

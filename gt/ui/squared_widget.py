@@ -86,18 +86,18 @@ class SquaredWidget(QWidget):
 
 
 if __name__ == "__main__":
-    from PySide2.QtWidgets import QApplication, QMainWindow, QVBoxLayout
+    from PySide2.QtWidgets import QMainWindow, QVBoxLayout
     from gt.ui.resource_library import Icon
-    import sys
+    from gt.ui import qt_utils
 
-    app = QApplication(sys.argv)
-    main_window = QMainWindow()
-    central_widget = SquaredWidget(center_y=False)
-    pixmap = QPixmap(Icon.curve_library_missing_file)
-    central_widget.set_pixmap(pixmap)
-    main_window.setCentralWidget(central_widget)
-    layout = QVBoxLayout(central_widget)
-    center_widget = QWidget()
-    layout.addWidget(center_widget)
-    main_window.show()
-    sys.exit(app.exec_())
+    with qt_utils.QtApplicationContext():
+        main_window = QMainWindow()
+        central_widget = SquaredWidget(center_y=False)
+        pixmap = QPixmap(Icon.curve_library_missing_file)
+        central_widget.set_pixmap(pixmap)
+        main_window.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        center_widget = QWidget()
+        layout.addWidget(center_widget)
+        main_window.show()
+
