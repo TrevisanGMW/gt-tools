@@ -50,6 +50,7 @@ class CurveLibraryController:
         self.view.parameters_button.clicked.connect(self.open_parameter_editor)
         self.view.add_custom_button.clicked.connect(self.add_user_curve)
         self.view.delete_custom_button.clicked.connect(self.remove_user_curve)
+        self.view.snapshot_button.clicked.connect(self.render_curve_snapshot)
         self.populate_curve_library()
         self.view.show()
 
@@ -72,6 +73,8 @@ class CurveLibraryController:
                 self.set_view_base_curve_mode()
             elif metadata.get("item_type") == self.CURVE_TYPE_USER:
                 self.set_view_user_curve_mode()
+                user_preview_image = self.get_custom_curve_preview_image()
+                self.view.update_preview_image(new_image_path=user_preview_image)
             elif metadata.get("item_type") == self.CURVE_TYPE_CONTROL:
                 self.set_view_control_curve_mode()
 
@@ -222,6 +225,9 @@ class CurveLibraryController:
                 self.set_view_user_curve_mode()
 
     def remove_user_curve(self):
+        """
+        Deletes selected curve (only user curves) - Asks for confirmation through a dialog before deleting it.
+        """
         curve = self.get_selected_item_curve()
         if not curve:
             logger.warning(f'Unable to retrieve curve object associated to selected item.')
@@ -234,13 +240,48 @@ class CurveLibraryController:
         if user_choice == QMessageBox.Yes:
             path_dir = self.preferences.get_user_files_dir_path()
             path_file = os.path.join(path_dir, f'{curve_name}.crv')
+            path_preview_image = os.path.join(path_dir, f'{curve_name}.jpg')
             from gt.utils.data_utils import delete_paths
-            delete_paths(path_file)
+            delete_paths([path_file, path_preview_image])
             self.model.import_user_curve_library(source_dir=path_dir)
             selected_item = self.view.item_list.currentItem()
             if selected_item:
                 self.view.item_list.takeItem(self.view.item_list.row(selected_item))
             sys.stdout.write(f'Curve "{curve_name}" was deleted.\n')
+
+    def render_curve_snapshot(self):
+        """ Saves a snapshot to be used as preview image for a custom user curve """
+        curve = self.get_selected_item_curve()
+        if not curve:
+            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+            return
+        curve_name = curve.get_name()
+        path_dir = self.preferences.get_user_files_dir_path()
+        from gt.utils.playblast_utils import render_viewport_snapshot
+        path_file = render_viewport_snapshot(file_name=curve_name, target_dir=path_dir)
+        if path_file and os.path.exists(path_file):
+            sys.stdout.write(f'Snapshot written to: "{path_file}".')
+            self.on_item_selection_changed()
+        else:
+            logger.warning(f'Unable to save snapshot. Failed to create image file.')
+
+    def get_custom_curve_preview_image(self):
+        """
+        Gets the preview image for a custom curve (in case it exists)
+        Returns:
+            str: Path to the preview image or the path to the missing file image.
+        """
+        curve = self.get_selected_item_curve()
+        if not curve:
+            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+            return
+        curve_name = curve.get_name()
+        path_dir = self.preferences.get_user_files_dir_path()
+        preview_image = os.path.join(path_dir, f'{curve_name}.jpg')
+        if os.path.exists(preview_image):
+            return preview_image
+        else:
+            return resource_library.Icon.curve_library_missing_file
 
 
 if __name__ == "__main__":
