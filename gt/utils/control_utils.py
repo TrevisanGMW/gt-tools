@@ -313,10 +313,9 @@ class Controls:
         """
     scalable_one_side_arrow = Control(build_function=cluster_driven.create_scalable_one_side_arrow)
     scalable_two_sides_arrow = Control(build_function=cluster_driven.create_scalable_two_sides_arrow)
-    squared_slider_one_dimension = Control(build_function=slider.create_slider_squared_one_dimension)
+    slider_squared_one_dimension = Control(build_function=slider.create_slider_squared_one_dimension)
     slider_squared_two_dimensions = Control(build_function=slider.create_slider_squared_two_dimensions)
-    sliders_squared_mouth = Control(name="sliders_squared_mouth",
-                                    build_function=slider.create_sliders_squared_mouth)
+    sliders_squared_mouth = Control(name="sliders_squared_mouth", build_function=slider.create_sliders_squared_mouth)
     sliders_squared_eyebrows = Control(name="sliders_squared_eyebrows",
                                        build_function=slider.create_sliders_squared_eyebrows)
     sliders_squared_cheek_nose = Control(name="sliders_squared_cheek_nose",
