@@ -84,7 +84,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         self.search_edit.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         # Buttons
-        self.add_custom_button = QPushButton("Save Curve From Selection")
+        self.add_custom_button = QPushButton("Save Curve")
         add_custom_tooltip = "Saves a Maya selected Nurbs/Bezier element as a user-defined curve in the Curve Library"
         self.add_custom_button.setToolTip(add_custom_tooltip)
         self.add_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_add))
