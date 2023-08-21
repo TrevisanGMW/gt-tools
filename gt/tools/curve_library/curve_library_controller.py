@@ -4,13 +4,17 @@ Curve Library Controller
 This module contains the CurveLibraryController class responsible for managing interactions between the
 CurveLibraryModel and the user interface.
 """
+from PySide2.QtWidgets import QMessageBox, QAbstractItemView
 from gt.ui.input_window_text import InputWindowText
+from gt.utils.prefs_utils import Prefs
 from gt.utils import iterable_utils
 from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 from functools import partial
 from PySide2.QtCore import Qt
 import logging
+import sys
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -34,11 +38,18 @@ class CurveLibraryController:
         self.model = model
         self.view = view
         self.view.controller = self
+        # Preferences
+        self.preferences = Prefs("curve_library")
+        self.preferences.set_user_files_sub_folder("user_curves")
+        user_curves_dir = self.preferences.get_user_files_dir_path(create_if_missing=False)
+        self.model.import_user_curve_library(source_dir=user_curves_dir)
         # Connections
         self.view.build_button.clicked.connect(self.build_view_selected_curve)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.view.search_edit.textChanged.connect(self.filter_list)
         self.view.parameters_button.clicked.connect(self.open_parameter_editor)
+        self.view.add_custom_button.clicked.connect(self.add_user_curve)
+        self.view.delete_custom_button.clicked.connect(self.remove_user_curve)
         self.populate_curve_library()
         self.view.show()
 
@@ -119,14 +130,22 @@ class CurveLibraryController:
             return
         return metadata.get("object")
 
-    def remove_item_view(self):
+    def select_item_by_name(self, item_name):
         """
-        Remove the selected item from the model based on the user's selection in the view.
+        Selects item based on its name
+        Returns:
+            bool: True if item was found and selected. False if item with given name was not found.
         """
-        selected_item = self.view.item_list.currentRow()
-        if selected_item >= 0:
-            self.model.remove_item(selected_item)
-            self.populate_curve_library()
+        list_widget = self.view.item_list
+        for index in range(list_widget.count()):
+            item = list_widget.item(index)
+            if item.text() == item_name:
+                item.setSelected(True)
+                list_widget.scrollToItem(item, QAbstractItemView.PositionAtCenter)
+                self.view.item_list.setCurrentItem(item)
+                self.on_item_selection_changed()
+                return True
+        return False
 
     def populate_curve_library(self):
         """
@@ -182,6 +201,46 @@ class CurveLibraryController:
         param_win.confirm_button.clicked.connect(partial(self.model.build_control_with_custom_parameters,
                                                          param_win.get_text_field_text, control))
         param_win.show()
+
+    def add_user_curve(self):
+        """
+        Attempts to create a user-defined curve (saved to the preferences' folder)
+        Nothing is created in case operation fails.
+        """
+        curve = self.model.get_potential_user_curve_from_selection()
+        if curve:
+            curve_name = curve.get_name()
+            path_dir = self.preferences.get_user_files_dir_path()
+            if os.path.exists(path_dir):
+                path_file = os.path.join(path_dir, f'{curve_name}.crv')
+                curve.write_curve_to_file(file_path=path_file)
+                sys.stdout.write(f'Curve written to: "{path_file}".\n')
+                # Refresh model and view
+                self.model.import_user_curve_library(source_dir=path_dir)
+                self.populate_curve_library()
+                self.select_item_by_name(curve_name)
+                self.set_view_user_curve_mode()
+
+    def remove_user_curve(self):
+        curve = self.get_selected_item_curve()
+        if not curve:
+            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+            return
+        curve_name = curve.get_name()
+        user_choice = QMessageBox.question(None, f'Curve: "{curve.get_name()}"',
+                                           f'Are you sure you want to delete curve "{curve_name}"?',
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if user_choice == QMessageBox.Yes:
+            path_dir = self.preferences.get_user_files_dir_path()
+            path_file = os.path.join(path_dir, f'{curve_name}.crv')
+            from gt.utils.data_utils import delete_paths
+            delete_paths(path_file)
+            self.model.import_user_curve_library(source_dir=path_dir)
+            selected_item = self.view.item_list.currentItem()
+            if selected_item:
+                self.view.item_list.takeItem(self.view.item_list.row(selected_item))
+            sys.stdout.write(f'Curve "{curve_name}" was deleted.\n')
 
 
 if __name__ == "__main__":

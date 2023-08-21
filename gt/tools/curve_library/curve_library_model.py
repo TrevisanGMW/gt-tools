@@ -8,6 +8,8 @@ and building curves based on their names. The curves are represented as instance
 Classes:
     CurveLibraryModel: A class for managing a library of curves.
 """
+import os.path
+
 from gt.utils.control_utils import Controls, get_control_preview_image_path, Control
 from gt.utils.curve_utils import Curves, get_curve_preview_image_path, Curve
 from gt.ui import resource_library
@@ -28,7 +30,6 @@ class CurveLibraryModel:
         self.user_curves = []  # User-defined curves
         self.controls = []
         self.import_default_library()
-        self.import_user_curve_library()
         self.import_controls_library()
 
     def is_conflicting_name(self, name):
@@ -199,15 +200,29 @@ class CurveLibraryModel:
             curve_obj = getattr(Curves, curve_key)
             self.add_base_curve(curve_obj)
 
-    def import_user_curve_library(self):
+    def import_user_curve_library(self, source_dir, reset_user_curves=True):
         """
-        Imports all control curves found in "control_utils.Controls" to the CurveLibraryModel controls list
-        TODO: Handle custom curve storage. This function doesn't do anything at the moment @@@
+        Imports all control curves found in the user-defined curve directory to the CurveLibraryModel user curves list
+        Args:
+            source_dir (str): Path to a folder with curve files.
+            reset_user_curves (bool, optional): If active, user curves list will be first reset before importing.
         """
-        temp_curve = Curve("mocked_user_curve")
-        temp_curve.shapes = Curves.circle.shapes
-        self.add_user_curve(temp_curve)
-        return
+        if reset_user_curves:
+            self.user_curves = []
+        if not source_dir:
+            logger.debug('Invalid user curves directory')
+            return
+        if not os.path.exists(source_dir):
+            logger.debug("User curves directory is missing.")
+            return
+        for file in os.listdir(source_dir):
+            if file.endswith(".crv"):
+                try:
+                    user_curve = Curve(data_from_file=os.path.join(source_dir, file))
+                    if user_curve.is_curve_valid():
+                        self.add_user_curve(user_curve)
+                except Exception as e:
+                    logger.debug(f'Failed to read user curve. Issue: {e}')
 
     def import_controls_library(self):
         """
@@ -304,9 +319,31 @@ class CurveLibraryModel:
             finally:
                 target_control.reset_parameters()
 
+    def get_potential_user_curve_from_selection(self):
+        """
+        Gets a user-defined curve if it's unique and valid. (Uses user selection in Maya)
+        Returns:
+            Curve or None: The custom curve if the curve was valid. None if it failed.
+        """
+        import maya.cmds as cmds
+        selection = cmds.ls(selection=True) or []
+        if not selection:
+            cmds.warning("Nothing selected. Select a curve and try again.")
+            return
+        if len(selection) != 1:
+            cmds.warning("Select only one object and try again.")
+            return
+        curve = Curve(read_existing_curve=selection[0])
+        if curve.is_curve_valid():
+            curve_name = curve.get_name()
+            if curve_name in self.get_all_curve_names():
+                cmds.warning("Unable to add curve. Curve name already exists in the library. Rename it and try again.")
+                return
+            return curve
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     model = CurveLibraryModel()
     # items = model.get_curve_names(formatted=True)
-    print(model.get_user_curves())
+    # print(model.get_user_curves())
