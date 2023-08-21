@@ -200,14 +200,36 @@ def create_slider_squared_two_dimensions(name="slider_two_dimensions",
     return [ctrl, ctrl_grp]
 
 
-def create_sliders_squared_mouth():
+def create_sliders_squared_mouth(name="mouth"):
     """
-    Creates
+    Creates sliders for the mouth controls
+
+    Args:
+        name (str): Name of the mouth group/control.
 
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
                        E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
     """
+    # Naming
+    ctrl = NamingConstants.Suffix.CTRL
+    grp = NamingConstants.Suffix.GRP
+    crv = NamingConstants.Suffix.CRV
+    left = NamingConstants.Prefix.LEFT
+    right = NamingConstants.Prefix.RIGHT
+    mid = NamingConstants.Position.MID
+    upper = NamingConstants.Position.UPPER
+    lower = NamingConstants.Position.LOWER
+    outer_lo = NamingConstants.Position.OUTER_LO
+    outer_up = NamingConstants.Position.OUTER_UP
+    offset = NamingConstants.Description.OFFSET
+
+    gui_grp = f'{name}_gui_{grp}'
+    if cmds.objExists(gui_grp):
+        logger.warning(f'Unable to create control. '
+                       f'This control enforces a one-instance-only restriction for its elements.')
+        return
+
     # Containers
     controls = []
     background = []
@@ -221,18 +243,18 @@ def create_sliders_squared_mouth():
     background.append(mouth_crv)
 
     # 1D Controls
-    mid_upper_lip_ctrl = create_slider_squared_one_dimension('mid_upperLip_offset_ctrl')
-    mid_lower_lip_ctrl = create_slider_squared_one_dimension('mid_lowerLip_offset_ctrl')
-    left_upper_outer_lip_ctrl = create_slider_squared_one_dimension('left_upperOuterLip_offset_ctrl')
-    left_lower_outer_lip_ctrl = create_slider_squared_one_dimension('left_lowerOuterLip_offset_ctrl')
-    left_upper_corner_lip_ctrl = create_slider_squared_one_dimension('left_upperCornerLip_offset_ctrl')
-    left_lower_corner_lip_ctrl = create_slider_squared_one_dimension('left_lowerCornerLip_offset_ctrl')
-    right_upper_outer_lip_ctrl = create_slider_squared_one_dimension('right_upperOuterLip_offset_ctrl')
-    right_lower_outer_lip_ctrl = create_slider_squared_one_dimension('right_lowerOuterLip_offset_ctrl')
-    right_upper_corner_lip_ctrl = create_slider_squared_one_dimension('right_upperCornerLip_offset_ctrl')
-    right_lower_corner_lip_ctrl = create_slider_squared_one_dimension('right_lowerCornerLip_offset_ctrl')
-    main_mouth_offset_ctrl = create_slider_squared_one_dimension('mainMouth_offset_ctrl')
-    in_out_tongue_ctrl = create_slider_squared_one_dimension('inOutTongue_offset_ctrl', initial_position='top')
+    mid_upper_lip_ctrl = create_slider_squared_one_dimension(f'{mid}_{upper}Lip_{offset}_{ctrl}')
+    mid_lower_lip_ctrl = create_slider_squared_one_dimension(f'{mid}_{lower}Lip_{offset}_{ctrl}')
+    left_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{outer_up}Lip_{offset}_{ctrl}')
+    left_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{outer_lo}Lip_{offset}_{ctrl}')
+    left_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{upper}CornerLip_{offset}_{ctrl}')
+    left_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{lower}CornerLip_{offset}_{ctrl}')
+    right_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{outer_up}Lip_{offset}_{ctrl}')
+    right_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{outer_lo}Lip_{offset}_{ctrl}')
+    right_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{upper}CornerLip_{offset}_{ctrl}')
+    right_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{lower}CornerLip_{offset}_{ctrl}')
+    main_mouth_offset_ctrl = create_slider_squared_one_dimension(f'mainMouth_{offset}_{ctrl}')
+    in_out_tongue_ctrl = create_slider_squared_one_dimension(f'inOutTongue_{offset}_{ctrl}', initial_position='top')
 
     # TY
     cmds.setAttr(mid_upper_lip_ctrl[1] + '.ty', 6)
@@ -268,8 +290,8 @@ def create_sliders_squared_mouth():
 
     half_size_ctrls = [left_upper_outer_lip_ctrl, left_lower_outer_lip_ctrl, left_upper_corner_lip_ctrl,
                        left_lower_corner_lip_ctrl, right_upper_outer_lip_ctrl, right_lower_outer_lip_ctrl,
-                       right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl, mid_lower_lip_ctrl,
-                       in_out_tongue_ctrl]
+                       right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl,
+                       mid_lower_lip_ctrl, in_out_tongue_ctrl]
 
     for ctrl in half_size_ctrls:
         cmds.setAttr(ctrl[1] + '.sx', 0.5)
@@ -277,10 +299,10 @@ def create_sliders_squared_mouth():
         cmds.setAttr(ctrl[1] + '.sz', 0.5)
 
     # 2D Controls
-    left_corner_lip_ctrl = create_slider_squared_two_dimensions('left_cornerLip_offset_ctrl')
-    right_corner_lip_ctrl = create_slider_squared_two_dimensions('right_cornerLip_offset_ctrl')
-    jaw_ctrl = create_slider_squared_two_dimensions('jaw_offset_ctrl')
-    tongue_ctrl = create_slider_squared_two_dimensions('tongue_offset_ctrl')
+    left_corner_lip_ctrl = create_slider_squared_two_dimensions(f'{left}_cornerLip_{offset}_{ctrl}')
+    right_corner_lip_ctrl = create_slider_squared_two_dimensions(f'{right}_cornerLip_{offset}_{ctrl}')
+    jaw_ctrl = create_slider_squared_two_dimensions(f'jaw_{offset}_{ctrl}')
+    tongue_ctrl = create_slider_squared_two_dimensions(f'tongue_{offset}_{ctrl}')
 
     # Inverted Right Controls
     cmds.setAttr(right_corner_lip_ctrl[1] + '.ry', 180)
@@ -337,7 +359,7 @@ def create_sliders_squared_mouth():
     l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
                           [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
                           [11.643, 0.616, 0]], d=1,
-                       name='left_indicator_mouth_crv')
+                       name=f'{left}_indicator_mouth_{crv}')
     r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
                             [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
                             [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
@@ -345,13 +367,13 @@ def create_sliders_squared_mouth():
                             [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
                             [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
                             [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
-                         name='right_indicator_a_mouth_crv')
+                         name=f'{right}_indicator_a_mouth_{crv}')
     r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
                             [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
                             [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
                             [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
                             [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
-                         name='right_indicator_b_mouth_crv')
+                         name=f'{right}_indicator_b_mouth_{crv}')
 
     r_crv = combine_curves_list([r_crv_a, r_crv_b])
     cmds.setAttr(l_crv + '.overrideDisplayType', 2)
@@ -362,11 +384,11 @@ def create_sliders_squared_mouth():
     background.append(r_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name='mouth_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name='mouth_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=gui_grp, world=True, empty=True)
+    bg_grp = cmds.group(name=f'{name}_background_{grp}', world=True, empty=True)
 
     # General Background
-    mouth_bg_crv = cmds.curve(name='mouth_bg_crv', p=[[-20.0, 13.0, 0.0], [-20.0, -23.0, 0.0], [20.0, -23.0, 0.0],
+    mouth_bg_crv = cmds.curve(name=f'{name}_bg_{crv}', p=[[-20.0, 13.0, 0.0], [-20.0, -23.0, 0.0], [20.0, -23.0, 0.0],
                                                       [20.0, 13.0, 0.0], [-20.0, 13.0, 0.0]], d=1)
 
     cmds.setAttr(mouth_bg_crv + '.overrideDisplayType', 1)
@@ -374,10 +396,10 @@ def create_sliders_squared_mouth():
 
     for obj in controls:
         cmds.parent(obj[1], gui_grp)
-        if 'left_' in obj[0]:
+        if f'{left}_' in obj[0]:
             set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
             set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj[0]:
+        elif f'{right}_' in obj[0]:
             set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
             set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
         else:
@@ -429,10 +451,10 @@ def create_sliders_squared_eyebrows():
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_mid_brow_ctrl = create_slider_squared_one_dimension('left_midBrow_offset_ctrl')
-    left_outer_brow_ctrl = create_slider_squared_one_dimension('left_outerBrow_offset_ctrl')
-    right_mid_brow_ctrl = create_slider_squared_one_dimension('right_midBrow_offset_ctrl')
-    right_outer_brow_ctrl = create_slider_squared_one_dimension('right_outerBrow_offset_ctrl')
+    left_mid_brow_ctrl = create_slider_squared_one_dimension('left_midBrow_offset_{suffix_ctrl}')
+    left_outer_brow_ctrl = create_slider_squared_one_dimension('left_outerBrow_offset_{suffix_ctrl}')
+    right_mid_brow_ctrl = create_slider_squared_one_dimension('right_midBrow_offset_{suffix_ctrl}')
+    right_outer_brow_ctrl = create_slider_squared_one_dimension('right_outerBrow_offset_{suffix_ctrl}')
 
     # TY
     cmds.setAttr(left_mid_brow_ctrl[1] + '.tx', 11)
@@ -936,4 +958,5 @@ def _offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # create_facial_side_gui()
-    create_slider_squared_one_dimension()
+    cmds.file(new=True, force=True)
+    create_sliders_squared_mouth()
