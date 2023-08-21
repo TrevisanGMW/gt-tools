@@ -328,7 +328,7 @@ class CurveLibraryModel:
         import maya.cmds as cmds
         selection = cmds.ls(selection=True) or []
         if not selection:
-            cmds.warning("Nothing selected. Select a curve and try again.")
+            cmds.warning("Nothing selected. Select an existing curve in your scene and try again.")
             return
         if len(selection) != 1:
             cmds.warning("Select only one object and try again.")
