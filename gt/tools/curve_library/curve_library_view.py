@@ -78,9 +78,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         """Create the widgets for the window."""
         self.item_list = QListWidget()
         self.build_button = QPushButton("Build")
-        temp_icon = r"C:\Users\guilherme.trevisan\Desktop\tempIcons\new-indicator-filled-svgrepo-com.svg"
-        temp_icon = QIcon(temp_icon)
-        self.build_button.setIcon(temp_icon)
+        self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.build_button.setStyleSheet(resource_library.Stylesheet.bright_push_button)
         self.search_edit = QLineEdit(self)
         self.search_edit.setPlaceholderText('Search...')
@@ -89,15 +87,19 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         self.add_custom_button = QPushButton("Save Curve From Selection")
         add_custom_tooltip = "Saves a Maya selected Nurbs/Bezier element as a user-defined curve in the Curve Library"
         self.add_custom_button.setToolTip(add_custom_tooltip)
+        self.add_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_add))
         self.delete_custom_button = QPushButton("Delete Curve")
         self.delete_custom_button.setEnabled(False)
+        self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
         self.description = QLabel("<description>")
         self.description.setMaximumHeight(20)
         self.description.setAlignment(Qt.AlignCenter)
         self.snapshot_button = QPushButton("Create Snapshot")
         self.snapshot_button.setEnabled(False)
+        self.snapshot_button.setIcon(QIcon(resource_library.Icon.curve_library_snapshot))
         self.parameters_button = QPushButton("Edit Parameters")
         self.parameters_button.setEnabled(False)
+        self.parameters_button.setIcon(QIcon(resource_library.Icon.curve_library_edit))
         # Initial Image Update
         self.update_preview_image()
 
