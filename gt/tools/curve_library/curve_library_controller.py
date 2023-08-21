@@ -160,8 +160,8 @@ class CurveLibraryController:
         control = self.get_selected_item_curve()
         parameters = control.get_parameters()
         if not parameters:
-            logger.warning(f'Selected control does not have any parameters.')
-            return
+            logger.debug(f'Selected control does not have any parameters.')
+            parameters = "{\n# This control does not have any parameters.\n}"
         from gt.utils.control_utils import Control
         if not isinstance(control, Control):
             logger.warning(f'Unable to edit parameters. Selected item is not of the type "Control."')
@@ -169,11 +169,15 @@ class CurveLibraryController:
         param_win = InputWindowText(parent=self.view,
                                     message=control.get_docstrings(),
                                     window_title=f'Parameters for "{item_name}"',
-                                    image=resource_library.Icon.dev_code,
+                                    image=resource_library.Icon.curve_library_control,
+                                    window_icon=resource_library.Icon.curve_library_parameters,
                                     image_scale_pct=10)
         param_win.set_confirm_button_text("Build")
-        formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=2,
-                                                                       bracket_new_line=True)
+        if isinstance(parameters, dict):
+            formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=1,
+                                                                           bracket_new_line=True)
+        elif isinstance(parameters, str):
+            formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)
         param_win.confirm_button.clicked.connect(partial(self.model.build_control_with_custom_parameters,
                                                          param_win.get_text_field_text, control))
