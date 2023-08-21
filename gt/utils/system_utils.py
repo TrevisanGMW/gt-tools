@@ -4,6 +4,7 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.data_utils import DataDirConstants
+from datetime import datetime
 from functools import wraps
 import subprocess
 import importlib
@@ -740,6 +741,21 @@ def get_docstring(func, strip=False, strip_new_lines=False):
             docstring = docstring[:-len('\n')]
 
     return docstring
+
+
+def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
+    """
+    Get the current time and return it as a formatted string.
+
+    Args:
+        format_str (str, optional): Format string for formatting the time. Defaults to "%Y-%m-%d %H:%M:%S".
+
+    Returns:
+        str: Formatted string representing the current time.
+    """
+    current_time = datetime.now()
+    formatted_time = current_time.strftime(format_str)
+    return formatted_time
 
 
 if __name__ == "__main__":

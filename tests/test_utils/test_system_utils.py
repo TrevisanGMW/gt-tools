@@ -1,12 +1,13 @@
-import os
-import io
-import sys
-import pathlib
-import logging
-import unittest
-import tempfile
-from contextlib import redirect_stdout
 from unittest.mock import patch, MagicMock
+from contextlib import redirect_stdout
+from datetime import datetime
+import tempfile
+import unittest
+import logging
+import pathlib
+import sys
+import io
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -626,3 +627,14 @@ class TestSystemUtils(unittest.TestCase):
     def test_get_docstring_non_callable_none(self):
         with self.assertRaises(ValueError):
             system_utils.get_docstring(None)
+
+    def test_default_format(self):
+        expected = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = system_utils.get_formatted_time()
+        self.assertEqual(expected, result)
+
+    def test_custom_format(self):
+        custom_format = "%A, %B %d, %Y - %I:%M %p"
+        expected = datetime.now().strftime(custom_format)
+        result = system_utils.get_formatted_time(format_str=custom_format)
+        self.assertEqual(expected, result)
