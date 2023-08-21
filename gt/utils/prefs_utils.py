@@ -59,6 +59,14 @@ class Prefs:
 
     # ------------------------------------ Getters ------------------------------------
 
+    def get_prefs_name(self):
+        """
+        Gets the name of the preferences (set during initialization)
+        Returns:
+            str: Name of the preferences.
+        """
+        return self.prefs_name
+
     def get_float(self, key, default=None):
         """
         Returns a float value corresponding to key in the preference file if it exists.
@@ -281,6 +289,24 @@ class Prefs:
             return
         self.sub_folder = sub_folder_name
 
+    def get_user_files_dir_path(self, create_if_missing=True):
+        """
+        Returns the full path to the user files directory
+
+        Returns:
+            str: Path to the user files directory
+        """
+        _prefs_dir = os.path.dirname(self.file_name)
+        if not os.path.isdir(_prefs_dir):
+            os.makedirs(_prefs_dir)
+            logger.debug(f'Missing Prefs directory created during the writing of a custom file: "{_prefs_dir}".')
+        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
+        if not self.sub_folder:
+            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
+        if not os.path.isdir(_sub_folder) and create_if_missing:
+            os.makedirs(_sub_folder)
+        return _sub_folder
+
     def write_user_file(self, file_name, content, is_json=False):
         """
         Writes user-defined file to the preferences' folder.
@@ -294,19 +320,11 @@ class Prefs:
         Returns:
             str or None: Path to the generated file. None if it failed the operation.
         """
-        _prefs_dir = os.path.dirname(self.file_name)
-        if not os.path.isdir(_prefs_dir):
-            os.makedirs(_prefs_dir)
-            logger.debug(f'Missing Prefs directory created during the writing of a custom file: "{_prefs_dir}".')
-        _sub_folder = os.path.join(_prefs_dir, self.sub_folder)
-        if not self.sub_folder:
-            _sub_folder = os.path.join(_prefs_dir, self.prefs_name)
-        if not os.path.isdir(_sub_folder):
-            os.makedirs(_sub_folder)
+        _sub_folder = self.get_user_files_dir_path()
         user_file_path = os.path.join(_sub_folder, file_name)
 
         if is_json:
-            write_json(path=user_file_path ,data=content)
+            write_json(path=user_file_path, data=content)
         else:
             write_data(path=user_file_path, data=content)
 

@@ -115,6 +115,24 @@ class TestPrefsUtils(unittest.TestCase):
         self.prefs.set_user_files_sub_folder('new_sub_folder')
         self.assertEqual(self.prefs.sub_folder, 'new_sub_folder')
 
+    def test_get_prefs_name(self):
+        result = self.prefs.get_prefs_name()
+        expected = "mock_prefs"
+        self.assertEqual(expected, result)
+        new_prefs = prefs_utils.Prefs("mocked_name")
+        result = new_prefs.get_prefs_name()
+        expected = "mocked_name"
+        self.assertEqual(expected, result)
+
+    def test_get_user_files_dir_path(self):
+        result = self.prefs.get_user_files_dir_path()
+        expected = os.path.join(self.temp_dir, self.prefs.get_prefs_name())
+        self.assertEqual(expected, result)
+        self.prefs.set_user_files_sub_folder('new_sub_folder')
+        result = self.prefs.get_user_files_dir_path()
+        expected = os.path.join(self.temp_dir, 'new_sub_folder')
+        self.assertEqual(self.prefs.sub_folder, 'new_sub_folder')
+
     def test_set_user_files_sub_folder_unchanged(self):
         self.assertEqual(self.prefs.sub_folder, 'mock_prefs')
 
