@@ -583,3 +583,145 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertEqual(expected_sx, result_sx)
         self.assertEqual(expected_sy, result_sy)
         self.assertEqual(expected_sz, result_sz)
+
+    def test_hide_lock_default_attributes_with_visibility(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.hide_lock_default_attributes(cube, include_visibility=True)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz', 'v']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked)
+            self.assertFalse(is_keyable)
+            self.assertFalse(is_keyable_ch)
+
+    def test_hide_lock_default_attributes_without_visibility(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.hide_lock_default_attributes(cube, include_visibility=False)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked)
+            self.assertFalse(is_keyable)
+            self.assertFalse(is_keyable_ch)
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_add_attr_double_three(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.add_attr_double_three(obj=cube, attr_name="mockedAttr")
+
+        attr_type = maya_test_tools.cmds.getAttr(f'{cube}.mockedAttr', type=True)
+        expected = 'double3'
+        self.assertEqual(expected, attr_type)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.mockedAttr', keyable=True)
+        self.assertTrue(is_keyable)
+
+        expected = 'double'
+        attr_to_test = ['mockedAttrR', 'mockedAttrG', 'mockedAttrB']
+        for attr in attr_to_test:
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertTrue(is_keyable)
+            attr_type = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', type=True)
+            self.assertEqual(expected, attr_type)
+
+    def test_add_attr_double_three_suffix(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.add_attr_double_three(obj=cube, attr_name="mockedAttr", suffix="ABC")
+
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{cube}.mockedAttr'))
+        attr_type = maya_test_tools.cmds.getAttr(f'{cube}.mockedAttr', type=True)
+        expected = 'double3'
+        self.assertEqual(expected, attr_type)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.mockedAttr', keyable=True)
+        self.assertTrue(is_keyable)
+
+        expected = 'double'
+        attr_to_test = ['mockedAttrA', 'mockedAttrB', 'mockedAttrC']
+        for attr in attr_to_test:
+            self.assertTrue(maya_test_tools.cmds.objExists(f'{cube}.{attr}'))
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertTrue(is_keyable)
+            attr_type = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', type=True)
+            self.assertEqual(expected, attr_type)
+
+    def test_add_attr_double_three_keyable(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.add_attr_double_three(obj=cube, attr_name="mockedAttr", suffix="ABC", keyable=False)
+
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{cube}.mockedAttr'))
+        attr_type = maya_test_tools.cmds.getAttr(f'{cube}.mockedAttr', type=True)
+        expected = 'double3'
+        self.assertEqual(expected, attr_type)
+
+        expected = 'double'
+        attr_to_test = ['mockedAttrA', 'mockedAttrB', 'mockedAttrC']
+        for attr in attr_to_test:
+            self.assertTrue(maya_test_tools.cmds.objExists(f'{cube}.{attr}'))
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_keyable)
+            attr_type = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', type=True)
+            self.assertEqual(expected, attr_type)
+
+    def test_get_trs_attr_as_list(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+
+        result = attr_utils.get_trs_attr_as_list(cube)
+        expected = [5, 0, 0, 5, 0, 0, 5, 1, 1]
+        self.assertEqual(expected, result)
+
+    def test_get_trs_attr_as_formatted_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+
+        result = attr_utils.get_trs_attr_as_formatted_string(cube)
+        expected = 'source_obj = "pCube1"\ntrs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
+        self.assertEqual(expected, result)
+
+    def test_get_trs_attr_as_formatted_string_description(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+
+        result = attr_utils.get_trs_attr_as_formatted_string(cube, add_description=True)
+        expected = '# Transform Data for "pCube1":\nsource_obj = "pCube1"\ntrs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
+        self.assertEqual(expected, result)
+
+    def test_get_trs_attr_as_formatted_string_no_object(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+
+        result = attr_utils.get_trs_attr_as_formatted_string(cube, add_object=False)
+        expected = 'trs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
+        self.assertEqual(expected, result)
+
+    def test_get_trs_attr_as_formatted_string_separated_channels(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
+        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+
+        result = attr_utils.get_trs_attr_as_formatted_string(cube, separate_channels=True, add_object=False)
+        expected = 't_attr_list = [5, 0, 0]\nr_attr_list = [5, 0, 0]\ns_attr_list = [5, 1, 1]'
+        self.assertEqual(expected, result)

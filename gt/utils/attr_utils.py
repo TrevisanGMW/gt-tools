@@ -15,6 +15,7 @@ DEFAULT_CHANNELS = ['t', 'r', 's']
 DEFAULT_DIMENSIONS = ['x', 'y', 'z']
 
 
+# -------------------------------------------- Setters ---------------------------------------------
 def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, clamp=False, force_unlock=False,
              verbose=False, log_level=logging.INFO, raise_exceptions=False):
     """
@@ -76,6 +77,138 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
                 raise e
 
 
+def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=False,
+                 space="world", verbose=True, log_level=logging.INFO):
+    """
+    Sets an attribute to the provided value (Uses "cmds.xform" function with world space)
+    Default is translate only, use arguments to determine which channel to affect (translate, rotate, scale)
+
+    Args:
+        target_obj (str): Name of the target object (object that will receive transforms)
+        value_tuple (tuple, list): A tuple or list  with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+        translate (bool, optional): If active, it will apply these values to translate. Default True.
+        rotate (bool, optional): If active, it will apply these values to rotate. Default False.
+        scale (bool, optional): If active, it will apply these values to scale. Default False.
+        space (str, optional): Method used to apply values, can be "world" for world-space or "object" for object-space.
+                               World-space moves the object as if it didn't have parents or hierarchy.
+                               Object-space moves the object by simply changing the values
+        verbose (bool, optional): If True, log messages will be displayed for each attribute retrieval operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+
+    """
+    if not target_obj or not cmds.objExists(target_obj):
+        message = f'Unable to set attribute "{target_obj}" does not exist or has non-unique name.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+    if value_tuple and isinstance(value_tuple, list):
+        value_tuple = tuple(value_tuple)
+    if not value_tuple or not isinstance(value_tuple, tuple):
+        message = f'Unable to set value "{value_tuple}". It must be a tuple or a list with three (3) floats.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+    try:
+        # Translate
+        if translate and space == "world":
+            cmds.xform(target_obj, ws=True, t=value_tuple)
+        elif translate and space == "object":
+            set_attr(f'{target_obj}.tx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.ty', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.tz', value=value_tuple[2], verbose=verbose, log_level=log_level)
+        # Rotate
+        if rotate and space == "world":
+            cmds.xform(target_obj, ws=True, ro=value_tuple)
+        elif rotate and space == "object":
+            print("got here")
+            set_attr(f'{target_obj}.rx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.ry', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.rz', value=value_tuple[2], verbose=verbose, log_level=log_level)
+        # Scale
+        if scale and space == "world":
+            cmds.xform(target_obj, ws=True, s=value_tuple)
+        elif scale and space == "object":
+            set_attr(f'{target_obj}.sx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.sy', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.sz', value=value_tuple[2], verbose=verbose, log_level=log_level)
+    except Exception as e:
+        message = f'An error was raised while setting attributes "{e}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+
+
+def hide_lock_default_attributes(obj, include_visibility=False):
+    """
+    Locks default TRS channels
+    Args:
+        obj (str): Name of the object to lock TRS attributes
+        include_visibility (optional, bool): If active, also locks and hides visibility
+    """
+    for channel in ['t', 'r', 's']:
+        for axis in ['x', 'y', 'z']:
+            cmds.setAttr(obj + '.' + channel + axis, lock=True, keyable=False, channelBox=False)
+    if include_visibility:
+        cmds.setAttr(obj + '.v', lock=True, keyable=False, channelBox=False)
+
+
+def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
+    """
+    Freeze individual channels of an object's translation, rotation, or scale in Autodesk Maya.
+
+    Args:
+        object_list (str, list): The name of the object or a list of objects. (str is automatically converted to list)
+        freeze_translate (bool, optional): When active, it will attempt to freeze translate.
+        freeze_rotate (bool, optional): When active, it will attempt to freeze rotate.
+        freeze_scale (bool, optional): When active, it will attempt to freeze scale.
+    Returns:
+        bool: True if all provided objects were fully frozen. False if something failed.
+    """
+    all_frozen = True
+    if not object_list:
+        logger.debug('Nothing frozen. Empty "object_list" argument.')
+        return False
+    if isinstance(object_list, str):  # Convert to list in case it's just one object.
+        object_list = [object_list]
+    for obj in object_list:
+        if not obj or not cmds.objExists(obj):
+            all_frozen = False
+            continue
+        try:
+            if freeze_translate:
+                cmds.makeIdentity(obj, apply=True, translate=True, rotate=False, scale=False)
+        except Exception as e:
+            logger.debug(f'Failed to free "translate" for "{obj}". Issue: {e}')
+            all_frozen = False
+        try:
+            if freeze_rotate:
+                cmds.makeIdentity(obj, apply=True, translate=False, rotate=True, scale=False)
+        except Exception as e:
+            logger.debug(f'Failed to free "rotate" for "{obj}". Issue: {e}')
+            all_frozen = False
+        try:
+            if freeze_scale:
+                cmds.makeIdentity(obj, apply=True, translate=False, rotate=False, scale=True)
+        except Exception as e:
+            logger.debug(f'Failed to free "scale" for "{obj}". Issue: {e}')
+            all_frozen = False
+    return all_frozen
+
+
+def rescale(obj, scale, freeze=True):
+    """
+    Sets the scaleXYZ to the provided scale value.
+    It's also possible to freeze the object, so its components receive a new scale instead.
+    Args:
+        obj (string) Name of the object, for example "pSphere1"
+        scale (float) The new scale value, for example 0.5
+                      (this would cause it to be half of its initial size in case it was previously one)
+        freeze: (bool) Determines if the object scale should be frozen after updated
+    """
+    cmds.setAttr(obj + '.scaleX', scale)
+    cmds.setAttr(obj + '.scaleY', scale)
+    cmds.setAttr(obj + '.scaleZ', scale)
+    if freeze:
+        freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
+
+
+# --------------------------------------------- Getters ---------------------------------------------
 def get_attr(attribute_path=None, obj_name=None, attr_name=None, enum_as_string=False,
              verbose=True, log_level=logging.INFO):
     """
@@ -211,77 +344,125 @@ def get_multiple_attr(attribute_path=None, obj_list=None, attr_list=None, enum_a
     return attribute_values
 
 
-def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=False,
-                 space="world", verbose=True, log_level=logging.INFO):
+def get_trs_attr_as_list(obj):
     """
-    Sets an attribute to the provided value (Uses "cmds.xform" function with world space)
-    Default is translate only, use arguments to determine which channel to affect (translate, rotate, scale)
-
+    Gets Translate, Rotation and Scale values as a list
     Args:
-        target_obj (str): Name of the target object (object that will receive transforms)
-        value_tuple (tuple, list): A tuple or list  with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
-        translate (bool, optional): If active, it will apply these values to translate. Default True.
-        rotate (bool, optional): If active, it will apply these values to rotate. Default False.
-        scale (bool, optional): If active, it will apply these values to scale. Default False.
-        space (str, optional): Method used to apply values, can be "world" for world-space or "object" for object-space.
-                               World-space moves the object as if it didn't have parents or hierarchy.
-                               Object-space moves the object by simply changing the values
-        verbose (bool, optional): If True, log messages will be displayed for each attribute retrieval operation.
-        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
-
+        obj (str): Name of the source object
+    Returns:
+        list or None: A list with TRS values in order [TX, TY, TZ, RX, RY, RZ, SX, SY, SZ], None if missing object.
+                     e.g. [0, 0, 0, 15, 15, 15, 1, 1, 1]
     """
-    if not target_obj or not cmds.objExists(target_obj):
-        message = f'Unable to set attribute "{target_obj}" does not exist or has non-unique name.'
-        log_when_true(logger, message, do_log=verbose, level=log_level)
+    if not obj or not cmds.objExists(obj):
+        logger.warning(f'Unable to get TRS channels as list. Unable to find object "{obj}".')
         return
-    if value_tuple and isinstance(value_tuple, list):
-        value_tuple = tuple(value_tuple)
-    if not value_tuple or not isinstance(value_tuple, tuple):
-        message = f'Unable to set value "{value_tuple}". It must be a tuple or a list with three (3) floats.'
-        log_when_true(logger, message, do_log=verbose, level=log_level)
-        return
-    try:
-        # Translate
-        if translate and space == "world":
-            cmds.xform(target_obj, ws=True, t=value_tuple)
-        elif translate and space == "object":
-            set_attr(f'{target_obj}.tx', value=value_tuple[0], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.ty', value=value_tuple[1], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.tz', value=value_tuple[2], verbose=verbose, log_level=log_level)
-        # Rotate
-        if rotate and space == "world":
-            cmds.xform(target_obj, ws=True, ro=value_tuple)
-        elif rotate and space == "object":
-            print("got here")
-            set_attr(f'{target_obj}.rx', value=value_tuple[0], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.ry', value=value_tuple[1], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.rz', value=value_tuple[2], verbose=verbose, log_level=log_level)
-        # Scale
-        if scale and space == "world":
-            cmds.xform(target_obj, ws=True, s=value_tuple)
-        elif scale and space == "object":
-            set_attr(f'{target_obj}.sx', value=value_tuple[0], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.sy', value=value_tuple[1], verbose=verbose, log_level=log_level)
-            set_attr(f'{target_obj}.sz', value=value_tuple[2], verbose=verbose, log_level=log_level)
-    except Exception as e:
-        message = f'An error was raised while setting attributes "{e}".'
-        log_when_true(logger, message, do_log=verbose, level=log_level)
+    output = []
+    for channel in DEFAULT_CHANNELS:  # TRS
+        for dimension in DEFAULT_DIMENSIONS:  # XYZ
+            value = get_attr(f'{obj}.{channel}{dimension}')
+            output.append(value)
+    return output
 
-        
-def hide_lock_default_attributes(obj, include_visibility=False):
+
+def get_trs_attr_as_formatted_string(obj_list, decimal_place=2, add_description=False, add_object=True,
+                                     separate_channels=False, strip_zeroes=True):
     """
-    Locks default TRS channels
+    Returns transforms as list
     Args:
-        obj (str): Name of the object to lock TRS attributes
-        include_visibility (optional, bool): If active, also locks and hides visibility
+        obj_list (list, str): List objects to extract the transform from (If a string, it gets auto converted to list)
+        decimal_place (int, optional): How precise you want the extracted values to be (formats the float it gets)
+        add_object (bool, optional): If active, it will include a variable describing the source object name.
+        add_description (bool, optional): If active, it will include a comment at the top describing data.
+        separate_channels (bool, optional): If separating channels, it will return T, R and S as different lists
+        strip_zeroes (bool, optional): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
+
+    Returns:
+        str: A string with the python code for the transform values. [TX, TY, TZ, RX, RY, RZ, SX, SY, SZ]
+             e.g.
+                source_object = "pCube1"
+                attr_list = [0, 0, 0, 15, 15, 15, 1, 1, 1] # TRS (XYZ)
     """
-    for channel in ['t', 'r', 's']:
-        for axis in ['x', 'y', 'z']:
-            cmds.setAttr(obj + '.' + channel + axis, l=True, k=False, channelBox=False)
-    if include_visibility:
-        cmds.setAttr(obj + '.v', l=True, k=False, channelBox=False)
+    if not obj_list:
+        logger.debug(f'')
+        return ""
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
+
+    output = ''
+    for obj in obj_list:
+        if add_description:
+            output += f'# Transform Data for "{obj}":\n'
+        data = []
+        for channel in DEFAULT_CHANNELS:  # TRS
+            for dimension in DEFAULT_DIMENSIONS:  # XYZ
+                value = cmds.getAttr(obj + '.' + channel + dimension)
+                if strip_zeroes:
+                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f"))).rstrip('0').rstrip('.')
+                    if formatted_value == '-0':
+                        formatted_value = '0'
+                    data.append(formatted_value)
+                else:
+                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f")))
+                    if formatted_value == '-0.0':
+                        formatted_value = '0.0'
+                    data.append(formatted_value)
+
+        if not separate_channels:
+            if add_object:
+                output += f'source_obj = "{str(obj)}"\n'
+            output += 'trs_attr_list = ' + str(data).replace("'", "")
+        else:
+            if add_object:
+                output += f'source_obj = "{str(obj)}"' + '\n'
+            output += 't_attr_list = [' + str(data[0]) + ', ' + str(data[1]) + ', ' + str(data[2]) + ']\n'
+            output += 'r_attr_list = [' + str(data[3]) + ', ' + str(data[4]) + ', ' + str(data[5]) + ']\n'
+            output += 's_attr_list = [' + str(data[6]) + ', ' + str(data[7]) + ', ' + str(data[8]) + ']'
+
+    return output
 
 
+# -------------------------------------------- Management -------------------------------------------
+def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
+    """
+    Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
+    Args:
+        obj (str): Name of the object to receive new attributes
+        attr_name (str): Name of the attribute to be created
+        suffix (str, optional) : Used as suffix for the three created attributes
+        keyable (bool, optional): Determines if the attributes should be keyable or not. (Must be a 3 character string)
+                                  First attribute uses the first letter, second the second letter, etc...
+    """
+    cmds.addAttr(obj, ln=attr_name, at='double3', k=keyable)
+    cmds.addAttr(obj, ln=attr_name + suffix[0], at='double', k=keyable, parent=attr_name)
+    cmds.addAttr(obj, ln=attr_name + suffix[1], at='double', k=keyable, parent=attr_name)
+    cmds.addAttr(obj, ln=attr_name + suffix[2], at='double', k=keyable, parent=attr_name)
+
+
+def add_separator_attr(target_object, attr_name="separator", custom_value=None):
+    """
+    Creates a locked enum attribute to be used as a separator
+    Args:
+        target_object (str): Name of the object to affect in the operation
+        attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
+                                   "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
+        custom_value (str, None, optional): Enum value for the separator value.
+                                               If not provided, default is "-------------".
+    Returns:
+        str: Full path to created attribute. 'target_object.attr_name'
+    """
+    separator_value = "-"*13
+    if custom_value:
+        separator_value = custom_value
+    attribute_path = f'{target_object}.{attr_name}'
+    if not cmds.objExists(attribute_path):
+        cmds.addAttr(target_object, ln=attr_name, at='enum', en=separator_value, keyable=True)
+        cmds.setAttr(attribute_path, e=True, lock=True)
+    else:
+        logger.warning(f'Separator attribute "{attribute_path}" already exists. Add Separator operation skipped.')
+    return f'{target_object}.{attr_name}'
+
+
+# --------------------------------------------- Not refactored yet ---------------------------------------------
 def add_attributes(target_list,
                    attributes,
                    attr_type,
@@ -312,70 +493,7 @@ def add_attributes(target_list,
     if issues:
         print(issues)
 
- 
-def attr_to_list(obj_list, printing=True, decimal_place=2, separate_channels=False, strip_zeroes=True):
-    """
-    Returns transforms as list
-    Args:
-        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
-        printing (optional, bool): If active, the function will print the values to the script editor
-        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
-        separate_channels (optional, bool): If separating channels, it will return T, R and S as different lists
-        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
 
-    Returns:
-        A list with transform values. [TX, TY, TZ, RX, RY, RZ, SX, SY, SZ]
-        For example: attr_list = [0, 0, 0, 15, 15, 15, 1, 1, 1] # TRS (XYZ)
-
-    """
-    if not obj_list:
-        obj_list = cmds.ls(selection=True)
-    if not obj_list:
-        return
-
-    output = ''
-    if printing:
-        output += ('#' * 80)
-
-    for obj in obj_list:
-        output += '\n# Transform Data for "' + obj + '":\n'
-        data = []
-        for channel in DEFAULT_CHANNELS:  # TRS
-            for dimension in DEFAULT_DIMENSIONS:  # XYZ
-                value = cmds.getAttr(obj + '.' + channel + dimension)
-                if strip_zeroes:
-                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f"))).rstrip('0').rstrip('.')
-                    if formatted_value == '-0':
-                        formatted_value = '0'
-                    data.append(formatted_value)
-                else:
-                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f")))
-                    if formatted_value == '-0.0':
-                        formatted_value = '0.0'
-                    data.append(formatted_value)
-
-        if not separate_channels:
-            output += 'object = "' + str(obj) + '"\n'
-            output += 'trs_attr_list = ' + str(data).replace("'", "") + '\n'
-        else:
-            output += 'object = "' + str(obj) + '"\n'
-            output += 't_attr_list = [' + str(data[0]) + ', ' + str(data[1]) + ', ' + str(data[2]) + ']\n'
-            output += 'r_attr_list = [' + str(data[3]) + ', ' + str(data[4]) + ', ' + str(data[5]) + ']\n'
-            output += 's_attr_list = [' + str(data[6]) + ', ' + str(data[7]) + ', ' + str(data[8]) + ']\n'
-
-    # Return / Print
-    if printing:
-        output += ('#' * 80)
-        if output.replace('#', ''):
-            print(output)
-            return output
-        else:
-            print('No data found. Make sure your selection at least one object with unlocked transforms.')
-            return None
-    else:
-        return output
-        
-        
 def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_place=2, strip_zeroes=True):
     """
     TODO
@@ -621,106 +739,6 @@ def delete_user_defined_attributes(delete_locked=True):
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-
-def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
-    """
-    Creates a double3 attribute and populates it with three (3) double attributes of the same name + suffix
-    Args:
-        obj (str): Name of the object to receive new attributes
-        attr_name (str): Name of the attribute to be created
-        suffix (str, optional) : Used as suffix for the three created attributes
-        keyable (bool, optional): Determines if the attributes should be keyable or not. (Must be a 3 character string)
-                                  First attribute uses the first letter, second the second letter, etc...
-    """
-    cmds.addAttr(obj, ln=attr_name, at='double3', k=keyable)
-    cmds.addAttr(obj, ln=attr_name + suffix[0], at='double', k=keyable, parent=attr_name)
-    cmds.addAttr(obj, ln=attr_name + suffix[1], at='double', k=keyable, parent=attr_name)
-    cmds.addAttr(obj, ln=attr_name + suffix[2], at='double', k=keyable, parent=attr_name)
-
-
-def add_separator_attr(target_object, attr_name="separator", custom_value=None):
-    """
-    Creates a locked enum attribute to be used as a separator
-    Args:
-        target_object (str): Name of the object to affect in the operation
-        attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
-                                   "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
-        custom_value (str, None, optional): Enum value for the separator value.
-                                               If not provided, default is "-------------".
-    Returns:
-        str: Full path to created attribute. 'target_object.attr_name'
-    """
-    separator_value = "-"*13
-    if custom_value:
-        separator_value = custom_value
-    attribute_path = f'{target_object}.{attr_name}'
-    if not cmds.objExists(attribute_path):
-        cmds.addAttr(target_object, ln=attr_name, at='enum', en=separator_value, keyable=True)
-        cmds.setAttr(attribute_path, e=True, lock=True)
-    else:
-        logger.warning(f'Separator attribute "{attribute_path}" already exists. Add Separator operation skipped.')
-    return f'{target_object}.{attr_name}'
-
-
-def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
-    """
-    Freeze individual channels of an object's translation, rotation, or scale in Autodesk Maya.
-
-    Args:
-        object_list (str, list): The name of the object or a list of objects. (str is automatically converted to list)
-        freeze_translate (bool, optional): When active, it will attempt to freeze translate.
-        freeze_rotate (bool, optional): When active, it will attempt to freeze rotate.
-        freeze_scale (bool, optional): When active, it will attempt to freeze scale.
-    Returns:
-        bool: True if all provided objects were fully frozen. False if something failed.
-    """
-    all_frozen = True
-    if not object_list:
-        logger.debug('Nothing frozen. Empty "object_list" argument.')
-        return False
-    if isinstance(object_list, str):  # Convert to list in case it's just one object.
-        object_list = [object_list]
-    for obj in object_list:
-        if not obj or not cmds.objExists(obj):
-            all_frozen = False
-            continue
-        try:
-            if freeze_translate:
-                cmds.makeIdentity(obj, apply=True, translate=True, rotate=False, scale=False)
-        except Exception as e:
-            logger.debug(f'Failed to free "translate" for "{obj}". Issue: {e}')
-            all_frozen = False
-        try:
-            if freeze_rotate:
-                cmds.makeIdentity(obj, apply=True, translate=False, rotate=True, scale=False)
-        except Exception as e:
-            logger.debug(f'Failed to free "rotate" for "{obj}". Issue: {e}')
-            all_frozen = False
-        try:
-            if freeze_scale:
-                cmds.makeIdentity(obj, apply=True, translate=False, rotate=False, scale=True)
-        except Exception as e:
-            logger.debug(f'Failed to free "scale" for "{obj}". Issue: {e}')
-            all_frozen = False
-    return all_frozen
-
-
-def rescale(obj, scale, freeze=True):
-    """
-    Sets the scaleXYZ to the provided scale value.
-    It's also possible to freeze the object, so its components receive a new scale instead.
-    Args:
-        obj (string) Name of the object, for example "pSphere1"
-        scale (float) The new scale value, for example 0.5
-                      (this would cause it to be half of its initial size in case it was previously one)
-        freeze: (bool) Determines if the object scale should be frozen after updated
-    """
-    cmds.setAttr(obj + '.scaleX', scale)
-    cmds.setAttr(obj + '.scaleY', scale)
-    cmds.setAttr(obj + '.scaleZ', scale)
-    if freeze:
-        freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
 
 
 if __name__ == "__main__":
