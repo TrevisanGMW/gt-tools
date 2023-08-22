@@ -7,6 +7,7 @@ from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.attribute_utils import add_separator_attr
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
+from gt.utils import transform_utils
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
@@ -107,14 +108,17 @@ def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         nurbs_shapes = []
         bezier_shapes = []
+        valid_curve_transforms = set()
 
         for crv in curve_list:
             shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
             for shape in shapes:
                 if cmds.objectType(shape) == CURVE_TYPE_BEZIER:
                     bezier_shapes.append(shape)
+                    valid_curve_transforms.add(crv)
                 if cmds.objectType(shape) == CURVE_TYPE_NURBS:
                     nurbs_shapes.append(shape)
+                    valid_curve_transforms.add(crv)
 
         if not nurbs_shapes and not bezier_shapes:  # No valid shapes
             logger.warning(f'Unable to combine curves. No valid shapes were found under the provided objects.')
@@ -129,19 +133,23 @@ def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
                 cmds.select(bezier)
                 cmds.bezierCurveToNurbs()
 
+        transform_utils.freeze_channels(list(valid_curve_transforms))
+        # Re-parent Shapes
         shapes = nurbs_shapes + bezier_shapes
-        for crv in range(len(curve_list)):
-            cmds.makeIdentity(curve_list[crv], apply=True, rotate=True, scale=True, translate=True)
-
         group = cmds.group(empty=True, world=True, name=curve_list[0])
-        cmds.select(shapes[0])
-        for crv in range(1, (len(shapes))):
-            cmds.select(shapes[crv], add=True)
-
-        cmds.select(group, add=True)
-        cmds.parent(relative=True, shape=True)
-        cmds.delete(curve_list)
+        cmds.refresh()  # Without a refresh, Maya ignores the freeze operation
+        for shape in shapes:
+            cmds.select(clear=True)
+            cmds.parent(shape, group, relative=True, shape=True)
+        # Delete empty transforms
+        for transform in valid_curve_transforms:
+            children = cmds.listRelatives(transform, children=True) or []
+            if not children and cmds.objExists(transform):
+                cmds.delete(transform)
+        # Clean-up
         combined_curve = cmds.rename(group, curve_list[0])
+        if cmds.objExists(combined_curve):
+            cmds.select(combined_curve)
         return combined_curve
     except Exception as exception:
         logger.warning(f'An error occurred when combining the curves. Issue: {str(exception)}')
@@ -226,6 +234,7 @@ def selected_curves_combine(convert_bezier_to_nurbs=False, show_bezier_conversio
         selection = cmds.ls(sl=True, absoluteName=True)
         nurbs_shapes = []
         bezier_shapes = []
+        valid_curve_transforms = set()
 
         if len(selection) < 2:
             logger.warning('You need to select at least two curves.')
@@ -236,8 +245,10 @@ def selected_curves_combine(convert_bezier_to_nurbs=False, show_bezier_conversio
             for shape in shapes:
                 if cmds.objectType(shape) == CURVE_TYPE_BEZIER:
                     bezier_shapes.append(shape)
+                    valid_curve_transforms.add(obj)
                 if cmds.objectType(shape) == CURVE_TYPE_NURBS:
                     nurbs_shapes.append(shape)
+                    valid_curve_transforms.add(obj)
 
         if not nurbs_shapes and not bezier_shapes:  # No valid shapes
             logger.warning(f'Unable to combine curves. No valid shapes were found under the provided objects.')
@@ -256,11 +267,7 @@ def selected_curves_combine(convert_bezier_to_nurbs=False, show_bezier_conversio
             convert_bezier_to_nurbs = True if user_input == 'Yes' else False
 
         # Freeze Curves
-        for obj in range(len(selection)):
-            try:
-                cmds.makeIdentity(selection[obj], apply=True, rotate=True, scale=True, translate=True)
-            except Exception as e:
-                logger.debug(f'Unable to freeze curves when combining them. Issue: {e}')
+        transform_utils.freeze_channels(list(valid_curve_transforms))
 
         # Combine
         combined_crv = combine_curves_list(selection, convert_bezier_to_nurbs=convert_bezier_to_nurbs)
