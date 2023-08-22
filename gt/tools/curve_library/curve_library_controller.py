@@ -101,13 +101,7 @@ class CurveLibraryController:
         Filter the curve library list based on the search text entered by the user.
         """
         search_text = self.view.search_edit.text().lower()
-        self.view.item_list.clear()
-        curve_names = self.model.get_base_curve_names()
-        filtered_items = [item for item in curve_names if search_text in item.lower()]
-        self.view.item_list.addItems(filtered_items)
-        self.view.item_list.setCurrentRow(0)  # Select index 0
-        if not filtered_items:
-            self.view.update_preview_image()
+        self.populate_curve_library(filter_str=search_text)
 
     def build_view_selected_curve(self):
         """
@@ -150,9 +144,11 @@ class CurveLibraryController:
                 return True
         return False
 
-    def populate_curve_library(self):
+    def populate_curve_library(self, filter_str=None):
         """
         Update the view with the current list of items from the model.
+        Args:
+            filter_str (str, None): If provided, it will be used to filter desired objects when populating the list.
         """
         self.view.clear_view_library()
         base_curves = self.model.get_base_curves()
@@ -162,12 +158,18 @@ class CurveLibraryController:
         icon_control = QIcon(resource_library.Icon.curve_library_control)
         icon_user_crv = QIcon(resource_library.Icon.curve_library_user_curve)
         for crv in base_curves:
+            if filter_str and filter_str not in crv.get_name():
+                continue
             metadata_base_crv = {"object": crv, "item_type": self.CURVE_TYPE_BASE}
             self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_base_crv, metadata=metadata_base_crv)
         for ctrl in control_curves:
+            if filter_str and filter_str not in ctrl.get_name():
+                continue
             metadata_control = {"object": ctrl, "item_type": self.CURVE_TYPE_CONTROL}
             self.view.add_item_view_library(item_name=ctrl.get_name(), icon=icon_control, metadata=metadata_control)
         for crv in user_curves:
+            if filter_str and filter_str not in crv.get_name():
+                continue
             metadata_user_crv = {"object": crv, "item_type": self.CURVE_TYPE_USER}
             self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_user_crv, metadata=metadata_user_crv)
         self.view.item_list.setCurrentRow(0)  # Select index 0
