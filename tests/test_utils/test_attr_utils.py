@@ -29,6 +29,40 @@ class TestAttributeUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
+    def assertAlmostEqualSigFig(self, arg1, arg2, tolerance=2):
+        """
+        Asserts that two numbers are almost equal up to a given number of significant figures.
+
+        Args:
+            self (object): The current test case or class object.
+            arg1 (float): The first number for comparison.
+            arg2 (float): The second number for comparison.
+            tolerance (int, optional): The number of significant figures to consider for comparison. Default is 2.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If the significands of arg1 and arg2 differ by more than the specified tolerance.
+
+        Example:
+            obj = TestClass()
+            obj.assertAlmostEqualSigFig(3.145, 3.14159, tolerance=3)
+            # No assertion error will be raised as the first 3 significant figures are equal (3.14)
+        """
+        if tolerance > 1:
+            tolerance = tolerance - 1
+
+        str_formatter = '{0:.' + str(tolerance) + 'e}'
+        significand_1 = float(str_formatter.format(arg1).split('e')[0])
+        significand_2 = float(str_formatter.format(arg2).split('e')[0])
+
+        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
+        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
+
+        self.assertEqual(significand_1, significand_2)
+        self.assertEqual(exponent_1, exponent_2)
+
     @patch('sys.stdout', new_callable=StringIO)
     def test_delete_user_defined_attributes(self, mocked_stdout):
         cube = maya_test_tools.create_poly_cube()[0]
@@ -402,3 +436,150 @@ class TestAttributeUtils(unittest.TestCase):
         result = attr_utils.get_multiple_attr(f'{cube}.custom_attr', enum_as_string=True)
         expected = {'pCube1.custom_attr': "one"}
         self.assertEqual(expected, result)
+
+    def test_set_trs_attr_translate_world(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+        maya_test_tools.cmds.move(5, 0, 0, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3))
+
+        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        expected_tx = -4  # was 1, but -5 comes from parent
+        expected_ty = 2
+        expected_tz = 3
+        self.assertEqual(expected_tx, result_tx)
+        self.assertEqual(expected_ty, result_ty)
+        self.assertEqual(expected_tz, result_tz)
+
+    def test_set_trs_attr_all_trs(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=True, rotate=True, scale=True)
+
+        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
+        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
+        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        expected_x = 1
+        for attr in [result_tx, result_rx, result_sx]:
+            self.assertAlmostEqualSigFig(expected_x, attr)
+        expected_y = 2
+        for attr in [result_ty, result_ry, result_sy]:
+            self.assertAlmostEqualSigFig(expected_y, attr)
+        expected_z = 3
+        for attr in [result_tz, result_rz, result_sz]:
+            self.assertAlmostEqualSigFig(expected_z, attr)
+
+    def test_set_trs_attr_translate(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3))
+
+        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        expected_tx = 1
+        expected_ty = 2
+        expected_tz = 3
+        self.assertEqual(expected_tx, result_tx)
+        self.assertEqual(expected_ty, result_ty)
+        self.assertEqual(expected_tz, result_tz)
+
+    def test_set_trs_attr_rotate(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=False, rotate=True, scale=False)
+
+        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+        expected_rx = 1
+        expected_ry = 2
+        expected_rz = 3
+        self.assertAlmostEqualSigFig(expected_rx, result_rx)
+        self.assertAlmostEqualSigFig(expected_ry, result_ry)
+        self.assertAlmostEqualSigFig(expected_rz, result_rz)
+
+    def test_set_trs_attr_scale(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=False, rotate=False, scale=True)
+
+        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
+        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
+        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        expected_sx = 1
+        expected_sy = 2
+        expected_sz = 3
+        self.assertEqual(expected_sx, result_sx)
+        self.assertEqual(expected_sy, result_sy)
+        self.assertEqual(expected_sz, result_sz)
+
+    def test_set_trs_attr_translate_object_space(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=True, rotate=False, scale=False, space="object")
+
+        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        expected_ty = 2
+        expected_tx = 1
+        expected_tz = 3
+        self.assertAlmostEqualSigFig(expected_tx, result_tx)
+        self.assertAlmostEqualSigFig(expected_ty, result_ty)
+        self.assertAlmostEqualSigFig(expected_tz, result_tz)
+
+    def test_set_trs_attr_rotate_object_space(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=False, rotate=True, scale=False, space="object")
+
+        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+        expected_rx = 1
+        expected_ry = 2
+        expected_rz = 3
+        self.assertAlmostEqualSigFig(expected_rx, result_rx)
+        self.assertAlmostEqualSigFig(expected_ry, result_ry)
+        self.assertAlmostEqualSigFig(expected_rz, result_rz)
+
+    def test_set_trs_attr_scale_object_space(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        group = maya_test_tools.cmds.group(name="temp", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube, group)
+
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
+                                translate=False, rotate=False, scale=True, space="object")
+
+        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
+        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
+        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        expected_sx = 1
+        expected_sy = 2
+        expected_sz = 3
+        self.assertEqual(expected_sx, result_sx)
+        self.assertEqual(expected_sy, result_sy)
+        self.assertEqual(expected_sz, result_sz)

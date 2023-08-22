@@ -211,48 +211,62 @@ def get_multiple_attr(attribute_path=None, obj_list=None, attr_list=None, enum_a
     return attribute_values
 
 
-def set_unlocked_ws_attr(target, attr, value_tuple):
+def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=False,
+                 space="world", verbose=True, log_level=logging.INFO):
     """
-    Sets an attribute to the provided value in case it's not locked (Uses "cmds.xform" function with world space)
+    Sets an attribute to the provided value (Uses "cmds.xform" function with world space)
+    Default is translate only, use arguments to determine which channel to affect (translate, rotate, scale)
 
     Args:
-        target (str): Name of the target object (object that will receive transforms)
-        attr (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-        value_tuple (tuple): A tuple with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+        target_obj (str): Name of the target object (object that will receive transforms)
+        value_tuple (tuple, list): A tuple or list  with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
+        translate (bool, optional): If active, it will apply these values to translate. Default True.
+        rotate (bool, optional): If active, it will apply these values to rotate. Default False.
+        scale (bool, optional): If active, it will apply these values to scale. Default False.
+        space (str, optional): Method used to apply values, can be "world" for world-space or "object" for object-space.
+                               World-space moves the object as if it didn't have parents or hierarchy.
+                               Object-space moves the object by simply changing the values
+        verbose (bool, optional): If True, log messages will be displayed for each attribute retrieval operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
 
     """
+    if not target_obj or not cmds.objExists(target_obj):
+        message = f'Unable to set attribute "{target_obj}" does not exist or has non-unique name.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+    if value_tuple and isinstance(value_tuple, list):
+        value_tuple = tuple(value_tuple)
+    if not value_tuple or not isinstance(value_tuple, tuple):
+        message = f'Unable to set value "{value_tuple}". It must be a tuple or a list with three (3) floats.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
     try:
-        if attr == 'translate':
-            cmds.xform(target, ws=True, t=value_tuple)
-        if attr == 'rotate':
-            cmds.xform(target, ws=True, ro=value_tuple)
-        if attr == 'scale':
-            cmds.xform(target, ws=True, s=value_tuple)
+        # Translate
+        if translate and space == "world":
+            cmds.xform(target_obj, ws=True, t=value_tuple)
+        elif translate and space == "object":
+            set_attr(f'{target_obj}.tx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.ty', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.tz', value=value_tuple[2], verbose=verbose, log_level=log_level)
+        # Rotate
+        if rotate and space == "world":
+            cmds.xform(target_obj, ws=True, ro=value_tuple)
+        elif rotate and space == "object":
+            print("got here")
+            set_attr(f'{target_obj}.rx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.ry', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.rz', value=value_tuple[2], verbose=verbose, log_level=log_level)
+        # Scale
+        if scale and space == "world":
+            cmds.xform(target_obj, ws=True, s=value_tuple)
+        elif scale and space == "object":
+            set_attr(f'{target_obj}.sx', value=value_tuple[0], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.sy', value=value_tuple[1], verbose=verbose, log_level=log_level)
+            set_attr(f'{target_obj}.sz', value=value_tuple[2], verbose=verbose, log_level=log_level)
     except Exception as e:
-        logger.debug(str(e))
+        message = f'An error was raised while setting attributes "{e}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
 
-
-def get_existing_attribute_value(obj, attr, not_found_result=None):
-    """
-    Tries to get attribute out of an object.
-    If either obj or attribute doesn't exist, it returns the provided parameter: not_found_result
-    Args:
-        obj (str): Object name
-        attr (str): attribute long or short name, for example "visibility" or "v" (no need for ".")
-        not_found_result (optional, any): This is returned in case the attribute is not found.
-
-    Returns:
-        Value stored in the attribute, or not_found_result if attribute doesn't exist
-    """
-    if not cmds.objExists(obj):
-        logger.debug("Object not found: " + str(obj))
-        return not_found_result
-    attributes = cmds.listAttr(obj) or []
-    if attr in attributes:
-        return cmds.getAttr(obj + "." + attr)
-    else:
-        return not_found_result
-        
         
 def hide_lock_default_attributes(obj, include_visibility=False):
     """
