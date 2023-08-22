@@ -254,3 +254,75 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertEqual(expected, result_x)
         self.assertEqual(expected, result_y)
         self.assertEqual(expected, result_z)
+
+    def test_set_attr(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        out = attr_utils.set_attr(f'{cube}.tx', 5)
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        expected = 5
+        self.assertEqual(expected, result)
+
+    def test_set_attr_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, dataType="string")
+        attr_utils.set_attr(f'{cube}.custom_attr', "string_value")
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        expected = "string_value"
+        self.assertEqual(expected, result)
+
+    def test_set_attr_multiple_objects(self):
+        cube_list = []
+        for index in range(0, 10):
+            cube_list.append(maya_test_tools.create_poly_cube()[0])
+        attr_utils.set_attr(value=5, obj_list=cube_list, attr_list=["tx"])
+
+        for cube in cube_list:
+            result = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            expected = 5
+            self.assertEqual(expected, result)
+
+    def test_set_attr_multiple_objects_and_attributes(self):
+        cube_list = []
+        for index in range(0, 10):
+            cube_list.append(maya_test_tools.create_poly_cube()[0])
+        attr_utils.set_attr(value=5, obj_list=cube_list, attr_list=["tx", "ty", "tz"])
+
+        for cube in cube_list:
+            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            expected = 5
+            self.assertEqual(expected, result_x)
+            self.assertEqual(expected, result_y)
+            self.assertEqual(expected, result_z)
+
+    def test_set_attr_locked_forced(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
+        attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=True)
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        expected = 5
+        self.assertEqual(expected, result)
+
+    def test_set_attr_locked_failed(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
+        logging.disable(logging.WARNING)
+        attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=False)
+        logging.disable(logging.NOTSET)
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        expected = 0
+        self.assertEqual(expected, result)
+
+    def test_set_attr_locked_raises_exception(self):
+        with self.assertRaises(RuntimeError):
+            cube = maya_test_tools.create_poly_cube()[0]
+            maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
+            maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
+            attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=False,
+                                raise_exceptions=True, verbose=False)
+            result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+            expected = 0
+            self.assertEqual(expected, result)

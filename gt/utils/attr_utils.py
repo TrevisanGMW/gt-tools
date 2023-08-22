@@ -2,7 +2,7 @@
 Attribute Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.feedback_utils import FeedbackMessage
+from gt.utils.feedback_utils import FeedbackMessage, log_when_true
 import maya.cmds as cmds
 import logging
 
@@ -13,6 +13,67 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_CHANNELS = ['t', 'r', 's']
 DEFAULT_DIMENSIONS = ['x', 'y', 'z']
+
+
+def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, clamp=False, force_unlock=False,
+             verbose=True, log_level=logging.INFO, raise_exceptions=False):
+    """
+    This function sets attributes of specified objects using Maya's `cmds.setAttr` function.
+    It provides options to set attributes for a single attribute path, multiple objects and attributes,
+    and supports string and numeric values.
+    It does not raise errors, but can log them with the provided level determined as an argument.
+
+    Args:
+        attribute_path (str, optional): A single-line object attribute path in the format "object.attribute".
+        value (any): The value to set for the attribute. If a string, the attribute will be set as a string type.
+        obj_list (str ,list, optional): The name of the object or a list of object names. e.g. ["cube1", "cube2"]
+        attr_list (str ,list, optional): The name of the attribute or a list of attribute names. e.g. ["tx", "ty"]
+        clamp (bool, optional): If True, the value will be clamped to the attribute's minimum and maximum values.
+        force_unlock (bool, optional): If active, this function unlock locked attributes before settings their values.
+        verbose (bool, optional): If True, log messages will be displayed for each attribute set operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+        raise_exceptions (bool, optional): If active, the function will raise an exceptions whenever something fails.
+
+    Examples:
+        # Set a single attribute value
+        set_attr(attribute_path="myObject.myAttribute", value=10)
+
+        # Set multiple attributes for multiple objects
+        set_attr(obj_list=["object1", "object2"], attr_list=["attr1", "attr2"], value=0.5)
+
+        # Set a string attribute value
+        set_attr(attribute_path="myObject.myStringAttribute", value="Hello, world!")
+    """
+    attributes_to_set = set()
+    # Add One Line Attribute
+    if attribute_path and isinstance(attribute_path, str):
+        attributes_to_set.add(attribute_path)
+
+    # Add object and attribute lists
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if isinstance(attr_list, str):
+        attr_list = [attr_list]
+    if obj_list and attr_list and isinstance(obj_list, list) and isinstance(attr_list, list):  # Exists and is list
+        for attr in attr_list:
+            for obj in obj_list:
+                attributes_to_set.add(f'{obj}.{attr}')
+
+    # Set Attribute
+    for attr_path in attributes_to_set:
+        try:
+            if force_unlock:
+                if cmds.getAttr(attr_path, lock=True):
+                    cmds.setAttr(attr_path, lock=False)
+            if isinstance(value, str):
+                cmds.setAttr(attr_path, value, typ="string", clamp=clamp)
+            else:
+                cmds.setAttr(attr_path, value, clamp=clamp)
+        except Exception as e:
+            message = f'Unable to set attribute "{attr_path}". Issue: "{e}".'
+            log_when_true(logger, message, do_log=verbose, level=log_level)
+            if raise_exceptions:
+                raise e
 
 
 def set_unlocked_os_attr(target, attr, value):
@@ -527,7 +588,6 @@ def rescale(obj, scale, freeze=True):
     cmds.setAttr(obj + '.scaleZ', scale)
     if freeze:
         freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
-
 
 
 if __name__ == "__main__":
