@@ -469,6 +469,67 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
+def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
+    """
+    Freeze individual channels of an object's translation, rotation, or scale in Autodesk Maya.
+
+    Args:
+        object_list (str, list): The name of the object or a list of objects. (str is automatically converted to list)
+        freeze_translate (bool, optional): When active, it will attempt to freeze translate.
+        freeze_rotate (bool, optional): When active, it will attempt to freeze rotate.
+        freeze_scale (bool, optional): When active, it will attempt to freeze scale.
+    Returns:
+        bool: True if all provided objects were fully frozen. False if something failed.
+    """
+    all_frozen = True
+    if not object_list:
+        logger.debug('Nothing frozen. Empty "object_list" argument.')
+        return False
+    if isinstance(object_list, str):  # Convert to list in case it's just one object.
+        object_list = [object_list]
+    for obj in object_list:
+        if not obj or not cmds.objExists(obj):
+            all_frozen = False
+            continue
+        try:
+            if freeze_translate:
+                cmds.makeIdentity(obj, apply=True, translate=True, rotate=False, scale=False)
+        except Exception as e:
+            logger.debug(f'Failed to free "translate" for "{obj}". Issue: {e}')
+            all_frozen = False
+        try:
+            if freeze_rotate:
+                cmds.makeIdentity(obj, apply=True, translate=False, rotate=True, scale=False)
+        except Exception as e:
+            logger.debug(f'Failed to free "rotate" for "{obj}". Issue: {e}')
+            all_frozen = False
+        try:
+            if freeze_scale:
+                cmds.makeIdentity(obj, apply=True, translate=False, rotate=False, scale=True)
+        except Exception as e:
+            logger.debug(f'Failed to free "scale" for "{obj}". Issue: {e}')
+            all_frozen = False
+    return all_frozen
+
+
+def rescale(obj, scale, freeze=True):
+    """
+    Sets the scaleXYZ to the provided scale value.
+    It's also possible to freeze the object, so its components receive a new scale instead.
+    Args:
+        obj (string) Name of the object, for example "pSphere1"
+        scale (float) The new scale value, for example 0.5
+                      (this would cause it to be half of its initial size in case it was previously one)
+        freeze: (bool) Determines if the object scale should be frozen after updated
+    """
+    cmds.setAttr(obj + '.scaleX', scale)
+    cmds.setAttr(obj + '.scaleY', scale)
+    cmds.setAttr(obj + '.scaleZ', scale)
+    if freeze:
+        freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
+
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
