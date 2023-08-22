@@ -16,7 +16,7 @@ DEFAULT_DIMENSIONS = ['x', 'y', 'z']
 
 
 def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, clamp=False, force_unlock=False,
-             verbose=True, log_level=logging.INFO, raise_exceptions=False):
+             verbose=False, log_level=logging.INFO, raise_exceptions=False):
     """
     This function sets attributes of specified objects using Maya's `cmds.setAttr` function.
     It provides options to set attributes for a single attribute path, multiple objects and attributes,
@@ -74,6 +74,78 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
             log_when_true(logger, message, do_log=verbose, level=log_level)
             if raise_exceptions:
                 raise e
+
+
+def get_attr(attribute_path=None, obj_name=None, attr_name=None, enum_as_string=False,
+             verbose=True, log_level=logging.INFO):
+    """
+    This function retrieves the value of the given attribute using the provided attribute path or
+    object name and attribute name.
+
+    Note, when getting a double3 and the result is a single element (usually a tuple) inside a list,
+          it returns only the element instead to avoid the unnecessary nested return.
+
+    Args:
+        attribute_path (str, optional): Full path to the attribute in the format "object.attribute".
+            Use this or provide obj_name and attr_name separately, not both.
+        obj_name (str, optional): Name of the object that holds the attribute. Required if using attr_name.
+        attr_name (str, optional): Name of the attribute to retrieve. Required if using obj_name.
+        enum_as_string (bool, optional): If True and attribute is of type "enum", return the enum value as a string.
+                                         If False, return the integer enum value. Defaults to False.
+        verbose (bool, optional): If True, log error messages to console. Defaults to True.
+        log_level (int, optional): Logging level for error messages, using the constants from the logging module.
+            Defaults to logging.INFO.
+
+    Returns:
+        any: The value of the specified attribute. Returns None if the attribute is not found or if errors occur.
+
+    Examples:
+        value = get_attr(attribute_path="myCube.translateX")
+        # Returns the X translation value of the "myCube" object.
+
+        value = get_attr(obj_name="myCube", attr_name="rotateY")
+        # Returns the Y rotation value of the "myCube" object.
+
+        value = get_attr(attribute_path="mySphere.myEnumAttribute", enum_as_string=True)
+        # Returns the enum value of the "myEnumAttribute" as a string.
+
+    """
+    # Validate parameters
+    if attribute_path and (obj_name or attr_name):
+        message = f'Unable to get attribute value. Multiple get methods were provided in the same function. ' \
+                  f'Provide the entire path to attribute or separated object and attribute names, not both.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return None
+
+    if obj_name and (not attr_name or not isinstance(attr_name, str)):
+        message = f'Unable to get attribute. Missing attribute name or non-string provided.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+
+    if attr_name and (not obj_name or not isinstance(obj_name, str)):
+        message = f'Unable to get attribute. Missing source object name or non-string provided.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+
+    if not attribute_path and obj_name and attr_name:
+        attribute_path = f'{obj_name}.{attr_name}'
+
+    if attribute_path and not cmds.objExists(attribute_path):
+        message = f'Unable to get attribute. Missing source attribute or non-unique name conflict.'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return None
+
+    # Get Attribute
+    attr_type = cmds.getAttr(attribute_path, type=True) or ""
+    if attr_type == "double3":
+        value = cmds.getAttr(attribute_path)
+        if value and len(value) == 1:
+            value = value[0]
+    elif enum_as_string and attr_type == "enum":
+        value = cmds.getAttr(attribute_path, asString=True)
+    else:
+        value = cmds.getAttr(attribute_path)
+    return value
 
 
 def set_unlocked_os_attr(target, attr, value):

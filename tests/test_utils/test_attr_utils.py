@@ -326,3 +326,42 @@ class TestAttributeUtils(unittest.TestCase):
             result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
             expected = 0
             self.assertEqual(expected, result)
+
+    def test_get_attr_float(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        result = attr_utils.get_attr(f'{cube}.tx')
+        expected = 5
+        self.assertEqual(expected, result)
+
+    def test_get_attr_double3(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        result = attr_utils.get_attr(f'{cube}.translate')
+        expected = (5, 0, 0)
+        self.assertEqual(expected, result)
+
+    def test_get_attr_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, dataType="string")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', "string_value", typ='string')
+        result = attr_utils.get_attr(f'{cube}.custom_attr')
+        expected = "string_value"
+        self.assertEqual(expected, result)
+
+    def test_get_attr_enum(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, longName="custom_attr", at='enum', en="zero:one:two", keyable=True)
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', 1)
+        result = attr_utils.get_attr(f'{cube}.custom_attr')
+        expected = 1
+        self.assertEqual(expected, result)
+
+    def test_get_attr_enum_as_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, longName="custom_attr", at='enum', en="zero:one:two", keyable=True)
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', 1)
+        result = attr_utils.get_attr(f'{cube}.custom_attr', enum_as_string=True)
+        expected = "one"
+        self.assertEqual(expected, result)
+
