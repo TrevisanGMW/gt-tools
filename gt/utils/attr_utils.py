@@ -148,20 +148,67 @@ def get_attr(attribute_path=None, obj_name=None, attr_name=None, enum_as_string=
     return value
 
 
-def set_unlocked_os_attr(target, attr, value):
+def get_multiple_attr(attribute_path=None, obj_list=None, attr_list=None, enum_as_string=False,
+                      verbose=True, log_level=logging.INFO, raise_exceptions=False):
     """
-    Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
+    This function retrieves the values of specified attributes using Maya's `cmds.getAttr` function.
+    It provides options to get attributes for a single attribute path or multiple objects and attributes.
+    It does not raise errors, but can log them with the provided level determined as an argument.
 
     Args:
-        target (str): Name of the target object (object that will receive transforms)
-        attr (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-        value (float): Value used to set attribute. e.g. 1.5, 2, 5...
+        attribute_path (str, optional): A single-line object attribute path in the format "object.attribute".
+        obj_list (str ,list, optional): The name of the object or a list of object names. e.g. ["cube1", "cube2"]
+        attr_list (str ,list, optional): The name of the attribute or a list of attribute names. e.g. ["tx", "ty"]
+        enum_as_string (bool, optional): If True and attribute is of type "enum", return the enum value as a string.
+                                         If False, return the integer enum value. Defaults to False.
+        verbose (bool, optional): If True, log messages will be displayed for each attribute retrieval operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+        raise_exceptions (bool, optional): If active, the function will raise exceptions whenever something fails.
+
+    Returns:
+        dict: A dictionary containing attribute paths as keys and their corresponding values.
+
+    Examples:
+        # Get a single attribute value
+        get_attr(attribute_path="myObject.myAttribute")
+
+        # Get multiple attributes for multiple objects
+        get_attr(obj_list=["object1", "object2"], attr_list=["attr1", "attr2"])
     """
-    try:
-        if not cmds.getAttr(target + '.' + attr, lock=True):
-            cmds.setAttr(target + '.' + attr, value)
-    except Exception as e:
-        logger.debug(str(e))
+    attribute_values = {}
+
+    # Add One Line Attribute
+    if attribute_path and isinstance(attribute_path, str):
+        try:
+            value = get_attr(attribute_path=attribute_path, enum_as_string=enum_as_string,
+                             verbose=verbose, log_level=log_level)
+            attribute_values[attribute_path] = value
+        except Exception as e:
+            message = f'Unable to retrieve attribute "{attribute_path}" value. Issue: "{e}".'
+            log_when_true(logger, message, do_log=verbose, level=log_level)
+            if raise_exceptions:
+                raise e
+
+    # Add object and attribute lists
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if isinstance(attr_list, str):
+        attr_list = [attr_list]
+    if obj_list and attr_list and isinstance(obj_list, list) and isinstance(attr_list, list):
+        for attr in attr_list:
+            for obj in obj_list:
+                attr_path = f'{obj}.{attr}'
+                try:
+                    value = get_attr(attribute_path=attr_path, enum_as_string=enum_as_string,
+                                     verbose=verbose, log_level=log_level)
+                    attribute_values[attr_path] = value
+                except Exception as e:
+                    message = f'Unable to retrieve attribute "{attr_path}" value. Issue: "{e}".'
+                    log_when_true(logger, message, do_log=verbose, level=log_level)
+                    if raise_exceptions:
+                        raise e
+
+    return attribute_values
 
 
 def set_unlocked_ws_attr(target, attr, value_tuple):

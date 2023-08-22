@@ -365,3 +365,40 @@ class TestAttributeUtils(unittest.TestCase):
         expected = "one"
         self.assertEqual(expected, result)
 
+    def test_get_multiple_attr_float(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        result = attr_utils.get_multiple_attr(f'{cube}.tx')
+        expected = {'pCube1.tx': 5.0}
+        self.assertEqual(expected, result)
+
+    def test_get_multiple_attr_double3(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        result = attr_utils.get_multiple_attr(f'{cube}.translate')
+        expected = {'pCube1.translate': (5.0, 0.0, 0.0)}
+        self.assertEqual(expected, result)
+
+    def test_get_multiple_attr_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, dataType="string")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', "string_value", typ='string')
+        result = attr_utils.get_multiple_attr(f'{cube}.custom_attr')
+        expected = {'pCube1.custom_attr': 'string_value'}
+        self.assertEqual(expected, result)
+
+    def test_get_multiple_attr_enum(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, longName="custom_attr", at='enum', en="zero:one:two", keyable=True)
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', 1)
+        result = attr_utils.get_multiple_attr(f'{cube}.custom_attr')
+        expected = {'pCube1.custom_attr': 1}
+        self.assertEqual(expected, result)
+
+    def test_get_multiple_attr_enum_as_string(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, longName="custom_attr", at='enum', en="zero:one:two", keyable=True)
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', 1)
+        result = attr_utils.get_multiple_attr(f'{cube}.custom_attr', enum_as_string=True)
+        expected = {'pCube1.custom_attr': "one"}
+        self.assertEqual(expected, result)
