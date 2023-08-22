@@ -1096,6 +1096,8 @@ class Curves:
     icon_code_c_sharp = get_curve(file_name="icon_code_c_sharp")
     icon_code_js_javascript = get_curve(file_name="icon_code_js_javascript")
     icon_cursor = get_curve(file_name="icon_cursor")
+    icon_github_octocat = get_curve(file_name="icon_github_octocat")
+    icon_github_octocat_detailed = get_curve(file_name="icon_github_octocat_detailed")
     icon_godot_logo = get_curve(file_name="icon_godot_logo")
     icon_hand_click_index = get_curve(file_name="icon_hand_click_index")
     icon_houdini_sidefx = get_curve(file_name="icon_houdini_sidefx")
