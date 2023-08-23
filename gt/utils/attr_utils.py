@@ -78,7 +78,7 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
                 raise e
 
 
-def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=False, hidden=False,
+def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=None, hidden=None,
                    verbose=False, log_level=logging.INFO, raise_exceptions=False):
     """
     This function sets locked or hidden states of specified attributes of objects using Maya's `cmds.setAttr` function.
@@ -90,7 +90,7 @@ def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=Fa
         obj_list (str ,list, optional): The name of the object or a list of object names. e.g. ["cube1", "cube2"]
         attr_list (str ,list, optional): The name of the attribute or a list of attribute names. e.g. ["tx", "ty"]
         locked (bool, optional): If True, sets the attribute's locked state to True.
-        hidden (bool, optional): If True, sets the attribute's hidden state to True.
+        hidden (bool, optional): If True, sets the attribute's hidden state to True. (hidden and keyable are affected)
         verbose (bool, optional): If True, log messages will be displayed for each attribute state change operation.
         log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
         raise_exceptions (bool, optional): If active, the function will raise exceptions whenever something fails.
@@ -120,14 +120,17 @@ def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=Fa
     # Set Locked/Hidden State
     for attr_path in attributes_to_set:
         try:
-            if locked:
-                cmds.setAttr(attr_path, lock=True)
-            else:
-                cmds.setAttr(attr_path, lock=False)
-            if hidden:
-                cmds.setAttr(attr_path, keyable=False, channelBox=False)
-            else:
-                cmds.setAttr(attr_path, keyable=True, channelBox=True)
+            if isinstance(locked, bool):
+                if locked is True:
+                    cmds.setAttr(attr_path, lock=True)
+                elif locked is False:
+                    cmds.setAttr(attr_path, lock=False)
+            if isinstance(hidden, bool):
+                if hidden is True:
+                    cmds.setAttr(attr_path, keyable=False, channelBox=False)
+                elif hidden is False:
+                    cmds.setAttr(attr_path, channelBox=True)
+                    cmds.setAttr(attr_path, keyable=True)
         except Exception as e:
             message = f'Unable to set attribute state for "{attr_path}". Issue: "{e}".'
             log_when_true(logger, message, do_log=verbose, level=log_level)
@@ -264,6 +267,96 @@ def rescale(obj, scale, freeze=True):
     cmds.setAttr(obj + '.scaleZ', scale)
     if freeze:
         freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
+
+
+def selection_unlock_default_channels(feedback=True):
+    """
+    Unlocks Translate, Rotate, Scale for the selected objects
+    Args:
+        feedback (bool, optional): If active, it will return feedback at the end of the operation.
+    Returns:
+        int: Number of affected objects.
+    """
+    func_name = 'Unlock Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=func_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
+    unlocked_counter = 0
+    try:
+        attr_list = ['tx', 'ty', 'tz',
+                     'rx', 'ry', 'rz',
+                     'sx', 'sy', 'sz', 'v']
+        for obj in selection:
+            try:
+                set_attr_state(obj_list=obj, attr_list=attr_list, locked=False, raise_exceptions=True)
+                unlocked_counter += 1
+            except Exception as e:
+                errors += str(e) + '\n'
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=func_name)
+
+    if errors != '':
+        print('#### Errors: ####')
+        print(errors)
+        cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
+
+    if feedback:
+        feedback = FeedbackMessage(quantity=unlocked_counter,
+                                   singular='object had its',
+                                   plural='objects had their',
+                                   conclusion='default channels unlocked.')
+        feedback.print_inview_message()
+    return unlocked_counter
+
+
+def selection_unhide_default_channels(feedback=True):
+    """
+    Un-hides Translate, Rotate, Scale for the selected objects
+    Args:
+        feedback (bool, optional): If active, it will return feedback at the end of the operation.
+    Returns:
+        int: Number of affected objects.
+    """
+    func_name = 'Unhide Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=func_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
+    unhidden_counter = 0
+    try:
+        attr_list = ['tx', 'ty', 'tz',
+                     'rx', 'ry', 'rz',
+                     'sx', 'sy', 'sz', 'v']
+        for obj in selection:
+            try:
+                set_attr_state(obj_list=obj, attr_list=attr_list, hidden=False, raise_exceptions=True)
+                unhidden_counter += 1
+            except Exception as e:
+                errors += str(e) + '\n'
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=func_name)
+
+    if errors != '':
+        print('#### Errors: ####')
+        print(errors)
+        cmds.warning('Some channels were not made visible . Open the script editor for a list of issues.')
+
+    if feedback:
+        feedback = FeedbackMessage(quantity=unhidden_counter,
+                                   singular='object had its',
+                                   plural='objects had their',
+                                   conclusion='default channels made visible.')
+        feedback.print_inview_message()
+    return unhidden_counter
 
 
 # --------------------------------------------- Getters ---------------------------------------------
@@ -441,7 +534,7 @@ def get_trs_attr_as_formatted_string(obj_list, decimal_place=2, add_description=
                 attr_list = [0, 0, 0, 15, 15, 15, 1, 1, 1] # TRS (XYZ)
     """
     if not obj_list:
-        logger.debug(f'')
+        logger.debug(f'Unable to get TRS as formatted string. Missing source list.')
         return ""
     if obj_list and isinstance(obj_list, str):
         obj_list = [obj_list]
@@ -657,138 +750,44 @@ def add_attributes(target_list, attributes, attr_type="double", minimum=None, ma
     return added_attrs
 
 
-# --------------------------------------------- Not refactored yet ---------------------------------------------
+def delete_user_defined_attributes(obj_list, delete_locked=True):
+    """
+    Deletes all User defined attributes for the selected objects.
+    Args:
+        obj_list (list, str): List of objects to delete user-defined attributes
+                              (If a string, it gets auto converted to list with a single object)
+        delete_locked (bool, optional): If active, it will also delete locked attributes.
+    Returns:
+        list: List of deleted attributes
+    """
+    if not obj_list:
+        logger.debug(f'Unable to delete user-defined attributes. Missing target list.')
+        return []
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
 
-def unlock_default_channels():
-    """ Unlocks Translate, Rotate, Scale for the selected objects """
-    func_name = 'Unlock Default Channels'
-    errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=func_name)  # Start undo chunk
-    selection = cmds.ls(selection=True, long=True)
-    if not selection:
-        cmds.warning('Nothing selected. Please select an object and try again.')
-        return
-    selection_short = cmds.ls(selection=True)
-    unlocked_counter = 0
+    custom_attributes = []
+    deleted_attributes = set()
     try:
-        for obj in selection:
+        for obj in obj_list:
+            attributes = cmds.listAttr(obj, userDefined=True) or []
+            for attr in attributes:
+                custom_attributes.append(f'{obj}.{attr}')
+
+        for attr in custom_attributes:
             try:
-                cmds.setAttr(obj + '.translateX', lock=False)
-                cmds.setAttr(obj + '.translateY', lock=False)
-                cmds.setAttr(obj + '.translateZ', lock=False)
-                cmds.setAttr(obj + '.rotateX', lock=False)
-                cmds.setAttr(obj + '.rotateY', lock=False)
-                cmds.setAttr(obj + '.rotateZ', lock=False)
-                cmds.setAttr(obj + '.scaleX', lock=False)
-                cmds.setAttr(obj + '.scaleY', lock=False)
-                cmds.setAttr(obj + '.scaleZ', lock=False)
-                cmds.setAttr(obj + '.v', lock=False)
-                unlocked_counter += 1
+                if delete_locked:
+                    cmds.setAttr(f"{attr}", lock=False)
+                cmds.deleteAttr(attr)
+                deleted_attributes.add(attr)
             except Exception as e:
-                errors += str(e) + '\n'
-        if errors != '':
-            print('#### Errors: ####')
-            print(errors)
-            cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
+                logger.debug(str(e))
     except Exception as e:
-        logger.debug(str(e))
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=func_name)
-
-    feedback = FeedbackMessage(quantity=unlocked_counter,
-                               singular='object had its',
-                               plural='objects had their',
-                               conclusion='default channels unlocked.')
-    feedback.print_inview_message()
+        logger.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
+    return list(deleted_attributes)
 
 
-def unlock_default_channels():
-    """ Unlocks Translate, Rotate, Scale for the selected objects """
-    function_name = 'Unlock Default Channels'
-    errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
-    selection = cmds.ls(selection=True, long=True)
-    if not selection:
-        cmds.warning('Nothing selected. Please select an object and try again.')
-        return
-    selection_short = cmds.ls(selection=True)
-    unlocked_counter = 0
-    try:
-        for obj in selection:
-            try:
-                cmds.setAttr(obj + '.translateX', lock=False)
-                cmds.setAttr(obj + '.translateY', lock=False)
-                cmds.setAttr(obj + '.translateZ', lock=False)
-                cmds.setAttr(obj + '.rotateX', lock=False)
-                cmds.setAttr(obj + '.rotateY', lock=False)
-                cmds.setAttr(obj + '.rotateZ', lock=False)
-                cmds.setAttr(obj + '.scaleX', lock=False)
-                cmds.setAttr(obj + '.scaleY', lock=False)
-                cmds.setAttr(obj + '.scaleZ', lock=False)
-                cmds.setAttr(obj + '.v', lock=False)
-                unlocked_counter += 1
-            except Exception as e:
-                errors += str(e) + '\n'
-        if errors != '':
-            print('#### Errors: ####')
-            print(errors)
-            cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
-    except Exception as e:
-        logger.debug(str(e))
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-    feedback = FeedbackMessage(quantity=unlocked_counter,
-                               singular='object had its',
-                               plural='objects had their',
-                               conclusion='default channels unlocked.')
-    feedback.print_inview_message()
-
-
-def unhide_default_channels():
-    """ Un-hides Translate, Rotate, Scale for the selected objects """
-    function_name = 'GTU Unhide Default Channels'
-    errors = ''
-    cmds.undoInfo(openChunk=True, chunkName=function_name)  # Start undo chunk
-    selection = cmds.ls(selection=True, long=True)
-    if not selection:
-        cmds.warning('Nothing selected. Please select an object and try again.')
-        return
-    selection_short = cmds.ls(selection=True)
-    unhide_counter = 0
-    try:
-        for obj in selection:
-            try:
-                cmds.setAttr(obj + '.translateX', keyable=True)
-                cmds.setAttr(obj + '.translateY', keyable=True)
-                cmds.setAttr(obj + '.translateZ', keyable=True)
-                cmds.setAttr(obj + '.rotateX', keyable=True)
-                cmds.setAttr(obj + '.rotateY', keyable=True)
-                cmds.setAttr(obj + '.rotateZ', keyable=True)
-                cmds.setAttr(obj + '.scaleX', keyable=True)
-                cmds.setAttr(obj + '.scaleY', keyable=True)
-                cmds.setAttr(obj + '.scaleZ', keyable=True)
-                cmds.setAttr(obj + '.v', keyable=True)
-                unhide_counter += 1
-            except Exception as e:
-                errors += str(e) + '\n'
-        if errors != '':
-            print('#### Errors: ####')
-            print(errors)
-            cmds.warning('Some channels were not made visible. Open the script editor for a list of errors.')
-    except Exception as e:
-        logger.debug(str(e))
-    finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-    feedback = FeedbackMessage(quantity=unhide_counter,
-                               singular='object had its',
-                               plural='objects had their',
-                               conclusion='default channels made visible.')
-    feedback.print_inview_message()
-
-
-def delete_user_defined_attributes(delete_locked=True):
+def selection_delete_user_defined_attributes(delete_locked=True):
     """
     Deletes all User defined attributes for the selected objects.
     Args:
@@ -834,7 +833,7 @@ def delete_user_defined_attributes(delete_locked=True):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
     sel = cmds.ls(selection=True)
-    # out = None
-    pprint(out)
+    add_attributes(target_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
+    delete_user_defined_attributes(sel)
+

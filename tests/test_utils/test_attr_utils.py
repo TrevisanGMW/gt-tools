@@ -64,7 +64,7 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertEqual(exponent_1, exponent_2)
 
     @patch('sys.stdout', new_callable=StringIO)
-    def test_delete_user_defined_attributes(self, mocked_stdout):
+    def test_selection_delete_user_defined_attributes(self, mocked_stdout):
         cube = maya_test_tools.create_poly_cube()[0]
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='bool', k=True)
@@ -73,13 +73,13 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True)
         expected = ['custom_attr_one', 'custom_attr_two']
         self.assertEqual(expected, result)
-        attr_utils.delete_user_defined_attributes()
+        attr_utils.selection_delete_user_defined_attributes()
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True) or []
         expected = []
         self.assertEqual(expected, result)
 
     @patch('sys.stdout', new_callable=StringIO)
-    def test_delete_user_defined_attributes_no_locked(self, mocked_stdout):
+    def test_selection_delete_user_defined_attributes_no_locked(self, mocked_stdout):
         cube = maya_test_tools.create_poly_cube()[0]
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='bool', k=True)
@@ -88,7 +88,7 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True)
         expected = ['custom_attr_one', 'custom_attr_two']
         self.assertEqual(expected, result)
-        attr_utils.delete_user_defined_attributes(delete_locked=False)
+        attr_utils.selection_delete_user_defined_attributes(delete_locked=False)
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True) or []
         expected = ['custom_attr_two']
         self.assertEqual(expected, result)
@@ -813,8 +813,10 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_attr_state(attribute_path=f"{cube}.ty", hidden=True)
         keyable_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", keyable=True)
         channel_box_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", channelBox=True)
+        locked_state = maya_test_tools.cmds.getAttr(f"{cube}.tx", lock=True)
         self.assertFalse(keyable_state)
         self.assertFalse(channel_box_state)
+        self.assertFalse(locked_state)
 
     def test_set_attr_state_lock_and_hide_attribute(self):
         cube = maya_test_tools.create_poly_cube()[0]
@@ -841,3 +843,118 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertTrue(ty_locked_state)
         self.assertFalse(ty_keyable_state)
         self.assertFalse(ty_channel_box_state)
+
+    def test_selection_unlock_default_channels(self):
+        cube_one = maya_test_tools.create_poly_cube()[0]
+        cube_two = maya_test_tools.create_poly_cube()[0]
+        for obj in [cube_one, cube_two]:
+            maya_test_tools.cmds.setAttr(f'{obj}.tx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.ty', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.tz', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.rx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.ry', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.rz', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sy', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sz', lock=True)
+            # Test State -----------------------------------
+            tx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tx", lock=True)
+            ty_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ty", lock=True)
+            tz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tz", lock=True)
+            rx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rx", lock=True)
+            ry_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ry", lock=True)
+            rz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rz", lock=True)
+            sx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sx", lock=True)
+            sy_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sy", lock=True)
+            sz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sz", lock=True)
+            self.assertTrue(tx_locked_state)
+            self.assertTrue(ty_locked_state)
+            self.assertTrue(tz_locked_state)
+            self.assertTrue(rx_locked_state)
+            self.assertTrue(ry_locked_state)
+            self.assertTrue(rz_locked_state)
+            self.assertTrue(sx_locked_state)
+            self.assertTrue(sy_locked_state)
+            self.assertTrue(sz_locked_state)
+            # Select and Unlock ----------------------------
+            maya_test_tools.cmds.select([cube_one, cube_two])
+            result = attr_utils.selection_unlock_default_channels(feedback=False)
+            # Test State -----------------------------------
+            tx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tx", lock=True)
+            ty_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ty", lock=True)
+            tz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tz", lock=True)
+            rx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rx", lock=True)
+            ry_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ry", lock=True)
+            rz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rz", lock=True)
+            sx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sx", lock=True)
+            sy_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sy", lock=True)
+            sz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sz", lock=True)
+            self.assertFalse(tx_locked_state)
+            self.assertFalse(ty_locked_state)
+            self.assertFalse(tz_locked_state)
+            self.assertFalse(rx_locked_state)
+            self.assertFalse(ry_locked_state)
+            self.assertFalse(rz_locked_state)
+            self.assertFalse(sx_locked_state)
+            self.assertFalse(sy_locked_state)
+            self.assertFalse(sz_locked_state)
+            expected = 2
+            self.assertEqual(expected, result)
+
+    def test_selection_unhide_default_channels(self):
+        cube_one = maya_test_tools.create_poly_cube()[0]
+        cube_two = maya_test_tools.create_poly_cube()[0]
+        for obj in [cube_one, cube_two]:
+            maya_test_tools.cmds.setAttr(f'{obj}.tx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.ty', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.tz', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.rx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.ry', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.rz', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sx', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sy', lock=True)
+            maya_test_tools.cmds.setAttr(f'{obj}.sz', lock=True)
+            # Test State -----------------------------------
+            tx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tx", lock=True)
+            ty_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ty", lock=True)
+            tz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tz", lock=True)
+            rx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rx", lock=True)
+            ry_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ry", lock=True)
+            rz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rz", lock=True)
+            sx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sx", lock=True)
+            sy_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sy", lock=True)
+            sz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sz", lock=True)
+            self.assertTrue(tx_locked_state)
+            self.assertTrue(ty_locked_state)
+            self.assertTrue(tz_locked_state)
+            self.assertTrue(rx_locked_state)
+            self.assertTrue(ry_locked_state)
+            self.assertTrue(rz_locked_state)
+            self.assertTrue(sx_locked_state)
+            self.assertTrue(sy_locked_state)
+            self.assertTrue(sz_locked_state)
+            # Select and Unlock ----------------------------
+            maya_test_tools.cmds.select([cube_one, cube_two])
+            result = attr_utils.selection_unlock_default_channels(feedback=False)
+            # Test State -----------------------------------
+            tx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tx", lock=True)
+            ty_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ty", lock=True)
+            tz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.tz", lock=True)
+            rx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rx", lock=True)
+            ry_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.ry", lock=True)
+            rz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.rz", lock=True)
+            sx_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sx", lock=True)
+            sy_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sy", lock=True)
+            sz_locked_state = maya_test_tools.cmds.getAttr(f"{obj}.sz", lock=True)
+            self.assertFalse(tx_locked_state)
+            self.assertFalse(ty_locked_state)
+            self.assertFalse(tz_locked_state)
+            self.assertFalse(rx_locked_state)
+            self.assertFalse(ry_locked_state)
+            self.assertFalse(rz_locked_state)
+            self.assertFalse(sx_locked_state)
+            self.assertFalse(sy_locked_state)
+            self.assertFalse(sz_locked_state)
+            expected = 2
+            self.assertEqual(expected, result)
+
