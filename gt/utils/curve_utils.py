@@ -4,10 +4,10 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.utils.data_utils import read_json_dict, write_json
-from gt.utils.attribute_utils import add_separator_attr
 from gt.utils.transform_utils import Transform, Vector3
+from gt.utils.attr_utils import add_separator_attr
 from gt.utils.system_utils import DataDirConstants
-from gt.utils import transform_utils
+from gt.utils import attr_utils
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
@@ -133,7 +133,7 @@ def combine_curves_list(curve_list, convert_bezier_to_nurbs=True):
                 cmds.select(bezier)
                 cmds.bezierCurveToNurbs()
 
-        transform_utils.freeze_channels(list(valid_curve_transforms))
+        attr_utils.freeze_channels(list(valid_curve_transforms))
         # Re-parent Shapes
         shapes = nurbs_shapes + bezier_shapes
         group = cmds.group(empty=True, world=True, name=curve_list[0])
@@ -267,7 +267,7 @@ def selected_curves_combine(convert_bezier_to_nurbs=False, show_bezier_conversio
             convert_bezier_to_nurbs = True if user_input == 'Yes' else False
 
         # Freeze Curves
-        transform_utils.freeze_channels(list(valid_curve_transforms))
+        attr_utils.freeze_channels(list(valid_curve_transforms))
 
         # Combine
         combined_crv = combine_curves_list(selection, convert_bezier_to_nurbs=convert_bezier_to_nurbs)
