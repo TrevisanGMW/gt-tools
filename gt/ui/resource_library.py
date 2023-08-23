@@ -377,6 +377,7 @@ class Color:
             e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
             Value range 0-255
             """
+        transparent = 'rgba(0,0,0,0)'
         white = 'rgba(255,255,255,255)'
         white_soft = 'rgba(238,238,238,255)'
         white_soft_ghosted = 'rgba(238,238,238,75)'
@@ -482,7 +483,7 @@ class StylesheetVariables:
         # Formatting
         "@maya_small_button_padding;": "5",
     }
-    dark_scrollbar = {
+    scrollbar_dark = {
         "@background_mid;": Color.RGB.grey,
         "@background_dark;": Color.RGB.grey_dark,
         "@scroll_area_border;": Color.RGB.grey_mid_much_lighter,
@@ -491,16 +492,34 @@ class StylesheetVariables:
         "@scrollbar_handle;": Color.RGB.grey_mid_much_lighter,
         "@scrollbar_handle_pressed;": Color.RGB.grey_much_lighter,
         "@scrollbar_background;": Color.RGB.grey_dark,
+        # Sizes
+        "@scrollbar_size;": 15,
+        "@sub_control_size;": 15,
         # Icons
         "@image_scrollbar_up;": f"url({Icon.scrollbar_up})".replace("\\", "/"),
         "@image_scrollbar_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
+        "@image_scrollbar_left;": f"url({Icon.scrollbar_left})".replace("\\", "/"),
+        "@image_scrollbar_right;": f"url({Icon.scrollbar_right})".replace("\\", "/"),
     }
-    dark_progress_bar = {
+    text_edit_mid_grey = {
+        "@background_mid;": Color.RGB.grey,
+        "@border_color;": Color.RGB.grey_mid_much_lighter,
+    }
+    progress_bar_dark = {
         # Colors
         "@progress_bar_background;": Color.RGB.grey_mid_much_lighter,
         "@progress_bar_chunk;": Color.RGB.blue_soft,
     }
-    bright_push_button = {
+    list_widget_dark = {
+        # Colors
+        "@list_background_color;": Color.RGB.grey_darker,
+        "@list_text_color;": Color.RGB.grey_much_lighter,
+        "@list_selection_bg_color;": Color.RGB.blue_soft_dark,
+        "@list_selection_text_color;": Color.RGB.white,
+        "@list_hover_bg_color;": Color.RGB.grey,
+        "@list_hover_text_color;": Color.RGB.white,
+    }
+    push_button_bright = {
         # Colors
         "@background_color;": Color.RGB.grey_light,
         "@background_hover_color;": Color.RGB.grey_lighter,
@@ -513,7 +532,7 @@ class StylesheetVariables:
         "@button_padding;": "15",
     }
     # Metro QToolButton Start ----------------------------------------------------------------
-    metro_tools_button_default = {
+    button_metro_tools_default = {
         # Colors
         "@tool_button_text;": Color.RGB.white,
         "@tool_bg_hover_color;": Color.RGB.grey_mid_much_lighter,
@@ -524,15 +543,15 @@ class StylesheetVariables:
         "@tool_button_font_size;": "16",
         "@tool_button_border_radius;": "5",
     }
-    metro_tools_button_blue = deepcopy(metro_tools_button_default)
-    metro_tools_button_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid
-    metro_tools_button_blue["@tool_bg_click_color;"] = Color.RGB.blue_dark
-    metro_tools_button_red = deepcopy(metro_tools_button_default)
-    metro_tools_button_red["@tool_bg_hover_color;"] = Color.RGB.red_softer
-    metro_tools_button_red["@tool_bg_click_color;"] = Color.RGB.red_dark
-    metro_tools_button_green = deepcopy(metro_tools_button_default)
-    metro_tools_button_green["@tool_bg_hover_color;"] = Color.RGB.green_soft
-    metro_tools_button_green["@tool_bg_click_color;"] = Color.RGB.green_dark
+    button_metro_tools_blue = deepcopy(button_metro_tools_default)
+    button_metro_tools_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid
+    button_metro_tools_blue["@tool_bg_click_color;"] = Color.RGB.blue_dark
+    button_metro_tools_red = deepcopy(button_metro_tools_default)
+    button_metro_tools_red["@tool_bg_hover_color;"] = Color.RGB.red_softer
+    button_metro_tools_red["@tool_bg_click_color;"] = Color.RGB.red_dark
+    button_metro_tools_green = deepcopy(button_metro_tools_default)
+    button_metro_tools_green["@tool_bg_hover_color;"] = Color.RGB.green_soft
+    button_metro_tools_green["@tool_bg_click_color;"] = Color.RGB.green_dark
     # Metro QToolButton End ------------------------------------------------------------------
 
 
@@ -544,23 +563,26 @@ class Stylesheet:
     # Stylesheets Without Variations
     maya_basic_dialog = get_stylesheet_content(stylesheet_name="maya_basic_dialog",
                                                stylesheet_variables=StylesheetVariables.maya_basic)
-    dark_progress_bar = get_stylesheet_content(stylesheet_name="dark_progress_bar",
-                                               stylesheet_variables=StylesheetVariables.dark_progress_bar)
-    dark_scroll_bar = get_stylesheet_content(stylesheet_name="dark_scroll_bar",
-                                             stylesheet_variables=StylesheetVariables.dark_scrollbar)
-    dark_list_widget = get_stylesheet_content(stylesheet_name="dark_list_widget",
-                                              stylesheet_variables=StylesheetVariables.dark_progress_bar)
-    bright_push_button = get_stylesheet_content(stylesheet_name="bright_push_button",
-                                                stylesheet_variables=StylesheetVariables.bright_push_button)
+    progress_bar_dark = get_stylesheet_content(stylesheet_name="progress_bar_dark",
+                                               stylesheet_variables=StylesheetVariables.progress_bar_dark)
+    scroll_bar_dark = get_stylesheet_content(stylesheet_name="scroll_bar_dark",
+                                             stylesheet_variables=StylesheetVariables.scrollbar_dark)
+    list_widget_dark = get_stylesheet_content(stylesheet_name="list_widget_dark",
+                                              stylesheet_variables=StylesheetVariables.list_widget_dark)
+    text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",
+                                                stylesheet_variables=StylesheetVariables.text_edit_mid_grey)
+    # --------------------------------------------- Buttons ---------------------------------------------
+    push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
+                                                stylesheet_variables=StylesheetVariables.push_button_bright)
     # Metro Tool Button
-    metro_tool_button = get_stylesheet_content(stylesheet_name="metro_tool_button",
-                                               stylesheet_variables=StylesheetVariables.metro_tools_button_default)
-    metro_tool_button_red = get_stylesheet_content(stylesheet_name="metro_tool_button",
-                                                   stylesheet_variables=StylesheetVariables.metro_tools_button_red)
-    metro_tool_button_blue = get_stylesheet_content(stylesheet_name="metro_tool_button",
-                                                    stylesheet_variables=StylesheetVariables.metro_tools_button_blue)
-    metro_tool_button_green = get_stylesheet_content(stylesheet_name="metro_tool_button",
-                                                     stylesheet_variables=StylesheetVariables.metro_tools_button_green)
+    button_metro_tool = get_stylesheet_content(stylesheet_name="button_metro_tool",
+                                               stylesheet_variables=StylesheetVariables.button_metro_tools_default)
+    button_metro_tool_red = get_stylesheet_content(stylesheet_name="button_metro_tool",
+                                                   stylesheet_variables=StylesheetVariables.button_metro_tools_red)
+    button_metro_tool_blue = get_stylesheet_content(stylesheet_name="button_metro_tool",
+                                                    stylesheet_variables=StylesheetVariables.button_metro_tools_blue)
+    button_metro_tool_green = get_stylesheet_content(stylesheet_name="button_metro_tool",
+                                                     stylesheet_variables=StylesheetVariables.button_metro_tools_green)
 
 
 class Font:

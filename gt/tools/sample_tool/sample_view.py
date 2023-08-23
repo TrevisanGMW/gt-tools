@@ -59,9 +59,9 @@ class SampleToolWindow(metaclass=MayaWindowMeta, base_inheritance=QMainWindow):
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.dev_screwdriver))
 
-        sample_stylesheet = resource_library.Stylesheet.dark_scroll_bar
+        sample_stylesheet = resource_library.Stylesheet.scroll_bar_dark
         sample_stylesheet += resource_library.Stylesheet.maya_basic_dialog
-        sample_stylesheet += resource_library.Stylesheet.dark_list_widget
+        sample_stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(sample_stylesheet)
 
     def update_view(self, items):
