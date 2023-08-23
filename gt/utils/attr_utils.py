@@ -750,13 +750,15 @@ def add_attributes(target_list, attributes, attr_type="double", minimum=None, ma
     return added_attrs
 
 
-def delete_user_defined_attributes(obj_list, delete_locked=True):
+def delete_user_defined_attributes(obj_list, delete_locked=True, verbose=True, raise_exceptions=False):
     """
     Deletes all User defined attributes for the selected objects.
     Args:
         obj_list (list, str): List of objects to delete user-defined attributes
                               (If a string, it gets auto converted to list with a single object)
         delete_locked (bool, optional): If active, it will also delete locked attributes.
+        verbose (bool, optional): If active, it will print warning messages when necessary.
+        raise_exceptions (bool, optional): If active, it will raise exceptions when something fails.
     Returns:
         list: List of deleted attributes
     """
@@ -767,7 +769,7 @@ def delete_user_defined_attributes(obj_list, delete_locked=True):
         obj_list = [obj_list]
 
     custom_attributes = []
-    deleted_attributes = set()
+    deleted_attributes = []
     try:
         for obj in obj_list:
             attributes = cmds.listAttr(obj, userDefined=True) or []
@@ -779,19 +781,23 @@ def delete_user_defined_attributes(obj_list, delete_locked=True):
                 if delete_locked:
                     cmds.setAttr(f"{attr}", lock=False)
                 cmds.deleteAttr(attr)
-                deleted_attributes.add(attr)
+                deleted_attributes.append(attr)
             except Exception as e:
                 logger.debug(str(e))
     except Exception as e:
-        logger.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
-    return list(deleted_attributes)
+        if verbose:
+            logger.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
+        if raise_exceptions:
+            raise e
+    return deleted_attributes
 
 
-def selection_delete_user_defined_attributes(delete_locked=True):
+def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
     """
     Deletes all User defined attributes for the selected objects.
     Args:
         delete_locked (bool, optional): If active, it will also delete locked attributes.
+        feedback (bool, optional): If active, it will return feedback at the end of the operation.
     """
     function_name = 'Delete User Defined Attributes'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
@@ -802,31 +808,21 @@ def selection_delete_user_defined_attributes(delete_locked=True):
         return
 
     try:
-        custom_attributes = []
-        for sel in selection:
-            attributes = cmds.listAttr(sel, userDefined=True) or []
-            for attr in attributes:
-                custom_attributes.append(f'{sel}.{attr}')
-
+        deleted_attrs = delete_user_defined_attributes(obj_list=selection,
+                                                       delete_locked=delete_locked,
+                                                       verbose=True) or []
         deleted_counter = 0
-        for attr in custom_attributes:
-            try:
-                if delete_locked:
-                    cmds.setAttr(f"{attr}", lock=False)
-                cmds.deleteAttr(attr)
-                deleted_counter += 1
-            except Exception as e:
-                logger.debug(str(e))
-
-        feedback = FeedbackMessage(quantity=deleted_counter,
-                                   singular='user-defined attribute was',
-                                   plural='user-defined attributes were',
-                                   conclusion='deleted.',
-                                   zero_overwrite_message='No user defined attributes were deleted.')
-        feedback.print_inview_message()
-
+        if deleted_attrs:
+            deleted_counter = len(deleted_attrs)
+        if feedback:
+            feedback = FeedbackMessage(quantity=deleted_counter,
+                                       singular='user-defined attribute was',
+                                       plural='user-defined attributes were',
+                                       conclusion='deleted.',
+                                       zero_overwrite_message='No user defined attributes were deleted.')
+            feedback.print_inview_message()
     except Exception as e:
-        cmds.warning(str(e))
+        cmds.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
@@ -836,4 +832,3 @@ if __name__ == "__main__":
     sel = cmds.ls(selection=True)
     add_attributes(target_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
     delete_user_defined_attributes(sel)
-

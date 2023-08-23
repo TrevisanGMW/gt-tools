@@ -958,3 +958,34 @@ class TestAttributeUtils(unittest.TestCase):
             expected = 2
             self.assertEqual(expected, result)
 
+    def test_delete_user_defined_attributes(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", k=True, at="float")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
+
+        result = attr_utils.delete_user_defined_attributes(cube)
+
+        attr_one = maya_test_tools.cmds.objExists(f'{cube}.custom_attr')
+        self.assertFalse(attr_one)
+        attr_two = maya_test_tools.cmds.objExists(f'{cube}.custom_attr_two')
+        self.assertFalse(attr_two)
+
+        expected = [f'{cube}.custom_attr', f'{cube}.custom_attr_two']
+        self.assertEqual(expected, result)
+
+    def test_delete_user_defined_attributes_no_lock(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", k=True, at="float")
+        maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
+
+        result = attr_utils.delete_user_defined_attributes(cube, delete_locked=False)
+
+        attr_one = maya_test_tools.cmds.objExists(f'{cube}.custom_attr')
+        self.assertTrue(attr_one)
+        attr_two = maya_test_tools.cmds.objExists(f'{cube}.custom_attr_two')
+        self.assertFalse(attr_two)
+
+        expected = [f'{cube}.custom_attr_two']
+        self.assertEqual(expected, result)
