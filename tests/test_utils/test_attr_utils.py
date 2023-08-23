@@ -725,3 +725,61 @@ class TestAttributeUtils(unittest.TestCase):
         result = attr_utils.get_trs_attr_as_formatted_string(cube, separate_channels=True, add_object=False)
         expected = 't_attr_list = [5, 0, 0]\nr_attr_list = [5, 0, 0]\ns_attr_list = [5, 1, 1]'
         self.assertEqual(expected, result)
+
+    def test_add_attributes(self):
+        cube_one = maya_test_tools.create_poly_cube()[0]
+        cube_two = maya_test_tools.create_poly_cube()[0]
+
+        # Test data
+        target_list = [cube_one, cube_two]
+        attributes = ["attr1", "attr2"]
+        attr_type = "double"
+        minimum = 1
+        maximum = 10
+        default = 5
+        is_keyable = True
+        verbose = False
+
+        # Call the function
+        result = attr_utils.add_attributes(target_list, attributes, attr_type, minimum, maximum,
+                                           default, is_keyable, verbose)
+
+        # Define expected results
+        expected_added_attrs = [f"{cube_one}.attr1", f"{cube_one}.attr2", f"{cube_two}.attr1", f"{cube_two}.attr2"]
+
+        # Assert expected results
+        self.assertEqual(result, expected_added_attrs)
+        for obj in target_list:
+            for attr_name in attributes:
+                full_attr_name = f"{obj}.{attr_name}"
+                exists = maya_test_tools.cmds.objExists(full_attr_name)
+                self.assertTrue(exists)
+                type_result = maya_test_tools.cmds.getAttr(full_attr_name, type=True)
+                self.assertEqual(attr_type, type_result)
+                min_val = maya_test_tools.cmds.attributeQuery(attr_name, node=obj, min=True)
+                expected = [minimum]
+                self.assertEqual(expected, min_val)
+                exists_max = maya_test_tools.cmds.attributeQuery(attr_name, node=obj, max=True)
+                expected = [maximum]
+                self.assertEqual(expected, exists_max)
+                exists_default = maya_test_tools.cmds.attributeQuery(attr_name, node=obj, exists=True)
+                self.assertTrue(exists_default)
+
+    def test_get_trs_attr_as_python(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        result = attr_utils.get_trs_attr_as_python(cube)
+        expected = '# Transform Data for "pCube1":\ncmds.setAttr("pCube1.tx", 0)\ncmds.setAttr("pCube1.ty", 0)\n' \
+                   'cmds.setAttr("pCube1.tz", 0)\ncmds.setAttr("pCube1.rx", 0)\ncmds.setAttr("pCube1.ry", 0)\n' \
+                   'cmds.setAttr("pCube1.rz", 0)\ncmds.setAttr("pCube1.sx", 1)\ncmds.setAttr("pCube1.sy", 1)\n' \
+                   'cmds.setAttr("pCube1.sz", 1)'
+        self.assertEqual(expected, result)
+
+    def test_get_trs_attr_as_python_loop(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+
+        result = attr_utils.get_trs_attr_as_python(cube, use_loop=True)
+        expected = '# Transform Data for "pCube1":\nfor key, value in {"tx": 0.0, "ty": 0.0, "tz": 0.0, "rx": 0.0, ' \
+                   '"ry": 0.0, "rz": 0.0, "sx": 1.0, "sy": 1.0, "sz": 1.0}.items():\n\tif not ' \
+                   'cmds.getAttr(f"pCube1.{key}", lock=True):\n\t\tcmds.setAttr(f"pCube1.{key}", value)'
+        self.assertEqual(expected, result)

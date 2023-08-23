@@ -421,6 +421,53 @@ def get_trs_attr_as_formatted_string(obj_list, decimal_place=2, add_description=
     return output
 
 
+def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zeroes=True):
+    """
+    Args:
+        obj_list (list, str): List objects to extract the transform from (If a string, it gets auto converted to list)
+        use_loop (optional, bool): If active, it will use a for loop in the output code (instead of simple lines)
+        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
+        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
+
+    Returns:
+        str: Python code used to set translate, rotate, and scale attributes.
+    """
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+
+    output = ''
+    for obj in obj_list:
+        output += f'# Transform Data for "{obj}":\n'
+        data = {}
+        for channel in DEFAULT_CHANNELS:
+            for dimension in DEFAULT_DIMENSIONS:
+                attr_name = f"{obj}.{channel}{dimension}"
+                value = cmds.getAttr(attr_name)
+                formatted_value = format(value, f".{decimal_place}f")
+
+                if strip_zeroes:
+                    formatted_value = formatted_value.rstrip('0').rstrip('.')
+                    if formatted_value == '-0':
+                        formatted_value = '0'
+                else:
+                    formatted_value = formatted_value
+
+                if not cmds.getAttr(attr_name, lock=True) and not use_loop:
+                    output += f'cmds.setAttr("{attr_name}", {formatted_value})\n'
+                else:
+                    data[channel + dimension] = float(formatted_value)
+
+        if use_loop:
+            import json
+            data = json.dumps(data, ensure_ascii=False)
+            output += f'for key, value in {data}.items():\n'
+            output += f'\tif not cmds.getAttr(f"{obj}' + '.{key}"' + ', lock=True):\n'
+            output += f'\t\tcmds.setAttr(f"{obj}' + '.{key}"' + ', value)'
+    if output.endswith("\n"):
+        output = output[:len(output) - len("\n")]
+    return output
+
+
 # -------------------------------------------- Management -------------------------------------------
 def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     """
@@ -462,105 +509,57 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
-# --------------------------------------------- Not refactored yet ---------------------------------------------
-def add_attributes(target_list,
-                   attributes,
-                   attr_type,
-                   minimum, maximum,
-                   default, status='keyable'):
-
-    logger.debug('target_list: ' + str(target_list))
-    logger.debug('attributes: ' + str(attributes))
-    logger.debug('attr_type: ' + str(attr_type))
-    logger.debug('minimum: ' + str(minimum))
-    logger.debug('maximum: ' + str(maximum))
-    logger.debug('default: ' + str(default))
-    logger.debug('status: ' + str(status))
-
-    issues = ''
-
-    for target_obj in target_list:
-        current_user_attributes = cmds.listAttr(target_obj, userDefined=True) or []
-        print(current_user_attributes)
-        for attr in attributes:
-            if attr not in current_user_attributes:
-                cmds.addAttr(target_obj, ln=attr, at=attr_type, k=True)
-            else:
-                issue = '\nUnable to add "' + target_obj + '.' + attr + '".'
-                issue += ' Object already has an attribute with the same name'
-                issues += issue
-
-    if issues:
-        print(issues)
-
-
-def default_attr_to_python(obj_list, printing=True, use_loop=False, decimal_place=2, strip_zeroes=True):
+def add_attributes(target_list, attributes, attr_type="double", minimum=None, maximum=None,
+                   default=None, is_keyable=True, verbose=False):
     """
-    TODO
+    Adds attributes to the provided target list (list of objects)
+
     Args:
-        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
-        printing (optional, bool): If active, the function will print the values to the script editor
-        use_loop (optional, bool): If active, it will use a for loop in the output code (instead of simple lines)
-        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
-        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
-
+        target_list (list): List of objects to which attributes will be added.
+        attributes (list): List of attribute names to be added.
+        attr_type (str, optional): Data type of the attribute (e.g., 'double', 'long', 'string', etc.).
+                         For a full list see the documentation for "cmds.addAttr".
+        minimum: Minimum value for the attribute. Optional.
+        maximum: Maximum value for the attribute. Optional.
+        default: Default value for the attribute. Optional.
+        is_keyable (bool, optional): Whether the attribute should be keyable. Default is True.
+        verbose (bool, optional): If active, this function will alert the user in case there were errors.
     Returns:
-        Python code with extracted transform values
-
+        list: List of created attributes.
     """
-    if not obj_list:
-        obj_list = cmds.ls(selection=True)
-    if not obj_list:
-        return
-
-    output = ''
-    if printing:
-        output += ('#' * 80)
-
-    for obj in obj_list:
-        output += '\n# Transform Data for "' + obj + '":\n'
-        data = {}
-        for channel in DEFAULT_CHANNELS:  # TRS
-            for dimension in DEFAULT_DIMENSIONS:  # XYZ
-                # Extract Values
-                value = cmds.getAttr(obj + '.' + channel + dimension)
-                if strip_zeroes:
-                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f"))).rstrip('0').rstrip(
-                        '.')
-                    if formatted_value == '-0':
-                        formatted_value = '0'
+    added_attrs = []
+    issues = {}
+    for target in target_list:
+        for attr_name in attributes:
+            full_attr_name = f"{target}.{attr_name}"
+            if not cmds.objExists(full_attr_name):
+                attr_args = {'longName': attr_name}
+                if attr_type != "string":
+                    attr_args['attributeType'] = attr_type
                 else:
-                    formatted_value = str(float(format(value, "." + str(decimal_place) + "f")))
-                    if formatted_value == '-0.0':
-                        formatted_value = '0.0'
-                    output += formatted_value + ')\n'
-                # Populate Value Messages/Data
-                if not cmds.getAttr(obj + '.' + channel + dimension, lock=True) and not use_loop:
-                    output += 'cmds.setAttr("' + obj + '.' + channel + dimension + '", '
-                    # Populate Non-loop output
-                    output += formatted_value + ')\n'
-                else:
-                    data[channel + dimension] = formatted_value
-
-        # Loop Version
-        if use_loop:
-            output += 'for key, value in ' + str(data) + '.items():\n'
-            output += '\tif not cmds.getAttr(' + obj + '. + key, lock=True):\n'
-            output += '\t\tcmds.setAttr("' + obj + '." + key, value)\n'
-
-    # Return / Print
-    if printing:
-        output += ('#' * 80)
-        if output.replace('#', ''):
-            print(output)
-            return output
-        else:
-            print('No data found. Make sure your selection at least one object with unlocked transforms.')
-            return None
-    else:
-        return output
+                    attr_args['dataType'] = "string"
+                if minimum is not None:
+                    attr_args['minValue'] = minimum
+                if maximum is not None:
+                    attr_args['maxValue'] = maximum
+                if default is not None:
+                    attr_args['defaultValue'] = default
+                if is_keyable:
+                    attr_args['keyable'] = True
+                try:
+                    cmds.addAttr(target, **attr_args)
+                    if cmds.objExists(full_attr_name):
+                        added_attrs.append(full_attr_name)
+                except Exception as e:
+                    issues[full_attr_name] = e
+    if issues and verbose:
+        for attr, error in issues.items():
+            logger.warning(f'"{attr}" returned the error: "{error}".')
+        logger.warning('Errors were raised while adding attributes. See previous warnings for more information.')
+    return added_attrs
 
 
+# --------------------------------------------- Not refactored yet ---------------------------------------------
 def user_attr_to_python(obj_list, printing=True):
     """
     Returns a string
@@ -744,6 +743,7 @@ def delete_user_defined_attributes(delete_locked=True):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-    add_separator_attr(cmds.ls(selection=True)[0])
-    out = None
+    sel = cmds.ls(selection=True)
+    out = add_attributes(sel, attributes=["abc", "def", "aa"], attr_type="string")
+    # out = None
     pprint(out)
