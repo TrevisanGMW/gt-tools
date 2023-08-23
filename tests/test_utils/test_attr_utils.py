@@ -774,6 +774,9 @@ class TestAttributeUtils(unittest.TestCase):
                    'cmds.setAttr("pCube1.rz", 0)\ncmds.setAttr("pCube1.sx", 1)\ncmds.setAttr("pCube1.sy", 1)\n' \
                    'cmds.setAttr("pCube1.sz", 1)'
         self.assertEqual(expected, result)
+        result = attr_utils.get_trs_attr_as_python([cube, cube])
+        expected = f'{expected}\n\n{expected}'
+        self.assertEqual(expected, result)
 
     def test_get_trs_attr_as_python_loop(self):
         cube = maya_test_tools.create_poly_cube()[0]
@@ -782,4 +785,19 @@ class TestAttributeUtils(unittest.TestCase):
         expected = '# Transform Data for "pCube1":\nfor key, value in {"tx": 0.0, "ty": 0.0, "tz": 0.0, "rx": 0.0, ' \
                    '"ry": 0.0, "rz": 0.0, "sx": 1.0, "sy": 1.0, "sz": 1.0}.items():\n\tif not ' \
                    'cmds.getAttr(f"pCube1.{key}", lock=True):\n\t\tcmds.setAttr(f"pCube1.{key}", value)'
+        self.assertEqual(expected, result)
+        result = attr_utils.get_trs_attr_as_python([cube, cube], use_loop=True)
+        expected = f'{expected}\n\n{expected}'
+        self.assertEqual(expected, result)
+
+    def test_get_user_attr_to_python(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='float', k=True)
+        result = attr_utils.get_user_attr_to_python(cube)
+        expected = '# User-Defined Attribute Data for "pCube1":\ncmds.setAttr("pCube1.custom_attr_one", False)\n' \
+                   'cmds.setAttr("pCube1.custom_attr_two", 0.0)'
+        self.assertEqual(expected, result)
+        result = attr_utils.get_user_attr_to_python([cube, cube])
+        expected = f'{expected}\n\n{expected}'
         self.assertEqual(expected, result)

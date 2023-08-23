@@ -3,6 +3,7 @@ Attribute Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import FeedbackMessage, log_when_true
+from gt.utils.string_utils import remove_suffix, remove_prefix
 import maya.cmds as cmds
 import logging
 
@@ -391,7 +392,7 @@ def get_trs_attr_as_formatted_string(obj_list, decimal_place=2, add_description=
     output = ''
     for obj in obj_list:
         if add_description:
-            output += f'# Transform Data for "{obj}":\n'
+            output += f'\n# Transform Data for "{obj}":\n'
         data = []
         for channel in DEFAULT_CHANNELS:  # TRS
             for dimension in DEFAULT_DIMENSIONS:  # XYZ
@@ -416,8 +417,11 @@ def get_trs_attr_as_formatted_string(obj_list, decimal_place=2, add_description=
                 output += f'source_obj = "{str(obj)}"' + '\n'
             output += 't_attr_list = [' + str(data[0]) + ', ' + str(data[1]) + ', ' + str(data[2]) + ']\n'
             output += 'r_attr_list = [' + str(data[3]) + ', ' + str(data[4]) + ', ' + str(data[5]) + ']\n'
-            output += 's_attr_list = [' + str(data[6]) + ', ' + str(data[7]) + ', ' + str(data[8]) + ']'
-
+            output += 's_attr_list = [' + str(data[6]) + ', ' + str(data[7]) + ', ' + str(data[8]) + ']\n'
+    # Remove first and last new line
+    _new_line = "\n"
+    output = remove_prefix(output, _new_line)
+    output = remove_suffix(output, _new_line)
     return output
 
 
@@ -437,7 +441,7 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
 
     output = ''
     for obj in obj_list:
-        output += f'# Transform Data for "{obj}":\n'
+        output += f'\n# Transform Data for "{obj}":\n'
         data = {}
         for channel in DEFAULT_CHANNELS:
             for dimension in DEFAULT_DIMENSIONS:
@@ -462,9 +466,46 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
             data = json.dumps(data, ensure_ascii=False)
             output += f'for key, value in {data}.items():\n'
             output += f'\tif not cmds.getAttr(f"{obj}' + '.{key}"' + ', lock=True):\n'
-            output += f'\t\tcmds.setAttr(f"{obj}' + '.{key}"' + ', value)'
-    if output.endswith("\n"):
-        output = output[:len(output) - len("\n")]
+            output += f'\t\tcmds.setAttr(f"{obj}' + '.{key}"' + ', value)\n'
+    # Remove first and last new line
+    _new_line = "\n"
+    output = remove_prefix(output, _new_line)
+    output = remove_suffix(output, _new_line)
+    return output
+
+
+def get_user_attr_to_python(obj_list):
+    """
+    Returns a string
+    Args:
+        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+
+    Returns:
+        str: Python code with extracted transform values
+
+    """
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    output = ''
+    for obj in obj_list:
+        output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
+        attributes = cmds.listAttr(obj, userDefined=True) or []
+        if not attributes:
+            output += '# No user-defined attributes found on this object.\n'
+        else:
+            for attr in attributes:  # TRS
+                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
+                value = cmds.getAttr(obj + '.' + attr)
+                if attr_type == 'double3':
+                    pass
+                elif attr_type == 'string':
+                    output += 'cmds.setAttr("' + obj + '.' + attr + '", """' + str(value) + '""", typ="string")\n'
+                else:
+                    output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+    # Remove first and last new line
+    _new_line = "\n"
+    output = remove_prefix(output, _new_line)
+    output = remove_suffix(output, _new_line)
     return output
 
 
@@ -560,56 +601,6 @@ def add_attributes(target_list, attributes, attr_type="double", minimum=None, ma
 
 
 # --------------------------------------------- Not refactored yet ---------------------------------------------
-def user_attr_to_python(obj_list, printing=True):
-    """
-    Returns a string
-    Args:
-        obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
-        printing (optional, bool): If active, the function will print the values to the script editor
-
-    Returns:
-        Python code with extracted transform values
-
-    """
-    if not obj_list:
-        obj_list = cmds.ls(selection=True)
-    if not obj_list:
-        return
-
-    output = ''
-    if printing:
-        output += ('#' * 80)
-
-    for obj in obj_list:
-        output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
-        attributes = cmds.listAttr(obj, userDefined=True) or []
-        if not attributes:
-            output += '# No user-defined attributes found on this object.\n'
-        else:
-            for attr in attributes:  # TRS
-                # not cmds.getAttr(obj + '.' + attr, lock=True) # TODO Check if locked
-                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
-                value = cmds.getAttr(obj + '.' + attr)
-                if attr_type == 'double3':
-                    pass
-                elif attr_type == 'string':
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", """' + str(value) + '""", typ="string")\n'
-                else:
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
-
-    # Return / Print
-    if printing:
-        output += ('#' * 80)
-        if output.replace('#', ''):
-            print(output)
-            return output
-        else:
-            print('No data found. Make sure your selection at least one object with user-defined attributes.')
-            return None
-    else:
-        return output
-
-
 def unlock_default_channels():
     """ Unlocks Translate, Rotate, Scale for the selected objects """
     function_name = 'Unlock Default Channels'
