@@ -801,3 +801,43 @@ class TestAttributeUtils(unittest.TestCase):
         result = attr_utils.get_user_attr_to_python([cube, cube])
         expected = f'{expected}\n\n{expected}'
         self.assertEqual(expected, result)
+
+    def test_set_attr_state_lock_attribute(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.set_attr_state(attribute_path=f"{cube}.tx", locked=True)
+        locked_state = maya_test_tools.cmds.getAttr(f"{cube}.tx", lock=True)
+        self.assertTrue(locked_state)
+
+    def test_set_attr_state_hide_attribute(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.set_attr_state(attribute_path=f"{cube}.ty", hidden=True)
+        keyable_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", keyable=True)
+        channel_box_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", channelBox=True)
+        self.assertFalse(keyable_state)
+        self.assertFalse(channel_box_state)
+
+    def test_set_attr_state_lock_and_hide_attribute(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.set_attr_state(attribute_path=f"{cube}.tz", locked=True, hidden=True)
+        locked_state = maya_test_tools.cmds.getAttr(f"{cube}.tz", lock=True)
+        keyable_state = maya_test_tools.cmds.getAttr(f"{cube}.tz", keyable=True)
+        channel_box_state = maya_test_tools.cmds.getAttr(f"{cube}.tz", channelBox=True)
+        self.assertTrue(locked_state)
+        self.assertFalse(keyable_state)
+        self.assertFalse(channel_box_state)
+
+    def test_set_attr_state_lock_and_hide_multiple_attributes(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        attr_utils.set_attr_state(obj_list=[cube], attr_list=["tx", "ty"], locked=True, hidden=True)
+        tx_locked_state = maya_test_tools.cmds.getAttr(f"{cube}.tx", lock=True)
+        tx_keyable_state = maya_test_tools.cmds.getAttr(f"{cube}.tx", keyable=True)
+        tx_channel_box_state = maya_test_tools.cmds.getAttr(f"{cube}.tx", channelBox=True)
+        ty_locked_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", lock=True)
+        ty_keyable_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", keyable=True)
+        ty_channel_box_state = maya_test_tools.cmds.getAttr(f"{cube}.ty", channelBox=True)
+        self.assertTrue(tx_locked_state)
+        self.assertFalse(tx_keyable_state)
+        self.assertFalse(tx_channel_box_state)
+        self.assertTrue(ty_locked_state)
+        self.assertFalse(ty_keyable_state)
+        self.assertFalse(ty_channel_box_state)

@@ -78,6 +78,63 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
                 raise e
 
 
+def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=False, hidden=False,
+                   verbose=False, log_level=logging.INFO, raise_exceptions=False):
+    """
+    This function sets locked or hidden states of specified attributes of objects using Maya's `cmds.setAttr` function.
+    It provides options to set locked or hidden states for a single attribute path, multiple objects and attributes.
+    It does not raise errors, but can log them with the provided level determined as an argument.
+
+    Args:
+        attribute_path (str, optional): A single-line object attribute path in the format "object.attribute".
+        obj_list (str ,list, optional): The name of the object or a list of object names. e.g. ["cube1", "cube2"]
+        attr_list (str ,list, optional): The name of the attribute or a list of attribute names. e.g. ["tx", "ty"]
+        locked (bool, optional): If True, sets the attribute's locked state to True.
+        hidden (bool, optional): If True, sets the attribute's hidden state to True.
+        verbose (bool, optional): If True, log messages will be displayed for each attribute state change operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+        raise_exceptions (bool, optional): If active, the function will raise exceptions whenever something fails.
+
+    Examples:
+        # Lock a single attribute
+        set_locked_hidden_state(attribute_path="myObject.myAttribute", locked=True)
+
+        # Hide multiple attributes for multiple objects
+        set_locked_hidden_state(obj_list=["object1", "object2"], attr_list=["attr1", "attr2"], hidden=True)
+    """
+    attributes_to_set = set()
+    # Add One Line Attribute
+    if attribute_path and isinstance(attribute_path, str):
+        attributes_to_set.add(attribute_path)
+
+    # Add object and attribute lists
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if isinstance(attr_list, str):
+        attr_list = [attr_list]
+    if obj_list and attr_list and isinstance(obj_list, list) and isinstance(attr_list, list):  # Exists and is list
+        for attr in attr_list:
+            for obj in obj_list:
+                attributes_to_set.add(f'{obj}.{attr}')
+
+    # Set Locked/Hidden State
+    for attr_path in attributes_to_set:
+        try:
+            if locked:
+                cmds.setAttr(attr_path, lock=True)
+            else:
+                cmds.setAttr(attr_path, lock=False)
+            if hidden:
+                cmds.setAttr(attr_path, keyable=False, channelBox=False)
+            else:
+                cmds.setAttr(attr_path, keyable=True, channelBox=True)
+        except Exception as e:
+            message = f'Unable to set attribute state for "{attr_path}". Issue: "{e}".'
+            log_when_true(logger, message, do_log=verbose, level=log_level)
+            if raise_exceptions:
+                raise e
+
+
 def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=False,
                  space="world", verbose=True, log_level=logging.INFO):
     """
@@ -601,6 +658,50 @@ def add_attributes(target_list, attributes, attr_type="double", minimum=None, ma
 
 
 # --------------------------------------------- Not refactored yet ---------------------------------------------
+
+def unlock_default_channels():
+    """ Unlocks Translate, Rotate, Scale for the selected objects """
+    func_name = 'Unlock Default Channels'
+    errors = ''
+    cmds.undoInfo(openChunk=True, chunkName=func_name)  # Start undo chunk
+    selection = cmds.ls(selection=True, long=True)
+    if not selection:
+        cmds.warning('Nothing selected. Please select an object and try again.')
+        return
+    selection_short = cmds.ls(selection=True)
+    unlocked_counter = 0
+    try:
+        for obj in selection:
+            try:
+                cmds.setAttr(obj + '.translateX', lock=False)
+                cmds.setAttr(obj + '.translateY', lock=False)
+                cmds.setAttr(obj + '.translateZ', lock=False)
+                cmds.setAttr(obj + '.rotateX', lock=False)
+                cmds.setAttr(obj + '.rotateY', lock=False)
+                cmds.setAttr(obj + '.rotateZ', lock=False)
+                cmds.setAttr(obj + '.scaleX', lock=False)
+                cmds.setAttr(obj + '.scaleY', lock=False)
+                cmds.setAttr(obj + '.scaleZ', lock=False)
+                cmds.setAttr(obj + '.v', lock=False)
+                unlocked_counter += 1
+            except Exception as e:
+                errors += str(e) + '\n'
+        if errors != '':
+            print('#### Errors: ####')
+            print(errors)
+            cmds.warning('Some channels were not unlocked . Open the script editor for a list of errors.')
+    except Exception as e:
+        logger.debug(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=func_name)
+
+    feedback = FeedbackMessage(quantity=unlocked_counter,
+                               singular='object had its',
+                               plural='objects had their',
+                               conclusion='default channels unlocked.')
+    feedback.print_inview_message()
+
+
 def unlock_default_channels():
     """ Unlocks Translate, Rotate, Scale for the selected objects """
     function_name = 'Unlock Default Channels'
@@ -735,6 +836,5 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
     sel = cmds.ls(selection=True)
-    out = add_attributes(sel, attributes=["abc", "def", "aa"], attr_type="string")
     # out = None
     pprint(out)
