@@ -699,14 +699,14 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
-def add_attributes(target_list, attributes, attr_type="double", minimum=None, maximum=None,
-                   default=None, is_keyable=True, verbose=False):
+def add_attr(target_list, attributes, attr_type="double", minimum=None, maximum=None,
+             default=None, is_keyable=True, verbose=False):
     """
     Adds attributes to the provided target list (list of objects)
 
     Args:
-        target_list (list): List of objects to which attributes will be added.
-        attributes (list): List of attribute names to be added.
+        target_list (list, str): List of objects to which attributes will be added. (Strings are converted to list)
+        attributes (list, str): List of attribute names to be added. (Strings are converted to single item list)
         attr_type (str, optional): Data type of the attribute (e.g., 'double', 'long', 'string', etc.).
                          For a full list see the documentation for "cmds.addAttr".
         minimum: Minimum value for the attribute. Optional.
@@ -719,6 +719,10 @@ def add_attributes(target_list, attributes, attr_type="double", minimum=None, ma
     """
     added_attrs = []
     issues = {}
+    if target_list and isinstance(target_list, str):
+        target_list = [target_list]
+    if attributes and isinstance(attributes, str):
+        attributes = [attributes]
     for target in target_list:
         for attr_name in attributes:
             full_attr_name = f"{target}.{attr_name}"
@@ -829,5 +833,5 @@ def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     sel = cmds.ls(selection=True)
-    add_attributes(target_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
+    add_attr(target_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
     delete_user_defined_attributes(sel)

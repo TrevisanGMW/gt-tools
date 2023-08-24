@@ -741,8 +741,8 @@ class TestAttributeUtils(unittest.TestCase):
         verbose = False
 
         # Call the function
-        result = attr_utils.add_attributes(target_list, attributes, attr_type, minimum, maximum,
-                                           default, is_keyable, verbose)
+        result = attr_utils.add_attr(target_list, attributes, attr_type, minimum, maximum,
+                                     default, is_keyable, verbose)
 
         # Define expected results
         expected_added_attrs = [f"{cube_one}.attr1", f"{cube_one}.attr2", f"{cube_two}.attr1", f"{cube_two}.attr2"]
@@ -764,6 +764,43 @@ class TestAttributeUtils(unittest.TestCase):
                 self.assertEqual(expected, exists_max)
                 exists_default = maya_test_tools.cmds.attributeQuery(attr_name, node=obj, exists=True)
                 self.assertTrue(exists_default)
+
+    def test_add_attributes_string_inputs(self):
+        cube_one = maya_test_tools.create_poly_cube()[0]
+
+        # Test data
+        target_list = cube_one
+        attribute = "attr1"
+        attr_type = "double"
+        minimum = 1
+        maximum = 10
+        default = 5
+        is_keyable = True
+        verbose = False
+
+        # Call the function
+        result = attr_utils.add_attr(target_list, attribute, attr_type, minimum, maximum,
+                                     default, is_keyable, verbose)
+
+        # Define expected results
+        expected_added_attrs = [f"{cube_one}.attr1"]
+
+        # Assert expected results
+        self.assertEqual(result, expected_added_attrs)
+
+        full_attr_name = f"{cube_one}.{attribute}"
+        exists = maya_test_tools.cmds.objExists(full_attr_name)
+        self.assertTrue(exists)
+        type_result = maya_test_tools.cmds.getAttr(full_attr_name, type=True)
+        self.assertEqual(attr_type, type_result)
+        min_val = maya_test_tools.cmds.attributeQuery(attribute, node=cube_one, min=True)
+        expected = [minimum]
+        self.assertEqual(expected, min_val)
+        exists_max = maya_test_tools.cmds.attributeQuery(attribute, node=cube_one, max=True)
+        expected = [maximum]
+        self.assertEqual(expected, exists_max)
+        exists_default = maya_test_tools.cmds.attributeQuery(attribute, node=cube_one, exists=True)
+        self.assertTrue(exists_default)
 
     def test_get_trs_attr_as_python(self):
         cube = maya_test_tools.create_poly_cube()[0]
