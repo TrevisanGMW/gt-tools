@@ -1115,6 +1115,7 @@ class Curves:
     letter_asterisk = get_curve(file_name="letter_asterisk")
     line_two_points = get_curve(file_name="line_two_points")
     locator = get_curve(file_name="locator")
+    locator_handle_arrows = get_curve(file_name="locator_handle_arrows")
     locator_handle_xyz = get_curve(file_name="locator_handle_xyz")
     locator_with_axis = get_curve(file_name="locator_with_axis")
     peanut = get_curve(file_name="peanut")
