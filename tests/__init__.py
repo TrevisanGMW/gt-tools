@@ -52,6 +52,7 @@ modules_to_test = [
     test_utils.test_setup_utils,
     test_utils.test_string_utils,
     test_utils.test_system_utils,
+    test_utils.test_uuid_utils,
     test_utils.test_version_utils,
 ]
 

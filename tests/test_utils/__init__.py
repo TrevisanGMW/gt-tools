@@ -18,4 +18,5 @@ from . import test_session_utils
 from . import test_setup_utils
 from . import test_string_utils
 from . import test_system_utils
+from . import test_uuid_utils
 from . import test_version_utils
