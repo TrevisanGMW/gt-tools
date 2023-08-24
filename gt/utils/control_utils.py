@@ -5,9 +5,9 @@ github.com/TrevisanGMW/gt-tools
 Dependencies: "gt.utils.curve_utils" and "gt.utils.data.controls"
 """
 from gt.utils.data.controls import cluster_driven, slider
+from gt.utils.attr_utils import set_attr, set_attr_state
 from gt.utils.naming_utils import get_short_name
 from gt.utils.data_utils import DataDirConstants
-from gt.utils.attr_utils import set_attr
 from gt.utils.curve_utils import Curve
 from gt.utils import iterable_utils
 from gt.utils import system_utils
@@ -47,6 +47,7 @@ def add_snapping_shape(target_object):
     if len(locator_shape) != 1:
         locator_shape = locator_shape[0]
     set_attr(obj_list=locator_shape, attr_list=["localScaleX", "localScaleY", "localScaleZ"], value=0)
+    set_attr_state(obj_list=locator_shape, attr_list=["lpx", "lpy", "lpz", "lsx", "lsy", "lsz"], hidden=True)
     cmds.parent(locator_shape, target_object, relative=True, shape=True)
     cmds.delete(locator)
     if selection:
@@ -97,7 +98,7 @@ class Control(Curve):
         self.set_build_function(build_function=build_function)
         self.last_callable_output = None
         if name:
-            self.set_name(new_name=name)
+            self.set_name(name=name)
 
     def _set_original_parameters(self, parameters):
         """
@@ -113,18 +114,18 @@ class Control(Curve):
         """ Resets parameters to the original value """
         self.parameters = self._original_parameters
 
-    def set_parameters(self, new_parameters):
+    def set_parameters(self, parameters):
         """
         Sets the control parameters
         Args:
-            new_parameters (dict, str): A dictionary with the keyword arguments of the control.
+            parameters (dict, str): A dictionary with the keyword arguments of the control.
                                         It can also be a JSON formatted string.
         """
-        if new_parameters and isinstance(new_parameters, dict):
-            self.parameters = new_parameters
-        if new_parameters and isinstance(new_parameters, str):
+        if parameters and isinstance(parameters, dict):
+            self.parameters = parameters
+        if parameters and isinstance(parameters, str):
             try:
-                _parameters = ast.literal_eval(new_parameters)
+                _parameters = ast.literal_eval(parameters)
                 self.parameters = _parameters
             except Exception as e:
                 logger.warning(f'Unable to set control parameters. Invalid dictionary. Issue: {str(e)}')
@@ -225,18 +226,18 @@ class Control(Curve):
         """
         return self.last_callable_output
 
-    def set_name(self, new_name):
+    def set_name(self, name):
         """
         Sets a new Curve name (Control in this case).
         This function is an overwriting the original function for Controls.
         Used to also update the parameter "name" in case it exists.
 
         Args:
-            new_name (str): New name to use on the curve/control. (Also used in the control parameter)
+            name (str): New name to use on the curve/control. (Also used in the control parameter)
         """
-        if new_name and isinstance(new_name, str) and "name" in self.get_parameters():
-            self.parameters["name"] = new_name
-        super().set_name(new_name)
+        if name and isinstance(name, str) and "name" in self.get_parameters():
+            self.parameters["name"] = name
+        super().set_name(name)
 
     def extract_name_from_parameters(self):
         """
@@ -277,5 +278,5 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # out = Controls.scalable_two_sides_arrow
     # out.build()
-    add_snapping_shape('proxy_crv')
+    add_snapping_shape('pSphere1')
 

@@ -208,3 +208,19 @@ class TestControlUtils(unittest.TestCase):
         result = control_utils.add_snapping_shape(target_object=cube)
         expected = None
         self.assertEqual(expected, result)
+
+    def test_add_snapping_shape_attr_visibility(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        shape = control_utils.add_snapping_shape(target_object=cube)
+        is_hidden_lpx = maya_test_tools.cmds.getAttr(f'{shape}.lpx', channelBox=True)
+        is_hidden_lpy = maya_test_tools.cmds.getAttr(f'{shape}.lpy', channelBox=True)
+        is_hidden_lpz = maya_test_tools.cmds.getAttr(f'{shape}.lpz', channelBox=True)
+        is_hidden_lsx = maya_test_tools.cmds.getAttr(f'{shape}.lsx', channelBox=True)
+        is_hidden_lsy = maya_test_tools.cmds.getAttr(f'{shape}.lsy', channelBox=True)
+        is_hidden_lsz = maya_test_tools.cmds.getAttr(f'{shape}.lsz', channelBox=True)
+        self.assertFalse(is_hidden_lpx)
+        self.assertFalse(is_hidden_lpy)
+        self.assertFalse(is_hidden_lpz)
+        self.assertFalse(is_hidden_lsx)
+        self.assertFalse(is_hidden_lsy)
+        self.assertFalse(is_hidden_lsz)
