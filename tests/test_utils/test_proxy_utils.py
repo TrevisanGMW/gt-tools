@@ -31,9 +31,8 @@ class TestProxyUtils(unittest.TestCase):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_proxy_default(self):
-        proxy = Proxy()
-        result = proxy.build()
-        self.assertTrue(proxy.is_proxy_valid())
+        result = self.proxy.build()
+        self.assertTrue(self.proxy.is_proxy_valid())
         expected = "proxy_crv"
         self.assertEqual(expected, result)
 
@@ -43,4 +42,18 @@ class TestProxyUtils(unittest.TestCase):
         result = proxy.build()
         self.assertTrue(proxy.is_proxy_valid())
         expected = "proxy_crv"
+        self.assertEqual(expected, result)
+
+    def test_get_name_default(self):
+        result = self.proxy.get_name()
+        expected = "proxy_crv"
+        self.assertEqual(expected, result)
+
+    def test_set_name(self):
+        self.proxy.set_name("description")
+        result = self.proxy.get_name()
+        expected = "description"
+        self.assertEqual(expected, result)
+        result = self.proxy.build()
+        expected = "description"
         self.assertEqual(expected, result)

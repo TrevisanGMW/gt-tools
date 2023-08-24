@@ -6,11 +6,11 @@ TODO:
     Proxy (single joint)
     RigComponent (carry proxies, can be complex)
     RigSkeleton, RigBase (carry components)
-
 """
+from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.control_utils import add_snapping_shape
-from gt.utils.uuid_utils import add_proxy_attribute
-from gt.utils.attr_utils import add_separator_attr
+from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.curve_utils import Curve, get_curve
 import maya.cmds as cmds
 import logging
@@ -20,11 +20,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Constants
-PACKAGE_GLOBAL_PREFS = "package_prefs"
-PACKAGE_PREFS_DIR = "prefs"
-PACKAGE_PREFS_EXT = "json"
-
 
 class ProxyConstants:
     def __init__(self):
@@ -32,50 +27,76 @@ class ProxyConstants:
         Constant values used by all proxy elements.
         """
     JOINT_ATTR_UUID = "jointUUID"
-    PROXY_MAIN_GRP = "proxy_grp"
-    PROXY_BASE_CRV = "proxy_dir_crv"
     PROXY_ATTR_UUID = "proxyUUID"
+    PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
 
 
 class Proxy:
     def __init__(self,
                  name=None,
-                 prefix=None,
-                 suffix=None,
                  transform=None,
-                 parent=None,
-                 shape_scale=None,
                  curve=None,
-                 metadata=None,):
+                 uuid=None,
+                 parent_uuid=None,
+                 scale=None,
+                 metadata=None):
+        # Default Values
         self.name = "proxy_crv"
-        self.prefix = prefix
-        self.suffix = suffix
         self.transform = transform
         self.curve = get_curve('_proxy_joint')
+        self.uuid = generate_uuid(remove_dashes=True)
+        self.parent_uuid = None
         self.metadata = None
-        self.parent = None
 
         if name:
             self.set_name(name)
+        if transform:
+            pass  # TODO @@@
         if curve:
             self.set_curve(curve)
+        if uuid:
+            self.set_uuid(uuid)
+        if parent_uuid:
+            self.set_parent_uuid(parent_uuid)
+        if scale:
+            pass  # TODO @@@
         if metadata:
-            self.set_metadata_dict(new_metadata=metadata)
+            self.set_metadata_dict(metadata=metadata)
 
     def is_proxy_valid(self):
+        """
+        Checks if the current proxy element is valid
+        """
+        if not self.name:
+            logger.warning('Invalid proxy object. Missing name.')
+            return False
+        if not self.curve:
+            logger.warning('Invalid proxy object. Missing curve.')
+            return False
         return True
 
     def build(self):
         """
         Builds a proxy object.
+        Returns:
+            str: Name of the proxy that was generated/built.
         """
         if not self.is_proxy_valid():
+            logger.warning(f'Unable to build proxy. Invalid proxy object.')
             return
         proxy_crv = self.curve.build()
         add_snapping_shape(proxy_crv)
         add_separator_attr(target_object=proxy_crv, attr_name=ProxyConstants.SEPARATOR_ATTR)
-        add_proxy_attribute(obj_list=proxy_crv, attr_name=ProxyConstants.PROXY_ATTR_UUID)
+        uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
+                                        attr_name=ProxyConstants.PROXY_ATTR_UUID,
+                                        set_initial_uuid_value=False)
+        for attr in uuid_attrs:
+            set_attr(attribute_path=attr, value=self.uuid)
+        if self.parent_uuid:
+            parent = find_object_with_uuid(uuid_string=self.parent_uuid, attr_name=ProxyConstants.PROXY_ATTR_UUID)
+            if parent:
+                print(f'parent: {parent}')
         return proxy_crv
 
     # ------------------------------------------------- Setters -------------------------------------------------
@@ -108,18 +129,19 @@ class Proxy:
         if not name or not isinstance(name, str):
             logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
             return
+        self.curve.set_name(name)
         self.name = name
 
-    def set_metadata_dict(self, new_metadata):
+    def set_metadata_dict(self, metadata):
         """
         Sets the metadata property. The metadata is any extra value used to further describe the curve.
         Args:
-            new_metadata (dict): A dictionary describing extra information about the curve
+            metadata (dict): A dictionary describing extra information about the curve
         """
-        if not isinstance(new_metadata, dict):
-            logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(new_metadata))}"')
+        if not isinstance(metadata, dict):
+            logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(metadata))}"')
             return
-        self.metadata = new_metadata
+        self.metadata = metadata
 
     def add_to_metadata(self, key, value):
         """
@@ -132,6 +154,39 @@ class Proxy:
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
         self.metadata[key] = value
+
+    def set_uuid(self, uuid):
+        """
+        Sets a new UUID for the proxy.
+        If no UUID is provided or set a new one will be generated automatically,
+        this function is used to force a specific value as UUID.
+        Args:
+            uuid (str): A new UUID for this proxy
+        """
+        error_message = f'Unable to set proxy UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
+            self.uuid = uuid
+        else:
+            logger.warning(error_message)
+
+    def set_parent_uuid(self, uuid):
+        """
+        Sets a new parent UUID for the proxy.
+        If a parent UUID is set, the proxy will try to parent itself to an element with this UUID when built.
+        Args:
+            uuid (str): A new UUID for the parent of this proxy
+        """
+        error_message = f'Unable to set proxy UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
+            self.uuid = uuid
+        else:
+            logger.warning(error_message)
 
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_metadata(self):
@@ -154,8 +209,7 @@ class Proxy:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
+    cmds.polySphere()
     proxy = Proxy()
-    from gt.utils.curve_utils import Curves
-
-    proxy = Proxy(curve=Curves.circle)
     proxy.build()
+
