@@ -564,16 +564,16 @@ class Curve:
         if data_dict.get('metadata'):
             self.metadata = metadata
 
-    def set_name(self, new_name):
+    def set_name(self, name):
         """
         Sets a new curve name. Useful when ingesting data from dictionary or file with undesired name.
         Args:
-            new_name (str): New name to use on the curve.
+            name (str): New name to use on the curve.
         """
-        if not new_name or not isinstance(new_name, str):
-            logger.warning(f'Unable to set new name. Expected string but got "{str(type(new_name))}"')
+        if not name or not isinstance(name, str):
+            logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
             return
-        self.name = new_name
+        self.name = name
 
     def set_metadata_dict(self, new_metadata):
         """

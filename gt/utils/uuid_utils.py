@@ -117,7 +117,7 @@ def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
                 return obj
 
 
-def add_proxy_attribute(obj_list, proxy_attr_name, set_initial_uuid_value=True):
+def add_proxy_attribute(obj_list, attr_name, set_initial_uuid_value=True):
     """
     Adds a proxy attribute to a list of objects or a single object.
 
@@ -127,7 +127,7 @@ def add_proxy_attribute(obj_list, proxy_attr_name, set_initial_uuid_value=True):
     Args:
         obj_list (list or str): A list of objects to which the proxy attribute will be added, or an object as a string.
                                 If a string is provided, it will be converted into a list containing that object.
-        proxy_attr_name (str): The name of the proxy attribute to be added to the objects.
+        attr_name (str): The name of the proxy attribute to be added to the objects.
         set_initial_uuid_value (bool, optional): Whether to set an initial UUID value for the proxy attribute.
                                                  Default is True. The generated UUID is uuid4 without dashes.
 
@@ -141,12 +141,12 @@ def add_proxy_attribute(obj_list, proxy_attr_name, set_initial_uuid_value=True):
     if not obj_list or not isinstance(obj_list, (list, str)):
         logger.debug(f'Unable to add proxy attribute. Invalid object list : "{str(obj_list)}".')
         return []
-    if not proxy_attr_name or not isinstance(proxy_attr_name, str):
+    if not attr_name or not isinstance(attr_name, str):
         logger.debug(f'Unable to add proxy attribute. Invalid attribute name : "{str(obj_list)}".')
         return []
     if isinstance(obj_list, str):
         obj_list = [obj_list]
-    created_attrs = add_attr(target_list=obj_list, attributes=proxy_attr_name, attr_type='string', verbose=False)
+    created_attrs = add_attr(target_list=obj_list, attributes=attr_name, attr_type='string', verbose=False)
     for attr in created_attrs:
         set_attr(attribute_path=attr, value="")
     if set_initial_uuid_value:

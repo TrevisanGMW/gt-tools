@@ -29,7 +29,7 @@ def create_scalable_one_side_arrow(name='scalable_one_side_arrow', initial_scale
         ControlData: object containing: name=curve_transform, drivers=curve_scale_crv, setup=curve_rig_grp
     """
     arrow_curve = get_curve('_scalable_one_side_arrow')
-    arrow_curve.set_name(new_name=name)
+    arrow_curve.set_name(name=name)
     curve_transform = arrow_curve.build()
     curve_shape = cmds.listRelatives(curve_transform, s=True, f=True)[0]
     curve_shape = cmds.rename(curve_shape, '{0}Shape'.format(curve_transform))
@@ -42,7 +42,7 @@ def create_scalable_one_side_arrow(name='scalable_one_side_arrow', initial_scale
 
     # Create Scale Curve
     curve_scale_crv = get_curve('_line_z_length_one')
-    curve_scale_crv.set_name(new_name=curve_transform + '_scale' + NamingConstants.Suffix.CTRL.capitalize())
+    curve_scale_crv.set_name(name=curve_transform + '_scale' + NamingConstants.Suffix.CTRL.capitalize())
     curve_scale_crv = curve_scale_crv.build()
     cmds.move(0, 0, 0, f'{curve_scale_crv}.cv[0]')
     cmds.move(0, 0, 1, f'{curve_scale_crv}.cv[1]')
@@ -120,7 +120,7 @@ def create_scalable_two_sides_arrow(name='scalable_two_sides_arrow', initial_sca
         ControlData: object containing: name=curve_transform, drivers=curve_scale_crv, setup=curve_rig_grp
     """
     arrow_curve = get_curve('_scalable_two_sides_arrow')
-    arrow_curve.set_name(new_name=name)
+    arrow_curve.set_name(name=name)
     curve_transform = arrow_curve.build()
     curve_shape = cmds.listRelatives(curve_transform, s=True, f=True)[0]
     curve_shape = cmds.rename(curve_shape, '{0}Shape'.format(curve_transform))
@@ -133,7 +133,7 @@ def create_scalable_two_sides_arrow(name='scalable_two_sides_arrow', initial_sca
 
     # Create Scale Curve
     curve_scale_crv = get_curve('_line_z_length_two')
-    curve_scale_crv.set_name(new_name=curve_transform + '_scale' + NamingConstants.Suffix.CTRL.capitalize())
+    curve_scale_crv.set_name(name=curve_transform + '_scale' + NamingConstants.Suffix.CTRL.capitalize())
     curve_scale_crv = curve_scale_crv.build()
     curve_scale_shape = cmds.listRelatives(curve_scale_crv, s=True, f=True)[0]
     # Set Initial Scale
