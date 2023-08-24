@@ -117,9 +117,9 @@ def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
                 return obj
 
 
-def add_proxy_attribute(obj_list, attr_name, set_initial_uuid_value=True):
+def add_uuid_attribute(obj_list, attr_name, set_initial_uuid_value=True):
     """
-    Adds a proxy attribute to a list of objects or a single object.
+    Adds an uuid attribute to a list of objects or a single object.
 
     This function adds a proxy attribute to each object in the given object list.
     The proxy attribute can be used to store additional information related to the objects.
