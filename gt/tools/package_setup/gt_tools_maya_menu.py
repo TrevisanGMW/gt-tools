@@ -264,12 +264,14 @@ def load_menu(*args):
                                'state of the majority of them.',
                        icon=resource_library.Icon.util_joint_label_toggle)
     menu.add_menu_item(label='Unhide Default Channels',
-                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unhide_default_channels")',
+                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", '
+                                             '"selection_unhide_default_channels")',
                        tooltip='Un-hides the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
                        icon=resource_library.Icon.util_unhide_trs)
     menu.add_menu_item(label='Unlock Default Channels',
-                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "unlock_default_channels")',
+                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", '
+                                             '"selection_unlock_default_channels")',
                        tooltip='Unlocks the default channels of the selected objects. '
                                '(Default channels : Translate, Rotate, Scale and Visibility)',
                        icon=resource_library.Icon.util_unlock_trs)
@@ -326,7 +328,8 @@ def load_menu(*args):
 
     menu.add_divider(divider_label="Delete Utilities")  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Custom Attributes',
-                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", "delete_user_defined_attributes")',
+                       command=IMPORT_UTIL + 'initialize_utility("attribute_utils", '
+                                             '"selection_delete_user_defined_attributes")',
                        tooltip='Deletes user-defined (custom) attributes found on the selected objects.',
                        icon=resource_library.Icon.util_delete_custom_attr)
     menu.add_menu_item(label='Delete Namespaces',

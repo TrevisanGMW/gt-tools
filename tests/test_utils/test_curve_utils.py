@@ -74,8 +74,6 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(significand_1, significand_2)
         self.assertEqual(exponent_1, exponent_2)
 
-        return
-
     def test_combine_curves_list_two(self):
         import_curve_test_file()
         combined_crv = curve_utils.combine_curves_list(["curve_01", "curve_02"])

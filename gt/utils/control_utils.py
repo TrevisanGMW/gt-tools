@@ -4,8 +4,8 @@ github.com/TrevisanGMW/gt-tools
 
 Dependencies: "gt.utils.curve_utils" and "gt.utils.data.controls"
 """
-from gt.utils.attribute_utils import add_attr_double_three
 from gt.utils.data.controls import cluster_driven, slider
+from gt.utils.attr_utils import add_attr_double_three
 from gt.utils.data_utils import DataDirConstants
 from gt.utils.curve_utils import Curve
 from gt.utils import iterable_utils

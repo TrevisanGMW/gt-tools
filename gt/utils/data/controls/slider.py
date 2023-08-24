@@ -3,9 +3,10 @@ Slider Controls - Work in Progress File
 """
 from gt.utils.color_utils import set_color_override_viewport, set_color_override_outliner
 from gt.utils.curve_utils import combine_curves_list, create_text
-from gt.utils.transform_utils import move_to_origin, rescale
 from gt.utils.data.controls.control_data import ControlData
+from gt.utils.transform_utils import move_to_origin
 from gt.utils.naming_utils import NamingConstants
+from gt.utils.attr_utils import rescale
 import maya.cmds as cmds
 import logging
 

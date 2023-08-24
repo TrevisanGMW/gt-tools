@@ -65,11 +65,11 @@ class ProgressBarWindow(QMainWindow):
         # Window Details
         self.setWindowTitle("Progress Bar")
         progress_bar_stylesheet = resource_library.Stylesheet.maya_basic_dialog
-        progress_bar_stylesheet += resource_library.Stylesheet.dark_progress_bar
-        progress_bar_stylesheet += resource_library.Stylesheet.dark_scroll_bar
+        progress_bar_stylesheet += resource_library.Stylesheet.progress_bar_dark
+        progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_dark
+        progress_bar_stylesheet += resource_library.Stylesheet.text_edit_mid_grey
         self.setStyleSheet(progress_bar_stylesheet)
         self.set_window_icon(resource_library.Icon.package_icon)
-        # self.setWindowFlag(QtCore.Qt.Tool, True)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Stay On Top Modality
 
     def set_window_icon(self, icon_path):

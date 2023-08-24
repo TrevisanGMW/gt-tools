@@ -3,9 +3,9 @@ Curve Library Window - The main GUI window class for the Curve Library tool.
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
 import gt.ui.resource_library as resource_library
+from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
-from PySide2.QtGui import QIcon, QPixmap, QColor
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtWidgets import QLabel
 import gt.ui.qt_utils as qt_utils
@@ -47,15 +47,14 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
 
         self.create_widgets()
         self.create_layout()
-
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
 
-        stylesheet = resource_library.Stylesheet.dark_scroll_bar
+        stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
-        stylesheet += resource_library.Stylesheet.dark_list_widget
+        stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=30)
         qt_utils.center_window(self)
@@ -79,7 +78,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         self.item_list = QListWidget()
         self.build_button = QPushButton("Build")
         self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
-        self.build_button.setStyleSheet(resource_library.Stylesheet.bright_push_button)
+        self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_edit = QLineEdit(self)
         self.search_edit.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
@@ -239,6 +238,9 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = CurveLibraryWindow()
-        window.add_item_view_library("curve_one")
-        window.add_item_view_library("curve_two")
+        mocked_icon = QIcon(resource_library.Icon.curve_library_base_curve)
+        window.add_item_view_library("curve_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
+        window.add_item_view_library("curve_two", icon=QIcon(resource_library.Icon.curve_library_control))
+        for index in range(1, 101):
+            window.add_item_view_library(f"curve_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
         window.show()

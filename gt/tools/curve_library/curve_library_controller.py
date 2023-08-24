@@ -195,7 +195,8 @@ class CurveLibraryController:
                                     window_title=f'Parameters for "{item_name}"',
                                     image=resource_library.Icon.curve_library_control,
                                     window_icon=resource_library.Icon.curve_library_parameters,
-                                    image_scale_pct=10)
+                                    image_scale_pct=10,
+                                    is_python_code=True)
         param_win.set_confirm_button_text("Build")
         if isinstance(parameters, dict):
             formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=1,
