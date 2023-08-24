@@ -179,7 +179,6 @@ def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=Fa
         if rotate and space == "world":
             cmds.xform(target_obj, ws=True, ro=value_tuple)
         elif rotate and space == "object":
-            print("got here")
             set_attr(f'{target_obj}.rx', value=value_tuple[0], verbose=verbose, log_level=log_level)
             set_attr(f'{target_obj}.ry', value=value_tuple[1], verbose=verbose, log_level=log_level)
             set_attr(f'{target_obj}.rz', value=value_tuple[2], verbose=verbose, log_level=log_level)

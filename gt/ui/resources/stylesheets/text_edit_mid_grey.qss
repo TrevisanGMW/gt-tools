@@ -1,0 +1,4 @@
+QTextEdit {
+        background-color: @background_mid;
+		border-color: @border_color;
+    }

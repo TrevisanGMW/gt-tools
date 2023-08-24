@@ -1,0 +1,30 @@
+QListWidget {
+    background-color: @list_background_color;
+    color: @list_text_color;
+    selection-background-color: @list_selection_bg_color;
+    selection-color: @list_text_color;
+    alternate-background-color: @list_selection_bg_color;
+    border: none;
+}
+
+QListWidget::item:selected {
+    background-color: @list_selection_bg_color;
+    color: @list_selection_text_color;
+	outline: none;
+}
+
+QListWidget::item:hover {
+    background-color: @list_hover_bg_color;
+    color: @list_hover_text_color;
+	outline: none;
+}
+
+QListWidget::item:selected:!active {
+    background-color: @list_selection_bg_color;
+    color: @list_selection_text_color;
+	outline: none;
+}
+
+QListWidget::item:focus {
+    outline: none;
+}
