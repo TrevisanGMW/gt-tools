@@ -1,9 +1,9 @@
 {
-    "name": "proxy_joint",
+    "name": "proxy_crv",
     "transform": null,
     "shapes": [
         {
-            "name": "sphere_jointShape",
+            "name": "sphereShape",
             "points": [
                 [
                     0.0,
