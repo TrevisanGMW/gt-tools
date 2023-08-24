@@ -197,3 +197,14 @@ class TestControlUtils(unittest.TestCase):
         result = os.path.basename(path)
         expected = "scalable_one_side_arrow.jpg"
         self.assertEqual(expected, result)
+
+    def test_add_snapping_shape(self):
+        cube = maya_test_tools.create_poly_cube()[0]
+        result = control_utils.add_snapping_shape(target_object=cube)
+        cube_shapes = maya_test_tools.cmds.listRelatives(cube, shapes=True, fullPath=True) or []
+        expected = '|pCube1|snappingPointShape'
+        self.assertIn(expected, cube_shapes)
+        self.assertEqual(expected, result)
+        result = control_utils.add_snapping_shape(target_object=cube)
+        expected = None
+        self.assertEqual(expected, result)
