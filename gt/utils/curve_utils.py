@@ -1612,7 +1612,33 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True):
     sys.stdout.write(f'Python lines for "Curves" class were printed. (If in Maya, open the script editor)')
     return print_lines
 
-# ------------------------------ Curves Class Utilities End ------------------------------
+# ------------------------------ Curves Collection Utilities End ------------------------------
+
+
+def add_shape_scale_cluster(curve, scale_driver_attr):
+    """
+    Creates a cluster to control the scale of the provided curve.
+
+    Parameters:
+    curve (str): Name of the curve.
+    scale_driver_attr (str): The object name and attribute used to drive the scale.
+                             Example: "curveName.locatorScale"
+                             This attribute will control the scale of the curve shape.
+
+    Returns:
+        str or None: Cluster handle if successful, None if it failed.
+    """
+    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{curve}LocatorScale')
+    if not cluster:
+        logger.debug(f'Unable to create scale cluster. Missing "{str(curve)}".')
+        return
+    else:
+        cluster_handle = cluster[1]
+        cmds.setAttr(cluster_handle + '.v', 0)
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sx')
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sy')
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sz')
+        return cluster_handle
 
 
 if __name__ == "__main__":
@@ -1623,4 +1649,5 @@ if __name__ == "__main__":
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
+
     pprint(out)

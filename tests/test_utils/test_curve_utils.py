@@ -697,3 +697,11 @@ class TestCurveUtils(unittest.TestCase):
         expected = "nurbsCurve"
         for obj, obj_type in type_dict.items():
             self.assertEqual(expected, obj_type)
+
+    def test_add_shape_scale_cluster(self):
+        cube = maya_test_tools.cmds.circle(ch=False)[0]
+        control_attr = "mockedAttr"
+        maya_test_tools.cmds.addAttr(cube, longName=control_attr, at='double', k=True, minValue=0)
+        result = curve_utils.add_shape_scale_cluster(cube, f"{cube}.{control_attr}")
+        expected = "nurbsCircle1LocatorScaleHandle"
+        self.assertEqual(expected, result)
