@@ -12,6 +12,7 @@ from . import test_namespace_utils
 from . import test_naming_utils
 from . import test_playblast_utils
 from . import test_prefs_utils
+from . import test_proxy_utils
 from . import test_request_utils
 from . import test_scene_utils
 from . import test_session_utils
