@@ -166,3 +166,15 @@ class TestUUIDUtils(unittest.TestCase):
 
         mock_generate_uuid.assert_called()
         mock_set_attr.assert_called()
+
+    def test_find_object_with_uuid(self):
+        cube_one = maya_test_tools.create_poly_cube()[0]
+        cube_two = maya_test_tools.create_poly_cube()[0]
+        maya_test_tools.create_poly_cube()
+        attr_name = "mockedAttrName"
+        created_uuid_attr = uuid_utils.add_proxy_attribute([cube_one, cube_two], attr_name)
+        maya_test_tools.cmds.setAttr(created_uuid_attr[0], "mocked_uuid_value", typ="string")
+        maya_test_tools.cmds.setAttr(created_uuid_attr[1], "mocked_uuid_value_two", typ="string")
+        result = uuid_utils.find_object_with_uuid(uuid_string="mocked_uuid_value", attr_name="mockedAttrName")
+        expected = "|pCube1"
+        self.assertEqual(expected, result)
