@@ -1,4 +1,5 @@
 from PySide2.QtWidgets import QPushButton, QTextEdit, QVBoxLayout, QWidget, QHBoxLayout
+from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
 from gt.ui import resource_library, qt_utils
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2.QtWidgets import QLabel
@@ -21,7 +22,7 @@ class InputWindowText(metaclass=MayaWindowMeta):
     ALIGN_CENTER = [ALIGN_TOP, ALIGN_BOTTOM]
 
     def __init__(self, parent=None, message=None, window_title=None, window_icon=None,
-                 image=None, image_scale_pct=100, image_align="top"):
+                 image=None, image_scale_pct=100, image_align="top", is_python_code=False):
         """
         Initialize the InputWindowText widget.
 
@@ -34,6 +35,7 @@ class InputWindowText(metaclass=MayaWindowMeta):
             image (str): The path to the image file to display. (Ignored if file does not exist)
             image_scale_pct (int): The percentage to scale the image by. (Ignored if an image is not provided)
             image_align (str): The alignment of the image ('top', 'bottom', 'left', or 'right').
+            is_python_code (bool, optional): If active, it will apply syntax highlighting rules to the text.
         """
         super().__init__(parent)
 
@@ -72,8 +74,10 @@ class InputWindowText(metaclass=MayaWindowMeta):
 
         # Create Text-field
         self.text_field = QTextEdit()
-        # text_stylesheet = f"padding: {10}; background-color: {resource_library.Color.Hex.grey_dark}"
-        # self.text_field.setStyleSheet()
+        text_stylesheet = f"padding: {10}; background-color: {resource_library.Color.Hex.grey_dark}"
+        self.text_field.setStyleSheet(text_stylesheet)
+        if is_python_code:
+            PythonSyntaxHighlighter(self.text_field.document())
         self.text_field.setFont(self.input_text_font)
         self.text_field.setFontPointSize(self.input_text_size)
 
@@ -209,14 +213,15 @@ if __name__ == "__main__":
         'is_alive': True
     }
     from gt.utils import iterable_utils
-    formatted_dict = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=2,
+    formatted_dict = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=1,
                                                                    bracket_new_line=True)
 
     with qt_utils.QtApplicationContext():
         mocked_message = r"Mocked Message. Mocked Message. Mocked Message. Mocked Message. Mocked Message."
         text_input_window = InputWindowText(message=mocked_message,
                                             image=resource_library.Icon.dev_screwdriver,
-                                            image_scale_pct=10)
+                                            image_scale_pct=10,
+                                            is_python_code=True)
         text_input_window.set_text_field_placeholder("placeholder")
         text_input_window.set_text_field_text(formatted_dict)
         text_input_window.set_window_title("New Window Title")
