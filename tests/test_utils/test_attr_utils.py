@@ -443,7 +443,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.cmds.parent(cube, group)
         maya_test_tools.cmds.move(5, 0, 0, group)
 
-        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3))
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3), translate=True)
 
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
@@ -482,7 +482,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_set_trs_attr_translate(self):
         cube = maya_test_tools.create_poly_cube()[0]
-        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3))
+        attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3), translate=True)
 
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")

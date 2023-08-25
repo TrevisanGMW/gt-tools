@@ -138,7 +138,7 @@ def set_attr_state(attribute_path=None, obj_list=None, attr_list=None, locked=No
                 raise e
 
 
-def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=False,
+def set_trs_attr(target_obj, value_tuple, translate=False, rotate=False, scale=False,
                  space="world", verbose=True, log_level=logging.INFO):
     """
     Sets an attribute to the provided value (Uses "cmds.xform" function with world space)
@@ -147,7 +147,7 @@ def set_trs_attr(target_obj, value_tuple, translate=True, rotate=False, scale=Fa
     Args:
         target_obj (str): Name of the target object (object that will receive transforms)
         value_tuple (tuple, list): A tuple or list  with three (3) floats used to set attributes. e.g. (1.5, 2, 5)
-        translate (bool, optional): If active, it will apply these values to translate. Default True.
+        translate (bool, optional): If active, it will apply these values to translate. Default False.
         rotate (bool, optional): If active, it will apply these values to rotate. Default False.
         scale (bool, optional): If active, it will apply these values to scale. Default False.
         space (str, optional): Method used to apply values, can be "world" for world-space or "object" for object-space.
