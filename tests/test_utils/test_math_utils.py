@@ -55,3 +55,18 @@ class TestMathUtils(unittest.TestCase):
         expected = []
         result = math_utils.matrix_mult(mat1, mat2)
         self.assertEqual(expected, result)
+
+    def test_dot_product(self):
+        vector_a = [1, 2, 3]
+        vector_b = [4, 5, 6]
+        expected = 1 * 4 + 2 * 5 + 3 * 6
+        result = math_utils.dot_product(vector_a, vector_b)
+        self.assertEqual(expected, result)
+
+    def test_dot_product_vector3(self):
+        from gt.utils.transform_utils import Vector3
+        vector_a = Vector3(1, 2, 3)
+        vector_b = Vector3(4, 5, 6)
+        expected = 1 * 4 + 2 * 5 + 3 * 6
+        result = math_utils.dot_product(vector_a, vector_b)
+        self.assertEqual(expected, result)
