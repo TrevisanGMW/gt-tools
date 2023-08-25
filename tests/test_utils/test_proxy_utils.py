@@ -33,7 +33,7 @@ class TestProxyUtils(unittest.TestCase):
     def test_proxy_default(self):
         result = self.proxy.build()
         self.assertTrue(self.proxy.is_proxy_valid())
-        expected = "proxy_crv"
+        expected = "proxy"
         self.assertEqual(expected, result)
 
     def test_proxy_custom_curve(self):
@@ -41,12 +41,12 @@ class TestProxyUtils(unittest.TestCase):
         proxy = Proxy(curve=Curves.circle)
         result = proxy.build()
         self.assertTrue(proxy.is_proxy_valid())
-        expected = "proxy_crv"
+        expected = "proxy"
         self.assertEqual(expected, result)
 
     def test_get_name_default(self):
         result = self.proxy.get_name()
-        expected = "proxy_crv"
+        expected = "proxy"
         self.assertEqual(expected, result)
 
     def test_set_name(self):

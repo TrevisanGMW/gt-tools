@@ -8,12 +8,11 @@ TODO:
     RigSkeleton, RigBase (carry components)
 """
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
-from gt.utils.attr_utils import add_separator_attr, set_attr
+from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
+from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.control_utils import add_snapping_shape
-from gt.utils.uuid_utils import find_object_with_uuid
-from gt.utils.curve_utils import Curve, get_curve
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.transform_utils import Transform, Vector3
+from gt.utils.transform_utils import Transform
 import maya.cmds as cmds
 import logging
 
@@ -30,6 +29,7 @@ class ProxyConstants:
         """
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
+    PROXY_ATTR_SCALE = "locatorScale"
     PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
 
@@ -45,10 +45,11 @@ class Proxy:
                  locator_scale=None,
                  metadata=None):
         # Default Values
-        self.name = "proxy_crv"
-        self.transform = transform
-        self.offset_transform = transform
+        self.name = "proxy"
+        self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
+        self.offset_transform = Transform()
         self.curve = get_curve('_proxy_joint')
+        self.curve.set_name(name=self.name)
         self.locator_scale = 1  # 100%
         self.uuid = generate_uuid(remove_dashes=True)
         self.parent_uuid = None
@@ -57,7 +58,9 @@ class Proxy:
         if name:
             self.set_name(name)
         if transform:
-            pass  # TODO @@@
+            self.set_transform(transform)
+        if offset_transform:
+            self.set_offset_transform(offset_transform)
         if curve:
             self.set_curve(curve)
         if uuid:
@@ -90,37 +93,26 @@ class Proxy:
         if not self.is_proxy_valid():
             logger.warning(f'Unable to build proxy. Invalid proxy object.')
             return
-        proxy_grp = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.GRP}', world=True, empty=True)
+        proxy_offset = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
         proxy_crv = self.curve.build()
-        cmds.parent(proxy_crv, proxy_grp)
+        cmds.parent(proxy_crv, proxy_offset)
         add_snapping_shape(proxy_crv)
         add_separator_attr(target_object=proxy_crv, attr_name=ProxyConstants.SEPARATOR_ATTR)
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
                                         attr_name=ProxyConstants.PROXY_ATTR_UUID,
                                         set_initial_uuid_value=False)
+        scale_attr = add_attr(target_list=proxy_crv, attributes=ProxyConstants.PROXY_ATTR_SCALE, default=1) or []
+        if scale_attr and len(scale_attr) == 1:
+            add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr[0])
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
+        if self.offset_transform:
+            self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
         if self.transform:
-            self.apply_transform(target_object=proxy_grp)
+            self.transform.apply_transform(target_object=proxy_crv, object_space=True)
+        if self.locator_scale:
+            set_attr(scale_attr, self.locator_scale)
         return proxy_crv
-
-    def apply_transform(self, target_object):
-        """
-        Uses the provided Transform data to set the TRS data of the curve object.
-        Args:
-            target_object (str): Name of the curve to set with stored Transform data
-        """
-        if not target_object:
-            logger.warning(f'Unable to apply curve transform. Missing target object "{target_object}".')
-            return
-        if not self.transform:
-            logger.warning(f'Unable to apply curve transform. Missing transform data.')
-            return
-        if not isinstance(self.transform, Transform):
-            logger.warning(f'Unable to apply curve transform. '
-                           f'Expected "Transform", but got "{str(type(self.transform))}".')
-            return
-        self.transform.apply_transform(target_object=target_object)
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
@@ -134,6 +126,96 @@ class Proxy:
             return
         self.curve.set_name(name)
         self.name = name
+
+    def set_transform(self, transform):
+        """
+        Sets the transform for this proxy element
+        Args:
+            transform (Transform): A transform object describing position, rotation and scale.
+        """
+        if not transform or not isinstance(transform, Transform):
+            logger.warning(f'Unable to set proxy transform. '
+                          f'Must be a "Transform" object, but got "{str(type(transform))}".')
+            return
+        self.transform = transform
+
+    def set_position(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the position of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
+
+    def set_rotation(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the rotation of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
+
+    def set_scale(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the scale of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.transform.set_scale(x=x, y=y, z=z, xyz=xyz)
+
+    def set_offset_transform(self, transform):
+        """
+        Sets the transform for this proxy element
+        Args:
+            transform (Transform): A transform object describing position, rotation and scale.
+        """
+        if not transform or not isinstance(transform, Transform):
+            logger.warning(f'Unable to set proxy transform. '
+                           f'Must be a "Transform" object, but got "{str(type(transform))}".')
+            return
+        self.transform = transform
+
+    def set_offset_position(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the position of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
+
+    def set_offset_rotation(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the rotation of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.offset_transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
+
+    def set_offset_scale(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the scale of the proxy element (introduce values to its curve)
+        Args:
+            x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.offset_transform.set_scale(x=x, y=y, z=z, xyz=xyz)
 
     def set_curve(self, curve, inherit_curve_name=False):
         """
@@ -237,12 +319,16 @@ class Proxy:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
-    cmds.polySphere()
+    # cmds.polySphere()
     test_parent_uuid = generate_uuid()
-    proxy_parent = Proxy(name="parent", uuid=test_parent_uuid)
-    proxy_parent = proxy_parent.build()
-    cmds.move(0, 20, 0, proxy_parent)
+    # proxy_parent = Proxy(name="parent", uuid=test_parent_uuid)
+    # proxy_parent = proxy_parent.build()
+    # cmds.move(0, 20, 0, proxy_parent)
+    temp_trans = Transform()
+    temp_trans.set_position((0, 10, 0))
     proxy = Proxy()
+    proxy.set_transform(temp_trans)
+    proxy.set_offset_position(0, 5, 5)
     proxy.set_parent_uuid(test_parent_uuid)
     proxy.build()
 
