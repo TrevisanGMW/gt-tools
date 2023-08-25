@@ -199,7 +199,8 @@ def run_all_tests_with_summary(print_results=True, print_traceback=False):
         tests_summary.get("Test Runner Summary").append("Errors")
         tests_summary.get("").append(str(errors_counter))
 
-    output_string = dict_to_markdown_table(tests_summary)
+    output_string = "\n"
+    output_string += dict_to_markdown_table(tests_summary)
 
     # Add failures
     if len(module_failures) > 0:
@@ -215,7 +216,7 @@ def run_all_tests_with_summary(print_results=True, print_traceback=False):
                          "Source": files}
         output_string += "\n" + dict_to_markdown_table(module_errors)
 
-    if print_traceback:
+    if print_traceback and (errors or failures):
         for index, error in enumerate(errors):
             print(f'\n{"-"*40} Error {str(index+1).zfill(2)}: {"-"*40}')
             print(error[0])
@@ -224,7 +225,6 @@ def run_all_tests_with_summary(print_results=True, print_traceback=False):
             print(f'\n{"-"*40} Failure {str(index+1).zfill(2)}: {"-"*40}')
             print(fail[0])
             print(fail[1])
-        print("\n")
 
     if print_results:
         print(output_string)
