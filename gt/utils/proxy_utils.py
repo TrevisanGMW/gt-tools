@@ -12,6 +12,8 @@ from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.curve_utils import Curve, get_curve
+from gt.utils.naming_utils import NamingConstants
+from gt.utils.transform_utils import Transform, Vector3
 import maya.cmds as cmds
 import logging
 
@@ -36,15 +38,18 @@ class Proxy:
     def __init__(self,
                  name=None,
                  transform=None,
+                 offset_transform=None,
                  curve=None,
                  uuid=None,
                  parent_uuid=None,
-                 scale=None,
+                 locator_scale=None,
                  metadata=None):
         # Default Values
         self.name = "proxy_crv"
         self.transform = transform
+        self.offset_transform = transform
         self.curve = get_curve('_proxy_joint')
+        self.locator_scale = 1  # 100%
         self.uuid = generate_uuid(remove_dashes=True)
         self.parent_uuid = None
         self.metadata = None
@@ -59,8 +64,8 @@ class Proxy:
             self.set_uuid(uuid)
         if parent_uuid:
             self.set_parent_uuid(parent_uuid)
-        if scale:
-            pass  # TODO @@@
+        if locator_scale:
+            self.set_locator_scale(locator_scale)
         if metadata:
             self.set_metadata_dict(metadata=metadata)
 
@@ -85,7 +90,9 @@ class Proxy:
         if not self.is_proxy_valid():
             logger.warning(f'Unable to build proxy. Invalid proxy object.')
             return
+        proxy_grp = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.GRP}', world=True, empty=True)
         proxy_crv = self.curve.build()
+        cmds.parent(proxy_crv, proxy_grp)
         add_snapping_shape(proxy_crv)
         add_separator_attr(target_object=proxy_crv, attr_name=ProxyConstants.SEPARATOR_ATTR)
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
@@ -93,13 +100,41 @@ class Proxy:
                                         set_initial_uuid_value=False)
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
-        if self.parent_uuid:
-            parent = find_object_with_uuid(uuid_string=self.parent_uuid, attr_name=ProxyConstants.PROXY_ATTR_UUID)
-            if parent:
-                print(f'parent: {parent}')
+        if self.transform:
+            self.apply_transform(target_object=proxy_grp)
         return proxy_crv
 
+    def apply_transform(self, target_object):
+        """
+        Uses the provided Transform data to set the TRS data of the curve object.
+        Args:
+            target_object (str): Name of the curve to set with stored Transform data
+        """
+        if not target_object:
+            logger.warning(f'Unable to apply curve transform. Missing target object "{target_object}".')
+            return
+        if not self.transform:
+            logger.warning(f'Unable to apply curve transform. Missing transform data.')
+            return
+        if not isinstance(self.transform, Transform):
+            logger.warning(f'Unable to apply curve transform. '
+                           f'Expected "Transform", but got "{str(type(self.transform))}".')
+            return
+        self.transform.apply_transform(target_object=target_object)
+
     # ------------------------------------------------- Setters -------------------------------------------------
+    def set_name(self, name):
+        """
+        Sets a new proxy name. Useful when ingesting data from dictionary or file with undesired name.
+        Args:
+            name (str): New name to use on the proxy.
+        """
+        if not name or not isinstance(name, str):
+            logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
+            return
+        self.curve.set_name(name)
+        self.name = name
+
     def set_curve(self, curve, inherit_curve_name=False):
         """
         Sets the curve used to build the proxy element
@@ -120,17 +155,10 @@ class Proxy:
             curve.set_name(name=self.name)
         self.curve = curve
 
-    def set_name(self, name):
-        """
-        Sets a new proxy name. Useful when ingesting data from dictionary or file with undesired name.
-        Args:
-            name (str): New name to use on the proxy.
-        """
-        if not name or not isinstance(name, str):
-            logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
-            return
-        self.curve.set_name(name)
-        self.name = name
+    def set_locator_scale(self, scale):
+        if not isinstance(scale, (float, int)):
+            logger.debug(f'Unable to set locator scale. Invalid input.')
+        self.locator_scale = scale
 
     def set_metadata_dict(self, metadata):
         """
@@ -175,7 +203,7 @@ class Proxy:
     def set_parent_uuid(self, uuid):
         """
         Sets a new parent UUID for the proxy.
-        If a parent UUID is set, the proxy will try to parent itself to an element with this UUID when built.
+        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
         Args:
             uuid (str): A new UUID for the parent of this proxy
         """
@@ -184,7 +212,7 @@ class Proxy:
             logger.warning(error_message)
             return
         if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
-            self.uuid = uuid
+            self.parent_uuid = uuid
         else:
             logger.warning(error_message)
 
@@ -210,6 +238,11 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
     cmds.polySphere()
+    test_parent_uuid = generate_uuid()
+    proxy_parent = Proxy(name="parent", uuid=test_parent_uuid)
+    proxy_parent = proxy_parent.build()
+    cmds.move(0, 20, 0, proxy_parent)
     proxy = Proxy()
+    proxy.set_parent_uuid(test_parent_uuid)
     proxy.build()
 
