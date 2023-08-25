@@ -3,6 +3,7 @@ Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import FeedbackMessage
+from gt.utils.attr_utils import set_trs_attr
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
@@ -366,6 +367,72 @@ class Transform:
                 self.scale >= other.scale
         )
 
+    def set_position(self, x=None, y=None, z=None, xyz=None):
+        """
+        Set the position of the Transform object using x, y, and z coordinates.
+
+        Args:
+            x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        if xyz and isinstance(xyz, Vector3):
+            self.position = xyz
+            return
+        if xyz and isinstance(xyz, (list, tuple)):
+            self.position = Vector3(xyz=xyz)
+            return
+        if x is not None and y is not None and z is not None:
+            if all(isinstance(val, (float, int)) for val in (x, y, z)):
+                self.position = Vector3(x=x, y=y, z=z)
+                return
+        logger.warning(f'Unable to set position. Invalid input.')
+
+    def set_rotation(self, x=None, y=None, z=None, xyz=None):
+        """
+        Set the rotation of the Transform object using x, y, and z coordinates.
+
+        Args:
+            x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new rotation or a tuple/list with X, Y and Z values.
+        """
+        if xyz and isinstance(xyz, Vector3):
+            self.rotation = xyz
+            return
+        if xyz and isinstance(xyz, (list, tuple)):
+            self.rotation = Vector3(xyz=xyz)
+            return
+        if x is not None and y is not None and z is not None:
+            if all(isinstance(val, (float, int)) for val in (x, y, z)):
+                self.rotation = Vector3(x=x, y=y, z=z)
+                return
+        logger.warning(f'Unable to set rotation. Invalid input.')
+
+    def set_scale(self, x=None, y=None, z=None, xyz=None):
+        """
+        Set the scale of the Transform object using x, y, and z coordinates.
+
+        Args:
+            x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new scale or a tuple/list with X, Y and Z values.
+        """
+        if xyz and isinstance(xyz, Vector3):
+            self.scale = xyz
+            return
+        if xyz and isinstance(xyz, (list, tuple)):
+            self.scale = Vector3(xyz=xyz)
+            return
+        if x is not None and y is not None and z is not None:
+            if all(isinstance(val, (float, int)) for val in (x, y, z)):
+                self.scale = Vector3(x=x, y=y, z=z)
+                return
+        logger.warning(f'Unable to set scale. Invalid input.')
+
     def to_matrix(self):
         """
         Convert the Transform object to a transformation matrix.
@@ -457,16 +524,26 @@ class Transform:
         if not target_object or not cmds.objExists(target_object):
             logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
             return
-        cmds.move(self.position.x, self.position.y, self.position.z,
-                  worldSpace=world_space, relative=relative, objectSpace=object_space)
-        cmds.rotate(self.rotation.x, self.rotation.y, self.rotation.z,
-                    worldSpace=world_space, relative=relative, objectSpace=object_space)
-        cmds.setAttr(f'{target_object}.sx', self.scale.x)
-        cmds.setAttr(f'{target_object}.sy', self.scale.y)
-        cmds.setAttr(f'{target_object}.sz', self.scale.z)
-# --------------------------------------------------- Transform End -------------------------------------------------
+        if world_space:
+            cmds.move(self.position.x, self.position.y, self.position.z, target_object,
+                      worldSpace=world_space, relative=relative, objectSpace=object_space)
+            cmds.rotate(self.rotation.x, self.rotation.y, self.rotation.z, target_object,
+                        worldSpace=world_space, relative=relative, objectSpace=object_space)
+            cmds.setAttr(f'{target_object}.sx', self.scale.x)
+            cmds.setAttr(f'{target_object}.sy', self.scale.y)
+            cmds.setAttr(f'{target_object}.sz', self.scale.z)
+        else:
+            position = self.position.get_as_tuple()
+            rotation = self.rotation.get_as_tuple()
+            scale = self.scale.get_as_tuple()
+            set_trs_attr(target_obj=target_object, value_tuple=position, translate=True)
+            set_trs_attr(target_obj=target_object, value_tuple=rotation, rotate=True)
+            set_trs_attr(target_obj=target_object, value_tuple=scale, scale=True)
+
+# -------------------------------------------------- Transform End ------------------------------------------------
 
 
+# ------------------------------------------------- Utilities Start -----------------------------------------------
 def move_pivot_top():
     """ Moves pivot point to the top of the boundary box """
     selection = cmds.ls(selection=True, long=True)
@@ -556,7 +633,7 @@ def move_to_origin(obj):
     Args:
         obj: Name of the object (string)
     """
-    cmds.move(0, 0, 0, obj, a=True, rpr=True) # rpr flag moves it according to the pivot
+    cmds.move(0, 0, 0, obj, a=True, rpr=True)  # rpr flag moves it according to the pivot
 
 
 def move_selection_to_origin():
@@ -744,6 +821,6 @@ def convert_transforms_to_locators():
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)
+    transform = Transform()
+    transform.set_position(0, 10, 0)
+    transform.apply_transform('pSphere1')
