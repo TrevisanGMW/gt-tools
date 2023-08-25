@@ -14,25 +14,238 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@dataclass
 class Vector3:
-    x: float
-    y: float
-    z: float
+    """
+    Represents a 3D vector with x, y, and z coordinates.
+    """
+
+    def __init__(self, x=0.0, y=0.0, z=0.0, xyz=None):
+        """
+        Initialize a Vector3 object using x, y, z coordinates
+
+        Args:
+            x (float, optional): X coordinate. Defaults to 0.0 if not provided.
+            y (float, optional): Y coordinate. Defaults to 0.0 if not provided.
+            z (float, optional): Z coordinate. Defaults to 0.0 if not provided.
+            xyz (list or tuple, optional): List or tuple containing x, y, z coordinates.
+                                           If provided, it overrides x, y, z parameters.
+                                           Defaults to None.
+
+        Raises:
+            ValueError: If coordinates are not valid or provided in an incorrect format.
+        """
+        if xyz is not None:
+            self.set_from_tuple(xyz)
+        else:
+            self.x = x
+            self.y = y
+            self.z = z
+
+    def __repr__(self):
+        """
+        Return a formatted string representation of the Vector3 object.
+
+        Returns:
+            str: A string representation of the vector in the format "x=value, y=value, z=value".
+        """
+        return f"(x={self.x}, y={self.y}, z={self.z})"
 
     def __eq__(self, other):
         """
-        Compare Vector3 objects, they are equal if their float values are all the same
+        Compare Vector3 objects for equality.
+
         Args:
-            other (Vector3): Object to compare
+            other (Vector3): Object to compare.
+
+        Returns:
+            bool: True if the two Vector3 objects are equal, False otherwise.
         """
         if isinstance(other, Vector3):
             return (
                     self.x == other.x and
                     self.y == other.y and
                     self.z == other.z
-                   )
+            )
         return False
+
+    def __lt__(self, other):
+        """
+        Compare Vector3 objects using the less than operator.
+
+        Args:
+            other (Vector3): Object to compare.
+
+        Returns:
+            bool: True if self is less than other, False otherwise.
+        """
+        if isinstance(other, Vector3):
+            return self.magnitude() < other.magnitude()
+        raise TypeError("Unsupported operand type for <")
+
+    def __le__(self, other):
+        """
+        Compare Vector3 objects using the less than or equal to operator.
+
+        Args:
+            other (Vector3): Object to compare.
+
+        Returns:
+            bool: True if self is less than or equal to other, False otherwise.
+        """
+        if isinstance(other, Vector3):
+            return self.magnitude() <= other.magnitude()
+        raise TypeError("Unsupported operand type for <=")
+
+    def __gt__(self, other):
+        """
+        Compare Vector3 objects using the greater than operator.
+
+        Args:
+            other (Vector3): Object to compare.
+
+        Returns:
+            bool: True if self is greater than other, False otherwise.
+        """
+        if isinstance(other, Vector3):
+            return self.magnitude() > other.magnitude()
+        raise TypeError("Unsupported operand type for >")
+
+    def __ge__(self, other):
+        """
+        Compare Vector3 objects using the greater than or equal to operator.
+
+        Args:
+            other (Vector3): Object to compare.
+
+        Returns:
+            bool: True if self is greater than or equal to other, False otherwise.
+        """
+        if isinstance(other, Vector3):
+            return self.magnitude() >= other.magnitude()
+        raise TypeError("Unsupported operand type for >=")
+
+    def magnitude(self):
+        """
+        Calculate the magnitude (length) of the Vector3 object.
+
+        Returns:
+            float: The magnitude of the vector.
+        """
+        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+
+    def __add__(self, other):
+        """
+        Add two Vector3 objects element-wise.
+
+        Args:
+            other (Vector3): The other Vector3 object to add.
+
+        Returns:
+            Vector3: A new Vector3 object representing the sum of the two vectors.
+
+        Raises:
+            TypeError: If the operand type for addition is not supported.
+        """
+        if isinstance(other, Vector3):
+            return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
+        raise TypeError("Unsupported operand type for +")
+
+    def __sub__(self, other):
+        """
+        Subtract two Vector3 objects element-wise.
+
+        Args:
+            other (Vector3): The other Vector3 object to subtract.
+
+        Returns:
+            Vector3: A new Vector3 object representing the difference of the two vectors.
+
+        Raises:
+            TypeError: If the operand type for subtraction is not supported.
+        """
+        if isinstance(other, Vector3):
+            return Vector3(self.x - other.x, self.y - other.y, self.z - other.z)
+        raise TypeError("Unsupported operand type for -")
+
+    def __mul__(self, scalar):
+        """
+        Multiply the Vector3 object by a scalar.
+
+        Args:
+            scalar (int or float): The scalar value to multiply the vector by.
+
+        Returns:
+            Vector3: A new Vector3 object representing the scaled vector.
+
+        Raises:
+            TypeError: If the operand type for multiplication is not supported.
+        """
+        if isinstance(scalar, (int, float)):
+            return Vector3(self.x * scalar, self.y * scalar, self.z * scalar)
+        raise TypeError("Unsupported operand type for *")
+
+    def dot(self, other):
+        """
+        Calculate the dot product of two Vector3 objects.
+
+        Args:
+            other (Vector3): The other Vector3 object for the dot product.
+
+        Returns:
+            float: The dot product of the two vectors.
+
+        Raises:
+            TypeError: If the operand type for dot product calculation is not supported.
+        """
+        if isinstance(other, Vector3):
+            return self.x * other.x + self.y * other.y + self.z * other.z
+        raise TypeError("Unsupported operand type for dot product")
+
+    def cross(self, other):
+        """
+        Calculate the cross product of two Vector3 objects.
+
+        Args:
+            other (Vector3): The other Vector3 object for the cross product.
+
+        Returns:
+            Vector3: A new Vector3 object representing the cross product of the two vectors.
+
+        Raises:
+            TypeError: If the operand type for cross product calculation is not supported.
+        """
+        if isinstance(other, Vector3):
+            return Vector3(
+                self.y * other.z - self.z * other.y,
+                self.z * other.x - self.x * other.z,
+                self.x * other.y - self.y * other.x
+            )
+        raise TypeError("Unsupported operand type for cross product")
+
+    def get_as_tuple(self):
+        """
+        Convert the Vector3 object to a list.
+
+        Returns:
+            tuple: A list containing x, y, z coordinates from the Vector3 object.
+        """
+        return self.x, self.y, self.z
+
+    def set_from_tuple(self, values):
+        """
+        Set the x, y, and z coordinates of the Vector3 object from a list of values.
+
+        Args:
+            values (tuple, list): A list containing x, y, and z coordinates in that order.
+
+        Raises:
+            ValueError: If the provided list does not contain exactly 3 numeric elements.
+        """
+        if isinstance(values, (tuple, list)) and len(values) == 3 and \
+                all(isinstance(coord, (int, float)) for coord in values):
+            self.x, self.y, self.z = values
+        else:
+            raise ValueError("Input list must contain exactly 3 numeric values")
 
 
 @dataclass
@@ -54,6 +267,18 @@ class Transform:
                     self.scale == other.scale
                    )
         return False
+
+    def __repr__(self):
+        """
+        Return a string representation of the Transform object
+        Returns:
+            str: String representation of the object
+        """
+        return (
+            f"position={str(self.position)}, "
+            f"rotation={str(self.rotation)}, "
+            f"scale={str(self.scale)}"
+        )
 
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
         if not target_object or not cmds.objExists(target_object):

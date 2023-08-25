@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import transform_utils
+from gt.utils.transform_utils import Vector3
 
 
 class TestTransformUtils(unittest.TestCase):
@@ -29,41 +30,151 @@ class TestTransformUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
+    # --------------------------------------------- Vector3 Start -------------------------------------------
     def test_vector3_class_as_string(self):
-        vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
-        expected = "Vector3(x=1.2, y=3.4, z=5.6)"
+        vector3_object = Vector3(x=1.2, y=3.4, z=5.6)
+        expected = "(x=1.2, y=3.4, z=5.6)"
         result = str(vector3_object)
         self.assertEqual(expected, result)
 
     def test_vector3_class_as_list(self):
-        vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
+        vector3_object = Vector3(x=1.2, y=3.4, z=5.6)
         result = [vector3_object.x, vector3_object.y, vector3_object.z]
         expected = [1.2, 3.4, 5.6]
         self.assertEqual(expected, result)
 
     def test_vector3_class_equality_true(self):
-        vector3_object_a = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
-        vector3_object_b = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
+        vector3_object_a = Vector3(x=1.2, y=3.4, z=5.6)
+        vector3_object_b = Vector3(x=1.2, y=3.4, z=5.6)
         result = vector3_object_a == vector3_object_b
         expected = True
         self.assertEqual(expected, result)
 
     def test_vector3_class_equality_false(self):
-        vector3_object_a = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
-        vector3_object_b = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
+        vector3_object_a = Vector3(x=1.2, y=3.4, z=5.6)
+        vector3_object_b = Vector3(x=1.2, y=3.4, z=5.6)
         result = vector3_object_a == vector3_object_b
         expected = True
         self.assertEqual(expected, result)
 
+    def test_Vector3_init(self):
+        vec = Vector3()
+        result = vec.get_as_tuple()
+        expected = (0.0, 0.0, 0.0)
+        self.assertEqual(expected, result)
+
+        vec = Vector3(x=1.0, y=2.0, z=3.0)
+        result = vec.get_as_tuple()
+        expected = (1.0, 2.0, 3.0)
+        self.assertEqual(expected, result)
+
+        vec = Vector3(xyz=[4.0, 5.0, 6.0])
+        expected = (4.0, 5.0, 6.0)
+        result = vec.get_as_tuple()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_eq(self):
+        vec1 = Vector3(1.0, 2.0, 3.0)
+        vec2 = Vector3(1.0, 2.0, 3.0)
+        vec3 = Vector3(4.0, 5.0, 6.0)
+        expected = True
+        result = vec1 == vec2
+        self.assertEqual(expected, result)
+
+        expected = False
+        result = vec1 == vec3
+        self.assertEqual(expected, result)
+
+    def test_Vector3_add(self):
+        vec1 = Vector3(1.0, 2.0, 3.0)
+        vec2 = Vector3(4.0, 5.0, 6.0)
+        expected = (5.0, 7.0, 9.0)
+        result = (vec1 + vec2).get_as_tuple()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_sub(self):
+        vec1 = Vector3(1.0, 2.0, 3.0)
+        vec2 = Vector3(4.0, 5.0, 6.0)
+        expected = (3.0, 3.0, 3.0)
+        result = (vec2 - vec1).get_as_tuple()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_mul(self):
+        vec = Vector3(1.0, 2.0, 3.0)
+        scalar = 2.0
+        expected = (2.0, 4.0, 6.0)
+        result = (vec * scalar).get_as_tuple()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_magnitude(self):
+        vec = Vector3(3.0, 4.0, 0.0)
+        expected = 5.0
+        result = vec.magnitude()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_dot(self):
+        vec1 = Vector3(1.0, 2.0, 3.0)
+        vec2 = Vector3(4.0, 5.0, 6.0)
+        expected = 32.0
+        result = vec1.dot(vec2)
+        self.assertEqual(expected, result)
+
+    def test_Vector3_cross(self):
+        vec1 = Vector3(1.0, 0.0, 0.0)
+        vec2 = Vector3(0.0, 1.0, 0.0)
+        expected = (0.0, 0.0, 1.0)
+        result = vec1.cross(vec2).get_as_tuple()
+        self.assertEqual(expected, result)
+
+    def test_Vector3_set_from_list(self):
+        vec = Vector3()
+        vec.set_from_tuple((4.0, 5.0, 6.0))
+        expected = (4.0, 5.0, 6.0)
+        result = vec.get_as_tuple()
+        self.assertEqual(expected, result)
+
+        with self.assertRaises(ValueError):
+            vec.set_from_tuple((1.0, 2.0, 3.0, 4.0))
+
+    def test_Vector3_less_than(self):
+        v1 = Vector3(1, 2, 3)
+        v2 = Vector3(4, 5, 6)
+        self.assertTrue(v1 < v2)
+        self.assertFalse(v2 < v1)
+        self.assertFalse(v1 < v1)
+
+    def test_Vector3_less_than_or_equal(self):
+        v1 = Vector3(1, 2, 3)
+        v2 = Vector3(4, 5, 6)
+        self.assertTrue(v1 <= v2)
+        self.assertFalse(v2 <= v1)
+        self.assertTrue(v1 <= v1)
+
+    def test_Vector3_greater_than(self):
+        v1 = Vector3(1, 2, 3)
+        v2 = Vector3(4, 5, 6)
+        self.assertFalse(v1 > v2)
+        self.assertTrue(v2 > v1)
+        self.assertFalse(v1 > v1)
+
+    def test_Vector3_greater_than_or_equal(self):
+        v1 = Vector3(1, 2, 3)
+        v2 = Vector3(4, 5, 6)
+        self.assertFalse(v1 >= v2)
+        self.assertTrue(v2 >= v1)
+        self.assertTrue(v1 >= v1)
+    # --------------------------------------------- Vector3 End -------------------------------------------
+
+    # ------------------------------------------- Transform Start -----------------------------------------
     def test_transform_class_as_string(self):
         vector3_object = transform_utils.Vector3(x=1.2, y=3.4, z=5.6)
         transform_object = transform_utils.Transform(position=vector3_object,
                                                      rotation=vector3_object,
                                                      scale=vector3_object)
         result = str(transform_object)
-        expected = "Transform(position=Vector3(x=1.2, y=3.4, z=5.6), " \
-                   "rotation=Vector3(x=1.2, y=3.4, z=5.6), " \
-                   "scale=Vector3(x=1.2, y=3.4, z=5.6))"
+        expected = "position=(x=1.2, y=3.4, z=5.6), " \
+                   "rotation=(x=1.2, y=3.4, z=5.6), " \
+                   "scale=(x=1.2, y=3.4, z=5.6)"
         self.assertEqual(expected, result)
 
     def test_transform_class_position_as_list(self):
