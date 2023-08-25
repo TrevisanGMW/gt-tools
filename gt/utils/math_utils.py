@@ -12,6 +12,29 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def matrix_mult(mat1, mat2):
+    """
+    Multiply two matrices.
+
+    Args:
+        mat1 (list of lists): The first matrix.
+        mat2 (list of lists): The second matrix.
+
+    Returns:
+        list of lists: The result of matrix multiplication.
+    """
+    result = []
+    for i in range(len(mat1)):
+        row = []
+        for j in range(len(mat2[0])):
+            value = 0
+            for k in range(len(mat1[0])):
+                value += mat1[i][k] * mat2[k][j]
+            row.append(value)
+        result.append(row)
+    return result
+
+
 def get_dot_product(vector_a, vector_b):
     """
     Returns dot product
