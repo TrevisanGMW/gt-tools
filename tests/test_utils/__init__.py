@@ -8,6 +8,7 @@ from . import test_curve_utils
 from . import test_data_utils
 from . import test_feedback_utils
 from . import test_iterable_utils
+from . import test_math_utils
 from . import test_namespace_utils
 from . import test_naming_utils
 from . import test_playblast_utils
@@ -19,5 +20,6 @@ from . import test_session_utils
 from . import test_setup_utils
 from . import test_string_utils
 from . import test_system_utils
+from . import test_transform_utils
 from . import test_uuid_utils
 from . import test_version_utils

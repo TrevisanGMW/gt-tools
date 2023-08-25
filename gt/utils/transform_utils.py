@@ -3,12 +3,13 @@ Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import FeedbackMessage
-from dataclasses import dataclass
+from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
 import sys
 
 # Logging Setup
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -248,37 +249,206 @@ class Vector3:
             raise ValueError("Input list must contain exactly 3 numeric values")
 
 
-@dataclass
+# ------------------------------------------------- Transform Start -----------------------------------------------
 class Transform:
-    position: Vector3
-    rotation: Vector3
-    scale: Vector3
+    def __init__(self, position=None, rotation=None, scale=None):
+        """
+        Initialize a Transform object using Vector3 objects for position, rotation, and scale
 
-    def __eq__(self, other):
-        """
-        Compare Transform objects, they are equal if all their Vector3 objects are the same
         Args:
-            other (Transform): Object to compare
+            position (Vector3, optional): The position Vector3 object. Defaults to Vector3(0, 0, 0) if not provided.
+            rotation (Vector3, optional): The rotation Vector3 object. Defaults to Vector3(0, 0, 0) if not provided.
+            scale (Vector3, optional): The scale Vector3 object. Defaults to Vector3(1, 1, 1) if not provided.
         """
-        if isinstance(other, Transform):
-            return (
-                    self.position == other.position and
-                    self.rotation == other.rotation and
-                    self.scale == other.scale
-                   )
-        return False
+        self.position = position if position is not None else Vector3(0, 0, 0)
+        self.rotation = rotation if rotation is not None else Vector3(0, 0, 0)
+        self.scale = scale if scale is not None else Vector3(1, 1, 1)
 
     def __repr__(self):
         """
-        Return a string representation of the Transform object
+        Return a string representation of the Transform object.
+
         Returns:
-            str: String representation of the object
+            str: String representation of the object.
         """
         return (
             f"position={str(self.position)}, "
             f"rotation={str(self.rotation)}, "
             f"scale={str(self.scale)}"
         )
+
+    def __eq__(self, other):
+        """
+        Compare Transform objects for equality.
+
+        Args:
+            other (Transform): Object to compare.
+
+        Returns:
+            bool: True if the two Transform objects are equal, False otherwise.
+        """
+        if isinstance(other, Transform):
+            return (
+                    self.position == other.position and
+                    self.rotation == other.rotation and
+                    self.scale == other.scale
+            )
+        return False
+
+    def __lt__(self, other):
+        """
+        Compare Transform objects element-wise for less than.
+
+        Args:
+            other (Transform): The other Transform object to compare.
+
+        Returns:
+            bool: True if all corresponding components are less than the other Transform's components,
+                  False otherwise.
+        """
+        return (
+                self.position < other.position and
+                self.rotation < other.rotation and
+                self.scale < other.scale
+        )
+
+    def __le__(self, other):
+        """
+        Compare Transform objects element-wise for less than or equal.
+
+        Args:
+            other (Transform): The other Transform object to compare.
+
+        Returns:
+            bool: True if all corresponding components are less than or equal to the other Transform's components,
+                  False otherwise.
+        """
+        return (
+                self.position <= other.position and
+                self.rotation <= other.rotation and
+                self.scale <= other.scale
+        )
+
+    def __gt__(self, other):
+        """
+        Compare Transform objects element-wise for greater than.
+
+        Args:
+            other (Transform): The other Transform object to compare.
+
+        Returns:
+            bool: True if all corresponding components are greater than the other Transform's components,
+                  False otherwise.
+        """
+        return (
+                self.position > other.position and
+                self.rotation > other.rotation and
+                self.scale > other.scale
+        )
+
+    def __ge__(self, other):
+        """
+        Compare Transform objects element-wise for greater than or equal.
+
+        Args:
+            other (Transform): The other Transform object to compare.
+
+        Returns:
+            bool: True if all corresponding components are greater than or equal to the other Transform's components,
+                  False otherwise.
+        """
+        return (
+                self.position >= other.position and
+                self.rotation >= other.rotation and
+                self.scale >= other.scale
+        )
+
+    def to_matrix(self):
+        """
+        Convert the Transform object to a transformation matrix.
+
+        Returns:
+            list of lists: A 4x4 transformation matrix representing the combined transformations.
+        """
+        translation_matrix = [
+            [1, 0, 0, self.position.x],
+            [0, 1, 0, self.position.y],
+            [0, 0, 1, self.position.z],
+            [0, 0, 0, 1]
+        ]
+
+        rotation_matrix = self.rotation.to_rotation_matrix()  # You'll need to implement this method in Vector3
+
+        scale_matrix = [
+            [self.scale.x, 0, 0, 0],
+            [0, self.scale.y, 0, 0],
+            [0, 0, self.scale.z, 0],
+            [0, 0, 0, 1]
+        ]
+
+        transformation_matrix = matrix_mult(translation_matrix, rotation_matrix)
+        transformation_matrix = matrix_mult(transformation_matrix, scale_matrix)
+        return transformation_matrix
+
+    def set_from_tuple(self, position_tuple, rotation_tuple, scale_tuple):
+        """
+        Set the Transform attributes from tuples.
+
+        Args:
+            position_tuple (tuple): Tuple containing x, y, and z position values.
+            rotation_tuple (tuple): Tuple containing x, y, and z rotation values.
+            scale_tuple (tuple): Tuple containing x, y, and z scale values.
+
+        Raises:
+            ValueError: If the provided tuples do not contain exactly 3 numeric elements.
+        """
+        if len(position_tuple) != 3 or len(rotation_tuple) != 3 or len(scale_tuple) != 3:
+            raise ValueError("Input tuples must contain exactly 3 numeric values")
+
+        if all(isinstance(coord, (int, float)) for coord in position_tuple) and \
+                all(isinstance(coord, (int, float)) for coord in rotation_tuple) and \
+                all(isinstance(coord, (int, float)) for coord in scale_tuple):
+            self.position = Vector3(*position_tuple)
+            self.rotation = Vector3(*rotation_tuple)
+            self.scale = Vector3(*scale_tuple)
+        else:
+            raise ValueError("Input tuples must contain only numeric values")
+
+    def set_translation_from_tuple(self, position_tuple):
+        """
+        Set the translation using a tuple.
+
+        Args:
+            position_tuple (tuple): Tuple containing x, y, and z position values.
+
+        Raises:
+            ValueError: If the provided tuple does not contain exactly 3 numeric elements.
+        """
+        self.position.set_from_tuple(position_tuple)
+
+    def set_rotation_from_tuple(self, rotation_tuple):
+        """
+        Set the rotation using a tuple.
+
+        Args:
+            rotation_tuple (tuple): Tuple containing x, y, and z rotation values.
+
+        Raises:
+            ValueError: If the provided tuple does not contain exactly 3 numeric elements.
+        """
+        self.rotation.set_from_tuple(rotation_tuple)
+
+    def set_scale_from_tuple(self, scale_tuple):
+        """
+        Set the scale using a tuple.
+
+        Args:
+            scale_tuple (tuple): Tuple containing x, y, and z scale values.
+
+        Raises:
+            ValueError: If the provided tuple does not contain exactly 3 numeric elements.
+        """
+        self.scale.set_from_tuple(scale_tuple)
 
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
         if not target_object or not cmds.objExists(target_object):
@@ -291,6 +461,7 @@ class Transform:
         cmds.setAttr(f'{target_object}.sx', self.scale.x)
         cmds.setAttr(f'{target_object}.sy', self.scale.y)
         cmds.setAttr(f'{target_object}.sz', self.scale.z)
+# --------------------------------------------------- Transform End -------------------------------------------------
 
 
 def move_pivot_top():

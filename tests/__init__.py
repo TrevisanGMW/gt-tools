@@ -42,6 +42,7 @@ modules_to_test = [
     test_utils.test_data_utils,
     test_utils.test_feedback_utils,
     test_utils.test_iterable_utils,
+    test_utils.test_math_utils,
     test_utils.test_namespace_utils,
     test_utils.test_naming_utils,
     test_utils.test_playblast_utils,
@@ -53,6 +54,7 @@ modules_to_test = [
     test_utils.test_setup_utils,
     test_utils.test_string_utils,
     test_utils.test_system_utils,
+    test_utils.test_transform_utils,
     test_utils.test_uuid_utils,
     test_utils.test_version_utils,
 ]
