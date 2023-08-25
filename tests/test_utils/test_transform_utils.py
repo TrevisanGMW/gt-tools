@@ -75,6 +75,10 @@ class TestTransformUtils(unittest.TestCase):
         result = vec.get_as_tuple()
         self.assertEqual(expected, result)
 
+    def test_Vector3_invalid_input(self):
+        with self.assertRaises(ValueError):
+            Vector3(x="not a number")
+
     def test_Vector3_eq(self):
         vec1 = Vector3(1.0, 2.0, 3.0)
         vec2 = Vector3(1.0, 2.0, 3.0)
@@ -91,7 +95,8 @@ class TestTransformUtils(unittest.TestCase):
         vec1 = Vector3(1.0, 2.0, 3.0)
         vec2 = Vector3(4.0, 5.0, 6.0)
         expected = (5.0, 7.0, 9.0)
-        result = (vec1 + vec2).get_as_tuple()
+        added_vec = vec1 + vec2
+        result = added_vec.get_as_tuple()
         self.assertEqual(expected, result)
 
     def test_Vector3_sub(self):
@@ -246,19 +251,19 @@ class TestTransformUtils(unittest.TestCase):
     def test_transform_set_translation_from_tuple(self):
         transform = Transform()
         transform.set_translation_from_tuple((10, 20, 30))
-        expected = Vector3(10, 20, 30)
+        expected = transform_utils.Vector3(10, 20, 30)
         self.assertEqual(expected, transform.position)
 
     def test_transform_set_rotation_from_tuple(self):
         transform = Transform()
         transform.set_rotation_from_tuple((45, 90, 0))
-        expected = Vector3(45, 90, 0)
+        expected = transform_utils.Vector3(45, 90, 0)
         self.assertEqual(expected, transform.rotation)
 
     def test_transform_set_scale_from_tuple(self):
         transform = Transform()
         transform.set_scale_from_tuple((2, 2, 2))
-        expected = Vector3(2, 2, 2)
+        expected = transform_utils.Vector3(2, 2, 2)
         self.assertEqual(expected, transform.scale)
 
     def test_transform_lt(self):

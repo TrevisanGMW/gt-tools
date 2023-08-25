@@ -38,6 +38,9 @@ class Vector3:
         if xyz is not None:
             self.set_from_tuple(xyz)
         else:
+            for num in [x, y, z]:
+                if not isinstance(num, (int, float)):
+                    raise ValueError("Input values must be numbers")
             self.x = x
             self.y = y
             self.z = z
@@ -61,7 +64,7 @@ class Vector3:
         Returns:
             bool: True if the two Vector3 objects are equal, False otherwise.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return (
                     self.x == other.x and
                     self.y == other.y and
@@ -79,7 +82,7 @@ class Vector3:
         Returns:
             bool: True if self is less than other, False otherwise.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return self.magnitude() < other.magnitude()
         raise TypeError("Unsupported operand type for <")
 
@@ -93,7 +96,7 @@ class Vector3:
         Returns:
             bool: True if self is less than or equal to other, False otherwise.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return self.magnitude() <= other.magnitude()
         raise TypeError("Unsupported operand type for <=")
 
@@ -107,7 +110,7 @@ class Vector3:
         Returns:
             bool: True if self is greater than other, False otherwise.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return self.magnitude() > other.magnitude()
         raise TypeError("Unsupported operand type for >")
 
@@ -121,18 +124,9 @@ class Vector3:
         Returns:
             bool: True if self is greater than or equal to other, False otherwise.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return self.magnitude() >= other.magnitude()
         raise TypeError("Unsupported operand type for >=")
-
-    def magnitude(self):
-        """
-        Calculate the magnitude (length) of the Vector3 object.
-
-        Returns:
-            float: The magnitude of the vector.
-        """
-        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
 
     def __add__(self, other):
         """
@@ -147,9 +141,9 @@ class Vector3:
         Raises:
             TypeError: If the operand type for addition is not supported.
         """
-        if isinstance(other, Vector3):
-            return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
-        raise TypeError("Unsupported operand type for +")
+        if not isinstance(other, self.__class__):
+            raise TypeError("Unsupported operand type for +")
+        return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def __sub__(self, other):
         """
@@ -164,7 +158,7 @@ class Vector3:
         Raises:
             TypeError: If the operand type for subtraction is not supported.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return Vector3(self.x - other.x, self.y - other.y, self.z - other.z)
         raise TypeError("Unsupported operand type for -")
 
@@ -185,6 +179,15 @@ class Vector3:
             return Vector3(self.x * scalar, self.y * scalar, self.z * scalar)
         raise TypeError("Unsupported operand type for *")
 
+    def magnitude(self):
+        """
+        Calculate the magnitude (length) of the Vector3 object.
+
+        Returns:
+            float: The magnitude of the vector.
+        """
+        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+
     def dot(self, other):
         """
         Calculate the dot product of two Vector3 objects.
@@ -198,7 +201,7 @@ class Vector3:
         Raises:
             TypeError: If the operand type for dot product calculation is not supported.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return self.x * other.x + self.y * other.y + self.z * other.z
         raise TypeError("Unsupported operand type for dot product")
 
@@ -215,7 +218,7 @@ class Vector3:
         Raises:
             TypeError: If the operand type for cross product calculation is not supported.
         """
-        if isinstance(other, Vector3):
+        if isinstance(other, self.__class__):
             return Vector3(
                 self.y * other.z - self.z * other.y,
                 self.z * other.x - self.x * other.z,
@@ -287,7 +290,7 @@ class Transform:
         Returns:
             bool: True if the two Transform objects are equal, False otherwise.
         """
-        if isinstance(other, Transform):
+        if isinstance(other, self.__class__):
             return (
                     self.position == other.position and
                     self.rotation == other.rotation and
