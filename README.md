@@ -46,7 +46,7 @@ Note: Python 2 is no longer supported. If you want to still use an older version
 <li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
 <li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations.</li>
 <li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
-<li><code>tests</code>: Package unittests for tools, ui and utilities. See ["CONTRIBUTING.md"]() for more details.</li>
+<li><code>tests</code>: Package unittests for tools, ui and utilities. See <a href="./CONTRIBUTING.md">CONTRIBUTING</a> for more details.</li>
 </ul>
 
 <h1>Setup (Install, Uninstall, Run Only)</h1>
