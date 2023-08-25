@@ -162,23 +162,28 @@ def regex_file_from_failure_or_error(message):
         return str(message)
 
 
-def run_all_tests_with_summary(print_results=True):
+def run_all_tests_with_summary(print_results=True, print_traceback=False):
     """
     Runs all the unit tests found in the "modules_to_test" and generates a report
     Args:
-        print_results (optional, bool): If active it prints the results
+        print_results (bool, optional): If active it prints the results
+        print_traceback (bool, optional): If active, it will print traceback details of any errors/failures.
     Returns:
         str: Results in a Markdown table format
     """
-    ran = 0
-    failed = 0
-    errors = 0
+    ran_counter = 0
+    failed_counter = 0
+    errors_counter = 0
     module_failures = {}
     module_errors = {}
+    errors = []
+    failures = []
     for name, result in zip(modules_to_test, run_test_modules(modules_to_test)):
-        ran += result.testsRun
-        failed += len(result.failures)
-        errors += len(result.errors)
+        ran_counter += result.testsRun
+        failed_counter += len(result.failures)
+        errors_counter += len(result.errors)
+        errors += result.errors
+        failures += result.failures
         if len(result.failures) > 0:
             module = regex_module_name(name)
             first_failure = result.failures[0][1]
@@ -189,10 +194,10 @@ def run_all_tests_with_summary(print_results=True):
             module_errors[module] = regex_file_from_failure_or_error(first_error)
 
     tests_summary = {"Test Runner Summary": ["Ran", "Failed"],
-                     "": [ran, failed]}
-    if errors:
+                     "": [ran_counter, failed_counter]}
+    if errors_counter:
         tests_summary.get("Test Runner Summary").append("Errors")
-        tests_summary.get("").append(str(errors))
+        tests_summary.get("").append(str(errors_counter))
 
     output_string = dict_to_markdown_table(tests_summary)
 
@@ -209,10 +214,23 @@ def run_all_tests_with_summary(print_results=True):
         module_errors = {"Errors": modules,
                          "Source": files}
         output_string += "\n" + dict_to_markdown_table(module_errors)
+
+    if print_traceback:
+        for index, error in enumerate(errors):
+            print(f'\n{"-"*40} Error {str(index+1).zfill(2)}: {"-"*40}')
+            print(error[0])
+            print(error[1])
+        for index, fail in enumerate(failures):
+            print(f'\n{"-"*40} Failure {str(index+1).zfill(2)}: {"-"*40}')
+            print(fail[0])
+            print(fail[1])
+        print("\n")
+
     if print_results:
         print(output_string)
+
     return output_string
 
 
 if __name__ == "__main__":
-    run_all_tests_with_summary()
+    run_all_tests_with_summary(print_results=True, print_traceback=True)
