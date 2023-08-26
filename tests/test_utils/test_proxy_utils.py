@@ -36,6 +36,30 @@ class TestProxyUtils(unittest.TestCase):
         expected = "proxy"
         self.assertEqual(expected, result)
 
+    def test_proxy_init(self):
+        from gt.utils import transform_utils
+        from gt.utils import curve_utils
+        mocked_transform = transform_utils.Transform(position=(0, 10, 0))
+        expected_name = "mocked_name"
+        expected_curve = curve_utils.get_curve("circle")
+        expected_uuid = "123e4567-e89b-12d3-a456-426655440000"
+        expected_metadata = {"metadata": "value"}
+        proxy = Proxy(name=expected_name,
+                      transform=mocked_transform,
+                      offset_transform=mocked_transform,
+                      curve=expected_curve,
+                      uuid=expected_uuid,
+                      parent_uuid=expected_uuid,
+                      metadata=expected_metadata)
+        self.assertEqual(expected_name, proxy.name)
+        self.assertEqual(mocked_transform, proxy.transform)
+        self.assertEqual(mocked_transform, proxy.offset_transform)
+        self.assertEqual(expected_curve, proxy.curve)
+        self.assertEqual(expected_uuid, proxy.uuid)
+        self.assertEqual(expected_uuid, proxy.parent_uuid)
+        self.assertEqual(expected_metadata, proxy.metadata)
+        self.assertTrue(proxy.is_proxy_valid())
+
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
         proxy = Proxy(curve=Curves.circle)
@@ -44,12 +68,12 @@ class TestProxyUtils(unittest.TestCase):
         expected = "proxy"
         self.assertEqual(expected, result)
 
-    def test_get_name_default(self):
+    def test_proxy_get_name_default(self):
         result = self.proxy.get_name()
         expected = "proxy"
         self.assertEqual(expected, result)
 
-    def test_set_name(self):
+    def test_proxy_set_name(self):
         self.proxy.set_name("description")
         result = self.proxy.get_name()
         expected = "description"
@@ -57,3 +81,9 @@ class TestProxyUtils(unittest.TestCase):
         result = self.proxy.build()
         expected = "description"
         self.assertEqual(expected, result)
+
+    def test_proxy_build(self):
+        result = self.proxy.build()
+        expected = "proxy"
+        self.assertEqual(expected, result)
+        # TODO, check basic attributes

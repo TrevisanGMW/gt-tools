@@ -27,6 +27,7 @@ class ProxyConstants:
         """
         Constant values used by all proxy elements.
         """
+
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
@@ -103,14 +104,16 @@ class Proxy:
                                         set_initial_uuid_value=False)
         scale_attr = add_attr(target_list=proxy_crv, attributes=ProxyConstants.PROXY_ATTR_SCALE, default=1) or []
         if scale_attr and len(scale_attr) == 1:
-            add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr[0])
+            scale_attr = scale_attr[0]
+            add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr)
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
         if self.offset_transform:
             self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
         if self.transform:
             self.transform.apply_transform(target_object=proxy_crv, object_space=True)
-        if self.locator_scale:
+        if self.locator_scale and scale_attr:
+            cmds.refresh()
             set_attr(scale_attr, self.locator_scale)
         return proxy_crv
 
@@ -135,7 +138,7 @@ class Proxy:
         """
         if not transform or not isinstance(transform, Transform):
             logger.warning(f'Unable to set proxy transform. '
-                          f'Must be a "Transform" object, but got "{str(type(transform))}".')
+                           f'Must be a "Transform" object, but got "{str(type(transform))}".')
             return
         self.transform = transform
 
@@ -182,7 +185,7 @@ class Proxy:
             logger.warning(f'Unable to set proxy transform. '
                            f'Must be a "Transform" object, but got "{str(type(transform))}".')
             return
-        self.transform = transform
+        self.offset_transform = transform
 
     def set_offset_position(self, x=None, y=None, z=None, xyz=None):
         """
@@ -289,7 +292,7 @@ class Proxy:
         Args:
             uuid (str): A new UUID for the parent of this proxy
         """
-        error_message = f'Unable to set proxy UUID. Invalid UUID input.'
+        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
         if not uuid or not isinstance(uuid, str):
             logger.warning(error_message)
             return
@@ -325,10 +328,11 @@ if __name__ == "__main__":
     # proxy_parent = proxy_parent.build()
     # cmds.move(0, 20, 0, proxy_parent)
     temp_trans = Transform()
-    temp_trans.set_position((0, 10, 0))
+    temp_trans.set_position(0, 10, 0)
     proxy = Proxy()
     proxy.set_transform(temp_trans)
     proxy.set_offset_position(0, 5, 5)
     proxy.set_parent_uuid(test_parent_uuid)
+    proxy.set_curve(get_curve("_proxy_joint_handle"))
+    proxy.set_locator_scale(5)
     proxy.build()
-
