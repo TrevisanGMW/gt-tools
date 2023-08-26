@@ -10,8 +10,8 @@ TODO:
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
+from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.control_utils import add_snapping_shape
-from gt.utils.naming_utils import NamingConstants
 from gt.utils.transform_utils import Transform
 from dataclasses import dataclass
 import maya.cmds as cmds
@@ -57,10 +57,34 @@ class ProxyData:
         Gets the short version of the proxy name (default name is its long name)
         Note, this name might not be unique
         Returns:
-            str: Short name of the control (short version of self.name) - Last name after "|" characters
+            str: Short name of the proxy (short version of self.name) - Last name after "|" characters
         """
         from gt.utils.naming_utils import get_short_name
         return get_short_name(self.name)
+
+    def get_long_name(self):
+        """
+        Gets the long version of the proxy name.
+        Returns:
+            str: Long name of the proxy. (a.k.a. Full Path)
+        """
+        return self.name
+
+    def get_offset(self):
+        """
+        Gets the long version of the offset proxy group.
+        Returns:
+            str: Long name of the proxy group. (a.k.a. Full Path)
+        """
+        return self.offset
+
+    def get_setup(self):
+        """
+        Gets the setup items tuple from the proxy data. This is a list of objects used to set up the proxy. (rig setup)
+        Returns:
+            tuple: A tuple with strings (full paths to the rig elements)
+        """
+        return self.setup
 
 
 class Proxy:
@@ -125,6 +149,8 @@ class Proxy:
         proxy_offset = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
         proxy_crv = self.curve.build()
         cmds.parent(proxy_crv, proxy_offset)
+        proxy_offset = get_long_name(proxy_offset)
+        proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
         add_separator_attr(target_object=proxy_crv, attr_name=ProxyConstants.SEPARATOR_ATTR)
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
@@ -226,7 +252,7 @@ class Proxy:
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
-        self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
+        self.offset_transform.set_position(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_rotation(self, x=None, y=None, z=None, xyz=None):
         """
@@ -352,11 +378,7 @@ class Proxy:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
-    # cmds.polySphere()
     test_parent_uuid = generate_uuid()
-    # proxy_parent = Proxy(name="parent", uuid=test_parent_uuid)
-    # proxy_parent = proxy_parent.build()
-    # cmds.move(0, 20, 0, proxy_parent)
     temp_trans = Transform()
     temp_trans.set_position(0, 10, 0)
     proxy = Proxy()
