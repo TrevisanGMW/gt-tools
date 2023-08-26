@@ -1673,7 +1673,7 @@ def add_shape_scale_cluster(curve, scale_driver_attr):
     Returns:
         str or None: Cluster handle if successful, None if it failed.
     """
-    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{curve}_LocScale')
+    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{get_short_name(curve)}_LocScale')
     if not cluster:
         logger.debug(f'Unable to create scale cluster. Missing "{str(curve)}".')
         return
