@@ -34,7 +34,13 @@ class TestProxyUtils(unittest.TestCase):
         result = self.proxy.build()
         self.assertTrue(self.proxy.is_proxy_valid())
         expected = "proxy"
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, str(result))
+        self.assertEqual(expected, result.get_short_name())
+        self.assertTrue(isinstance(result, proxy_utils.ProxyData))
+        expected = "proxy_offset"
+        self.assertEqual(expected, result.offset)
+        expected = ("proxy_LocScaleHandle",)
+        self.assertEqual(expected, result.setup)
 
     def test_proxy_init(self):
         from gt.utils import transform_utils
@@ -66,7 +72,7 @@ class TestProxyUtils(unittest.TestCase):
         result = proxy.build()
         self.assertTrue(proxy.is_proxy_valid())
         expected = "proxy"
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, result.get_short_name())
 
     def test_proxy_get_name_default(self):
         result = self.proxy.get_name()
@@ -80,10 +86,12 @@ class TestProxyUtils(unittest.TestCase):
         self.assertEqual(expected, result)
         result = self.proxy.build()
         expected = "description"
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, result.get_short_name())
 
     def test_proxy_build(self):
         result = self.proxy.build()
         expected = "proxy"
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, str(result))
         # TODO, check basic attributes
+        self.assertEqual(expected, result.get_short_name())
+

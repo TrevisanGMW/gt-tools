@@ -13,6 +13,7 @@ from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.transform_utils import Transform
+from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
 
@@ -27,12 +28,39 @@ class ProxyConstants:
         """
         Constant values used by all proxy elements.
         """
-
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
+
+
+@dataclass
+class ProxyData:
+    """
+    A proxy data class used as the proxy response for when the proxy is built.
+    """
+    name: str  # Long name of the generated proxy (full Maya path)
+    offset: str  # Name of the proxy offset (parent of the proxy)
+    setup: tuple  # Name of the proxy setup items (rig setup items)
+
+    def __repr__(self):
+        """
+        String conversion returns the name of the proxy
+        Returns:
+            str: Proxy long name.
+        """
+        return self.name
+
+    def get_short_name(self):
+        """
+        Gets the short version of the proxy name (default name is its long name)
+        Note, this name might not be unique
+        Returns:
+            str: Short name of the control (short version of self.name) - Last name after "|" characters
+        """
+        from gt.utils.naming_utils import get_short_name
+        return get_short_name(self.name)
 
 
 class Proxy:
@@ -51,7 +79,7 @@ class Proxy:
         self.offset_transform = Transform()
         self.curve = get_curve('_proxy_joint')
         self.curve.set_name(name=self.name)
-        self.locator_scale = 1  # 100%
+        self.locator_scale = 1  # 100% - Initial curve scale
         self.uuid = generate_uuid(remove_dashes=True)
         self.parent_uuid = None
         self.metadata = None
@@ -89,7 +117,7 @@ class Proxy:
         """
         Builds a proxy object.
         Returns:
-            str: Name of the proxy that was generated/built.
+            ProxyData: Name of the proxy that was generated/built.
         """
         if not self.is_proxy_valid():
             logger.warning(f'Unable to build proxy. Invalid proxy object.')
@@ -103,9 +131,10 @@ class Proxy:
                                         attr_name=ProxyConstants.PROXY_ATTR_UUID,
                                         set_initial_uuid_value=False)
         scale_attr = add_attr(target_list=proxy_crv, attributes=ProxyConstants.PROXY_ATTR_SCALE, default=1) or []
+        loc_scale_cluster = None
         if scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
-            add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr)
+            loc_scale_cluster = add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr)
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
         if self.offset_transform:
@@ -113,9 +142,10 @@ class Proxy:
         if self.transform:
             self.transform.apply_transform(target_object=proxy_crv, object_space=True)
         if self.locator_scale and scale_attr:
-            cmds.refresh()
+            cmds.refresh()  # Without refresh, it fails to show the correct scale
             set_attr(scale_attr, self.locator_scale)
-        return proxy_crv
+
+        return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,))
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
