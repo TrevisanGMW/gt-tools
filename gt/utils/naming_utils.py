@@ -2,6 +2,7 @@
 Naming Utilities
 github.com/TrevisanGMW/gt-tools
 """
+import maya.cmds as cmds
 import logging
 
 # Logging Setup
@@ -57,6 +58,23 @@ class NamingConstants:
 
     class Description:
         OFFSET = "offset"
+
+
+def get_long_name(short_name):
+    """
+    Returns the long name of the object based on its short name.
+
+    Args:
+        short_name (str): The short name of the object.
+
+    Returns:
+        str: The long name of the object.
+    """
+    try:
+        long_name = cmds.ls(short_name, long=True)[0]
+        return long_name
+    except IndexError:
+        return None
 
 
 def get_short_name(long_name):
