@@ -241,16 +241,18 @@ class Vector3:
         Set the x, y, and z coordinates of the Vector3 object from a list of values.
 
         Args:
-            values (tuple, list): A list containing x, y, and z coordinates in that order.
+            values (tuple, list, Vector3): A list containing x, y, and z coordinates in that order.
 
         Raises:
             ValueError: If the provided list does not contain exactly 3 numeric elements.
         """
+        if isinstance(values, Vector3):
+            values = values.get_as_tuple()
         if isinstance(values, (tuple, list)) and len(values) == 3 and \
                 all(isinstance(coord, (int, float)) for coord in values):
             self.x, self.y, self.z = values
         else:
-            raise ValueError("Input list must contain exactly 3 numeric values")
+            raise ValueError("Input list must contain exactly 3 numeric values" + str(values))
 
 
 # ------------------------------------------------- Transform Start -----------------------------------------------
@@ -264,9 +266,9 @@ class Transform:
             rotation (Vector3, optional): The rotation Vector3 object. Defaults to Vector3(0, 0, 0) if not provided.
             scale (Vector3, optional): The scale Vector3 object. Defaults to Vector3(1, 1, 1) if not provided.
         """
-        self.position = position if position is not None else Vector3(0, 0, 0)
-        self.rotation = rotation if rotation is not None else Vector3(0, 0, 0)
-        self.scale = scale if scale is not None else Vector3(1, 1, 1)
+        self.position = Vector3(xyz=position) if position is not None else Vector3(0, 0, 0)
+        self.rotation = Vector3(xyz=rotation) if rotation is not None else Vector3(0, 0, 0)
+        self.scale = Vector3(xyz=scale) if scale is not None else Vector3(1, 1, 1)
 
     def __repr__(self):
         """
