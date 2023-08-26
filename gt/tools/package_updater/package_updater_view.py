@@ -1,5 +1,5 @@
 """
-Curve Library Window - The main GUI window class for the Curve Library tool.
+Package Updater Window
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QTextEdit, QVBoxLayout, QHBoxLayout
 import gt.ui.resource_library as resource_library

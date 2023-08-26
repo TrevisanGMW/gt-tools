@@ -1,8 +1,5 @@
 """
-Curve Library Controller
-
-This module contains the CurveLibraryController class responsible for managing interactions between the
-CurveLibraryModel and the user interface.
+Package Updater Controller
 """
 from gt.utils.iterable_utils import get_next_dict_item
 from gt.utils.system_utils import execute_deferred
