@@ -704,7 +704,7 @@ class TestCurveUtils(unittest.TestCase):
         control_attr = "mockedAttr"
         maya_test_tools.cmds.addAttr(cube, longName=control_attr, at='double', k=True, minValue=0)
         result = curve_utils.add_shape_scale_cluster(cube, f"{cube}.{control_attr}")
-        expected = "nurbsCircle1LocatorScaleHandle"
+        expected = "nurbsCircle1_LocScaleHandle"
         self.assertEqual(expected, result)
 
     def test_curve_set_transform(self):
