@@ -433,24 +433,9 @@ class Curve:
         if self.name:
             generated_curve = cmds.rename(generated_curve, self.name)
         if self.transform:
-            self.apply_curve_transform(generated_curve)
+            self.transform.apply_transform(target_object=generated_curve, world_space=True)
         cmds.select(clear=True)
         return generated_curve
-
-    def apply_curve_transform(self, target_object):
-        """
-        Uses the provided Transform data to set the TRS data of the curve object.
-        Args:
-            target_object (str): Name of the curve to set with stored Transform data
-        """
-        if not target_object:
-            logger.warning(f'Unable to apply curve transform. Missing transform data.')
-            return
-        if not isinstance(self.transform, Transform):
-            logger.warning(f'Unable to apply curve transform. '
-                           f'Expected "Transform", but got "{str(type(self.transform))}".')
-            return
-        self.transform.apply_transform(target_object=target_object)
 
     def read_data_from_existing_curve(self, existing_curve):
         """
@@ -554,9 +539,9 @@ class Curve:
                 pos_data = transform_data.get("position")
                 rot_data = transform_data.get("rotation")
                 sca_data = transform_data.get("scale")
-                position = Vector3(pos_data[0], pos_data[1], pos_data[2])
-                rotation = Vector3(rot_data[0], rot_data[1], rot_data[2])
-                scale = Vector3(sca_data[0], sca_data[1], sca_data[2])
+                position = Vector3(pos_data)
+                rotation = Vector3(rot_data)
+                scale = Vector3(sca_data)
                 self.transform = Transform(position, rotation, scale)
             except Exception as e:
                 logger.debug(f'Unable to read transform data. Issue: "{e}".')
@@ -564,16 +549,16 @@ class Curve:
         if data_dict.get('metadata'):
             self.metadata = metadata
 
-    def set_name(self, new_name):
+    def set_name(self, name):
         """
         Sets a new curve name. Useful when ingesting data from dictionary or file with undesired name.
         Args:
-            new_name (str): New name to use on the curve.
+            name (str): New name to use on the curve.
         """
-        if not new_name or not isinstance(new_name, str):
-            logger.warning(f'Unable to set new name. Expected string but got "{str(type(new_name))}"')
+        if not name or not isinstance(name, str):
+            logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
             return
-        self.name = new_name
+        self.name = name
 
     def set_metadata_dict(self, new_metadata):
         """
@@ -585,6 +570,57 @@ class Curve:
             logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(new_metadata))}"')
             return
         self.metadata = new_metadata
+
+    def set_transform(self, transform):
+        """
+        Sets the transform for this curve object
+        Args:
+            transform (Transform): A transform object describing position, rotation and scale.
+        """
+        if not transform or not isinstance(transform, Transform):
+            logger.warning(f'Unable to set curve transform. '
+                           f'Must be a "Transform" object, but got "{str(type(transform))}".')
+            return
+        self.transform = transform
+
+    def set_position(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the position of the curve object.
+        Args:
+            x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        if not self.transform:
+            self.transform = Transform()
+        self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
+
+    def set_rotation(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the rotation of the curve object.
+        Args:
+            x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        if not self.transform:
+            self.transform = Transform()
+        self.transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
+
+    def set_scale(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the scale of the curve object.
+        Args:
+            x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        if not self.transform:
+            self.transform = Transform()
+        self.transform.set_scale(x=x, y=y, z=z, xyz=xyz)
 
     def add_to_metadata(self, key, value):
         """
@@ -618,6 +654,15 @@ class Curve:
         if formatted and self.name:
             return self.name.replace("_", " ").title()
         return self.name
+
+    def get_transform(self):
+        """
+        Gets the name property of the curve.
+
+        Returns:
+            Transform or None: The transform for this curve. None if it hasn't been initialized.
+        """
+        return self.transform
 
     def read_curve_from_file(self, file_path):
         """
@@ -1115,6 +1160,7 @@ class Curves:
     letter_asterisk = get_curve(file_name="letter_asterisk")
     line_two_points = get_curve(file_name="line_two_points")
     locator = get_curve(file_name="locator")
+    locator_handle_arrows = get_curve(file_name="locator_handle_arrows")
     locator_handle_xyz = get_curve(file_name="locator_handle_xyz")
     locator_with_axis = get_curve(file_name="locator_with_axis")
     peanut = get_curve(file_name="peanut")
@@ -1611,15 +1657,47 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True):
     sys.stdout.write(f'Python lines for "Curves" class were printed. (If in Maya, open the script editor)')
     return print_lines
 
-# ------------------------------ Curves Class Utilities End ------------------------------
+# ------------------------------ Curves Collection Utilities End ------------------------------
+
+
+def add_shape_scale_cluster(curve, scale_driver_attr):
+    """
+    Creates a cluster to control the scale of the provided curve.
+
+    Parameters:
+    curve (str): Name of the curve.
+    scale_driver_attr (str): The object name and attribute used to drive the scale.
+                             Example: "curveName.locatorScale"
+                             This attribute will control the scale of the curve shape.
+
+    Returns:
+        str or None: Cluster handle if successful, None if it failed.
+    """
+    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{get_short_name(curve)}_LocScale')
+    if not cluster:
+        logger.debug(f'Unable to create scale cluster. Missing "{str(curve)}".')
+        return
+    else:
+        cluster_handle = cluster[1]
+        cmds.setAttr(cluster_handle + '.v', 0)
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sx')
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sy')
+        cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sz')
+        return cluster_handle
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
     # add_thumbnail_metadata_attr_to_selection()
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    pprint(out)
+    temp = get_curve("circle")
+    test = Transform()
+    test.set_position(0, 10, 0)
+
+    temp.transform = test
+
+    print(temp.transform)
+    temp.build()
+

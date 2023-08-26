@@ -20,6 +20,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import curve_utils
+from gt.utils import transform_utils
 
 
 def import_curve_test_file():
@@ -697,3 +698,78 @@ class TestCurveUtils(unittest.TestCase):
         expected = "nurbsCurve"
         for obj, obj_type in type_dict.items():
             self.assertEqual(expected, obj_type)
+
+    def test_add_shape_scale_cluster(self):
+        cube = maya_test_tools.cmds.circle(ch=False)[0]
+        control_attr = "mockedAttr"
+        maya_test_tools.cmds.addAttr(cube, longName=control_attr, at='double', k=True, minValue=0)
+        result = curve_utils.add_shape_scale_cluster(cube, f"{cube}.{control_attr}")
+        expected = "nurbsCircle1_LocScaleHandle"
+        self.assertEqual(expected, result)
+
+    def test_curve_set_transform(self):
+        curve = curve_utils.get_curve("circle")
+        expected = None
+        result = curve.transform
+        self.assertEqual(expected, result)
+        transform = transform_utils.Transform()
+        transform.set_position(0, 10, 0)
+        curve.set_transform(transform)
+        self.assertEqual(transform, curve.transform)
+        maya_curve = curve.build()
+        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ty')
+        expected = 10
+        self.assertEqual(expected, ty_value)
+
+    def test_curve_get_transform(self):
+        curve = curve_utils.get_curve("circle")
+        expected = None
+        result = curve.transform
+        self.assertEqual(expected, result)
+        transform = transform_utils.Transform()
+        transform.set_position(0, 10, 0)
+        curve.transform = transform
+        result = curve.get_transform()
+        self.assertEqual(transform, result)
+
+    def test_curve_set_position(self):
+        curve = curve_utils.get_curve("circle")
+        expected = None
+        result = curve.transform
+        self.assertEqual(expected, result)
+        transform = transform_utils.Transform()
+        transform.set_position(0, 10, 0)
+        curve.set_position(0, 10, 0)
+        self.assertEqual(transform, curve.transform)
+        maya_curve = curve.build()
+        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ty')
+        expected = 10
+        self.assertEqual(expected, ty_value)
+
+    def test_curve_set_rotation(self):
+        curve = curve_utils.get_curve("circle")
+        expected = None
+        result = curve.transform
+        self.assertEqual(expected, result)
+        transform = transform_utils.Transform()
+        transform.set_rotation(0, 10, 0)
+        curve.set_rotation(0, 10, 0)
+        self.assertEqual(transform, curve.transform)
+        maya_curve = curve.build()
+        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ry')
+        expected = 10
+        self.assertEqual(expected, ty_value)
+
+    def test_curve_set_scale(self):
+        curve = curve_utils.get_curve("circle")
+        expected = None
+        result = curve.transform
+        self.assertEqual(expected, result)
+        transform = transform_utils.Transform()
+        transform.set_scale(0, 10, 0)
+        curve.set_scale(0, 10, 0)
+        self.assertEqual(transform, curve.transform)
+        maya_curve = curve.build()
+        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.sy')
+        expected = 10
+        self.assertEqual(expected, ty_value)

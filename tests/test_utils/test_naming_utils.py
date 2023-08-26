@@ -54,6 +54,20 @@ class TestNamingUtils(unittest.TestCase):
         expected = "item"
         self.assertEqual(expected, result)
 
+    def test_get_long_name(self):
+        cube = maya_test_tools.create_poly_cube()
+        result = naming_utils.get_long_name(cube)
+        expected = "|pCube1"
+        self.assertEqual(expected, result)
+
+    def test_get_long_name_with_parents(self):
+        cube = maya_test_tools.create_poly_cube()
+        group = maya_test_tools.cmds.group(empty=True, world=True, name="mocked_parent")
+        maya_test_tools.cmds.parent(cube, group)
+        result = naming_utils.get_long_name(cube)
+        expected = "|mocked_parent|pCube1"
+        self.assertEqual(expected, result)
+
     def test_get_short_name_short(self):
         result = naming_utils.get_short_name(long_name="|item")
         expected = "item"
