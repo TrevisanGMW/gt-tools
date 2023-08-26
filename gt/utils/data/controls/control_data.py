@@ -155,7 +155,7 @@ class ControlData:
 
     def get_short_name(self):
         """
-        Gets the short version of the name of the control (default name is its long name)
+        Gets the short version of the control name (default name is its long name)
         Note, this name might not be unique
         Returns:
             str: Short name of the control (short version of self.name) - Last name after "|" characters
