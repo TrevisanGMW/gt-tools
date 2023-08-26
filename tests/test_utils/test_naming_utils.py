@@ -54,6 +54,9 @@ class TestNamingUtils(unittest.TestCase):
         expected = "item"
         self.assertEqual(expected, result)
 
+    def test_get_long_name(self):
+        cube = maya_test_tools.create_poly_cube()
+
     def test_get_short_name_short(self):
         result = naming_utils.get_short_name(long_name="|item")
         expected = "item"

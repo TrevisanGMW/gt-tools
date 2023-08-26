@@ -366,7 +366,7 @@ class TestTransformUtils(unittest.TestCase):
     # -------------------------------------------------- Transform End ------------------------------------------------
 
     def test_move_to_origin(self):
-        cube = maya_test_tools.create_poly_cube()[0]
+        cube = maya_test_tools.create_poly_cube()
         maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
@@ -381,7 +381,7 @@ class TestTransformUtils(unittest.TestCase):
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_move_selection_to_origin(self, mocked_stdout):
-        cube = maya_test_tools.create_poly_cube()[0]
+        cube = maya_test_tools.create_poly_cube()
         maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)

@@ -123,15 +123,15 @@ class TestUUIDUtils(unittest.TestCase):
         self.assertFalse(result)
 
     def test_add_proxy_attribute(self):
-        cube = maya_test_tools.create_poly_cube()[0]
+        cube = maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
         result = uuid_utils.add_uuid_attribute(cube, attr_name)
         expected = [f'{cube}.{attr_name}']
         self.assertEqual(expected, result)
 
     def test_add_proxy_attribute_multiple_objects(self):
-        cube_one = maya_test_tools.create_poly_cube()[0]
-        cube_two = maya_test_tools.create_poly_cube()[0]
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
         result = uuid_utils.add_uuid_attribute([cube_one, cube_two], attr_name)
         expected = [f'{cube_one}.{attr_name}', f'{cube_two}.{attr_name}']
@@ -153,8 +153,8 @@ class TestUUIDUtils(unittest.TestCase):
     @patch('gt.utils.uuid_utils.set_attr')
     @patch('gt.utils.uuid_utils.generate_uuid')
     def test_initial_uuid_generation(self, mock_generate_uuid, mock_set_attr, mock_add_attr):
-        cube_one = maya_test_tools.create_poly_cube()[0]
-        cube_two = maya_test_tools.create_poly_cube()[0]
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
         mock_generate_uuid.return_value = 'mocked_uuid'
         mock_add_attr.return_value = [f'{cube_one}.mockedAttrName', f'{cube_two}.mockedAttrName']
 
@@ -168,8 +168,8 @@ class TestUUIDUtils(unittest.TestCase):
         mock_set_attr.assert_called()
 
     def test_find_object_with_uuid(self):
-        cube_one = maya_test_tools.create_poly_cube()[0]
-        cube_two = maya_test_tools.create_poly_cube()[0]
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
         maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
         created_uuid_attr = uuid_utils.add_uuid_attribute([cube_one, cube_two], attr_name)

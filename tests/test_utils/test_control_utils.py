@@ -49,7 +49,7 @@ class TestControlUtils(unittest.TestCase):
         self.assertTrue(ctrl.is_curve_valid())
         self.assertEqual(maya_test_tools.create_poly_cube, ctrl.build_function)
         result = ctrl.build()
-        expected = ['pCube1', 'polyCube1']
+        expected = 'pCube1'
         self.assertEqual(expected, result)
         self.assertEqual(expected, ctrl.get_last_callable_output())
 
@@ -199,7 +199,7 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_add_snapping_shape(self):
-        cube = maya_test_tools.create_poly_cube()[0]
+        cube = maya_test_tools.create_poly_cube()
         result = control_utils.add_snapping_shape(target_object=cube)
         cube_shapes = maya_test_tools.cmds.listRelatives(cube, shapes=True, fullPath=True) or []
         expected = '|pCube1|snappingPointShape'
@@ -210,7 +210,7 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_add_snapping_shape_attr_visibility(self):
-        cube = maya_test_tools.create_poly_cube()[0]
+        cube = maya_test_tools.create_poly_cube()
         shape = control_utils.add_snapping_shape(target_object=cube)
         is_hidden_lpx = maya_test_tools.cmds.getAttr(f'{shape}.lpx', channelBox=True)
         is_hidden_lpy = maya_test_tools.cmds.getAttr(f'{shape}.lpy', channelBox=True)

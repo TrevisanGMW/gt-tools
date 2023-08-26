@@ -33,9 +33,12 @@ def create_poly_cube(*args, **kwargs):
     "polyCube" relevant parameters:
         name (str): Name of the poly cube
     Returns:
-        list: Output of the "cmds.polyCube" command.
+        str or None: First item in the output list of the "cmds.polyCube" command. None if the output was empty.
     """
-    return cmds.polyCube(*args, **kwargs)
+    cube = cmds.polyCube(*args, **kwargs) or []
+    if cube and len(cube) >= 1:
+        return cube[0]
+    return None
 
 
 def create_node(node_type, *args, **kwargs):
