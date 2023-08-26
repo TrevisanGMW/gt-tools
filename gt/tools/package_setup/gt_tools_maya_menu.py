@@ -180,9 +180,10 @@ def load_menu(*args):
                        icon=resource_library.Icon.tool_game_fbx_exporter)
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
-    menu.add_menu_item(label='Add In-Between',
-                       command=IMPORT_TOOL + 'initialize_tool("add_inbetween")',
-                       tooltip='Generates inbetween transforms that can be used as layers for rigging/animation.',
+    menu.add_menu_item(label='Add Offset Transform',
+                       command=IMPORT_TOOL + 'initialize_tool("add_offset_transform")',
+                       tooltip='Generates offset transforms that can be used as transform '
+                               'layers for rigging/animation.',
                        icon=resource_library.Icon.tool_add_inbetween)
     menu.add_menu_item(label='Add Sine Attributes',
                        command=IMPORT_TOOL + 'initialize_tool("sine_attributes")',
