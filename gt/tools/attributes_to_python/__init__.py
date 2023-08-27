@@ -15,7 +15,6 @@
  Used utility functions
 """
 from gt.tools.attributes_to_python import attributes_to_python_controller
-from gt.tools.attributes_to_python import attributes_to_python_model
 from gt.tools.attributes_to_python import attributes_to_python_view
 from gt.ui import qt_utils
 
@@ -32,8 +31,7 @@ def launch_tool():
     """
     with qt_utils.QtApplicationContext() as context:
         _view = attributes_to_python_view.AttributesToPythonView(parent=context.get_parent(), version=__version__)
-        _model = attributes_to_python_model.AttributesToPythonModel()
-        _controller = attributes_to_python_controller.AttributesToPythonController(model=_model, view=_view)
+        _controller = attributes_to_python_controller.AttributesToPythonController(view=_view)
 
 
 if __name__ == "__main__":
