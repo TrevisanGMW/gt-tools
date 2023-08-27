@@ -1,8 +1,5 @@
 """
-Curve Library Controller
-
-This module contains the CurveLibraryController class responsible for managing interactions between the
-CurveLibraryModel and the user interface.
+Package Updater Controller
 """
 from gt.utils.iterable_utils import get_next_dict_item
 from gt.utils.system_utils import execute_deferred
@@ -56,14 +53,15 @@ class PackageUpdaterController:
         comparison_result = self.model.get_version_comparison_result()
         text_color_hex = resource_library.Color.Hex.black
         if comparison_result == version_utils.VERSION_BIGGER:
-            bg_color = resource_library.Color.Hex.purple
+            text_color_hex = resource_library.Color.Hex.white
+            bg_color = resource_library.Color.Hex.purple_dark_violet
         elif comparison_result == version_utils.VERSION_SMALLER:
-            bg_color = resource_library.Color.Hex.red_soft
+            bg_color = resource_library.Color.Hex.red_melon
         elif comparison_result == version_utils.VERSION_EQUAL:
-            bg_color = resource_library.Color.Hex.green_soft
+            bg_color = resource_library.Color.Hex.green_oxley
         else:
             text_color_hex = resource_library.Color.Hex.white
-            bg_color = resource_library.Color.Hex.grey_dark
+            bg_color = resource_library.Color.Hex.gray_darker
         self.view.update_status(status=status,
                                 text_color_hex=text_color_hex,
                                 bg_color_hex=bg_color)
@@ -78,10 +76,10 @@ class PackageUpdaterController:
         if response_description == "Requesting...":
             bg_color = resource_library.Color.Hex.yellow
         elif response_description == "None":
-            bg_color = resource_library.Color.Hex.red_soft
+            bg_color = resource_library.Color.Hex.red_melon
         else:
             text_color_hex = resource_library.Color.Hex.white
-            bg_color = resource_library.Color.Hex.grey
+            bg_color = resource_library.Color.Hex.gray
         self.view.update_web_response(response=response_description,
                                       text_color_hex=text_color_hex,
                                       bg_color_hex=bg_color)
@@ -127,7 +125,7 @@ class PackageUpdaterController:
             self.view.add_text_to_changelog(text=tag_name,
                                             text_color_hex=resource_library.Color.Hex.white)
             self.view.add_text_to_changelog(text=description.replace("\r\n", "\n"),
-                                            text_color_hex=resource_library.Color.Hex.grey_lighter)
+                                            text_color_hex=resource_library.Color.Hex.gray_lighter)
 
     def update_view_interval_button(self, new_interval=None, cycle=True, verbose=True):
         """

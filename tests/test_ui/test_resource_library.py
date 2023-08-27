@@ -54,12 +54,12 @@ class TestResourceLibrary(unittest.TestCase):
 
     def test_color_rgb_black_class(self):
         result = resource_library.Color.RGB.black
-        expected = "rgba(0,0,0,255)"
+        expected = "rgb(0, 0, 0)"
         self.assertEqual(expected, result)
 
     def test_color_rgb_white_class(self):
         result = resource_library.Color.RGB.white
-        expected = "rgba(255,255,255,255)"
+        expected = "rgb(255, 255, 255)"
         self.assertEqual(expected, result)
 
     def test_color_hex_black_class(self):
@@ -160,7 +160,7 @@ class TestResourceLibrary(unittest.TestCase):
             attribute_content = getattr(resource_library.Color.Hex, hex_color)
             match = re.match(r'^#[A-F0-9]{6}(?:[A-F0-9]{2})?$', attribute_content)
             if not match:
-                raise Exception(f'"{attribute_content}" does not match expected HEX pattern: '
+                raise Exception(f'"{attribute_content}" (Key: {hex_color}) does not match expected HEX pattern: '
                                 f'\n1. Only uppercase characters.\n2. Expected length (6-8 chars)'
                                 f'\n3. Start with "#".\n4. No three digit HEX values.')
 

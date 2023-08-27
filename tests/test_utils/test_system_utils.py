@@ -638,3 +638,25 @@ class TestSystemUtils(unittest.TestCase):
         expected = datetime.now().strftime(custom_format)
         result = system_utils.get_formatted_time(format_str=custom_format)
         self.assertEqual(expected, result)
+
+    def test_execution_success(self):
+        code = "result = 2 + 2"
+        expected = None  # No exceptions raised
+        result = system_utils.execute_python_code(code)
+        self.assertEqual(expected, result)
+
+    def test_execution_error_without_raise(self):
+        code = "result = 1 / 0"
+        expected = None  # Exception caught, no error raised
+        result = system_utils.execute_python_code(code)
+        self.assertEqual(expected, result)
+
+    def test_execution_error_with_raise(self):
+        code = "result = unknown_variable"
+        with self.assertRaises(NameError):
+            system_utils.execute_python_code(code, raise_errors=True)
+
+    def test_log_and_raise(self):
+        code = "result = 1 / 0"
+        with self.assertRaises(ZeroDivisionError):
+            system_utils.execute_python_code(code, raise_errors=True, verbose=True)

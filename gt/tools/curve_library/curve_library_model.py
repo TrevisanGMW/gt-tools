@@ -8,12 +8,11 @@ and building curves based on their names. The curves are represented as instance
 Classes:
     CurveLibraryModel: A class for managing a library of curves.
 """
-import os.path
-
 from gt.utils.control_utils import Controls, get_control_preview_image_path, Control
 from gt.utils.curve_utils import Curves, get_curve_preview_image_path, Curve
 from gt.ui import resource_library
 import logging
+import os
 
 # Logging Setup
 logging.basicConfig()
