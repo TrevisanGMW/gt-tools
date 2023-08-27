@@ -155,12 +155,21 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
     def set_python_output_text(self, text):
         """
-        Add text to the python out box with optional color selection.
+        Add text to the python output box.
 
         Args:
             text (str): The text to set.
         """
         self.output_python_box.get_text_edit().setText(text)
+
+    def get_python_output_text(self):
+        """
+        Gets the plain text found in the python output box.
+
+        Returns:
+            str: Text found inside the python output text edit box.
+        """
+        return self.output_python_box.get_text_edit().toPlainText()
 
     def close_window(self):
         """ Closes this window """
