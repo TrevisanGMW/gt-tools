@@ -3,11 +3,12 @@ AttributesToPythonView View/Window
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QTextEdit, QVBoxLayout, QFrame
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+from gt.ui.line_text_widget import LineTextWidget
 import gt.ui.resource_library as resource_library
-from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtGui import QIcon, QTextCursor
 from gt.ui.qt_utils import MayaWindowMeta
+from PySide2 import QtWidgets, QtCore
 import gt.ui.qt_utils as qt_utils
+from PySide2.QtGui import QIcon
 
 
 class AttributesToPythonView(metaclass=MayaWindowMeta):
@@ -78,16 +79,18 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
         self.output_python_label = QLabel("Output Python Code:")
         self.output_python_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                               f"color: {resource_library.Color.RGB.grey_lighter};")
+                                               f"color: {resource_library.Color.RGB.gray_lighter};")
 
-        self.output_python_box = QTextEdit()
-        self.output_python_box.setFont(qt_utils.load_custom_font(resource_library.Font.roboto, point_size=9))
+        self.output_python_box = LineTextWidget(self)
+
+        self.output_python_box.get_text_edit().setFont(qt_utils.load_custom_font(resource_library.Font.roboto,
+                                                                                 point_size=9))
         self.output_python_box.setMinimumHeight(150)
-        PythonSyntaxHighlighter(self.output_python_box.document())
-
+        PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
+        #
         self.output_python_label.setAlignment(QtCore.Qt.AlignCenter)
         self.output_python_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-
+        #
         self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
                                              self.output_python_box.sizePolicy().Expanding)
 
@@ -148,7 +151,7 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
     def clear_python_output(self):
         """ Removes all text from the changelog box """
-        self.output_python_box.clear()
+        self.output_python_box.get_text_edit().clear()
 
     def set_python_output_text(self, text):
         """
@@ -157,7 +160,7 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         Args:
             text (str): The text to set.
         """
-        self.output_python_box.setText(text)
+        self.output_python_box.get_text_edit().setText(text)
 
     def close_window(self):
         """ Closes this window """
