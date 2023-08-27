@@ -87,7 +87,7 @@ class PackageUpdaterView(metaclass=MayaWindowMeta):
 
         self.changelog_label = QLabel("Latest Release Changelog:")
         self.changelog_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 15; "
-                                           f"color: {resource_library.Color.RGB.grey_lighter};")
+                                           f"color: {resource_library.Color.RGB.gray_lighter};")
 
         self.changelog_box = QTextEdit()
         self.changelog_box.setFont(qt_utils.load_custom_font(resource_library.Font.roboto, point_size=9))

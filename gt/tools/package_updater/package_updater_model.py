@@ -360,7 +360,7 @@ class PackageUpdaterModel:
 
         if not os.path.exists(cache_dir):
             message = f'Unable to create cache location. Update operation cancelled. Location: {cache_dir}'
-            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_melon)
             return
 
         # Download Update --------------------------------------------------
@@ -378,7 +378,7 @@ class PackageUpdaterModel:
                           callback=print_download_progress)
             self.progress_win.increase_progress_bar_value()
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
             return
 
         # Extract Update ----------------------------------------------------
@@ -401,14 +401,14 @@ class PackageUpdaterModel:
             unzip_zip_file(zip_file_path=cache_download, extract_path=cache_extract, callback=print_extract_progress)
             self.progress_win.increase_progress_bar_value()
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
             return
 
         # Validate Extraction ----------------------------------------------------
         extracted_content = os.listdir(cache_extract)
         if not extracted_content:
             message = f'Extraction returned no files.\nExtraction Path: "{cache_extract}".'
-            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_melon)
             return
 
         extracted_dir_name = extracted_content[0]
@@ -418,7 +418,7 @@ class PackageUpdaterModel:
             extracted_module_path = os.path.join(extracted_dir_path, PACKAGE_MAIN_MODULE)
         if not extracted_module_path:
             message = f'Extracted files are missing core module.\nExtraction Path: "{cache_extract}".'
-            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=message, color=resource_library.Color.Hex.red_melon)
             return
 
         # Remove existing loaded modules (So it uses the new one) ----------------
@@ -438,7 +438,7 @@ class PackageUpdaterModel:
             is_installed = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
                                                                   self.progress_win.increase_progress_bar_value])
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
 
         # Update feedback package ------------------------------------------------
         if is_installed:
@@ -446,14 +446,14 @@ class PackageUpdaterModel:
             remove_package_loaded_modules()
             reload_package_loaded_modules()
             self.progress_win.set_progress_bar_done()
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_oxley)
             feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
-                                                      style_intro=f"color:{resource_library.Color.Hex.cyan_soft};"
+                                                      style_intro=f"color:{resource_library.Color.Hex.turquoise};"
                                                                   f"text-decoration:underline;",
                                                       conclusion="has been updated and is now active.")
             feedback.print_inview_message(stay_time=4000)
         else:
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_melon)
         _cache.clear_cache()
 
         # Update Model Data
