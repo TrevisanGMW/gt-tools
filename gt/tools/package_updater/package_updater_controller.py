@@ -53,7 +53,8 @@ class PackageUpdaterController:
         comparison_result = self.model.get_version_comparison_result()
         text_color_hex = resource_library.Color.Hex.black
         if comparison_result == version_utils.VERSION_BIGGER:
-            bg_color = resource_library.Color.Hex.purple
+            text_color_hex = resource_library.Color.Hex.white
+            bg_color = resource_library.Color.Hex.purple_dark_violet
         elif comparison_result == version_utils.VERSION_SMALLER:
             bg_color = resource_library.Color.Hex.red_melon
         elif comparison_result == version_utils.VERSION_EQUAL:
