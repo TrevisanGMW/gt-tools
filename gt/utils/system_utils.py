@@ -758,11 +758,35 @@ def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
     return formatted_time
 
 
+def execute_python_code(code, verbose=True, custom_logger=None, log_level=logging.WARNING, raise_errors=False):
+    """
+    Executes the given Python code string in the Maya environment.
+
+    Args:
+        code (str): The Python code to be executed.
+        verbose (bool, optional): If active, it will return messages
+        custom_logger (Logger, optional): If provided, it will use this logger instead of the "system_utils" logger.
+        log_level (int, optional): Logging level (only used if verbose is active)
+        raise_errors (bool, optional): If active, it will raise errors instead of just giving messages.
+    """
+    try:
+        exec(code)
+    except Exception as e:
+        from gt.utils.feedback_utils import log_when_true
+        if raise_errors:
+            raise e
+        _logger = logger
+        if custom_logger:
+            _logger = custom_logger
+        log_when_true(input_logger=_logger, input_string=str(e), do_log=verbose, level=log_level)
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
     logger.setLevel(logging.DEBUG)
     # out = os.environ.keys()
     out = get_maya_preferences_dir(get_system())
+    print(logger)
     # out = initialize_from_package()
     pprint(out)
