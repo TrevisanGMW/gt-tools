@@ -127,13 +127,15 @@ class LineTextWidget(QFrame):
 
         frame_color = resource_library.Color.Hex.gray_darker
         border_radius = "5px"
-        background_color = resource_library.Color.RGB.gray_darker_mid
-        self.edit.setStyleSheet(f"QTextEdit {{ border: 2px solid {frame_color}; "
+        self.edit.setStyleSheet(f"QTextEdit {{ "
+                                f"border: 0px solid {frame_color}; "
                                 f"border-radius: {border_radius}; "
                                 f"color: {resource_library.Color.RGB.white}; "
-                                f"background-color: {background_color} }}")
-        self.setStyleSheet(f"#LineTextFrame {{ border: 2px solid {frame_color}; "
-                           f"border-radius: {border_radius}; background-color: {background_color}; }}")
+                                f"background-color: {resource_library.Color.RGB.gray_darker_mid} }}")
+        self.setStyleSheet(f"#LineTextFrame {{ "
+                           f"border: 2px solid {frame_color}; "
+                           f"border-radius: {border_radius}; "
+                           f"background-color: {resource_library.Color.RGB.gray_darker}; }}")
 
         self.edit.installEventFilter(self)
         self.edit.viewport().installEventFilter(self)
