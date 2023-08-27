@@ -72,3 +72,57 @@ def output_string_to_notepad(string, file_name='tmp'):
 
     notepad_command = 'exec("notepad ' + txt_file + '");'
     mel.eval(notepad_command)
+
+
+def create_shelf_button(command,
+                        label='',
+                        tooltip='',
+                        image=None,  # Default Python Icon
+                        label_color=(1, 0, 0),  # Default Red
+                        label_bgc_color=(0, 0, 0, 1),  # Default Black
+                        bgc_color=None
+                        ):
+    """
+    Add a shelf button to the current shelf (according to the provided parameters)
+
+    Args:
+        command (str): A string containing the code or command you want the button to run when clicking on it.
+                       e.g. "print("Hello World")"
+        label (str): The label of the button. This is the text you see below it.
+        tooltip (str): The help message you get when hovering the button.
+        image (str): The image used for the button (defaults to Python icon if none)
+        label_color (tuple): A tuple containing three floats,
+                             these are RGB 0 to 1 values to determine the color of the label.
+        label_bgc_color (tuple): A tuple containing four floats,
+                                 these are RGBA 0 to 1 values to determine the background of the label.
+        bgc_color (tuple): A tuple containing three floats,
+                           these are RGB 0 to 1 values to determine the background of the icon
+
+    """
+    maya_version = int(cmds.about(v=True))
+
+    shelf_top_level = mel.eval('$temp=$gShelfTopLevel')
+    if not cmds.tabLayout(shelf_top_level, exists=True):
+        cmds.warning('Shelf is not visible')
+        return
+
+    if not image:
+        image = 'pythonFamily.png'
+
+    shelf_tab = cmds.shelfTabLayout(shelf_top_level, query=True, selectTab=True)
+    shelf_tab = shelf_top_level + '|' + shelf_tab
+
+    # Populate extra arguments according to the current Maya version
+    kwargs = {}
+    if maya_version >= 2009:
+        kwargs['commandRepeatable'] = True
+    if maya_version >= 2011:
+        kwargs['overlayLabelColor'] = label_color
+        kwargs['overlayLabelBackColor'] = label_bgc_color
+        if bgc_color:
+            kwargs['enableBackground'] = bool(bgc_color)
+            kwargs['backgroundColor'] = bgc_color
+
+    return cmds.shelfButton(parent=shelf_tab, label=label, command=command,
+                            imageOverlayLabel=label, image=image, annotation=tooltip,
+                            width=32, height=32, align='center', **kwargs)

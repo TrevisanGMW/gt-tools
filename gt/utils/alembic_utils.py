@@ -121,19 +121,14 @@ class AlembicNode:
             scale = cmds.xform(root, q=True, ws=True, scale=True)
         except Exception as e:
             logger.debug(f"Unable to retrieve root transforms. Origin returned instead. Issue: {e}")
-            return Transform(Vector3(0, 0, 0),
-                             Vector3(0, 0, 0),
-                             Vector3(1, 1, 1))
-        pos = Vector3(translation[0],
-                      translation[1],
-                      translation[2])
-        rot = Vector3(degrees(rotation[0]),
-                      degrees(rotation[1]),
-                      degrees(rotation[2]))
-        scl = Vector3(scale[0],
-                      scale[1],
-                      scale[2])
-        trans = Transform(pos, rot, scl)
+            return Transform()
+        trans = Transform()
+        trans.set_position(xyz=translation)
+        rot = Vector3(x=degrees(rotation[0]),
+                      y=degrees(rotation[1]),
+                      z=degrees(rotation[2]))
+        trans.set_rotation(xyz=rot)
+        trans.set_scale(xyz=scale)
         return trans
 
 

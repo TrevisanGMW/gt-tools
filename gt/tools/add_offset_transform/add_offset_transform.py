@@ -9,18 +9,18 @@ from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 
 # Script Name
-script_name = "GT - Add In-between"
+script_name = "GT - Add Offset Transform"
 
 # Version
 script_version = "?.?.?"  # Module version (init)
 
 # Settings
-settings = {'outliner_color': [0, 1, 0]}
+settings = {'outliner_color': [.5, 1, .4]}
 
 
 # Main Form ============================================================================
-def build_gui_generate_inbetween():
-    window_name = "build_gui_generate_inbetween"
+def build_gui_add_offset_transform():
+    window_name = "build_gui_add_offset_transform"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
 
@@ -42,7 +42,7 @@ def build_gui_generate_inbetween():
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
-    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_generate_inbetween())
+    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_offset_transform())
     cmds.separator(h=10, style='none', p=content_main)  # Empty Space
 
     # Body ====================
@@ -101,7 +101,7 @@ def build_gui_generate_inbetween():
 
 
 # Creates Help GUI
-def build_gui_help_generate_inbetween():
+def build_gui_help_offset_transform():
     window_name = "build_gui_help_generate_inbetween"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -226,4 +226,4 @@ def parse_text_field(text_field_data):
 
 # Run Script
 if __name__ == '__main__':
-    build_gui_generate_inbetween()
+    build_gui_add_offset_transform()

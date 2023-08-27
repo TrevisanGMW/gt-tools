@@ -146,8 +146,8 @@ class TestAlembicUtils(unittest.TestCase):
         alembic_node = import_alembic_test_file()
         maya_test_tools.set_current_time(10)
         alembic_object = alembic_utils.AlembicNode(alembic_node)
-        expected = "Transform(position=Vector3(x=0.0, y=0.0, z=-10.0), " \
-                   "rotation=Vector3(x=0.0, y=0.0, z=0.0), " \
-                   "scale=Vector3(x=1.0, y=1.0, z=1.0))"
+        expected = "position=(x=0.0, y=0.0, z=-10.0), " \
+                   "rotation=(x=0.0, y=0.0, z=0.0), " \
+                   "scale=(x=1.0, y=1.0, z=1.0)"
         result = str(alembic_object.transform)
         self.assertEqual(expected, result)

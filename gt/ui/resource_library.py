@@ -377,75 +377,369 @@ class Color:
             e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
             Value range 0-255
             """
-        transparent = 'rgba(0,0,0,0)'
-        white = 'rgba(255,255,255,255)'
-        white_soft = 'rgba(238,238,238,255)'
-        white_soft_ghosted = 'rgba(238,238,238,75)'
+        # Basic -----------------------------------------
+        transparent = 'rgba(0, 0, 0, 0)'
+        black = "rgb(0, 0, 0)"
+        white = "rgb(255, 255, 255)"
 
-        grey_darker = 'rgba(29,29,29,255)'
-        grey_dark = 'rgba(43,43,43,255)'
-        grey_dark_ghosted = 'rgba(43,43,43,75)'
-        grey = 'rgba(68,68,68,255)'
-        grey_ghosted = 'rgba(68,68,68,75)'
-        grey_mid = 'rgba(73,73,73,255)'
-        grey_mid_light = 'rgba(82,82,82,255)'
-        grey_mid_lighter = 'rgba(93,93,93,255)'
-        grey_mid_much_lighter = 'rgba(112,112,112,255)'
-        grey_light = 'rgba(145,145,145,255)'
-        grey_lighter = 'rgba(160,160,160,255)'
-        grey_much_lighter = 'rgba(180,180,180,255)'
+        # White -----------------------------------------
+        white_floral = "rgb(255, 250, 240)"
+        white_ghost = "rgb(248, 248, 255)"
+        white_ivory = "rgb(255, 255, 240)"
+        white_snow = "rgb(255, 250, 250)"
+        white_smoke = "rgb(245, 245, 245)"
+        white_smoke_darker = 'rgba(238,238,238,255)'
+        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
+        white_antique = "rgb(250, 235, 215)"
+        white_beige = "rgb(245, 245, 220)"
+        white_bisque = "rgb(255, 228, 196)"
+        white_blanched_almond = "rgb(255, 235, 205)"
+        white_wheat = "rgb(245, 222, 179)"
+        white_corn_silk = "rgb(255, 248, 220)"
+        white_lemon_chiffon = "rgb(255, 250, 205)"
+        white_light_golden_rod_yellow = "rgb(250, 250, 210)"
+        white_light_yellow = "rgb(255, 255, 224)"
+        white_brown_rosy = "rgb(188, 143, 143)"
+        white_brown_moccasin = "rgb(255, 228, 181)"
+        white_brown_navajo = "rgb(255, 222, 173)"
+        white_peach_puff = "rgb(255, 218, 185)"
+        white_misty_rose = "rgb(255, 228, 225)"
+        white_lavender_blush = "rgb(255, 240, 245)"
+        white_lavender = "rgb(230, 230, 250)"
+        white_linen = "rgb(250, 240, 230)"
+        white_old_lace = "rgb(253, 245, 230)"
+        white_papaya_whip = "rgb(255, 239, 213)"
+        white_sea_shell = "rgb(255, 245, 238)"
+        white_mint_cream = "rgb(245, 255, 250)"
 
-        black = 'rgba(0,0,0,255)'
+        # Gray -------------------------------------------
+        gray_dim = "rgb(105, 105, 105)"
+        gray = "rgb(128, 128, 128)"
+        gray_dark = "rgb(169, 169, 169)"
+        gray_silver = "rgb(192, 192, 192)"
+        gray_light = "rgb(211, 211, 211)"
+        gray_dark_slate_gray = "rgb(47, 79, 79)"
+        gray_nero = 'rgba(20, 20, 20,255)'
+        gray_much_darker = 'rgba(29, 29, 29,255)'
+        gray_darker_mid = 'rgba(35, 35, 35, 255)'
+        gray_darker = 'rgba(43, 43, 43, 255)'
+        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
+        gray_mid_dark = 'rgba(68, 68, 68, 255)'
+        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
+        gray_mid = 'rgba(73, 73, 73, 255)'
+        gray_mid_light = 'rgba(82, 82, 82, 255)'
+        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
+        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
+        grey_light = 'rgba(145, 145, 145, 255)'
+        gray_lighter = 'rgba(160, 160, 160, 255)'
+        gray_dark_silver = 'rgba(180, 180, 180, 255)'
+        gray_gainsboro = "rgb(220, 220, 220)"
+        gray_slate = "rgb(112, 128, 144)"
+        gray_light_slate = "rgb(119, 136, 153)"
+        gray_light_steel_blue = "rgb(176, 196, 222)"
 
-        red = 'rgba(255,0,0,255)'
-        red_softer = 'rgba(212,87,87,255)'
-        red_dark = 'rgba(175,45,45,255)'
+        # Red -------------------------------------------
+        red_maroon = "rgb(128, 0, 0)"
+        red_metallic_dark = "rgb(139, 0, 0)"
+        red_metallic = 'rgb(175, 45, 45)'
+        red_brown = "rgb(165, 42, 42)"
+        red_firebrick = "rgb(178, 34, 34)"
+        red_crimson = "rgb(220, 20, 60)"
+        red = "rgb(255, 0, 0)"
+        red_tomato = "rgb(255, 99, 71)"
+        red_coral = "rgb(255, 127, 80)"
+        red_indian = "rgb(205, 92, 92)"
+        red_melon = "rgb(255, 170, 170)"
 
-        green = 'rgb(0, 255, 0, 255)'
-        green_soft = 'rgb(96, 152, 129, 255)'
-        green_light = 'rgb(144, 228, 193, 255)'
-        green_dark = 'rgba(88,140,119,255)'
+        # Salmon -----------------------------------------
+        salmon_light_coral = "rgb(240, 128, 128)"
+        salmon_dark = "rgb(233, 150, 122)"
+        salmon = "rgb(250, 128, 114)"
+        salmon_light = "rgb(255, 160, 122)"
 
-        blue = 'rgba(0,0,255,255)'
-        blue_ghosted = 'rgba(0,0,255,75)'
-        blue_soft = 'rgba(189, 217, 255,255)'
-        blue_soft_dark = 'rgba(82,133,166,255)'
-        blue_vivid = 'rgba(0,160,232,255)'
-        blue_dark = 'rgba(0,110,160,255)'
+        # Orange -----------------------------------------
+        orange_red = "rgb(255, 69, 0)"
+        orange_dark = "rgb(255, 140, 0)"
+        orange = "rgb(255, 165, 0)"
+
+        # Yellow -----------------------------------------
+        yellow_gold = "rgb(255, 215, 0)"
+        yellow_dark_golden_rod = "rgb(184, 134, 11)"
+        yellow_golden_rod = "rgb(218, 165, 32)"
+        yellow_pale_golden_rod = "rgb(238, 232, 170)"
+        yellow_dark_khaki = "rgb(189, 183, 107)"
+        yellow_khaki = "rgb(240, 230, 140)"
+        yellow_olive = "rgb(128, 128, 0)"
+        yellow = "rgb(255, 255, 0)"
+        yellow_green = "rgb(154, 205, 50)"
+
+        # Green ------------------------------------------
+        green_dark_olive = "rgb(85, 107, 47)"
+        green_olive_drab = "rgb(107, 142, 35)"
+        green_lawn_green = "rgb(124, 252, 0)"
+        green_chartreuse = "rgb(127, 255, 0)"
+        green_yellow = "rgb(173, 255, 47)"
+        green_dark = "rgb(0, 100, 0)"
+        green = "rgb(0, 128, 0)"
+        green_forest = "rgb(34, 139, 34)"
+        green_lime_pure = "rgb(0, 255, 0)"
+        green_lime = "rgb(50, 205, 50)"
+        green_light = "rgb(144, 238, 144)"
+        green_pale_ = "rgb(152, 251, 152)"
+        green_dark_sea = "rgb(143, 188, 143)"
+        green_oxley = 'rgba(96, 152, 129, 255)'
+        green_medium_spring = "rgb(0, 250, 154)"
+        green_spring = "rgb(0, 255, 127)"
+        green_sea = "rgb(46, 139, 87)"
+        green_medium_aqua_marine = "rgb(102, 205, 170)"
+        green_medium_sea = "rgb(60, 179, 113)"
+        green_light_sea = "rgb(32, 178, 170)"
+        green_teal = "rgb(0, 128, 128)"
+        green_honeydew = "rgb(240, 255, 240)"
+        green_pearl_aqua = 'rgb(144,  228,  193)'
+        green_wintergreen_dream = 'rgba(88, 140, 119, 255)'
+
+        # Cyan -------------------------------------------
+        cyan_dark = "rgb(0, 139, 139)"
+        cyan_aqua = "rgb(0, 255, 255)"
+        cyan = "rgb(0, 255, 255)"
+        cyan_light = "rgb(224, 255, 255)"
+
+        # Turquoise ---------------------------------------
+        turquoise_dark = "rgb(0, 206, 209)"
+        turquoise = "rgb(64, 224, 208)"
+        turquoise_medium = "rgb(72, 209, 204)"
+        turquoise_pale = "rgb(175, 238, 238)"
+
+        # Blue --------------------------------------------
+        blue_aqua_marine = "rgb(127, 255, 212)"
+        blue_powder = "rgb(176, 224, 230)"
+        blue_cadet = "rgb(95, 158, 160)"
+        blue_steel = "rgb(70, 130, 180)"
+        blue_corn_flower = "rgb(100, 149, 237)"
+        blue_deep_sky = "rgb(0, 191, 255)"
+        blue_dodger = "rgb(30, 144, 255)"
+        blue_light = "rgb(173, 216, 230)"
+        blue_sky = "rgb(135, 206, 235)"
+        blue_light_sky = "rgb(135, 206, 250)"
+        blue_midnight = "rgb(25, 25, 112)"
+        blue_navy = "rgb(0, 0, 128)"
+        blue_dark = "rgb(0, 0, 139)"
+        blue_medium = "rgb(0, 0, 205)"
+        blue = "rgb(0, 0, 255)"
+        blue_royal = "rgb(65, 105, 225)"
+        blue_violet = "rgb(138, 43, 226)"
+        blue_alice = "rgb(240, 248, 255)"
+        blue_azure = "rgb(240, 255, 255)"
+        blue_ghosted = 'rgba(0, 0, 255, 75)'
+        blue_lavender = 'rgba(189,  217,  255, 255)'
+        blue_pastel = 'rgba(82, 133, 166, 255)'
+        blue_vivid_cerulean = 'rgba(0, 160, 232, 255)'
+        blue_medium_persian = 'rgba(0, 110, 160, 255)'
+
+        # Purple -------------------------------------------
+        purple_indigo = "rgb(75, 0, 130)"
+        purple_dark_slate_blue = "rgb(72, 61, 139)"
+        purple_slate_blue = "rgb(106, 90, 205)"
+        purple_medium_slate_blue = "rgb(123, 104, 238)"
+        purple_medium = "rgb(147, 112, 219)"
+        purple_dark_magenta = "rgb(139, 0, 139)"
+        purple_dark_violet = "rgb(148, 0, 211)"
+        purple_dark_orchid = "rgb(153, 50, 204)"
+        purple_medium_orchid = "rgb(186, 85, 211)"
+        purple = "rgb(128, 0, 128)"
+
+        # Magenta -------------------------------------------
+        magenta_thistle = "rgb(216, 191, 216)"
+        magenta_plum = "rgb(221, 160, 221)"
+        magenta_violet = "rgb(238, 130, 238)"
+        magenta_fuchsia = "rgb(255, 0, 255)"
+        magenta_orchid = "rgb(218, 112, 214)"
+        magenta_medium_violet_red = "rgb(199, 21, 133)"
+        magenta_pale_violet_red = "rgb(219, 112, 147)"
+
+        # Pink ---------------------------------------------
+        pink_deep = "rgb(255, 20, 147)"
+        pink_hot = "rgb(255, 105, 180)"
+        pink_light = "rgb(255, 182, 193)"
+        pink = "rgb(255, 192, 203)"
+
+        # Brown --------------------------------------------
+        brown_saddle = "rgb(139, 69, 19)"
+        brown_sienna = "rgb(160, 82, 45)"
+        brown_chocolate = "rgb(210, 105, 30)"
+        brown_peru = "rgb(205, 133, 63)"
+        brown_sandy = "rgb(244, 164, 96)"
+        brown_burly_wood = "rgb(222, 184, 135)"
+        brown_tan = "rgb(210, 180, 140)"
 
     class Hex:
         def __init__(self):
             """
             A library of Hex colors
             """
-        black = '#000000'
-        white = '#FFFFFF'
-        white_soft = '#EEEEEE'
-        grey_dark = '#2B2B2B'
-        grey = '#444444'
-        grey_mid = '#494949'
-        grey_lighter = '#A0A0A0'
-        red = '#FF0000'
-        red_soft = '#FFAAAA'
-        red_softer = '#D45757'
-        red_dark = '#AF2D2D'
-        green = '#20A500'
-        green_light = '#90E4C1'
-        green_soft = '#609881'
-        green_dark = '#588C77'
-        blue = '#0033FF'
-        blue_dark = '#006EA0'
-        blue_vivid = '#00A0E8'
-        orange = '#FFBB00'
-        lime = '#32FF00'
-        yellow = '#FFEE00'
-        yellow_dark = '#636110'
-        teal = '#00FFFF'
-        purple = '#DD22FF'
-        pink = '#F700FF'
-        magenta = '#C40B5F'
-        violet = '#FF22BB'
-        cyan_soft = "#48E0DB"
+        black = "#000000"
+        blue = "#0000FF"
+        blue_alice = "#F0F8FF"
+        blue_aqua_marine = "#7FFFD4"
+        blue_azure = "#F0FFFF"
+        blue_cadet = "#5F9EA0"
+        blue_corn_flower = "#6495ED"
+        blue_dark = "#00008B"
+        blue_deep_sky = "#00BFFF"
+        blue_dodger = "#1E90FF"
+        blue_lavender = "#BDD9FF"
+        blue_light = "#ADD8E6"
+        blue_light_sky = "#87CEFA"
+        blue_medium = "#0000CD"
+        blue_medium_persian = "#006EA0"
+        blue_midnight = "#191970"
+        blue_navy = "#000080"
+        blue_pastel = "#5285A6"
+        blue_powder = "#B0E0E6"
+        blue_royal = "#4169E1"
+        blue_sky = "#87CEEB"
+        blue_steel = "#4682B4"
+        blue_violet = "#8A2BE2"
+        blue_vivid_cerulean = "#00A0E8"
+        brown_burly_wood = "#DEB887"
+        brown_chocolate = "#D2691E"
+        brown_peru = "#CD853F"
+        brown_saddle = "#8B4513"
+        brown_sandy = "#F4A460"
+        brown_sienna = "#A0522D"
+        brown_tan = "#D2B48C"
+        cyan = "#00FFFF"
+        cyan_aqua = "#00FFFF"
+        cyan_dark = "#008B8B"
+        cyan_light = "#E0FFFF"
+        gray = "#808080"
+        gray_dark = "#A9A9A9"
+        gray_dark_silver = "#B4B4B4"
+        gray_dark_slate_gray = "#2F4F4F"
+        gray_darker = "#2B2B2B"
+        gray_darker_mid = "#232323"
+        gray_dim = "#696969"
+        gray_gainsboro = "#DCDCDC"
+        gray_light = "#D3D3D3"
+        gray_light_slate = "#778899"
+        gray_light_steel_blue = "#B0C4DE"
+        gray_lighter = "#A0A0A0"
+        gray_mid = "#494949"
+        gray_mid_dark = "#444444"
+        gray_mid_light = "#525252"
+        gray_mid_lighter = "#5D5D5D"
+        gray_mid_much_lighter = "#707070"
+        gray_much_darker = "#1D1D1D"
+        gray_nero = "#141414"
+        gray_silver = "#C0C0C0"
+        gray_slate = "#708090"
+        green = "#008000"
+        green_chartreuse = "#7FFF00"
+        green_dark = "#006400"
+        green_dark_olive = "#556B2F"
+        green_dark_sea = "#8FBC8F"
+        green_forest = "#228B22"
+        green_honeydew = "#F0FFF0"
+        green_lawn_green = "#7CFC00"
+        green_light = "#90EE90"
+        green_light_sea = "#20B2AA"
+        green_lime = "#32CD32"
+        green_lime_pure = "#00FF00"
+        green_medium_aqua_marine = "#66CDAA"
+        green_medium_sea = "#3CB371"
+        green_medium_spring = "#00FA9A"
+        green_olive_drab = "#6B8E23"
+        green_oxley = "#609881"
+        green_pale_ = "#98FB98"
+        green_pearl_aqua = "#90E4C1"
+        green_sea = "#2E8B57"
+        green_spring = "#00FF7F"
+        green_teal = "#008080"
+        green_wintergreen_dream = "#588C77"
+        green_yellow = "#ADFF2F"
+        grey_light = "#919191"
+        magenta_fuchsia = "#FF00FF"
+        magenta_medium_violet_red = "#C71585"
+        magenta_orchid = "#DA70D6"
+        magenta_pale_violet_red = "#DB7093"
+        magenta_plum = "#DDA0DD"
+        magenta_thistle = "#D8BFD8"
+        magenta_violet = "#EE82EE"
+        orange = "#FFA500"
+        orange_dark = "#FF8C00"
+        orange_red = "#FF4500"
+        pink = "#FFC0CB"
+        pink_deep = "#FF1493"
+        pink_hot = "#FF69B4"
+        pink_light = "#FFB6C1"
+        purple = "#800080"
+        purple_dark_magenta = "#8B008B"
+        purple_dark_orchid = "#9932CC"
+        purple_dark_slate_blue = "#483D8B"
+        purple_dark_violet = "#9400D3"
+        purple_indigo = "#4B0082"
+        purple_medium = "#9370DB"
+        purple_medium_orchid = "#BA55D3"
+        purple_medium_slate_blue = "#7B68EE"
+        purple_slate_blue = "#6A5ACD"
+        red = "#FF0000"
+        red_brown = "#A52A2A"
+        red_coral = "#FF7F50"
+        red_crimson = "#DC143C"
+        red_firebrick = "#B22222"
+        red_indian = "#CD5C5C"
+        red_maroon = "#800000"
+        red_melon = "#FFAAAA"
+        red_metallic = "#AF2D2D"
+        red_metallic_dark = "#8B0000"
+        red_tomato = "#FF6347"
+        salmon = "#FA8072"
+        salmon_dark = "#E9967A"
+        salmon_light = "#FFA07A"
+        salmon_light_coral = "#F08080"
+        transparent = "#000000"
+        turquoise = "#40E0D0"
+        turquoise_dark = "#00CED1"
+        turquoise_medium = "#48D1CC"
+        turquoise_pale = "#AFEEEE"
+        white = "#FFFFFF"
+        white_antique = "#FAEBD7"
+        white_beige = "#F5F5DC"
+        white_bisque = "#FFE4C4"
+        white_blanched_almond = "#FFEBCD"
+        white_brown_moccasin = "#FFE4B5"
+        white_brown_navajo = "#FFDEAD"
+        white_brown_rosy = "#BC8F8F"
+        white_corn_silk = "#FFF8DC"
+        white_floral = "#FFFAF0"
+        white_ghost = "#F8F8FF"
+        white_ivory = "#FFFFF0"
+        white_lavender = "#E6E6FA"
+        white_lavender_blush = "#FFF0F5"
+        white_lemon_chiffon = "#FFFACD"
+        white_light_golden_rod_yellow = "#FAFAD2"
+        white_light_yellow = "#FFFFE0"
+        white_linen = "#FAF0E6"
+        white_mint_cream = "#F5FFFA"
+        white_misty_rose = "#FFE4E1"
+        white_old_lace = "#FDF5E6"
+        white_papaya_whip = "#FFEFD5"
+        white_peach_puff = "#FFDAB9"
+        white_sea_shell = "#FFF5EE"
+        white_smoke = "#F5F5F5"
+        white_smoke_darker = "#EEEEEE"
+        white_snow = "#FFFAFA"
+        white_wheat = "#F5DEB3"
+        yellow = "#FFFF00"
+        yellow_dark_golden_rod = "#B8860B"
+        yellow_dark_khaki = "#BDB76B"
+        yellow_gold = "#FFD700"
+        yellow_golden_rod = "#DAA520"
+        yellow_green = "#9ACD32"
+        yellow_khaki = "#F0E68C"
+        yellow_olive = "#808000"
+        yellow_pale_golden_rod = "#EEE8AA"
 
     class Gradient:
         def __init__(self):
@@ -468,30 +762,30 @@ class StylesheetVariables:
         """
     maya_basic = {
         # Colors
-        "@maya_background_grey;": Color.RGB.grey,
-        "@maya_background_dark;": Color.RGB.grey_dark,
-        "@maya_background_darker;": Color.RGB.grey_darker,
-        "@maya_background_grey_dark;": Color.RGB.grey_dark,
-        "@maya_button;": Color.RGB.grey_mid_lighter,
-        "@maya_button_hover;": Color.RGB.grey_mid_much_lighter,
-        "@maya_button_clicked;": Color.RGB.grey_darker,
-        "@maya_selection;": Color.RGB.blue_soft_dark,
-        "@maya_text;": Color.RGB.white_soft,
-        "@background_disabled_color;": Color.RGB.grey_mid_light,
-        "@disabled_text_color;": Color.RGB.grey_mid_much_lighter,
-        "@text_edit_border;": Color.RGB.grey,
+        "@maya_background_grey;": Color.RGB.gray_mid_dark,
+        "@maya_background_dark;": Color.RGB.gray_darker,
+        "@maya_background_darker;": Color.RGB.gray_much_darker,
+        "@maya_background_grey_dark;": Color.RGB.gray_darker,
+        "@maya_button;": Color.RGB.gray_mid_lighter,
+        "@maya_button_hover;": Color.RGB.gray_mid_much_lighter,
+        "@maya_button_clicked;": Color.RGB.gray_much_darker,
+        "@maya_selection;": Color.RGB.blue_pastel,
+        "@maya_text;": Color.RGB.white_smoke_darker,
+        "@background_disabled_color;": Color.RGB.gray_mid_light,
+        "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
+        "@text_edit_border;": Color.RGB.gray_mid_dark,
         # Formatting
         "@maya_small_button_padding;": "5",
     }
     scrollbar_dark = {
-        "@background_mid;": Color.RGB.grey,
-        "@background_dark;": Color.RGB.grey_dark,
-        "@scroll_area_border;": Color.RGB.grey_mid_much_lighter,
-        "@scrollbar_line_background;": Color.RGB.grey_darker,
-        "@scrollbar_sub_line;": Color.RGB.grey,
-        "@scrollbar_handle;": Color.RGB.grey_mid_much_lighter,
-        "@scrollbar_handle_pressed;": Color.RGB.grey_much_lighter,
-        "@scrollbar_background;": Color.RGB.grey_dark,
+        "@background_mid;": Color.RGB.gray_mid_dark,
+        "@background_dark;": Color.RGB.gray_darker,
+        "@scroll_area_border;": Color.RGB.gray_mid_much_lighter,
+        "@scrollbar_line_background;": Color.RGB.gray_much_darker,
+        "@scrollbar_sub_line;": Color.RGB.gray_mid_dark,
+        "@scrollbar_handle;": Color.RGB.gray_mid_much_lighter,
+        "@scrollbar_handle_pressed;": Color.RGB.gray_dark_silver,
+        "@scrollbar_background;": Color.RGB.gray_darker,
         # Sizes
         "@scrollbar_size;": 15,
         "@sub_control_size;": 15,
@@ -502,31 +796,31 @@ class StylesheetVariables:
         "@image_scrollbar_right;": f"url({Icon.scrollbar_right})".replace("\\", "/"),
     }
     text_edit_mid_grey = {
-        "@background_mid;": Color.RGB.grey,
-        "@border_color;": Color.RGB.grey_mid_much_lighter,
+        "@background_mid;": Color.RGB.gray_mid_dark,
+        "@border_color;": Color.RGB.gray_mid_much_lighter,
     }
     progress_bar_dark = {
         # Colors
-        "@progress_bar_background;": Color.RGB.grey_mid_much_lighter,
-        "@progress_bar_chunk;": Color.RGB.blue_soft,
+        "@progress_bar_background;": Color.RGB.gray_mid_much_lighter,
+        "@progress_bar_chunk;": Color.RGB.blue_lavender,
     }
     list_widget_dark = {
         # Colors
-        "@list_background_color;": Color.RGB.grey_darker,
-        "@list_text_color;": Color.RGB.grey_much_lighter,
-        "@list_selection_bg_color;": Color.RGB.blue_soft_dark,
+        "@list_background_color;": Color.RGB.gray_much_darker,
+        "@list_text_color;": Color.RGB.gray_dark_silver,
+        "@list_selection_bg_color;": Color.RGB.blue_pastel,
         "@list_selection_text_color;": Color.RGB.white,
-        "@list_hover_bg_color;": Color.RGB.grey,
+        "@list_hover_bg_color;": Color.RGB.gray_mid_dark,
         "@list_hover_text_color;": Color.RGB.white,
     }
     push_button_bright = {
         # Colors
         "@background_color;": Color.RGB.grey_light,
-        "@background_hover_color;": Color.RGB.grey_lighter,
-        "@background_pressed_color;": Color.RGB.grey_mid_lighter,
-        "@background_disabled_color;": Color.RGB.grey_mid_light,
+        "@background_hover_color;": Color.RGB.gray_lighter,
+        "@background_pressed_color;": Color.RGB.gray_mid_lighter,
+        "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@text_color;": Color.RGB.black,
-        "@disabled_text_color;": Color.RGB.grey_mid_much_lighter,
+        "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
 
         # Formatting
         "@button_padding;": "15",
@@ -535,8 +829,8 @@ class StylesheetVariables:
     button_metro_tools_default = {
         # Colors
         "@tool_button_text;": Color.RGB.white,
-        "@tool_bg_hover_color;": Color.RGB.grey_mid_much_lighter,
-        "@tool_bg_click_color;": Color.RGB.grey_darker,
+        "@tool_bg_hover_color;": Color.RGB.gray_mid_much_lighter,
+        "@tool_bg_click_color;": Color.RGB.gray_much_darker,
 
         # Formatting
         "@tool_button_padding;": "35",
@@ -544,14 +838,14 @@ class StylesheetVariables:
         "@tool_button_border_radius;": "5",
     }
     button_metro_tools_blue = deepcopy(button_metro_tools_default)
-    button_metro_tools_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid
-    button_metro_tools_blue["@tool_bg_click_color;"] = Color.RGB.blue_dark
+    button_metro_tools_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid_cerulean
+    button_metro_tools_blue["@tool_bg_click_color;"] = Color.RGB.blue_medium_persian
     button_metro_tools_red = deepcopy(button_metro_tools_default)
-    button_metro_tools_red["@tool_bg_hover_color;"] = Color.RGB.red_softer
-    button_metro_tools_red["@tool_bg_click_color;"] = Color.RGB.red_dark
+    button_metro_tools_red["@tool_bg_hover_color;"] = Color.RGB.red_indian
+    button_metro_tools_red["@tool_bg_click_color;"] = Color.RGB.red_metallic
     button_metro_tools_green = deepcopy(button_metro_tools_default)
-    button_metro_tools_green["@tool_bg_hover_color;"] = Color.RGB.green_soft
-    button_metro_tools_green["@tool_bg_click_color;"] = Color.RGB.green_dark
+    button_metro_tools_green["@tool_bg_hover_color;"] = Color.RGB.green_oxley
+    button_metro_tools_green["@tool_bg_click_color;"] = Color.RGB.green_wintergreen_dream
     # Metro QToolButton End ------------------------------------------------------------------
 
 
@@ -599,8 +893,12 @@ class Font:
 
 
 if __name__ == "__main__":
-    from pprint import pprint
-    out = None
-    out = Icon.package_icon
-    pprint(out)
-
+    logger.setLevel(logging.DEBUG)
+    # Convert RGB to HEX
+    all_attributes = dir(Color.RGB)
+    user_attributes = [attr for attr in all_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+    for rgb_color in user_attributes:
+        attribute_content = getattr(Color.RGB, rgb_color)
+        if "_ghosted" not in rgb_color:
+            hex_converted = rgba_string_to_hex(attribute_content)
+            print(f'{rgb_color} = "{hex_converted}"')

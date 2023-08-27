@@ -1,5 +1,5 @@
 """
- Inbetween Generator - Script used to create Inbetween Transforms (An object in-between the hierarchy)
+ Add Offset Transform - Script used to create In-between Transforms (Offsets: An object in-between the hierarchy)
  github.com/TrevisanGMW/gt-tools -  2020-02-04
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -28,7 +28,7 @@
  PEP8 Cleanup
 """
 # Tool Version
-__version_tuple__ = (1, 5, 2)
+__version_tuple__ = (1, 5, 3)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
@@ -38,9 +38,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Generate Inbetween.
     """
-    from gt.tools.add_inbetween import add_inbetween
-    add_inbetween.script_version = __version__
-    add_inbetween.build_gui_generate_inbetween()
+    from gt.tools.add_offset_transform import add_offset_transform
+    add_offset_transform.script_version = __version__
+    add_offset_transform.build_gui_add_offset_transform()
 
 
 if __name__ == "__main__":

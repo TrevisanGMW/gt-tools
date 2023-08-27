@@ -7,6 +7,7 @@ from gt.utils.data_utils import DataDirConstants
 from datetime import datetime
 from functools import wraps
 import subprocess
+import traceback
 import importlib
 import tempfile
 import logging
@@ -758,11 +759,46 @@ def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
     return formatted_time
 
 
+def execute_python_code(code, import_cmds=False, user_maya_warning=False, verbose=True,
+                        custom_logger=None, log_level=logging.WARNING, raise_errors=False):
+    """
+    Executes the given Python code string in the Maya environment.
+
+    Args:
+        code (str): The Python code to be executed.
+        import_cmds (bool, optional): If active, it will automatically import maya.cmds before execution.
+        user_maya_warning (bool, optional): If active it will log using a "cmds.warning()"
+        verbose (bool, optional): If active, it will return messages
+        custom_logger (Logger, optional): If provided, it will use this logger instead of the "system_utils" logger.
+        log_level (int, optional): Logging level (only used if verbose is active)
+        raise_errors (bool, optional): If active, it will raise errors instead of just giving messages.
+    """
+    try:
+        if import_cmds:
+            import maya.cmds as cmds
+        exec(code)
+    except Exception as e:
+        from gt.utils.feedback_utils import log_when_true
+        traceback_str = traceback.format_exc()
+        if raise_errors:
+            raise e
+        if user_maya_warning:
+            import maya.cmds as cmds
+            cmds.warning(traceback_str)
+            cmds.warning(e)
+            return
+        _logger = logger
+        if custom_logger:
+            _logger = custom_logger
+        log_when_true(input_logger=_logger, input_string=str(e), do_log=verbose, level=log_level)
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
     logger.setLevel(logging.DEBUG)
     # out = os.environ.keys()
     out = get_maya_preferences_dir(get_system())
+    print(logger)
     # out = initialize_from_package()
     pprint(out)

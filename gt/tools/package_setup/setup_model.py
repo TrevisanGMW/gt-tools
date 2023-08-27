@@ -32,7 +32,7 @@ class PackageSetupModel(QtCore.QObject):
         """
         super().__init__(*args, **kwargs)
         self.progress_win = None
-        self.package_name_color = resource_library.Color.Hex.cyan_soft
+        self.package_name_color = resource_library.Color.Hex.turquoise_dark
 
     def install_package(self):
         """ Installs package """
@@ -52,7 +52,7 @@ class PackageSetupModel(QtCore.QObject):
             result = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
                                                             self.progress_win.increase_progress_bar_value])
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
 
         # Installation Result
         if result:
@@ -60,14 +60,14 @@ class PackageSetupModel(QtCore.QObject):
             self.update_status()
             self.progress_win.set_progress_bar_done()
             self.progress_win.first_button.clicked.connect(self.close_view)  # Closes parent (Package Setup View)
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_oxley)
             feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
                                                       style_intro=f"color:{self.package_name_color};"
                                                                   f"text-decoration:underline;",
                                                       conclusion="has been installed and is now active.")
             feedback.print_inview_message(stay_time=4000)
         else:
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_melon)
 
         # Show window
         if QApplication.instance():
@@ -95,21 +95,21 @@ class PackageSetupModel(QtCore.QObject):
             result = setup_utils.uninstall_package(callbacks=[self.progress_win.add_text_to_output_box,
                                                               self.progress_win.increase_progress_bar_value])
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_soft)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
 
         # Uninstallation Result
         if result:
             self.update_version()
             self.update_status()
             self.progress_win.set_progress_bar_done()
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_oxley)
             feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
                                                       style_intro=f"color:{self.package_name_color};"
                                                                   f"text-decoration:underline;",
                                                       conclusion="has been uninstalled and unloaded.")
             feedback.print_inview_message(stay_time=4000)
         else:
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_soft)
+            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_melon)
 
         # Show window
         if QApplication.instance():
