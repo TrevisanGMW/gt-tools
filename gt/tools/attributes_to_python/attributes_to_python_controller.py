@@ -31,12 +31,18 @@ class AttributesToPythonController:
         self.view.controller = self
 
         # # Connections
-        # self.view.interval_btn.clicked.connect(self.update_view_interval_button)
+
+        self.view.run_code_btn.clicked.connect(self.run_python_code)
         # self.view.refresh_btn.clicked.connect(self.refresh_updater_data_threaded_maya)
         # self.view.auto_check_btn.clicked.connect(self.cycle_auto_check)
         # self.view.update_btn.clicked.connect(self.update_package_threaded_maya)
 
         self.view.show()
+
+    def run_python_code(self):
+        from gt.utils.system_utils import execute_python_code
+        _code = self.view.get_python_output_text()
+        execute_python_code(code=_code, raise_errors=True)
 
 
 if __name__ == "__main__":
