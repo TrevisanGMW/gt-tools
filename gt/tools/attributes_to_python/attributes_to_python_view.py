@@ -83,8 +83,6 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
         self.output_python_box = LineTextWidget(self)
 
-        self.output_python_box.get_text_edit().setFont(qt_utils.load_custom_font(resource_library.Font.roboto,
-                                                                                 point_size=9))
         self.output_python_box.setMinimumHeight(150)
         PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
         #
