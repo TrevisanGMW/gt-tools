@@ -31,9 +31,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Extract Curve State.
     """
-    from gt.tools.shape_extract_state import shape_extract_state
-    shape_extract_state.script_version = __version__
-    shape_extract_state.build_gui_curve_shape_state()
+    from gt.tools.curve_shape_to_python import curve_shape_to_python
+    curve_shape_to_python.script_version = __version__
+    curve_shape_to_python.build_gui_curve_shape_state()
 
 
 if __name__ == "__main__":

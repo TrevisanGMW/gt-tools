@@ -49,9 +49,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Curve to Python.
     """
-    from gt.tools.shape_curve_to_python import shape_curve_to_python
-    shape_curve_to_python.script_version = __version__
-    shape_curve_to_python.build_gui_py_curve()
+    from gt.tools.curve_to_python import curve_to_python
+    curve_to_python.script_version = __version__
+    curve_to_python.build_gui_py_curve()
 
 
 if __name__ == "__main__":
