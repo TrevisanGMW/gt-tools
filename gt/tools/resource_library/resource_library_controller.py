@@ -38,13 +38,8 @@ class ResourceLibraryController:
         self.view.controller = self
 
         # Connections
-        # self.view.save_btn.clicked.connect(self.build_view_selected_curve)
-        # self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
-        # self.view.search_bar.textChanged.connect(self.filter_list)
-        # self.view.parameters_button.clicked.connect(self.open_parameter_editor)
-        # self.view.add_custom_button.clicked.connect(self.add_user_curve)
-        # self.view.delete_custom_button.clicked.connect(self.remove_user_curve)
-        # self.view.snapshot_button.clicked.connect(self.render_curve_snapshot)
+        self.view.save_btn.clicked.connect(self.save_selected_resource)
+        self.view.search_bar.textChanged.connect(self.filter_list)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.populate_curve_library()
         self.view.show()
@@ -59,7 +54,6 @@ class ResourceLibraryController:
             return
         item_name = self.view.item_list.currentItem().text()
         metadata = item.data(Qt.UserRole)
-        # print(metadata)
         metadata_obj = self.get_selected_item_object()
 
         new_preview_image = self.model.get_preview_image(item=metadata_obj)
@@ -68,32 +62,34 @@ class ResourceLibraryController:
             self.view.update_preview_image(new_image=new_preview_image)
         if metadata and "item_type" in metadata:
             self.view.update_item_description(metadata.get("item_type"), item_name)
-        #     if metadata.get("item_type") == self.TYPE_COLOR:
-        #         self.set_view_base_curve_mode()
+            if metadata.get("item_type") == self.TYPE_COLOR:
+                color_str = ''
+                has_rgb_data = False
+
+                rgb_attributes = vars(resource_library.Color.Hex)
+                if item_name in rgb_attributes:
+                    color_str += f'resource_library.Color.RGB.{item_name}'
+                    color_str_rgb = getattr(resource_library.Color.RGB, item_name)
+                    color_str += f'  # {color_str_rgb}'
+                    has_rgb_data = True
+
+                if has_rgb_data:
+                    color_str += '\n'
+
+                hex_attributes = vars(resource_library.Color.Hex)
+                if item_name in hex_attributes:
+                    color_str += f'resource_library.Color.Hex.{item_name}'
+                    color_str_hex = getattr(resource_library.Color.Hex, item_name)
+                    color_str += f'  # {color_str_hex}'
+
+                self.view.update_resource_path(text=color_str)
+
         #     elif metadata.get("item_type") == self.TYPE_PACKAGE_ICON:
         #         self.set_view_user_curve_mode()
         #         user_preview_image = self.get_custom_curve_preview_image()
         #         self.view.update_preview_image(new_image_path=user_preview_image)
         #     elif metadata.get("item_type") == self.TYPE_MAYA_ICON:
         #         self.set_view_control_curve_mode()
-
-    def set_view_base_curve_mode(self):
-        """ Changes the UI to look like you have a package curve (base) selected """
-        self.view.set_snapshot_button_enabled(False)
-        self.view.set_parameters_button_enabled(False)
-        self.view.set_delete_button_enabled(False)
-
-    def set_view_user_curve_mode(self):
-        """ Changes the UI to look like you have a user-defined curve selected """
-        self.view.set_snapshot_button_enabled(True)
-        self.view.set_parameters_button_enabled(False)
-        self.view.set_delete_button_enabled(True)
-
-    def set_view_control_curve_mode(self):
-        """ Changes the UI to look like you have a package control selected """
-        self.view.set_snapshot_button_enabled(False)
-        self.view.set_parameters_button_enabled(True)
-        self.view.set_delete_button_enabled(False)
 
     def filter_list(self):
         """
@@ -167,39 +163,10 @@ class ResourceLibraryController:
         #     self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_user_crv, metadata=metadata_user_crv)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
-    def open_parameter_editor(self):
+    def save_selected_resource(self):
         """ Opens an input window so the user can update the parameters of a control """
-        item = self.view.item_list.currentItem()
-        if not item:
-            logger.warning(f'No item selected. Unable to open parameter editor.')
-            return
-        item_name = self.view.item_list.currentItem().text()
-        control = self.get_selected_item_object()
-        parameters = control.get_parameters()
-        if not parameters:
-            logger.debug(f'Selected control does not have any parameters.')
-            parameters = "{\n# This control does not have any parameters.\n}"
-        from gt.utils.control_utils import Control
-        if not isinstance(control, Control):
-            logger.warning(f'Unable to edit parameters. Selected item is not of the type "Control."')
-            return
-        param_win = InputWindowText(parent=self.view,
-                                    message=control.get_docstrings(),
-                                    window_title=f'Parameters for "{item_name}"',
-                                    image=resource_library.Icon.curve_library_control,
-                                    window_icon=resource_library.Icon.curve_library_parameters,
-                                    image_scale_pct=10,
-                                    is_python_code=True)
-        param_win.set_confirm_button_text("Build")
-        if isinstance(parameters, dict):
-            formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=1,
-                                                                           bracket_new_line=True)
-        elif isinstance(parameters, str):
-            formatted_dict = parameters
-        param_win.set_text_field_text(formatted_dict)
-        param_win.confirm_button.clicked.connect(partial(self.model.build_control_with_custom_parameters,
-                                                         param_win.get_text_field_text, control))
-        param_win.show()
+        item = self.get_selected_item_object()
+        self.model.save_resource(item=item)
 
 
 if __name__ == "__main__":

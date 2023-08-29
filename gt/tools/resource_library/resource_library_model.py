@@ -71,6 +71,25 @@ class ResourceLibraryModel:
             return create_color_pixmap(item)
         return resource_library.Icon.curve_library_missing_file
 
+    def save_resource(self, item):
+        print(item)
+        if isinstance(item, QColor):
+            # Create an image with the specified color
+            # import maya.cmds as cmds
+            # file_name = cmds.fileDialog2(fileFilter="PNG Image (*.png);;All Files (*)",
+            #                              dialogStyle=2,
+            #                              okCaption='Export',
+            #                              caption='Exporting Color Resource') or []
+            # if file_name and len(file_name) > 0:
+            #      file_name = file_name[0]
+            file_name = r"C:\Users\guilherme.trevisan\Desktop\test.png"
+
+            pixmap = create_color_pixmap(item)
+
+            if file_name:
+                # Save the image
+                pixmap.save(file_name)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)

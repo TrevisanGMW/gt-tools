@@ -4,7 +4,7 @@ Resource Library View
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem, \
     QTextEdit, QRadioButton, QComboBox
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap, QColor
+from PySide2.QtGui import QIcon, QPixmap, QColor, QTextOption
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -55,7 +55,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
-        qt_utils.resize_to_screen(self, percentage=25)
+        qt_utils.resize_to_screen(self, percentage=35)
         qt_utils.center_window(self)
         self.resize_splitter_to_screen()
 
@@ -83,7 +83,8 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         self.search_bar = QLineEdit(self)
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
-        self.resource_path = QLineEdit()
+        self.resource_path = QTextEdit()
+        self.resource_path.setMaximumHeight(60)
 
         self.source_combo_box = QComboBox()
         self.source_combo_box.addItem("All")
@@ -99,13 +100,13 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
 
     def create_layout(self):
         """Create the layout for the window."""
-        radio_btn_layout = QtWidgets.QHBoxLayout()
-        radio_btn_layout.addWidget(self.search_bar)
-        radio_btn_layout.addWidget(self.source_combo_box)
+        search_layout = QtWidgets.QHBoxLayout()
+        search_layout.addWidget(self.search_bar)
+        search_layout.addWidget(self.source_combo_box)
 
         list_container = QWidget()
         list_layout = QtWidgets.QVBoxLayout()
-        list_layout.addLayout(radio_btn_layout)
+        list_layout.addLayout(search_layout)
         list_layout.addWidget(self.item_list)
         list_container.setLayout(list_layout)
         list_container.setMinimumWidth(200)
@@ -131,6 +132,14 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         main_layout.setContentsMargins(15, 15, 15, 11)  # Make Margins Uniform LTRB
         main_layout.addWidget(self.splitter)
 
+    def update_resource_path(self, text):
+        """
+        Updates the text content of the resource path
+        Args:
+            text (str): New text to be displayed in the resource path box.
+        """
+        self.resource_path.setText(text)
+
     def resize_splitter_to_screen(self, percentage=20):
         """
         Resizes the splitter to match a percentage of the screen size.
@@ -146,7 +155,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
             raise ValueError("Percentage should be between 0 and 100")
         screen_geometry = QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width*.75, width*.60])
+        self.splitter.setSizes([width*.55, width*.60])
 
     def clear_view_library(self):
         """
@@ -172,16 +181,6 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         if metadata and isinstance(metadata, dict):
             _item.setData(Qt.UserRole, metadata)
         self.item_list.addItem(_item)
-
-    def set_open_dir_enabled(self, is_enabled):
-        """
-        Set the enabled state of the snapshot button.
-
-        Args:
-            is_enabled (bool): True to enable the snapshot button, False to disable it.
-        """
-        if isinstance(is_enabled, bool):
-            self.save_btn.setEnabled(is_enabled)
 
     def update_item_description(self, new_title, new_description):
         """
