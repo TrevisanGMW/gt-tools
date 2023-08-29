@@ -1,45 +1,26 @@
 """
- GT Curve to Python - Script to convert curve shapes to python code.
+ Curve to Python - Script to convert curve shapes to python code.
  github.com/TrevisanGMW/gt-tools -  2020-01-02
 
- ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
- how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
- Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
-
- 1.1 - 2020-01-03
- Minor patch adjustments to the script
-
- 1.2 - 2020-06-07
- Fixed random window widthHeight issue.
- Updated naming convention to make it clearer. (PEP8)
- Added length checker for selection before running.
-
- 1.3 - 2020-06-17
- Changed UI
- Added help menu
- Added icon
-
- 1.4 - 2020-06-27
- No longer failing to generate curves with non-unique names
- Tweaked the color and text for the title and help menu
-
- 1.5 - 2021-01-26
+ 1.0.0 to 1.6.3 - 2020-01-03 to 2022-07-26
+ Added support for non-unique names
  Fixed way the curve is generated to account for closed and opened curves
-
- 1.6 - 2021-05-12
  Made script compatible with Python 3 (Maya 2022+)
-
- 1.6.1 to 1.6.3 - 2022-07-14 to 2022-07-26
- Added logger
- Added patch version
- PEP8 General cleanup
- Updated script name
- Increased the size of the output window
- Updated help
  Added save to shelf
+
+ 2.0.0 - 2023-08-29
+ Updated to VMC model using QT for the view.
+ Added code highlighter
+ Added line numbers
+ Made view dockable
+ Merged curve shape extraction tool
 """
+from gt.tools.curve_to_python import curve_to_python_controller
+from gt.tools.curve_to_python import curve_to_python_view
+from gt.ui import qt_utils
+
 # Tool Version
-__version_tuple__ = (1, 6, 3)
+__version_tuple__ = (2, 0, 0)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
@@ -47,11 +28,12 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Curve to Python.
+    Entry point for when using this tool.
+    Creates Model, View and Controller and uses QtApplicationContext to determine context (inside of Maya or not?)
     """
-    from gt.tools.curve_to_python import curve_to_python
-    curve_to_python.script_version = __version__
-    curve_to_python.build_gui_py_curve()
+    with qt_utils.QtApplicationContext() as context:
+        _view = curve_to_python_view.CurveToPythonView(parent=context.get_parent(), version=__version__)
+        _controller = curve_to_python_controller.CurveToPythonController(view=_view)
 
 
 if __name__ == "__main__":

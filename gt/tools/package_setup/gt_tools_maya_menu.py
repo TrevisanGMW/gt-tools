@@ -102,18 +102,14 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("curve_library")',
                        tooltip="Open Curve Library tools.",
                        icon=resource_library.Icon.tool_crv_library)
+    menu.add_menu_item(label='Curve to Python',
+                       command=IMPORT_TOOL + 'initialize_tool("curve_to_python")',
+                       tooltip='Extracts python code to recreate or reshape curves.',
+                       icon=resource_library.Icon.tool_crv_python)
     menu.add_menu_item(label='Generate Text Curve',
                        command=IMPORT_TOOL + 'initialize_tool("shape_text_to_curve")',
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
                        icon=resource_library.Icon.tool_crv_text)
-    menu.add_menu_item(label='Extract Python Curve',
-                       command=IMPORT_TOOL + 'initialize_tool("curve_to_python")',
-                       tooltip='Generates the python code necessary to create a selected curve.',
-                       icon=resource_library.Icon.tool_crv_python)
-    menu.add_menu_item(label='Extract Curve State',
-                       command=IMPORT_TOOL + 'initialize_tool("curve_shape_to_python")',
-                       tooltip='Generates the python command necessary to reshape curves back to their stored state.',
-                       icon=resource_library.Icon.tool_crv_extract_state)
 
     menu.add_divider(divider_label="Utilities")  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Combine Curves',
