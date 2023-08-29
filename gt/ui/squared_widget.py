@@ -56,19 +56,31 @@ class SquaredWidget(QWidget):
         if not self.pixmap.isNull():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.SmoothPixmapTransform)
-            painter.drawPixmap(self.square_rect(), self.pixmap)
+            painter.drawPixmap(self.get_image_rect(), self.pixmap)
             self.center(center_x=self.center_x, center_y=self.center_y)
 
-    def square_rect(self):
+    def get_image_rect(self):
         """
-        Calculate the square QRect within the widget.
+        Calculate the QRect within the widget.
 
         Returns:
             QRect: The QRect representing the square area.
         """
         widget_rect = self.rect()
-        size = min(widget_rect.width(), widget_rect.height())
-        square_rect = QRect(0, 0, size, size)
+        _width = min(widget_rect.width(), widget_rect.height())
+        _height = _width
+
+        if not self.pixmap.isNull():  # Re-size but keep aspect ratio
+            original_size = self.pixmap.size()
+            aspect_ratio = original_size.width() / original_size.height()
+            new_height = int(_width / aspect_ratio)
+            new_width = int(_height * aspect_ratio)
+            if new_height <= _height:
+                _height = new_height
+            if new_width <= _width:
+                _width = new_width
+
+        square_rect = QRect(0, 0, _width, _height)
         square_rect.moveCenter(widget_rect.center())
         return square_rect
 
@@ -100,4 +112,3 @@ if __name__ == "__main__":
         center_widget = QWidget()
         layout.addWidget(center_widget)
         main_window.show()
-
