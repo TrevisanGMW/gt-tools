@@ -38,8 +38,8 @@ class AttributesToPythonController:
     @staticmethod
     def open_help():
         """ Opens package docs """
-        from gt.utils.request_utils import open_url_in_browser
-        open_url_in_browser(r"https://github.com/TrevisanGMW/gt-tools/tree/release/docs")
+        from gt.utils.request_utils import open_package_docs_url_in_browser
+        open_package_docs_url_in_browser()
 
     @staticmethod
     def __get_selection():
