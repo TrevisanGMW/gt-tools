@@ -1,5 +1,5 @@
 """
-Curve Library Window - The main GUI window class for the Curve Library tool.
+Curve Library View - The main GUI window class for the Curve Library tool.
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
 import gt.ui.resource_library as resource_library
@@ -12,7 +12,7 @@ import gt.ui.qt_utils as qt_utils
 from PySide2.QtCore import Qt
 
 
-class CurveLibraryWindow(metaclass=MayaWindowMeta):
+class CurveLibraryView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the CurveLibraryWindow.
@@ -28,7 +28,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.splitter = None
-        self.search_edit = None
+        self.search_bar = None
         self.item_list = None
         self.add_custom_button = None
         self.delete_custom_button = None
@@ -79,8 +79,8 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
         self.build_button = QPushButton("Build")
         self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.search_edit = QLineEdit(self)
-        self.search_edit.setPlaceholderText('Search...')
+        self.search_bar = QLineEdit(self)
+        self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         # Buttons
         self.add_custom_button = QPushButton("Save Curve")
@@ -115,7 +115,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
 
         list_container = QWidget()
         list_layout = QtWidgets.QVBoxLayout()
-        list_layout.addWidget(self.search_edit)
+        list_layout.addWidget(self.search_bar)
         list_layout.addWidget(self.item_list)
         list_layout.addLayout(user_curve_action_layout)
         list_container.setLayout(list_layout)
@@ -237,7 +237,7 @@ class CurveLibraryWindow(metaclass=MayaWindowMeta):
 
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
-        window = CurveLibraryWindow()
+        window = CurveLibraryView()
         mocked_icon = QIcon(resource_library.Icon.curve_library_base_curve)
         window.add_item_view_library("curve_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
         window.add_item_view_library("curve_two", icon=QIcon(resource_library.Icon.curve_library_control))

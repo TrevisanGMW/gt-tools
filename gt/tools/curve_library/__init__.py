@@ -26,7 +26,7 @@ def launch_tool():
     Creates Model, View and Controller and uses QtApplicationContext to determine context (inside of Maya or not?)
     """
     with qt_utils.QtApplicationContext() as context:
-        _view = curve_library_view.CurveLibraryWindow(parent=context.get_parent(), version=__version__)
+        _view = curve_library_view.CurveLibraryView(parent=context.get_parent(), version=__version__)
         _model = curve_library_model.CurveLibraryModel()
         _controller = curve_library_controller.CurveLibraryController(model=_model, view=_view)
 
