@@ -145,3 +145,8 @@ class TestRequestUtils(unittest.TestCase):
 
         result = request_utils.is_connected_to_internet()
         self.assertFalse(result)
+
+    @patch('gt.utils.request_utils.open_url_in_browser')
+    def test_open_package_docs_url_in_browser(self, mocked_open_url):
+        request_utils.open_package_docs_url_in_browser()
+        mocked_open_url.assert_called_once()
