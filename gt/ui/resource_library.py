@@ -377,67 +377,6 @@ class Color:
             e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
             Value range 0-255
             """
-        # Basic -----------------------------------------
-        transparent = 'rgba(0, 0, 0, 0)'
-        black = "rgb(0, 0, 0)"
-        white = "rgb(255, 255, 255)"
-
-        # White -----------------------------------------
-        white_floral = "rgb(255, 250, 240)"
-        white_ghost = "rgb(248, 248, 255)"
-        white_ivory = "rgb(255, 255, 240)"
-        white_snow = "rgb(255, 250, 250)"
-        white_smoke = "rgb(245, 245, 245)"
-        white_smoke_darker = 'rgba(238,238,238,255)'
-        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
-        white_antique = "rgb(250, 235, 215)"
-        white_beige = "rgb(245, 245, 220)"
-        white_bisque = "rgb(255, 228, 196)"
-        white_blanched_almond = "rgb(255, 235, 205)"
-        white_wheat = "rgb(245, 222, 179)"
-        white_corn_silk = "rgb(255, 248, 220)"
-        white_lemon_chiffon = "rgb(255, 250, 205)"
-        white_light_golden_rod_yellow = "rgb(250, 250, 210)"
-        white_light_yellow = "rgb(255, 255, 224)"
-        white_brown_rosy = "rgb(188, 143, 143)"
-        white_brown_moccasin = "rgb(255, 228, 181)"
-        white_brown_navajo = "rgb(255, 222, 173)"
-        white_peach_puff = "rgb(255, 218, 185)"
-        white_misty_rose = "rgb(255, 228, 225)"
-        white_lavender_blush = "rgb(255, 240, 245)"
-        white_lavender = "rgb(230, 230, 250)"
-        white_linen = "rgb(250, 240, 230)"
-        white_old_lace = "rgb(253, 245, 230)"
-        white_papaya_whip = "rgb(255, 239, 213)"
-        white_sea_shell = "rgb(255, 245, 238)"
-        white_mint_cream = "rgb(245, 255, 250)"
-
-        # Gray -------------------------------------------
-        gray_dim = "rgb(105, 105, 105)"
-        gray = "rgb(128, 128, 128)"
-        gray_dark = "rgb(169, 169, 169)"
-        gray_silver = "rgb(192, 192, 192)"
-        gray_light = "rgb(211, 211, 211)"
-        gray_dark_slate_gray = "rgb(47, 79, 79)"
-        gray_nero = 'rgba(20, 20, 20,255)'
-        gray_much_darker = 'rgba(29, 29, 29,255)'
-        gray_darker_mid = 'rgba(35, 35, 35, 255)'
-        gray_darker = 'rgba(43, 43, 43, 255)'
-        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
-        gray_mid_dark = 'rgba(68, 68, 68, 255)'
-        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
-        gray_mid = 'rgba(73, 73, 73, 255)'
-        gray_mid_light = 'rgba(82, 82, 82, 255)'
-        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
-        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
-        grey_light = 'rgba(145, 145, 145, 255)'
-        gray_lighter = 'rgba(160, 160, 160, 255)'
-        gray_dark_silver = 'rgba(180, 180, 180, 255)'
-        gray_gainsboro = "rgb(220, 220, 220)"
-        gray_slate = "rgb(112, 128, 144)"
-        gray_light_slate = "rgb(119, 136, 153)"
-        gray_light_steel_blue = "rgb(176, 196, 222)"
-
         # Red -------------------------------------------
         red_maroon = "rgb(128, 0, 0)"
         red_metallic_dark = "rgb(139, 0, 0)"
@@ -572,6 +511,67 @@ class Color:
         brown_sandy = "rgb(244, 164, 96)"
         brown_burly_wood = "rgb(222, 184, 135)"
         brown_tan = "rgb(210, 180, 140)"
+
+        # White -----------------------------------------
+        white = "rgb(255, 255, 255)"
+        white_floral = "rgb(255, 250, 240)"
+        white_ghost = "rgb(248, 248, 255)"
+        white_ivory = "rgb(255, 255, 240)"
+        white_snow = "rgb(255, 250, 250)"
+        white_smoke = "rgb(245, 245, 245)"
+        white_smoke_darker = 'rgba(238,238,238,255)'
+        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
+        white_antique = "rgb(250, 235, 215)"
+        white_beige = "rgb(245, 245, 220)"
+        white_bisque = "rgb(255, 228, 196)"
+        white_blanched_almond = "rgb(255, 235, 205)"
+        white_wheat = "rgb(245, 222, 179)"
+        white_corn_silk = "rgb(255, 248, 220)"
+        white_lemon_chiffon = "rgb(255, 250, 205)"
+        white_light_golden_rod_yellow = "rgb(250, 250, 210)"
+        white_light_yellow = "rgb(255, 255, 224)"
+        white_brown_rosy = "rgb(188, 143, 143)"
+        white_brown_moccasin = "rgb(255, 228, 181)"
+        white_brown_navajo = "rgb(255, 222, 173)"
+        white_peach_puff = "rgb(255, 218, 185)"
+        white_misty_rose = "rgb(255, 228, 225)"
+        white_lavender_blush = "rgb(255, 240, 245)"
+        white_lavender = "rgb(230, 230, 250)"
+        white_linen = "rgb(250, 240, 230)"
+        white_old_lace = "rgb(253, 245, 230)"
+        white_papaya_whip = "rgb(255, 239, 213)"
+        white_sea_shell = "rgb(255, 245, 238)"
+        white_mint_cream = "rgb(245, 255, 250)"
+
+        # Gray -------------------------------------------
+        gray_dim = "rgb(105, 105, 105)"
+        gray = "rgb(128, 128, 128)"
+        gray_dark = "rgb(169, 169, 169)"
+        gray_silver = "rgb(192, 192, 192)"
+        gray_light = "rgb(211, 211, 211)"
+        gray_dark_slate_gray = "rgb(47, 79, 79)"
+        gray_nero = 'rgba(20, 20, 20,255)'
+        gray_much_darker = 'rgba(29, 29, 29,255)'
+        gray_darker_mid = 'rgba(35, 35, 35, 255)'
+        gray_darker = 'rgba(43, 43, 43, 255)'
+        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
+        gray_mid_dark = 'rgba(68, 68, 68, 255)'
+        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
+        gray_mid = 'rgba(73, 73, 73, 255)'
+        gray_mid_light = 'rgba(82, 82, 82, 255)'
+        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
+        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
+        grey_light = 'rgba(145, 145, 145, 255)'
+        gray_lighter = 'rgba(160, 160, 160, 255)'
+        gray_dark_silver = 'rgba(180, 180, 180, 255)'
+        gray_gainsboro = "rgb(220, 220, 220)"
+        gray_slate = "rgb(112, 128, 144)"
+        gray_light_slate = "rgb(119, 136, 153)"
+        gray_light_steel_blue = "rgb(176, 196, 222)"
+
+        # Misc -----------------------------------------
+        black = "rgb(0, 0, 0)"
+        transparent = 'rgba(0, 0, 0, 0)'
 
     class Hex:
         def __init__(self):
