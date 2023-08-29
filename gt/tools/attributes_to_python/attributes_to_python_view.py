@@ -1,7 +1,7 @@
 """
 AttributesToPythonView View/Window
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QTextEdit, QVBoxLayout, QFrame
+from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
 from gt.ui.line_text_widget import LineTextWidget
 import gt.ui.resource_library as resource_library
