@@ -1,10 +1,16 @@
 """
 Resource Library Model
 """
+import os.path
+import shutil
+import sys
+
+from PySide2 import QtGui
+
 from gt.ui.resource_library import parse_rgb_numbers
 from gt.ui.qt_utils import create_color_pixmap
 from gt.ui import resource_library
-from PySide2.QtGui import QColor
+from PySide2.QtGui import QColor, QIcon, QPixmap
 import logging
 
 # Logging Setup
@@ -19,8 +25,14 @@ class ResourceLibraryModel:
         Initialize the ResourceLibraryModel object.
         """
         self.colors = {}
+        self.colors_raw = {}
+        self.package_icons = {}
+        self.package_icons_raw = {}
+        self.maya_icons = {}
+        self.maya_icons_raw = {}
         self.import_package_colors()
-        # self.import_controls_library()
+        self.import_package_icons()
+        self.import_maya_icons()
 
     def get_colors(self):
         """
@@ -30,14 +42,59 @@ class ResourceLibraryModel:
         """
         return self.colors
 
-    def add_color(self, color_key, color):
+    def get_package_icons(self):
+        """
+        Get all package icons
+        Returns:
+            dict: A list containing all the package icons in the ResourceLibraryModel.
+        """
+        return self.package_icons
+
+    def get_maya_icons(self):
+        """
+        Get all Maya icons (from resource browser)
+        Returns:
+            dict: A list containing all the package icons in the ResourceLibraryModel.
+        """
+        return self.maya_icons
+
+    def add_color(self, color_key, color_str):
         """
         Adds a new color object to the color list
         Args:
             color_key (str): Color key for the color dictionary. Must be unique or it will overwrite other colors.
-            color (QColor): QColor representing the color.
+            color_str (str): A string with RGB+A values representing the color. e.g. "rgba(0, 0, 0, 0)"
         """
+        color_tuple = parse_rgb_numbers(color_str)
+        if color_tuple and len(color_tuple) >= 3:
+            if len(color_tuple) == 4:
+                r, g, b, a = color_tuple
+            else:
+                a = 255
+                r, g, b = color_tuple
+            color = QColor(r, g, b, a)
+        self.colors_raw[color_key] = color_tuple
         self.colors[color_key] = color
+
+    def add_package_icon(self, icon_key, icon):
+        """
+        Adds a new icon object to the package icons list
+        Args:
+            icon_key (str): Icon key for the color dictionary. Must be unique or it will overwrite other icons.
+            icon (QIcon): QIcon representing the icon.
+        """
+        self.package_icons_raw[icon_key] = icon
+        self.package_icons[icon_key] = QIcon(icon)
+
+    def add_maya_icon(self, icon_key, icon_str):
+        """
+        Adds a new icon to the maya icons list
+        Args:
+            icon_key (str): Icon key for the color dictionary. Must be unique or it will overwrite other icons.
+            icon_str (str): Maya resource string
+        """
+        self.maya_icons_raw[icon_key] = icon_str
+        self.maya_icons[icon_key] = QIcon(f':{icon_str}')
 
     def import_package_colors(self):
         """
@@ -47,17 +104,31 @@ class ResourceLibraryModel:
         attr_keys = [attr for attr in class_attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for attr_key in attr_keys:
             color_str = getattr(resource_library.Color.RGB, attr_key)
-            color_tuple = parse_rgb_numbers(color_str)
-            if color_tuple and len(color_tuple) >= 3:
-                if len(color_tuple) == 4:
-                    r, g, b, a = color_tuple
-                else:
-                    a = 255
-                    r, g, b = color_tuple
-                color = QColor(r, g, b, a)
-                self.add_color(color_key=attr_key, color=color)
+            self.add_color(color_key=attr_key, color_str=color_str)
 
-    def get_preview_image(self, item):
+    def import_package_icons(self):
+        """
+        Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
+        """
+        class_attributes = vars(resource_library.Icon)
+        attr_keys = [attr for attr in class_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for attr_key in attr_keys:
+            icon_path = getattr(resource_library.Icon, attr_key)
+            self.add_package_icon(icon_key=attr_key, icon=icon_path)
+
+    def import_maya_icons(self):
+        """
+        Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
+        """
+        try:
+            import maya.cmds as cmds
+            for icon in cmds.resourceManager(nameFilter="*"):
+                self.add_maya_icon(icon_key=icon, icon_str=icon)
+        except Exception as e:
+            logger.debug(f'Unable to get Maya resources. Issue: {e}')
+
+    @staticmethod
+    def get_preview_image(item):
         """
         Gets the preview image path for the given curve name.
 
@@ -69,31 +140,73 @@ class ResourceLibraryModel:
         """
         if isinstance(item, QColor):
             return create_color_pixmap(item)
+        if isinstance(item, QIcon):
+            return item.pixmap(512)
         return resource_library.Icon.curve_library_missing_file
 
-    def save_resource(self, item):
-        print(item)
-        if isinstance(item, QColor):
-            # Create an image with the specified color
-            # import maya.cmds as cmds
-            # file_name = cmds.fileDialog2(fileFilter="PNG Image (*.png);;All Files (*)",
-            #                              dialogStyle=2,
-            #                              okCaption='Export',
-            #                              caption='Exporting Color Resource') or []
-            # if file_name and len(file_name) > 0:
-            #      file_name = file_name[0]
-            file_name = r"C:\Users\guilherme.trevisan\Desktop\test.png"
-
+    def export_resource(self, key, source=None):
+        """
+        Saves/Exports resource
+        Args:
+            key (str): Key for the resource, so it can be retrieved from the source.
+            source (str, optional): Name of the source dictionary. (Must be "colors", "package_icons" or "maya_icons")
+        """
+        print(f'key: {key}')
+        print(f'source: {source}')
+        # ------------------------ Colors ------------------------
+        if source == "colors":
+            item = self.colors.get(key)
+            if not item:
+                logger.warning(f'Unable to export color resource. Missing provided key.')
+                return
+            import maya.cmds as cmds
+            file_path = cmds.fileDialog2(fileFilter="PNG Image (*.png);;All Files (*)",
+                                         dialogStyle=2,
+                                         okCaption='Export',
+                                         caption='Exporting Color Resource') or []
+            if file_path and len(file_path) > 0:
+                file_path = file_path[0]
+            else:
+                logger.debug(f'Skipped color resource save operation. Invalid file path.')
+                return
             pixmap = create_color_pixmap(item)
+            pixmap.save(file_path)
+            sys.stdout.write(f'Color sample resource exported to: {file_path}')
+        # --------------------- Package Icons ---------------------
+        if source == "package_icons":
+            icon_path = self.package_icons_raw.get(key)
+            if not icon_path:
+                logger.warning(f'Unable to export package icon resource. Missing provided key.')
+                return
+            if not os.path.exists(icon_path):
+                logger.warning(f'Unable to export package icon resource. Missing source icon.')
+                return
 
-            if file_name:
-                # Save the image
-                pixmap.save(file_name)
+            extension = "svg"
+            try:
+                file_name = os.path.basename(icon_path)
+                extension = file_name.rsplit('.', 1)[-1].lower()
+            except Exception as e:
+                logger.debug(f'Unable to parse source extension for file dialog. Using default "SVG". Issue: {str(e)}')
+            import maya.cmds as cmds
+            file_path = cmds.fileDialog2(fileFilter=f'{extension.upper()} Image (*.{extension});;All Files (*)',
+                                         dialogStyle=2,
+                                         okCaption='Export',
+                                         caption='Exporting Icon Resource') or []
+            if file_path and len(file_path) > 0:
+                file_path = file_path[0]
+            else:
+                logger.debug(f'Skipped package icon resource save operation. Invalid file path.')
+                return
+            shutil.copy(icon_path, file_path)
+            sys.stdout.write(f'Package icon resource exported to: {file_path}')
+        if source == "maya_icons":
+            print("maya_icons")
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     model = ResourceLibraryModel()
-    print(model.get_colors())
+    print(model.get_package_icons())
     # items = model.get_curve_names(formatted=True)
     # print(model.get_user_curves())

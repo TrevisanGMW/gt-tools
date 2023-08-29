@@ -49,7 +49,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.util_resource_browser))
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_resource_library))
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
@@ -77,8 +77,8 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
     def create_widgets(self):
         """Create the widgets for the window."""
         self.item_list = QListWidget()
-        self.save_btn = QPushButton("Save")
-        self.save_btn.setIcon(QIcon(resource_library.Icon.dev_picker))
+        self.save_btn = QPushButton("Export Resource")
+        self.save_btn.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.save_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setPlaceholderText('Search...')
