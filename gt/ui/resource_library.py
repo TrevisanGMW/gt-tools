@@ -281,7 +281,6 @@ class Icon:
     util_reload_file = get_icon_path(r"util_reload_file.svg")
     util_open_dir = get_icon_path(r"util_open_dir.svg")
     util_hud_toggle = get_icon_path(r"util_hud_toggle.svg")
-    util_resource_browser = get_icon_path(r"util_resource_browser.svg")
     util_sel_non_unique = get_icon_path(r"util_sel_non_unique.svg")
     util_joint_to_label = get_icon_path(r"util_joint_to_label.svg")
     util_lra_toggle = get_icon_path(r"util_lra_toggle.svg")
@@ -315,6 +314,7 @@ class Icon:
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
     # Dev
+    tool_resource_library = get_icon_path(r"tool_resource_library.svg")
     dev_brain = get_icon_path(r"dev_brain.svg")
     dev_parameters = get_icon_path(r"dev_parameters.svg")
     dev_git_fork = get_icon_path(r"dev_git_fork.svg")
