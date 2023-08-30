@@ -1,12 +1,10 @@
-from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QFrame, QWidget, QTextEdit, QHBoxLayout, QDialog, QVBoxLayout
-from PySide2.QtGui import QPainter, QColor, QTextOption, QFont
+from PySide2.QtGui import QPainter, QColor, QFont
+from gt.ui.qt_utils import load_custom_font
 from gt.ui import resource_library
 import logging
 
 # Logging Setup
-from ui.qt_utils import load_custom_font
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
