@@ -1,13 +1,15 @@
 """
 Package Updater Controller
 """
-from gt.utils.attr_utils import get_user_attr_to_python, get_trs_attr_as_python, get_trs_attr_as_formatted_string
+from gt.utils.attr_utils import get_trs_attr_as_python
+from gt.utils.curve_utils import get_python_curve_code
 from gt.utils.system_utils import execute_python_code
 from gt.utils.misc_utils import create_shelf_button
 from gt.utils.feedback_utils import FeedbackMessage
 import logging
 
 # Logging Setup
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -73,7 +75,8 @@ class CurveToPythonController:
         selection = self.__get_selection()
         if not selection:
             return
-        _code = get_trs_attr_as_formatted_string(obj_list=selection, add_description=True, separate_channels=True)
+        _code = "import maya.cmds as cmds\n\n"
+        _code += get_python_curve_code(crv_list=selection)
         self.view.clear_python_output()
         self.view.set_python_output_text(text=_code)
 
