@@ -1,7 +1,7 @@
 """
-Attributes To PythonView View/Window
+Extract Influence View/Window
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame
+from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame, QCheckBox
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
 from gt.ui.line_text_widget import LineTextWidget
 import gt.ui.resource_library as resource_library
@@ -9,17 +9,18 @@ from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
+from PySide2.QtCore import Qt
 
 
-class AttributesToPythonView(metaclass=MayaWindowMeta):
+class ExtractInfluenceView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
-        Initialize the AttributesToPythonView.
+        Initialize the ExtractInfluenceView.
         This window represents the main GUI window of the tool.
 
         Args:
             parent (str): Parent for this window
-            controller (AttributesToPythonViewController): AttributesToPythonViewController, not to be used, here so
+            controller (ExtractInfluenceViewController): ExtractInfluenceViewController, not to be used, here so
                                                           it's not deleted by the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
@@ -28,7 +29,7 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Attributes to Python"
+        self.window_title = "GT Extract Influence Joints"
         _window_title = self.window_title
         if version:
             _window_title += f' - (v{str(version)})'
@@ -39,11 +40,15 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.output_python_label = None
         # Buttons
         self.help_btn = None
-        self.extract_trs_set_attr_btn = None
-        self.extract_trs_list_btn = None
-        self.extract_user_attr_btn = None
+        self.extract_influence_python_btn = None
+        self.extract_influence_set_btn = None
         self.run_code_btn = None
         self.save_to_shelf_btn = None
+        self.bind_skin_btn = None
+        self.unbind_skin_btn = None
+        self.unbind_skin_btn = None
+        self.non_existent_chk = None
+        self.include_mesh_chk = None
         # Misc
         self.output_python_box = None
 
@@ -58,10 +63,10 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.checkbox_dark
         self.setStyleSheet(stylesheet)
-        self.extract_trs_set_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_trs_list_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_user_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_influence_python_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_influence_set_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
         qt_utils.center_window(self)
 
@@ -85,33 +90,49 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
         self.output_python_box.setMinimumHeight(150)
         PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
-        #
+
         self.output_python_label.setAlignment(QtCore.Qt.AlignCenter)
         self.output_python_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        #
+
         self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
                                              self.output_python_box.sizePolicy().Expanding)
 
-        self.extract_trs_set_attr_btn = QPushButton('Extract Default Attributes to "setAttr"')
-        self.extract_trs_set_attr_btn.setToolTip("Extracts translate, rotate and scale attributes to set attributes.")
-        self.extract_user_attr_btn = QPushButton('Extract User-Defined Attributes')
-        self.extract_user_attr_btn.setToolTip("Extracts user-defined attributes.")
-        self.extract_trs_list_btn = QPushButton("Extract Default Attributes to List")
-        self.extract_trs_list_btn.setToolTip('Extract translate, rotate and scale attributes to a lists.')
+        self.extract_influence_python_btn = QPushButton('Extract Influence Joints to Python')
+        self.extract_influence_python_btn.setToolTip("Extracts bound joints (influence) as python code.")
+        self.extract_influence_set_btn = QPushButton("Extract Influence Joints to Selection Set")
+        self.extract_influence_set_btn.setToolTip('Extracts bound joints (influence) to selection set.')
         self.run_code_btn = QPushButton("Run Code")
         self.run_code_btn.setStyleSheet("padding: 10;")
         self.save_to_shelf_btn = QPushButton("Save to Shelf")
         self.save_to_shelf_btn.setStyleSheet("padding: 10;")
+        self.bind_skin_btn = QPushButton("Bind Skin")
+        self.bind_skin_btn.setStyleSheet("padding: 10;")
+        self.unbind_skin_btn = QPushButton("Unbind Skin")
+        self.unbind_skin_btn.setStyleSheet("padding: 10;")
+        self.non_existent_chk = QCheckBox("Include Non-Existent Filter")
+        self.include_mesh_chk = QCheckBox("Include Bound Mesh")
 
     def create_layout(self):
         """Create the layout for the window."""
 
         top_buttons_layout = QtWidgets.QVBoxLayout()
+        two_horizontal_chk_layout = QtWidgets.QHBoxLayout()
+
+        non_existent_chk_layout = QtWidgets.QVBoxLayout()
+        non_existent_chk_layout.setAlignment(Qt.AlignCenter)
+        non_existent_chk_layout.addWidget(self.non_existent_chk)
+        include_mesh_chk_layout = QtWidgets.QVBoxLayout()
+        include_mesh_chk_layout.setAlignment(Qt.AlignCenter)
+        include_mesh_chk_layout.addWidget(self.include_mesh_chk)
+        include_mesh_chk_layout.setContentsMargins(0, 20, 0, 20)
+        two_horizontal_chk_layout.addLayout(non_existent_chk_layout)
+        two_horizontal_chk_layout.addLayout(include_mesh_chk_layout)
+
         two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
-        two_horizontal_btn_layout.addWidget(self.extract_trs_set_attr_btn)
-        two_horizontal_btn_layout.addWidget(self.extract_trs_list_btn)
+        two_horizontal_btn_layout.addWidget(self.extract_influence_python_btn)
+        two_horizontal_btn_layout.addWidget(self.extract_influence_set_btn)
+        top_buttons_layout.addLayout(two_horizontal_chk_layout)
         top_buttons_layout.addLayout(two_horizontal_btn_layout)
-        top_buttons_layout.addWidget(self.extract_user_attr_btn)
 
         mid_layout = QVBoxLayout()
         mid_layout.addWidget(self.output_python_label)
@@ -122,6 +143,8 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
         two_horizontal_btn_layout.addWidget(self.run_code_btn)
         two_horizontal_btn_layout.addWidget(self.save_to_shelf_btn)
+        two_horizontal_btn_layout.addWidget(self.bind_skin_btn)
+        two_horizontal_btn_layout.addWidget(self.unbind_skin_btn)
         bottom_buttons_layout.addLayout(two_horizontal_btn_layout)
 
         separator = QFrame()
@@ -179,6 +202,6 @@ if __name__ == "__main__":
     import sys
 
     with qt_utils.QtApplicationContext():
-        window = AttributesToPythonView(version="1.2.3")  # View
+        window = ExtractInfluenceView(version="1.2.3")  # View
         window.set_python_output_text(text=inspect.getsource(sys.modules[__name__]))
         window.show()

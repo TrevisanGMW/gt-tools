@@ -1,5 +1,5 @@
 """
-Package Updater Controller
+Curve To Python Controller
 """
 from gt.utils.curve_utils import get_python_shape_code, get_python_curve_code
 from gt.utils.system_utils import execute_python_code
@@ -20,7 +20,7 @@ class CurveToPythonController:
 
         Args:
             view: The view object to interact with the user interface.
-            model: The AttributesToPythonModel object used for data manipulation.
+            model: The CurveToPythonModel object used for data manipulation.
         """
         self.model = model
         self.view = view
@@ -28,7 +28,7 @@ class CurveToPythonController:
 
         # # Connections
         self.view.help_btn.clicked.connect(self.open_help)
-        self.view.extract_crv_python_brn.clicked.connect(self.extract_crv_python)
+        self.view.extract_crv_python_btn.clicked.connect(self.extract_crv_python)
         self.view.extract_shape_state_btn.clicked.connect(self.extract_crv_state)
         self.view.run_code_btn.clicked.connect(self.run_python_code)
         self.view.save_to_shelf_btn.clicked.connect(self.save_python_to_shelf)
@@ -50,7 +50,7 @@ class CurveToPythonController:
         import maya.cmds as cmds
         selection = cmds.ls(selection=True) or []
         if len(selection) == 0:
-            cmds.warning(f'Please select at least one curve an try again.')
+            cmds.warning(f'Please select at least one curve and try again.')
             return []
         return selection
 
