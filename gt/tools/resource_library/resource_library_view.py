@@ -1,10 +1,11 @@
 """
 Resource Library View
 """
-from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem, \
-    QTextEdit, QRadioButton, QComboBox
+from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
+from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+from PySide2.QtWidgets import QTextEdit, QComboBox
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap, QColor, QTextOption
+from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -54,6 +55,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.combobox_dark
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=35)
         qt_utils.center_window(self)
@@ -84,6 +86,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         self.resource_path = QTextEdit()
+        PythonSyntaxHighlighter(self.resource_path.document())
         self.resource_path.setMaximumHeight(60)
 
         self.source_combo_box = QComboBox()
