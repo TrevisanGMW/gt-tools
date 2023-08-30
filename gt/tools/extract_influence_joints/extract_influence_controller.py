@@ -45,20 +45,6 @@ class ExtractInfluenceController:
         from gt.utils.request_utils import open_package_docs_url_in_browser
         open_package_docs_url_in_browser()
 
-    @staticmethod
-    def __get_selection():
-        """
-        Gets selection while warning the user in case nothing is elected
-        Returns:
-         list: Selection or empty list when nothing is selected.
-        """
-        import maya.cmds as cmds
-        selection = cmds.ls(selection=True) or []
-        if len(selection) == 0:
-            cmds.warning(f'Please select at least one object and try again.')
-            return []
-        return selection
-
     def __extract_influence_with_validation(self, operation_target='python'):
         """
         Validation before extracting python or set out of the bound mesh
@@ -91,7 +77,7 @@ class ExtractInfluenceController:
 
                 if not bound_joints:
                     cmds.warning('Unable to find skinCluster for "' + transform + '".')
-                    return
+                    continue
 
                 if self.view.include_mesh_chk.isChecked():
                     bound_joints.insert(0, transform)
@@ -125,9 +111,6 @@ class ExtractInfluenceController:
         """
         Extracts the TRS channels as setAttr commands and populates the python output box with the extracted content.
         """
-        selection = self.__get_selection()
-        if not selection:
-            return
         _code = "import maya.cmds as cmds\n\n"
         _code += self.__extract_influence_with_validation(operation_target='python')
         self.view.clear_python_output()
@@ -137,9 +120,6 @@ class ExtractInfluenceController:
         """
         Extracts the TRS channels as lists and populates the python output box with the extracted content.
         """
-        selection = self.__get_selection()
-        if not selection:
-            return
         self.__extract_influence_with_validation(operation_target='set')
 
     def run_python_code(self):
