@@ -838,6 +838,11 @@ class StylesheetVariables:
         "@image_arrow_down_width;": 12,
         "@image_arrow_down_height;": 12,
     }
+    checkbox_dark = {
+        # Colors
+        "@text_color;": Color.RGB.gray_dark_silver,
+        # TODO, add icons
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
         # Colors
@@ -880,6 +885,8 @@ class Stylesheet:
                                                 stylesheet_variables=StylesheetVariables.text_edit_mid_grey)
     combobox_dark = get_stylesheet_content(stylesheet_name="combobox_dark",
                                            stylesheet_variables=StylesheetVariables.combobox_dark)
+    checkbox_dark = get_stylesheet_content(stylesheet_name="checkbox_dark",
+                                           stylesheet_variables=StylesheetVariables.checkbox_dark)
     # --------------------------------------------- Buttons ---------------------------------------------
     push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)

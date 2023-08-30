@@ -39,7 +39,7 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         self.output_python_label = None
         # Buttons
         self.help_btn = None
-        self.extract_crv_python_brn = None
+        self.extract_crv_python_btn = None
         self.extract_shape_state_btn = None
         self.run_code_btn = None
         self.save_to_shelf_btn = None
@@ -58,7 +58,7 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
-        self.extract_crv_python_brn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_crv_python_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.extract_shape_state_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
         qt_utils.center_window(self)
@@ -90,8 +90,8 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
                                              self.output_python_box.sizePolicy().Expanding)
 
-        self.extract_crv_python_brn = QPushButton('Extract Curve to Python')
-        self.extract_crv_python_brn.setToolTip("Extracts curves as python code. (New Curve)")
+        self.extract_crv_python_btn = QPushButton('Extract Curve to Python')
+        self.extract_crv_python_btn.setToolTip("Extracts curves as python code. (New Curve)")
         self.extract_shape_state_btn = QPushButton("Extract Shape State to Python")
         self.extract_shape_state_btn.setToolTip('Extracts curve shape state. '
                                                 '(Snapshot of the shape)')
@@ -105,7 +105,7 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
 
         top_buttons_layout = QtWidgets.QVBoxLayout()
         two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
-        two_horizontal_btn_layout.addWidget(self.extract_crv_python_brn)
+        two_horizontal_btn_layout.addWidget(self.extract_crv_python_btn)
         two_horizontal_btn_layout.addWidget(self.extract_shape_state_btn)
         top_buttons_layout.addLayout(two_horizontal_btn_layout)
 
