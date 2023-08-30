@@ -1,17 +1,16 @@
 """
 Resource Library Model
 """
-import os.path
+from gt.ui.resource_library import parse_rgb_numbers
+from gt.utils.system_utils import get_desktop_path
+from gt.ui.qt_utils import create_color_pixmap
+from PySide2.QtCore import QFile, QIODevice
+from PySide2.QtGui import QColor, QIcon
+from gt.ui import resource_library
+import logging
 import shutil
 import sys
-
-from PySide2 import QtGui
-
-from gt.ui.resource_library import parse_rgb_numbers
-from gt.ui.qt_utils import create_color_pixmap
-from gt.ui import resource_library
-from PySide2.QtGui import QColor, QIcon, QPixmap
-import logging
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -57,6 +56,14 @@ class ResourceLibraryModel:
             dict: A list containing all the package icons in the ResourceLibraryModel.
         """
         return self.maya_icons
+
+    def get_row_maya_icons(self):
+        """
+        Get all Maya icons (Raw strings) (from resource browser)
+        Returns:
+            dict: A list containing all the package icons in the ResourceLibraryModel.
+        """
+        return self.maya_icons_raw
 
     def add_color(self, color_key, color_str):
         """
@@ -151,18 +158,19 @@ class ResourceLibraryModel:
             key (str): Key for the resource, so it can be retrieved from the source.
             source (str, optional): Name of the source dictionary. (Must be "colors", "package_icons" or "maya_icons")
         """
-        print(f'key: {key}')
-        print(f'source: {source}')
         # ------------------------ Colors ------------------------
         if source == "colors":
             item = self.colors.get(key)
             if not item:
                 logger.warning(f'Unable to export color resource. Missing provided key.')
                 return
+            # Save Dialog
             import maya.cmds as cmds
+            starting_dir = os.path.join(get_desktop_path(), f'{key}.png')
             file_path = cmds.fileDialog2(fileFilter="PNG Image (*.png);;All Files (*)",
                                          dialogStyle=2,
                                          okCaption='Export',
+                                         startingDirectory=starting_dir,
                                          caption='Exporting Color Resource') or []
             if file_path and len(file_path) > 0:
                 file_path = file_path[0]
@@ -183,15 +191,19 @@ class ResourceLibraryModel:
                 return
 
             extension = "svg"
+            file_name = ""
             try:
                 file_name = os.path.basename(icon_path)
                 extension = file_name.rsplit('.', 1)[-1].lower()
             except Exception as e:
                 logger.debug(f'Unable to parse source extension for file dialog. Using default "SVG". Issue: {str(e)}')
+            # Save Dialog
             import maya.cmds as cmds
+            starting_dir = os.path.join(get_desktop_path(), file_name)
             file_path = cmds.fileDialog2(fileFilter=f'{extension.upper()} Image (*.{extension});;All Files (*)',
                                          dialogStyle=2,
                                          okCaption='Export',
+                                         startingDirectory=starting_dir,
                                          caption='Exporting Icon Resource') or []
             if file_path and len(file_path) > 0:
                 file_path = file_path[0]
@@ -201,12 +213,47 @@ class ResourceLibraryModel:
             shutil.copy(icon_path, file_path)
             sys.stdout.write(f'Package icon resource exported to: {file_path}')
         if source == "maya_icons":
-            print("maya_icons")
+            icon_str = self.maya_icons_raw.get(key)
+            if not icon_str:
+                logger.warning(f'Unable to export Maya resource. Missing provided key.')
+                return
+            extension = "png"
+            try:
+                file_name = os.path.basename(icon_str)
+                extension = file_name.rsplit('.', 1)[-1].lower()
+            except Exception as e:
+                logger.debug(f'Unable to parse source extension for file dialog. Using default "PNG". Issue: {str(e)}')
+            # Save Dialog
+            import maya.cmds as cmds
+            starting_dir = os.path.join(get_desktop_path(), icon_str)
+            file_path = cmds.fileDialog2(fileFilter=f'{extension.upper()} Image (*.{extension});;All Files (*)',
+                                         dialogStyle=2,
+                                         okCaption='Export',
+                                         startingDirectory=starting_dir,
+                                         caption='Exporting Icon Resource') or []
+            if file_path and len(file_path) > 0:
+                file_path = file_path[0]
+            else:
+                logger.debug(f'Skipped Maya resource save operation. Invalid file path.')
+                return
+
+            # Extract Resource
+            resource_file = QFile(f':{icon_str}')
+            if not resource_file.exists():
+                logger.debug(f'Skipped Maya resource save operation. Missing resource.')
+                return
+            if not resource_file.open(QIODevice.ReadOnly):
+                return
+            resource_data = resource_file.readAll()
+            resource_file.close()
+
+            with open(file_path, "wb") as save_file:
+                save_file.write(resource_data)
+
+            sys.stdout.write(f'Maya resource exported to: {file_path}')
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     model = ResourceLibraryModel()
     print(model.get_package_icons())
-    # items = model.get_curve_names(formatted=True)
-    # print(model.get_user_curves())

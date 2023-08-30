@@ -38,6 +38,7 @@ class ResourceLibraryController:
         self.model = model
         self.view = view
         self.view.controller = self
+        self.category_filter = "Package Assets"
 
         # Connections
         self.view.save_btn.clicked.connect(self.exported_selected_resource)
@@ -71,7 +72,7 @@ class ResourceLibraryController:
                 color_str = ''
                 has_rgb_data = False
 
-                rgb_attributes = vars(resource_library.Color.Hex)
+                rgb_attributes = vars(resource_library.Color.RGB)
                 if item_name in rgb_attributes:
                     color_str += f'resource_library.Color.RGB.{item_name}'
                     color_str_rgb = getattr(resource_library.Color.RGB, item_name)
@@ -101,13 +102,12 @@ class ResourceLibraryController:
                     icon_str += f'resource_library.Icon.{item_name}'
                 self.view.update_resource_path(text=icon_str)
 
-            # Maya Icons
-        #     elif metadata.get("item_type") == self.TYPE_PACKAGE_ICON:
-        #         self.set_view_user_curve_mode()
-        #         user_preview_image = self.get_custom_curve_preview_image()
-        #         self.view.update_preview_image(new_image_path=user_preview_image)
-        #     elif metadata.get("item_type") == self.TYPE_MAYA_ICON:
-        #         self.set_view_control_curve_mode()
+            # Maya Icons ------------------------------------------------
+            if metadata.get("item_type") == self.TYPE_MAYA_ICON:
+                icon_str = ''
+                raw_maya_icons = self.model.get_row_maya_icons()
+                if item_name in raw_maya_icons:
+                    self.view.update_resource_path(text=raw_maya_icons.get(item_name))
 
     def filter_list(self):
         """
@@ -159,32 +159,22 @@ class ResourceLibraryController:
         self.view.clear_view_library()
         package_icons = self.model.get_package_icons()
         colors = self.model.get_colors()
-        # user_curves = self.model.get_user_curves()
-        # icon_control = QIcon(resource_library.Icon.curve_library_control)
-        # icon_user_crv = QIcon(resource_library.Icon.curve_library_user_curve)
+        maya_icons = self.model.get_maya_icons()
         for name, icon in package_icons.items():
             if filter_str and filter_str not in name:
                 continue
             metadata_icon = {"object": icon, "item_type": self.TYPE_PACKAGE_ICON}
-
             self.view.add_item_view_library(item_name=name, icon=icon, metadata=metadata_icon)
         for name, clr in colors.items():
             if filter_str and filter_str not in name:
                 continue
             metadata_color = {"object": clr, "item_type": self.TYPE_COLOR}
-
             self.view.add_item_view_library(item_name=name, icon=create_color_icon(clr), metadata=metadata_color)
-            # self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_base_crv, metadata=metadata_base_crv)
-        # for ctrl in control_curves:
-        #     if filter_str and filter_str not in ctrl.get_name():
-        #         continue
-        #     metadata_control = {"object": ctrl, "item_type": self.TYPE_MAYA_ICON}
-        #     self.view.add_item_view_library(item_name=ctrl.get_name(), icon=icon_control, metadata=metadata_control)
-        # for crv in user_curves:
-        #     if filter_str and filter_str not in crv.get_name():
-        #         continue
-        #     metadata_user_crv = {"object": crv, "item_type": self.TYPE_PACKAGE_ICON}
-        #     self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_user_crv, metadata=metadata_user_crv)
+        for name, maya_icon in maya_icons.items():
+            if filter_str and filter_str not in name:
+                continue
+            metadata_maya_icon = {"object": maya_icon, "item_type": self.TYPE_MAYA_ICON}
+            self.view.add_item_view_library(item_name=name, icon=maya_icon, metadata=metadata_maya_icon)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def exported_selected_resource(self):
