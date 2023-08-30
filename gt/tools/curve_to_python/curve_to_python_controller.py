@@ -1,7 +1,7 @@
 """
 Package Updater Controller
 """
-from gt.utils.attr_utils import get_user_attr_to_python, get_trs_attr_as_python, get_trs_attr_as_formatted_string
+from gt.utils.curve_utils import get_python_shape_code, get_python_curve_code
 from gt.utils.system_utils import execute_python_code
 from gt.utils.misc_utils import create_shelf_button
 from gt.utils.feedback_utils import FeedbackMessage
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class AttributesToPythonController:
+class CurveToPythonController:
     def __init__(self, view, model=None):
         """
-        Initialize the AttributesToPythonController object.
+        Initialize the CurveToPythonController object.
 
         Args:
             view: The view object to interact with the user interface.
@@ -28,9 +28,8 @@ class AttributesToPythonController:
 
         # # Connections
         self.view.help_btn.clicked.connect(self.open_help)
-        self.view.extract_trs_set_attr_btn.clicked.connect(self.extract_trs_set_attr)
-        self.view.extract_trs_list_btn.clicked.connect(self.extract_trs_list)
-        self.view.extract_user_attr_btn.clicked.connect(self.extract_user_attr)
+        self.view.extract_crv_python_brn.clicked.connect(self.extract_crv_python)
+        self.view.extract_shape_state_btn.clicked.connect(self.extract_crv_state)
         self.view.run_code_btn.clicked.connect(self.run_python_code)
         self.view.save_to_shelf_btn.clicked.connect(self.save_python_to_shelf)
         self.view.show()
@@ -51,11 +50,11 @@ class AttributesToPythonController:
         import maya.cmds as cmds
         selection = cmds.ls(selection=True) or []
         if len(selection) == 0:
-            cmds.warning(f'Please select at least one object an try again.')
+            cmds.warning(f'Please select at least one curve an try again.')
             return []
         return selection
 
-    def extract_trs_set_attr(self):
+    def extract_crv_python(self):
         """
         Extracts the TRS channels as setAttr commands and populates the python output box with the extracted content.
         """
@@ -63,30 +62,19 @@ class AttributesToPythonController:
         if not selection:
             return
         _code = "import maya.cmds as cmds\n\n"
-        _code += get_trs_attr_as_python(obj_list=selection)
+        _code += get_python_curve_code(crv_list=selection)
         self.view.clear_python_output()
         self.view.set_python_output_text(text=_code)
 
-    def extract_trs_list(self):
+    def extract_crv_state(self):
         """
         Extracts the TRS channels as lists and populates the python output box with the extracted content.
         """
         selection = self.__get_selection()
         if not selection:
             return
-        _code = get_trs_attr_as_formatted_string(obj_list=selection, add_description=True, separate_channels=True)
-        self.view.clear_python_output()
-        self.view.set_python_output_text(text=_code)
-
-    def extract_user_attr(self):
-        """
-        Extracts the User-defined attributes as lists and populates the python output box with the extracted content.
-        """
-        selection = self.__get_selection()
-        if not selection:
-            return
         _code = "import maya.cmds as cmds\n\n"
-        _code += get_user_attr_to_python(obj_list=selection)
+        _code += get_python_shape_code(crv_list=selection)
         self.view.clear_python_output()
         self.view.set_python_output_text(text=_code)
 
@@ -121,4 +109,3 @@ class AttributesToPythonController:
 
 if __name__ == "__main__":
     print('Run it from "__init__.py".')
-

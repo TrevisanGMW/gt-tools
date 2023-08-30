@@ -46,7 +46,7 @@ class CurveLibraryController:
         # Connections
         self.view.build_button.clicked.connect(self.build_view_selected_curve)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
-        self.view.search_edit.textChanged.connect(self.filter_list)
+        self.view.search_bar.textChanged.connect(self.filter_list)
         self.view.parameters_button.clicked.connect(self.open_parameter_editor)
         self.view.add_custom_button.clicked.connect(self.add_user_curve)
         self.view.delete_custom_button.clicked.connect(self.remove_user_curve)
@@ -100,7 +100,7 @@ class CurveLibraryController:
         """
         Filter the curve library list based on the search text entered by the user.
         """
-        search_text = self.view.search_edit.text().lower()
+        search_text = self.view.search_bar.text().lower()
         self.populate_curve_library(filter_str=search_text)
 
     def build_view_selected_curve(self):

@@ -147,8 +147,6 @@ class PythonSyntaxHighlighter(QSyntaxHighlighter):
             (r'\bdef\b\s*(\w+)', 1, style_def_class),
             # 'class' followed by an identifier
             (r'\bclass\b\s*(\w+)', 1, style_def_class),
-            # From '#' until a newline
-            (r'#[^\n]*', 0, style_comment),
             # Numeric literals
             (r'\b[+-]?[0-9]+[lL]?\b', 0, style_number),
             (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', 0, style_number),
@@ -156,6 +154,8 @@ class PythonSyntaxHighlighter(QSyntaxHighlighter):
             # Strings Non-comments
             (r'"[^"]*"|"""[^"]*"""', 0, style_string),
             (r"'[^']*'|'''[^']*'''", 0, style_string),
+            # From '#' until a newline
+            (r'#[^\n]*', 0, style_comment),
         ]
         rules += [(rf'(?<!\bdef )\b{dunder}\b', 0, style_dunder) for dunder in self.dunder_methods]
         # Build a QRegExp for each pattern
@@ -239,5 +239,6 @@ if __name__ == "__main__":
         text_edit = QTextEdit(main_window)
         highlighter = PythonSyntaxHighlighter(text_edit.document())
         main_window.setCentralWidget(text_edit)
-        text_edit.setText(inspect.getsource(sys.modules[__name__]))
+        mocked_text = '# Transform Data for "pSphere1":\n' + inspect.getsource(sys.modules[__name__])
+        text_edit.setText(mocked_text)
         main_window.show()

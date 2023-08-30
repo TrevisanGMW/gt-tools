@@ -7,18 +7,17 @@
  Added save to shelf
  Added triple quote to string attributes
 
- 2.0.0 - 2023-08-27
+ 2.0.0 to 2.0.1 - 2023-08-27
  Updated to VMC model using QT for the view.
  Added code highlighter
  Added line numbers
  Made view dockable
- Used utility functions
 """
 from gt.tools.attributes_to_python import attributes_to_python_controller
 from gt.tools.attributes_to_python import attributes_to_python_view
 from gt.ui import qt_utils
 
-__version_tuple__ = (2, 0, 0)
+__version_tuple__ = (2, 0, 1)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

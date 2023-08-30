@@ -102,18 +102,14 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("curve_library")',
                        tooltip="Open Curve Library tools.",
                        icon=resource_library.Icon.tool_crv_library)
+    menu.add_menu_item(label='Curve to Python',
+                       command=IMPORT_TOOL + 'initialize_tool("curve_to_python")',
+                       tooltip='Extracts python code to recreate or reshape curves.',
+                       icon=resource_library.Icon.tool_crv_python)
     menu.add_menu_item(label='Generate Text Curve',
                        command=IMPORT_TOOL + 'initialize_tool("shape_text_to_curve")',
                        tooltip='Generates a single curve containing all shapes necessary to produce a word/text.',
                        icon=resource_library.Icon.tool_crv_text)
-    menu.add_menu_item(label='Extract Python Curve',
-                       command=IMPORT_TOOL + 'initialize_tool("shape_curve_to_python")',
-                       tooltip='Generates the python code necessary to create a selected curve.',
-                       icon=resource_library.Icon.tool_crv_python)
-    menu.add_menu_item(label='Extract Curve State',
-                       command=IMPORT_TOOL + 'initialize_tool("shape_extract_state")',
-                       tooltip='Generates the python command necessary to reshape curves back to their stored state.',
-                       icon=resource_library.Icon.tool_crv_extract_state)
 
     menu.add_divider(divider_label="Utilities")  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Combine Curves',
@@ -241,11 +237,6 @@ def load_menu(*args):
                        tooltip='Toggles most of the Heads-Up Display (HUD) options according to the state of '
                                'the majority of them. (Keeps default elements intact when toggling it off)',
                        icon=resource_library.Icon.util_hud_toggle)
-    menu.add_menu_item(label='Resource Browser',
-                       command=IMPORT_UTIL + 'initialize_utility("misc_utils", "open_resource_browser")',
-                       tooltip="Opens Maya's Resource Browser. "
-                               "A good way to find icons or elements you may want to use.",
-                       icon=resource_library.Icon.util_resource_browser)
     menu.add_menu_item(label='Select Non-Unique Objects',
                        command=IMPORT_UTIL + 'initialize_utility("selection_utils", "select_non_unique_objects")',
                        tooltip='Selects all objects with the same short name. (non-unique objects)',
@@ -381,6 +372,11 @@ def load_menu(*args):
         menu.add_sub_menu("Develop",
                           icon=resource_library.Icon.root_dev,
                           parent_to_root=True)
+        menu.add_menu_item(label='Resource Library',
+                           command=IMPORT_TOOL + 'initialize_tool("resource_library")',
+                           tooltip="Opens Resource Library."
+                                   "Library with colors, package icons and Maya icons.",
+                           icon=resource_library.Icon.tool_resource_library)
         menu.add_menu_item(label='Sample Tool',
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",

@@ -1,9 +1,12 @@
+from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QFrame, QWidget, QTextEdit, QHBoxLayout, QDialog, QVBoxLayout
-from PySide2.QtGui import QPainter, QColor
+from PySide2.QtGui import QPainter, QColor, QTextOption, QFont
 from gt.ui import resource_library
 import logging
 
 # Logging Setup
+from ui.qt_utils import load_custom_font
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -17,7 +20,6 @@ class LineTextWidget(QFrame):
         """
         Widget for displaying line numbers.
         """
-
         def __init__(self, *args):
             super().__init__(*args)
             self.text_edit = None
@@ -25,6 +27,11 @@ class LineTextWidget(QFrame):
             self.number_color = QColor(resource_library.Color.Hex.gray_lighter)
             self.number_bold_color = QColor(resource_library.Color.Hex.gray_lighter)
             self.bar_width_offset = 5
+
+            # Set a font
+            font = QFont(load_custom_font(resource_library.Font.roboto))
+            font.setPointSizeF(10)  # Adjust the desired font size
+            self.setFont(font)
 
         def set_text_edit(self, edit):
             """
@@ -81,7 +88,9 @@ class LineTextWidget(QFrame):
                 # Draw the line number right justified at the y position of the line.
                 # 3 is a magic padding number. drawText(x, y, text).
                 margins = self.text_edit.contentsMargins()
-                text_width = font_metrics.boundingRect(str(line_count)).width()
+                # text_width = font_metrics.boundingRect(str(line_count)).width()
+                # Calculate the text width using logical pixel units
+                text_width = font_metrics.horizontalAdvance(str(line_count))
                 painter.drawText(self.width() - text_width - 3,
                                  round(position.y()) - contents_y + font_metrics.ascent() + margins.top(),
                                  str(line_count))
@@ -110,6 +119,9 @@ class LineTextWidget(QFrame):
         self.edit.setFrameStyle(QFrame.NoFrame)
         self.edit.setLineWrapMode(QTextEdit.NoWrap)
         self.edit.setAcceptRichText(False)
+        font = QFont(load_custom_font(resource_library.Font.roboto))
+        font.setPointSizeF(10)
+        self.edit.setFont(font)
 
         self.number_bar = self.NumberBar()
         self.number_bar.set_text_edit(self.edit)

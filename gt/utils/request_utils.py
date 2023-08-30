@@ -116,6 +116,13 @@ def open_url_in_browser(url):
         logger.warning(f"An error occurred when opening URL in browser: {e}")
 
 
+def open_package_docs_url_in_browser():
+    """
+    Opens the package docs URL in a web browser.
+    """
+    open_url_in_browser(r"https://github.com/TrevisanGMW/gt-tools/tree/release/docs")
+
+
 def get_http_response_type(status_code):
     """
     Determine the type of HTTP response based on the status code.

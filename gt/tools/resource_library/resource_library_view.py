@@ -1,7 +1,9 @@
 """
-Curve Library View - The main GUI window class for the Curve Library tool.
+Resource Library View
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
+from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+from PySide2.QtWidgets import QTextEdit, QComboBox
 import gt.ui.resource_library as resource_library
 from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
@@ -12,33 +14,31 @@ import gt.ui.qt_utils as qt_utils
 from PySide2.QtCore import Qt
 
 
-class CurveLibraryView(metaclass=MayaWindowMeta):
+class ResourceLibraryView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
-        Initialize the CurveLibraryWindow.
+        Initialize the ResourceLibraryView.
         This window represents the main GUI window of the tool.
 
         Args:
             parent (str): Parent for this window
-            controller (CurveLibraryController): CurveLibraryController, not to be used, here so it's not deleted by
-                                                 the garbage collector.  Defaults to None.
+            controller (ResourceLibraryController): ResourceLibraryController, not to be used.
+                                                    Here to avoid the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
-        # super(CurveLibraryWindow, self).__init__(parent=parent)
+        # super(ResourceLibraryView, self).__init__(parent=parent)
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.splitter = None
         self.search_bar = None
         self.item_list = None
-        self.add_custom_button = None
-        self.delete_custom_button = None
-        self.build_button = None
+        self.save_btn = None
         self.preview_image = None
         self.description = None
-        self.snapshot_button = None
-        self.parameters_button = None
+        self.resource_path = None
+        self.source_combo_box = None
 
-        window_title = "GT Curve Library"
+        window_title = "GT Resource Library"
         if version:
             window_title += f' - (v{str(version)})'
         self.setWindowTitle(window_title)
@@ -50,74 +50,68 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_resource_library))
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.combobox_dark
         self.setStyleSheet(stylesheet)
-        qt_utils.resize_to_screen(self, percentage=30)
+        qt_utils.resize_to_screen(self, percentage=35)
         qt_utils.center_window(self)
         self.resize_splitter_to_screen()
 
-    def update_preview_image(self, new_image_path=None):
+    def update_preview_image(self, new_image=None):
         """
         Update the preview image displayed in the window.
 
         Args:
-            new_image_path (str, optional): The path to the new image file.
-                                            Defaults to None, which becomes "missing_preview_file"
+            new_image (str, QPixmap, optional): The path to the new image file.
+                                                     Defaults to None, which becomes "missing_preview_file"
         """
-        if new_image_path:
-            self.preview_image.set_pixmap(QPixmap(new_image_path))
+        if new_image:
+            if isinstance(new_image, str):
+                new_image = QPixmap(new_image)
+            self.preview_image.set_pixmap(new_image)
         else:
             self.preview_image.set_pixmap(QPixmap(resource_library.Icon.curve_library_missing_file))
 
     def create_widgets(self):
         """Create the widgets for the window."""
         self.item_list = QListWidget()
-        self.build_button = QPushButton("Build")
-        self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
-        self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.save_btn = QPushButton("Export Resource")
+        self.save_btn.setIcon(QIcon(resource_library.Icon.curve_library_build))
+        self.save_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
-        # Buttons
-        self.add_custom_button = QPushButton("Save Curve")
-        add_custom_tooltip = "Saves a Maya selected Nurbs/Bezier element as a user-defined curve in the Curve Library"
-        self.add_custom_button.setToolTip(add_custom_tooltip)
-        self.add_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_add))
-        self.delete_custom_button = QPushButton("Delete Curve")
-        self.delete_custom_button.setEnabled(False)
-        self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
+        self.resource_path = QTextEdit()
+        PythonSyntaxHighlighter(self.resource_path.document())
+        self.resource_path.setMaximumHeight(60)
+
+        self.source_combo_box = QComboBox()
+        self.source_combo_box.addItem("All")
+        self.source_combo_box.addItem("Package Resources")
+        self.source_combo_box.addItem("Package Icons Only")
+        self.source_combo_box.addItem("Package Colors Only")
+        self.source_combo_box.addItem("Maya Resources")
+
         self.description = QLabel("<description>")
         self.description.setMaximumHeight(20)
         self.description.setAlignment(Qt.AlignCenter)
-        self.snapshot_button = QPushButton("Create Snapshot")
-        self.snapshot_button.setEnabled(False)
-        self.snapshot_button.setIcon(QIcon(resource_library.Icon.curve_library_snapshot))
-        self.parameters_button = QPushButton("Edit Parameters")
-        self.parameters_button.setEnabled(False)
-        self.parameters_button.setIcon(QIcon(resource_library.Icon.curve_library_edit))
         # Initial Image Update
         self.update_preview_image()
 
     def create_layout(self):
         """Create the layout for the window."""
-
-        user_curve_action_layout = QtWidgets.QHBoxLayout()
-        user_curve_action_layout.addWidget(self.add_custom_button)
-        user_curve_action_layout.addWidget(self.delete_custom_button)
-
-        custom_action_layout = QtWidgets.QHBoxLayout()
-        custom_action_layout.addWidget(self.snapshot_button)
-        custom_action_layout.addWidget(self.parameters_button)
+        search_layout = QtWidgets.QHBoxLayout()
+        search_layout.addWidget(self.search_bar, 2)
+        search_layout.addWidget(self.source_combo_box, 1)
 
         list_container = QWidget()
         list_layout = QtWidgets.QVBoxLayout()
-        list_layout.addWidget(self.search_bar)
+        list_layout.addLayout(search_layout)
         list_layout.addWidget(self.item_list)
-        list_layout.addLayout(user_curve_action_layout)
         list_container.setLayout(list_layout)
         list_container.setMinimumWidth(200)
         list_container.setMinimumHeight(200)
@@ -126,8 +120,8 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         side_menu_layout = QtWidgets.QVBoxLayout()
         side_menu_layout.addWidget(self.description)
         side_menu_layout.addWidget(self.preview_image)
-        side_menu_layout.addLayout(custom_action_layout)
-        side_menu_layout.addWidget(self.build_button)
+        side_menu_layout.addWidget(self.resource_path)
+        side_menu_layout.addWidget(self.save_btn)
         preview_container.setLayout(side_menu_layout)
         preview_container.setMinimumWidth(200)
         preview_container.setMinimumHeight(200)
@@ -141,6 +135,14 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         main_layout = QtWidgets.QHBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 11)  # Make Margins Uniform LTRB
         main_layout.addWidget(self.splitter)
+
+    def update_resource_path(self, text):
+        """
+        Updates the text content of the resource path
+        Args:
+            text (str): New text to be displayed in the resource path box.
+        """
+        self.resource_path.setText(text)
 
     def resize_splitter_to_screen(self, percentage=20):
         """
@@ -157,7 +159,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
             raise ValueError("Percentage should be between 0 and 100")
         screen_geometry = QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width*.70, width*.65])
+        self.splitter.setSizes([width*.55, width*.60])
 
     def clear_view_library(self):
         """
@@ -172,7 +174,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         Args:
             item_name (str): A name for the item that will be added to the list
             hex_color (str, optional): A string with a hex color to be used for the added item (e.g. "#FF0000" = Red)
-            icon (QIcon, optional): A icon to be added in front of the curve name
+            icon (QIcon, optional): A icon to be added in front of the item name
             metadata (dict, optional): If provided, this will be added as metadata to the item.
         """
         _item = QListWidgetItem(item_name)
@@ -184,37 +186,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
             _item.setData(Qt.UserRole, metadata)
         self.item_list.addItem(_item)
 
-    def set_delete_button_enabled(self, is_enabled):
-        """
-        Set the enabled state of the delete button.
-
-        Args:
-            is_enabled (bool): True to enable the delete button, False to disable it.
-        """
-        if isinstance(is_enabled, bool):
-            self.delete_custom_button.setEnabled(is_enabled)
-
-    def set_parameters_button_enabled(self, is_enabled):
-        """
-        Set the enabled state of the parameters button.
-
-        Args:
-            is_enabled (bool): True to enable the parameters button, False to disable it.
-        """
-        if isinstance(is_enabled, bool):
-            self.parameters_button.setEnabled(is_enabled)
-
-    def set_snapshot_button_enabled(self, is_enabled):
-        """
-        Set the enabled state of the snapshot button.
-
-        Args:
-            is_enabled (bool): True to enable the snapshot button, False to disable it.
-        """
-        if isinstance(is_enabled, bool):
-            self.snapshot_button.setEnabled(is_enabled)
-
-    def update_curve_description(self, new_title, new_description):
+    def update_item_description(self, new_title, new_description):
         """
         Updates the curve description label (text) with the given new description.
         Args:
@@ -237,10 +209,10 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
 
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
-        window = CurveLibraryView()
+        window = ResourceLibraryView()
         mocked_icon = QIcon(resource_library.Icon.curve_library_base_curve)
-        window.add_item_view_library("curve_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
-        window.add_item_view_library("curve_two", icon=QIcon(resource_library.Icon.curve_library_control))
+        window.add_item_view_library("item_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
+        window.add_item_view_library("item_two", icon=QIcon(resource_library.Icon.curve_library_control))
         for index in range(1, 101):
-            window.add_item_view_library(f"curve_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
+            window.add_item_view_library(f"item_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
         window.show()
