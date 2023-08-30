@@ -101,7 +101,15 @@ class ResourceLibraryModel:
             icon_str (str): Maya resource string
         """
         self.maya_icons_raw[icon_key] = icon_str
-        self.maya_icons[icon_key] = QIcon(f':{icon_str}')
+        icon = QIcon(f':{icon_str}')
+        if icon_str.endswith(".png"):
+            try:
+                pixmap = icon.pixmap(icon.actualSize(icon.availableSizes()[0]))
+                scaled_pixmap = pixmap.scaled(pixmap.width() * 10, pixmap.height() * 10)
+                icon = QIcon(scaled_pixmap)
+            except Exception as e:
+                logger.debug(f'Unable to re-scale Maya icon. Issue: {str(e)}')
+        self.maya_icons[icon_key] = icon
 
     def import_package_colors(self):
         """
@@ -127,10 +135,12 @@ class ResourceLibraryModel:
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
+        undesired_resources = ["ce2_icons", "ce2_python", "ce2_scripts", "qgradient", "qpdf", "qt-project.org", "qtwebchannel", "sows"]
         try:
             import maya.cmds as cmds
             for icon in cmds.resourceManager(nameFilter="*"):
-                self.add_maya_icon(icon_key=icon, icon_str=icon)
+                if icon not in undesired_resources:
+                    self.add_maya_icon(icon_key=icon, icon_str=icon)
         except Exception as e:
             logger.debug(f'Unable to get Maya resources. Issue: {e}')
 
