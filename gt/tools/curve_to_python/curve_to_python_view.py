@@ -1,5 +1,5 @@
 """
-AttributesToPythonView View/Window
+CurveToPythonView View/Window
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
@@ -11,15 +11,15 @@ import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
 
 
-class AttributesToPythonView(metaclass=MayaWindowMeta):
+class CurveToPythonView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
-        Initialize the AttributesToPythonView.
+        Initialize the CurveToPythonView.
         This window represents the main GUI window of the tool.
 
         Args:
             parent (str): Parent for this window
-            controller (AttributesToPythonViewController): AttributesToPythonViewController, not to be used, here so
+            controller (CurveToPythonViewController): CurveToPythonViewController, not to be used, here so
                                                           it's not deleted by the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
@@ -28,7 +28,7 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Attributes to Python"
+        self.window_title = "GT Curve to Python"
         _window_title = self.window_title
         if version:
             _window_title += f' - (v{str(version)})'
@@ -39,9 +39,8 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.output_python_label = None
         # Buttons
         self.help_btn = None
-        self.extract_trs_set_attr_btn = None
-        self.extract_trs_list_btn = None
-        self.extract_user_attr_btn = None
+        self.extract_crv_python_brn = None
+        self.extract_shape_state_btn = None
         self.run_code_btn = None
         self.save_to_shelf_btn = None
         # Misc
@@ -59,9 +58,8 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
-        self.extract_trs_set_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_trs_list_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_user_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_crv_python_brn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_shape_state_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
         qt_utils.center_window(self)
 
@@ -92,12 +90,11 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
                                              self.output_python_box.sizePolicy().Expanding)
 
-        self.extract_trs_set_attr_btn = QPushButton('Extract Default Attributes to "setAttr"')
-        self.extract_trs_set_attr_btn.setToolTip("Extracts translate, rotate and scale attributes to set attributes.")
-        self.extract_user_attr_btn = QPushButton('Extract User-Defined Attributes')
-        self.extract_user_attr_btn.setToolTip("Extracts user-defined attributes.")
-        self.extract_trs_list_btn = QPushButton("Extract Default Attributes to List")
-        self.extract_trs_list_btn.setToolTip('Extract translate, rotate and scale attributes to a lists.')
+        self.extract_crv_python_brn = QPushButton('Extract Curve to Python')
+        self.extract_crv_python_brn.setToolTip("Extracts curves as python code. (New Curve)")
+        self.extract_shape_state_btn = QPushButton("Extract Shape State to Python")
+        self.extract_shape_state_btn.setToolTip('Extracts curve shape state. '
+                                                '(Snapshot of the shape)')
         self.run_code_btn = QPushButton("Run Code")
         self.run_code_btn.setStyleSheet("padding: 10;")
         self.save_to_shelf_btn = QPushButton("Save to Shelf")
@@ -108,10 +105,9 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
 
         top_buttons_layout = QtWidgets.QVBoxLayout()
         two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
-        two_horizontal_btn_layout.addWidget(self.extract_trs_set_attr_btn)
-        two_horizontal_btn_layout.addWidget(self.extract_trs_list_btn)
+        two_horizontal_btn_layout.addWidget(self.extract_crv_python_brn)
+        two_horizontal_btn_layout.addWidget(self.extract_shape_state_btn)
         top_buttons_layout.addLayout(two_horizontal_btn_layout)
-        top_buttons_layout.addWidget(self.extract_user_attr_btn)
 
         mid_layout = QVBoxLayout()
         mid_layout.addWidget(self.output_python_label)
@@ -179,6 +175,6 @@ if __name__ == "__main__":
     import sys
 
     with qt_utils.QtApplicationContext():
-        window = AttributesToPythonView(version="1.2.3")  # View
+        window = CurveToPythonView(version="1.2.3")  # View
         window.set_python_output_text(text=inspect.getsource(sys.modules[__name__]))
         window.show()

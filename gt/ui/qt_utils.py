@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
+from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon
 from gt.utils.session_utils import is_script_in_interactive_maya
-from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap
 from gt.utils.system_utils import is_system_macos
 from PySide2 import QtGui, QtCore, QtWidgets
 from PySide2.QtCore import QPoint
@@ -509,6 +509,57 @@ class QtApplicationContext:
         if exc_type is not None:
             logger.warning(f"An exception of type {exc_type} occurred with value: {exc_value}")
         return False
+
+
+def create_color_pixmap(color, width=24, height=24):
+    """
+    Creates a QIcon for a given QColor with the specified icon size.
+
+    Args:
+        color: The QColor for which to create the icon.
+        width (int, optional): The size of the pixmap in pixels (width). Defaults to 24.
+        height (int, optional): The size of the pixmap in pixels (height). Defaults to 24.
+
+    Returns:
+        The created QPixmap with the specified color, or None if color is invalid.
+    """
+    if not isinstance(color, QColor):
+        logger.debug("Invalid color provided. Please provide a valid QColor object.")
+        return None
+
+    pixmap = QPixmap(width, height)
+    pixmap.fill(color)
+    return pixmap
+
+
+def create_color_icon(color, width=24, height=24):
+    """
+    Creates a QIcon for a given QColor with the specified icon size.
+
+    Args:
+        color: The QColor for which to create the icon.
+        width (int, optional): The size of the icon in pixels (width). Defaults to 24.
+        height (int, optional): The size of the icon in pixels (height). Defaults to 24.
+
+    Returns:
+        The created QIcon with the specified color, or None if color is invalid.
+
+    Example:
+        # Create a color icon with the default size (24x24) using a red QColor
+        red_color = QColor(255, 0, 0)
+        red_icon = create_color_icon(red_color)
+
+        # Create a color icon with a custom size (32x32) using a blue QColor
+        blue_color = QColor(0, 0, 255)
+        blue_icon = create_color_icon(blue_color, icon_size=32)
+    """
+    if not isinstance(color, QColor):
+        logger.debug("Invalid color provided. Please provide a valid QColor object.")
+        return None
+
+    pixmap = create_color_pixmap(color=color, width=width, height=height)
+    icon = QIcon(pixmap)
+    return icon
 
 
 if __name__ == "__main__":

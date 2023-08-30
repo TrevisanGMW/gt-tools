@@ -825,15 +825,11 @@ class CurveShape:
                     except Exception as e:
                         logger.debug(f'Unable to clean up scene after extracting curve. Issue: {str(e)}')
 
-    def build(self, replace_crv=None):
+    def get_parameters(self):
         """
-        Use the loaded values of the object to generate/create a Maya curve.
-        Since a shape can't exist on its own, a transform (group) is created for it.
-        When a name is provided, it uses the name variable followed by "_transform" as the name of the transform group.
-        Args:
-            replace_crv (str): Name of the curve to replace
+        Gets the Maya command parameters used to build the curve.
         Returns:
-            str: Name of the generated shape
+            dict or None: Dictionary with parameters or None if the curve is invalid.
         """
         # Basic elements -----------------------------------------
         if not self.is_curve_shape_valid():
@@ -862,6 +858,21 @@ class CurveShape:
         for key, value in named_parameters.items():
             if value:
                 parameters[key] = value
+        return parameters
+
+    def build(self, replace_crv=None):
+        """
+        Use the loaded values of the object to generate/create a Maya curve.
+        Since a shape can't exist on its own, a transform (group) is created for it.
+        When a name is provided, it uses the name variable followed by "_transform" as the name of the transform group.
+        Args:
+            replace_crv (str): Name of the curve to replace
+        Returns:
+            str: Name of the generated shape or python code to generate the curve.
+        """
+        parameters = self.get_parameters()
+        if not parameters:
+            return
         if replace_crv:
             curve_output = cmds.curve(replace_crv, replace=True, **parameters)
             for shape in cmds.listRelatives(curve_output, shapes=True) or []:
@@ -1686,18 +1697,91 @@ def add_shape_scale_cluster(curve, scale_driver_attr):
         return cluster_handle
 
 
+def filter_curve_shapes(obj_list, get_transforms=False):
+    """
+    Filters transforms and shapes from object list into a list of acceptable objects (only "Nurbs" or "Bezier" curves)
+    Args:
+        obj_list (list): List of objects to filter.
+        get_transforms (bool, optional): If active, it will return the transforms of valid objects. If False, shapes.
+    Returns:
+        list: Filtered shapes (not the transforms, but the shapes) - (only "Nurbs" or "Bezier" curves)
+    """
+    nurbs_shapes = []
+    bezier_shapes = []
+    valid_curve_transforms = set()
+
+    for obj in obj_list:
+        shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+        for shape in shapes:
+            if cmds.objectType(shape) == CURVE_TYPE_BEZIER:
+                bezier_shapes.append(shape)
+                valid_curve_transforms.add(obj)
+            if cmds.objectType(shape) == CURVE_TYPE_NURBS:
+                nurbs_shapes.append(shape)
+                valid_curve_transforms.add(obj)
+    if get_transforms:
+        return list(valid_curve_transforms)
+    return nurbs_shapes + bezier_shapes
+
+
+def get_python_shape_code(crv_list):
+    """
+    Extracts the Python code necessary to reshape an existing curve. (its current state)
+    Args:
+        crv_list (list, str): Transforms carrying curve shapes inside them (nurbs or bezier)
+                              Strings are automatically converted to a list with a single item.
+
+    Returns:
+        str: Python code with the current state of the selected curves (their shape)
+    """
+    shapes = filter_curve_shapes(obj_list=crv_list)
+    output = ''
+
+    for shape in shapes:
+        curve_data = zip(cmds.ls(f'{shape}.cv[*]', flatten=True), cmds.getAttr(f'{shape}.cv[*]'))
+        curve_data_list = list(curve_data)
+        # Assemble command:
+        if curve_data_list:
+            output += '# Shape state for "' + str(shape).split('|')[-1] + '":\n'
+            output += 'for cv in ' + str(curve_data_list) + ':\n'
+            output += '    cmds.xform(cv[0], os=True, t=cv[1])\n\n'
+
+    if output.endswith('\n\n'):  # Removes unnecessary spaces at the end
+        output = output[:-2]
+    return output
+
+
+def get_python_curve_code(crv_list):
+    """
+    Extracts the Python code necessary to reshape an existing curve. (its current state)
+    Args:
+        crv_list (list, str): Transforms carrying curve shapes inside them (nurbs or bezier)
+                              Strings are automatically converted to a list with a single item.
+
+    Returns:
+        str: Python code with the current state of the selected curves (their shape)
+    """
+    shapes = filter_curve_shapes(obj_list=crv_list)
+    output = ''
+
+    for shape in shapes:
+        shape_obj = CurveShape(read_existing_shape=shape)
+        parameters = shape_obj.get_parameters()
+        args = ", ".join(f"{key}={repr(value)}" for key, value in parameters.items())
+        output += '# Curve data for "' + str(shape).split('|')[-1] + '":\n'
+        output += f'cmds.curve({args})\n\n'
+
+    if output.endswith('\n\n'):  # Removes unnecessary spaces at the end
+        output = output[:-2]
+    return output
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    temp = get_curve("circle")
-    test = Transform()
-    test.set_position(0, 10, 0)
-
-    temp.transform = test
-
-    print(temp.transform)
-    temp.build()
-
+    sel = cmds.ls(selection=True)
+    out = get_python_curve_code(sel)
+    print(out)

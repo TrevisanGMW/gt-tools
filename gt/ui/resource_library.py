@@ -281,7 +281,6 @@ class Icon:
     util_reload_file = get_icon_path(r"util_reload_file.svg")
     util_open_dir = get_icon_path(r"util_open_dir.svg")
     util_hud_toggle = get_icon_path(r"util_hud_toggle.svg")
-    util_resource_browser = get_icon_path(r"util_resource_browser.svg")
     util_sel_non_unique = get_icon_path(r"util_sel_non_unique.svg")
     util_joint_to_label = get_icon_path(r"util_joint_to_label.svg")
     util_lra_toggle = get_icon_path(r"util_lra_toggle.svg")
@@ -315,6 +314,7 @@ class Icon:
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
     # Dev
+    tool_resource_library = get_icon_path(r"tool_resource_library.svg")
     dev_brain = get_icon_path(r"dev_brain.svg")
     dev_parameters = get_icon_path(r"dev_parameters.svg")
     dev_git_fork = get_icon_path(r"dev_git_fork.svg")
@@ -377,67 +377,6 @@ class Color:
             e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
             Value range 0-255
             """
-        # Basic -----------------------------------------
-        transparent = 'rgba(0, 0, 0, 0)'
-        black = "rgb(0, 0, 0)"
-        white = "rgb(255, 255, 255)"
-
-        # White -----------------------------------------
-        white_floral = "rgb(255, 250, 240)"
-        white_ghost = "rgb(248, 248, 255)"
-        white_ivory = "rgb(255, 255, 240)"
-        white_snow = "rgb(255, 250, 250)"
-        white_smoke = "rgb(245, 245, 245)"
-        white_smoke_darker = 'rgba(238,238,238,255)'
-        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
-        white_antique = "rgb(250, 235, 215)"
-        white_beige = "rgb(245, 245, 220)"
-        white_bisque = "rgb(255, 228, 196)"
-        white_blanched_almond = "rgb(255, 235, 205)"
-        white_wheat = "rgb(245, 222, 179)"
-        white_corn_silk = "rgb(255, 248, 220)"
-        white_lemon_chiffon = "rgb(255, 250, 205)"
-        white_light_golden_rod_yellow = "rgb(250, 250, 210)"
-        white_light_yellow = "rgb(255, 255, 224)"
-        white_brown_rosy = "rgb(188, 143, 143)"
-        white_brown_moccasin = "rgb(255, 228, 181)"
-        white_brown_navajo = "rgb(255, 222, 173)"
-        white_peach_puff = "rgb(255, 218, 185)"
-        white_misty_rose = "rgb(255, 228, 225)"
-        white_lavender_blush = "rgb(255, 240, 245)"
-        white_lavender = "rgb(230, 230, 250)"
-        white_linen = "rgb(250, 240, 230)"
-        white_old_lace = "rgb(253, 245, 230)"
-        white_papaya_whip = "rgb(255, 239, 213)"
-        white_sea_shell = "rgb(255, 245, 238)"
-        white_mint_cream = "rgb(245, 255, 250)"
-
-        # Gray -------------------------------------------
-        gray_dim = "rgb(105, 105, 105)"
-        gray = "rgb(128, 128, 128)"
-        gray_dark = "rgb(169, 169, 169)"
-        gray_silver = "rgb(192, 192, 192)"
-        gray_light = "rgb(211, 211, 211)"
-        gray_dark_slate_gray = "rgb(47, 79, 79)"
-        gray_nero = 'rgba(20, 20, 20,255)'
-        gray_much_darker = 'rgba(29, 29, 29,255)'
-        gray_darker_mid = 'rgba(35, 35, 35, 255)'
-        gray_darker = 'rgba(43, 43, 43, 255)'
-        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
-        gray_mid_dark = 'rgba(68, 68, 68, 255)'
-        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
-        gray_mid = 'rgba(73, 73, 73, 255)'
-        gray_mid_light = 'rgba(82, 82, 82, 255)'
-        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
-        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
-        grey_light = 'rgba(145, 145, 145, 255)'
-        gray_lighter = 'rgba(160, 160, 160, 255)'
-        gray_dark_silver = 'rgba(180, 180, 180, 255)'
-        gray_gainsboro = "rgb(220, 220, 220)"
-        gray_slate = "rgb(112, 128, 144)"
-        gray_light_slate = "rgb(119, 136, 153)"
-        gray_light_steel_blue = "rgb(176, 196, 222)"
-
         # Red -------------------------------------------
         red_maroon = "rgb(128, 0, 0)"
         red_metallic_dark = "rgb(139, 0, 0)"
@@ -485,7 +424,7 @@ class Color:
         green_lime_pure = "rgb(0, 255, 0)"
         green_lime = "rgb(50, 205, 50)"
         green_light = "rgb(144, 238, 144)"
-        green_pale_ = "rgb(152, 251, 152)"
+        green_pale = "rgb(152, 251, 152)"
         green_dark_sea = "rgb(143, 188, 143)"
         green_oxley = 'rgba(96, 152, 129, 255)'
         green_medium_spring = "rgb(0, 250, 154)"
@@ -573,6 +512,67 @@ class Color:
         brown_burly_wood = "rgb(222, 184, 135)"
         brown_tan = "rgb(210, 180, 140)"
 
+        # White -----------------------------------------
+        white = "rgb(255, 255, 255)"
+        white_floral = "rgb(255, 250, 240)"
+        white_ghost = "rgb(248, 248, 255)"
+        white_ivory = "rgb(255, 255, 240)"
+        white_snow = "rgb(255, 250, 250)"
+        white_smoke = "rgb(245, 245, 245)"
+        white_smoke_darker = 'rgba(238,238,238,255)'
+        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
+        white_antique = "rgb(250, 235, 215)"
+        white_beige = "rgb(245, 245, 220)"
+        white_bisque = "rgb(255, 228, 196)"
+        white_blanched_almond = "rgb(255, 235, 205)"
+        white_wheat = "rgb(245, 222, 179)"
+        white_corn_silk = "rgb(255, 248, 220)"
+        white_lemon_chiffon = "rgb(255, 250, 205)"
+        white_light_golden_rod_yellow = "rgb(250, 250, 210)"
+        white_light_yellow = "rgb(255, 255, 224)"
+        white_brown_rosy = "rgb(188, 143, 143)"
+        white_brown_moccasin = "rgb(255, 228, 181)"
+        white_brown_navajo = "rgb(255, 222, 173)"
+        white_peach_puff = "rgb(255, 218, 185)"
+        white_misty_rose = "rgb(255, 228, 225)"
+        white_lavender_blush = "rgb(255, 240, 245)"
+        white_lavender = "rgb(230, 230, 250)"
+        white_linen = "rgb(250, 240, 230)"
+        white_old_lace = "rgb(253, 245, 230)"
+        white_papaya_whip = "rgb(255, 239, 213)"
+        white_sea_shell = "rgb(255, 245, 238)"
+        white_mint_cream = "rgb(245, 255, 250)"
+
+        # Gray -------------------------------------------
+        gray_dim = "rgb(105, 105, 105)"
+        gray = "rgb(128, 128, 128)"
+        gray_dark = "rgb(169, 169, 169)"
+        gray_silver = "rgb(192, 192, 192)"
+        gray_light = "rgb(211, 211, 211)"
+        gray_dark_slate_gray = "rgb(47, 79, 79)"
+        gray_nero = 'rgba(20, 20, 20,255)'
+        gray_much_darker = 'rgba(29, 29, 29,255)'
+        gray_darker_mid = 'rgba(35, 35, 35, 255)'
+        gray_darker = 'rgba(43, 43, 43, 255)'
+        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
+        gray_mid_dark = 'rgba(68, 68, 68, 255)'
+        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
+        gray_mid = 'rgba(73, 73, 73, 255)'
+        gray_mid_light = 'rgba(82, 82, 82, 255)'
+        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
+        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
+        grey_light = 'rgba(145, 145, 145, 255)'
+        gray_lighter = 'rgba(160, 160, 160, 255)'
+        gray_dark_silver = 'rgba(180, 180, 180, 255)'
+        gray_gainsboro = "rgb(220, 220, 220)"
+        gray_slate = "rgb(112, 128, 144)"
+        gray_light_slate = "rgb(119, 136, 153)"
+        gray_light_steel_blue = "rgb(176, 196, 222)"
+
+        # Misc -----------------------------------------
+        black = "rgb(0, 0, 0)"
+        transparent = 'rgba(0, 0, 0, 0)'
+
     class Hex:
         def __init__(self):
             """
@@ -651,7 +651,7 @@ class Color:
         green_medium_spring = "#00FA9A"
         green_olive_drab = "#6B8E23"
         green_oxley = "#609881"
-        green_pale_ = "#98FB98"
+        green_pale = "#98FB98"
         green_pearl_aqua = "#90E4C1"
         green_sea = "#2E8B57"
         green_spring = "#00FF7F"
@@ -825,6 +825,19 @@ class StylesheetVariables:
         # Formatting
         "@button_padding;": "15",
     }
+    combobox_dark = {
+        # Colors
+        "@text_color;": Color.RGB.gray_dark_silver,
+        "@background_color;": Color.RGB.gray_darker,
+        "@border_color;": Color.RGB.gray_much_darker,
+        "@selection_background;": Color.RGB.blue_pastel,
+        "@left_border_bg;": Color.RGB.gray_darker_mid,
+        # "@background;": Color.RGB.gray_darker,
+        # Icons
+        "@image_arrow_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
+        "@image_arrow_down_width;": 12,
+        "@image_arrow_down_height;": 12,
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
         # Colors
@@ -865,6 +878,8 @@ class Stylesheet:
                                               stylesheet_variables=StylesheetVariables.list_widget_dark)
     text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",
                                                 stylesheet_variables=StylesheetVariables.text_edit_mid_grey)
+    combobox_dark = get_stylesheet_content(stylesheet_name="combobox_dark",
+                                           stylesheet_variables=StylesheetVariables.combobox_dark)
     # --------------------------------------------- Buttons ---------------------------------------------
     push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)
