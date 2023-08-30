@@ -424,7 +424,7 @@ class Color:
         green_lime_pure = "rgb(0, 255, 0)"
         green_lime = "rgb(50, 205, 50)"
         green_light = "rgb(144, 238, 144)"
-        green_pale_ = "rgb(152, 251, 152)"
+        green_pale = "rgb(152, 251, 152)"
         green_dark_sea = "rgb(143, 188, 143)"
         green_oxley = 'rgba(96, 152, 129, 255)'
         green_medium_spring = "rgb(0, 250, 154)"
@@ -651,7 +651,7 @@ class Color:
         green_medium_spring = "#00FA9A"
         green_olive_drab = "#6B8E23"
         green_oxley = "#609881"
-        green_pale_ = "#98FB98"
+        green_pale = "#98FB98"
         green_pearl_aqua = "#90E4C1"
         green_sea = "#2E8B57"
         green_spring = "#00FF7F"
