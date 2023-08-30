@@ -119,8 +119,7 @@ class ResourceLibraryController:
         """
         Gets the curve of the currently selected element in the list
         Returns:
-            Curve, Control or None: Object stored in the metadata of the selected item.
-                                    None if not found or nothing selected.
+            any: Object stored in the metadata. None if not found or nothing selected.
         """
         item = self.view.item_list.currentItem()
         if not item:
@@ -154,7 +153,8 @@ class ResourceLibraryController:
             if filter_str and filter_str not in name:
                 continue
             metadata_icon = {"object": icon, "item_type": self.TYPE_PACKAGE_ICON}
-            self.view.add_item_view_library(item_name=name, icon=icon, metadata=metadata_icon)
+            self.view.add_item_view_library(item_name=name, icon=icon, metadata=metadata_icon,
+                                            hex_color=resource_library.Color.Hex.white_lavender)
         for name, clr in colors.items():
             if filter_str and filter_str not in name:
                 continue
@@ -164,7 +164,8 @@ class ResourceLibraryController:
             if filter_str and filter_str not in name:
                 continue
             metadata_maya_icon = {"object": maya_icon, "item_type": self.TYPE_MAYA_ICON}
-            self.view.add_item_view_library(item_name=name, icon=maya_icon, metadata=metadata_maya_icon)
+            self.view.add_item_view_library(item_name=name, icon=maya_icon, metadata=metadata_maya_icon,
+                                            hex_color=resource_library.Color.Hex.white_old_lace)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def exported_selected_resource(self):
