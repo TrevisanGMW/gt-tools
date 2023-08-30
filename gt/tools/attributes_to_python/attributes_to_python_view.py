@@ -1,5 +1,5 @@
 """
-AttributesToPythonView View/Window
+Attributes To PythonView View/Window
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter

@@ -1,5 +1,5 @@
 """
-Package Updater Controller
+Attributes To Python Controller
 """
 from gt.utils.attr_utils import get_user_attr_to_python, get_trs_attr_as_python, get_trs_attr_as_formatted_string
 from gt.utils.system_utils import execute_python_code
@@ -51,7 +51,7 @@ class AttributesToPythonController:
         import maya.cmds as cmds
         selection = cmds.ls(selection=True) or []
         if len(selection) == 0:
-            cmds.warning(f'Please select at least one object an try again.')
+            cmds.warning(f'Please select at least one object and try again.')
             return []
         return selection
 
