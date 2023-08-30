@@ -773,3 +773,40 @@ class TestCurveUtils(unittest.TestCase):
         ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.sy')
         expected = 10
         self.assertEqual(expected, ty_value)
+
+    def test_filter_curve_shapes(self):
+        cube = maya_test_tools.create_poly_cube()
+        circle_one = maya_test_tools.cmds.circle()[0]
+        circle_two = maya_test_tools.cmds.circle()[0]
+        items = [circle_one, circle_two, cube]
+        expected = ['|nurbsCircle1|nurbsCircleShape1', '|nurbsCircle2|nurbsCircleShape2']
+        result = curve_utils.filter_curve_shapes(obj_list=items, get_transforms=False)  # False is default
+        self.assertEqual(expected, result)
+
+    def test_filter_curve_shapes_transforms(self):
+        cube = maya_test_tools.create_poly_cube()
+        circle_one = maya_test_tools.cmds.circle()[0]
+        circle_two = maya_test_tools.cmds.circle()[0]
+        items = [circle_one, circle_two, cube]
+        expected = ['nurbsCircle2', 'nurbsCircle1']
+        result = curve_utils.filter_curve_shapes(obj_list=items, get_transforms=True)
+        self.assertEqual(expected, result)
+
+    def test_get_python_curve_code(self):
+        cube = maya_test_tools.create_poly_cube()
+        circle_one = maya_test_tools.cmds.circle()[0]
+        circle_two = maya_test_tools.cmds.circle()[0]
+        items = [circle_one, circle_two, cube]
+        expected = '# Curve data for "nurbsCircleShape1":\nfor cv in [(\'nurbsCircle1.cv[0]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle1.cv[1]\', (0.0, 0.0, 0.0)), (\'nurbsCircle1.cv[2]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle1.cv[3]\', (0.0, 0.0, 0.0)), (\'nurbsCircle1.cv[4]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle1.cv[5]\', (0.0, 0.0, 0.0)), (\'nurbsCircle1.cv[6]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle1.cv[7]\', (0.0, 0.0, 0.0))]:\n    cmds.xform(cv[0], os=True, t=cv[1])' \
+                   '\n\n# Curve data for "nurbsCircleShape2":\nfor cv in [(\'nurbsCircle2.cv[0]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle2.cv[1]\', (0.0, 0.0, 0.0)), (\'nurbsCircle2.cv[2]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle2.cv[3]\', (0.0, 0.0, 0.0)), (\'nurbsCircle2.cv[4]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle2.cv[5]\', (0.0, 0.0, 0.0)), (\'nurbsCircle2.cv[6]\', (0.0, 0.0, 0.0)), ' \
+                   '(\'nurbsCircle2.cv[7]\', (0.0, 0.0, 0.0))]:' \
+                   '\n    cmds.xform(cv[0], os=True, t=cv[1])'
+        result = curve_utils.get_python_curve_code(crv_list=items)
+        self.assertEqual(expected, result)
