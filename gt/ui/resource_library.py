@@ -825,6 +825,19 @@ class StylesheetVariables:
         # Formatting
         "@button_padding;": "15",
     }
+    combobox_dark = {
+        # Colors
+        "@text_color;": Color.RGB.gray_dark_silver,
+        "@background_color;": Color.RGB.gray_darker,
+        "@border_color;": Color.RGB.gray_much_darker,
+        "@selection_background;": Color.RGB.blue_pastel,
+        "@left_border_bg;": Color.RGB.gray_darker_mid,
+        # "@background;": Color.RGB.gray_darker,
+        # Icons
+        "@image_arrow_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
+        "@image_arrow_down_width;": 12,
+        "@image_arrow_down_height;": 12,
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
         # Colors
@@ -865,6 +878,8 @@ class Stylesheet:
                                               stylesheet_variables=StylesheetVariables.list_widget_dark)
     text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",
                                                 stylesheet_variables=StylesheetVariables.text_edit_mid_grey)
+    combobox_dark = get_stylesheet_content(stylesheet_name="combobox_dark",
+                                           stylesheet_variables=StylesheetVariables.combobox_dark)
     # --------------------------------------------- Buttons ---------------------------------------------
     push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)
