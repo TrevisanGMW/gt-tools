@@ -212,6 +212,7 @@ class ResourceLibraryModel:
                 return
             shutil.copy(icon_path, file_path)
             sys.stdout.write(f'Package icon resource exported to: {file_path}')
+        # --------------------- Maya Icons ---------------------
         if source == "maya_icons":
             icon_str = self.maya_icons_raw.get(key)
             if not icon_str:
