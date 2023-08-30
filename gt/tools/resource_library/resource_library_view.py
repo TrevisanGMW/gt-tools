@@ -88,9 +88,10 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
 
         self.source_combo_box = QComboBox()
         self.source_combo_box.addItem("All")
-        self.source_combo_box.addItem("Colors")
-        self.source_combo_box.addItem("Package Icons")
-        self.source_combo_box.addItem("Maya Icons")
+        self.source_combo_box.addItem("Package Resources")
+        self.source_combo_box.addItem("Package Icons Only")
+        self.source_combo_box.addItem("Package Colors Only")
+        self.source_combo_box.addItem("Maya Resources")
 
         self.description = QLabel("<description>")
         self.description.setMaximumHeight(20)
@@ -101,8 +102,8 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
     def create_layout(self):
         """Create the layout for the window."""
         search_layout = QtWidgets.QHBoxLayout()
-        search_layout.addWidget(self.search_bar)
-        search_layout.addWidget(self.source_combo_box)
+        search_layout.addWidget(self.search_bar, 2)
+        search_layout.addWidget(self.source_combo_box, 1)
 
         list_container = QWidget()
         list_layout = QtWidgets.QVBoxLayout()

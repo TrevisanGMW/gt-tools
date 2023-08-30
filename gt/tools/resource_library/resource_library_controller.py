@@ -4,17 +4,11 @@ Resource Library Controller
 This module contains the ResourceLibraryController class responsible for managing interactions between the
 ResourceLibraryModel and the user interface.
 """
-import os
-
-from gt.ui.input_window_text import InputWindowText
-from PySide2.QtWidgets import QAbstractItemView
 from gt.ui.qt_utils import create_color_icon
-from gt.utils import iterable_utils
 from gt.ui import resource_library
-from PySide2.QtGui import QIcon
-from functools import partial
 from PySide2.QtCore import Qt
 import logging
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -38,9 +32,14 @@ class ResourceLibraryController:
         self.model = model
         self.view = view
         self.view.controller = self
+
+        # Setup Combobox
         self.category_filter = "Package Assets"
+        self.source_list = [self.TYPE_COLOR, self.TYPE_PACKAGE_ICON]
+        self.view.source_combo_box.setCurrentIndex(1)  # Package Resources
 
         # Connections
+        self.view.source_combo_box.currentIndexChanged.connect(self.update_category_filter)
         self.view.save_btn.clicked.connect(self.exported_selected_resource)
         self.view.search_bar.textChanged.connect(self.filter_list)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
@@ -111,7 +110,7 @@ class ResourceLibraryController:
 
     def filter_list(self):
         """
-        Filter the curve library list based on the search text entered by the user.
+        Filter the item library list based on the search text entered by the user.
         """
         search_text = self.view.search_bar.text().lower()
         self.populate_curve_library(filter_str=search_text)
@@ -133,23 +132,6 @@ class ResourceLibraryController:
             return
         return metadata.get("object")
 
-    def select_item_by_name(self, item_name):
-        """
-        Selects item based on its name
-        Returns:
-            bool: True if item was found and selected. False if item with given name was not found.
-        """
-        list_widget = self.view.item_list
-        for index in range(list_widget.count()):
-            item = list_widget.item(index)
-            if item.text() == item_name:
-                item.setSelected(True)
-                list_widget.scrollToItem(item, QAbstractItemView.PositionAtCenter)
-                self.view.item_list.setCurrentItem(item)
-                self.on_item_selection_changed()
-                return True
-        return False
-
     def populate_curve_library(self, filter_str=None):
         """
         Update the view with the current list of items from the model.
@@ -157,9 +139,17 @@ class ResourceLibraryController:
             filter_str (str, None): If provided, it will be used to filter desired objects when populating the list.
         """
         self.view.clear_view_library()
-        package_icons = self.model.get_package_icons()
-        colors = self.model.get_colors()
-        maya_icons = self.model.get_maya_icons()
+        package_icons = {}
+        colors = {}
+        maya_icons = {}
+        # Category Filter
+        if self.TYPE_PACKAGE_ICON in self.source_list:
+            package_icons = self.model.get_package_icons()
+        if self.TYPE_COLOR in self.source_list:
+            colors = self.model.get_colors()
+        if self.TYPE_MAYA_ICON in self.source_list:
+            maya_icons = self.model.get_maya_icons()
+        # Item Filter and Data Storage
         for name, icon in package_icons.items():
             if filter_str and filter_str not in name:
                 continue
@@ -188,6 +178,23 @@ class ResourceLibraryController:
             self.model.export_resource(key=item_name, source='package_icons')
         if metadata.get("item_type") == self.TYPE_MAYA_ICON:
             self.model.export_resource(key=item_name, source='maya_icons')
+
+    def update_category_filter(self):
+        """
+        Updates the category filter (determines what can appear in the list even without a search string)
+        """
+        current_index = self.view.source_combo_box.currentIndex()
+        if current_index == 0:  # All
+            self.source_list = [self.TYPE_COLOR, self.TYPE_PACKAGE_ICON, self.TYPE_MAYA_ICON]
+        if current_index == 1:  # Package Assets
+            self.source_list = [self.TYPE_COLOR, self.TYPE_PACKAGE_ICON]
+        if current_index == 2:  # Package Icons
+            self.source_list = [self.TYPE_PACKAGE_ICON]
+        if current_index == 3:  # Package Colors
+            self.source_list = [self.TYPE_COLOR]
+        if current_index == 4:  # Maya Icons
+            self.source_list = [self.TYPE_MAYA_ICON]
+        self.filter_list()
 
 
 if __name__ == "__main__":
