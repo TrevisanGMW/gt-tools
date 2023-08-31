@@ -135,7 +135,9 @@ class ResourceLibraryModel:
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        undesired_resources = ["ce2_icons", "ce2_python", "ce2_scripts", "qgradient", "qpdf", "qt-project.org", "qtwebchannel", "sows"]
+        undesired_resources = ["ce2_icons", "ce2_python", "ce2_scripts", "qgradient", "qpdf", "qt-project.org",
+                               "qtwebchannel", "sows", "UsdLayerEditor", "images", "ImportDialog",
+                               "characterizationtool"]
         try:
             import maya.cmds as cmds
             for icon in cmds.resourceManager(nameFilter="*"):

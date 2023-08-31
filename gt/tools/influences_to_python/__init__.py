@@ -19,8 +19,8 @@
  Todo:
      Add Transfer functions
 """
-from gt.tools.extract_influence_joints import extract_influence_controller
-from gt.tools.extract_influence_joints import extract_influence_view
+from gt.tools.influences_to_python import influences_python_controller
+from gt.tools.influences_to_python import influences_python_view
 from gt.ui import qt_utils
 
 
@@ -37,8 +37,8 @@ def launch_tool():
     Creates Model, View and Controller and uses QtApplicationContext to determine context (inside of Maya or not?)
     """
     with qt_utils.QtApplicationContext() as context:
-        _view = extract_influence_view.ExtractInfluenceView(parent=context.get_parent(), version=__version__)
-        _controller = extract_influence_controller.ExtractInfluenceController(view=_view)
+        _view = influences_python_view.InfluencesPythonView(parent=context.get_parent(), version=__version__)
+        _controller = influences_python_controller.InfluencesPythonController(view=_view)
 
 
 if __name__ == "__main__":

@@ -342,10 +342,6 @@ class Icon:
     abr_create_proxy = get_icon_path(r"abr_create_proxy.svg")
     abr_create_rig = get_icon_path(r"abr_create_rig.svg")
     misc_cog = get_icon_path(r"misc_cog.svg")
-    scrollbar_up = get_icon_path(r"scrollbar_up.svg")
-    scrollbar_down = get_icon_path(r"scrollbar_down.svg")
-    scrollbar_left = get_icon_path(r"scrollbar_left.svg")
-    scrollbar_right = get_icon_path(r"scrollbar_right.svg")
     setup_install = get_icon_path(r"setup_install.svg")
     setup_uninstall = get_icon_path(r"setup_uninstall.svg")
     setup_run_only = get_icon_path(r"setup_run_only.svg")
@@ -360,7 +356,14 @@ class Icon:
     curve_library_snapshot = get_icon_path(r"curve_library_snapshot.svg")
     curve_library_remove = get_icon_path(r"curve_library_remove.svg")
     curve_library_add = get_icon_path(r"curve_library_add.svg")
+    # User Interface
+    ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
+    ui_arrow_down = get_icon_path(r"ui_arrow_down.svg")
+    ui_arrow_left = get_icon_path(r"ui_arrow_left.svg")
+    ui_arrow_right = get_icon_path(r"ui_arrow_right.svg")
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
+    ui_checkbox_enabled = get_icon_path(r"ui_checkbox_enabled.svg")
+    ui_checkbox_disabled = get_icon_path(r"ui_checkbox_disabled.svg")
 
 
 class Color:
@@ -777,7 +780,7 @@ class StylesheetVariables:
         # Formatting
         "@maya_small_button_padding;": "5",
     }
-    scrollbar_dark = {
+    scroll_bar_dark = {
         "@background_mid;": Color.RGB.gray_mid_dark,
         "@background_dark;": Color.RGB.gray_darker,
         "@scroll_area_border;": Color.RGB.gray_mid_much_lighter,
@@ -790,10 +793,10 @@ class StylesheetVariables:
         "@scrollbar_size;": 15,
         "@sub_control_size;": 15,
         # Icons
-        "@image_scrollbar_up;": f"url({Icon.scrollbar_up})".replace("\\", "/"),
-        "@image_scrollbar_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
-        "@image_scrollbar_left;": f"url({Icon.scrollbar_left})".replace("\\", "/"),
-        "@image_scrollbar_right;": f"url({Icon.scrollbar_right})".replace("\\", "/"),
+        "@image_scrollbar_up;": f"url({Icon.ui_arrow_up})".replace("\\", "/"),
+        "@image_scrollbar_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
+        "@image_scrollbar_left;": f"url({Icon.ui_arrow_left})".replace("\\", "/"),
+        "@image_scrollbar_right;": f"url({Icon.ui_arrow_right})".replace("\\", "/"),
     }
     text_edit_mid_grey = {
         "@background_mid;": Color.RGB.gray_mid_dark,
@@ -832,16 +835,22 @@ class StylesheetVariables:
         "@border_color;": Color.RGB.gray_much_darker,
         "@selection_background;": Color.RGB.blue_pastel,
         "@left_border_bg;": Color.RGB.gray_darker_mid,
-        # "@background;": Color.RGB.gray_darker,
         # Icons
-        "@image_arrow_down;": f"url({Icon.scrollbar_down})".replace("\\", "/"),
+        "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
         "@image_arrow_down_width;": 12,
         "@image_arrow_down_height;": 12,
     }
     checkbox_dark = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
-        # TODO, add icons
+        # Icons
+        "@image_checked;": f"url({Icon.ui_checkbox_enabled})".replace("\\", "/"),
+        "@image_checked_width;": 32,
+        "@image_checked_height;": 32,
+        # Icons
+        "@image_unchecked;": f"url({Icon.ui_checkbox_disabled})".replace("\\", "/"),
+        "@image_unchecked_width;": 32,
+        "@image_unchecked_height;": 32,
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
@@ -878,7 +887,7 @@ class Stylesheet:
     progress_bar_dark = get_stylesheet_content(stylesheet_name="progress_bar_dark",
                                                stylesheet_variables=StylesheetVariables.progress_bar_dark)
     scroll_bar_dark = get_stylesheet_content(stylesheet_name="scroll_bar_dark",
-                                             stylesheet_variables=StylesheetVariables.scrollbar_dark)
+                                             stylesheet_variables=StylesheetVariables.scroll_bar_dark)
     list_widget_dark = get_stylesheet_content(stylesheet_name="list_widget_dark",
                                               stylesheet_variables=StylesheetVariables.list_widget_dark)
     text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",
@@ -909,7 +918,6 @@ class Font:
         To use these fonts, wrap them around the function
         """
         self.kb = None
-
     roboto = get_font_path("Roboto-Regular.ttf")
     inter = get_font_path("Inter-Regular.ttf")
 
