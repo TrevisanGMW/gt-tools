@@ -404,10 +404,11 @@ def load_menu(*args):
                            icon=resource_library.Icon.dev_picker)
         menu.add_divider(divider_label="General")  # Misc Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Take Viewport Snapshot',
-                           command='from gt.utils.playblast_utils import render_viewport_snapshot\n'
-                                   'from gt.utils.system_utils import get_desktop_path, get_formatted_time\n'
-                                   'render_viewport_snapshot(get_formatted_time(format_str="Snapshot %Y-%m-%d %H%M%S"),'
-                                   ' get_desktop_path())',
+                           command='from gt.utils.system_utils import get_desktop_path, get_formatted_time\n'
+                                   'from gt.utils.playblast_utils import render_viewport_snapshot\nimport sys\n'
+                                   'file_path = render_viewport_snapshot(get_formatted_time(format_str='
+                                   '"Snapshot %Y-%m-%d %H%M%S"), get_desktop_path())\nif file_path:\n\t'
+                                   'sys.stdout.write(f\'\\nSnapshot written to: "{file_path}"\')',
                            tooltip="Saves a viewport snapshot to the desktop.",
                            icon=resource_library.Icon.dev_picker)
         menu.add_menu_item(label='Silently Check for Updates',
