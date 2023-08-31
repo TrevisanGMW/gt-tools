@@ -780,7 +780,7 @@ class StylesheetVariables:
         # Formatting
         "@maya_small_button_padding;": "5",
     }
-    scrollbar_dark = {
+    scroll_bar_dark = {
         "@background_mid;": Color.RGB.gray_mid_dark,
         "@background_dark;": Color.RGB.gray_darker,
         "@scroll_area_border;": Color.RGB.gray_mid_much_lighter,
@@ -838,13 +838,20 @@ class StylesheetVariables:
         # "@background;": Color.RGB.gray_darker,
         # Icons
         "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
-        "@image_arrow_down_width;": 12,
-        "@image_arrow_down_height;": 12,
+        "@image_checked_width;": 12,
+        "@image_checked_height;": 12,
     }
     checkbox_dark = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
-        # TODO, add icons
+        # Icons
+        "@image_checked;": f"url({Icon.ui_checkbox_enabled})".replace("\\", "/"),
+        "@image_checked_width;": 32,
+        "@image_checked_height;": 32,
+        # Icons
+        "@image_unchecked;": f"url({Icon.ui_checkbox_disabled})".replace("\\", "/"),
+        "@image_unchecked_width;": 32,
+        "@image_unchecked_height;": 32,
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
@@ -881,7 +888,7 @@ class Stylesheet:
     progress_bar_dark = get_stylesheet_content(stylesheet_name="progress_bar_dark",
                                                stylesheet_variables=StylesheetVariables.progress_bar_dark)
     scroll_bar_dark = get_stylesheet_content(stylesheet_name="scroll_bar_dark",
-                                             stylesheet_variables=StylesheetVariables.scrollbar_dark)
+                                             stylesheet_variables=StylesheetVariables.scroll_bar_dark)
     list_widget_dark = get_stylesheet_content(stylesheet_name="list_widget_dark",
                                               stylesheet_variables=StylesheetVariables.list_widget_dark)
     text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",

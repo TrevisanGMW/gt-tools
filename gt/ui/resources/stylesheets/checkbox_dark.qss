@@ -6,3 +6,15 @@ QCheckBox::indicator {
     width: 20px;
     height: 20px;
 }
+
+QCheckBox::indicator:checked {
+	image: @image_checked;
+	width: @image_checked_width;
+    height: @image_checked_height;
+}
+
+QCheckBox::indicator:unchecked {
+	image: @image_unchecked;
+	width: @image_unchecked_width;
+    height: @image_unchecked_height;
+}
