@@ -1,8 +1,6 @@
 """
 Extract Influence to Python Controller
 """
-import sys
-
 from gt.utils.skin_utils import selected_get_python_influences_code, selected_add_influences_to_set
 from gt.utils.system_utils import execute_python_code
 from gt.utils.misc_utils import create_shelf_button
