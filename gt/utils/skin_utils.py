@@ -91,9 +91,9 @@ def get_bound_joints(obj):
         return joints
 
 
-def get_skin_cluster_geometry(skin_cluster):
+def get_skin_cluster_from_geometry(skin_cluster):
     """
-    Retrieve the connected geometry to the given skin cluster.
+    Retrieve the connected geometry from the given skin cluster.
 
     This function takes the name of a skin cluster as input and returns a list of connected
     geometry affected by the skin cluster.
@@ -162,7 +162,7 @@ def get_skin_weights(skin_cluster):
 
     skin_data = {}
     influences = get_influences(skin_cluster)
-    obj_name = get_skin_cluster_geometry(skin_cluster)
+    obj_name = get_skin_cluster_from_geometry(skin_cluster)
     vertices = get_vertices(obj_name[0])
 
     for vertex in vertices:
@@ -200,31 +200,13 @@ def set_skin_weights(skin_cluster, skin_data):
     """
     if not cmds.objExists(skin_cluster):
         raise ValueError(f'Skin cluster "{skin_cluster}" does not exist.')
-    obj_name = get_skin_cluster_geometry(skin_cluster)[0]
+    obj_name = get_skin_cluster_from_geometry(skin_cluster)[0]
     for vertex_id in skin_data:
         mesh_vertex = f"{obj_name}.vtx[{vertex_id}]"
         for joint in skin_data[vertex_id].keys():
             weight = skin_data[vertex_id][joint]
             joint_weight_pair = [cmds.ls(joint, shortNames=True)[0], weight]
             cmds.skinPercent(skin_cluster, mesh_vertex, transformValue=joint_weight_pair)
-
-
-def export_skin_weights_to_json(output_file_path, skin_weight_data):
-    """
-    Exports skin weight data to a JSON file.
-
-    This function takes the provided skin_weight_data, which is a dictionary containing
-    skin weight information for a model, and exports it to a JSON file specified
-    by the output_file_path.
-
-    Args:
-        output_file_path (str): The file path where the JSON data will be written.
-        skin_weight_data (dict): A dictionary containing skin weight data for a model.
-
-    Returns:
-        str: Path if successful, None if it failed
-    """
-    return write_json(path=output_file_path, data=skin_weight_data)
 
 
 def import_skin_weights_from_json(target_object, import_file_path):
@@ -241,7 +223,7 @@ def import_skin_weights_from_json(target_object, import_file_path):
     Note:
         This function assumes that the JSON file contains data matching the pattern found in  "get_skin_weights()".
     """
-    skin_data = read_json_dict(import_file_path)
+    skin_data = read_json_dict(path=import_file_path)
     skin_cluster = get_skin_cluster(target_object)
     set_skin_weights(skin_cluster=skin_cluster, skin_data=skin_data)
 
@@ -252,7 +234,8 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
 
     Args:
         joints (list): A list of joint names to be used as influences in the skinCluster.
-        objects (list): A list of object names (geometries) to bind the skin to.
+        objects (list, str): A list of object names (geometries) to bind the skin to.
+                              If a string it becomes a list with a single element in it. e.g. [objects]
         bind_method (int, optional): The binding method used by the skinCluster command.
                                     Default is 1, which stands for 'Classic Linear'.
                                     Other options are available based on the Maya documentation.
@@ -272,6 +255,8 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
         # Bind 'joints_list' to 'objects_list' with custom binding options:
         result = bind_skin(joints_list, objects_list, bind_method=2, smooth_weights=0.8, maximum_influences=3)
     """
+    if isinstance(objects, str):
+        objects = [objects]
     current_selection = cmds.ls(selection=True) or []
     skin_nodes = []
     joints_found = []
@@ -313,6 +298,119 @@ def bind_skin(joints, objects, bind_method=1, smooth_weights=0.5, maximum_influe
     return skin_nodes
 
 
+def get_python_influences_code(obj_list, include_bound_mesh=True, include_existing_filter=True):
+    """
+    Extracts the python code necessary to select influence joints. (bound joints)
+    Args:
+        obj_list (list, str): Items to extract influence from. If a string is provided it becomes a list with one item.
+        include_bound_mesh (bool, optional): If active, it will include the bound mesh in the return list.
+        include_existing_filter (bool, optional): If active, it will include a filter for existing items.
+    Returns:
+        str or None: Returns the code to select influence joints or None there was an issue.
+    """
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    valid_nodes = []
+    for obj in obj_list:
+        shapes = cmds.listRelatives(obj, shapes=True, children=False) or []
+        if shapes:
+            if cmds.objectType(shapes[0]) == 'mesh' or cmds.objectType(shapes[0]) == 'nurbsSurface':
+                valid_nodes.append(obj)
+
+    commands = []
+    for transform in valid_nodes:
+        message = '# Joint influences found in "' + transform + '":'
+        message += '\nbound_list = '
+        bound_joints = get_bound_joints(transform)
+
+        if not bound_joints:
+            cmds.warning('Unable to find skinCluster for "' + transform + '".')
+            continue
+
+        if include_bound_mesh:
+            bound_joints.insert(0, transform)
+
+        message += str(bound_joints)
+
+        if include_existing_filter:
+            message += '\nbound_list = [jnt for jnt in bound_list if cmds.objExists(jnt)]'
+
+        message += '\ncmds.select(bound_list)'
+
+        commands.append(message)
+
+    _code = ''
+    for cmd in commands:
+        _code += cmd + '\n\n'
+    if _code.endswith('\n\n'):  # Removes unnecessary spaces at the end
+        _code = _code[:-2]
+    return _code
+
+
+def selected_get_python_influences_code(include_bound_mesh=True, include_existing_filter=True):
+    """
+    Uses selection when extracting influence joints python code.
+    Args:
+        include_bound_mesh (bool, optional): If active, it will include the bound mesh in the return list.
+        include_existing_filter (bool, optional): If active, it will include a filter for existing items.
+    Returns:
+        str or None: Returns the code to select influence joints or None there was an issue.
+    """
+    sel = cmds.ls(selection=True) or []
+
+    if len(sel) == 0:
+        cmds.warning('Nothing selected. Please select a bound mesh and try again.')
+        return
+    return get_python_influences_code(obj_list=sel,
+                                      include_bound_mesh=include_bound_mesh,
+                                      include_existing_filter=include_existing_filter)
+
+
+def add_influences_to_set(obj_list, include_bound_mesh=True, set_suffix='influenceSet'):
+    """
+    Create selection sets with the influence joints of the provided elements.
+    Args:
+        obj_list (list, str): Items to extract influence from. If a string is provided it becomes a list with one item.
+        include_bound_mesh (bool, optional): If active, it will include the bound mesh in the set.
+        set_suffix (str, optional): Added as a suffix to the created set.
+    Returns:
+        list: A list of created selection sets (sorted list)
+    """
+    selection_sets = set()
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    valid_nodes = []
+    for obj in obj_list:
+        shapes = cmds.listRelatives(obj, shapes=True, children=False) or []
+        if shapes:
+            if cmds.objectType(shapes[0]) == 'mesh' or cmds.objectType(shapes[0]) == 'nurbsSurface':
+                valid_nodes.append(obj)
+
+    for transform in valid_nodes:
+        bound_joints = get_bound_joints(transform)
+        if include_bound_mesh:
+            bound_joints.insert(0, transform)
+        new_set = cmds.sets(name=f"{transform}_{set_suffix}", empty=True)
+        for jnt in bound_joints:
+            selection_sets.add(cmds.sets(jnt, add=new_set))
+    return sorted(list(selection_sets))
+
+
+def selected_add_influences_to_set():
+    """
+    Uses selection when extracting influence joints to a selection set.
+    Returns:
+        str or None: Returns the code to select influence joints or None there was an issue.
+    """
+    sel = cmds.ls(selection=True) or []
+
+    if len(sel) == 0:
+        cmds.warning('Nothing selected. Please select a bound mesh and try again.')
+        return
+    return add_influences_to_set(sel)
+
+
+#  TODO: Not yet tested --------------------------------------------------------------------------------------------
 def export_influences_to_target_folder(obj_list, target_folder, verbose=False):
     """
     WIP Function
@@ -381,7 +479,7 @@ def export_weights_to_target_folder(obj_list, target_folder, verbose=False):
         file_path = os.path.join(target_folder, file_name)
         skin_cluster = get_skin_cluster(obj=obj)
         skin_weights_data = get_skin_weights(skin_cluster=skin_cluster)
-        json_file = export_skin_weights_to_json(output_file_path=file_path, skin_weight_data=skin_weights_data)
+        json_file = write_json(path=file_path, data=skin_weights_data)
         if json_file:
             exported_files.add(json_file)
             print_when_true(input_string=f'Weights for "{obj}" exported to "{json_file}".', do_print=verbose)
@@ -390,19 +488,3 @@ def export_weights_to_target_folder(obj_list, target_folder, verbose=False):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    selection = cmds.ls(selection=True) or []
-    temp_joints = ['joint1', 'joint2', 'joint3']
-    temp_geometries = ['pCylinder3', 'pCylinder2']
-    # out = get_skin_weights(get_skin_cluster('pCylinder2'))
-    from gt.utils.system_utils import get_desktop_path
-    # weights_file = os.path.join(get_desktop_path(), "pCylinder2.json")
-    # # export_weights_to_target_folder("pCylinder2", weights_file)
-    # print(weights_file)
-    # import_skin_weights_from_json("pCylinder3", weights_file)
-    temp_folder = os.path.join(get_desktop_path(), "temp")
-    # export_influences_to_target_folder(temp_geometries, target_folder=temp_folder)
-    # import_influences_from_target_folder(source_folder=temp_folder)
-    export_weights_to_target_folder(obj_list=temp_geometries, target_folder=temp_folder)
-    # pprint(out)
