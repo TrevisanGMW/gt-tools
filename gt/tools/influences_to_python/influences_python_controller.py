@@ -1,5 +1,5 @@
 """
-Extract Influence Controller
+Extract Influence to Python Controller
 """
 from gt.utils.system_utils import execute_python_code
 from gt.utils.misc_utils import create_shelf_button
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ExtractInfluenceController:
+class InfluencesPythonController:
     def __init__(self, view, model=None):
         """
-        Initialize the ExtractInfluenceController object.
+        Initialize the InfluencesPythonController object.
 
         Args:
             view: The view object to interact with the user interface.

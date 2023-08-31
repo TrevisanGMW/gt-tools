@@ -1,5 +1,5 @@
 """
-Extract Influence View/Window
+Extract Influence to Python View/Window
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame, QCheckBox
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
@@ -12,15 +12,15 @@ from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 
 
-class ExtractInfluenceView(metaclass=MayaWindowMeta):
+class InfluencesPythonView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
-        Initialize the ExtractInfluenceView.
+        Initialize the InfluencesPythonView.
         This window represents the main GUI window of the tool.
 
         Args:
             parent (str): Parent for this window
-            controller (ExtractInfluenceViewController): ExtractInfluenceViewController, not to be used, here so
+            controller (InfluencesPythonViewController): InfluencesPythonViewController, not to be used, here so
                                                           it's not deleted by the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
@@ -29,7 +29,7 @@ class ExtractInfluenceView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Extract Influence Joints"
+        self.window_title = "GT Influence Joints to Python"
         _window_title = self.window_title
         if version:
             _window_title += f' - (v{str(version)})'
@@ -202,6 +202,6 @@ if __name__ == "__main__":
     import sys
 
     with qt_utils.QtApplicationContext():
-        window = ExtractInfluenceView(version="1.2.3")  # View
+        window = InfluencesPythonView(version="1.2.3")  # View
         window.set_python_output_text(text=inspect.getsource(sys.modules[__name__]))
         window.show()

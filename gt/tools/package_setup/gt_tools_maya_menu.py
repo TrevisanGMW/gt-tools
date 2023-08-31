@@ -197,8 +197,8 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
                        tooltip='Automated solution for creating testing keyframes.',
                        icon=resource_library.Icon.tool_testing_keys)
-    menu.add_menu_item(label='Extract Influence Joints',
-                       command=IMPORT_TOOL + 'initialize_tool("extract_influence_joints")',
+    menu.add_menu_item(label='Influences to Python',
+                       command=IMPORT_TOOL + 'initialize_tool("influences_to_python")',
                        tooltip='Generate Python code used to select influence (bound) joints.',
                        icon=resource_library.Icon.tool_influence_joints)
     menu.add_menu_item(label='Make IK Stretchy',
