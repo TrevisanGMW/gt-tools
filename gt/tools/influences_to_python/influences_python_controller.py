@@ -1,10 +1,10 @@
 """
-Extract Influence Controller
+Extract Influence to Python Controller
 """
+from gt.utils.skin_utils import selected_get_python_influences_code, selected_add_influences_to_set
 from gt.utils.system_utils import execute_python_code
 from gt.utils.misc_utils import create_shelf_button
 from gt.utils.feedback_utils import FeedbackMessage
-from gt.utils.skin_utils import get_bound_joints
 import logging
 
 # Logging Setup
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ExtractInfluenceController:
+class InfluencesPythonController:
     def __init__(self, view, model=None):
         """
-        Initialize the ExtractInfluenceController object.
+        Initialize the InfluencesPythonController object.
 
         Args:
             view: The view object to interact with the user interface.
@@ -45,82 +45,30 @@ class ExtractInfluenceController:
         from gt.utils.request_utils import open_package_docs_url_in_browser
         open_package_docs_url_in_browser()
 
-    def __extract_influence_with_validation(self, operation_target='python'):
-        """
-        Validation before extracting python or set out of the bound mesh
-        Args:
-            operation_target (optional, string): "python" will output python code into the python output box,
-                                                 "set" will create selection sets
-        Returns:
-            str or None: Returns the code to select influence joints or None there was an issue or creating a set.
-        """
-        import maya.cmds as cmds
-        selection = cmds.ls(selection=True) or []
-
-        if len(selection) == 0:
-            cmds.warning('Nothing selected. Please select a bound mesh and try again.')
-            return
-
-        valid_nodes = []
-        for sel in selection:
-            shapes = cmds.listRelatives(sel, shapes=True, children=False) or []
-            if shapes:
-                if cmds.objectType(shapes[0]) == 'mesh' or cmds.objectType(shapes[0]) == 'nurbsSurface':
-                    valid_nodes.append(sel)
-
-        if operation_target == 'python':
-            commands = []
-            for transform in valid_nodes:
-                message = '# Joint influences found in "' + transform + '":'
-                message += '\nbound_list = '
-                bound_joints = get_bound_joints(transform)
-
-                if not bound_joints:
-                    cmds.warning('Unable to find skinCluster for "' + transform + '".')
-                    continue
-
-                if self.view.include_mesh_chk.isChecked():
-                    bound_joints.insert(0, transform)
-
-                message += str(bound_joints)
-
-                if self.view.non_existent_chk.isChecked():
-                    message += '\nbound_list = [jnt for jnt in bound_list if cmds.objExists(jnt)]'
-
-                message += '\ncmds.select(bound_list)'
-
-                commands.append(message)
-
-            _code = ''
-            for cmd in commands:
-                _code += cmd + '\n\n'
-            if _code.endswith('\n\n'):  # Removes unnecessary spaces at the end
-                _code = _code[:-2]
-            return _code
-
-        if operation_target == 'set':
-            for transform in valid_nodes:
-                bound_joints = get_bound_joints(transform)
-                if self.view.include_mesh_chk.isChecked():
-                    bound_joints.insert(0, transform)
-                new_set = cmds.sets(name=transform + "_influenceSet", empty=True)
-                for jnt in bound_joints:
-                    cmds.sets(jnt, add=new_set)
-
     def extract_influence_python(self):
         """
         Extracts the TRS channels as setAttr commands and populates the python output box with the extracted content.
         """
+        include_bound_mesh = self.view.include_mesh_chk.isChecked()
+        include_existing_filter = self.view.non_existent_chk.isChecked()
         _code = "import maya.cmds as cmds\n\n"
-        _code += self.__extract_influence_with_validation(operation_target='python')
+        _code += selected_get_python_influences_code(include_bound_mesh=include_bound_mesh,
+                                                     include_existing_filter=include_existing_filter)
         self.view.clear_python_output()
         self.view.set_python_output_text(text=_code)
 
-    def extract_influence_set(self):
+    @staticmethod
+    def extract_influence_set():
         """
         Extracts the TRS channels as lists and populates the python output box with the extracted content.
         """
-        self.__extract_influence_with_validation(operation_target='set')
+        created_sets = selected_add_influences_to_set() or []
+        feedback = FeedbackMessage(quantity=len(created_sets),
+                                   singular="selection set was",
+                                   plural="selection sets were",
+                                   conclusion="created.",
+                                   zero_overwrite_message='No selection set was created.')
+        feedback.print_inview_message()
 
     def run_python_code(self):
         """

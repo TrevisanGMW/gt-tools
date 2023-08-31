@@ -197,8 +197,8 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
                        tooltip='Automated solution for creating testing keyframes.',
                        icon=resource_library.Icon.tool_testing_keys)
-    menu.add_menu_item(label='Extract Influence Joints',
-                       command=IMPORT_TOOL + 'initialize_tool("extract_influence_joints")',
+    menu.add_menu_item(label='Influences to Python',
+                       command=IMPORT_TOOL + 'initialize_tool("influences_to_python")',
                        tooltip='Generate Python code used to select influence (bound) joints.',
                        icon=resource_library.Icon.tool_influence_joints)
     menu.add_menu_item(label='Make IK Stretchy',
@@ -392,10 +392,10 @@ def load_menu(*args):
                                    'write_curve_files_from_selection()\n',
                            tooltip="Write curve data attributes to a desktop folder.",
                            icon=resource_library.Icon.dev_binary)
-        menu.add_menu_item(label='Print Package CRV files to Python',
+        menu.add_menu_item(label='Get Package CRV files to Python',
                            command='from gt.utils.curve_utils import print_code_for_crv_files\n'
-                                   'print_code_for_crv_files()\n',
-                           tooltip='Prints Python Lines used to call curves from "Curves" class.',
+                                   'print_code_for_crv_files(use_output_window=True)\n',
+                           tooltip='Get Python Lines used to call curves from "Curves" class.',
                            icon=resource_library.Icon.dev_binary)
         menu.add_menu_item(label='Render Package Curves Thumbnails',
                            command='from gt.utils.curve_utils import generate_package_curves_thumbnails\n'
@@ -404,10 +404,11 @@ def load_menu(*args):
                            icon=resource_library.Icon.dev_picker)
         menu.add_divider(divider_label="General")  # Misc Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Take Viewport Snapshot',
-                           command='from gt.utils.playblast_utils import render_viewport_snapshot\n'
-                                   'from gt.utils.system_utils import get_desktop_path, get_formatted_time\n'
-                                   'render_viewport_snapshot(get_formatted_time(format_str="Snapshot %Y-%m-%d %H%M%S"),'
-                                   ' get_desktop_path())',
+                           command='from gt.utils.system_utils import get_desktop_path, get_formatted_time\n'
+                                   'from gt.utils.playblast_utils import render_viewport_snapshot\nimport sys\n'
+                                   'file_path = render_viewport_snapshot(get_formatted_time(format_str='
+                                   '"Snapshot %Y-%m-%d %H%M%S"), get_desktop_path())\nif file_path:\n\t'
+                                   'sys.stdout.write(f\'\\nSnapshot written to: "{file_path}"\')',
                            tooltip="Saves a viewport snapshot to the desktop.",
                            icon=resource_library.Icon.dev_picker)
         menu.add_menu_item(label='Silently Check for Updates',

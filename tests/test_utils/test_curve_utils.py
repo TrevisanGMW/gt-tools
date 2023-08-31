@@ -663,8 +663,8 @@ class TestCurveUtils(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_print_code_for_crv_files(self, mocked_stdout):
         data_dir = maya_test_tools.get_data_dir_path()
-        result = curve_utils.print_code_for_crv_files(target_dir=data_dir)
-        expected = ['two_lines = get_curve(file_name="two_lines")']
+        result = curve_utils.print_code_for_crv_files(target_dir=data_dir, use_output_window=False)
+        expected = 'two_lines = get_curve(file_name="two_lines")'
         self.assertEqual(expected, result)
 
     @patch('sys.stdout', new_callable=StringIO)
@@ -675,8 +675,10 @@ class TestCurveUtils(unittest.TestCase):
         for file_path in [private_curve, public_curve]:
             with open(file_path, 'w'):
                 pass
-        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir, ignore_private=True)
-        expected = ['public = get_curve(file_name="public")']
+        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir,
+                                                      ignore_private=True,
+                                                      use_output_window=False)
+        expected = 'public = get_curve(file_name="public")'
         self.assertEqual(expected, result)
 
     @patch('sys.stdout', new_callable=StringIO)
@@ -687,8 +689,10 @@ class TestCurveUtils(unittest.TestCase):
         for file_path in [private_curve, public_curve]:
             with open(file_path, 'w'):
                 pass
-        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir, ignore_private=False)
-        expected = ['public = get_curve(file_name="public")', '_private = get_curve(file_name="_private")']
+        result = curve_utils.print_code_for_crv_files(target_dir=temp_dir,
+                                                      ignore_private=False,
+                                                      use_output_window=False)
+        expected = 'public = get_curve(file_name="public")\n_private = get_curve(file_name="_private")'
         self.assertEqual(expected, result)
 
     def test_create_text(self):
