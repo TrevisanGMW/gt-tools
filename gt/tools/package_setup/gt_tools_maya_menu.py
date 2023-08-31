@@ -392,10 +392,10 @@ def load_menu(*args):
                                    'write_curve_files_from_selection()\n',
                            tooltip="Write curve data attributes to a desktop folder.",
                            icon=resource_library.Icon.dev_binary)
-        menu.add_menu_item(label='Print Package CRV files to Python',
+        menu.add_menu_item(label='Get Package CRV files to Python',
                            command='from gt.utils.curve_utils import print_code_for_crv_files\n'
-                                   'print_code_for_crv_files()\n',
-                           tooltip='Prints Python Lines used to call curves from "Curves" class.',
+                                   'print_code_for_crv_files(use_output_window=True)\n',
+                           tooltip='Get Python Lines used to call curves from "Curves" class.',
                            icon=resource_library.Icon.dev_binary)
         menu.add_menu_item(label='Render Package Curves Thumbnails',
                            command='from gt.utils.curve_utils import generate_package_curves_thumbnails\n'

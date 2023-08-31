@@ -1639,7 +1639,7 @@ def generate_package_curves_thumbnails(target_dir=None, force=False):
     cmds.file(new=True, force=True)
 
 
-def print_code_for_crv_files(target_dir=None, ignore_private=True):
+def print_code_for_crv_files(target_dir=None, ignore_private=True, use_output_window=False):
     """
     Internal function used to create Python code lines for every ".crv" file found in the "target_dir"
     It prints all lines, so they can be copied/pasted into the Curves class.
@@ -1647,8 +1647,9 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True):
     Args:
         target_dir (str, optional): If provided, this path will be used instead of the default "utils/data/curves" path.
         ignore_private (bool, optional): If active, curve files starting with "_" will be not be included.
+        use_output_window (bool, optional): If active, an output window will be used instead of simple prints.
     Returns:
-        list: List of printed lines
+        str: Generated code (lines)
     """
     if not target_dir:
         target_dir = DataDirConstants.DIR_CURVES
@@ -1661,12 +1662,27 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True):
                 continue
             print_lines.append(line)
 
-    print("_"*80)
+    output = ''
     for line in print_lines:
-        print(line)
-    print("_"*80)
-    sys.stdout.write(f'Python lines for "Curves" class were printed. (If in Maya, open the script editor)')
-    return print_lines
+        output += f'{line}\n'
+    if output.endswith('\n'):  # Removes unnecessary new line at the end
+        output = output[:-1]
+
+    if use_output_window:
+        from gt.ui.python_output_view import PythonOutputView
+        from gt.ui import qt_utils
+
+        with qt_utils.QtApplicationContext():
+            window = PythonOutputView()  # View
+            window.set_python_output_text(text=output)
+            window.show()
+        sys.stdout.write(f'Python lines for "Curves" class were printed to output window.')
+    else:
+        print("_"*80)
+        print(output)
+        print("_"*80)
+        sys.stdout.write(f'Python lines for "Curves" class were printed. (If in Maya, open the script editor)')
+    return output
 
 # ------------------------------ Curves Collection Utilities End ------------------------------
 
