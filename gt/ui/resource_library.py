@@ -835,11 +835,10 @@ class StylesheetVariables:
         "@border_color;": Color.RGB.gray_much_darker,
         "@selection_background;": Color.RGB.blue_pastel,
         "@left_border_bg;": Color.RGB.gray_darker_mid,
-        # "@background;": Color.RGB.gray_darker,
         # Icons
         "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
-        "@image_checked_width;": 12,
-        "@image_checked_height;": 12,
+        "@image_arrow_down_width;": 12,
+        "@image_arrow_down_height;": 12,
     }
     checkbox_dark = {
         # Colors
@@ -919,7 +918,6 @@ class Font:
         To use these fonts, wrap them around the function
         """
         self.kb = None
-
     roboto = get_font_path("Roboto-Regular.ttf")
     inter = get_font_path("Inter-Regular.ttf")
 
