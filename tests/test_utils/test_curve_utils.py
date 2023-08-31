@@ -802,7 +802,7 @@ class TestCurveUtils(unittest.TestCase):
         items = [circle_one, circle_two, cube]
         expected = ['nurbsCircle2', 'nurbsCircle1']
         result = curve_utils.filter_curve_shapes(obj_list=items, get_transforms=True)
-        self.assertEqual(expected, result)
+        self.assertEqual(sorted(expected), sorted(result))  # macOS changes the order, that's why it's sorted.
 
     def test_get_python_shape_code(self):
         cube = maya_test_tools.create_poly_cube()
