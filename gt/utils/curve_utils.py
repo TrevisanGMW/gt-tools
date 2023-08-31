@@ -271,7 +271,7 @@ def selected_curves_combine(convert_bezier_to_nurbs=False, show_bezier_conversio
 
         # Combine
         combined_crv = combine_curves_list(selection, convert_bezier_to_nurbs=convert_bezier_to_nurbs)
-        sys.stdout.write('\nSelected curves were combined into: "' + combined_crv + '".')
+        sys.stdout.write(f'\nSelected curves were combined into: "{combined_crv}".')
         cmds.select(combined_crv)
         return combined_crv
 
