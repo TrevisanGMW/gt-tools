@@ -294,7 +294,7 @@ def get_qt_color(color):
         logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
 
 
-def resize_to_screen(window, percentage=20, width_percentage=None, height_percentage=None):
+def resize_to_screen(window, percentage=20, width_percentage=None, height_percentage=None, dpi_scale=False):
     """
     Resizes the window to match a percentage of the screen size.
 
@@ -302,8 +302,10 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
         window (QDialog, any): Window to be resized.
         percentage (int, optional): The percentage of the screen size that the window should inherit.
                                     Must be a value between 0 and 100. Default is 20.
-        width_percentage (int, optional): If provided, it will overwrite general set percentage when setting width
-        height_percentage (int, optional): If provided, it will overwrite general set percentage when setting height
+        width_percentage (int, optional): If provided, it will overwrite general set percentage when setting width.
+        height_percentage (int, optional): If provided, it will overwrite general set percentage when setting height.
+        dpi_scale (bool, optional): When active, it will multiply the size of the window by the DPI scale factor.
+                                    It will limit it to the size of the window.
 
     Raises:
         ValueError: If the percentage is not within the range [0, 100].
@@ -318,6 +320,18 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
         height = screen_geometry.height() * height_percentage / 100
     if width_percentage:
         width = screen_geometry.height() * width_percentage / 100
+    if dpi_scale:
+        dpi_scale = get_screen_dpi_scale(get_window_screen_number(window=window))
+        scaled_height = height*dpi_scale
+        if scaled_height <= screen_geometry.height():
+            height = scaled_height
+        else:
+            height = screen_geometry.height()
+        scaled_width = width*dpi_scale
+        if scaled_width <= screen_geometry.width():
+            width = scaled_width
+        else:
+            width = screen_geometry.width()
     window.setGeometry(0, 0, width, height)
 
 
@@ -333,6 +347,19 @@ def get_main_window_screen_number():
         return -1  # No instance found
     main_window = app.activeWindow() or QMainWindow()
     screen_number = QApplication.desktop().screenNumber(main_window)
+    return screen_number
+
+
+def get_window_screen_number(window):
+    """
+    Determines the screen number where the provided Qt windows is located.
+    Args:
+        window (QWidget): Qt Window used to determine screen number
+    Returns:
+        int: Screen number where the window is located.
+    """
+    desktop = QDesktopWidget()
+    screen_number = desktop.screenNumber(window)
     return screen_number
 
 
@@ -580,8 +607,8 @@ def get_screen_dpi_scale(screen_number):
 
     if 0 <= screen_number < len(screen_list):
         target_screen = screen_list[screen_number]
-        dpi_scale_factor = target_screen.logicalDotsPerInch() / 96.0
-
+        standard_dpi = 96.0
+        dpi_scale_factor = target_screen.logicalDotsPerInch() / standard_dpi
         return dpi_scale_factor
     else:
         raise ValueError("Invalid screen number. Please provide a valid screen number.")
