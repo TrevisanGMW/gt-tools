@@ -106,20 +106,6 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         # Initial Image Update
         self.update_preview_image()
 
-    def moveEvent(self, event):
-        """
-        Move Event, called when the window is moved (must use this name "moveEvent")
-        Updates the maximum size of the description according to the scale factor of the current screen.
-        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
-        """
-        desktop = QDesktopWidget()
-        screen_number = desktop.screenNumber(self)
-
-        from gt.ui import qt_utils
-        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
-        default_maximum_height_description = 20
-        self.description.setMaximumHeight(default_maximum_height_description*scale_factor)
-
     def create_layout(self):
         """Create the layout for the window."""
 
@@ -251,6 +237,18 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                                             output_size=3,
                                             output_color="white",
                                             overall_alignment="center")
+
+    def moveEvent(self, event):
+        """
+        Move Event, called when the window is moved (must use this name "moveEvent")
+        Updates the maximum size of the description according to the scale factor of the current screen.
+        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
+        """
+        desktop = QDesktopWidget()
+        screen_number = desktop.screenNumber(self)
+        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
+        default_maximum_height_description = 20
+        self.description.setMaximumHeight(default_maximum_height_description*scale_factor)
 
 
 if __name__ == "__main__":
