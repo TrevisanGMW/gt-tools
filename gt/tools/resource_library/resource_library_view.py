@@ -3,9 +3,9 @@ Resource Library View
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+from PySide2.QtGui import QIcon, QPixmap, QColor, QFont
 from PySide2.QtWidgets import QTextEdit, QComboBox
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -78,26 +78,30 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
 
     def create_widgets(self):
         """Create the widgets for the window."""
+        font = QFont()
+        font.setPointSize(10)
         self.item_list = QListWidget()
+        self.item_list.setFont(font)
         self.save_btn = QPushButton("Export Resource")
         self.save_btn.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.save_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
+        self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         self.resource_path = QTextEdit()
         PythonSyntaxHighlighter(self.resource_path.document())
-        self.resource_path.setMaximumHeight(60)
+        self.resource_path.setFontPointSize(10)
 
         self.source_combo_box = QComboBox()
+        self.source_combo_box.setFont(font)
         self.source_combo_box.addItem("All")
         self.source_combo_box.addItem("Package Resources")
         self.source_combo_box.addItem("Package Icons Only")
         self.source_combo_box.addItem("Package Colors Only")
         self.source_combo_box.addItem("Maya Resources")
-
         self.description = QLabel("<description>")
-        self.description.setMaximumHeight(20)
+        self.description.setFont(font)
         self.description.setAlignment(Qt.AlignCenter)
         # Initial Image Update
         self.update_preview_image()
@@ -217,7 +221,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
         default_maximum_height_description = 20
         self.description.setMaximumHeight(default_maximum_height_description*scale_factor)
-        default_maximum_height_resource = 40
+        default_maximum_height_resource = 50
         self.resource_path.setMaximumHeight(default_maximum_height_resource*scale_factor)
 
 
@@ -225,8 +229,9 @@ if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = ResourceLibraryView()
         mocked_icon = QIcon(resource_library.Icon.curve_library_base_curve)
-        window.add_item_view_library("item_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
-        window.add_item_view_library("item_two", icon=QIcon(resource_library.Icon.curve_library_control))
+        window.add_item_view_library(item_name="item_one", icon=QIcon(resource_library.Icon.curve_library_user_curve))
+        window.add_item_view_library(item_name="item_two", icon=QIcon(resource_library.Icon.curve_library_control))
         for index in range(1, 101):
-            window.add_item_view_library(f"item_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
+            window.add_item_view_library(item_name=f"item_with_a_very_long_name_for_testing_ui_{index}",
+                                         icon=mocked_icon)
         window.show()

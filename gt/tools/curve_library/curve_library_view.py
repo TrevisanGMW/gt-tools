@@ -2,8 +2,8 @@
 Curve Library View - The main GUI window class for the Curve Library tool.
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
+from PySide2.QtGui import QIcon, QPixmap, QColor, QFont
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -79,11 +79,15 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
 
     def create_widgets(self):
         """Create the widgets for the window."""
+        font = QFont()
+        font.setPointSize(10)
         self.item_list = QListWidget()
+        self.item_list.setFont(font)
         self.build_button = QPushButton("Build")
         self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
+        self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         # Buttons
@@ -95,6 +99,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.delete_custom_button.setEnabled(False)
         self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
         self.description = QLabel("<description>")
+        self.description.setFont(font)
 
         self.description.setAlignment(Qt.AlignCenter)
         self.snapshot_button = QPushButton("Create Snapshot")
