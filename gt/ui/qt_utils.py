@@ -562,6 +562,31 @@ def create_color_icon(color, width=24, height=24):
     return icon
 
 
+def get_screen_dpi_scale(screen_number):
+    """
+    Calculate the scale factor of the DPI for a given screen number.
+
+    Args:
+        screen_number (int): The index of the screen for which to calculate DPI percentage.
+
+    Returns:
+        float: The scale factor of DPI for the specified screen.
+
+    Raises:
+        ValueError: If the screen number is out of range.
+    """
+    app = QApplication.instance()
+    screen_list = app.screens()
+
+    if 0 <= screen_number < len(screen_list):
+        target_screen = screen_list[screen_number]
+        dpi_scale_factor = target_screen.logicalDotsPerInch() / 96.0
+
+        return dpi_scale_factor
+    else:
+        raise ValueError("Invalid screen number. Please provide a valid screen number.")
+
+
 if __name__ == "__main__":
     with QtApplicationContext() as context:
         print(context)
