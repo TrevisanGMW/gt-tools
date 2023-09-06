@@ -294,7 +294,9 @@ def get_qt_color(color):
         logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
 
 
-def resize_to_screen(window, percentage=20, width_percentage=None, height_percentage=None, dpi_scale=False):
+def resize_to_screen(window, percentage=20,
+                     width_percentage=None, height_percentage=None,
+                     dpi_scale=False, dpi_percentage=20, dpi_ignore_below_one=True):
     """
     Resizes the window to match a percentage of the screen size.
 
@@ -306,6 +308,11 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
         height_percentage (int, optional): If provided, it will overwrite general set percentage when setting height.
         dpi_scale (bool, optional): When active, it will multiply the size of the window by the DPI scale factor.
                                     It will limit it to the size of the window.
+        dpi_percentage (float, int, optional): If using dpi scale, this number determines the percentage of the scale
+                                               influences the window.
+                                               For example: if "dpi_scale" is 10 and "dpi_percentage" is 50,
+                                                            the used value for "dpi_scale" will become 5 (50% of 10)
+        dpi_ignore_below_one (bool, optional): When active, it ignores DPI calculations when the scale is 1 (100%)
 
     Raises:
         ValueError: If the percentage is not within the range [0, 100].
@@ -322,6 +329,9 @@ def resize_to_screen(window, percentage=20, width_percentage=None, height_percen
         width = screen_geometry.height() * width_percentage / 100
     if dpi_scale:
         dpi_scale = get_screen_dpi_scale(get_window_screen_number(window=window))
+        dpi_scale = dpi_scale * (dpi_percentage / 100)
+        if dpi_ignore_below_one and dpi_scale < 1.0:
+            dpi_scale = 1.0
         scaled_height = height*dpi_scale
         if scaled_height <= screen_geometry.height():
             height = scaled_height
