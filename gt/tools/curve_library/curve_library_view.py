@@ -51,6 +51,10 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
+        # from PySide2.QtGui import QScreen
+        # primary_screen = QScreen.primaryScreen()
+        # dpi = primary_screen.physicalDotsPerInch()
+        # print(dpi)
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
@@ -91,7 +95,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.delete_custom_button.setEnabled(False)
         self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
         self.description = QLabel("<description>")
-        self.description.setMaximumHeight(20)
+
         self.description.setAlignment(Qt.AlignCenter)
         self.snapshot_button = QPushButton("Create Snapshot")
         self.snapshot_button.setEnabled(False)
@@ -101,6 +105,20 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.parameters_button.setIcon(QIcon(resource_library.Icon.curve_library_edit))
         # Initial Image Update
         self.update_preview_image()
+
+    def moveEvent(self, event):
+        """
+        Move Event, called when the window is moved (must use this name "moveEvent")
+        Updates the maximum size of the description according to the scale factor of the current screen.
+        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
+        """
+        desktop = QDesktopWidget()
+        screen_number = desktop.screenNumber(self)
+
+        from gt.ui import qt_utils
+        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
+        default_maximum_height_description = 20
+        self.description.setMaximumHeight(default_maximum_height_description*scale_factor)
 
     def create_layout(self):
         """Create the layout for the window."""
