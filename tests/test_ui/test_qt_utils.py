@@ -280,3 +280,57 @@ class TestQtUtilities(unittest.TestCase):
         )
         result_html = mock_label.text()
         self.assertEqual(expected_html, result_html)
+
+    def test_load_and_scale_pixmap_scale_by_percentage(self):
+        # Test scaling by percentage
+        from gt.ui import resource_library
+        input_path = resource_library.Icon.dev_code
+
+        scale_percentage = 50
+        scaled_pixmap = qt_utils.load_and_scale_pixmap(image_path=input_path,
+                                                       scale_percentage=scale_percentage)
+
+        expected_width = 256  # 50% of the original width
+        expected_height = 256  # 50% of the original height
+
+        self.assertEqual(scaled_pixmap.width(), expected_width)
+        self.assertEqual(scaled_pixmap.height(), expected_height)
+
+    def test_load_and_scale_pixmap_scale_by_exact_height(self):
+        # Test scaling by exact height
+        from gt.ui import resource_library
+        input_path = resource_library.Icon.dev_code
+        exact_height = 200
+        scaled_pixmap = qt_utils.load_and_scale_pixmap(image_path=input_path, scale_percentage=100,
+                                                       exact_height=exact_height)
+
+        expected_height = 200  # Exact height specified
+
+        self.assertEqual(scaled_pixmap.height(), expected_height)
+
+    def test_load_and_scale_pixmap_scale_by_exact_width(self):
+        # Test scaling by exact width
+        from gt.ui import resource_library
+        input_path = resource_library.Icon.dev_code
+        exact_width = 300
+        scaled_pixmap = qt_utils.load_and_scale_pixmap(image_path=input_path, scale_percentage=100,
+                                                       exact_width=exact_width)
+
+        expected_width = 300  # Exact width specified
+
+        self.assertEqual(scaled_pixmap.width(), expected_width)
+
+    def test_load_and_scale_pixmap_scale_with_both_exact_dimensions(self):
+        # Test scaling with both exact dimensions specified
+        from gt.ui import resource_library
+        input_path = resource_library.Icon.dev_code
+        exact_width = 300
+        exact_height = 200
+        scaled_pixmap = qt_utils.load_and_scale_pixmap(image_path=input_path, scale_percentage=100,
+                                                       exact_height=exact_height, exact_width=exact_width)
+
+        expected_width = 300  # Exact width specified
+        expected_height = 200  # Exact height specified
+
+        self.assertEqual(scaled_pixmap.width(), expected_width)
+        self.assertEqual(scaled_pixmap.height(), expected_height)

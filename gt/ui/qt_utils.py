@@ -449,14 +449,14 @@ def update_formatted_label(target_label,
     target_label.setText(_html)
 
 
-def load_and_scale_pixmap(image_path, scale_percentage, exact_height=None, exact_width=None):
+def load_and_scale_pixmap(image_path, scale_percentage=100, exact_height=None, exact_width=None):
     """
     Load an image from the given path, and scale it by the specified percentage,
     then return the scaled QPixmap.
 
     Args:
         image_path (str): Path to the image file.
-        scale_percentage (float): Percentage to scale the image by.
+        scale_percentage (float): Percentage to scale the image by. (Default is 100%, which is the original resolution)
                                   100 = Same resolution. 50 = half the resolution. 200 = double the resolution.
         exact_height (int, optional): If provided, it will overwrite scale percentage and use this height instead.
         exact_width (int, optional): If provided, it will overwrite scale percentage and use this width instead.
@@ -474,7 +474,7 @@ def load_and_scale_pixmap(image_path, scale_percentage, exact_height=None, exact
     if exact_height and isinstance(exact_height, int):
         scaled_height = exact_height
     if exact_width and isinstance(exact_width, int):
-        scaled_height = exact_width
+        scaled_width = exact_width
 
     scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=QtCore.Qt.SmoothTransformation)
     return scaled_pixmap
