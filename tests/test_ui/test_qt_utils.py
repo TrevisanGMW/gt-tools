@@ -1,6 +1,6 @@
 from PySide2.QtCore import QPoint
 from PySide2.QtGui import QFont, QColor
-from PySide2.QtWidgets import QApplication, QDialog, QWidget
+from PySide2.QtWidgets import QApplication, QDialog, QWidget, QLabel
 from unittest.mock import patch, MagicMock, Mock
 from PySide2 import QtGui, QtCore
 import unittest
@@ -229,4 +229,54 @@ class TestQtUtilities(unittest.TestCase):
         window = Mock()
         with self.assertRaises(ValueError):
             qt_utils.resize_to_screen(window, percentage=110)
-            
+
+    @patch('gt.ui.qt_utils.QApplication')
+    def test_get_main_window_screen_number(self, mock_instance):
+        mock_screen_number = MagicMock()
+        mock_screen_number.screenNumber.return_value = 10
+        mock_instance.instance.return_value = MagicMock()
+        mock_instance.desktop.return_value = mock_screen_number
+        result = qt_utils.get_main_window_screen_number()
+        expected = 10
+        self.assertEqual(expected, result)
+
+    @patch('gt.ui.qt_utils.QDesktopWidget')
+    def test_get_window_screen_number(self, mock_desktop):
+        mock_screen_number = MagicMock()
+        mock_screen_number.screenNumber.return_value = 10
+        mock_desktop.return_value = mock_screen_number
+        result = qt_utils.get_window_screen_number(MagicMock())
+        expected = 10
+        self.assertEqual(expected, result)
+
+    def test_center_window(self):
+        mock_window = MagicMock()
+        qt_utils.center_window(mock_window)
+        mock_window.move.assert_called()
+
+    def test_update_formatted_label_default_format(self):
+        mock_label = QLabel()
+        expected_html = "<html><div style='text-align:center;'><font>Text</font></div></html>"
+        qt_utils.update_formatted_label(mock_label, "Text")
+        result_html = mock_label.text()
+        self.assertEqual(expected_html, result_html)
+
+    def test_update_formatted_label_custom_format(self):
+        mock_label = QLabel()
+        expected_html = ("<html><div style='text-align:left;'><b><font size='16' color='blue' style='background-color:"
+                         "yellow;'>Text</font></b><b><font size='14' color='red'>Output</font></b></div></html>")
+        qt_utils.update_formatted_label(
+            mock_label,
+            "Text",
+            text_size=16,
+            text_color="blue",
+            text_bg_color="yellow",
+            text_is_bold=True,
+            output_text="Output",
+            output_size=14,
+            output_color="red",
+            text_output_is_bold=True,
+            overall_alignment="left"
+        )
+        result_html = mock_label.text()
+        self.assertEqual(expected_html, result_html)
