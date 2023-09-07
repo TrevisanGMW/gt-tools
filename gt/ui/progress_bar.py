@@ -298,4 +298,3 @@ if __name__ == '__main__':
     out = window.get_output_box_plain_text()
     print(out)
     sys.exit(app.exec_())
-
