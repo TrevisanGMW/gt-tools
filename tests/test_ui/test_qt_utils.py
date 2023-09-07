@@ -1,5 +1,6 @@
 from PySide2.QtCore import QPoint
-from PySide2.QtWidgets import QApplication, QDialog
+from PySide2.QtGui import QFont, QColor
+from PySide2.QtWidgets import QApplication, QDialog, QWidget
 from unittest.mock import patch, MagicMock, Mock
 from PySide2 import QtGui, QtCore
 import unittest
@@ -113,3 +114,119 @@ class TestQtUtilities(unittest.TestCase):
         mock_screens.return_value = [mocked_geometry]
         result = qt_utils.get_screen_center()
         self.assertEqual(expected, result)
+
+    @patch('gt.ui.qt_utils.QtGui.QFont', return_value="mocked_font")
+    @patch('gt.ui.qt_utils.QApplication.instance', return_value=MagicMock())
+    @patch('gt.ui.qt_utils.QtGui.QFontDatabase.addApplicationFontFromData', return_value=0)
+    @patch('gt.ui.qt_utils.QtGui.QFontDatabase.applicationFontFamilies', return_value=['CustomFont'])
+    def test_load_custom_font_success(self, mock_font_from_data, mock_app_font_families, mock_app, mock_font):
+        custom_font = qt_utils.load_custom_font('custom_font.ttf',
+                                                point_size=12, weight=QFont.Bold, italic=True)
+        expected_font = "mocked_font"
+        self.assertEqual(expected_font, custom_font)
+
+    def test_font_available(self):
+        # Test if a font that should be available returns True
+        font_name = "Arial"
+        expected_result = True
+        result = qt_utils.is_font_available(font_name)
+        self.assertEqual(result, expected_result)
+
+    def test_font_not_available(self):
+        # Test if a font that should not be available returns False
+        font_name = "NonExistentFont123"
+        expected_result = False
+        result = qt_utils.is_font_available(font_name)
+        self.assertEqual(result, expected_result)
+
+    @patch('gt.ui.qt_utils.is_font_available', return_value=True)
+    @patch('gt.ui.qt_utils.QApplication.instance')
+    def test_get_font_with_font_name(self, mock_instance, mock_is_font_available):
+        mock_instance.return_value = MagicMock()
+
+        font_name = 'Arial'
+        font = qt_utils.get_font(font_name)
+
+        expected_font = QtGui.QFont(font_name)
+
+        self.assertEqual(font, expected_font)
+
+    @patch('gt.ui.qt_utils.is_font_available', return_value=False)
+    @patch('gt.ui.qt_utils.load_custom_font', return_value=QtGui.QFont('CustomFont'))
+    @patch('gt.ui.qt_utils.QApplication.instance')
+    def test_get_font_with_font_path(self, mock_instance, mock_load_custom_font, mock_is_font_available):
+        mock_instance.return_value = MagicMock()
+        from gt.ui import resource_library
+        result = qt_utils.get_font(resource_library.Font.roboto)
+        expected_font = QtGui.QFont('CustomFont')
+        self.assertEqual(expected_font, result)
+
+    @patch('gt.ui.qt_utils.QApplication.instance')
+    def test_get_font_invalid_font(self, mock_instance):
+        mock_instance.return_value = MagicMock()
+
+        invalid_font = 123  # Invalid input type
+        font = qt_utils.get_font(invalid_font)
+
+        expected_font = QtGui.QFont()  # Default font
+
+        self.assertEqual(font, expected_font)
+
+    def test_get_qt_color_valid_hex_color(self):
+        # Test with a valid hex color
+        expected = QColor("#FF0000")
+        result = qt_utils.get_qt_color("#FF0000")
+        self.assertEqual(expected, result)
+
+    def test_get_qt_color_valid_color_name(self):
+        # Test with a valid color name
+        expected = QColor("red")
+        result = qt_utils.get_qt_color("red")
+        self.assertEqual(expected, result)
+
+    def test_get_qt_color_invalid_color_input(self):
+        # Test with an invalid color input
+        expected = None
+        result = qt_utils.get_qt_color("invalid_color")
+        self.assertEqual(expected, result)
+
+    def test_get_qt_color_color_object_input(self):
+        # Test with a QColor object as input
+        input_color = QColor("#00FF00")
+        expected = input_color
+        result = qt_utils.get_qt_color(input_color)
+        self.assertEqual(expected, result)
+
+    def test_get_qt_color_none_input(self):
+        # Test with None as input
+        expected = None
+        result = qt_utils.get_qt_color(None)
+        self.assertEqual(expected, result)
+
+    def test_get_qt_color_library(self):
+        # Test with None as input
+        from gt.ui import resource_library
+        expected = QColor(resource_library.Color.RGB.red)
+        result = qt_utils.get_qt_color(resource_library.Color.RGB.red)
+        self.assertEqual(expected, result)
+
+    @patch('gt.ui.qt_utils.QDesktopWidget')
+    def test_resize_to_screen_valid_percentage(self, mock_desktop_widget):
+        mock_screen = MagicMock()
+        mock_screen.width.return_value = 100
+        mock_screen.height.return_value = 200
+        mock_geo = MagicMock()
+        mock_geo.availableGeometry.return_value = mock_screen
+        mock_desktop_widget.return_value = mock_geo
+        window = MagicMock()
+        qt_utils.resize_to_screen(window, percentage=50)
+        expected_width = 50
+        expected_height = 100
+        self.assertEqual(window.setGeometry.call_args[0][2], expected_width)
+        self.assertEqual(window.setGeometry.call_args[0][3], expected_height)
+
+    def test_resize_to_screen_invalid_percentage(self):
+        window = Mock()
+        with self.assertRaises(ValueError):
+            qt_utils.resize_to_screen(window, percentage=110)
+            
