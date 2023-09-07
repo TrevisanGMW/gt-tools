@@ -34,6 +34,7 @@ modules_to_test = [
     test_ui.test_maya_menu,
     test_ui.test_progress_bar,
     test_ui.test_python_output_view,
+    test_ui.test_qt_utils,
     test_ui.test_resource_library,
     # Tools
     test_curve_library.test_curve_library_model,
