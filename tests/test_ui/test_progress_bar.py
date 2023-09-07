@@ -19,7 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
 from gt.ui.progress_bar import ProgressBarWindow
 
 
-class TestInputWindowText(unittest.TestCase):
+class TestProgressBar(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         app = QApplication.instance()
