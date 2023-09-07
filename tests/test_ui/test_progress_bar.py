@@ -31,7 +31,6 @@ class TestProgressBar(unittest.TestCase):
 
     def test_set_progress_bar_value(self):
         window = ProgressBarWindow()
-        window.show()
 
         # Test setting the progress bar value
         window.set_progress_bar_value(50)
