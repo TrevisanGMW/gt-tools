@@ -71,17 +71,25 @@ class TestMathUtils(unittest.TestCase):
         result = mesh_file.get_file_name_without_extension()
         expected = "triangle_mesh"
         self.assertEqual(expected, result)
+        result = mesh_file.get_name()
+        self.assertEqual(expected, result)
+
+    def test_mesh_file_get_name(self):
+        mesh_file = mesh_utils.MeshFile(file_path=self.triangle_file_path, metadata=None)
+        expected = "triangle_mesh"
+        result = mesh_file.get_name()
+        self.assertEqual(expected, result)
 
     def test_mesh_file_is_valid(self):
         mesh_file = mesh_utils.MeshFile(file_path=self.triangle_file_path, metadata=None)
-        self.assertTrue(mesh_file.is_file_valid())
+        self.assertTrue(mesh_file.is_valid())
         mesh_file.file_path = "mocked_path"
-        self.assertFalse(mesh_file.is_file_valid())
+        self.assertFalse(mesh_file.is_valid())
 
     def test_mesh_file_fail_init(self):
         logging.disable(logging.WARNING)
         mesh_file = mesh_utils.MeshFile(file_path="mocked_path", metadata=None)
-        self.assertFalse(mesh_file.is_file_valid())
+        self.assertFalse(mesh_file.is_valid())
         logging.disable(logging.NOTSET)
 
     def test_mesh_file_metadata(self):

@@ -173,12 +173,12 @@ class MeshFile:
             metadata (dict, optional): A dictionary with any extra information used to further describe a mesh file.
         """
         self.file_path = file_path
-        self.is_file_valid(verbose=True)
+        self.is_valid(verbose=True)
         self.metadata = None
         if metadata:
             self.set_metadata_dict(new_metadata=metadata)
 
-    def is_file_valid(self, verbose=False):
+    def is_valid(self, verbose=False):
         """
         Checks if the file path is of the correct data type and if it points to a valid file.
         Args:
@@ -203,7 +203,7 @@ class MeshFile:
         Returns:
             list: Name of the imported elements.
         """
-        if not self.is_file_valid(verbose=True):
+        if not self.is_valid(verbose=True):
             return []
         imported_elements = import_obj_file(self.file_path) or []
         return imported_elements
@@ -247,14 +247,31 @@ class MeshFile:
         Returns:
             str: The name of the file without its extension.
         """
-        if not self.is_file_valid(verbose=True):
+        if not self.is_valid(verbose=True):
             return ""
         base_name = os.path.basename(self.file_path)
         name_without_extension, _ = os.path.splitext(base_name)
         return name_without_extension
 
+    def get_name(self):
+        """
+        Get the name of the file without its extension.
+
+        Returns:
+            str: The name of the file without its extension. (aka the name of the mesh)
+        """
+        return self.get_file_name_without_extension()
+
+
+class Meshes:
+    def __init__(self):
+        """
+        A library of mesh objects.
+        Use "build()" to create them in Maya.
+        """
+    qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    out = get_mesh_path("qr_code_package_github")
-    import_obj_file(out)
+    Meshes.qr_code_package_github.build()
