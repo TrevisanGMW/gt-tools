@@ -28,10 +28,19 @@ from tests import test_ui
 
 # Modules to Test
 modules_to_test = [
+    # Ui
+    test_ui.test_input_window_text,
+    test_ui.test_line_text_widget,
+    test_ui.test_maya_menu,
+    test_ui.test_progress_bar,
+    test_ui.test_python_output_view,
+    test_ui.test_qt_utils,
+    test_ui.test_resource_library,
+    # Tools
     test_curve_library.test_curve_library_model,
     test_package_updater.test_package_updater_model,
     test_sample_tool.test_sample_tool_model,
-    test_ui.test_resource_library,
+    # Utils
     test_utils.test_alembic_utils,
     test_utils.test_anim_utils,
     test_utils.test_attr_utils,
