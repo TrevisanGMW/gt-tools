@@ -257,7 +257,7 @@ class Icon:
     util_crv_separate = get_icon_path(r"util_crv_separate.svg")
     # Modeling
     tool_transfer_uvs = get_icon_path(r"tool_transfer_uvs.svg")
-    tool_sphere_types = get_icon_path(r"tool_sphere_types.svg")
+    tool_mesh_library = get_icon_path(r"tool_sphere_types.svg")
     util_mod_load_udims = get_icon_path(r"util_mod_load_udims.svg")
     util_mod_bif_to_mesh = get_icon_path(r"util_mod_bif_to_mesh.svg")
     util_mod_copy_material = get_icon_path(r"util_mod_copy_material.svg")
