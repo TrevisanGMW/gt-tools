@@ -2,8 +2,8 @@
 Curve Library View - The main GUI window class for the Curve Library tool.
 """
 from PySide2.QtWidgets import QListWidget, QPushButton, QWidget, QSplitter, QLineEdit, QDesktopWidget, QListWidgetItem
+from PySide2.QtGui import QIcon, QPixmap, QColor, QFont
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap, QColor
 from gt.ui.squared_widget import SquaredWidget
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -51,6 +51,10 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
+        # from PySide2.QtGui import QScreen
+        # primary_screen = QScreen.primaryScreen()
+        # dpi = primary_screen.physicalDotsPerInch()
+        # print(dpi)
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
@@ -75,11 +79,15 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
 
     def create_widgets(self):
         """Create the widgets for the window."""
+        font = QFont()
+        font.setPointSize(10)
         self.item_list = QListWidget()
+        self.item_list.setFont(font)
         self.build_button = QPushButton("Build")
         self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
         self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
+        self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText('Search...')
         self.preview_image = SquaredWidget(self, center_y=False)
         # Buttons
@@ -91,7 +99,8 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.delete_custom_button.setEnabled(False)
         self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
         self.description = QLabel("<description>")
-        self.description.setMaximumHeight(20)
+        self.description.setFont(font)
+
         self.description.setAlignment(Qt.AlignCenter)
         self.snapshot_button = QPushButton("Create Snapshot")
         self.snapshot_button.setEnabled(False)
@@ -233,6 +242,18 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                                             output_size=3,
                                             output_color="white",
                                             overall_alignment="center")
+
+    def moveEvent(self, event):
+        """
+        Move Event, called when the window is moved (must use this name "moveEvent")
+        Updates the maximum size of the description according to the scale factor of the current screen.
+        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
+        """
+        desktop = QDesktopWidget()
+        screen_number = desktop.screenNumber(self)
+        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
+        default_maximum_height_description = 20
+        self.description.setMaximumHeight(default_maximum_height_description*scale_factor)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,8 @@ class ProgressBarWindow(QMainWindow):
         # Window
         self.setGeometry(0, 0, _min_width, _min_height)  # Args X, Y, W, H
         self.setMinimumWidth(_min_width*.8)  # 80% of the maximum width
+        qt_utils.resize_to_screen(window=self, height_percentage=20, width_percentage=25,
+                                  dpi_scale=True, dpi_percentage=20)
         qt_utils.center_window(self)
         # Window Details
         self.setWindowTitle("Progress Bar")
@@ -296,4 +298,3 @@ if __name__ == '__main__':
     out = window.get_output_box_plain_text()
     print(out)
     sys.exit(app.exec_())
-

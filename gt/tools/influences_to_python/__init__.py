@@ -25,7 +25,7 @@ from gt.ui import qt_utils
 
 
 # Tool Version
-__version_tuple__ = (2, 0, 0)
+__version_tuple__ = (2, 0, 1)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

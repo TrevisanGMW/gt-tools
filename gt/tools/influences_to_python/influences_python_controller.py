@@ -51,11 +51,13 @@ class InfluencesPythonController:
         """
         include_bound_mesh = self.view.include_mesh_chk.isChecked()
         include_existing_filter = self.view.non_existent_chk.isChecked()
-        _code = "import maya.cmds as cmds\n\n"
-        _code += selected_get_python_influences_code(include_bound_mesh=include_bound_mesh,
-                                                     include_existing_filter=include_existing_filter)
-        self.view.clear_python_output()
-        self.view.set_python_output_text(text=_code)
+        _maya_import = "import maya.cmds as cmds\n\n"
+        _code = selected_get_python_influences_code(include_bound_mesh=include_bound_mesh,
+                                                    include_existing_filter=include_existing_filter)
+        if _code:
+            _code = _maya_import + _code
+            self.view.clear_python_output()
+            self.view.set_python_output_text(text=_code)
 
     @staticmethod
     def extract_influence_set():
