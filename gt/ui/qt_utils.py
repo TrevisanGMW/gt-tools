@@ -526,7 +526,11 @@ class QtApplicationContext:
             self.parent = get_maya_main_window()
         else:
             logger.debug('Running Qt outside Maya. Initializing QApplication.')
-            self.app = QtWidgets.QApplication(sys.argv)
+            _app_instance = QApplication.instance()
+            if not _app_instance:
+                self.app = QApplication(sys.argv)
+            else:
+                self.app = _app_instance
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
