@@ -3,10 +3,10 @@ Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.data_utils import DataDirConstants
+from gt.utils.transform_utils import Transform
 import maya.cmds as cmds
 import logging
 import os
-
 
 # Logging Setup
 logging.basicConfig()
@@ -27,15 +27,15 @@ def get_mesh_path(file_name):
     Args:
         file_name (str): Name of the file. It doesn't need to contain its extension as it will always be "obj"
     Returns:
-        str or None: Path to the curve description file. None if not found.
+        str or None: Path to the mesh file. None if not found.
     """
     if not isinstance(file_name, str):
-        logger.debug(f'Unable to retrieve curve file. Incorrect argument type: "{str(type(file_name))}".')
+        logger.debug(f'Unable to retrieve mesh file. Incorrect argument type: "{str(type(file_name))}".')
         return
     if not file_name.endswith(f'.{MESH_FILE_EXTENSION}'):
         file_name = f'{file_name}.{MESH_FILE_EXTENSION}'
-    path_to_curve = os.path.join(DataDirConstants.DIR_MESHES, file_name)
-    return path_to_curve
+    path_to_mesh = os.path.join(DataDirConstants.DIR_MESHES, file_name)
+    return path_to_mesh
 
 
 def convert_bif_to_mesh():
@@ -160,6 +160,98 @@ def import_obj_file(file_path):
     imported_items = cmds.file(file_path, i=True, type=MESH_FILE_EXTENSION, ignoreVersion=True, renameAll=True,
                                mergeNamespacesOnClash=True, namespace=":", returnNewNodes=True)
     return imported_items
+
+
+class MeshFile:
+    def __init__(self,
+                 file_path,
+                 metadata=None):
+        """
+        Initializes a MeshFile object
+        Args:
+            file_path (str): Path to an existing mesh file.
+            metadata (dict, optional): A dictionary with any extra information used to further describe a mesh file.
+        """
+        self.file_path = file_path
+        self.is_file_valid(verbose=True)
+        self.metadata = None
+        if metadata:
+            self.set_metadata_dict(new_metadata=metadata)
+
+    def is_file_valid(self, verbose=False):
+        """
+        Checks if the file path is of the correct data type and if it points to a valid file.
+        Args:
+            verbose (bool, optional): If active, it will log errors.
+        Returns:
+            bool: True if it's valid (can create a mesh), False if invalid.
+        """
+        if not isinstance(self.file_path, str) or not os.path.exists(self.file_path):
+            if verbose:
+                logger.warning(f'Invalid MeshFile object. File path must be a string to an existing file.')
+            return False
+        if not self.file_path.endswith(MESH_FILE_EXTENSION):
+            if verbose:
+                logger.warning(f'Invalid MeshFile object. '
+                               f'File path must end with expected file extension: "{MESH_FILE_EXTENSION}".')
+            return False
+        return True
+
+    def build(self):
+        """
+        Use the file path to import the object into the scene.
+        Returns:
+            list: Name of the imported elements.
+        """
+        if not self.is_file_valid(verbose=True):
+            return []
+        imported_elements = import_obj_file(self.file_path) or []
+        return imported_elements
+
+    def set_metadata_dict(self, new_metadata):
+        """
+        Sets the metadata property. The metadata is any extra value used to further describe the mesh file.
+        Args:
+            new_metadata (dict): A dictionary describing extra information about the mesh file
+        """
+        if not isinstance(new_metadata, dict):
+            logger.warning(f'Unable to set mesh file metadata. '
+                           f'Expected a dictionary, but got: "{str(type(new_metadata))}"')
+            return
+        self.metadata = new_metadata
+
+    def add_to_metadata(self, key, value):
+        """
+        Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
+        If an element with the same key already exists in the metadata dictionary, it will be overwritten
+        Args:
+            key (str): Key of the new metadata element
+            value (Any): Value of the new metadata element
+        """
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        self.metadata[key] = value
+
+    def get_metadata(self):
+        """
+        Gets the metadata property.
+        Returns:
+            dict: Metadata dictionary
+        """
+        return self.metadata
+
+    def get_file_name_without_extension(self):
+        """
+        Get the name of the file without its extension.
+
+        Returns:
+            str: The name of the file without its extension.
+        """
+        if not self.is_file_valid(verbose=True):
+            return ""
+        base_name = os.path.basename(self.file_path)
+        name_without_extension, _ = os.path.splitext(base_name)
+        return name_without_extension
 
 
 if __name__ == "__main__":
