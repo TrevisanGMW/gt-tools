@@ -1,14 +1,41 @@
 """
-Geometry Utilities
+Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
+import os
+
 
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+# Constants
+MESH_TYPE_DEFAULT = "mesh"
+MESH_TYPE_SURFACE = "nurbsSurface"
+MESH_TYPES = [MESH_TYPE_DEFAULT, MESH_TYPE_SURFACE]
+MESH_FILE_EXTENSION = "obj"
+
+
+def get_mesh_path(file_name):
+    """
+    Get the path to a mesh data file. This file should exist inside the utils/data/meshes folder.
+    Args:
+        file_name (str): Name of the file. It doesn't need to contain its extension as it will always be "obj"
+    Returns:
+        str or None: Path to the curve description file. None if not found.
+    """
+    if not isinstance(file_name, str):
+        logger.debug(f'Unable to retrieve curve file. Incorrect argument type: "{str(type(file_name))}".')
+        return
+    if not file_name.endswith(f'.{MESH_FILE_EXTENSION}'):
+        file_name = f'{file_name}.{MESH_FILE_EXTENSION}'
+    path_to_curve = os.path.join(DataDirConstants.DIR_MESHES, file_name)
+    return path_to_curve
 
 
 def convert_bif_to_mesh():
@@ -72,8 +99,6 @@ def convert_bif_to_mesh():
                     if len(vtx) == 0:
                         try:
                             cmds.delete(bif_mesh)
-                            # cmds.delete(conversion_node)
-                            # cmds.delete(mesh_node)
                         except Exception as e:
                             logger.debug(str(e))
     except Exception as e:
@@ -112,3 +137,32 @@ def get_vertices(mesh):
         raise ValueError(f'The mesh "{mesh}" does not exist.')
     vertices = cmds.ls(f"{mesh}.vtx[*]", flatten=True)
     return vertices
+
+
+def import_obj_file(file_path):
+    """
+    Import an OBJ file into the scene and return the imported items.
+
+    Args:
+        file_path (str): The path to the OBJ file to be imported.
+
+    Returns:
+        List[str]: A list of the names of the imported items.
+
+    Example:
+        imported_items = import_obj_file("/path/to/my_model.obj")
+    """
+    imported_items = []
+    if not file_path or not os.path.exists(file_path):
+        logger.warning(f'Unable to import "obj" file. Missing provided path: "{str(file_path)}".')
+        return imported_items
+
+    imported_items = cmds.file(file_path, i=True, type=MESH_FILE_EXTENSION, ignoreVersion=True, renameAll=True,
+                               mergeNamespacesOnClash=True, namespace=":", returnNewNodes=True)
+    return imported_items
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    out = get_mesh_path("qr_code_package_github")
+    import_obj_file(out)

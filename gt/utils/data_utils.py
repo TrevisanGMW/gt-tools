@@ -26,6 +26,7 @@ class DataDirConstants:
     DIR_DATA = os.path.join(DIR_UTILS, "data")
     DIR_SCRIPTS = os.path.join(DIR_DATA, 'scripts')
     DIR_CURVES = os.path.join(DIR_DATA, 'curves')
+    DIR_MESHES = os.path.join(DIR_DATA, 'meshes')
     DIR_CONTROLS = os.path.join(DIR_DATA, 'controls')
 
 

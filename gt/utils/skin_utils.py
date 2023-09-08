@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.data_utils import write_json, read_json_dict
 from gt.utils.feedback_utils import print_when_true
 from gt.utils.string_utils import extract_digits
-from gt.utils.geometry_utils import get_vertices
+from gt.utils.mesh_utils import get_vertices
 import maya.cmds as cmds
 import os.path
 import logging
