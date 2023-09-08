@@ -74,7 +74,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
                 new_image = QPixmap(new_image)
             self.preview_image.set_pixmap(new_image)
         else:
-            self.preview_image.set_pixmap(QPixmap(resource_library.Icon.curve_library_missing_file))
+            self.preview_image.set_pixmap(QPixmap(resource_library.Icon.library_missing_file))
 
     def create_widgets(self):
         """Create the widgets for the window."""
@@ -83,7 +83,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         self.item_list = QListWidget()
         self.item_list.setFont(font)
         self.save_btn = QPushButton("Export Resource")
-        self.save_btn.setIcon(QIcon(resource_library.Icon.curve_library_build))
+        self.save_btn.setIcon(QIcon(resource_library.Icon.library_build))
         self.save_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setFont(font)

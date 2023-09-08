@@ -284,7 +284,7 @@ class CurveLibraryController:
         if os.path.exists(preview_image):
             return preview_image
         else:
-            return resource_library.Icon.curve_library_missing_file
+            return resource_library.Icon.library_missing_file
 
 
 if __name__ == "__main__":
