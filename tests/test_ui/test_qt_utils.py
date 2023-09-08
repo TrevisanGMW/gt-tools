@@ -1,5 +1,5 @@
 from PySide2.QtCore import QPoint
-from PySide2.QtGui import QFont, QColor
+from PySide2.QtGui import QFont, QColor, QPixmap, QIcon
 from PySide2.QtWidgets import QApplication, QDialog, QWidget, QLabel
 from unittest.mock import patch, MagicMock, Mock
 from PySide2 import QtGui, QtCore
@@ -334,3 +334,63 @@ class TestQtUtilities(unittest.TestCase):
 
         self.assertEqual(scaled_pixmap.width(), expected_width)
         self.assertEqual(scaled_pixmap.height(), expected_height)
+
+    def test_create_color_pixmap_valid_color(self):
+        expected_width_height = 24
+        result = qt_utils.create_color_pixmap(color=QColor(255, 0, 0),
+                                              width=expected_width_height,
+                                              height=expected_width_height)
+        self.assertEqual(QPixmap, type(result))
+        self.assertEqual(expected_width_height, result.height())
+        self.assertEqual(expected_width_height, result.width())
+
+    def test_create_color_pixmap_invalid_color(self):
+        # Test with an invalid color (not a QColor)
+        result = qt_utils.create_color_pixmap("invalid_color")
+        self.assertIsNone(result)
+
+    def test_create_color_icon_valid_color(self):
+        result = qt_utils.create_color_icon(color=QColor(255, 0, 0))
+        self.assertEqual(QIcon, type(result))
+
+    def test_create_color_icon_invalid_color(self):
+        # Test with an invalid color (not a QColor)
+        result = qt_utils.create_color_icon("invalid_color")
+        self.assertIsNone(result)
+
+    @patch('gt.ui.qt_utils.QApplication')
+    def test_get_screen_dpi_scale_valid_screen_number(self, mock_qapp):
+        # Create a mock QApplication instance with mock screens
+        app = MagicMock()
+        screen1 = MagicMock()
+        screen2 = MagicMock()
+        screen1.logicalDotsPerInch.return_value = 120.0
+        screen2.logicalDotsPerInch.return_value = 96.0
+        app.screens.return_value = [screen1, screen2]
+
+        # Replace the QApplication instance with the mock
+        mock_qapp.instance.return_value = app
+
+        expected_result = 1
+        result = qt_utils.get_screen_dpi_scale(screen_number=1)
+        self.assertEqual(expected_result, result)
+        expected_result = 1.25
+        result = qt_utils.get_screen_dpi_scale(screen_number=0)
+        self.assertEqual(expected_result, result)
+
+    @patch('gt.ui.qt_utils.QApplication')
+    def test_get_screen_dpi_scale_negative_screen_number(self, mock_app):
+        # Create a mock QApplication instance with mock screens
+        app = MagicMock()
+        screen1 = MagicMock()
+        screen2 = MagicMock()
+        screen1.logicalDotsPerInch.return_value = 120.0
+        screen2.logicalDotsPerInch.return_value = 96.0
+        app.screens.return_value = [screen1, screen2]
+
+        # Replace the QApplication instance with the mock
+        mock_app.instance.return_value = app
+
+        # Test with a negative screen number (screen_number = -1)
+        with self.assertRaises(ValueError):
+            qt_utils.get_screen_dpi_scale(-1)
