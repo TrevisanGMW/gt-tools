@@ -2,11 +2,13 @@
 Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils import system_utils, iterable_utils
 from gt.utils.data_utils import DataDirConstants
-from gt.utils.transform_utils import Transform
 import maya.cmds as cmds
 import logging
+import ast
 import os
+
 
 # Logging Setup
 logging.basicConfig()
@@ -164,7 +166,7 @@ def import_obj_file(file_path):
 
 class MeshFile:
     def __init__(self,
-                 file_path,
+                 file_path=None,
                  metadata=None):
         """
         Initializes a MeshFile object
@@ -261,6 +263,179 @@ class MeshFile:
             str: The name of the file without its extension. (aka the name of the mesh)
         """
         return self.get_file_name_without_extension()
+
+
+class ParametricMesh(MeshFile):
+    def __init__(self, name=None, build_function=None):
+        """
+        Initializes a ParametricMesh (MeshFile) object. Essentially a function based mesh with extra logic and elements.
+        Args:
+            name (str, optional): Mesh  transform name.
+                                  If not provided, it will attempt to extract it from the arguments of the build
+                                  function. If it's also not found there, it will be None.
+                                  If provided at the same time as the "build_function", name arg will take priority.
+                                  Priority order: 1: name, 2: build_function keyword argument.
+            build_function (callable): function used to build the mesh.
+        """
+        super().__init__()  # Call the parent class constructor
+        self._original_parameters = {}
+        self.parameters = {}
+        self.build_function = None
+        self.set_build_function(build_function=build_function)
+        self.last_callable_output = None
+        if name:
+            self.set_name(name=name)
+
+    def _set_original_parameters(self, parameters):
+        """
+        Sets the original parametric mesh parameters (a copy to be compared for validation)
+        Args:
+            parameters (dict, str): A dictionary with the keyword arguments of the parametric mesh.
+                                    It can also be a JSON formatted string.
+        """
+        if parameters and isinstance(parameters, dict):
+            self._original_parameters = parameters
+
+    def reset_parameters(self):
+        """ Resets parameters to the original value """
+        self.parameters = self._original_parameters
+
+    def set_parameters(self, parameters):
+        """
+        Sets the parametric mesh parameters
+        Args:
+            parameters (dict, str): A dictionary with the keyword arguments of the parametric mesh.
+                                        It can also be a JSON formatted string.
+        """
+        if parameters and isinstance(parameters, dict):
+            self.parameters = parameters
+        if parameters and isinstance(parameters, str):
+            try:
+                _parameters = ast.literal_eval(parameters)
+                self.parameters = _parameters
+            except Exception as e:
+                logger.warning(f'Unable to set ParametricMesh parameters. Invalid dictionary. Issue: {str(e)}')
+
+    def get_parameters(self):
+        """
+        Gets the parametric mesh parameters.
+        Returns:
+            dict: Parameters used to create the parametric mesh.
+        """
+        return self.parameters
+
+    def get_docstrings(self, strip=True, strip_new_lines=True):
+        """
+        Returns the docstrings from the build function.
+        Args:
+            strip (bool, optional): If True, leading empty space will be removed from each line of the docstring.
+            strip_new_lines (bool, optional): If True, it will remove new lines from start and end.
+        Returns:
+            str or None: Docstring of the build function.
+                         None in case no function was set or function doesn't have a docstring
+        """
+        if not self.build_function:
+            logger.debug(f'Build function was not yet set. Returning None as docstrings.')
+            return
+        return system_utils.get_docstring(func=self.build_function, strip=strip, strip_new_lines=strip_new_lines)
+
+    def validate_parameters(self):
+        """
+        Validates parameters before building mesh
+        If parameters have new keys or different value types, the validation fails.
+        Returns:
+            bool: True if valid, False if invalid
+        """
+        if not iterable_utils.compare_identical_dict_keys(self.parameters, self._original_parameters):
+            logger.debug(f"Invalid parameters, new unrecognized keys were added.")
+            return False
+        if not iterable_utils.compare_identical_dict_values_types(self.parameters, self._original_parameters):
+            logger.debug(f"Invalid parameters, values were assign new types.")
+            return False
+        return True
+
+    def set_build_function(self, build_function):
+        """
+        Sets the build function for this parametric mesh
+        Args:
+            build_function (callable): A function used to build the mesh
+        """
+        if callable(build_function):
+            self.build_function = build_function
+            try:
+                _args, _kwargs = system_utils.get_function_arguments(build_function, kwargs_as_dict=True)
+                if _kwargs and len(_kwargs) > 0:
+                    self.set_parameters(_kwargs)
+                    self._set_original_parameters(_kwargs)
+                    self.extract_name_from_parameters()
+            except Exception as e:
+                logger.debug(f'Unable to extract parameters from build function. Issue: {str(e)}')
+
+    def build(self):
+        """
+        Use the provided callable function to generate/create a parametric mesh.
+        Returns:
+            str or Any: Name of the transform of the newly generated mesh. (Result of the callable function)
+                       "None" if mesh is invalid (does not have a callable function)
+        """
+        if not self.is_valid():
+            logger.warning("ParametricMesh object is missing a callable function.")
+            return
+        try:
+            if self.validate_parameters():
+                callable_result = self.build_function(**self.parameters)
+            else:
+                callable_result = self.build_function(**self._original_parameters)
+                logger.warning(f'Invalid custom parameters. Original parameters were used instead. '
+                               f'Original: {self._original_parameters}')
+            self.last_callable_output = callable_result
+            return callable_result
+        except Exception as e:
+            logger.warning(f'Unable to build mesh. Build function raised an error: {e}')
+
+    def is_valid(self, verbose=False):
+        """
+        Checks if the ParametricMesh object has enough data to create/generate a mesh.
+        Args:
+            verbose (bool, optional): If active, it will log issues.
+        Returns:
+            bool: True if it's valid (can create a mesh), False if invalid.
+                  In this case it's valid if it has a callable function.
+        """
+        if self.build_function is not None:
+            return True
+        return False
+
+    def get_last_callable_output(self):
+        """
+        Returns the last output received from the build call
+        Returns:
+            any: Anything received as the last output from the callable function. If it was never called, it is None.
+        """
+        return self.last_callable_output
+
+    def set_name(self, name):
+        """
+        Sets a new Mesh name (Parametric Mesh in this case).
+        Used to also update the parameter "name" in case it exists.
+
+        Args:
+            name (str): New name to use on the parametric mesh. (Also used in the function parameter)
+        """
+        if name and isinstance(name, str) and "name" in self.get_parameters():
+            self.parameters["name"] = name
+        super().set_name(name)
+
+    def extract_name_from_parameters(self):
+        """
+        Checks to see if the keyword "name" exists in the parameters' dictionary.
+        If it does, overwrite the parametric mesh name with it.
+        """
+        parameters = self.get_parameters()
+        if "name" in parameters:
+            param_name = parameters.get("name")
+            if param_name:
+                self.set_name(param_name)
 
 
 class Meshes:
