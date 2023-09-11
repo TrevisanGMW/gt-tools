@@ -255,9 +255,9 @@ class MeshLibraryView(metaclass=MayaWindowMeta):
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = MeshLibraryView()
-        mocked_icon = QIcon(resource_library.Icon.root_modeling)
-        window.add_item_view_library(item_name="curve_one", icon=QIcon(resource_library.Icon.root_modeling))
-        window.add_item_view_library(item_name="curve_two", icon=QIcon(resource_library.Icon.curve_library_control))
+        mocked_icon = QIcon(resource_library.Icon.mesh_library_base)
+        window.add_item_view_library(item_name="curve_one", icon=QIcon(resource_library.Icon.mesh_library_user))
+        window.add_item_view_library(item_name="curve_two", icon=QIcon(resource_library.Icon.mesh_library_param))
         for index in range(1, 101):
             window.add_item_view_library(item_name=f"curve_with_a_very_long_name_for_testing_ui_{index}", 
                                          icon=mocked_icon)

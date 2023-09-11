@@ -349,6 +349,9 @@ class Icon:
     curve_library_base_curve = get_icon_path(r"curve_library_base_curve.svg")
     curve_library_user_curve = get_icon_path(r"curve_library_user_curve.svg")
     curve_library_control = get_icon_path(r"curve_library_control.svg")
+    mesh_library_base = get_icon_path(r"mesh_library_base.svg")
+    mesh_library_user = get_icon_path(r"mesh_library_user.svg")
+    mesh_library_param = get_icon_path(r"mesh_library_param.svg")
     library_missing_file = get_icon_path(r"library_missing_file.svg")
     library_parameters = get_icon_path(r"library_parameters.svg")
     library_build = get_icon_path(r"library_build.svg")
@@ -356,6 +359,7 @@ class Icon:
     library_snapshot = get_icon_path(r"library_snapshot.svg")
     library_remove = get_icon_path(r"library_remove.svg")
     library_add = get_icon_path(r"library_add.svg")
+    library_shelf = get_icon_path(r"library_shelf.svg")
     # User Interface
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
     ui_arrow_down = get_icon_path(r"ui_arrow_down.svg")
