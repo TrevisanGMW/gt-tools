@@ -102,3 +102,11 @@ class TestMathUtils(unittest.TestCase):
         self.assertEqual(expected, mesh_file.get_metadata())
         mesh_file.set_metadata_dict(mocked_metadata)
         self.assertEqual(mocked_metadata, mesh_file.get_metadata())
+
+    def test_get_curve_preview_image_path(self):
+        path = mesh_utils.get_mesh_preview_image_path("qr_code_package_github")
+        result = os.path.exists(path)
+        self.assertTrue(result)
+        result = os.path.basename(path)
+        expected = "qr_code_package_github.jpg"
+        self.assertEqual(expected, result)

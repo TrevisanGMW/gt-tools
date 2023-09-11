@@ -40,6 +40,25 @@ def get_mesh_path(file_name):
     return path_to_mesh
 
 
+def get_mesh_preview_image_path(mesh_name):
+    """
+    Get the path to a mesh image file. This file should exist inside the utils/data/meshes folder.
+    Args:
+        mesh_name (str): Name of the curve (same as mesh file). It doesn't need to contain extension.
+                         Function will automatically look for JPG or PNG files.
+    Returns:
+        str or None: Path to the mesh preview image file. None if not found.
+    """
+    if not isinstance(mesh_name, str):
+        logger.debug(f'Unable to retrieve mesh preview image. Incorrect argument type: "{str(type(mesh_name))}".')
+        return
+
+    for ext in ["jpg", "png"]:
+        path_to_image = os.path.join(DataDirConstants.DIR_MESHES, f'{mesh_name}.{ext}')
+        if os.path.exists(path_to_image):
+            return path_to_image
+
+
 def convert_bif_to_mesh():
     """
     Converts Bifrost geometry to Maya geometry
