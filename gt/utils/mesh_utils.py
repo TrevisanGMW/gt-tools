@@ -44,7 +44,7 @@ def get_mesh_preview_image_path(mesh_name):
     """
     Get the path to a mesh image file. This file should exist inside the utils/data/meshes folder.
     Args:
-        mesh_name (str): Name of the curve (same as mesh file). It doesn't need to contain extension.
+        mesh_name (str): Name of the Mesh (same as mesh file). It doesn't need to contain extension.
                          Function will automatically look for JPG or PNG files.
     Returns:
         str or None: Path to the mesh preview image file. None if not found.
@@ -464,6 +464,14 @@ class Meshes:
         Use "build()" to create them in Maya.
         """
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
+
+
+# class ParametricMeshes:
+#     def __init__(self):
+#         """
+#         A library of mesh objects.
+#         Use "build()" to create them in Maya.
+#         """
 
 
 if __name__ == "__main__":
