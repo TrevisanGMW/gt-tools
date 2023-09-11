@@ -23,16 +23,16 @@ logger.setLevel(logging.INFO)
 
 
 class MeshLibraryController:
-    CURVE_TYPE_BASE = "Curve"
-    CURVE_TYPE_USER = "User Curve"
-    CURVE_TYPE_CONTROL = "Control"
+    MESH_TYPE_BASE = "Mesh"
+    MESH_TYPE_USER = "User Mesh"
+    MESH_TYPE_PARAM = "Parametric Mesh"
 
     def __init__(self, model, view):
         """
         Initialize the MeshLibraryController object.
 
         Args:
-            model: The CurveLibraryModel object used for data manipulation.
+            model: The MeshLibraryModel object used for data manipulation.
             view: The view object to interact with the user interface.
         """
         self.model = model
@@ -42,15 +42,15 @@ class MeshLibraryController:
         self.preferences = Prefs("mesh_library")
         self.preferences.set_user_files_sub_folder("user_meshes")
         user_meshes_dir = self.preferences.get_user_files_dir_path(create_if_missing=False)
-        self.model.import_user_curve_library(source_dir=user_meshes_dir)
+        self.model.import_user_mesh_library(source_dir=user_meshes_dir)
         # Connections
         self.view.build_button.clicked.connect(self.build_view_selected_mesh)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.view.search_bar.textChanged.connect(self.filter_list)
-        self.view.parameters_button.clicked.connect(self.open_parameter_editor)
-        self.view.add_custom_button.clicked.connect(self.add_user_mesh)
-        self.view.delete_custom_button.clicked.connect(self.remove_user_mesh)
-        self.view.snapshot_button.clicked.connect(self.render_mesh_snapshot)
+        # self.view.parameters_button.clicked.connect(self.open_parameter_editor)
+        # self.view.add_custom_button.clicked.connect(self.add_user_mesh)
+        # self.view.delete_custom_button.clicked.connect(self.remove_user_mesh)
+        # self.view.snapshot_button.clicked.connect(self.render_mesh_snapshot)
         self.populate_mesh_library()
         self.view.show()
 
@@ -69,13 +69,13 @@ class MeshLibraryController:
             self.view.update_preview_image(new_image_path=new_preview_image)
         if metadata and "item_type" in metadata:
             self.view.update_item_description(metadata.get("item_type"), item_name)
-            if metadata.get("item_type") == self.CURVE_TYPE_BASE:
+            if metadata.get("item_type") == self.MESH_TYPE_BASE:
                 self.set_view_base_curve_mode()
-            elif metadata.get("item_type") == self.CURVE_TYPE_USER:
+            elif metadata.get("item_type") == self.MESH_TYPE_USER:
                 self.set_view_user_curve_mode()
                 user_preview_image = self.get_custom_curve_preview_image()
                 self.view.update_preview_image(new_image_path=user_preview_image)
-            elif metadata.get("item_type") == self.CURVE_TYPE_CONTROL:
+            elif metadata.get("item_type") == self.MESH_TYPE_PARAM:
                 self.set_view_control_curve_mode()
 
     def set_view_base_curve_mode(self):
@@ -107,15 +107,15 @@ class MeshLibraryController:
         """
         Build the selected curve from the curve library in the model.
         """
-        current_curve = self.get_selected_item_curve()
-        self.model.build_curve(curve=current_curve)
+        current_mesh = self.get_selected_item_curve()
+        self.model.build_mesh(mesh=current_mesh)
 
     def get_selected_item_curve(self):
         """
         Gets the curve of the currently selected element in the list
         Returns:
-            Curve, Control or None: Object stored in the metadata of the selected item.
-                                    None if not found or nothing selected.
+            MeshFile, ParametricMesh or None: Object stored in the metadata of the selected item.
+                                              None if not found or nothing selected.
         """
         item = self.view.item_list.currentItem()
         if not item:
@@ -123,7 +123,7 @@ class MeshLibraryController:
             return
         metadata = item.data(Qt.UserRole)
         if not metadata or not metadata.get("object"):
-            logger.debug(f'Selected item "{item}" is missing the metadata necessary to retrieve a curve.')
+            logger.debug(f'Selected item "{item}" is missing the metadata necessary to retrieve a mesh.')
             return
         return metadata.get("object")
 
@@ -151,27 +151,29 @@ class MeshLibraryController:
             filter_str (str, None): If provided, it will be used to filter desired objects when populating the list.
         """
         self.view.clear_view_library()
-        base_curves = self.model.get_base_curves()
-        control_curves = self.model.get_controls()
-        user_curves = self.model.get_user_curves()
-        icon_base_crv = QIcon(resource_library.Icon.curve_library_base_curve)
-        icon_control = QIcon(resource_library.Icon.curve_library_control)
-        icon_user_crv = QIcon(resource_library.Icon.curve_library_user_curve)
-        for crv in base_curves:
-            if filter_str and filter_str not in crv.get_name():
+        meshes_base = self.model.get_base_meshes()
+        meshes_param = self.model.get_param_meshes()
+        meshes_user = self.model.get_user_meshes()
+
+        icon_base_mesh = QIcon(resource_library.Icon.mesh_library_base)
+        icon_param_mesh = QIcon(resource_library.Icon.mesh_library_param)
+        icon_user_mesh = QIcon(resource_library.Icon.mesh_library_user)
+
+        for mesh_name, mesh in meshes_base.items():
+            if filter_str and filter_str not in mesh_name:
                 continue
-            metadata_base_crv = {"object": crv, "item_type": self.CURVE_TYPE_BASE}
-            self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_base_crv, metadata=metadata_base_crv)
-        for ctrl in control_curves:
-            if filter_str and filter_str not in ctrl.get_name():
+            metadata_base_mesh = {"object": mesh, "item_type": self.MESH_TYPE_BASE}
+            self.view.add_item_view_library(item_name=mesh_name, icon=icon_base_mesh, metadata=metadata_base_mesh)
+        for mesh_name, param_mesh in meshes_param.items():
+            if filter_str and filter_str not in mesh_name:
                 continue
-            metadata_control = {"object": ctrl, "item_type": self.CURVE_TYPE_CONTROL}
-            self.view.add_item_view_library(item_name=ctrl.get_name(), icon=icon_control, metadata=metadata_control)
-        for crv in user_curves:
-            if filter_str and filter_str not in crv.get_name():
+            metadata_param_mesh = {"object": param_mesh, "item_type": self.MESH_TYPE_PARAM}
+            self.view.add_item_view_library(item_name=mesh_name, icon=icon_param_mesh, metadata=metadata_param_mesh)
+        for mesh_name, user_mesh in meshes_user.items():
+            if filter_str and filter_str not in user_mesh.get_name():
                 continue
-            metadata_user_crv = {"object": crv, "item_type": self.CURVE_TYPE_USER}
-            self.view.add_item_view_library(item_name=crv.get_name(), icon=icon_user_crv, metadata=metadata_user_crv)
+            metadata_user_mesh = {"object": user_mesh, "item_type": self.MESH_TYPE_USER}
+            self.view.add_item_view_library(item_name=mesh_name, icon=icon_user_mesh, metadata=metadata_user_mesh)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def open_parameter_editor(self):

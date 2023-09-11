@@ -1,7 +1,7 @@
 """
 Mesh Library Model
 """
-from gt.utils.mesh_utils import Meshes, MeshFile, ParametricMesh
+from gt.utils.mesh_utils import Meshes, MeshFile, ParametricMesh, get_mesh_preview_image_path
 from gt.ui import resource_library
 import logging
 import os
@@ -75,7 +75,7 @@ class MeshLibraryModel:
         if not self.validate_item(user_mesh):
             logger.debug(f'Unable to add MeshFile to user-defined meshes. MeshFile failed validation.')
             return
-        self.base_meshes[user_mesh.get_name()] = user_mesh
+        self.user_meshes[user_mesh.get_name()] = user_mesh
 
     def add_param_mesh(self, param_mesh):
         """
@@ -141,12 +141,12 @@ class MeshLibraryModel:
             reset_user_meshes (bool, optional): If active, user mesh list will be first reset before importing.
         """
         if reset_user_meshes:
-            self.user_meshes = []
+            self.user_meshes = {}
         if not source_dir:
-            logger.debug('Invalid user meshes directory')
+            logger.debug('Invalid user-defined meshes directory')
             return
         if not os.path.exists(source_dir):
-            logger.debug("User meshes directory is missing.")
+            logger.debug("User-defined meshes directory is missing.")
             return
         for file in os.listdir(source_dir):
             if file.endswith(".obj"):
@@ -166,10 +166,24 @@ class MeshLibraryModel:
         Returns:
             str or None: Name of the built item.
         """
-        crv = self.get_mesh_from_name(mesh_name)
+        mesh = self.get_mesh_from_name(mesh_name)
         result = None
-        if crv:
-            result = crv.build()
+        if mesh:
+            result = mesh.build()
+        return result
+
+    @staticmethod
+    def build_mesh(mesh):
+        """
+        Builds a mesh based on the provided MeshFile object.
+        Args:
+            mesh (MeshFile, ParametricMesh): Mesh to build
+        Returns:
+            str or None: Name of the built mesh
+        """
+        result = None
+        if mesh and isinstance(mesh, (MeshFile, ParametricMesh)):
+            result = mesh.build()
         return result
 
     def get_all_meshes(self):
@@ -209,7 +223,7 @@ class MeshLibraryModel:
         mesh = self.get_mesh_from_name(object_name)
         preview_image = None
         if mesh and isinstance(mesh, MeshFile):
-            preview_image = ""  # get_mesh_preview_image_path(object_name) # TODO create function @@
+            preview_image = get_mesh_preview_image_path(object_name)
         if mesh and isinstance(mesh, ParametricMesh):
             preview_image = ""  # get_param_mesh_preview_image_path(object_name) # TODO create function @@
         if preview_image:
