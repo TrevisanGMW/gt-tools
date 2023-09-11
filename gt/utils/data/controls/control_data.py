@@ -123,12 +123,12 @@ class ControlData:
 
     def set_metadata(self, new_metadata):
         """
-        Sets the metadata property. The metadata is any extra value used to further describe the curve.
+        Sets the metadata property. The metadata is any extra value used to further describe the control.
         Args:
-            new_metadata (dict): A dictionary describing extra information about the curve
+            new_metadata (dict): A dictionary describing extra information about the control
         """
         if not isinstance(new_metadata, dict):
-            logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(new_metadata))}"')
+            logger.warning(f'Unable to set metadata. Expected a dictionary, but got: "{str(type(new_metadata))}"')
             return
         self.metadata = new_metadata
 
