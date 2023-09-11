@@ -194,7 +194,7 @@ class CurveLibraryController:
                                     message=control.get_docstrings(),
                                     window_title=f'Parameters for "{item_name}"',
                                     image=resource_library.Icon.curve_library_control,
-                                    window_icon=resource_library.Icon.curve_library_parameters,
+                                    window_icon=resource_library.Icon.library_parameters,
                                     image_scale_pct=10,
                                     is_python_code=True)
         param_win.set_confirm_button_text("Build")
