@@ -553,6 +553,3 @@ class ParametricMeshes:
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from gt.utils.system_utils import get_desktop_path
-    test_path = os.path.join(get_desktop_path(), "testfile.obj")
-    export_obj_file(export_path=test_path, obj_names="group1")
