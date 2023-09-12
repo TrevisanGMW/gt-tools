@@ -1,9 +1,10 @@
 """
 Mesh Library Model
 """
-from gt.utils.mesh_utils import Meshes, MeshFile, ParametricMesh, get_mesh_preview_image_path
+from gt.utils.mesh_utils import Meshes, MeshFile, ParametricMesh, get_mesh_preview_image_path, ParametricMeshes
 from gt.ui import resource_library
 import logging
+import sys
 import os
 
 
@@ -22,6 +23,7 @@ class MeshLibraryModel:
         self.user_meshes = {}  # User-defined meshes
         self.param_meshes = {}
         self.import_package_library()
+        self.import_parametric_meshes_library()
 
     def is_conflicting_name(self, name):
         """
@@ -86,7 +88,7 @@ class MeshLibraryModel:
         if not self.validate_item(param_mesh):
             logger.debug(f'Unable to add ParametricMesh to mesh list. ParametricMesh failed validation.')
             return
-        self.base_meshes[param_mesh.get_name()] = param_mesh
+        self.param_meshes[param_mesh.get_name()] = param_mesh
 
     def get_base_meshes(self):
         """
@@ -132,6 +134,16 @@ class MeshLibraryModel:
         for mesh_key in keys:
             mesh_file = getattr(Meshes, mesh_key)
             self.add_base_mesh(mesh_file)
+
+    def import_parametric_meshes_library(self):
+        """
+        Imports all meshes found in "mesh_utils.Meshes" to the MeshLibraryModel base meshes list
+        """
+        attributes = vars(ParametricMeshes)
+        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for mesh_key in keys:
+            mesh_file = getattr(ParametricMeshes, mesh_key)
+            self.add_param_mesh(mesh_file)
 
     def import_user_mesh_library(self, source_dir, reset_user_meshes=True):
         """
@@ -225,7 +237,7 @@ class MeshLibraryModel:
         if mesh and isinstance(mesh, MeshFile):
             preview_image = get_mesh_preview_image_path(object_name)
         if mesh and isinstance(mesh, ParametricMesh):
-            preview_image = ""  # get_param_mesh_preview_image_path(object_name) # TODO create function @@
+            preview_image = get_mesh_preview_image_path(object_name, parametric=True)
         if preview_image:
             return preview_image
         else:
@@ -253,27 +265,40 @@ class MeshLibraryModel:
             finally:
                 target_parametric_mesh.reset_parameters()
 
-    def get_potential_user_mesh_from_selection(self):
+    def export_potential_user_mesh_from_selection(self, target_dir_path):
         """
         Gets a user-defined mesh if it's unique and valid. (Uses user selection in Maya)
+        Args:
+            target_dir_path (str): Target directory to export the mesh into.
         Returns:
             MeshFile or None: The custom mesh file if the selection was valid. None if it failed.
         """
+        if not os.path.exists(target_dir_path) or not os.path.isdir(target_dir_path):
+            logger.warning(f'Unable to export mesh. Invalid target directory: "{target_dir_path}".')
+            return
         import maya.cmds as cmds
-        selection = cmds.ls(selection=True) or []
+        selection = cmds.ls(selection=True, long=True) or []
         if not selection:
             cmds.warning("Nothing selected. Select an existing mesh in your scene and try again.")
             return
         if len(selection) != 1:
             cmds.warning("Select only one object and try again.")
             return
-        file_path = ""  # TODO TEMP @@@ - Function to export selected mesh as obj here
+        # Determine name
+        from gt.utils.naming_utils import get_short_name
+        mesh_name = get_short_name(long_name=selection[0], remove_namespace=True)
+        if mesh_name in self.get_all_mesh_names():
+            cmds.warning("Unable to add mesh. Mesh name already exists in the library. Rename it and try again.")
+            return
+        file_path = os.path.join(target_dir_path, f'{mesh_name}.obj')
+        from gt.utils import mesh_utils
+        mesh_utils.export_obj_file(export_path=file_path)
+        if not os.path.exists(file_path):
+            logger.warning(f'Unable to export mesh. Mesh file was not generated. Missing: "{file_path}".')
+            return
+        sys.stdout.write(f'Mesh written to: "{file_path}".\n')
         mesh = MeshFile(file_path=file_path)
         if mesh.is_valid():
-            mesh_name = mesh.get_name()
-            if mesh_name in self.get_all_mesh_names():
-                cmds.warning("Unable to add mesh. Mesh name already exists in the library. Rename it and try again.")
-                return
             return mesh
 
 
