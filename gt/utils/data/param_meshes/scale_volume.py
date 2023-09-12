@@ -2,6 +2,7 @@
 Parametric Mesh Creation Scripts (Meshes with Logic or extra components)
 """
 from gt.utils.data.param_meshes.mesh_data import MeshData
+from functools import partial
 from random import random
 import maya.cmds as cmds
 import logging
@@ -23,6 +24,8 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
         parameters["height"] = height
     if depth:
         parameters["depth"] = depth
+    # Save selection to recover it later
+    selection = cmds.ls(selection=True) or []
     # Create Volume
     cube = cmds.polyCube(**parameters)[0]
     # Create Measurements
@@ -36,13 +39,13 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
         distance_node_locators = cmds.listConnections(distance_node)
         if distance_node_transform:
-            distance_dimensions.append(cmds.rename(distance_node_transform, f'{name}_widthData'))
+            distance_dimensions.append(cmds.rename(distance_node_transform, f'{cube}_widthData'))
         if distance_node_locators[0]:
             cmds.xform(distance_node_locators[0], translation=pos_x_vertex_position, worldSpace=True)
-            locators.append(cmds.rename(distance_node_locators[0], f"{name}_widthSP"))
+            locators.append(cmds.rename(distance_node_locators[0], f"{cube}_widthSP"))
         if distance_node_locators[1]:
             cmds.xform(distance_node_locators[1], translation=neg_x_vertex_position, worldSpace=True)
-            locators.append(cmds.rename(distance_node_locators[1], f"{name}_widthEP"))
+            locators.append(cmds.rename(distance_node_locators[1], f"{cube}_widthEP"))
     if height_dimension:
         pos_y_vertex_position = cmds.pointPosition(f"{cube}.vtx[2]", w=True)
         neg_y_vertex_position = cmds.pointPosition(f"{cube}.vtx[0]", w=True)
@@ -52,12 +55,12 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
         distance_node_locators = cmds.listConnections(distance_node)
         if distance_node_transform:
             cmds.xform(distance_node_locators[0], translation=pos_y_vertex_position, worldSpace=True)
-            distance_dimensions.append(cmds.rename(distance_node_transform, f'{name}_heightData'))
+            distance_dimensions.append(cmds.rename(distance_node_transform, f'{cube}_heightData'))
         if distance_node_locators[0]:
-            locators.append(cmds.rename(distance_node_locators[0], f"{name}_heightSP"))
+            locators.append(cmds.rename(distance_node_locators[0], f"{cube}_heightSP"))
         if distance_node_locators[1]:
             cmds.xform(distance_node_locators[1], translation=neg_y_vertex_position, worldSpace=True)
-            locators.append(cmds.rename(distance_node_locators[1], f"{name}_heightEP"))
+            locators.append(cmds.rename(distance_node_locators[1], f"{cube}_heightEP"))
     if depth_dimension:
         pos_z_vertex_position = cmds.pointPosition(f"{cube}.vtx[1]", w=True)
         neg_z_vertex_position = cmds.pointPosition(f"{cube}.vtx[7]", w=True)
@@ -66,13 +69,13 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
         distance_node_locators = cmds.listConnections(distance_node)
         if distance_node_transform:
-            distance_dimensions.append(cmds.rename(distance_node_transform, f'{name}_depthData'))
+            distance_dimensions.append(cmds.rename(distance_node_transform, f'{cube}_depthData'))
         if distance_node_locators[0]:
             cmds.xform(distance_node_locators[0], translation=pos_z_vertex_position, worldSpace=True)
-            locators.append(cmds.rename(distance_node_locators[0], f"{name}_depthSP"))
+            locators.append(cmds.rename(distance_node_locators[0], f"{cube}_depthSP"))
         if distance_node_locators[1]:
             cmds.xform(distance_node_locators[1], translation=neg_z_vertex_position, worldSpace=True)
-            locators.append(cmds.rename(distance_node_locators[1], f"{name}_depthEP"))
+            locators.append(cmds.rename(distance_node_locators[1], f"{cube}_depthEP"))
     # Set Measurement Visibility
     for loc in locators:
         loc_shape = cmds.listRelatives(loc, shapes=True, fullPath=True)[0]
@@ -101,11 +104,20 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
     elif pivot_pos is not None and isinstance(pivot_pos, int):  # Vertex Number
         vertex_position = cmds.pointPosition(f"{cube}.vtx[{str(pivot_pos)}]", w=True)  # Vertex Number
         cmds.xform(cube, piv=vertex_position, ws=True)
-
+    cmds.select(clear=True)
+    if selection:
+        try:
+            cmds.select(selection)
+        except Exception as e:
+            logger.debug(f'Unable to recover selection. Issue: "{e}".')
     return MeshData(name=cube, setup=distance_dimensions + locators)
+
+
+create_kitchen_cabinet = partial(create_scale_cube, name="scale_kitchen_cabinet_volume", width=61, depth=61, height=91)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
-    print(create_scale_cube(name="volume", width=61, depth=61, height=91))
+    create_kitchen_cabinet()
+    # print()
