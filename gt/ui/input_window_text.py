@@ -74,7 +74,7 @@ class InputWindowText(metaclass=MayaWindowMeta):
 
         # Create Text-field
         self.text_field = QTextEdit()
-        text_stylesheet = f"padding: {10}; background-color: {resource_library.Color.Hex.gray_dark}"
+        text_stylesheet = f"padding: {10}; background-color: {resource_library.Color.Hex.gray_darker_mid}"
         self.text_field.setStyleSheet(text_stylesheet)
         if is_python_code:
             PythonSyntaxHighlighter(self.text_field.document())
