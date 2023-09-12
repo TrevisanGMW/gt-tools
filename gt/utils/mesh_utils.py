@@ -10,7 +10,6 @@ import logging
 import ast
 import os
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -186,6 +185,54 @@ def import_obj_file(file_path):
     imported_items = cmds.file(file_path, i=True, type=MESH_FILE_EXTENSION, ignoreVersion=True, renameAll=True,
                                mergeNamespacesOnClash=True, namespace=":", returnNewNodes=True)
     return imported_items
+
+
+def export_obj_file(export_path, obj_names=None, options=None):
+    """
+    Export the specified Maya object as an OBJ file without selecting it.
+
+    Args:
+        export_path (str): The path where the OBJ file will be saved.
+        obj_names (str, list, optional): The name of the object to be exported. If not provided, selection will be used.
+        options (str, optional): If provided, it will be used as option for the obj export function.
+                                 When not provided, it uses defaults:
+                                 "groups=0;materials=1;smoothing=1;normals=1"
+
+    Returns:
+        str or None: The path to the exported OBJ file. None if it fails.
+    """
+    # Make sure export plugin is available
+    from gt.utils import plugin_utils
+    plugin_utils.load_plugin("objExport")
+    # Store selection to restore later
+    selection = cmds.ls(selection=True) or []
+    # Exporting selection?
+    to_select = None
+    if obj_names and isinstance(obj_names, str):
+        obj_names = [obj_names]
+    if obj_names:
+        to_select = []
+        for obj in obj_names:
+            if cmds.objExists(obj):
+                to_select.append(obj)
+            else:
+                logger.debug(f'Missing object: "{obj}".')
+    if to_select is not None:
+        if len(to_select) == 0:
+            logger.warning(f'Unable to export OBJ. Missing requested objects. (See Script Editor)')
+            return
+        cmds.select(to_select)
+    # Determine options and export
+    if options is None:
+        options = "groups=0;materials=1;smoothing=1;normals=1"
+    cmds.file(export_path, force=True, options=options, typ="OBJexport", exportSelected=True)
+    # Restore original selection
+    if to_select is not None and selection:
+        try:
+            cmds.select(selection)
+        except Exception as e:
+            logger.debug(f'Unable to restore original selection. Issue: "{e}".')
+    return export_path
 
 
 class MeshFile:
@@ -506,4 +553,6 @@ class ParametricMeshes:
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    ParametricMeshes.scale_kitchen_cabinet.build()
+    from gt.utils.system_utils import get_desktop_path
+    test_path = os.path.join(get_desktop_path(), "testfile.obj")
+    export_obj_file(export_path=test_path, obj_names="group1")

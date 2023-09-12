@@ -19,15 +19,19 @@ from tests import maya_test_tools
 from gt.utils import mesh_utils
 
 
-class TestMathUtils(unittest.TestCase):
+class TestMeshUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
         data_dir = maya_test_tools.get_data_dir_path()
         self.triangle_file_path = os.path.join(data_dir, "triangle_mesh.obj")
+        self.temp_dir = maya_test_tools.generate_test_temp_dir()
 
     @classmethod
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
+
+    def tearDown(self):
+        maya_test_tools.delete_test_temp_dir()
 
     def test_get_mesh_path(self):
         from gt.utils.data_utils import DataDirConstants
@@ -110,3 +114,38 @@ class TestMathUtils(unittest.TestCase):
         result = os.path.basename(path)
         expected = "qr_code_package_github.jpg"
         self.assertEqual(expected, result)
+
+    def test_export_obj_file(self):
+        export_path = os.path.join(self.temp_dir, "my_file.obj")
+        cube = maya_test_tools.create_poly_cube()
+        result = mesh_utils.export_obj_file(export_path=export_path, obj_names=cube)
+        return
+        self.assertTrue(os.path.exists(result))
+        self.assertEqual(export_path, result)
+        exported_files = os.listdir(self.temp_dir)
+        expected_files = ['my_file.mtl', 'my_file.obj']
+        self.assertEqual(expected_files, exported_files)
+        maya_test_tools.force_new_scene()
+        imported = maya_test_tools.import_file(export_path)
+        expected = ['groupId1',
+                    'initialShadingGroup1',
+                    'materialInfo1',
+                    'my_file_initialShadingGroup',
+                    '|Mesh',
+                    '|Mesh|MeshShape']
+        self.assertEqual(expected, imported)
+
+    def test_export_obj_file_options(self):
+        export_path = os.path.join(self.temp_dir, "my_file.obj")
+        cube = maya_test_tools.create_poly_cube()
+        options = "groups=0;materials=1;smoothing=0;normals=0"
+        result = mesh_utils.export_obj_file(export_path=export_path, obj_names=cube, options=options)
+        self.assertTrue(os.path.exists(result))
+        self.assertEqual(export_path, result)
+        exported_files = os.listdir(self.temp_dir)
+        expected_files = ['my_file.obj']
+        self.assertEqual(expected_files, exported_files)
+        maya_test_tools.force_new_scene()
+        imported = maya_test_tools.import_file(export_path)
+        expected = ['|Mesh', '|Mesh|MeshShape']
+        self.assertEqual(expected, imported)
