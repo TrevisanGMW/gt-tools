@@ -2,7 +2,7 @@
 Mesh Library Controller
 
 This module contains the MeshLibraryController class responsible for managing interactions between the
-CurveLibraryModel and the user interface.
+MeshLibraryModel and the user interface.
 """
 from PySide2.QtWidgets import QMessageBox, QAbstractItemView
 from gt.ui.input_window_text import InputWindowText
@@ -15,6 +15,7 @@ from PySide2.QtCore import Qt
 import logging
 import sys
 import os
+
 
 # Logging Setup
 logging.basicConfig()
@@ -47,10 +48,10 @@ class MeshLibraryController:
         self.view.build_button.clicked.connect(self.build_view_selected_mesh)
         self.view.item_list.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.view.search_bar.textChanged.connect(self.filter_list)
-        # self.view.parameters_button.clicked.connect(self.open_parameter_editor)
-        # self.view.add_custom_button.clicked.connect(self.add_user_mesh)
-        # self.view.delete_custom_button.clicked.connect(self.remove_user_mesh)
-        # self.view.snapshot_button.clicked.connect(self.render_mesh_snapshot)
+        self.view.parameters_button.clicked.connect(self.open_parameter_editor)
+        self.view.add_custom_button.clicked.connect(self.add_user_mesh)
+        self.view.delete_custom_button.clicked.connect(self.remove_user_mesh)
+        self.view.snapshot_button.clicked.connect(self.render_mesh_snapshot)
         self.populate_mesh_library()
         self.view.show()
 
@@ -70,49 +71,49 @@ class MeshLibraryController:
         if metadata and "item_type" in metadata:
             self.view.update_item_description(metadata.get("item_type"), item_name)
             if metadata.get("item_type") == self.MESH_TYPE_BASE:
-                self.set_view_base_curve_mode()
+                self.set_view_base_mesh_mode()
             elif metadata.get("item_type") == self.MESH_TYPE_USER:
-                self.set_view_user_curve_mode()
-                user_preview_image = self.get_custom_curve_preview_image()
+                self.set_view_user_mesh_mode()
+                user_preview_image = self.get_custom_mesh_preview_image()
                 self.view.update_preview_image(new_image_path=user_preview_image)
             elif metadata.get("item_type") == self.MESH_TYPE_PARAM:
-                self.set_view_control_curve_mode()
+                self.set_view_parametric_mesh_mode()
 
-    def set_view_base_curve_mode(self):
-        """ Changes the UI to look like you have a package curve (base) selected """
+    def set_view_base_mesh_mode(self):
+        """ Changes the UI to look like you have a package mesh (base) selected """
         self.view.set_snapshot_button_enabled(False)
         self.view.set_parameters_button_enabled(False)
         self.view.set_delete_button_enabled(False)
 
-    def set_view_user_curve_mode(self):
-        """ Changes the UI to look like you have a user-defined curve selected """
+    def set_view_user_mesh_mode(self):
+        """ Changes the UI to look like you have a user-defined mesh selected """
         self.view.set_snapshot_button_enabled(True)
         self.view.set_parameters_button_enabled(False)
         self.view.set_delete_button_enabled(True)
 
-    def set_view_control_curve_mode(self):
-        """ Changes the UI to look like you have a package control selected """
+    def set_view_parametric_mesh_mode(self):
+        """ Changes the UI to look like you have a package parametric mesh selected """
         self.view.set_snapshot_button_enabled(False)
         self.view.set_parameters_button_enabled(True)
         self.view.set_delete_button_enabled(False)
 
     def filter_list(self):
         """
-        Filter the curve library list based on the search text entered by the user.
+        Filter the mesh library list based on the search text entered by the user.
         """
         search_text = self.view.search_bar.text().lower()
         self.populate_mesh_library(filter_str=search_text)
 
     def build_view_selected_mesh(self):
         """
-        Build the selected curve from the curve library in the model.
+        Build the selected mesh from the mesh library in the model.
         """
-        current_mesh = self.get_selected_item_curve()
+        current_mesh = self.get_selected_item_object()
         self.model.build_mesh(mesh=current_mesh)
 
-    def get_selected_item_curve(self):
+    def get_selected_item_object(self):
         """
-        Gets the curve of the currently selected element in the list
+        Gets the mesh of the currently selected element in the list
         Returns:
             MeshFile, ParametricMesh or None: Object stored in the metadata of the selected item.
                                               None if not found or nothing selected.
@@ -177,112 +178,111 @@ class MeshLibraryController:
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def open_parameter_editor(self):
-        """ Opens an input window so the user can update the parameters of a control """
+        """ Opens an input window so the user can update the parameters of a parametric mesh """
         item = self.view.item_list.currentItem()
         if not item:
             logger.warning(f'No item selected. Unable to open parameter editor.')
             return
         item_name = self.view.item_list.currentItem().text()
-        control = self.get_selected_item_curve()
-        parameters = control.get_parameters()
+        param_mesh = self.get_selected_item_object()
+        parameters = param_mesh.get_parameters()
         if not parameters:
-            logger.debug(f'Selected control does not have any parameters.')
-            parameters = "{\n# This control does not have any parameters.\n}"
-        from gt.utils.control_utils import Control
-        if not isinstance(control, Control):
-            logger.warning(f'Unable to edit parameters. Selected item is not of the type "Control."')
+            logger.debug(f'Selected parametric mesh does not have any parameters.')
+            parameters = "{\n# This parametric mesh does not have any parameters.\n}"
+        from gt.utils.mesh_utils import ParametricMesh
+        if not isinstance(param_mesh, ParametricMesh):
+            logger.warning(f'Unable to edit parameters. Selected item is not of the type "ParametricMesh."')
             return
         param_win = InputWindowText(parent=self.view,
-                                    message=control.get_docstrings(),
+                                    message=param_mesh.get_docstrings(),
                                     window_title=f'Parameters for "{item_name}"',
-                                    image=resource_library.Icon.curve_library_control,
+                                    image=resource_library.Icon.mesh_library_param,
                                     window_icon=resource_library.Icon.library_parameters,
                                     image_scale_pct=10,
                                     is_python_code=True)
         param_win.set_confirm_button_text("Build")
+        formatted_dict = None
         if isinstance(parameters, dict):
             formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=1,
                                                                            bracket_new_line=True)
         elif isinstance(parameters, str):
             formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)
-        param_win.confirm_button.clicked.connect(partial(self.model.build_control_with_custom_parameters,
-                                                         param_win.get_text_field_text, control))
+        param_win.confirm_button.clicked.connect(partial(self.model.build_mesh_with_custom_parameters,
+                                                         param_win.get_text_field_text, param_mesh))
         param_win.show()
 
     def add_user_mesh(self):
         """
-        Attempts to create a user-defined curve (saved to the preferences' folder)
+        Attempts to create a user-defined mesh (saved to the preferences' folder)
         Nothing is created in case operation fails.
         """
-        curve = self.model.get_potential_user_curve_from_selection()
-        if curve:
-            curve_name = curve.get_name()
-            path_dir = self.preferences.get_user_files_dir_path()
+        path_dir = self.preferences.get_user_files_dir_path()
+        mesh = self.model.export_potential_user_mesh_from_selection(target_dir_path=path_dir)
+        if mesh:
+            mesh_name = mesh.get_name()
             if os.path.exists(path_dir):
-                path_file = os.path.join(path_dir, f'{curve_name}.crv')
-                curve.write_curve_to_file(file_path=path_file)
-                sys.stdout.write(f'Curve written to: "{path_file}".\n')
                 # Refresh model and view
-                self.model.import_user_curve_library(source_dir=path_dir)
+                self.model.import_user_mesh_library(source_dir=path_dir)
                 self.populate_mesh_library()
-                self.select_item_by_name(curve_name)
-                self.set_view_user_curve_mode()
+                self.select_item_by_name(mesh_name)
+                self.set_view_user_mesh_mode()
 
     def remove_user_mesh(self):
         """
-        Deletes selected curve (only user curves) - Asks for confirmation through a dialog before deleting it.
+        Deletes selected mesh (only user meshes) - Asks for confirmation through a dialog before deleting it.
         """
-        curve = self.get_selected_item_curve()
-        if not curve:
-            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+        mesh = self.get_selected_item_object()
+        if not mesh:
+            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
             return
-        curve_name = curve.get_name()
-        user_choice = QMessageBox.question(None, f'Curve: "{curve.get_name()}"',
-                                           f'Are you sure you want to delete curve "{curve_name}"?',
+        mesh_name = mesh.get_name()
+        user_choice = QMessageBox.question(None, f'Mesh: "{mesh.get_name()}"',
+                                           f'Are you sure you want to delete mesh "{mesh_name}"?',
                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if user_choice == QMessageBox.Yes:
             path_dir = self.preferences.get_user_files_dir_path()
-            path_file = os.path.join(path_dir, f'{curve_name}.crv')
-            path_preview_image = os.path.join(path_dir, f'{curve_name}.jpg')
+            path_file = os.path.join(path_dir, f'{mesh_name}.obj')
+            path_mtl_file = os.path.join(path_dir, f'{mesh_name}.mtl')
+            path_preview_image = os.path.join(path_dir, f'{mesh_name}.jpg')
             from gt.utils.data_utils import delete_paths
-            delete_paths([path_file, path_preview_image])
-            self.model.import_user_curve_library(source_dir=path_dir)
+            delete_paths([path_file, path_mtl_file, path_preview_image])
+            self.model.import_user_mesh_library(source_dir=path_dir)
             selected_item = self.view.item_list.currentItem()
             if selected_item:
                 self.view.item_list.takeItem(self.view.item_list.row(selected_item))
-            sys.stdout.write(f'Curve "{curve_name}" was deleted.\n')
+            sys.stdout.write(f'Mesh "{mesh_name}" was deleted.\n')
 
     def render_mesh_snapshot(self):
-        """ Saves a snapshot to be used as preview image for a custom user curve """
-        curve = self.get_selected_item_curve()
-        if not curve:
-            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+        """ Saves a snapshot to be used as preview image for a custom user mesh """
+        mesh = self.get_selected_item_object()
+        if not mesh:
+            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
             return
-        curve_name = curve.get_name()
+        mesh_name = mesh.get_name()
         path_dir = self.preferences.get_user_files_dir_path()
         from gt.utils.playblast_utils import render_viewport_snapshot
-        path_file = render_viewport_snapshot(file_name=curve_name, target_dir=path_dir)
+        path_file = render_viewport_snapshot(file_name=mesh_name, target_dir=path_dir)
         if path_file and os.path.exists(path_file):
             sys.stdout.write(f'Snapshot written to: "{path_file}".')
             self.on_item_selection_changed()
         else:
             logger.warning(f'Unable to save snapshot. Failed to create image file.')
 
-    def get_custom_curve_preview_image(self):
+    def get_custom_mesh_preview_image(self):
         """
-        Gets the preview image for a custom curve (in case it exists)
+        Gets the preview image for a custom mesh (in case it exists)
         Returns:
             str: Path to the preview image or the path to the missing file image.
         """
-        curve = self.get_selected_item_curve()
-        if not curve:
-            logger.warning(f'Unable to retrieve curve object associated to selected item.')
+        mesh = self.get_selected_item_object()
+        if not mesh:
+            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
             return
-        curve_name = curve.get_name()
+        mesh_name = mesh.get_name()
         path_dir = self.preferences.get_user_files_dir_path()
-        preview_image = os.path.join(path_dir, f'{curve_name}.jpg')
+        preview_image = os.path.join(path_dir, f'{mesh_name}.jpg')
         if os.path.exists(preview_image):
             return preview_image
         else:
