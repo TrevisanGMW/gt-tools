@@ -2,6 +2,7 @@
 Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.data.param_meshes import scale_volume
 from gt.utils import system_utils, iterable_utils
 from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
@@ -412,6 +413,16 @@ class ParametricMesh(MeshFile):
         except Exception as e:
             logger.warning(f'Unable to build mesh. Build function raised an error: {e}')
 
+    def has_callable_function(self):
+        """
+        Checks if a callable function was provided or not
+        Returns:
+            bool: True if a function is present, False if not (None)
+        """
+        if self.build_function is not None:
+            return True
+        return False
+
     def is_valid(self, verbose=False):
         """
         Checks if the ParametricMesh object has enough data to create/generate a mesh.
@@ -421,7 +432,7 @@ class ParametricMesh(MeshFile):
             bool: True if it's valid (can create a mesh), False if invalid.
                   In this case it's valid if it has a callable function.
         """
-        if self.build_function is not None:
+        if self.has_callable_function:
             return True
         return False
 
@@ -466,14 +477,17 @@ class Meshes:
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
 
 
-# class ParametricMeshes:
-#     def __init__(self):
-#         """
-#         A library of mesh objects.
-#         Use "build()" to create them in Maya.
-#         """
+class ParametricMeshes:
+    def __init__(self):
+        """
+        A library of mesh objects.
+        Use "build()" to create them in Maya.
+        """
+
+    scale_cube = ParametricMesh(build_function=scale_volume.create_scale_cube)
+    scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_cabinet)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    Meshes.qr_code_package_github.build()
+    ParametricMeshes.scale_kitchen_cabinet.build()
