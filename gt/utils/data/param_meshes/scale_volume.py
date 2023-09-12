@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=None,
+def create_scale_cube(name="scale_volume_cube", width=None, height=None, depth=None,
                       width_dimension=True, height_dimension=True, depth_dimension=True,
                       place_on_grid=True, pivot_pos=None):
     # Define Parameters
@@ -113,11 +113,10 @@ def create_scale_cube(name="scale_cube_volume", width=None, height=None, depth=N
     return MeshData(name=cube, setup=distance_dimensions + locators)
 
 
-create_kitchen_cabinet = partial(create_scale_cube, name="scale_kitchen_cabinet_volume", width=61, depth=61, height=91)
+create_kitchen_cabinet = partial(create_scale_cube, name="scale_volume_kitchen_cabinet", width=61, depth=61, height=91)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # cmds.file(new=True, force=True)
+    cmds.file(new=True, force=True)
     create_kitchen_cabinet()
-    # print()
