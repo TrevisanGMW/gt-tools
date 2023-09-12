@@ -41,12 +41,13 @@ def get_mesh_path(file_name):
     return path_to_mesh
 
 
-def get_mesh_preview_image_path(mesh_name):
+def get_mesh_preview_image_path(mesh_name, parametric=False):
     """
     Get the path to a mesh image file. This file should exist inside the utils/data/meshes folder.
     Args:
         mesh_name (str): Name of the Mesh (same as mesh file). It doesn't need to contain extension.
                          Function will automatically look for JPG or PNG files.
+        parametric (bool, optional): If active, it will look in the parametric meshes folder instead of the regular dir.
     Returns:
         str or None: Path to the mesh preview image file. None if not found.
     """
@@ -54,8 +55,11 @@ def get_mesh_preview_image_path(mesh_name):
         logger.debug(f'Unable to retrieve mesh preview image. Incorrect argument type: "{str(type(mesh_name))}".')
         return
 
+    _dir = DataDirConstants.DIR_MESHES
+    if parametric:
+        _dir = os.path.join(DataDirConstants.DIR_DATA, "param_meshes", "preview_images")
     for ext in ["jpg", "png"]:
-        path_to_image = os.path.join(DataDirConstants.DIR_MESHES, f'{mesh_name}.{ext}')
+        path_to_image = os.path.join(_dir, f'{mesh_name}.{ext}')
         if os.path.exists(path_to_image):
             return path_to_image
 
@@ -300,6 +304,7 @@ class ParametricMesh(MeshFile):
         super().__init__()  # Call the parent class constructor
         self._original_parameters = {}
         self.parameters = {}
+        self.name = None
         self.build_function = None
         self.set_build_function(build_function=build_function)
         self.last_callable_output = None
@@ -444,6 +449,14 @@ class ParametricMesh(MeshFile):
         """
         return self.last_callable_output
 
+    def get_name(self):
+        """
+        Gets parametric mesh name.
+        Returns:
+            str or None: String if a name was set or retrieved from arguments. None if missing.
+        """
+        return self.name
+
     def set_name(self, name):
         """
         Sets a new Mesh name (Parametric Mesh in this case).
@@ -452,9 +465,12 @@ class ParametricMesh(MeshFile):
         Args:
             name (str): New name to use on the parametric mesh. (Also used in the function parameter)
         """
+        if not name or not isinstance(name, str):
+            logger.debug(f'Unable to set name. Invalid input, expected string but got "{str(type(name))}".')
+            return
         if name and isinstance(name, str) and "name" in self.get_parameters():
             self.parameters["name"] = name
-        super().set_name(name)
+        self.name = name
 
     def extract_name_from_parameters(self):
         """
