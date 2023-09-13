@@ -549,6 +549,7 @@ class ParametricMeshes:
 
     scale_cube = ParametricMesh(build_function=scale_volume.create_scale_cube)
     scale_cylinder = ParametricMesh(build_function=scale_volume.create_scale_cylinder)
+    create_scale_sphere = ParametricMesh(build_function=scale_volume.create_scale_sphere)
     scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_cabinet)
     create_kitchen_stool = ParametricMesh(build_function=scale_volume.create_kitchen_stool)
 
