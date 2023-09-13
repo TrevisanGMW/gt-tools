@@ -539,6 +539,7 @@ class Meshes:
         """
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
     pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
+    human_head_low_poly = MeshFile(file_path=get_mesh_path("human_head_low_poly"))
 
 
 class ParametricMeshes:
