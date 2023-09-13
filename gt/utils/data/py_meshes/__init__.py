@@ -13,7 +13,7 @@ e.g.
     Function definition
     >>> def create_kitchen_cabinet(name='scale_volume_kitchen_cabinet'):
     ParametricMesh object creation
-    >>> scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_cabinet)
+    >>> scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_standard_cabinet)
     Name value = "scale_volume_kitchen_cabinet"
     >>> print(scale_kitchen_cabinet.get_name())
 """
