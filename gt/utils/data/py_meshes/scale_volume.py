@@ -1,12 +1,14 @@
 """
 Parametric Mesh Creation Scripts (Meshes with Logic or extra components)
 """
+from gt.utils.iterable_utils import round_numbers_in_list
 from gt.utils.data.py_meshes.mesh_data import MeshData
 from gt.utils import mesh_utils
 from functools import partial
 from random import random
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -52,7 +54,9 @@ def create_scale_cube(name="scale_volume_cube", width=None, height=None, depth=N
     distance_dimensions = []
     if width_dimension:
         pos_x_vertex_position = cmds.pointPosition(f"{cube}.vtx[0]", w=True)
+        pos_x_vertex_position = round_numbers_in_list(pos_x_vertex_position)
         neg_x_vertex_position = cmds.pointPosition(f"{cube}.vtx[1]", w=True)
+        neg_x_vertex_position = round_numbers_in_list(neg_x_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random()*2, random()*3),  # Random values. Set below.
                                                ep=(random()*4, random()*5, random()*6))  # Same values = No locator.
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -67,7 +71,9 @@ def create_scale_cube(name="scale_volume_cube", width=None, height=None, depth=N
             locators.append(cmds.rename(distance_node_locators[1], f"{cube}_widthEP"))
     if height_dimension:
         pos_y_vertex_position = cmds.pointPosition(f"{cube}.vtx[2]", w=True)
+        pos_y_vertex_position = round_numbers_in_list(pos_y_vertex_position)
         neg_y_vertex_position = cmds.pointPosition(f"{cube}.vtx[0]", w=True)
+        neg_y_vertex_position = round_numbers_in_list(neg_y_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -82,7 +88,9 @@ def create_scale_cube(name="scale_volume_cube", width=None, height=None, depth=N
             locators.append(cmds.rename(distance_node_locators[1], f"{cube}_heightEP"))
     if depth_dimension:
         pos_z_vertex_position = cmds.pointPosition(f"{cube}.vtx[1]", w=True)
+        pos_z_vertex_position = round_numbers_in_list(pos_z_vertex_position)
         neg_z_vertex_position = cmds.pointPosition(f"{cube}.vtx[7]", w=True)
+        neg_z_vertex_position = round_numbers_in_list(neg_z_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -168,7 +176,9 @@ def create_scale_cylinder(name="scale_volume_cylinder", height=None, radius=None
     distance_dimensions = []
     if height_dimension:
         pos_y_vertex_position = cmds.pointPosition(f"{cylinder}.vtx[27]", w=True)
+        pos_y_vertex_position = round_numbers_in_list(pos_y_vertex_position)
         neg_y_vertex_position = cmds.pointPosition(f"{cylinder}.vtx[11]", w=True)
+        neg_y_vertex_position = round_numbers_in_list(neg_y_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -183,7 +193,9 @@ def create_scale_cylinder(name="scale_volume_cylinder", height=None, radius=None
             locators.append(cmds.rename(distance_node_locators[1], f"{cylinder}_heightEP"))
     if radius_dimension:
         pos_z_vertex_position = cmds.pointPosition(f"{cylinder}.vtx[19]", w=True)
+        pos_z_vertex_position = round_numbers_in_list(pos_z_vertex_position)
         neg_z_vertex_position = cmds.pointPosition(f"{cylinder}.vtx[33]", w=True)
+        neg_z_vertex_position = round_numbers_in_list(neg_z_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -269,9 +281,13 @@ def create_scale_sphere(name="scale_volume_sphere", radius=None,
     curves = []
     if height_dimension:
         pos_y_vertex_position = cmds.pointPosition(f"{sphere}.vtx[241]", w=True)
+        pos_y_vertex_position = round_numbers_in_list(pos_y_vertex_position)
         neg_y_vertex_position = cmds.pointPosition(f"{sphere}.vtx[240]", w=True)
+        neg_y_vertex_position = round_numbers_in_list(neg_y_vertex_position)
         out_z_vertex_pos = cmds.pointPosition(f"{sphere}.vtx[123]", w=True)
+        out_z_vertex_pos = round_numbers_in_list(out_z_vertex_pos)
         out_x_vertex_pos = cmds.pointPosition(f"{sphere}.vtx[119]", w=True)
+        out_x_vertex_pos = round_numbers_in_list(out_x_vertex_pos)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -297,8 +313,11 @@ def create_scale_sphere(name="scale_volume_sphere", radius=None,
             curves.append(ep_crv)
     if radius_dimension:
         center_vertex_position = cmds.pointPosition(f"{sphere}.vtx[241]", w=True)
+        center_vertex_position = round_numbers_in_list(center_vertex_position)
         pos_x_vertex_position = cmds.pointPosition(f"{sphere}.vtx[127]", w=True)
+        pos_x_vertex_position = round_numbers_in_list(pos_x_vertex_position)
         neg_z_vertex_position = cmds.pointPosition(f"{sphere}.vtx[115]", w=True)
+        neg_z_vertex_position = round_numbers_in_list(neg_z_vertex_position)
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
         distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
@@ -405,7 +424,9 @@ def create_scale_human(name="scale_volume_human", target_height=165, is_female=F
     if height_dimension:
         origin_position = [0, 0, 0]
         pos_y_vertex_position = cmds.pointPosition(f"{mesh_transform}.vtx[{y_vert}]", w=True)
+        pos_y_vertex_position = round_numbers_in_list(pos_y_vertex_position)
         neg_x_vertex_position = cmds.pointPosition(f"{mesh_transform}.vtx[{x_vert}]", w=True)
+        neg_x_vertex_position = round_numbers_in_list(neg_x_vertex_position)
 
         distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
                                                ep=(random() * 4, random() * 5, random() * 6))
@@ -497,4 +518,4 @@ create_scale_human_female.__doc__ = create_scale_human.__doc__
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
-    create_scale_human_female()
+    create_kitchen_large_fridge()
