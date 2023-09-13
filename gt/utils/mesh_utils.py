@@ -224,7 +224,7 @@ def export_obj_file(export_path, obj_names=None, options=None):
         cmds.select(to_select)
     # Determine options and export
     if options is None:
-        options = "groups=0;materials=1;smoothing=1;normals=1"
+        options = "groups=1;materials=1;smoothing=1;normals=1"
     cmds.file(export_path, force=True, options=options, typ="OBJexport", exportSelected=True)
     # Restore original selection
     if to_select is not None and selection:
@@ -538,20 +538,28 @@ class Meshes:
         Use "build()" to create them in Maya.
         """
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
+    pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
 
 
 class ParametricMeshes:
     def __init__(self):
         """
-        A library of mesh objects.
+        A library of parametric mesh objects.
         Use "build()" to create them in Maya.
         """
-
+    # Primitives
     scale_cube = ParametricMesh(build_function=scale_volume.create_scale_cube)
     scale_cylinder = ParametricMesh(build_function=scale_volume.create_scale_cylinder)
-    create_scale_sphere = ParametricMesh(build_function=scale_volume.create_scale_sphere)
-    scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_cabinet)
-    create_kitchen_stool = ParametricMesh(build_function=scale_volume.create_kitchen_stool)
+    scale_scale_sphere = ParametricMesh(build_function=scale_volume.create_scale_sphere)
+    # Environment
+    scale_kitchen_standard_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_standard_cabinet)
+    scale_kitchen_standard_stove = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stove)
+    scale_kitchen_standard_stool = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stool)
+    scale_kitchen_large_fridge = ParametricMesh(build_function=scale_volume.create_kitchen_large_fridge)
+    scale_kitchen_standard_mixer = ParametricMesh(build_function=scale_volume.create_kitchen_standard_mixer)
+    # Creatures/Bipeds
+    scale_human_male = ParametricMesh(build_function=scale_volume.create_scale_human_male)
+    scale_human_female = ParametricMesh(build_function=scale_volume.create_scale_human_female)
 
 
 if __name__ == "__main__":

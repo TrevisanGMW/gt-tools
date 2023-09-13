@@ -2,6 +2,7 @@
 Parametric Mesh Creation Scripts (Meshes with Logic or extra components)
 """
 from gt.utils.data.py_meshes.mesh_data import MeshData
+from gt.utils import mesh_utils
 from functools import partial
 from random import random
 import maya.cmds as cmds
@@ -356,16 +357,144 @@ def create_scale_sphere(name="scale_volume_sphere", radius=None,
             cmds.select(selection)
         except Exception as e:
             logger.debug(f'Unable to recover selection. Issue: "{e}".')
-    return MeshData(name=sphere, setup=distance_dimensions + locators)
+    return MeshData(name=sphere, setup=distance_dimensions + locators + curves)
 
 
-create_kitchen_cabinet = partial(create_scale_cube, name="scale_volume_kitchen_cabinet", width=61, depth=61, height=91)
-create_kitchen_cabinet.__doc__ = create_scale_cube.__doc__
-create_kitchen_stool = partial(create_scale_cylinder, name="scale_volume_kitchen_stool", radius=18, height=76.5)
-create_kitchen_stool.__doc__ = create_scale_cylinder.__doc__
+def create_scale_human(name="scale_volume_human", target_height=165, is_female=False,
+                       height_dimension=True, add_curves=True, freeze=True):
+    """
+    Create a scaled reference human mesh. (Male/Female Average)
+    Male Average = 170cm
+    Female Average = 160cm
+
+    Args:
+        name (str, optional): The name for the created mesh.
+        target_height (float, optional): The desired height for the scaled human mesh.
+        is_female (bool, optional): Whether to create a female or male human mesh.
+        height_dimension (bool, optional): Whether to add height dimension lines.
+        add_curves (bool, optional): Whether to add dimension curves showing vertex reference.
+        freeze (bool, optional): Whether to freeze transformations on the created mesh.
+
+    Returns:
+        MeshData: A MeshData object containing information about the created human mesh.
+    """
+    # Save selection to recover it later
+    selection = cmds.ls(selection=True) or []
+    # Get Mesh and Transform Name
+    file_name = "_human_man"
+    y_vert = "1630"
+    x_vert = "1237"
+    if is_female:
+        file_name = "_human_woman"
+        y_vert = "1646"
+        x_vert = "363"
+    mesh = mesh_utils.MeshFile(file_path=mesh_utils.get_mesh_path(file_name))
+    imported_mesh = mesh.build() or []
+    imported_transforms = cmds.ls(imported_mesh, typ="transform") or []
+    mesh_transform = None
+    if imported_transforms:
+        mesh_transform = imported_transforms[0]
+    if not mesh_transform:
+        logger.warning('Unable to create scale human mesh. Missing imported mesh transform.')
+        return
+    # Viewport Feedback
+    mesh_transform = cmds.rename(mesh_transform, name)
+    distance_dimensions = []
+    locators = []
+    curves = []
+    if height_dimension:
+        origin_position = [0, 0, 0]
+        pos_y_vertex_position = cmds.pointPosition(f"{mesh_transform}.vtx[{y_vert}]", w=True)
+        neg_x_vertex_position = cmds.pointPosition(f"{mesh_transform}.vtx[{x_vert}]", w=True)
+
+        distance_node = cmds.distanceDimension(sp=(random(), random() * 2, random() * 3),
+                                               ep=(random() * 4, random() * 5, random() * 6))
+        distance_node_transform = cmds.listRelatives(distance_node, parent=True, fullPath=True) or [][0]
+        distance_node_locators = cmds.listConnections(distance_node)
+        sp_trans = [neg_x_vertex_position[0], pos_y_vertex_position[1], origin_position[2]]
+        ep_trans = [neg_x_vertex_position[0], origin_position[1], origin_position[2]]
+        if distance_node_transform:
+            cmds.xform(distance_node_locators[0], translation=sp_trans, worldSpace=True)
+            distance_dimensions.append(cmds.rename(distance_node_transform, f'{mesh_transform}_heightData'))
+        if distance_node_locators[0]:
+            locators.append(cmds.rename(distance_node_locators[0], f"{mesh_transform}_heightSP"))
+        if distance_node_locators[1]:
+            cmds.xform(distance_node_locators[1], translation=ep_trans, worldSpace=True)
+            locators.append(cmds.rename(distance_node_locators[1], f"{mesh_transform}_heightEP"))
+        if add_curves:
+            sp_crv = cmds.curve(name=f"{mesh_transform}_heightSP_crv",
+                                point=[pos_y_vertex_position, sp_trans],
+                                degree=1)
+            ep_crv = cmds.curve(name=f"{mesh_transform}_heightEP_crv",
+                                point=[origin_position, ep_trans],
+                                degree=1)
+            curves.append(sp_crv)
+            curves.append(ep_crv)
+    # Set Measurement Visibility
+    for loc in locators:
+        loc_shape = cmds.listRelatives(loc, shapes=True, fullPath=True)[0]
+        for dimension in ['X', 'Y', 'Z']:
+            cmds.setAttr(f'{loc_shape}.localScale{dimension}', 0)
+    for obj in distance_dimensions + locators + curves:
+        cmds.setAttr(f'{obj}.overrideEnabled', 1)
+        cmds.setAttr(f'{obj}.overrideDisplayType', 2)
+        cmds.parent(obj, mesh_transform)
+    # Determine Scale
+    from gt.utils.transform_utils import Transform
+    transform = Transform()
+    transform.set_scale(xyz=[target_height, target_height, target_height])
+    transform.apply_transform(target_object=mesh_transform)
+    if freeze:
+        cmds.makeIdentity(mesh_transform, scale=True, apply=True)
+    cmds.select(clear=True)
+    if selection:
+        try:
+            cmds.select(selection)
+        except Exception as e:
+            logger.debug(f'Unable to recover selection. Issue: "{e}".')
+    return MeshData(name=mesh_transform, setup=distance_dimensions + locators + curves)
+
+
+# Cube Variations --------------------------------------------------------------
+create_kitchen_standard_cabinet = partial(create_scale_cube,
+                                          name="scale_volume_kitchen_standard_cabinet",
+                                          width=61, depth=61, height=91)
+create_kitchen_standard_cabinet.__doc__ = create_scale_cube.__doc__
+
+create_kitchen_large_fridge = partial(create_scale_cube,
+                                      name="scale_volume_kitchen_large_fridge",
+                                      width=91.4, depth=83.8, height=175)
+create_kitchen_large_fridge.__doc__ = create_scale_cube.__doc__
+
+create_kitchen_standard_stove = partial(create_scale_cube,
+                                        name="scale_volume_kitchen_standard_stove",
+                                        width=76.2, depth=66, height=91.4)
+create_kitchen_standard_stove.__doc__ = create_scale_cube.__doc__
+
+create_kitchen_standard_mixer = partial(create_scale_cube,
+                                        name="scale_volume_kitchen_standard_mixer",
+                                        width=22, depth=35.8, height=35)
+create_kitchen_standard_mixer.__doc__ = create_scale_cube.__doc__
+
+# Cylinder Variations -------------------------------------------------------------
+create_kitchen_standard_stool = partial(create_scale_cylinder,
+                                        name="scale_volume_kitchen_standard_stool",
+                                        radius=18, height=76.5)
+create_kitchen_standard_stool.__doc__ = create_scale_cylinder.__doc__
+
+# Human Variations -----------------------------------------------------------------
+create_scale_human_male = partial(create_scale_human,
+                                  name="scale_volume_human_male",
+                                  target_height=170)
+create_scale_human_male.__doc__ = create_scale_human.__doc__
+
+create_scale_human_female = partial(create_scale_human,
+                                    name="scale_volume_human_female",
+                                    target_height=160, is_female=True)
+create_scale_human_female.__doc__ = create_scale_human.__doc__
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
-    create_scale_sphere()
+    create_scale_human_female()
