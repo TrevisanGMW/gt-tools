@@ -540,6 +540,8 @@ class Meshes:
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
     pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
     human_head_low_poly = MeshFile(file_path=get_mesh_path("human_head_low_poly"))
+    cylinder_to_half_squashed_cylinder = MeshFile(file_path=get_mesh_path("cylinder_to_half_squashed_cylinder"))
+    pipe_ninety_degree = MeshFile(file_path=get_mesh_path("pipe_ninety_degree"))
 
 
 class ParametricMeshes:
