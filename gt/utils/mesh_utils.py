@@ -2,7 +2,7 @@
 Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.data.param_meshes import scale_volume
+from gt.utils.data.py_meshes import scale_volume
 from gt.utils import system_utils, iterable_utils
 from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
@@ -56,7 +56,7 @@ def get_mesh_preview_image_path(mesh_name, parametric=False):
 
     _dir = DataDirConstants.DIR_MESHES
     if parametric:
-        _dir = os.path.join(DataDirConstants.DIR_DATA, "param_meshes", "preview_images")
+        _dir = os.path.join(DataDirConstants.DIR_PARAMETRIC_MESHES, "preview_images")
     for ext in ["jpg", "png"]:
         path_to_image = os.path.join(_dir, f'{mesh_name}.{ext}')
         if os.path.exists(path_to_image):
@@ -548,8 +548,11 @@ class ParametricMeshes:
         """
 
     scale_cube = ParametricMesh(build_function=scale_volume.create_scale_cube)
+    scale_cylinder = ParametricMesh(build_function=scale_volume.create_scale_cylinder)
     scale_kitchen_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_cabinet)
+    create_kitchen_stool = ParametricMesh(build_function=scale_volume.create_kitchen_stool)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    print(ParametricMeshes.scale_kitchen_cabinet.build())
