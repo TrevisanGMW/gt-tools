@@ -39,7 +39,7 @@ vn 0.000000 1.000000 0.000000
 vn 0.000003 1.000000 0.000006
 vn 0.000002 1.000000 0.000007
 s 1
-g topology_two_to_one_b Transitions TopologyTips
+g topology_two_to_one_b
 usemtl initialShadingGroup
 f 4/4/1 9/9/2 10/10/3 2/2/4
 f 7/7/5 5/5/6 6/6/7 8/8/8

@@ -84,7 +84,7 @@ vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 s 1
-g topology_four_to_two_a Transitions TopologyTips
+g topology_four_to_two_a
 usemtl initialShadingGroup
 f 26/26/1 27/27/2 13/13/3 14/14/4
 f 24/24/5 16/16/6 17/17/7 5/5/8

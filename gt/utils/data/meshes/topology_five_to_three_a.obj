@@ -87,7 +87,7 @@ vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 s 1
-g topology_five_to_three_a Transitions TopologyTips
+g topology_five_to_three_a
 usemtl initialShadingGroup
 f 26/26/1 27/27/2 6/6/3 3/3/4
 f 8/8/5 6/6/3 27/27/2 28/28/6

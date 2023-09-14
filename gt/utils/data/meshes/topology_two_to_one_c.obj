@@ -70,7 +70,7 @@ vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 vn 0.000000 1.000000 0.000000
 s 1
-g topology_two_to_one_c Transitions TopologyTips
+g topology_two_to_one_c
 usemtl initialShadingGroup
 f 19/19/1 20/20/2 2/2/3 4/4/4
 f 6/6/5 5/5/6 2/2/3 7/7/7
