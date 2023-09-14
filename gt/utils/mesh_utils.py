@@ -2,12 +2,13 @@
 Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.data.py_meshes import scale_volume
 from gt.utils import system_utils, iterable_utils
+from gt.utils.data.py_meshes import scale_volume
 from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
 import ast
+import sys
 import os
 
 # Logging Setup
@@ -155,7 +156,7 @@ def get_vertices(mesh):
         mesh_name = 'my_mesh'
         vertices = get_vertices(mesh_name)
         print(vertices)
-        ['my_mesh.vtx[0]', 'my_mesh.vtx[1]', 'my_mesh.vtx[2]', ...]
+        # A list: 'my_mesh.vtx[0]', 'my_mesh.vtx[1]', 'my_mesh.vtx[2]', ...
     """
 
     if not cmds.objExists(mesh):
@@ -537,11 +538,27 @@ class Meshes:
         A library of mesh objects.
         Use "build()" to create them in Maya.
         """
-    qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
-    pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
-    human_head_low_poly = MeshFile(file_path=get_mesh_path("human_head_low_poly"))
+    cube_box_base_smooth = MeshFile(file_path=get_mesh_path("cube_box_base_smooth"))
+    cube_box_base_with_hole = MeshFile(file_path=get_mesh_path("cube_box_base_with_hole"))
+    cylinder_side_hole = MeshFile(file_path=get_mesh_path("cylinder_side_hole"))
+    cylinder_top_polar_four = MeshFile(file_path=get_mesh_path("cylinder_top_polar_four"))
     cylinder_to_half_squashed_cylinder = MeshFile(file_path=get_mesh_path("cylinder_to_half_squashed_cylinder"))
+    human_head_low_poly = MeshFile(file_path=get_mesh_path("human_head_low_poly"))
+    pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
+    pattern_hexagon_hole = MeshFile(file_path=get_mesh_path("pattern_hexagon_hole"))
     pipe_ninety_degree = MeshFile(file_path=get_mesh_path("pipe_ninety_degree"))
+    pipe_to_cylinder_a = MeshFile(file_path=get_mesh_path("pipe_to_cylinder_a"))
+    qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
+    sphere_cube = MeshFile(file_path=get_mesh_path("sphere_cube"))
+    sphere_platonic_octahedron = MeshFile(file_path=get_mesh_path("sphere_platonic_octahedron"))
+    topology_five_to_three_a = MeshFile(file_path=get_mesh_path("topology_five_to_three_a"))
+    topology_five_to_three_b = MeshFile(file_path=get_mesh_path("topology_five_to_three_b"))
+    topology_four_to_two_a = MeshFile(file_path=get_mesh_path("topology_four_to_two_a"))
+    topology_three_to_one_a = MeshFile(file_path=get_mesh_path("topology_three_to_one_a"))
+    topology_three_to_two_a = MeshFile(file_path=get_mesh_path("topology_three_to_two_a"))
+    topology_two_to_one_a = MeshFile(file_path=get_mesh_path("topology_two_to_one_a"))
+    topology_two_to_one_b = MeshFile(file_path=get_mesh_path("topology_two_to_one_b"))
+    topology_two_to_one_c = MeshFile(file_path=get_mesh_path("topology_two_to_one_c"))
 
 
 class ParametricMeshes:
@@ -555,16 +572,62 @@ class ParametricMeshes:
     scale_cylinder = ParametricMesh(build_function=scale_volume.create_scale_cylinder)
     scale_scale_sphere = ParametricMesh(build_function=scale_volume.create_scale_sphere)
     # Environment
-    scale_kitchen_standard_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_standard_cabinet)
-    scale_kitchen_standard_stove = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stove)
-    scale_kitchen_standard_stool = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stool)
     scale_kitchen_large_fridge = ParametricMesh(build_function=scale_volume.create_kitchen_large_fridge)
     scale_kitchen_standard_mixer = ParametricMesh(build_function=scale_volume.create_kitchen_standard_mixer)
+    scale_kitchen_standard_stool = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stool)
+    scale_kitchen_standard_stove = ParametricMesh(build_function=scale_volume.create_kitchen_standard_stove)
+    scale_kitchen_standard_cabinet = ParametricMesh(build_function=scale_volume.create_kitchen_standard_cabinet)
     # Creatures/Bipeds
     scale_human_male = ParametricMesh(build_function=scale_volume.create_scale_human_male)
     scale_human_female = ParametricMesh(build_function=scale_volume.create_scale_human_female)
 
 
+def print_code_for_obj_files(target_dir=None, ignore_private=True, use_output_window=False):
+    """
+    Internal function used to create Python code lines for every ".obj" file found in the "target_dir"
+    It prints all lines, so they can be copied/pasted into the Meshes class.
+    Meshes starting with underscore "_" will be ignored as these are considered private objects.
+    Args:
+        target_dir (str, optional): If provided, this path will be used instead of the default "utils/data/meshes" path.
+        ignore_private (bool, optional): If active, obj files starting with "_" will be not be included.
+        use_output_window (bool, optional): If active, an output window will be used instead of simple prints.
+    Returns:
+        str: Generated code (lines)
+    """
+    if not target_dir:
+        target_dir = DataDirConstants.DIR_MESHES
+    print_lines = []
+    for file in os.listdir(target_dir):
+        if file.endswith(f".{MESH_FILE_EXTENSION}"):
+            file_stripped = file.replace(f'.{MESH_FILE_EXTENSION}', '')
+            line = f'{file_stripped} = MeshFile(file_path=get_mesh_path("{file_stripped}"))'
+            if file.startswith("_") and ignore_private:
+                continue
+            print_lines.append(line)
+
+    output = ''
+    for line in print_lines:
+        output += f'{line}\n'
+    if output.endswith('\n'):  # Removes unnecessary new line at the end
+        output = output[:-1]
+
+    if use_output_window:
+        from gt.ui.python_output_view import PythonOutputView
+        from gt.ui import qt_utils
+
+        with qt_utils.QtApplicationContext():
+            window = PythonOutputView()  # View
+            window.set_python_output_text(text=output)
+            window.show()
+        sys.stdout.write(f'Python lines for "Meshes" class were printed to output window.')
+    else:
+        print("_"*80)
+        print(output)
+        print("_"*80)
+        sys.stdout.write(f'Python lines for "Meshes" class were printed. (If in Maya, open the script editor)')
+    return output
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    print(ParametricMeshes.scale_kitchen_cabinet.build())
+    print_code_for_obj_files()
