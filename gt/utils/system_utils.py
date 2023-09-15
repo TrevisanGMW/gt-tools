@@ -759,30 +759,35 @@ def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
     return formatted_time
 
 
-def execute_python_code(code, import_cmds=False, user_maya_warning=False, verbose=True,
+def execute_python_code(code, import_cmds=False, use_maya_warning=False, verbose=True, exec_globals=None,
                         custom_logger=None, log_level=logging.WARNING, raise_errors=False):
     """
     Executes the given Python code string in the Maya environment.
 
     Args:
         code (str): The Python code to be executed.
-        import_cmds (bool, optional): If active, it will automatically import maya.cmds before execution.
-        user_maya_warning (bool, optional): If active it will log using a "cmds.warning()"
+        import_cmds (bool, optional): If active, it will automatically import maya.cmds and add it to "exec_globals"
+        use_maya_warning (bool, optional): If active it will log using a "cmds.warning()"
         verbose (bool, optional): If active, it will return messages
+        exec_globals (dict, optional): If provided, this dictionary is passed to the exec function as globals (2nd arg)
         custom_logger (Logger, optional): If provided, it will use this logger instead of the "system_utils" logger.
         log_level (int, optional): Logging level (only used if verbose is active)
         raise_errors (bool, optional): If active, it will raise errors instead of just giving messages.
     """
+    _exec_globals = {}
+    if exec_globals and isinstance(exec_globals, dict):
+        _exec_globals = exec_globals
     try:
         if import_cmds:
             import maya.cmds as cmds
-        exec(code)
+            _exec_globals['cmds'] = cmds
+        exec(code, _exec_globals)
     except Exception as e:
         from gt.utils.feedback_utils import log_when_true
         traceback_str = traceback.format_exc()
         if raise_errors:
             raise e
-        if user_maya_warning:
+        if use_maya_warning:
             import maya.cmds as cmds
             cmds.warning(traceback_str)
             cmds.warning(e)
