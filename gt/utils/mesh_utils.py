@@ -538,6 +538,7 @@ class Meshes:
         A library of mesh objects.
         Use "build()" to create them in Maya.
         """
+
     cube_box_base_smooth = MeshFile(file_path=get_mesh_path("cube_box_base_smooth"))
     cube_box_base_with_hole = MeshFile(file_path=get_mesh_path("cube_box_base_with_hole"))
     cylinder_side_hole = MeshFile(file_path=get_mesh_path("cylinder_side_hole"))
@@ -548,9 +549,13 @@ class Meshes:
     pattern_hexagon_hole = MeshFile(file_path=get_mesh_path("pattern_hexagon_hole"))
     pipe_ninety_degree = MeshFile(file_path=get_mesh_path("pipe_ninety_degree"))
     pipe_to_cylinder_a = MeshFile(file_path=get_mesh_path("pipe_to_cylinder_a"))
+    primitive_die_twenty_sides = MeshFile(file_path=get_mesh_path("primitive_die_twenty_sides"))
+    primitive_gem_diamond = MeshFile(file_path=get_mesh_path("primitive_gem_diamond"))
+    primitive_gem_emerald = MeshFile(file_path=get_mesh_path("primitive_gem_emerald"))
+    primitive_gem_sapphire = MeshFile(file_path=get_mesh_path("primitive_gem_sapphire"))
+    primitive_sphere_cube = MeshFile(file_path=get_mesh_path("primitive_sphere_cube"))
+    primitive_sphere_platonic_octahedron = MeshFile(file_path=get_mesh_path("primitive_sphere_platonic_octahedron"))
     qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
-    sphere_cube = MeshFile(file_path=get_mesh_path("sphere_cube"))
-    sphere_platonic_octahedron = MeshFile(file_path=get_mesh_path("sphere_platonic_octahedron"))
     topology_five_to_three_a = MeshFile(file_path=get_mesh_path("topology_five_to_three_a"))
     topology_five_to_three_b = MeshFile(file_path=get_mesh_path("topology_five_to_three_b"))
     topology_four_to_two_a = MeshFile(file_path=get_mesh_path("topology_four_to_two_a"))
