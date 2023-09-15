@@ -294,7 +294,7 @@ class CurveLibraryModel:
         if preview_image:
             return preview_image
         else:
-            return resource_library.Icon.curve_library_missing_file
+            return resource_library.Icon.library_missing_file
 
     @staticmethod
     def build_control_with_custom_parameters(parameters, target_control):

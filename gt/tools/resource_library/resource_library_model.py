@@ -161,7 +161,7 @@ class ResourceLibraryModel:
             return create_color_pixmap(item)
         if isinstance(item, QIcon):
             return item.pixmap(512)
-        return resource_library.Icon.curve_library_missing_file
+        return resource_library.Icon.library_missing_file
 
     def export_resource(self, key, source=None):
         """

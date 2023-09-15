@@ -51,10 +51,6 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
-        # from PySide2.QtGui import QScreen
-        # primary_screen = QScreen.primaryScreen()
-        # dpi = primary_screen.physicalDotsPerInch()
-        # print(dpi)
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
         stylesheet += resource_library.Stylesheet.maya_basic_dialog
@@ -75,7 +71,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         if new_image_path:
             self.preview_image.set_pixmap(QPixmap(new_image_path))
         else:
-            self.preview_image.set_pixmap(QPixmap(resource_library.Icon.curve_library_missing_file))
+            self.preview_image.set_pixmap(QPixmap(resource_library.Icon.library_missing_file))
 
     def create_widgets(self):
         """Create the widgets for the window."""
@@ -84,7 +80,7 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.item_list = QListWidget()
         self.item_list.setFont(font)
         self.build_button = QPushButton("Build")
-        self.build_button.setIcon(QIcon(resource_library.Icon.curve_library_build))
+        self.build_button.setIcon(QIcon(resource_library.Icon.library_build))
         self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setFont(font)
@@ -94,20 +90,20 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
         self.add_custom_button = QPushButton("Save Curve")
         add_custom_tooltip = "Saves a Maya selected Nurbs/Bezier element as a user-defined curve in the Curve Library"
         self.add_custom_button.setToolTip(add_custom_tooltip)
-        self.add_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_add))
+        self.add_custom_button.setIcon(QIcon(resource_library.Icon.library_add))
         self.delete_custom_button = QPushButton("Delete Curve")
         self.delete_custom_button.setEnabled(False)
-        self.delete_custom_button.setIcon(QIcon(resource_library.Icon.curve_library_remove))
+        self.delete_custom_button.setIcon(QIcon(resource_library.Icon.library_remove))
         self.description = QLabel("<description>")
         self.description.setFont(font)
 
         self.description.setAlignment(Qt.AlignCenter)
         self.snapshot_button = QPushButton("Create Snapshot")
         self.snapshot_button.setEnabled(False)
-        self.snapshot_button.setIcon(QIcon(resource_library.Icon.curve_library_snapshot))
+        self.snapshot_button.setIcon(QIcon(resource_library.Icon.library_snapshot))
         self.parameters_button = QPushButton("Edit Parameters")
         self.parameters_button.setEnabled(False)
-        self.parameters_button.setIcon(QIcon(resource_library.Icon.curve_library_edit))
+        self.parameters_button.setIcon(QIcon(resource_library.Icon.library_edit))
         # Initial Image Update
         self.update_preview_image()
 

@@ -100,7 +100,7 @@ def load_menu(*args):
                       parent_to_root=True)
     menu.add_menu_item(label='Curve Library',
                        command=IMPORT_TOOL + 'initialize_tool("curve_library")',
-                       tooltip="Open Curve Library tools.",
+                       tooltip="Open the Curve Library tool.",
                        icon=resource_library.Icon.tool_crv_library)
     menu.add_menu_item(label='Curve to Python',
                        command=IMPORT_TOOL + 'initialize_tool("curve_to_python")',
@@ -125,14 +125,14 @@ def load_menu(*args):
     menu.add_sub_menu("Modeling",
                       icon=resource_library.Icon.root_modeling,
                       parent_to_root=True)
+    menu.add_menu_item(label='Mesh Library',
+                       command=IMPORT_TOOL + 'initialize_tool("mesh_library")',
+                       tooltip='Open the Mesh Library tool.',
+                       icon=resource_library.Icon.tool_mesh_library)
     menu.add_menu_item(label='Transfer UVs',
                        command=IMPORT_TOOL + 'initialize_tool("transfer_uvs")',
                        tooltip='A script to export/import UVs as well as transfer them between objects.',
                        icon=resource_library.Icon.tool_transfer_uvs)
-    menu.add_menu_item(label='Sphere Types',
-                       command=IMPORT_TOOL + 'initialize_tool("create_sphere_types")',
-                       tooltip='A reminder for students that there are other sphere types.',
-                       icon=resource_library.Icon.tool_sphere_types)
 
     menu.add_divider(divider_label="Utilities")  # Utility Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Preview All UDIMs',
@@ -140,7 +140,7 @@ def load_menu(*args):
                        tooltip='Generates UDIM previews for all file nodes.',
                        icon=resource_library.Icon.util_mod_load_udims)
     menu.add_menu_item(label='Convert Bif to Mesh',
-                       command=IMPORT_UTIL + 'initialize_utility("geometry_utils", "convert_bif_to_mesh")',
+                       command=IMPORT_UTIL + 'initialize_utility("mesh_utils", "convert_bif_to_mesh")',
                        tooltip='Converts Bifrost Geometry into Maya Geometry (Mesh). '
                                'If used with volume or particles the output will be empty.',
                        icon=resource_library.Icon.util_mod_bif_to_mesh)
@@ -217,6 +217,11 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("morphing_utilities")',
                        tooltip='Morphing utilities (Blend Shapes).',
                        icon=resource_library.Icon.tool_morphing_utils)
+    menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Rivet Locator',
+                       command=IMPORT_UTIL + 'initialize_utility("constraint_utils", "create_rivet")',
+                       tooltip='Creates a rivet between two polygon edges or on a surface point',
+                       icon=resource_library.Icon.util_rivet)
 
     # ------------------------------------ Utilities ------------------------------------
     menu.add_sub_menu("Utilities",
@@ -374,7 +379,7 @@ def load_menu(*args):
                           parent_to_root=True)
         menu.add_menu_item(label='Resource Library',
                            command=IMPORT_TOOL + 'initialize_tool("resource_library")',
-                           tooltip="Opens Resource Library."
+                           tooltip="Opens Resource Library tool."
                                    "Library with colors, package icons and Maya icons.",
                            icon=resource_library.Icon.tool_resource_library)
         menu.add_menu_item(label='Sample Tool',

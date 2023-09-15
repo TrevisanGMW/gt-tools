@@ -218,9 +218,20 @@ def make_flat_list(*args):
     return _flat
 
 
+def round_numbers_in_list(input_list, num_digits=3):
+    """
+    Rounds all numbers found in a list to the specified number of digits.
+
+    Args:
+        input_list (list): List containing numbers.
+        num_digits (int, optional): Number of digits to round to. Default is 0.
+
+    Returns:
+        list: A new list with all numbers rounded to the specified number of digits.
+    """
+    rounded_list = [round(x, num_digits) if isinstance(x, (int, float)) else x for x in input_list]
+    return rounded_list
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-
-    out = None
-    pprint(out)
