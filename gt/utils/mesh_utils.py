@@ -10,6 +10,7 @@ import logging
 import ast
 import sys
 import os
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -234,6 +235,51 @@ def export_obj_file(export_path, obj_names=None, options=None):
         except Exception as e:
             logger.debug(f'Unable to restore original selection. Issue: "{e}".')
     return export_path
+
+
+def is_face_string(input_str):
+    """
+    Check if a given string matches the pattern "string.f[integer]".
+    Which means that the string describes a face
+
+    Args:
+        input_str (str): The input string to be checked.
+
+    Returns:
+        bool: True if the input string matches the pattern, False otherwise.
+    """
+    pattern = r"^[a-zA-Z0-9|_:]+\.f\[\d+\]$"
+    return bool(re.match(pattern, input_str))
+
+
+def is_edge_string(input_str):
+    """
+    Check if a given string matches the pattern "string.e[integer]".
+    Which means that the string describes an edge
+
+    Args:
+        input_str (str): The input string to be checked.
+
+    Returns:
+        bool: True if the input string matches the pattern, False otherwise.
+    """
+    pattern = r"^[a-zA-Z0-9|_:]+\.e\[\d+\]$"
+    return bool(re.match(pattern, input_str))
+
+
+def is_vertex_string(input_str):
+    """
+    Check if a given string matches the pattern "string.vtx[integer]".
+    Which means that the string describes a vertex
+
+    Args:
+        input_str (str): The input string to be checked.
+
+    Returns:
+        bool: True if the input string matches the pattern, False otherwise.
+    """
+    pattern = r"^[a-zA-Z0-9|_:]+\.vtx\[\d+\]$"
+    return bool(re.match(pattern, input_str))
 
 
 class MeshFile:

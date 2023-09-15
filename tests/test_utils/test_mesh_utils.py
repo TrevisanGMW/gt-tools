@@ -138,7 +138,7 @@ class TestMeshUtils(unittest.TestCase):
     def test_export_obj_file_options(self):
         export_path = os.path.join(self.temp_dir, "my_file.obj")
         cube = maya_test_tools.create_poly_cube()
-        options = "groups=0;materials=1;smoothing=0;normals=0"
+        options = "groups=0;materials=0;smoothing=0;normals=0"
         result = mesh_utils.export_obj_file(export_path=export_path, obj_names=cube, options=options)
         self.assertTrue(os.path.exists(result))
         self.assertEqual(export_path, result)
@@ -149,3 +149,129 @@ class TestMeshUtils(unittest.TestCase):
         imported = maya_test_tools.import_file(export_path)
         expected = ['|Mesh', '|Mesh|MeshShape']
         self.assertEqual(expected, imported)
+
+    def test_is_face_string_valid_strings(self):
+        """
+        Test cases for valid input strings.
+
+        Each input string in the 'valid_strings' list is expected to match the pattern.
+        """
+        valid_strings = [
+            "pTorus1.f[132]",
+            "someName.f[0]",
+            "obj.f[1234556]",
+            "abc.f[5678]",
+            "NS:something|something_else.f[5678]",
+            "a.f[5678]",
+            "pCube1.f[12345678901234568]",
+        ]
+        for input_str in valid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertTrue(mesh_utils.is_face_string(input_str), f"Expected {input_str} to be valid")
+
+    def test_is_face_string_invalid_strings(self):
+        """
+        Test cases for invalid input strings.
+
+        Each input string in the 'invalid_strings' list is expected NOT to match the pattern.
+        """
+        invalid_strings = [
+            ".e[0]",
+            "someName.vtx[0]",
+            "someName.e[0]",
+            "someName[0]",
+            "someName",
+            "anything.e[word]",
+            "e[123]",
+            "1e[456]",
+            "somethingElse",
+            "|name",
+            "NS:something|something_else.vty[]",
+        ]
+        for input_str in invalid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertFalse(mesh_utils.is_face_string(input_str), f"Expected {input_str} to be invalid")
+
+    def test_is_edge_string_valid_strings(self):
+        """
+        Test cases for valid input strings.
+
+        Each input string in the 'valid_strings' list is expected to match the pattern.
+        """
+        valid_strings = [
+            "pTorus1.e[132]",
+            "someName.e[0]",
+            "obj.e[1234556]",
+            "abc.e[5678]",
+            "NS:something|something_else.e[5678]",
+            "a.e[5678]",
+            "pCube1.e[12345678901234568]",
+        ]
+        for input_str in valid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertTrue(mesh_utils.is_edge_string(input_str), f"Expected {input_str} to be valid")
+
+    def test_is_edge_string_invalid_strings(self):
+        """
+        Test cases for invalid input strings.
+
+        Each input string in the 'invalid_strings' list is expected NOT to match the pattern.
+        """
+        invalid_strings = [
+            ".e[0]",
+            "someName.vtx[0]",
+            "someName.f[0]",
+            "someName[0]",
+            "someName",
+            "anything.e[word]",
+            "e[123]",
+            "1e[456]",
+            "somethingElse",
+            "|name",
+            "NS:something|something_else.e[]",
+        ]
+        for input_str in invalid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertFalse(mesh_utils.is_edge_string(input_str), f"Expected {input_str} to be invalid")
+
+    def test_is_vertex_string_valid_strings(self):
+        """
+        Test cases for valid input strings.
+
+        Each input string in the 'valid_strings' list is expected to match the pattern.
+        """
+        valid_strings = [
+            "pTorus1.vtx[132]",
+            "someName.vtx[0]",
+            "obj.vtx[1234556]",
+            "abc.vtx[5678]",
+            "NS:something|something_else.vtx[5678]",
+            "a.vtx[5678]",
+            "pCube1.vtx[12345678901234568]",
+        ]
+        for input_str in valid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertTrue(mesh_utils.is_vertex_string(input_str), f"Expected {input_str} to be valid")
+
+    def test_is_vertex_string_invalid_strings(self):
+        """
+        Test cases for invalid input strings.
+
+        Each input string in the 'invalid_strings' list is expected NOT to match the pattern.
+        """
+        invalid_strings = [
+            ".e[0]",
+            "someName.f[0]",
+            "someName.e[0]",
+            "someName[0]",
+            "someName",
+            "anything.e[word]",
+            "e[123]",
+            "1e[456]",
+            "somethingElse",
+            "|name",
+            "NS:something|something_else.vty[]",
+        ]
+        for input_str in invalid_strings:
+            with self.subTest(input_str=input_str):
+                self.assertFalse(mesh_utils.is_vertex_string(input_str), f"Expected {input_str} to be invalid")
