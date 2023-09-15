@@ -303,6 +303,7 @@ class Icon:
     util_delete_unused_nodes = get_icon_path(r"util_delete_unused_nodes.svg")
     util_delete_nucleus_nodes = get_icon_path(r"util_delete_nucleus_nodes.svg")
     util_delete_keyframes = get_icon_path(r"util_delete_keyframes.svg")
+    util_rivet = get_icon_path(r"util_rivet.svg")
     # Misc
     tool_maya_to_discord = get_icon_path(r"tool_maya_to_discord.svg")
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")
