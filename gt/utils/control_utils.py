@@ -87,7 +87,7 @@ class Control(Curve):
             name (str, optional): Control transform name (shapes names are determined by the Callable function)
                                   If not provided, it will attempt to extract it from the arguments of the build
                                   function. If it's also not found there, it will be None.
-                                  If provided at the same time as the "build_function" it will take priority.
+                                  If provided at the same time as the "build_function" name arg will take priority.
                                   Priority order: 1: name, 2: build_function keyword argument.
             build_function (callable): function used to build the curve.
         """

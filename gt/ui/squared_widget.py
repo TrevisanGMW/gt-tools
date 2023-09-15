@@ -105,7 +105,7 @@ if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         main_window = QMainWindow()
         central_widget = SquaredWidget(center_y=False)
-        pixmap = QPixmap(Icon.curve_library_missing_file)
+        pixmap = QPixmap(Icon.library_missing_file)
         central_widget.set_pixmap(pixmap)
         main_window.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)

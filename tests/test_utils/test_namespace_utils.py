@@ -49,6 +49,13 @@ class TestNamespaceUtils(unittest.TestCase):
         result = namespace_utils.get_namespaces(obj_list=[object_to_test])
         self.assertEqual(expected, result)
 
+    def test_get_namespace(self):
+        import_namespace_test_scene()
+        object_to_test = "parentNS:childNS:grandChildNS:pCube1"
+        expected = 'parentNS:childNS:grandChildNS'
+        result = namespace_utils.get_namespace(node=object_to_test)
+        self.assertEqual(expected, result)
+
     def test_namespaces_split(self):
         expected = ('one:two', 'three')
         result = namespace_utils.namespaces_split("|root|child|grandChild|one:two:three")
@@ -71,6 +78,15 @@ class TestNamespaceUtils(unittest.TestCase):
     def test_strip_namespace(self):
         import_namespace_test_scene()
         with namespace_utils.StripNamespace('parentNS:childNS:grandChildNS:') as stripped_nodes:
+            result = maya_test_tools.list_objects(stripped_nodes)
+            expected = ['pCube1']
+            self.assertEqual(expected, result)
+
+    def test_strip_namespace_from_item(self):
+        import_namespace_test_scene()
+        object_to_test = "parentNS:childNS:grandChildNS:pCube1"
+        namespace = namespace_utils.get_namespace(node=object_to_test)
+        with namespace_utils.StripNamespace(namespace) as stripped_nodes:
             result = maya_test_tools.list_objects(stripped_nodes)
             expected = ['pCube1']
             self.assertEqual(expected, result)

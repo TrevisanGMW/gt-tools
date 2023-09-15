@@ -73,6 +73,16 @@ class TestNamingUtils(unittest.TestCase):
         expected = "item"
         self.assertEqual(expected, result)
 
+    def test_get_short_name_short_remove_namespace(self):
+        result = naming_utils.get_short_name(long_name="|ns:item", remove_namespace=True)
+        expected = "item"
+        self.assertEqual(expected, result)
+
+    def test_get_short_name_short_remove_namespace_inactive(self):
+        result = naming_utils.get_short_name(long_name="|ns:item", remove_namespace=False)
+        expected = "ns:item"
+        self.assertEqual(expected, result)
+
     def test_get_short_name_maya(self):
         group_one = maya_test_tools.cmds.group(world=True, empty=True, name="group_one")
         group_two = maya_test_tools.cmds.group(world=True, empty=True, name="group_two")

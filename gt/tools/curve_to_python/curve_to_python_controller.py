@@ -83,7 +83,7 @@ class CurveToPythonController:
         Attempts to run the code found in the "Python Output" box.
         """
         _code = self.view.get_python_output_text()
-        execute_python_code(code=_code, user_maya_warning=True)
+        execute_python_code(code=_code, use_maya_warning=True, import_cmds=True)
 
     def save_python_to_shelf(self):
         """

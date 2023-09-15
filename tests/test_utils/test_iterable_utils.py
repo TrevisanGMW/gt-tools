@@ -198,3 +198,27 @@ class TestListUtils(unittest.TestCase):
         expected = '{\n"key1": "value1", "key2": "value2"\n}'
         result = iterable_utils.format_dict_with_keys_per_line(input_dict, bracket_new_line=True)
         self.assertEqual(expected, result)
+
+    def test_round_numbers_in_list_integers(self):
+        input_list = [1, 2, 3]
+        expected_result = [1, 2, 3]
+        result = iterable_utils.round_numbers_in_list(input_list, num_digits=0)
+        self.assertEqual(result, expected_result)
+
+    def test_round_numbers_in_list_floats(self):
+        input_list = [1.2345, 2.6789, 3.0]
+        expected_result = [1, 3, 3]
+        result = iterable_utils.round_numbers_in_list(input_list, num_digits=0)
+        self.assertEqual(result, expected_result)
+
+    def test_round_numbers_in_list_to_2_digits(self):
+        input_list = [1.2345, 2.6789, 3.0]
+        expected_result = [1.23, 2.68, 3.0]
+        result = iterable_utils.round_numbers_in_list(input_list, num_digits=2)
+        self.assertEqual(result, expected_result)
+
+    def test_round_numbers_in_list_ignore_non_numeric_values(self):
+        input_list = [1, 'two', 3.5, 'four']
+        expected_result = [1, 'two', 4, 'four']
+        result = iterable_utils.round_numbers_in_list(input_list, num_digits=0)
+        self.assertEqual(result, expected_result)

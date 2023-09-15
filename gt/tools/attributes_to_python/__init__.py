@@ -17,7 +17,7 @@ from gt.tools.attributes_to_python import attributes_to_python_controller
 from gt.tools.attributes_to_python import attributes_to_python_view
 from gt.ui import qt_utils
 
-__version_tuple__ = (2, 0, 1)
+__version_tuple__ = (2, 0, 2)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

@@ -51,16 +51,29 @@ def get_namespaces(obj_list):
         obj_list = [obj_list]
     if not obj_list:
         return []
-
     namespaces = []
-
     for node in obj_list:
         ns_shortname = namespaces_split(node)
         if ns_shortname[0]:
             if not namespaces.count(ns_shortname[0]):
                 namespaces.append(ns_shortname[0])
-
     return namespaces
+
+
+def get_namespace(node):
+    """
+    Get the all namespaces found in provided objects
+    Args:
+        node (str): An object to extract namespace from.
+
+    Returns:
+        str: Namespace of the provided object. Empty string if it doesn't have a namespace
+    """
+    namespace = get_namespaces(node)
+    if namespace:
+        return namespace[0]
+    else:
+        return ""
 
 
 def namespaces_split(object_name):
