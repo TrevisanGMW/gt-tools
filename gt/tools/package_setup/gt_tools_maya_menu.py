@@ -217,6 +217,11 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("morphing_utilities")',
                        tooltip='Morphing utilities (Blend Shapes).',
                        icon=resource_library.Icon.tool_morphing_utils)
+    menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
+    menu.add_menu_item(label='Rivet Locator',
+                       command=IMPORT_UTIL + 'initialize_utility("constraint_utils", "create_rivet")',
+                       tooltip='Creates a rivet between two polygon edges or on a surface point',
+                       icon=resource_library.Icon.util_rivet)
 
     # ------------------------------------ Utilities ------------------------------------
     menu.add_sub_menu("Utilities",
