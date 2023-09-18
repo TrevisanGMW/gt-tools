@@ -45,6 +45,7 @@ modules_to_test = [
     test_utils.test_anim_utils,
     test_utils.test_attr_utils,
     test_utils.test_color_utils,
+    test_utils.test_camera_utils,
     test_utils.test_constraint_utils,
     test_utils.test_control_data,
     test_utils.test_control_utils,
