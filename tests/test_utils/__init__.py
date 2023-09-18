@@ -2,6 +2,7 @@ from . import test_alembic_utils
 from . import test_anim_utils
 from . import test_attr_utils
 from . import test_camera_utils
+from . import test_cleanup_utils
 from . import test_color_utils
 from . import test_constraint_utils
 from . import test_control_data
