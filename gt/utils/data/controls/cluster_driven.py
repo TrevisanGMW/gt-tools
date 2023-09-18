@@ -105,7 +105,7 @@ def create_scalable_one_side_arrow(name='scalable_one_side_arrow', initial_scale
 
 
 def create_scalable_two_sides_arrow(name='scalable_two_sides_arrow', initial_scale=1,
-                                   min_scale_apply=False, min_scale=0.01):
+                                    min_scale_apply=False, min_scale=0.01):
     """
     Creates a curve in the shape of an arrow and rigs it so when scaling it up the curve doesn't lose its shape.
     Instead, it scales only in the direction of the arrow heads. Use the "<name>_scaleCtrl" to determine the scale.
@@ -197,3 +197,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
     create_scalable_one_side_arrow()
+
