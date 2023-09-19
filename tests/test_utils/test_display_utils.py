@@ -32,5 +32,35 @@ class TestDisplayUtils(unittest.TestCase):
     def test_toggle_uniform_lra(self):
         cube = maya_test_tools.create_poly_cube()
         lra_visibility_result = display_utils.toggle_uniform_lra(obj_list=cube, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
         expected = True
         self.assertEqual(expected, lra_visibility_result)
+        self.assertEqual(expected, result)
+        lra_visibility_result = display_utils.toggle_uniform_lra(obj_list=cube, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        expected = False
+        self.assertEqual(expected, lra_visibility_result)
+        self.assertEqual(expected, result)
+
+    def test_toggle_uniform_jnt_label(self):
+        joint = maya_test_tools.cmds.joint()
+        label_visibility_state = display_utils.toggle_uniform_jnt_label(jnt_list=joint, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{joint}.drawLabel')
+        expected = True
+        self.assertEqual(expected, label_visibility_state)
+        self.assertEqual(expected, result)
+        label_visibility_state = display_utils.toggle_uniform_jnt_label(jnt_list=joint, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{joint}.drawLabel')
+        expected = False
+        self.assertEqual(expected, label_visibility_state)
+        self.assertEqual(expected, result)
+
+    @patch('gt.utils.display_utils.cmds')
+    @patch('gt.utils.display_utils.mel')
+    def test_toggle_full_hud(self, mock_mel, mock_cmds):
+        mock_eval = MagicMock()
+        mock_mel.eval = mock_eval
+        label_visibility_state = display_utils.toggle_full_hud(verbose=False)
+        mock_eval.assert_called()
+        expected = False
+        self.assertEqual(expected, label_visibility_state)

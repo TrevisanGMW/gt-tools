@@ -4,14 +4,13 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import FeedbackMessage
+from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
 
 # Logging Setup
-from gt.utils.naming_utils import get_short_name
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -106,22 +105,34 @@ def toggle_uniform_lra(obj_list=None, verbose=True):
     return lra_state_result
 
 
-def toggle_uniform_jnt_label():
+def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
     """
     Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.
+    Args:
+        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the label visibility (toggle target) or None if operation failed.
     """
 
     function_name = 'Uniform Joint Label Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    label_state = None
     try:
         errors = ''
-        joints = cmds.ls(type='joint', long=True)
+        _joints = None
+        if jnt_list and isinstance(jnt_list, list):
+            _joints = jnt_list
+        if jnt_list and isinstance(jnt_list, str):
+            _joints = [jnt_list]
+        if not _joints:
+            _joints = cmds.ls(type='joint', long=True) or []
 
         inactive_label = []
         active_label = []
         operation_result = 'off'
 
-        for obj in joints:
+        for obj in _joints:
             try:
                 current_label_state = cmds.getAttr(obj + '.drawLabel')
                 if current_label_state:
@@ -136,12 +147,14 @@ def toggle_uniform_jnt_label():
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
                     operation_result = 'on'
+                    label_state = True
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_label) == 0:
             for obj in active_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 0)
+                    label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(active_label) > len(inactive_label):
@@ -149,23 +162,25 @@ def toggle_uniform_jnt_label():
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
                     operation_result = 'on'
+                    label_state = True
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
             for obj in active_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 0)
+                    label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
-
-        feedback = FeedbackMessage(quantity=len(joints),
-                                   skip_quantity_print=True,
-                                   intro='Joint Label Visibility set to:',
-                                   conclusion=str(operation_result),
-                                   style_conclusion="color:#FF0000;text-decoration:underline;",
-                                   zero_overwrite_message='No joints found in this scene.')
-        feedback.print_inview_message(system_write=False)
-        sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
+        if verbose:
+            feedback = FeedbackMessage(quantity=len(_joints),
+                                       skip_quantity_print=True,
+                                       intro='Joint Label Visibility set to:',
+                                       conclusion=str(operation_result),
+                                       style_conclusion="color:#FF0000;text-decoration:underline;",
+                                       zero_overwrite_message='No joints found in this scene.')
+            feedback.print_inview_message(system_write=False)
+            sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
 
         if errors != '':
             print('#### Errors: ####')
@@ -176,10 +191,17 @@ def toggle_uniform_jnt_label():
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    return label_state
 
 
-def toggle_full_hud():
-    """ Toggles common HUD options so all the common ones are either active or inactive  """
+def toggle_full_hud(verbose=True):
+    """
+    Toggles common HUD options so all the common ones are either active or inactive
+    Args:
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the hud visibility (toggle target) or None if operation failed.
+    """
     hud_current_state = {}
 
     # 1 - Animation Details
@@ -304,17 +326,18 @@ def toggle_full_hud():
         mel.eval('setViewportRendererVisibility(false)')
         mel.eval('catchQuiet(setXGenHUDVisibility(false));')
     # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
-    print("?")
     # Give feedback
     operation_result = 'off'
     if toggle:
         operation_result = 'on'
-    feedback = FeedbackMessage(intro='Hud Visibility set to:',
-                               conclusion=str(operation_result),
-                               style_conclusion='color:#FF0000;text-decoration:underline;',
-                               zero_overwrite_message='No user defined attributes were deleted.')
-    feedback.print_inview_message(system_write=False)
-    sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
+    if verbose:
+        feedback = FeedbackMessage(intro='Hud Visibility set to:',
+                                   conclusion=str(operation_result),
+                                   style_conclusion='color:#FF0000;text-decoration:underline;',
+                                   zero_overwrite_message='No user defined attributes were deleted.')
+        feedback.print_inview_message(system_write=False)
+        sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
+    return toggle
 
 
 def set_joint_name_as_label():
