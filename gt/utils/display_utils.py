@@ -17,17 +17,29 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def toggle_uniform_lra():
+def toggle_uniform_lra(obj_list=None, verbose=True):
     """
-    Makes the visibility of the Local Rotation Axis uniform among
-    the selected objects according to the current state of the majority of them.
+    Makes the visibility of the Local Rotation Axis uniform  according to the current state of the majority of them.
+
+    Args:
+        obj_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the LRA visibility (toggle target) or None if operation failed.
     """
     function_name = 'Uniform LRA Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    lra_state_result = None
     try:
         errors = ''
-        selection = cmds.ls(selection=True, long=True) or []
-        if not selection:
+        _target_list = None
+        if obj_list and isinstance(obj_list, list):
+            _target_list = obj_list
+        if obj_list and isinstance(obj_list, str):
+            _target_list = [obj_list]
+        if not _target_list:
+            _target_list = cmds.ls(selection=True, long=True) or []
+        if not _target_list:
             cmds.warning('Select at least one object and try again.')
             return
 
@@ -35,7 +47,7 @@ def toggle_uniform_lra():
         active_lra = []
         operation_result = 'off'
 
-        for obj in selection:
+        for obj in _target_list:
             try:
                 current_lra_state = cmds.getAttr(obj + '.displayLocalAxis')
                 if current_lra_state:
@@ -50,12 +62,14 @@ def toggle_uniform_lra():
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
                     operation_result = 'on'
+                    lra_state_result = True
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_lra) == 0:
             for obj in active_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
+                    lra_state_result = False
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(active_lra) > len(inactive_lra):
@@ -63,21 +77,23 @@ def toggle_uniform_lra():
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
                     operation_result = 'on'
+                    lra_state_result = True
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
             for obj in active_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
+                    lra_state_result = False
                 except Exception as e:
                     errors += str(e) + '\n'
-
-        feedback = FeedbackMessage(intro='LRA Visibility set to:',
-                                   conclusion=str(operation_result),
-                                   style_conclusion='color:#FF0000;text-decoration:underline;',
-                                   zero_overwrite_message='No user defined attributes were deleted.')
-        feedback.print_inview_message(system_write=False)
-        sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
+        if verbose:
+            feedback = FeedbackMessage(intro='LRA Visibility set to:',
+                                       conclusion=str(operation_result),
+                                       style_conclusion='color:#FF0000;text-decoration:underline;',
+                                       zero_overwrite_message='No user defined attributes were deleted.')
+            feedback.print_inview_message(system_write=False)
+            sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
 
         if errors != '':
             print('#### Errors: ####')
@@ -87,6 +103,7 @@ def toggle_uniform_lra():
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    return lra_state_result
 
 
 def toggle_uniform_jnt_label():
