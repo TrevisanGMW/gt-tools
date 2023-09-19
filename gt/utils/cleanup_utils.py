@@ -112,30 +112,47 @@ def delete_nucleus_nodes(verbose=True, include_fields=True):
     return deleted_counter
 
 
-def delete_all_locators():
-    """ Deletes all locators """
+def delete_locators(verbose=True, filter_str=None):
+    """
+    Deletes all locators
+    Args:
+        verbose (bool, optional): If True, it will print feedback when executing operation.
+        filter_str (str, optional): If provided, it will be used to filter locators.
+                                    Only locators containing this string will be deleted.
+    Returns:
+        int: Number of deleted locators
+    """
     errors = ''
-    function_name = 'Delete All Locators'
+    function_name = 'Delete Locators'
+    deleted_counter = 0
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # With Transform
         locators = cmds.ls(typ='locator')
 
-        deleted_counter = 0
-        for obj in locators:
+        filtered_locators = []
+        if filter_str and isinstance(filter_str, str):
+            for loc in locators:
+                if filter_str in loc:
+                    filtered_locators.append(loc)
+        else:
+            filtered_locators = locators
+
+        for obj in filtered_locators:
             try:
-                parent = cmds.listRelatives(obj, parent=True) or []
-                cmds.delete(parent[0])
+                loc_transform = cmds.listRelatives(obj, parent=True) or []
+                cmds.delete(loc_transform[0])
                 deleted_counter += 1
             except Exception as e:
                 logger.debug(str(e))
-        feedback = FeedbackMessage(quantity=deleted_counter,
-                                   singular='locator was',
-                                   plural='locators were',
-                                   conclusion='deleted.',
-                                   zero_overwrite_message='No locators found in this scene.')
-        feedback.print_inview_message()
+        if verbose:
+            feedback = FeedbackMessage(quantity=deleted_counter,
+                                       singular='locator was',
+                                       plural='locators were',
+                                       conclusion='deleted.',
+                                       zero_overwrite_message='No locators found in this scene.')
+            feedback.print_inview_message()
 
     except Exception as e:
         errors += str(e) + '\n'
@@ -145,4 +162,8 @@ def delete_all_locators():
     if errors != '':
         print('######## Errors: ########')
         print(errors)
+    return deleted_counter
 
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)

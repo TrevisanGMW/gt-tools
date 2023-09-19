@@ -88,3 +88,19 @@ class TestCleanUpUtils(unittest.TestCase):
         for node in nodes:
             exists_result = maya_test_tools.cmds.objExists(node)
             self.assertFalse(exists_result, f'Found unexpected node: "{node}".')
+
+    def test_delete_all_locators(self):
+        mocked_locators = []
+        for node_type in range(0, 10):
+            new_loc = maya_test_tools.cmds.spaceLocator()[0]
+            mocked_locators.append(new_loc)
+            exists_result = maya_test_tools.cmds.objExists(new_loc)
+            self.assertTrue(exists_result, f'Missing expected node: "{str(new_loc)}".')
+
+        num_deleted_nodes = cleanup_utils.delete_locators(verbose=False, filter_str=None)
+        expected_num_deleted_nodes = 10
+        self.assertEqual(expected_num_deleted_nodes, num_deleted_nodes)
+
+        for node in mocked_locators:
+            exists_result = maya_test_tools.cmds.objExists(node)
+            self.assertFalse(exists_result, f'Found unexpected node: "{node}".')
