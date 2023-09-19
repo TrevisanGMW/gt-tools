@@ -340,22 +340,33 @@ def toggle_full_hud(verbose=True):
     return toggle
 
 
-def set_joint_name_as_label():
+def set_joint_name_as_label(jnt_list=None, verbose=True):
     """
-    Transfer the selected joint name to
+    Transfer the name of the joint to its label.
+    Args:
+        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected joints.
     """
+    _joints = None
+    if jnt_list and isinstance(jnt_list, list):
+        _joints = jnt_list
+    if jnt_list and isinstance(jnt_list, str):
+        _joints = [jnt_list]
+    if not _joints:
+        _joints = cmds.ls(type='joint', long=True) or []
+        _joints = cmds.ls(selection=True, typ="joint") or []
 
-    selection_joints = cmds.ls(selection=True, typ="joint") or []
-
-    if not selection_joints:
+    if not _joints:
         cmds.warning("No joints found in selection. Select joints and try again.")
         return
 
-    function_name = 'GTU Set Joint Name as Label'
+    function_name = 'Set Joint Name as Label'
     counter = 0
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
-        for joint in selection_joints:
+        for joint in _joints:
             short_name = get_short_name(joint)
             cmds.setAttr(joint + '.side', 0)  # Center (No Extra String)
             cmds.setAttr(joint + '.type', 18)  # Other
@@ -365,13 +376,14 @@ def set_joint_name_as_label():
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-
-    feedback = FeedbackMessage(quantity=counter,
-                               singular='label was',
-                               plural='labels were',
-                               conclusion='updated.',
-                               zero_overwrite_message='No labels were updated.')
-    feedback.print_inview_message()
+    if verbose:
+        feedback = FeedbackMessage(quantity=counter,
+                                   singular='label was',
+                                   plural='labels were',
+                                   conclusion='updated.',
+                                   zero_overwrite_message='No labels were updated.')
+        feedback.print_inview_message()
+    return counter
 
 
 def generate_udim_previews():
