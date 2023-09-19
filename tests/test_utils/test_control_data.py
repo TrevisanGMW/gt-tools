@@ -141,3 +141,61 @@ class TestControlData(unittest.TestCase):
         expected = "mocked_scalable_arrow"
         self.assertEqual(expected, result.name)
         self.assertIsInstance(result, ControlData)
+
+    def test_create_slider_squared_one_dimension(self):
+        expected = "mocked_slider_one_dimension"
+        result = slider.create_slider_squared_one_dimension(name=expected)
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_slider_squared_two_dimensions(self):
+        expected = "mocked_create_slider_squared_two_dimensions"
+        result = slider.create_slider_squared_two_dimensions(name=expected)
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_sliders_squared_mouth(self):
+        result = slider.create_sliders_squared_mouth(name="mocked_mouth")
+        expected = "mocked_mouth_gui_grp"
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_sliders_squared_eyebrows(self):
+        result = slider.create_sliders_squared_eyebrows(name="mocked_eyebrow")
+        expected = "mocked_eyebrow_gui_grp"
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_sliders_squared_cheek_nose(self):
+        result = slider.create_sliders_squared_cheek_nose(name="mocked_nose_cheek")
+        expected = "mocked_nose_cheek_gui_grp"
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_sliders_squared_eye(self):
+        result = slider.create_sliders_squared_eyes(name="mocked_eyes")
+        expected = "mocked_eyes_gui_grp"
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_create_sliders_squared_facial_side_gui(self):
+        result = slider.create_sliders_squared_facial_side_gui(name="mocked_facial")
+        expected = "mocked_facial_gui_grp"
+        self.assertEqual(expected, result.name)
+        self.assertIsInstance(result, ControlData)
+
+    def test_offset_slider_range(self):
+        offset_ctrl = slider.create_slider_squared_one_dimension('offset_ctrl')
+        expected = 5
+        for driver in offset_ctrl.drivers:
+            min_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.minTransYLimit')
+            max_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.maxTransYLimit')
+            self.assertEqual(expected, max_trans_y_limit)
+            self.assertEqual(-expected, min_trans_y_limit)
+        slider._offset_slider_range(slider_control_data=offset_ctrl, offset_by=5, offset_thickness=1)
+        expected = 10
+        for driver in offset_ctrl.drivers:
+            min_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.minTransYLimit')
+            max_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.maxTransYLimit')
+            self.assertEqual(expected, max_trans_y_limit)
+            self.assertEqual(-expected, min_trans_y_limit)
