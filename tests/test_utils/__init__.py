@@ -9,6 +9,7 @@ from . import test_control_data
 from . import test_control_utils
 from . import test_curve_utils
 from . import test_data_utils
+from . import test_display_utils
 from . import test_feedback_utils
 from . import test_iterable_utils
 from . import test_math_utils
