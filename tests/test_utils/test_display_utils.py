@@ -105,3 +105,59 @@ class TestDisplayUtils(unittest.TestCase):
         mock_eval.assert_called()
         expected = 10
         self.assertEqual(expected, affected_nodes)
+
+    def test_reset_joint_display(self):
+        joint_one = maya_test_tools.cmds.joint()
+        joint_two = maya_test_tools.cmds.joint()
+        maya_test_tools.cmds.joint()  # Purposely left out of affected joints
+        joints_to_test = [joint_one, joint_two]
+
+        expected = 2
+        maya_test_tools.cmds.jointDisplayScale(expected)  # Something other than 1
+        display_scale = maya_test_tools.cmds.jointDisplayScale(query=True)
+        self.assertEqual(expected, display_scale)
+
+        for jnt in joints_to_test:
+            expected = 2
+            maya_test_tools.cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
+            radius_value = maya_test_tools.cmds.getAttr(f'{jnt}.radius')
+            self.assertEqual(expected, radius_value)
+            expected = 2
+            maya_test_tools.cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
+            draw_style_value = maya_test_tools.cmds.getAttr(f'{jnt}.drawStyle')
+            self.assertEqual(expected, draw_style_value)
+            expected = False
+            maya_test_tools.cmds.setAttr(f'{jnt}.visibility', expected)
+            visibility_value = maya_test_tools.cmds.getAttr(f'{jnt}.visibility')
+            self.assertEqual(expected, visibility_value)
+        # Update Label
+        affected_joints = display_utils.reset_joint_display(jnt_list=joints_to_test, verbose=False)
+        expected_affected_joints = 2
+        self.assertEqual(expected_affected_joints, affected_joints)
+
+        expected_display_scale = 1
+        display_scale = maya_test_tools.cmds.jointDisplayScale(query=True)
+        self.assertEqual(expected_display_scale, display_scale)
+
+        for jnt in joints_to_test:
+            expected = 1
+            maya_test_tools.cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
+            radius_value = maya_test_tools.cmds.getAttr(f'{jnt}.radius')
+            self.assertEqual(expected, radius_value)
+            expected = 1
+            maya_test_tools.cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
+            draw_style_value = maya_test_tools.cmds.getAttr(f'{jnt}.drawStyle')
+            self.assertEqual(expected, draw_style_value)
+            expected = True
+            maya_test_tools.cmds.setAttr(f'{jnt}.visibility', expected)
+            visibility_value = maya_test_tools.cmds.getAttr(f'{jnt}.visibility')
+            self.assertEqual(expected, visibility_value)
+
+    def test_delete_display_layers(self):
+        display_layer_one = maya_test_tools.cmds.createDisplayLayer(name="mocked_layer_one", empty=True)
+        display_layer_two = maya_test_tools.cmds.createDisplayLayer(name="mocked_layer_two", empty=True)
+        affected_layers = display_utils.delete_display_layers(layer_list=display_layer_one, verbose=False)
+        expected_affected_layers = 1
+        self.assertEqual(expected_affected_layers, affected_layers)
+        self.assertFalse(maya_test_tools.cmds.objExists(display_layer_one), "Found unexpected layer.")
+        self.assertTrue(maya_test_tools.cmds.objExists(display_layer_two), "Missing expected layer.")
