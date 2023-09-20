@@ -64,3 +64,44 @@ class TestDisplayUtils(unittest.TestCase):
         mock_eval.assert_called()
         expected = False
         self.assertEqual(expected, label_visibility_state)
+
+    def test_set_joint_name_as_label(self):
+        joint_one = maya_test_tools.cmds.joint()
+        joint_two = maya_test_tools.cmds.joint()
+        joints_to_test = [joint_one, joint_two]
+
+        for jnt in joints_to_test:
+            side_value = maya_test_tools.cmds.getAttr(f'{jnt}.side')
+            expected = 0  # Center
+            self.assertEqual(expected, side_value)
+            type_value = maya_test_tools.cmds.getAttr(f'{jnt}.type')
+            expected = 0  # None
+            self.assertEqual(expected, type_value)
+            label_value = maya_test_tools.cmds.getAttr(f'{jnt}.otherType')
+            expected = "jaw"
+            self.assertEqual(expected, label_value)
+        # Update Label
+        affected_joints = display_utils.set_joint_name_as_label(jnt_list=joints_to_test, verbose=False)
+        expected = 2
+        self.assertEqual(expected, affected_joints)
+        for jnt in joints_to_test:
+            side_value = maya_test_tools.cmds.getAttr(f'{jnt}.side')
+            expected = 0  # Center
+            self.assertEqual(expected, side_value)
+            type_value = maya_test_tools.cmds.getAttr(f'{jnt}.type')
+            expected = 18  # Other
+            self.assertEqual(expected, type_value)
+            label_value = maya_test_tools.cmds.getAttr(f'{jnt}.otherType')
+            expected = jnt
+            self.assertEqual(expected, label_value)
+
+    @patch('gt.utils.display_utils.mel')
+    def test_generate_udim_previews(self, mock_mel):
+        for index in range(0, 10):
+            maya_test_tools.cmds.createNode("file")
+        mock_eval = MagicMock()
+        mock_mel.eval = mock_eval
+        affected_nodes = display_utils.generate_udim_previews(verbose=False)
+        mock_eval.assert_called()
+        expected = 10
+        self.assertEqual(expected, affected_nodes)

@@ -386,13 +386,21 @@ def set_joint_name_as_label(jnt_list=None, verbose=True):
     return counter
 
 
-def generate_udim_previews():
-    """ Generates UDIM previews for all file nodes """
+def generate_udim_previews(verbose=True):
+    """
+    Generates UDIM previews for all file nodes
+    Args:
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected file nodes.
+    """
     errors = ''
+    counter = 0
     all_file_nodes = cmds.ls(type='file')
     for file_node in all_file_nodes:
         try:
             mel.eval('generateUvTilePreview ' + file_node + ';')
+            counter += 1
         except Exception as e:
             errors += str(e) + '\n'
 
@@ -400,11 +408,13 @@ def generate_udim_previews():
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
-    feedback = FeedbackMessage(prefix='Previews generated for all',
-                               intro='UDIM',
-                               style_intro='color:#FF0000;text-decoration:underline;',
-                               conclusion='file nodes.')
-    feedback.print_inview_message()
+    if verbose:
+        feedback = FeedbackMessage(prefix='Previews generated for all',
+                                   intro='UDIM',
+                                   style_intro='color:#FF0000;text-decoration:underline;',
+                                   conclusion='file nodes.')
+        feedback.print_inview_message()
+    return counter
 
 
 def reset_joint_display():
@@ -476,6 +486,3 @@ def delete_display_layers():
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)
