@@ -159,8 +159,7 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_get_maya_preferences_dir_mac(self):
         result = system_utils.get_maya_preferences_dir(system=system_utils.OS_MAC)
-        generated_path = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
-        expected = os.path.normpath(generated_path)
+        expected = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
         self.assertEqual(expected, result)
 
     @patch('gt.utils.system_utils.get_maya_preferences_dir')
