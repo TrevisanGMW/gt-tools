@@ -8,7 +8,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Test String Utilities
+# Import Utility
 tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if tools_root_dir not in sys.path:
     sys.path.append(tools_root_dir)
