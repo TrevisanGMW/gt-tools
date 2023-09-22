@@ -355,11 +355,11 @@ def set_joint_name_as_label(jnt_list=None, verbose=True):
     if jnt_list and isinstance(jnt_list, str):
         _joints = [jnt_list]
     if not _joints:
-        _joints = cmds.ls(type='joint', long=True) or []
         _joints = cmds.ls(selection=True, typ="joint") or []
 
     if not _joints:
-        cmds.warning("No joints found in selection. Select joints and try again.")
+        if verbose:
+            cmds.warning("No joints found in selection. Select joints and try again.")
         return
 
     function_name = 'Set Joint Name as Label'
