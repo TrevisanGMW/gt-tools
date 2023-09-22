@@ -36,15 +36,19 @@ class TestHierarchyUtils(unittest.TestCase):
 
     def test_parent_basics(self):
         result = hierarchy_utils.parent(source_objects=self.cubes, target_parent=self.transform_one)
-        expected = self.cubes
+        expected = []
+        for cube in self.cubes:
+            expected.append(f"|{self.transform_one}|{cube}")
         self.assertEqual(expected, result)
+        expected = self.cubes
         children = maya_test_tools.cmds.listRelatives(self.transform_one, children=True)
         self.assertEqual(expected, children)
 
     def test_parent_str_input(self):
         result = hierarchy_utils.parent(source_objects=self.cube_one, target_parent=self.transform_one)
-        expected = [self.cube_one]
+        expected = [f'|{self.transform_one}|{self.cube_one}']
         self.assertEqual(expected, result)
+        expected = [self.cube_one]
         children = maya_test_tools.cmds.listRelatives(self.transform_one, children=True)
         self.assertEqual(expected, children)
 
@@ -52,8 +56,7 @@ class TestHierarchyUtils(unittest.TestCase):
         hierarchy_utils.parent(source_objects=self.cube_one, target_parent=self.transform_one)
         maya_test_tools.cmds.rename(self.cube_two, "cube_one")
         result = hierarchy_utils.parent(source_objects="|cube_one", target_parent=self.transform_two)
-        expected = [f"{self.transform_two}|cube_one"]
-        self.assertEqual(expected, result)
         expected = [f"|{self.transform_two}|cube_one"]
+        self.assertEqual(expected, result)
         children = maya_test_tools.cmds.listRelatives(self.transform_two, children=True, fullPath=True)
         self.assertEqual(expected, children)

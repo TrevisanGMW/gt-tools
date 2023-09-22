@@ -57,7 +57,15 @@ def parent(source_objects, target_parent, verbose=False):
                           input_string=f'Unable to recover previous selection. Issue: "{str(e)}".',
                           do_log=verbose,
                           level=logging.DEBUG)
-    return parented_objects
+    try:
+        parented_objects_long = cmds.ls(parented_objects, long=True)
+    except Exception as e:
+        log_when_true(input_logger=logger,
+                      input_string=f'Unable to convert parented to long names. Issue: "{str(e)}".',
+                      do_log=verbose,
+                      level=logging.DEBUG)
+        parented_objects_long = parented_objects
+    return parented_objects_long
 
 
 if __name__ == "__main__":
