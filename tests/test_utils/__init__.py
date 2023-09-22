@@ -13,6 +13,7 @@ from . import test_display_utils
 from . import test_feedback_utils
 from . import test_hierarchy_utils
 from . import test_iterable_utils
+from . import test_joint_utils
 from . import test_math_utils
 from . import test_namespace_utils
 from . import test_naming_utils
