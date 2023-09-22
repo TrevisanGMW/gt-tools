@@ -197,8 +197,7 @@ def get_maya_preferences_dir(system):
             logger.debug(f'Got Maya preferences path from outside Maya. Reason: {str(e)}')
         win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
     elif system == OS_MAC:
-        mac_maya_preferences_dir = os.path.expanduser('~')
-        mac_maya_preferences_dir = os.path.join(mac_maya_preferences_dir, "Library", "Preferences", "Autodesk", "maya")
+        mac_maya_preferences_dir = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
 
     maya_preferences_paths = {
         OS_LINUX: "/usr/bin/",

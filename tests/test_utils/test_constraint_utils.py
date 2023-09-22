@@ -1,8 +1,5 @@
-from unittest.mock import patch
-from io import StringIO
 import unittest
 import logging
-import json
 import sys
 import os
 
@@ -11,7 +8,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Tested Utility and Maya Test Tools
+# Import Utility and Maya Test Tools
 test_utils_dir = os.path.dirname(__file__)
 tests_dir = os.path.dirname(test_utils_dir)
 package_root_dir = os.path.dirname(tests_dir)

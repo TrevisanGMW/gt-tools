@@ -184,20 +184,33 @@ def get_cross_direction(obj_a, obj_b, obj_c):
     return get_cross_product(pos_a, pos_b, pos_c).normal()
 
 
-def convert_joints_to_mesh(combine_mesh=True):
+def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
     """
     Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
     Args:
-        combine_mesh: Combines generated meshes into one
+        root_jnt (list, str, optional): Path to the root joint of the skeleton used in the conversion.
+                                        If not provided, the selection is used instead.
+                                        If a list, must contain exactly one object, the root joint. (top parent joint)
+        combine_mesh: Combines generated meshes into one. Each joint produces a mesh.
+                      when combining, the output is one single combined mesh. (Entire skeleton)
+        verbose (bool, optional): If True, it will return feedback about the operation.
 
     Returns:
         list: A list of generated meshes
     """
-    selection = cmds.ls(selection=True, type='joint')
-    if len(selection) != 1:
-        cmds.warning('Please selection only the root joint and try again.')
+    _joints = None
+    if root_jnt and isinstance(root_jnt, list):
+        _joints = root_jnt
+    if root_jnt and isinstance(root_jnt, str):
+        _joints = [root_jnt]
+    if not _joints:
+        _joints = cmds.ls(selection=True, typ="joint") or []
+
+    if len(_joints) != 1:
+        if verbose:
+            cmds.warning('Please selection only the root joint and try again.')
         return
-    cmds.select(selection[0], replace=True)
+    cmds.select(_joints[0], replace=True)
     cmds.select(hierarchy=True)
     joints = cmds.ls(selection=True, type='joint', long=True)
 
@@ -236,14 +249,15 @@ def convert_joints_to_mesh(combine_mesh=True):
 
                 child_pos = cmds.xform(obj, t=True, ws=True, query=True)
                 cmds.xform(joint_cone[0] + '.vtx[4]', t=child_pos, ws=True)
-    if combine_mesh:
+    if combine_mesh and len(generated_mesh) > 1:  # Needs at least two meshes to combine
         cmds.select(generated_mesh, replace=True)
         mesh = cmds.polyUnite()
         cmds.select(clear=True)
         cmds.delete(mesh, constructionHistory=True)
-        mesh = cmds.rename(mesh[0], selection[0] + 'AsMesh')
+        mesh = cmds.rename(mesh[0], _joints[0] + 'AsMesh')
         return [mesh]
     else:
+        cmds.select(clear=True)
         return generated_mesh
 
 

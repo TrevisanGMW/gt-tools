@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils import system_utils, iterable_utils
 from gt.utils.data.py_meshes import scale_volume
 from gt.utils.data_utils import DataDirConstants
+from collections import namedtuple
 import maya.cmds as cmds
 import logging
 import ast
@@ -16,7 +17,6 @@ import re
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
 
 # Constants
 MESH_TYPE_DEFAULT = "mesh"
@@ -280,6 +280,39 @@ def is_vertex_string(input_str):
     """
     pattern = r"^[a-zA-Z0-9|_:]+\.vtx\[\d+\]$"
     return bool(re.match(pattern, input_str))
+
+
+def extract_components_from_face(face_name):
+    """
+    Extract two edges from the given face based on the specified direction.
+
+    Args:
+        face_name (str): The name of the face in Maya. e.g. "pCube.f[0]"
+
+    Returns:
+        namedtuple (FaceComponents): Containing twp tuple elements: 'vertices', 'edges'
+    """
+    FaceComponents = namedtuple('FaceComponents', ['vertices', 'edges'])
+    try:
+        # Check if the given face exists
+        if not cmds.objExists(face_name):
+            logger.debug(f'Unable to extract components from provided face. Missing face "{face_name}".')
+            return
+
+        # Get the vertices of the face
+        vertices = cmds.polyListComponentConversion(face_name, toVertex=True)
+        vertices = cmds.ls(vertices, flatten=True)
+
+        # Find the edges connected to the vertices
+        _vertices_edges = cmds.polyListComponentConversion(vertices, toEdge=True)
+        edges = cmds.polyListComponentConversion(face_name, toEdge=True)
+        edges = cmds.ls(edges, flatten=True)
+
+        return FaceComponents(vertices=vertices, edges=edges)
+
+    except Exception as e:
+        logger.debug(f"Unable to extract components from provided face. Issue : {str(e)}")
+        return
 
 
 class MeshFile:
@@ -618,6 +651,7 @@ class ParametricMeshes:
         A library of parametric mesh objects.
         Use "build()" to create them in Maya.
         """
+
     # Primitives
     scale_cube = ParametricMesh(build_function=scale_volume.create_scale_cube)
     scale_cylinder = ParametricMesh(build_function=scale_volume.create_scale_cylinder)
@@ -672,13 +706,16 @@ def print_code_for_obj_files(target_dir=None, ignore_private=True, use_output_wi
             window.show()
         sys.stdout.write(f'Python lines for "Meshes" class were printed to output window.')
     else:
-        print("_"*80)
+        print("_" * 80)
         print(output)
-        print("_"*80)
+        print("_" * 80)
         sys.stdout.write(f'Python lines for "Meshes" class were printed. (If in Maya, open the script editor)')
     return output
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    print_code_for_obj_files()
+    # print_code_for_obj_files()
+    test_face_name = "pCube1.f[0]"
+    # test_face_name = "pPlane1.f[0]"
+    result = extract_components_from_face(test_face_name)  # Change parallel to True for parallel edges

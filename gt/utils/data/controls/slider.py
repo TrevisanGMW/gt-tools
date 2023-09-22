@@ -32,7 +32,7 @@ def create_slider_squared_one_dimension(name="slider_one_dimension",
         lock_unused_channels (bool, optional):  locks and hides unused channels (TX, TZ, ROT...)
 
     Returns:
-        ctrl_elements: A list with the control name and control group name
+        ControlData: A tuple with the control name and control offset group name.
     """
     default_ctrl_line_width = 3
 
@@ -89,7 +89,7 @@ def create_slider_squared_one_dimension(name="slider_one_dimension",
                     cmds.setAttr(ctrl + '.' + attr + ax, lock=True, k=False, channelBox=False)
         cmds.setAttr(ctrl + '.v', lock=True, k=False, channelBox=False)
 
-    return [ctrl, ctrl_grp]
+    return ControlData(name=ctrl, offset=ctrl_grp)
 
 
 def create_slider_squared_two_dimensions(name="slider_two_dimensions",
@@ -107,7 +107,7 @@ def create_slider_squared_two_dimensions(name="slider_two_dimensions",
                             Can be: "right", "left", "bottom" or "up".
 
     Returns:
-        ctrl_elements: A list with the control name and control group name
+        ControlData: A tuple with the control name and control offset group name.
     """
     default_ctrl_line_width = 3
 
@@ -198,7 +198,7 @@ def create_slider_squared_two_dimensions(name="slider_two_dimensions",
             cmds.move(-5, ctrl_bg + '.cv[1:2]', moveY=True, relative=True)
             cmds.setAttr(ctrl + '.maxTransYLimit', 0)
 
-    return [ctrl, ctrl_grp]
+    return ControlData(name=ctrl, offset=ctrl_grp)
 
 
 def create_sliders_squared_mouth(name="mouth"):
@@ -209,8 +209,8 @@ def create_sliders_squared_mouth(name="mouth"):
         name (str): Name of the mouth group/control.
 
     Returns:
-        control_tuple: A tuple with the parent group name and a list with all generated controls.
-                       E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
+        ControlData: A tuple with the control name, control offset group name and drivers (sliders).
+                    ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
     """
     # Naming
     ctrl = NamingConstants.Suffix.CTRL
@@ -258,36 +258,36 @@ def create_sliders_squared_mouth(name="mouth"):
     in_out_tongue_ctrl = create_slider_squared_one_dimension(f'inOutTongue_{offset}_{ctrl}', initial_position='top')
 
     # TY
-    cmds.setAttr(mid_upper_lip_ctrl[1] + '.ty', 6)
-    cmds.setAttr(mid_lower_lip_ctrl[1] + '.ty', -5)
-    cmds.setAttr(left_upper_outer_lip_ctrl[1] + '.ty', 5)
-    cmds.setAttr(left_lower_outer_lip_ctrl[1] + '.ty', -4)
-    cmds.setAttr(left_upper_corner_lip_ctrl[1] + '.ty', 4)
-    cmds.setAttr(left_lower_corner_lip_ctrl[1] + '.ty', -3)
-    cmds.setAttr(right_upper_outer_lip_ctrl[1] + '.ty', 5)
-    cmds.setAttr(right_lower_outer_lip_ctrl[1] + '.ty', -4)
-    cmds.setAttr(right_upper_corner_lip_ctrl[1] + '.ty', 4)
-    cmds.setAttr(right_lower_corner_lip_ctrl[1] + '.ty', -3)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.tx', 13)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.ty', -13.8)
-    cmds.setAttr(in_out_tongue_ctrl[1] + '.ty', -9.5)
+    cmds.setAttr(mid_upper_lip_ctrl.offset + '.ty', 6)
+    cmds.setAttr(mid_lower_lip_ctrl.offset + '.ty', -5)
+    cmds.setAttr(left_upper_outer_lip_ctrl.offset + '.ty', 5)
+    cmds.setAttr(left_lower_outer_lip_ctrl.offset + '.ty', -4)
+    cmds.setAttr(left_upper_corner_lip_ctrl.offset + '.ty', 4)
+    cmds.setAttr(left_lower_corner_lip_ctrl.offset + '.ty', -3)
+    cmds.setAttr(right_upper_outer_lip_ctrl.offset + '.ty', 5)
+    cmds.setAttr(right_lower_outer_lip_ctrl.offset + '.ty', -4)
+    cmds.setAttr(right_upper_corner_lip_ctrl.offset + '.ty', 4)
+    cmds.setAttr(right_lower_corner_lip_ctrl.offset + '.ty', -3)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + '.tx', 13)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + '.ty', -13.8)
+    cmds.setAttr(in_out_tongue_ctrl.offset + '.ty', -9.5)
 
     # TX
-    cmds.setAttr(left_upper_outer_lip_ctrl[1] + '.tx', 2)
-    cmds.setAttr(left_lower_outer_lip_ctrl[1] + '.tx', 2)
-    cmds.setAttr(left_upper_corner_lip_ctrl[1] + '.tx', 4)
-    cmds.setAttr(left_lower_corner_lip_ctrl[1] + '.tx', 4)
-    cmds.setAttr(right_upper_outer_lip_ctrl[1] + '.tx', -2)
-    cmds.setAttr(right_lower_outer_lip_ctrl[1] + '.tx', -2)
-    cmds.setAttr(right_upper_corner_lip_ctrl[1] + '.tx', -4)
-    cmds.setAttr(right_lower_corner_lip_ctrl[1] + '.tx', -4)
-    cmds.setAttr(in_out_tongue_ctrl[1] + '.tx', -13)
+    cmds.setAttr(left_upper_outer_lip_ctrl.offset + '.tx', 2)
+    cmds.setAttr(left_lower_outer_lip_ctrl.offset + '.tx', 2)
+    cmds.setAttr(left_upper_corner_lip_ctrl.offset + '.tx', 4)
+    cmds.setAttr(left_lower_corner_lip_ctrl.offset + '.tx', 4)
+    cmds.setAttr(right_upper_outer_lip_ctrl.offset + '.tx', -2)
+    cmds.setAttr(right_lower_outer_lip_ctrl.offset + '.tx', -2)
+    cmds.setAttr(right_upper_corner_lip_ctrl.offset + '.tx', -4)
+    cmds.setAttr(right_lower_corner_lip_ctrl.offset + '.tx', -4)
+    cmds.setAttr(in_out_tongue_ctrl.offset + '.tx', -13)
 
     # Misc
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sx', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sy', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl[1] + '.sz', 0.8)
-    cmds.setAttr(in_out_tongue_ctrl[1] + '.rz', 90)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sx', 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sy', 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sz', 0.8)
+    cmds.setAttr(in_out_tongue_ctrl.offset + '.rz', 90)
 
     half_size_ctrls = [left_upper_outer_lip_ctrl, left_lower_outer_lip_ctrl, left_upper_corner_lip_ctrl,
                        left_lower_corner_lip_ctrl, right_upper_outer_lip_ctrl, right_lower_outer_lip_ctrl,
@@ -295,9 +295,9 @@ def create_sliders_squared_mouth(name="mouth"):
                        mid_lower_lip_ctrl, in_out_tongue_ctrl]
 
     for ctrl in half_size_ctrls:
-        cmds.setAttr(ctrl[1] + '.sx', 0.5)
-        cmds.setAttr(ctrl[1] + '.sy', 0.5)
-        cmds.setAttr(ctrl[1] + '.sz', 0.5)
+        cmds.setAttr(ctrl.offset + '.sx', 0.5)
+        cmds.setAttr(ctrl.offset + '.sy', 0.5)
+        cmds.setAttr(ctrl.offset + '.sz', 0.5)
 
     # 2D Controls
     left_corner_lip_ctrl = create_slider_squared_two_dimensions(f'{left}_cornerLip_{offset}_{ctrl}')
@@ -306,14 +306,14 @@ def create_sliders_squared_mouth(name="mouth"):
     tongue_ctrl = create_slider_squared_two_dimensions(f'tongue_{offset}_{ctrl}')
 
     # Inverted Right Controls
-    cmds.setAttr(right_corner_lip_ctrl[1] + '.ry', 180)
+    cmds.setAttr(right_corner_lip_ctrl.offset + '.ry', 180)
 
-    cmds.setAttr(left_corner_lip_ctrl[1] + '.tx', 12)
-    cmds.setAttr(right_corner_lip_ctrl[1] + '.tx', -12)
-    cmds.setAttr(jaw_ctrl[1] + '.ty', -15)
-    rescale(tongue_ctrl[1], 0.5, freeze=False)
-    cmds.setAttr(tongue_ctrl[1] + '.ty', -15)
-    cmds.setAttr(tongue_ctrl[1] + '.tx', -13)
+    cmds.setAttr(left_corner_lip_ctrl.offset + '.tx', 12)
+    cmds.setAttr(right_corner_lip_ctrl.offset + '.tx', -12)
+    cmds.setAttr(jaw_ctrl.offset + '.ty', -15)
+    rescale(tongue_ctrl.offset, 0.5, freeze=False)
+    cmds.setAttr(tongue_ctrl.offset + '.ty', -15)
+    cmds.setAttr(tongue_ctrl.offset + '.tx', -13)
 
     # Determine Grp Order
     controls.append(left_corner_lip_ctrl)
@@ -396,16 +396,16 @@ def create_sliders_squared_mouth(name="mouth"):
     background.append(mouth_bg_crv)
 
     for obj in controls:
-        cmds.parent(obj[1], gui_grp)
-        if f'{left}_' in obj[0]:
-            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
-        elif f'{right}_' in obj[0]:
-            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
+        cmds.parent(obj.offset, gui_grp)
+        if f'{left}_' in obj.offset:
+            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+        elif f'{right}_' in obj.offset:
+            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -416,28 +416,20 @@ def create_sliders_squared_mouth(name="mouth"):
     set_color_override_outliner(bg_grp, (0, 0, 0))
 
     # Final Color Adjustments
-    set_color_override_viewport(main_mouth_offset_ctrl[0], (1, 0.35, 0.55))
-    set_color_override_viewport(tongue_ctrl[0], (1, 0.35, 0.55))
-    set_color_override_viewport(in_out_tongue_ctrl[0], (1, 0.35, 0.55))
+    set_color_override_viewport(main_mouth_offset_ctrl.offset, (1, 0.35, 0.55))
+    set_color_override_viewport(tongue_ctrl.offset, (1, 0.35, 0.55))
+    set_color_override_viewport(in_out_tongue_ctrl.offset, (1, 0.35, 0.55))
+    cmds.select(clear=True)
+    return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
 
-    return gui_grp, controls
 
-
-def create_sliders_squared_eyebrows():
+def create_sliders_squared_eyebrows(name="eyebrow"):
     """
-    Dependencies:
-        rescale()
-        create_slider_control()
-        create_2d_slider_control()
-        create_text()
-        move_to_origin()
-        set_color_override_outliner()
-        set_color_override_viewport()
-
+    Args:
+        name (str, optional): Prefix for the control group (name of the control)
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
                        E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
-
     """
     # Containers
     controls = []
@@ -452,25 +444,26 @@ def create_sliders_squared_eyebrows():
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_mid_brow_ctrl = create_slider_squared_one_dimension('left_midBrow_offset_{suffix_ctrl}')
-    left_outer_brow_ctrl = create_slider_squared_one_dimension('left_outerBrow_offset_{suffix_ctrl}')
-    right_mid_brow_ctrl = create_slider_squared_one_dimension('right_midBrow_offset_{suffix_ctrl}')
-    right_outer_brow_ctrl = create_slider_squared_one_dimension('right_outerBrow_offset_{suffix_ctrl}')
+    suffix_ctrl = NamingConstants.Suffix.CTRL
+    left_mid_brow_ctrl = create_slider_squared_one_dimension(f'left_midBrow_offset_{suffix_ctrl}')
+    left_outer_brow_ctrl = create_slider_squared_one_dimension(f'left_outerBrow_offset_{suffix_ctrl}')
+    right_mid_brow_ctrl = create_slider_squared_one_dimension(f'right_midBrow_offset_{suffix_ctrl}')
+    right_outer_brow_ctrl = create_slider_squared_one_dimension(f'right_outerBrow_offset_{suffix_ctrl}')
 
     # TY
-    cmds.setAttr(left_mid_brow_ctrl[1] + '.tx', 11)
-    cmds.setAttr(left_outer_brow_ctrl[1] + '.tx', 15)
-    cmds.setAttr(right_mid_brow_ctrl[1] + '.tx', -11)
-    cmds.setAttr(right_outer_brow_ctrl[1] + '.tx', -15)
+    cmds.setAttr(left_mid_brow_ctrl.offset + '.tx', 11)
+    cmds.setAttr(left_outer_brow_ctrl.offset + '.tx', 15)
+    cmds.setAttr(right_mid_brow_ctrl.offset + '.tx', -11)
+    cmds.setAttr(right_outer_brow_ctrl.offset + '.tx', -15)
 
     left_inner_brow_ctrl = create_slider_squared_two_dimensions('left_innerBrow_offset_ctrl', ignore_range='right')
     right_inner_brow_ctrl = create_slider_squared_two_dimensions('right_innerBrow_offset_ctrl', ignore_range='right')
 
     # Invert Right Side
-    cmds.setAttr(right_inner_brow_ctrl[1] + '.ry', 180)
+    cmds.setAttr(right_inner_brow_ctrl.offset + '.ry', 180)
 
-    cmds.setAttr(left_inner_brow_ctrl[1] + '.tx', 7)
-    cmds.setAttr(right_inner_brow_ctrl[1] + '.tx', -7)
+    cmds.setAttr(left_inner_brow_ctrl.offset + '.tx', 7)
+    cmds.setAttr(right_inner_brow_ctrl.offset + '.tx', -7)
 
     # Determine Grp Order
     controls.append(left_inner_brow_ctrl)
@@ -511,27 +504,27 @@ def create_sliders_squared_eyebrows():
     background.append(r_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name='eyebrow_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name='eyebrow_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
+    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
 
     # General Background
-    eyebrow_bg_crv = cmds.curve(name='eyebrow_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
+    eyebrow_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
                                                           [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]], d=1)
 
     cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
     background.append(eyebrow_bg_crv)
 
     for obj in controls:
-        cmds.parent(obj[1], gui_grp)
-        if 'left_' in obj[0]:
-            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj[0]:
-            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
+        cmds.parent(obj.offset, gui_grp)
+        if 'left_' in obj.offset:
+            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+        elif 'right_' in obj.offset:
+            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -540,25 +533,18 @@ def create_sliders_squared_eyebrows():
     # Background Group
     cmds.parent(bg_grp, gui_grp)
     set_color_override_outliner(bg_grp, (0, 0, 0))
+    cmds.select(clear=True)
 
-    return gui_grp, controls
+    return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
 
 
-def create_sliders_squared_cheek_nose():
+def create_sliders_squared_cheek_nose(name="cheek_nose"):
     """
-    Dependencies:
-        rescale()
-        create_slider_control()
-        create_2d_slider_control()
-        create_text()
-        move_to_origin()
-        set_color_override_outliner()
-        set_color_override_viewport()
-
+    Args:
+        name (str, optional): Prefix for the control group (name of the control)
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
                        E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
-
     """
     # Containers
     controls = []
@@ -619,39 +605,39 @@ def create_sliders_squared_cheek_nose():
     cheek_tx = 13.5
     cheek_ty = -1
     cheek_scale = .75
-    cmds.setAttr(left_cheek_ctrl[1] + '.tx', cheek_tx)
-    cmds.setAttr(right_cheek_ctrl[1] + '.tx', -cheek_tx)
-    cmds.setAttr(left_cheek_ctrl[1] + '.ty', cheek_ty)
-    cmds.setAttr(right_cheek_ctrl[1] + '.ty', cheek_ty)
-    rescale(left_cheek_ctrl[1], cheek_scale, freeze=False)
-    rescale(right_cheek_ctrl[1], cheek_scale, freeze=False)
+    cmds.setAttr(left_cheek_ctrl.offset + '.tx', cheek_tx)
+    cmds.setAttr(right_cheek_ctrl.offset + '.tx', -cheek_tx)
+    cmds.setAttr(left_cheek_ctrl.offset + '.ty', cheek_ty)
+    cmds.setAttr(right_cheek_ctrl.offset + '.ty', cheek_ty)
+    rescale(left_cheek_ctrl.offset, cheek_scale, freeze=False)
+    rescale(right_cheek_ctrl.offset, cheek_scale, freeze=False)
 
     nose_tx = 2.5
     nose_ty = -3
     nose_scale = .25
-    cmds.setAttr(left_nose_ctrl[1] + '.tx', nose_tx)
-    cmds.setAttr(right_nose_ctrl[1] + '.tx', -nose_tx)
-    cmds.setAttr(left_nose_ctrl[1] + '.ty', nose_ty)
-    cmds.setAttr(right_nose_ctrl[1] + '.ty', nose_ty)
-    rescale(left_nose_ctrl[1], nose_scale, freeze=False)
-    rescale(right_nose_ctrl[1], nose_scale, freeze=False)
+    cmds.setAttr(left_nose_ctrl.offset + '.tx', nose_tx)
+    cmds.setAttr(right_nose_ctrl.offset + '.tx', -nose_tx)
+    cmds.setAttr(left_nose_ctrl.offset + '.ty', nose_ty)
+    cmds.setAttr(right_nose_ctrl.offset + '.ty', nose_ty)
+    rescale(left_nose_ctrl.offset, nose_scale, freeze=False)
+    rescale(right_nose_ctrl.offset, nose_scale, freeze=False)
 
-    cmds.setAttr(main_nose_ctrl[1] + '.ty', 1.7)
-    rescale(main_nose_ctrl[1], .3, freeze=False)
+    cmds.setAttr(main_nose_ctrl.offset + '.ty', 1.7)
+    rescale(main_nose_ctrl.offset, .3, freeze=False)
 
     cheek_in_out_tx = 7
     cheek_in_out_ty = -.1
     cheek_in_out_scale = cheek_scale*.8
-    cmds.setAttr(left_cheek_in_out_ctrl[1] + '.tx', cheek_in_out_tx)
-    cmds.setAttr(right_cheek_in_out_ctrl[1] + '.tx', -cheek_in_out_tx)
-    cmds.setAttr(left_cheek_in_out_ctrl[1] + '.ty', cheek_in_out_ty)
-    cmds.setAttr(right_cheek_in_out_ctrl[1] + '.ty', cheek_in_out_ty)
-    rescale(left_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
-    rescale(right_cheek_in_out_ctrl[1], cheek_in_out_scale, freeze=False)
+    cmds.setAttr(left_cheek_in_out_ctrl.offset + '.tx', cheek_in_out_tx)
+    cmds.setAttr(right_cheek_in_out_ctrl.offset + '.tx', -cheek_in_out_tx)
+    cmds.setAttr(left_cheek_in_out_ctrl.offset + '.ty', cheek_in_out_ty)
+    cmds.setAttr(right_cheek_in_out_ctrl.offset + '.ty', cheek_in_out_ty)
+    rescale(left_cheek_in_out_ctrl.offset, cheek_in_out_scale, freeze=False)
+    rescale(right_cheek_in_out_ctrl.offset, cheek_in_out_scale, freeze=False)
 
     # Invert Right Side
     for obj in [right_cheek_ctrl, right_nose_ctrl]:
-        cmds.setAttr(obj[1] + '.sx', cmds.getAttr(obj[1] + '.sx')*-1)
+        cmds.setAttr(obj.offset + '.sx', cmds.getAttr(obj.offset + '.sx')*-1)
 
     # Determine Grp Order
     controls.append(left_cheek_ctrl)
@@ -693,27 +679,27 @@ def create_sliders_squared_cheek_nose():
     background.append(r_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name='cheek_nose_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name='cheek_nose_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
+    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
 
     # General Background
-    eyebrow_bg_crv = cmds.curve(name='cheek_nose_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
+    eyebrow_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
                                                              [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]], d=1)
 
     cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
     background.append(eyebrow_bg_crv)
 
     for obj in controls:
-        cmds.parent(obj[1], gui_grp)
-        if 'left_' in obj[0]:
-            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj[0]:
-            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
+        cmds.parent(obj.offset, gui_grp)
+        if 'left_' in obj.offset:
+            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+        elif 'right_' in obj.offset:
+            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -722,25 +708,18 @@ def create_sliders_squared_cheek_nose():
     # Background Group
     cmds.parent(bg_grp, gui_grp)
     set_color_override_outliner(bg_grp, (0, 0, 0))
+    cmds.select(clear=True)
 
-    return gui_grp, controls
+    return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
 
 
-def create_sliders_squared_eyes():
+def create_sliders_squared_eyes(name="eyes"):
     """
-    Dependencies:
-        rescale()
-        create_slider_control()
-        create_2d_slider_control()
-        create_text()
-        move_to_origin()
-        set_color_override_outliner()
-        set_color_override_viewport()
-
+    Args:
+        name (str, optional): Prefix for the control group (name of the control)
     Returns:
         control_tuple: A tuple with the parent group name and a list with all generated controls.
                        E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
-
     """
     # Containers
     controls = []
@@ -774,26 +753,26 @@ def create_sliders_squared_eyes():
     #                  right_upper_eyelid_ctrl, right_lower_eyelid_ctrl, right_blink_eyelid_ctrl]
     to_scale_down = [left_blink_eyelid_ctrl, right_blink_eyelid_ctrl]
     for ctrl in to_scale_down:
-        cmds.setAttr(ctrl[1] + '.sx', 0.5)
-        cmds.setAttr(ctrl[1] + '.sy', 0.5)
-        cmds.setAttr(ctrl[1] + '.sz', 0.5)
+        cmds.setAttr(ctrl.offset + '.sx', 0.5)
+        cmds.setAttr(ctrl.offset + '.sy', 0.5)
+        cmds.setAttr(ctrl.offset + '.sz', 0.5)
 
     # TY
-    rescale(left_upper_eyelid_ctrl[1], 0.25, freeze=False)
-    rescale(left_lower_eyelid_ctrl[1], 0.25, freeze=False)
-    cmds.setAttr(left_upper_eyelid_ctrl[1] + '.tx', 15)
-    cmds.setAttr(left_lower_eyelid_ctrl[1] + '.tx', 15)
-    cmds.setAttr(left_upper_eyelid_ctrl[1] + '.ty', 3)
-    cmds.setAttr(left_lower_eyelid_ctrl[1] + '.ty', -4)
-    cmds.setAttr(left_blink_eyelid_ctrl[1] + '.tx', 5)
+    rescale(left_upper_eyelid_ctrl.offset, 0.25, freeze=False)
+    rescale(left_lower_eyelid_ctrl.offset, 0.25, freeze=False)
+    cmds.setAttr(left_upper_eyelid_ctrl.offset + '.tx', 15)
+    cmds.setAttr(left_lower_eyelid_ctrl.offset + '.tx', 15)
+    cmds.setAttr(left_upper_eyelid_ctrl.offset + '.ty', 3)
+    cmds.setAttr(left_lower_eyelid_ctrl.offset + '.ty', -4)
+    cmds.setAttr(left_blink_eyelid_ctrl.offset + '.tx', 5)
 
-    rescale(right_upper_eyelid_ctrl[1], 0.25, freeze=False)
-    rescale(right_lower_eyelid_ctrl[1], 0.25, freeze=False)
-    cmds.setAttr(right_upper_eyelid_ctrl[1] + '.tx', -15)
-    cmds.setAttr(right_lower_eyelid_ctrl[1] + '.tx', -15)
-    cmds.setAttr(right_upper_eyelid_ctrl[1] + '.ty', 3)
-    cmds.setAttr(right_lower_eyelid_ctrl[1] + '.ty', -4)
-    cmds.setAttr(right_blink_eyelid_ctrl[1] + '.tx', -5)
+    rescale(right_upper_eyelid_ctrl.offset, 0.25, freeze=False)
+    rescale(right_lower_eyelid_ctrl.offset, 0.25, freeze=False)
+    cmds.setAttr(right_upper_eyelid_ctrl.offset + '.tx', -15)
+    cmds.setAttr(right_lower_eyelid_ctrl.offset + '.tx', -15)
+    cmds.setAttr(right_upper_eyelid_ctrl.offset + '.ty', 3)
+    cmds.setAttr(right_lower_eyelid_ctrl.offset + '.ty', -4)
+    cmds.setAttr(right_blink_eyelid_ctrl.offset + '.tx', -5)
 
     # Determine Grp Order
     controls.append(left_upper_eyelid_ctrl)
@@ -847,27 +826,27 @@ def create_sliders_squared_eyes():
     background.append(right_blink_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name='eyes_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name='eyes_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
+    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
 
     # General Background
-    eyebrow_bg_crv = cmds.curve(name='eyes_bg_crv', p=[[-20.0, 11.0, 0.0], [-20.0, -9.0, 0.0], [20.0, -9.0, 0.0],
-                                                       [20.0, 11.0, 0.0], [-20.0, 11.0, 0.0]], d=1)
+    eye_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 11.0, 0.0], [-20.0, -9.0, 0.0], [20.0, -9.0, 0.0],
+                                                      [20.0, 11.0, 0.0], [-20.0, 11.0, 0.0]], d=1)
 
-    cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
-    background.append(eyebrow_bg_crv)
+    cmds.setAttr(eye_bg_crv + '.overrideDisplayType', 1)
+    background.append(eye_bg_crv)
 
     for obj in controls:
-        cmds.parent(obj[1], gui_grp)
-        if 'left_' in obj[0]:
-            set_color_override_viewport(obj[0], LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj[0]:
-            set_color_override_viewport(obj[0], RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj[1], RIGHT_CTRL_COLOR)
+        cmds.parent(obj.offset, gui_grp)
+        if 'left_' in obj.offset:
+            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+        elif 'right_' in obj.offset:
+            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj[0], CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj[1], CENTER_CTRL_COLOR)
+            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -876,49 +855,51 @@ def create_sliders_squared_eyes():
     # Background Group
     cmds.parent(bg_grp, gui_grp)
     set_color_override_outliner(bg_grp, (0, 0, 0))
+    cmds.select(clear=True)
 
-    return gui_grp, controls
+    return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
 
 
-def create_sliders_squared_facial_side_gui(add_nose_cheeks=True):
+def create_sliders_squared_facial_side_gui(name="facial", add_nose_cheeks=True):
     """
     Creates squared sliders for facial controls
     Args:
+        name (str, optional): Prefix for the control group (name of the control)
         add_nose_cheeks (bool): If active, the nose and cheek sliders will be included in the creation.
     Returns:
-        ControlData: object containing: name=parent_grp
+        control_tuple: A tuple with the parent group name and a list with all generated controls.
+                       E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
     """
     selection = cmds.ls(selection=True)
-    parent_grp = cmds.group(empty=True, world=True, name='facial_side_gui_grp')
+    parent_grp = cmds.group(empty=True, world=True, name=f'{name}_gui_grp')
     eyebrow_ctrls = create_sliders_squared_eyebrows()
     eye_ctrls = create_sliders_squared_eyes()
     mouth_ctrls = create_sliders_squared_mouth()
-    cmds.move(43, eyebrow_ctrls[0], moveY=True)
-    cmds.move(23, eye_ctrls[0], moveY=True)
-    cmds.parent(eyebrow_ctrls[0], parent_grp)
-    cmds.parent(eye_ctrls[0], parent_grp)
-    cmds.parent(mouth_ctrls[0], parent_grp)
+    cmds.move(43, eyebrow_ctrls.name, moveY=True)
+    cmds.move(23, eye_ctrls.name, moveY=True)
+    cmds.parent(eyebrow_ctrls.name, parent_grp)
+    cmds.parent(eye_ctrls.name, parent_grp)
+    cmds.parent(mouth_ctrls.name, parent_grp)
     if add_nose_cheeks:
         nose_cheek_ctrls = create_sliders_squared_cheek_nose()
-        cmds.parent(nose_cheek_ctrls[0], parent_grp)
-        cmds.move(22, nose_cheek_ctrls[0], moveY=True)
-        cmds.move(42, eye_ctrls[0], moveY=True)
-        cmds.move(62, eyebrow_ctrls[0], moveY=True)
+        cmds.parent(nose_cheek_ctrls.name, parent_grp)
+        cmds.move(22, nose_cheek_ctrls.name, moveY=True)
+        cmds.move(42, eye_ctrls.name, moveY=True)
+        cmds.move(62, eyebrow_ctrls.name, moveY=True)
     cmds.select(selection)
     return ControlData(name=parent_grp)
 
 
-def _offset_slider_range(create_slider_output, offset_by=5, offset_thickness=0):
+def _offset_slider_range(slider_control_data, offset_by=5, offset_thickness=0):
     """
     Offsets the slider range updating its limits and shapes to conform to the new values
     Args:
-        create_slider_output (tuple): The tuple output returned from the function "create_slider_control"
+        slider_control_data (ControlData): The namedtuple output returned from the function "create_slider_control"
         offset_by: How much to offset, use positive numbers to make it bigger or negative to make it smaller
         offset_thickness: Amount to update the shape curves, so it continues to look proportional after the offset.
-
     """
-    ctrl = create_slider_output[0]
-    ctrl_grp = create_slider_output[1]
+    ctrl = slider_control_data.name
+    ctrl_grp = slider_control_data.offset
 
     current_min_trans_y_limit = cmds.getAttr(ctrl + '.minTransYLimit')
     current_max_trans_y_limit = cmds.getAttr(ctrl + '.maxTransYLimit')
@@ -960,4 +941,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # create_facial_side_gui()
     cmds.file(new=True, force=True)
-    create_sliders_squared_mouth()
+    offset_ctrl = create_slider_squared_one_dimension('offset_ctrl')
