@@ -148,7 +148,7 @@ class Proxy:
             return
         proxy_offset = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
         proxy_crv = self.curve.build()
-        cmds.parent(proxy_crv, proxy_offset)
+        proxy_crv = cmds.parent(proxy_crv, proxy_offset)[0]
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
@@ -378,13 +378,21 @@ class Proxy:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
-    test_parent_uuid = generate_uuid()
-    temp_trans = Transform()
-    temp_trans.set_position(0, 10, 0)
+
     proxy = Proxy()
-    proxy.set_transform(temp_trans)
-    proxy.set_offset_position(0, 5, 5)
-    proxy.set_parent_uuid(test_parent_uuid)
-    proxy.set_curve(get_curve("_proxy_joint_handle"))
-    proxy.set_locator_scale(5)
     proxy.build()
+
+    proxy2 = Proxy()
+    proxy2.build()
+
+    # test_parent_uuid = generate_uuid()
+    # temp_trans = Transform()
+    # temp_trans.set_position(0, 10, 0)
+    # proxy = Proxy()
+    # proxy.build()
+    # proxy.set_transform(temp_trans)
+    # proxy.set_offset_position(0, 5, 5)
+    # proxy.set_parent_uuid(test_parent_uuid)
+    # proxy.set_curve(get_curve("_proxy_joint_handle"))
+    # proxy.set_locator_scale(5)
+    # proxy.build()
