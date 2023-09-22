@@ -54,6 +54,7 @@ modules_to_test = [
     test_utils.test_data_utils,
     test_utils.test_display_utils,
     test_utils.test_feedback_utils,
+    test_utils.test_hierarchy_utils,
     test_utils.test_iterable_utils,
     test_utils.test_math_utils,
     test_utils.test_namespace_utils,
