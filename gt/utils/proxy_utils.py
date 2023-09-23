@@ -375,6 +375,118 @@ class Proxy:
         return self.name
 
 
+class RigComponent:
+    def __init__(self,
+                 prefix=None,
+                 proxies=None,
+                 parent_uuid=None,
+                 metadata=None):
+        # Default Values
+        self.prefix = None
+        self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
+        self.proxies = []
+        self.parent_uuid = None  # RigComponent is parented to this object
+        self.metadata = None
+
+        if prefix:
+            self.set_prefix(prefix)
+        if proxies:
+            self.set_proxies(proxies)
+        if parent_uuid:
+            self.set_parent_uuid(parent_uuid)
+        if metadata:
+            self.set_metadata_dict(metadata=metadata)
+
+    def is_valid(self):
+        """
+        Checks if the rig component is valid (can be used)
+        """
+        if not self.proxies:
+            logger.warning('Missing proxies. A rig component needs at least one proxy to function.')
+            return False
+        return True
+
+    # ------------------------------------------------- Setters -------------------------------------------------
+    def set_prefix(self, prefix):
+        """
+        Sets a new component prefix. Useful when ingesting data from dictionary or file with undesired name.
+        Args:
+            prefix (str): New name to use on the proxy.
+        """
+        if not prefix or not isinstance(prefix, str):
+            logger.warning(f'Unable to set prefix. Expected string but got "{str(type(prefix))}"')
+            return
+        self.prefix = prefix
+
+    def set_proxies(self, proxy_list):
+        """
+        Sets a new proxy name. Useful when ingesting data from dictionary or file with undesired name.
+        Args:
+            proxy_list (str): New name to use on the proxy.
+        """
+        if not proxy_list or not isinstance(proxy_list, list):
+            logger.warning(f'Unable to set new list of proxies. '
+                           f'Expected list of proxies but got "{str(proxy_list)}"')
+            return
+        self.proxies = proxy_list
+
+    def set_metadata_dict(self, metadata):
+        """
+        Sets the metadata property. The metadata is any extra value used to further describe the curve.
+        Args:
+            metadata (dict): A dictionary describing extra information about the curve
+        """
+        if not isinstance(metadata, dict):
+            logger.warning(f'Unable to set curve metadata. Expected a dictionary, but got: "{str(type(metadata))}"')
+            return
+        self.metadata = metadata
+
+    def add_to_metadata(self, key, value):
+        """
+        Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
+        If an element with the same key already exists in the metadata dictionary, it will be overwritten
+        Args:
+            key (str): Key of the new metadata element
+            value (Any): Value of the new metadata element
+        """
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        self.metadata[key] = value
+
+    def set_parent_uuid(self, uuid):
+        """
+        Sets a new parent UUID for the proxy.
+        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
+        Args:
+            uuid (str): A new UUID for the parent of this proxy
+        """
+        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
+            self.parent_uuid = uuid
+        else:
+            logger.warning(error_message)
+
+    # ------------------------------------------------- Getters -------------------------------------------------
+    def get_metadata(self):
+        """
+        Gets the metadata property.
+        Returns:
+            dict: Metadata dictionary
+        """
+        return self.metadata
+
+    def get_prefix(self):
+        """
+        Gets the prefix property of the rig component.
+        Returns:
+            str or None: Proxy of the rig component, None if it's not set.
+        """
+        return self.prefix
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
