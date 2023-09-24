@@ -375,7 +375,7 @@ class Proxy:
         return self.name
 
 
-class RigComponent:
+class RigComponentBase:
     def __init__(self,
                  prefix=None,
                  proxies=None,
@@ -383,7 +383,6 @@ class RigComponent:
                  metadata=None):
         # Default Values
         self.prefix = None
-        self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
         self.proxies = []
         self.parent_uuid = None  # RigComponent is parented to this object
         self.metadata = None
@@ -487,15 +486,65 @@ class RigComponent:
         return self.prefix
 
 
+class RigComponentBipedLeg(RigComponentBase):
+    def __init__(self,
+                 prefix=None,
+                 parent_uuid=None,
+                 metadata=None):
+        # Default Values
+        self.prefix = None
+        self.proxies = []
+        self.parent_uuid = None  # RigComponent is parented to this object
+        self.metadata = None
+
+        super().__init__(prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+
+        # Default Proxies
+        hip = Proxy()
+        hip.set_position(y=84.5)
+        hip.set_locator_scale(scale=0.4)
+        knee = Proxy()
+        knee.set_position(y=47.05)
+        knee.set_locator_scale(scale=0.5)
+        ankle = Proxy()
+        ankle.set_position(y=9.6)
+        ankle.set_locator_scale(scale=0.4)
+        ball = Proxy()
+        ball.set_position(z=13.1)
+        ball.set_locator_scale(scale=0.4)
+        toe = Proxy()
+        toe.set_position(z=23.4)
+        toe.set_locator_scale(scale=0.4)
+        heel_pivot = Proxy()
+        heel_pivot.set_locator_scale(scale=0.1)
+        self.proxies.extend([hip, knee, ankle, ball, toe, heel_pivot])
+
+    def build_proxy(self):
+        for proxy in self.proxies:
+            proxy.build()
+
+    def is_valid(self):
+        """
+        Checks if the rig component is valid (can be used)
+        """
+        if not self.proxies:
+            logger.warning('Missing proxies. A rig component needs at least one proxy to function.')
+            return False
+        return True
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    proxy = Proxy()
-    proxy.build()
+    leg = RigComponentBipedLeg()
+    leg.build_proxy()
 
-    proxy2 = Proxy()
-    proxy2.build()
+    # proxy1 = Proxy()
+    # proxy1.build()
+    #
+    # proxy2 = Proxy()
+    # proxy2.build()
 
     # test_parent_uuid = generate_uuid()
     # temp_trans = Transform()
