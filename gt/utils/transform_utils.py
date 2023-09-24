@@ -287,6 +287,7 @@ class Vector3:
             return
         self.z = z
 
+
 # ------------------------------------------------- Transform Start -----------------------------------------------
 class Transform:
     def __init__(self, position=None, rotation=None, scale=None):

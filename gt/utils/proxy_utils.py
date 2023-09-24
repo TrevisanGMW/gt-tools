@@ -11,8 +11,10 @@ from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
+from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.transform_utils import Transform
+from gt.utils.hierarchy_utils import parent
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
@@ -33,6 +35,19 @@ class ProxyConstants:
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
+
+
+def parent_proxies(proxy_list):
+    # Parent Joints
+    for proxy in proxy_list:
+        built_proxy = find_object_with_uuid(proxy.get_uuid(), ProxyConstants.PROXY_ATTR_UUID)
+        parent_proxy = find_object_with_uuid(proxy.get_parent_uuid(), ProxyConstants.PROXY_ATTR_UUID)
+        print(f'built_proxy: {built_proxy}')
+        print(f'parent_proxy: {parent_proxy}')
+        if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
+            offset = cmds.listRelatives(built_proxy, parent=True)
+            if offset:
+                parent(source_objects=offset, target_parent=parent_proxy)
 
 
 @dataclass
@@ -374,6 +389,22 @@ class Proxy:
         """
         return self.name
 
+    def get_uuid(self):
+        """
+        Gets the uuid value of this proxy.
+        Returns:
+            str: uuid string
+        """
+        return self.uuid
+
+    def get_parent_uuid(self):
+        """
+        Gets the parent uuid value of this proxy.
+        Returns:
+            str: uuid string for the potential parent of this proxy.
+        """
+        return self.parent_uuid
+
 
 class RigComponentBase:
     def __init__(self,
@@ -500,28 +531,30 @@ class RigComponentBipedLeg(RigComponentBase):
         super().__init__(prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
         # Default Proxies
-        hip = Proxy()
+        hip = Proxy(name="hip")
         hip.set_position(y=84.5)
         hip.set_locator_scale(scale=0.4)
-        knee = Proxy()
+        knee = Proxy(name="knee")
         knee.set_position(y=47.05)
         knee.set_locator_scale(scale=0.5)
-        ankle = Proxy()
+        ankle = Proxy(name="ankle")
         ankle.set_position(y=9.6)
         ankle.set_locator_scale(scale=0.4)
-        ball = Proxy()
+        ball = Proxy(name="ball")
         ball.set_position(z=13.1)
         ball.set_locator_scale(scale=0.4)
-        toe = Proxy()
+        toe = Proxy(name="toe")
         toe.set_position(z=23.4)
         toe.set_locator_scale(scale=0.4)
-        heel_pivot = Proxy()
+        toe.set_parent_uuid(uuid=ball.get_uuid())
+        heel_pivot = Proxy(name="heelPivot")
         heel_pivot.set_locator_scale(scale=0.1)
         self.proxies.extend([hip, knee, ankle, ball, toe, heel_pivot])
 
     def build_proxy(self):
         for proxy in self.proxies:
             proxy.build()
+        parent_proxies(self.proxies)
 
     def is_valid(self):
         """

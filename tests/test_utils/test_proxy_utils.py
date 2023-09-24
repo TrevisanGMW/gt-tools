@@ -128,6 +128,18 @@ class TestProxyUtils(unittest.TestCase):
         expected = "proxy"
         self.assertEqual(expected, result)
 
+    def test_proxy_get_uuid_default(self):
+        expected_uuid = "123e4567-e89b-12d3-a456-426655440000"
+        proxy = Proxy(uuid=expected_uuid)
+        result = proxy.get_uuid()
+        self.assertEqual(expected_uuid, result)
+
+    def test_proxy_get_parent_uuid_default(self):
+        expected_parent_uuid = "123e4567-e89b-12d3-a456-426655440002"
+        proxy = Proxy(parent_uuid=expected_parent_uuid)
+        result = proxy.get_parent_uuid()
+        self.assertEqual(expected_parent_uuid, result)
+
     def test_proxy_set_name(self):
         self.proxy.set_name("description")
         result = self.proxy.get_name()
