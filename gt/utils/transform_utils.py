@@ -254,6 +254,38 @@ class Vector3:
         else:
             raise ValueError("Input list must contain exactly 3 numeric values" + str(values))
 
+    def set_x(self, x):
+        """
+        Sets only the X value for this object.
+        Args:
+            x (int, float): An integer or float number to be used as new X value.
+        """
+        if x and not isinstance(x, (float, int)):
+            logger.debug(f'Unable to set X value. Input must be a float or integer.')
+            return
+        self.x = x
+
+    def set_y(self, y):
+        """
+        Sets only the X value for this object.
+        Args:
+            y (int, float): An integer or float number to be used as new X value.
+        """
+        if y and not isinstance(y, (float, int)):
+            logger.debug(f'Unable to set Y value. Input must be a float or integer.')
+            return
+        self.y = y
+
+    def set_z(self, z):
+        """
+        Sets only the X value for this object.
+        Args:
+            z (int, float): An integer or float number to be used as new X value.
+        """
+        if z and not isinstance(z, (float, int)):
+            logger.debug(f'Unable to set X value. Input must be a float or integer.')
+            return
+        self.z = z
 
 # ------------------------------------------------- Transform Start -----------------------------------------------
 class Transform:
@@ -389,6 +421,16 @@ class Transform:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.position = Vector3(x=x, y=y, z=z)
                 return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.position.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.position.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.position.set_z(z=z)
+                return
         logger.warning(f'Unable to set position. Invalid input.')
 
     def set_rotation(self, x=None, y=None, z=None, xyz=None):
@@ -411,6 +453,16 @@ class Transform:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.rotation = Vector3(x=x, y=y, z=z)
                 return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.rotation.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.rotation.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.rotation.set_z(z=z)
+                return
         logger.warning(f'Unable to set rotation. Invalid input.')
 
     def set_scale(self, x=None, y=None, z=None, xyz=None):
@@ -432,6 +484,16 @@ class Transform:
         if x is not None and y is not None and z is not None:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.scale = Vector3(x=x, y=y, z=z)
+                return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.scale.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.scale.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.scale.set_z(z=z)
                 return
         logger.warning(f'Unable to set scale. Invalid input.')
 
