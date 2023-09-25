@@ -289,6 +289,22 @@ def unzip_zip_file(zip_file_path, extract_path, callback=None):
     return extracted_files_list
 
 
+def on_rm_error(func, file_path, exc_info):
+    """
+    Handle an error encountered during file removal.
+
+    Args:
+        func (callable): The function that raised the exception.
+        file_path (str): The path of the file that couldn't be removed.
+        exc_info (tuple): A tuple containing exception information.
+    """
+    logger.debug(f'Function that raised exception: "{str(func)}".')
+    logger.debug(f'Exception info: "{str(exc_info)}".')
+    logger.debug(f'An exception was raised during a "rm" (remove) operation. Attempting again with new permissions...')
+    os.chmod(file_path, stat.S_IWRITE)
+    os.unlink(file_path)
+
+
 def delete_paths(paths):
     """
     Deletes files or folders at the specified paths.
@@ -319,7 +335,7 @@ def delete_paths(paths):
             if os.path.isfile(path):
                 os.remove(path)
             elif os.path.isdir(path):
-                shutil.rmtree(path)
+                shutil.rmtree(path, onerror=on_rm_error)
         except OSError as e:
             logger.debug(f'Unable to delete "{path}". Issue: {e}')
         if not os.path.exists(path):
@@ -388,6 +404,3 @@ def make_empty_file(path):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)
