@@ -5,8 +5,8 @@ from gt.utils.session_utils import is_script_in_py_maya, filter_loaded_modules_p
 from gt.utils.system_utils import get_available_maya_preferences_dirs, load_package_menu
 from gt.utils.session_utils import remove_modules_startswith, get_maya_version
 from gt.utils.session_utils import get_loaded_package_module_paths
+from gt.utils.data_utils import DataDirConstants, delete_paths, set_file_permission_modifiable
 from gt.utils.feedback_utils import print_when_true
-from gt.utils.data_utils import DataDirConstants
 import maya.cmds as cmds
 import logging
 import shutil
@@ -110,14 +110,14 @@ def remove_previous_install(target_path, clear_prefs=False):
             if folder == PACKAGE_MAIN_MODULE:
                 module_path = os.path.join(target_path, folder)
                 logger.debug(f'Removing previous install: "{module_path}"')
-                shutil.rmtree(module_path)
+                delete_paths(module_path)
             if clear_prefs and folder == PACKAGE_PREFS_DIR:
                 prefs_path = os.path.join(target_path, folder)
                 logger.debug(f'Removing previous preferences: "{prefs_path}"')
-                shutil.rmtree(prefs_path)
+                delete_paths(prefs_path)
         contents = os.listdir(target_path) or []
         if len(contents) == 0:  # If parent folder is empty, remove it too.
-            shutil.rmtree(target_path)
+            delete_paths(target_path)
 
 
 def check_installation_integrity(package_target_folder):
