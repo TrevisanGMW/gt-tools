@@ -755,11 +755,21 @@ class RigProject:
         return True
 
     def build_proxy(self):
+        # Build Proxy
         for component in self.components:
             component.build_proxy()
 
+        # Parent Proxy
         for component in self.components:
             parent_proxies(component.get_proxies())
+
+
+def create_root_curve(name):
+    root_curve = get_curve('_rig_root')
+    root_curve.set_name(name=name)
+    root_crv = root_curve.build()
+    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
+    cmds.parent(root_crv, root_grp)
 
 
 if __name__ == "__main__":
@@ -767,8 +777,6 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     a_leg = RigComponentBipedLeg()
-    # leg.build_proxy()
-    # parent_proxies(leg.get_proxies())
     a_component = RigComponentBase()
 
     a_hip = Proxy(name="hip")
@@ -783,5 +791,7 @@ if __name__ == "__main__":
 
     a_project = RigProject()
     a_project.add_to_components(a_component)
-    a_project.add_to_components(a_leg)
-    a_project.build_proxy()
+    # a_project.add_to_components(a_leg)
+    # a_project.build_proxy()
+
+    create_root_curve("main")
