@@ -504,6 +504,19 @@ class TestTransformUtils(unittest.TestCase):
                     }
         self.assertEqual(expected, result)
 
+    def test_set_transform_from_dict(self):
+        transform = transform_utils.Transform()
+        new_pos = (1, 1, 1)
+        new_rot = (2, 2, 2)
+        new_sca = (3, 3, 3)
+        expected = {"position": new_pos,
+                    "rotation": new_rot,
+                    "scale": new_sca,
+                    }
+        transform.set_transform_from_dict(transform_dict=expected)
+        result = transform.get_transform_as_dict()
+        self.assertEqual(expected, result)
+
     # -------------------------------------------------- Transform End ------------------------------------------------
 
     def test_move_to_origin(self):

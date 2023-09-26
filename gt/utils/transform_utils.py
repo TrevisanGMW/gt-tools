@@ -620,6 +620,29 @@ class Transform:
 
         return self
 
+    def set_transform_from_dict(self, transform_dict):
+        """
+        Sets transform data from dictionary
+        Args:
+            transform_dict (dict): Dictionary with "position", "rotation", and "scale" keys.
+                                   Their values should be tuples with three floats or integers each.
+        """
+        if transform_dict and not isinstance(transform_dict, dict):
+            logger.debug(f'Unable to set transform from dictionary. '
+                         f'Invalid input, argument must be a dictionary.')
+            return
+        position = transform_dict.get('position')
+        rotation = transform_dict.get('rotation')
+        scale = transform_dict.get('scale')
+        for data in [position, rotation, scale]:
+            if not data or not isinstance(data, (tuple, list)) or len(data) != 3:
+                logger.debug(f'Unable to set transform from dictionary. '
+                             f'Provide position, rotation and scale keys with tuples as their values.')
+                return
+        self.set_position(xyz=position)
+        self.set_rotation(xyz=rotation)
+        self.set_scale(xyz=scale)
+
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
         if not target_object or not cmds.objExists(target_object):
             logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
