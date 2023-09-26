@@ -474,17 +474,35 @@ class TestTransformUtils(unittest.TestCase):
         transform = transform_utils.Transform()
         new_rot = (2, 2, 2)
         new_rot_vector3 = transform_utils.Vector3(*new_rot)
-        transform.set_position(xyz=new_rot_vector3)
-        self.assertEqual(new_rot_vector3, transform.get_position())
-        self.assertEqual(new_rot_vector3.get_as_tuple(), transform.get_position(as_tuple=True))
+        transform.set_rotation(xyz=new_rot_vector3)
+        self.assertEqual(new_rot_vector3, transform.get_rotation())
+        self.assertEqual(new_rot_vector3.get_as_tuple(), transform.get_rotation(as_tuple=True))
 
     def test_get_scale(self):
         transform = transform_utils.Transform()
         new_sca = (2, 2, 2)
         new_sca_vector3 = transform_utils.Vector3(*new_sca)
-        transform.set_position(xyz=new_sca_vector3)
-        self.assertEqual(new_sca_vector3, transform.get_position())
-        self.assertEqual(new_sca_vector3.get_as_tuple(), transform.get_position(as_tuple=True))
+        transform.set_scale(xyz=new_sca_vector3)
+        self.assertEqual(new_sca_vector3, transform.get_scale())
+        self.assertEqual(new_sca_vector3.get_as_tuple(), transform.get_scale(as_tuple=True))
+
+    def test_get_transform_as_dict(self):
+        transform = transform_utils.Transform()
+        new_pos = (1, 1, 1)
+        new_pos_vector3 = transform_utils.Vector3(*new_pos)
+        transform.set_position(xyz=new_pos_vector3)
+        new_rot = (2, 2, 2)
+        new_rot_vector3 = transform_utils.Vector3(*new_rot)
+        transform.set_rotation(xyz=new_rot_vector3)
+        new_sca = (3, 3, 3)
+        new_sca_vector3 = transform_utils.Vector3(*new_sca)
+        transform.set_scale(xyz=new_sca_vector3)
+        result = transform.get_transform_as_dict()
+        expected = {"position": new_pos,
+                    "rotation": new_rot,
+                    "scale": new_sca,
+                    }
+        self.assertEqual(expected, result)
 
     # -------------------------------------------------- Transform End ------------------------------------------------
 

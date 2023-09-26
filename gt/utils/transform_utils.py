@@ -670,6 +670,18 @@ class Transform:
             return self.scale.get_as_tuple()
         return self.scale
 
+    def get_transform_as_dict(self):
+        """
+        Gets the transform as a dictionary (used to serialize)
+        Returns:
+            dict: Dictionary with the transform data. Keys: "position", "rotation", "scale". Values: tuples (3 floats)
+        """
+        transform_dict = {"position": self.get_position(as_tuple=True),
+                          "rotation": self.get_rotation(as_tuple=True),
+                          "scale": self.get_scale(as_tuple=True),
+                          }
+        return transform_dict
+
 
 # -------------------------------------------------- Transform End ------------------------------------------------
 
