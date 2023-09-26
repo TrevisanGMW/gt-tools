@@ -2,8 +2,8 @@
 Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.attr_utils import set_trs_attr, get_multiple_attr
 from gt.utils.feedback_utils import FeedbackMessage
-from gt.utils.attr_utils import set_trs_attr
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
@@ -585,6 +585,32 @@ class Transform:
         """
         self.scale.set_from_tuple(scale_tuple)
 
+    def set_transform_from_object(self, obj_name):
+        """
+        Attempts to extract translation, rotation and scale data from the provided object.
+        Updates the transform object with these extracted values.
+        No changes in case object is missing or function fails to extract data.
+        Args:
+            obj_name (str): Name of the object to get the data from.
+        Returns:
+            Transform: it returns itself (The updated transform object)
+        """
+        if obj_name and not cmds.objExists(obj_name):
+            logger.debug(f'Unable to extract transform data. Missing provided object: "{str(obj_name)}".')
+            return self
+
+        position = get_multiple_attr(obj_list=[obj_name], attr_list=['tx', 'ty', 'tz'], verbose=False)
+        if position and len(position) == 3:
+            self.set_position(xyz=list(position.values()))
+        rotation = get_multiple_attr(obj_list=[obj_name], attr_list=['rx', 'ry', 'rz'], verbose=False)
+        if rotation and len(rotation) == 3:
+            self.set_rotation(xyz=list(rotation.values()))
+        scale = get_multiple_attr(obj_list=[obj_name], attr_list=['sx', 'sy', 'sz'], verbose=False)
+        if scale and len(scale) == 3:
+            self.set_scale(xyz=list(scale.values()))
+
+        return self
+
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
         if not target_object or not cmds.objExists(target_object):
             logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
@@ -604,6 +630,7 @@ class Transform:
             set_trs_attr(target_obj=target_object, value_tuple=position, translate=True)
             set_trs_attr(target_obj=target_object, value_tuple=rotation, rotate=True)
             set_trs_attr(target_obj=target_object, value_tuple=scale, scale=True)
+
 
 # -------------------------------------------------- Transform End ------------------------------------------------
 

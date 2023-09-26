@@ -448,6 +448,20 @@ class TestTransformUtils(unittest.TestCase):
         transform.set_scale(xyz=new_scale)
         self.assertEqual(new_scale_vector3, transform.scale)
 
+    def test_set_transform_from_object(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.setAttr(f'{cube}.ty', 5)
+        maya_test_tools.cmds.setAttr(f'{cube}.ry', 35)
+        maya_test_tools.cmds.setAttr(f'{cube}.sy', 2)
+        transform = transform_utils.Transform()
+        transform.set_transform_from_object(obj_name=cube)
+        expected_position = transform_utils.Vector3(0, 5, 0)
+        self.assertEqual(expected_position, transform.position)
+        expected_rotate = transform_utils.Vector3(0, 35, 0)
+        self.assertEqual(expected_rotate, transform.rotation)
+        expected_scale = transform_utils.Vector3(1, 2, 1)
+        self.assertEqual(expected_scale, transform.scale)
+
     # -------------------------------------------------- Transform End ------------------------------------------------
 
     def test_move_to_origin(self):
