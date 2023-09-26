@@ -602,14 +602,18 @@ class Transform:
 
         if world_space:
             position = cmds.xform(obj_name, q=True, t=True, ws=True)
+            if position and len(position) == 3:
+                self.set_position(xyz=position)
             rotation = cmds.xform(obj_name, q=True, ro=True, ws=True)
+            if rotation and len(rotation) == 3:
+                self.set_rotation(xyz=rotation)
         else:
             position = get_multiple_attr(obj_list=[obj_name], attr_list=['tx', 'ty', 'tz'], verbose=False)
+            if position and len(position) == 3:
+                self.set_position(xyz=list(position.values()))
             rotation = get_multiple_attr(obj_list=[obj_name], attr_list=['rx', 'ry', 'rz'], verbose=False)
-        if position and len(position) == 3:
-            self.set_position(xyz=list(position.values()))
-        if rotation and len(rotation) == 3:
-            self.set_rotation(xyz=list(rotation.values()))
+            if rotation and len(rotation) == 3:
+                self.set_rotation(xyz=list(rotation.values()))
         scale = get_multiple_attr(obj_list=[obj_name], attr_list=['sx', 'sy', 'sz'], verbose=False)
         if scale and len(scale) == 3:
             self.set_scale(xyz=list(scale.values()))
