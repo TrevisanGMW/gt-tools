@@ -111,16 +111,19 @@ class Proxy:
                  uuid=None,
                  parent_uuid=None,
                  locator_scale=None,
+                 attr_dict=None,
                  metadata=None):
+
         # Default Values
         self.name = "proxy"
         self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
-        self.offset_transform = Transform()
+        self.offset_transform = None
         self.curve = get_curve('_proxy_joint')
         self.curve.set_name(name=self.name)
-        self.locator_scale = 1  # 100% - Initial curve scale
         self.uuid = generate_uuid(remove_dashes=True)
         self.parent_uuid = None
+        self.locator_scale = 1  # 100% - Initial curve scale
+        self.attr_dict = {}
         self.metadata = None
 
         if name:
@@ -137,6 +140,8 @@ class Proxy:
             self.set_parent_uuid(parent_uuid)
         if locator_scale:
             self.set_locator_scale(locator_scale)
+        if attr_dict:
+            self.set_attr_dict(attr_dict=attr_dict)
         if metadata:
             self.set_metadata_dict(metadata=metadata)
 
@@ -267,6 +272,8 @@ class Proxy:
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        if not self.offset_transform:
+            self.offset_transform = Transform()
         self.offset_transform.set_position(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_rotation(self, x=None, y=None, z=None, xyz=None):
@@ -278,6 +285,8 @@ class Proxy:
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        if not self.offset_transform:
+            self.offset_transform = Transform()
         self.offset_transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_scale(self, x=None, y=None, z=None, xyz=None):
@@ -289,6 +298,8 @@ class Proxy:
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        if not self.offset_transform:
+            self.offset_transform = Transform()
         self.offset_transform.set_scale(x=x, y=y, z=z, xyz=xyz)
 
     def set_curve(self, curve, inherit_curve_name=False):
@@ -315,6 +326,19 @@ class Proxy:
         if not isinstance(scale, (float, int)):
             logger.debug(f'Unable to set locator scale. Invalid input.')
         self.locator_scale = scale
+
+    def set_attr_dict(self, attr_dict):
+        """
+        Sets the attributes dictionary for this proxy. Attributes are any key/value pairs further describing the proxy.
+        Args:
+            attr_dict (dict): An attribute dictionary where the key is the attribute and value is the attribute value.
+                              e.g. {"locatorScale": 1, "isVisible": True}
+        """
+        if not isinstance(attr_dict, dict):
+            logger.warning(f'Unable to set attribute dictionary. '
+                           f'Expected a dictionary, but got: "{str(type(attr_dict))}"')
+            return
+        self.attr_dict = attr_dict
 
     def set_metadata_dict(self, metadata):
         """
@@ -387,6 +411,28 @@ class Proxy:
         parent_uuid = parent_proxy.get_uuid()
         self.set_parent_uuid(parent_uuid)
 
+    def read_data_from_scene(self):
+        """
+        Attempts to find the proxy in the scene. If found, it reads the data into the proxy object.
+        e.g. The user moved the proxy, a new position will be read and saved to this proxy.
+             New custom attributes or anything else added to the proxy will also be saved.
+        """
+        ignore_attr_list = [ProxyConstants.PROXY_ATTR_UUID,
+                            ProxyConstants.PROXY_ATTR_SCALE]
+        proxy = find_object_with_uuid(uuid_string=self.uuid, attr_name=ProxyConstants.PROXY_ATTR_UUID)
+        if proxy:
+            try:
+                self.transform.set_transform_from_object(proxy)
+                attr_dict = {}
+                user_attrs = cmds.listAttr(proxy, userDefined=True) or []
+                for attr in user_attrs:
+                    if not cmds.getAttr(f'{proxy}.{attr}', lock=True) and attr not in ignore_attr_list:
+                        attr_dict[attr] = cmds.getAttr(f'{proxy}.{attr}')
+                if attr_dict:
+                    self.set_attr_dict(attr_dict=attr_dict)
+            except Exception as e:
+                logger.debug(f'Unable to read proxy data for "{str(self.name)}". Issue: {str(e)}')
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_metadata(self):
         """
@@ -419,6 +465,54 @@ class Proxy:
             str: uuid string for the potential parent of this proxy.
         """
         return self.parent_uuid
+
+    def get_attr_dict(self):
+        """
+        Gets the attribute dictionary for this proxy
+        Returns:
+            dict: a dictionary where the key is the attribute name and the value is the value of the attribute.
+                  e.g. {"locatorScale": 1, "isVisible": True}
+        """
+        return self.attr_dict
+
+    def get_proxy_as_dict(self):
+        """
+        Returns all necessary information to recreate this proxy as a dictionary
+        Returns:
+            dict: Proxy data as a dictionary
+        """
+        # Extract Transform
+        transform = {'position': self.transform.get_position(as_tuple=True),
+                     'rotation': self.transform.get_rotation(as_tuple=True),
+                     'scale': self.transform.get_scale(as_tuple=True),
+                     }
+        # Extract Offset Transform (If present)
+        offset_transform = None
+        if self.offset_transform:
+            offset_transform = {'position': self.offset_transform.get_position(as_tuple=True),
+                                'rotation': self.offset_transform.get_rotation(as_tuple=True),
+                                'scale': self.offset_transform.get_scale(as_tuple=True),
+                                }
+        # Create Proxy Data
+        proxy_data = {"name": self.name,
+                      "parent": self.get_parent_uuid(),
+                      "locatorScale": self.locator_scale,
+                      "transform": transform,
+
+                      }
+
+        if offset_transform:
+            proxy_data["offset_transform"] = offset_transform
+
+        if self.get_attr_dict():
+            proxy_data["attributes"] = self.get_attr_dict()
+
+        if self.get_metadata():
+            proxy_data["metadata"] = self.get_metadata()
+
+        proxy_dict = {self.get_uuid(): proxy_data}
+
+        return proxy_dict
 
 
 class RigComponentBase:
@@ -782,6 +876,16 @@ if __name__ == "__main__":
     a_hip = Proxy(name="hip")
     a_hip.set_position(y=84.5)
     a_hip.set_locator_scale(scale=0.4)
+    built_hip = a_hip.build()
+    cmds.setAttr(f'{built_hip}.tx', 5)
+    add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
+    cmds.setAttr(f'{built_hip}.customOne', 5)
+    a_hip.read_data_from_scene()
+    print(a_hip.transform)
+    import json
+    json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
+    print(json_string)
+
     a_knee = Proxy(name="knee")
     a_knee.set_position(y=47.05)
     a_knee.set_locator_scale(scale=0.5)
@@ -789,9 +893,9 @@ if __name__ == "__main__":
 
     a_component.add_to_proxies([a_hip, a_knee])
 
-    a_project = RigProject()
-    a_project.add_to_components(a_component)
+    # a_project = RigProject()
+    # a_project.add_to_components(a_component)
     # a_project.add_to_components(a_leg)
     # a_project.build_proxy()
 
-    create_root_curve("main")
+    # create_root_curve("main")
