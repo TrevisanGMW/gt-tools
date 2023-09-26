@@ -585,13 +585,14 @@ class Transform:
         """
         self.scale.set_from_tuple(scale_tuple)
 
-    def set_transform_from_object(self, obj_name):
+    def set_transform_from_object(self, obj_name, world_space=True):
         """
         Attempts to extract translation, rotation and scale data from the provided object.
         Updates the transform object with these extracted values.
         No changes in case object is missing or function fails to extract data.
         Args:
             obj_name (str): Name of the object to get the data from.
+            world_space (bool, optional): Space used to extract values. True uses world-space, False uses object-space.
         Returns:
             Transform: it returns itself (The updated transform object)
         """
@@ -599,10 +600,14 @@ class Transform:
             logger.debug(f'Unable to extract transform data. Missing provided object: "{str(obj_name)}".')
             return self
 
-        position = get_multiple_attr(obj_list=[obj_name], attr_list=['tx', 'ty', 'tz'], verbose=False)
+        if world_space:
+            position = cmds.xform(obj_name, q=True, t=True, ws=True)
+            rotation = cmds.xform(obj_name, q=True, ro=True, ws=True)
+        else:
+            position = get_multiple_attr(obj_list=[obj_name], attr_list=['tx', 'ty', 'tz'], verbose=False)
+            rotation = get_multiple_attr(obj_list=[obj_name], attr_list=['rx', 'ry', 'rz'], verbose=False)
         if position and len(position) == 3:
             self.set_position(xyz=list(position.values()))
-        rotation = get_multiple_attr(obj_list=[obj_name], attr_list=['rx', 'ry', 'rz'], verbose=False)
         if rotation and len(rotation) == 3:
             self.set_rotation(xyz=list(rotation.values()))
         scale = get_multiple_attr(obj_list=[obj_name], attr_list=['sx', 'sy', 'sz'], verbose=False)
@@ -630,6 +635,36 @@ class Transform:
             set_trs_attr(target_obj=target_object, value_tuple=position, translate=True)
             set_trs_attr(target_obj=target_object, value_tuple=rotation, rotate=True)
             set_trs_attr(target_obj=target_object, value_tuple=scale, scale=True)
+
+    def get_position(self, as_tuple=False):
+        """
+        Gets the transform position
+        Returns:
+            Vector3 or tuple: Position value stored in this transform
+        """
+        if as_tuple:
+            return self.position.get_as_tuple()
+        return self.position
+
+    def get_rotation(self, as_tuple=False):
+        """
+        Gets the transform rotation
+        Returns:
+            Vector3 or tuple: Rotation value stored in this transform
+        """
+        if as_tuple:
+            return self.rotation.get_as_tuple()
+        return self.rotation
+
+    def get_scale(self, as_tuple=False):
+        """
+        Gets the transform scale
+        Returns:
+            Vector3 or tuple: Scale value stored in this transform
+        """
+        if as_tuple:
+            return self.scale.get_as_tuple()
+        return self.scale
 
 
 # -------------------------------------------------- Transform End ------------------------------------------------

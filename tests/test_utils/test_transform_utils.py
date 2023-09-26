@@ -462,6 +462,30 @@ class TestTransformUtils(unittest.TestCase):
         expected_scale = transform_utils.Vector3(1, 2, 1)
         self.assertEqual(expected_scale, transform.scale)
 
+    def test_get_position(self):
+        transform = transform_utils.Transform()
+        new_pos = (2, 2, 2)
+        new_pos_vector3 = transform_utils.Vector3(*new_pos)
+        transform.set_position(xyz=new_pos_vector3)
+        self.assertEqual(new_pos_vector3, transform.get_position())
+        self.assertEqual(new_pos_vector3.get_as_tuple(), transform.get_position(as_tuple=True))
+
+    def test_get_rotation(self):
+        transform = transform_utils.Transform()
+        new_rot = (2, 2, 2)
+        new_rot_vector3 = transform_utils.Vector3(*new_rot)
+        transform.set_position(xyz=new_rot_vector3)
+        self.assertEqual(new_rot_vector3, transform.get_position())
+        self.assertEqual(new_rot_vector3.get_as_tuple(), transform.get_position(as_tuple=True))
+
+    def test_get_scale(self):
+        transform = transform_utils.Transform()
+        new_sca = (2, 2, 2)
+        new_sca_vector3 = transform_utils.Vector3(*new_sca)
+        transform.set_position(xyz=new_sca_vector3)
+        self.assertEqual(new_sca_vector3, transform.get_position())
+        self.assertEqual(new_sca_vector3.get_as_tuple(), transform.get_position(as_tuple=True))
+
     # -------------------------------------------------- Transform End ------------------------------------------------
 
     def test_move_to_origin(self):
