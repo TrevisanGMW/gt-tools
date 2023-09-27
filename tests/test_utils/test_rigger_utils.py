@@ -17,26 +17,26 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from gt.utils.transform_utils import Transform
-from gt.utils.proxy_utils import Proxy
+from gt.utils.rigger_utils import Proxy
 from tests import maya_test_tools
-from gt.utils import proxy_utils
+from gt.utils import rigger_utils
 
 
 class TestProxyUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
         self.proxy = Proxy()
-        self.proxy_data = proxy_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"))
+        self.proxy_data = rigger_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"))
 
     @classmethod
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_proxy_constants(self):
-        attributes = vars(proxy_utils.RiggerConstants)
+        attributes = vars(rigger_utils.RiggerConstants)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for key in keys:
-            constant = getattr(proxy_utils.RiggerConstants, key)
+            constant = getattr(rigger_utils.RiggerConstants, key)
             if not constant:
                 raise Exception(f'Missing proxy constant data: {key}')
             if not isinstance(constant, str):
@@ -74,7 +74,7 @@ class TestProxyUtils(unittest.TestCase):
         self.assertEqual(expected, str(result))
         expected = "proxy"
         self.assertEqual(expected, result.get_short_name())
-        self.assertTrue(isinstance(result, proxy_utils.ProxyData))
+        self.assertTrue(isinstance(result, rigger_utils.ProxyData))
         expected = "|proxy_offset"
         self.assertEqual(expected, result.offset)
         expected = ("proxy_LocScaleHandle",)
@@ -110,10 +110,10 @@ class TestProxyUtils(unittest.TestCase):
         expected_short_name = "proxy"
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
-        self.assertTrue(isinstance(result, proxy_utils.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.RiggerConstants.SEPARATOR_ATTR}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.RiggerConstants.PROXY_ATTR_UUID}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(isinstance(result, rigger_utils.ProxyData))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.SEPARATOR_ATTR}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.PROXY_ATTR_UUID}'))
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
