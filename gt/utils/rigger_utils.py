@@ -1,11 +1,6 @@
 """
-Proxy Utilities
+Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
-
-TODO:
-    Proxy (single joint)
-    RigComponent (carry proxies, can be complex)
-    RigSkeleton, RigBase (carry components)
 """
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
