@@ -58,6 +58,7 @@ class ProxyData:
     name: str  # Long name of the generated proxy (full Maya path)
     offset: str  # Name of the proxy offset (parent of the proxy)
     setup: tuple  # Name of the proxy setup items (rig setup items)
+    uuid: str  # Proxy UUID (Unique string pointing to generated proxy) - Not Maya UUID
 
     def __repr__(self):
         """
@@ -100,6 +101,14 @@ class ProxyData:
             tuple: A tuple with strings (full paths to the rig elements)
         """
         return self.setup
+
+    def get_uuid(self):
+        """
+        Gets the proxy UUID
+        Returns:
+            str: Proxy UUID string
+        """
+        return self.uuid
 
 
 class Proxy:
@@ -191,7 +200,7 @@ class Proxy:
             cmds.refresh()  # Without refresh, it fails to show the correct scale
             set_attr(scale_attr, self.locator_scale)
 
-        return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,))
+        return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
@@ -416,6 +425,8 @@ class Proxy:
         Reads the data from a proxy dictionary and updates the values of this proxy to match it.
         Args:
             proxy_dict (dict): A dictionary describing the proxy data. e.g. {"name": "proxy", "parent": "1234...", ...}
+        Returns:
+            Proxy: This object (self)
         """
         if proxy_dict and not isinstance(proxy_dict, dict):
             logger.debug(f'Unable o read data from dict. Input must be a dictionary.')
@@ -451,11 +462,18 @@ class Proxy:
         if metadata:
             self.set_metadata_dict(metadata=metadata)
 
+        _uuid = proxy_dict.get('uuid')
+        if _uuid:
+            self.set_uuid(uuid=_uuid)
+        return self
+
     def read_data_from_scene(self):
         """
         Attempts to find the proxy in the scene. If found, it reads the data into the proxy object.
         e.g. The user moved the proxy, a new position will be read and saved to this proxy.
              New custom attributes or anything else added to the proxy will also be saved.
+        Returns:
+            Proxy: This object (self)
         """
         ignore_attr_list = [RiggerConstants.PROXY_ATTR_UUID,
                             RiggerConstants.PROXY_ATTR_SCALE]
@@ -472,6 +490,7 @@ class Proxy:
                     self.set_attr_dict(attr_dict=attr_dict)
             except Exception as e:
                 logger.debug(f'Unable to read proxy data for "{str(self.name)}". Issue: {str(e)}')
+        return self
 
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_metadata(self):
@@ -515,7 +534,7 @@ class Proxy:
         """
         return self.attr_dict
 
-    def get_proxy_as_dict(self):
+    def get_proxy_as_dict(self, include_uuid=False):
         """
         Returns all necessary information to recreate this proxy as a dictionary
         Returns:
@@ -537,8 +556,10 @@ class Proxy:
         if self.get_metadata():
             proxy_data["metadata"] = self.get_metadata()
 
-        proxy_dict = {self.get_uuid(): proxy_data}
-        return proxy_dict
+        if include_uuid and self.get_uuid():
+            proxy_data["uuid"] = self.get_uuid()
+
+        return proxy_data
 
 
 class ModuleGeneric:
@@ -552,7 +573,7 @@ class ModuleGeneric:
         self.name = None
         self.prefix = None
         self.proxies = []
-        self.parent_uuid = None  # RigComponent is parented to this object
+        self.parent_uuid = None  # Module is parented to this object
         self.metadata = None
 
         if name:
@@ -569,7 +590,7 @@ class ModuleGeneric:
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
         """
-        Sets a new component name.
+        Sets a new module name.
         Args:
             name (str): New name to use on the proxy.
         """
@@ -580,7 +601,7 @@ class ModuleGeneric:
 
     def set_prefix(self, prefix):
         """
-        Sets a new component prefix.
+        Sets a new module prefix.
         Args:
             prefix (str): New name to use on the proxy.
         """
@@ -606,7 +627,7 @@ class ModuleGeneric:
         Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
         If an element with the same key already exists in the metadata dictionary, it will be overwritten
         Args:
-            proxy (Proxy, List[Proxy]): New proxy element to be added to this component or a list of proxies
+            proxy (Proxy, List[Proxy]): New proxy element to be added to this module or a list of proxies
         """
         if proxy and isinstance(proxy, Proxy):
             proxy = [proxy]
@@ -617,7 +638,7 @@ class ModuleGeneric:
                 else:
                     logger.debug(f'Unable to add "{str(obj)}". Incompatible type.')
             return
-        logger.debug(f'Unable to add provided proxy to component. '
+        logger.debug(f'Unable to add proxy to module. '
                      f'Must be of the type "Proxy" or a list containing only Proxy elements.')
 
     def set_metadata_dict(self, metadata):
@@ -627,7 +648,7 @@ class ModuleGeneric:
             metadata (dict): A dictionary describing extra information about the curve
         """
         if not isinstance(metadata, dict):
-            logger.warning(f'Unable to set component metadata. '
+            logger.warning(f'Unable to set module metadata. '
                            f'Expected a dictionary, but got: "{str(type(metadata))}"')
             return
         self.metadata = metadata
@@ -660,28 +681,62 @@ class ModuleGeneric:
         else:
             logger.warning(error_message)
 
+    def _read_proxies_from_dict(self, proxy_dict):
+        print(proxy_dict)
+
+    def read_data_from_dict(self, module_dict):
+        """
+        Reads the data from a component dictionary and updates the values of this component to match it.
+        Args:
+            module_dict (dict): A dictionary describing the component data. e.g. {"name": "generic"}
+        """
+        if module_dict and not isinstance(module_dict, dict):
+            logger.debug(f'Unable o read data from dict. Input must be a dictionary.')
+            return
+
+        _name = module_dict.get('name')
+        if _name:
+            self.set_name(name=_name)
+
+        _prefix = module_dict.get('prefix')
+        if _prefix:
+            self.set_prefix(prefix=_prefix)
+
+        _parent = module_dict.get('parent')
+        if _parent:
+            self.set_parent_uuid(uuid=_parent)
+
+        _proxies = module_dict.get('proxies')
+        print(_proxies)
+        if _proxies and isinstance(_proxies, dict):
+            self._read_proxies_from_dict(proxy_dict=_proxies)
+
+        metadata = module_dict.get('metadata')
+        if metadata:
+            self.set_metadata_dict(metadata=metadata)
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
-        Gets the name property of the rig component.
+        Gets the name property of the rig module.
         Returns:
-            str or None: Name of the rig component, None if it's not set.
+            str or None: Name of the rig module, None if it's not set.
         """
         return self.prefix
 
     def get_prefix(self):
         """
-        Gets the prefix property of the rig component.
+        Gets the prefix property of the rig module.
         Returns:
-            str or None: Prefix of the rig component, None if it's not set.
+            str or None: Prefix of the rig module, None if it's not set.
         """
         return self.prefix
 
     def get_proxies(self):
         """
-        Gets the proxies in this rig component.
+        Gets the proxies in this rig module.
         Returns:
-            list: A list of proxies found in this rig component.
+            list: A list of proxies found in this rig module.
         """
         return self.proxies
 
@@ -693,36 +748,40 @@ class ModuleGeneric:
         """
         return self.metadata
 
-    def get_component_as_dict(self):
+    def get_module_as_dict(self, include_module_name=False):
         """
-        Gets the properties of this component (including proxies) as a dictionary
+        Gets the properties of this module (including proxies) as a dictionary
+        Args:
+            include_module_name (bool, optional): If True, it will also include the name of the class in the dictionary.
+                                                  e.g. "ModuleGeneric"
         Returns:
-            dict: Dictionary describing this component
+            dict: Dictionary describing this module
         """
-        component_data = {}
+        module_data = {}
         if self.name:
-            component_data["name"] = self.name
+            module_data["name"] = self.name
         if self.prefix:
-            component_data["prefix"] = self.prefix
+            module_data["prefix"] = self.prefix
         if self.parent_uuid:
-            component_data["parent"] = self.parent_uuid
+            module_data["parent"] = self.parent_uuid
         if self.metadata:
-            component_data["metadata"] = self.metadata
-        component_proxies = {}
+            module_data["metadata"] = self.metadata
+        module_proxies = {}
         for proxy in self.proxies:
-            component_proxies.update(proxy.get_proxy_as_dict())
-        component_data["proxies"] = component_proxies
-        module_name = str(self.__class__.__name__).replace("Module", "")
-        component_dict = {module_name: component_data}
-        return component_dict
+            module_proxies.update(proxy.get_proxy_as_dict())
+        module_data["proxies"] = module_proxies
+        if include_module_name:
+            module_name = str(self.__class__.__name__)
+            module_data["module"] = module_name
+        return module_data
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
-        Checks if the rig component is valid (can be used)
+        Checks if the rig module is valid (can be used)
         """
         if not self.proxies:
-            logger.warning('Missing proxies. A rig component needs at least one proxy to function.')
+            logger.warning('Missing proxies. A rig module needs at least one proxy to function.')
             return False
         return True
 
@@ -772,7 +831,7 @@ class ModuleBipedLeg(ModuleGeneric):
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
-        Checks if the rig component is valid (can be used)
+        Checks if the rig module is valid (can be used)
         """
         # TODO Other checks here
         return super().is_valid()
@@ -786,7 +845,7 @@ class RigProject:
         # Default Values
         self.name = "Untitled"
         self.prefix = None
-        self.components = []
+        self.modules = []
         self.metadata = None
 
         if name:
@@ -810,7 +869,7 @@ class RigProject:
 
     def set_prefix(self, prefix):
         """
-        Sets a new component prefix.
+        Sets a new module prefix.
         Args:
             prefix (str): New name to use on the proxy.
         """
@@ -819,24 +878,24 @@ class RigProject:
             return
         self.prefix = prefix
 
-    def add_to_components(self, component):
+    def add_to_modules(self, module):
         """
         Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
         If an element with the same key already exists in the metadata dictionary, it will be overwritten
         Args:
-            component (RigComponentBase, List[RigComponentBase]): New component element to be added to this project.
+            module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to this project.
         """
-        if component and isinstance(component, ModuleGeneric):
-            component = [component]
-        if component and isinstance(component, list):
-            for obj in component:
+        if module and isinstance(module, ModuleGeneric):
+            module = [module]
+        if module and isinstance(module, list):
+            for obj in module:
                 if isinstance(obj, ModuleGeneric):
-                    self.components.append(obj)
+                    self.modules.append(obj)
                 else:
                     logger.debug(f'Unable to add "{str(obj)}". Incompatible type.')
             return
-        logger.debug(f'Unable to add provided component to rig project. '
-                     f'Must be of the type "RigComponentBase" or a list containing only RigComponentBase elements.')
+        logger.debug(f'Unable to add provided module to rig project. '
+                     f'Must be of the type "ModuleGeneric" or a list containing only ModuleGeneric elements.')
 
     def set_metadata_dict(self, metadata):
         """
@@ -879,13 +938,13 @@ class RigProject:
         """
         return self.prefix
 
-    def get_components(self):
+    def get_modules(self):
         """
-        Gets the components of this rig project.
+        Gets the modules of this rig project.
         Returns:
-            list: A list of RigComponentBase of the rig component.
+            list: A list of modules found in this project
         """
-        return self.components
+        return self.modules
 
     def get_metadata(self):
         """
@@ -901,16 +960,16 @@ class RigProject:
         Returns:
             dict: Dictionary describing this project.
         """
-        project_components = {}
-        for component in self.components:
-            project_components.update(component.get_component_as_dict())
+        project_modules = {}
+        for component in self.modules:
+            project_modules.update(component.get_module_as_dict())
 
         project_data = {}
         if self.name:
             project_data["name"] = self.name
         if self.prefix:
             project_data["prefix"] = self.prefix
-        project_data["modules"] = project_components
+        project_data["modules"] = project_modules
         if self.metadata:
             project_data["metadata"] = self.metadata
 
@@ -921,19 +980,19 @@ class RigProject:
         """
         Checks if the rig project is valid (can be used)
         """
-        if not self.components:
+        if not self.modules:
             logger.warning('Missing components. A rig project needs at least one component to function.')
             return False
         return True
 
     def build_proxy(self):
         # Build Proxy
-        for component in self.components:
-            component.build_proxy()
+        for module in self.modules:
+            module.build_proxy()
 
         # Parent Proxy
-        for component in self.components:
-            parent_proxies(component.get_proxies())
+        for module in self.modules:
+            parent_proxies(module.get_proxies())
 
 
 if __name__ == "__main__":
@@ -941,7 +1000,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     a_leg = ModuleBipedLeg()
-    a_component = ModuleGeneric()
+    a_module = ModuleGeneric()
 
     a_hip = Proxy()
     a_hip.set_position(y=5.5)
@@ -957,18 +1016,23 @@ if __name__ == "__main__":
     a_knee.set_locator_scale(scale=0.5)
     a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
 
-    a_component.add_to_proxies([a_hip, a_knee])
+    a_module.add_to_proxies([a_hip, a_knee])
 
-    cmds.file(new=True, force=True)
-    a_project = RigProject()
-    a_project.add_to_components(a_component)
-    a_project.add_to_components(a_leg)
-    a_project.build_proxy()
-    import json
-    # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
-    json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
-    print(json_string)
-    from gt.utils.data_utils import write_json
-    a_path = r"C:\Users\guilherme.trevisan\Desktop\out.json"
-    write_json(path=a_path, data=a_project.get_project_as_dict())
+    module_dict = a_module.get_module_as_dict()
+    print(module_dict)
+    # cmds.file(new=True, force=True)
+    # another_module = ModuleGeneric()
+    # another_module.read_data_from_dict(module_dict)
+    # another_module.build_proxy()
+    # a_project = RigProject()
+    # a_project.add_to_components(a_component)
+    # a_project.add_to_components(a_leg)
+    # a_project.build_proxy()
+    # import json
+    # # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
+    # json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
+    # print(json_string)
+    # from gt.utils.data_utils import write_json
+    # a_path = r"C:\Users\guilherme.trevisan\Desktop\out.json"
+    # write_json(path=a_path, data=a_project.get_project_as_dict())
     # create_root_curve("main")
