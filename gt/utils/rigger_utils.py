@@ -13,11 +13,13 @@ from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.string_utils import remove_prefix
 from gt.utils.transform_utils import Transform
 from gt.utils.hierarchy_utils import parent
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -35,19 +37,6 @@ class RiggerConstants:
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
-
-
-def parent_proxies(proxy_list):
-    # Parent Joints
-    for proxy in proxy_list:
-        built_proxy = find_object_with_uuid(proxy.get_uuid(), RiggerConstants.PROXY_ATTR_UUID)
-        parent_proxy = find_object_with_uuid(proxy.get_parent_uuid(), RiggerConstants.PROXY_ATTR_UUID)
-        print(f'built_proxy: {built_proxy}')
-        print(f'parent_proxy: {parent_proxy}')
-        if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
-            offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
-            if offset:
-                parent(source_objects=offset, target_parent=parent_proxy)
 
 
 @dataclass
@@ -537,6 +526,8 @@ class Proxy:
     def get_proxy_as_dict(self, include_uuid=False):
         """
         Returns all necessary information to recreate this proxy as a dictionary
+        Args:
+            include_uuid (bool, optional): If True, it will also include an "uuid" key and value in the dictionary.
         Returns:
             dict: Proxy data as a dictionary
         """
@@ -681,14 +672,33 @@ class ModuleGeneric:
         else:
             logger.warning(error_message)
 
-    def _read_proxies_from_dict(self, proxy_dict):
-        print(proxy_dict)
+    def read_proxies_from_dict(self, proxy_dict):
+        """
+        Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
+        Args:
+            proxy_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
+                               Acceptable pattern: {"uuid_str": {<description>}}
+                               "uuid_str" being the actual uuid string value of the proxy.
+                               "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+        """
+        if not proxy_dict or not isinstance(proxy_dict, dict):
+            logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
+            return
+
+        self.proxies = []
+        for uuid, description in proxy_dict.items():
+            _proxy = Proxy()
+            _proxy.set_uuid(uuid)
+            _proxy.read_data_from_dict(proxy_dict=description)
+            self.proxies.append(_proxy)
 
     def read_data_from_dict(self, module_dict):
         """
-        Reads the data from a component dictionary and updates the values of this component to match it.
+        Reads the data from a module dictionary and updates the values of this module to match it.
         Args:
-            module_dict (dict): A dictionary describing the component data. e.g. {"name": "generic"}
+            module_dict (dict): A dictionary describing the module data. e.g. {"name": "generic"}
+        Returns:
+            ModuleGeneric: This module (self)
         """
         if module_dict and not isinstance(module_dict, dict):
             logger.debug(f'Unable o read data from dict. Input must be a dictionary.')
@@ -707,13 +717,13 @@ class ModuleGeneric:
             self.set_parent_uuid(uuid=_parent)
 
         _proxies = module_dict.get('proxies')
-        print(_proxies)
         if _proxies and isinstance(_proxies, dict):
-            self._read_proxies_from_dict(proxy_dict=_proxies)
+            self.read_proxies_from_dict(proxy_dict=_proxies)
 
         metadata = module_dict.get('metadata')
         if metadata:
             self.set_metadata_dict(metadata=metadata)
+        return self
 
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
@@ -768,12 +778,25 @@ class ModuleGeneric:
             module_data["metadata"] = self.metadata
         module_proxies = {}
         for proxy in self.proxies:
-            module_proxies.update(proxy.get_proxy_as_dict())
+            module_proxies[proxy.get_uuid()] = proxy.get_proxy_as_dict()
         module_data["proxies"] = module_proxies
         if include_module_name:
-            module_name = str(self.__class__.__name__)
+            module_name = self.get_module_class_name()
             module_data["module"] = module_name
         return module_data
+
+    def get_module_class_name(self, remove_module_prefix=False):
+        """
+        Gets the name of this class
+        Args:
+            remove_module_prefix (bool, optional): If True, it will remove the prefix word "Module" from class name.
+                                                   Used to reduce the size of the string in JSON outputs.
+        Returns:
+            str: Class name as a string
+        """
+        if remove_module_prefix:
+            return remove_prefix(input_string=str(self.__class__.__name__), prefix="Module")
+        return str(self.__class__.__name__)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -788,14 +811,6 @@ class ModuleGeneric:
     def build_proxy(self):
         for proxy in self.proxies:
             proxy.build()
-
-
-def create_root_curve(name):
-    root_curve = get_curve('_rig_root')
-    root_curve.set_name(name=name)
-    root_crv = root_curve.build()
-    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
-    cmds.parent(root_crv, root_grp)
 
 
 class ModuleBipedLeg(ModuleGeneric):
@@ -921,6 +936,64 @@ class RigProject:
             self.metadata = {}
         self.metadata[key] = value
 
+    def read_modules_from_dict(self, modules_dict):
+        """
+        Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
+        Args:
+            modules_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
+                                 Acceptable pattern: {"uuid_str": {<description>}}
+                                 "uuid_str" being the actual uuid string value of the proxy.
+                                 "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+        """
+        if not modules_dict or not isinstance(modules_dict, dict):
+            logger.debug(f'Unable to read modules from dictionary. Input must be a dictionary.')
+            return
+
+        self.modules = []
+        available_modules = vars(RigModules)
+        for class_name, description in modules_dict.items():
+            if not class_name.startswith("Module"):
+                class_name = f'Module{class_name}'
+            if class_name in available_modules:
+                _module = available_modules.get(class_name)()
+            else:
+                _module = ModuleGeneric()
+            _module.read_data_from_dict(module_dict=description)
+            self.modules.append(_module)
+
+    def read_data_from_dict(self, module_dict):
+        """
+        Reads the data from a project dictionary and updates the values of this project to match it.
+        Args:
+            module_dict (dict): A dictionary describing the project data. e.g. {"name": "untitled", "modules": ...}
+        Returns:
+            RigProject: This project (self)
+        """
+
+        self.modules = []
+        self.metadata = None
+
+        if module_dict and not isinstance(module_dict, dict):
+            logger.debug(f'Unable o read data from dict. Input must be a dictionary.')
+            return
+
+        _name = module_dict.get('name')
+        if _name:
+            self.set_name(name=_name)
+
+        _prefix = module_dict.get('prefix')
+        if _prefix:
+            self.set_prefix(prefix=_prefix)
+
+        _modules = module_dict.get('modules')
+        if _modules and isinstance(_modules, dict):
+            self.read_modules_from_dict(modules_dict=_modules)
+
+        metadata = module_dict.get('metadata')
+        if metadata:
+            self.set_metadata_dict(metadata=metadata)
+        return self
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
@@ -956,13 +1029,14 @@ class RigProject:
 
     def get_project_as_dict(self):
         """
-        Gets the description for this project (including components and its proxies) as a dictionary.
+        Gets the description for this project (including modules and its proxies) as a dictionary.
         Returns:
             dict: Dictionary describing this project.
         """
         project_modules = {}
-        for component in self.modules:
-            project_modules.update(component.get_module_as_dict())
+        for module in self.modules:
+            module_class_name = module.get_module_class_name(remove_module_prefix=True)
+            project_modules[module_class_name] = module.get_module_as_dict()
 
         project_data = {}
         if self.name:
@@ -981,7 +1055,7 @@ class RigProject:
         Checks if the rig project is valid (can be used)
         """
         if not self.modules:
-            logger.warning('Missing components. A rig project needs at least one component to function.')
+            logger.warning('Missing modules. A rig project needs at least one module to function.')
             return False
         return True
 
@@ -993,6 +1067,33 @@ class RigProject:
         # Parent Proxy
         for module in self.modules:
             parent_proxies(module.get_proxies())
+
+
+class RigModules:
+    import gt.utils
+    ModuleGeneric = gt.utils.rigger_utils.ModuleGeneric
+    ModuleBipedLeg = gt.utils.rigger_utils.ModuleBipedLeg
+
+
+def parent_proxies(proxy_list):
+    # Parent Joints
+    for proxy in proxy_list:
+        built_proxy = find_object_with_uuid(proxy.get_uuid(), RiggerConstants.PROXY_ATTR_UUID)
+        parent_proxy = find_object_with_uuid(proxy.get_parent_uuid(), RiggerConstants.PROXY_ATTR_UUID)
+        print(f'built_proxy: {built_proxy}')
+        print(f'parent_proxy: {parent_proxy}')
+        if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
+            offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
+            if offset:
+                parent(source_objects=offset, target_parent=parent_proxy)
+
+
+def create_root_curve(name):
+    root_curve = get_curve('_rig_root')
+    root_curve.set_name(name=name)
+    root_crv = root_curve.build()
+    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
+    cmds.parent(root_crv, root_grp)
 
 
 if __name__ == "__main__":
@@ -1018,16 +1119,20 @@ if __name__ == "__main__":
 
     a_module.add_to_proxies([a_hip, a_knee])
 
-    module_dict = a_module.get_module_as_dict()
-    print(module_dict)
-    # cmds.file(new=True, force=True)
-    # another_module = ModuleGeneric()
-    # another_module.read_data_from_dict(module_dict)
-    # another_module.build_proxy()
-    # a_project = RigProject()
-    # a_project.add_to_components(a_component)
-    # a_project.add_to_components(a_leg)
-    # a_project.build_proxy()
+    a_module_dict = a_module.get_module_as_dict()
+
+    cmds.file(new=True, force=True)
+
+    a_project = RigProject()
+    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_leg)
+    a_project.build_proxy()
+    a_project_dict = a_project.get_project_as_dict()
+    cmds.file(new=True, force=True)
+
+    another_project = RigProject()
+    another_project.read_data_from_dict(a_project_dict)
+    another_project.build_proxy()
     # import json
     # # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
     # json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
