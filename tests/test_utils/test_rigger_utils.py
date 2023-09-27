@@ -9,7 +9,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Tested Utility and Maya Test Tools
+# Import Utility and Maya Test Tools
 test_utils_dir = os.path.dirname(__file__)
 tests_dir = os.path.dirname(test_utils_dir)
 package_root_dir = os.path.dirname(tests_dir)
@@ -17,26 +17,28 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from gt.utils.transform_utils import Transform
-from gt.utils.proxy_utils import Proxy
+from gt.utils.rigger_utils import Proxy
 from tests import maya_test_tools
-from gt.utils import proxy_utils
+from gt.utils import rigger_utils
 
 
 class TestProxyUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
         self.proxy = Proxy()
-        self.proxy_data = proxy_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"))
+        self.proxy.uuid = "123e4567-e89b-12d3-a456-426655440000"
+        self.proxy_data = rigger_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"),
+                                                 uuid="123e4567-e89b-12d3-a456-426655440000")
 
     @classmethod
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_proxy_constants(self):
-        attributes = vars(proxy_utils.ProxyConstants)
+        attributes = vars(rigger_utils.RiggerConstants)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for key in keys:
-            constant = getattr(proxy_utils.ProxyConstants, key)
+            constant = getattr(rigger_utils.RiggerConstants, key)
             if not constant:
                 raise Exception(f'Missing proxy constant data: {key}')
             if not isinstance(constant, str):
@@ -69,12 +71,12 @@ class TestProxyUtils(unittest.TestCase):
 
     def test_proxy_default(self):
         result = self.proxy.build()
-        self.assertTrue(self.proxy.is_proxy_valid())
+        self.assertTrue(self.proxy.is_valid())
         expected = "|proxy_offset|proxy"
         self.assertEqual(expected, str(result))
         expected = "proxy"
         self.assertEqual(expected, result.get_short_name())
-        self.assertTrue(isinstance(result, proxy_utils.ProxyData))
+        self.assertTrue(isinstance(result, rigger_utils.ProxyData))
         expected = "|proxy_offset"
         self.assertEqual(expected, result.offset)
         expected = ("proxy_LocScaleHandle",)
@@ -102,7 +104,7 @@ class TestProxyUtils(unittest.TestCase):
         self.assertEqual(expected_uuid, proxy.uuid)
         self.assertEqual(expected_uuid, proxy.parent_uuid)
         self.assertEqual(expected_metadata, proxy.metadata)
-        self.assertTrue(proxy.is_proxy_valid())
+        self.assertTrue(proxy.is_valid())
 
     def test_proxy_build(self):
         result = self.proxy.build()
@@ -110,16 +112,16 @@ class TestProxyUtils(unittest.TestCase):
         expected_short_name = "proxy"
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
-        self.assertTrue(isinstance(result, proxy_utils.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.ProxyConstants.SEPARATOR_ATTR}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.ProxyConstants.PROXY_ATTR_UUID}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{proxy_utils.ProxyConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(isinstance(result, rigger_utils.ProxyData))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.SEPARATOR_ATTR}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_utils.RiggerConstants.PROXY_ATTR_UUID}'))
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
         proxy = Proxy(curve=Curves.circle)
         result = proxy.build()
-        self.assertTrue(proxy.is_proxy_valid())
+        self.assertTrue(proxy.is_valid())
         expected = "proxy"
         self.assertEqual(expected, result.get_short_name())
 
@@ -127,6 +129,18 @@ class TestProxyUtils(unittest.TestCase):
         result = self.proxy.get_name()
         expected = "proxy"
         self.assertEqual(expected, result)
+
+    def test_proxy_get_uuid_default(self):
+        expected_uuid = "123e4567-e89b-12d3-a456-426655440000"
+        proxy = Proxy(uuid=expected_uuid)
+        result = proxy.get_uuid()
+        self.assertEqual(expected_uuid, result)
+
+    def test_proxy_get_parent_uuid_default(self):
+        expected_parent_uuid = "123e4567-e89b-12d3-a456-426655440002"
+        proxy = Proxy(parent_uuid=expected_parent_uuid)
+        result = proxy.get_parent_uuid()
+        self.assertEqual(expected_parent_uuid, result)
 
     def test_proxy_set_name(self):
         self.proxy.set_name("description")
@@ -208,6 +222,12 @@ class TestProxyUtils(unittest.TestCase):
         expected = 2
         self.assertEqual(expected, result)
 
+    def test_proxy_set_attr_dict(self):
+        expected = {"attrName": 2}
+        self.proxy.set_attr_dict(expected)
+        result = self.proxy.attr_dict
+        self.assertEqual(expected, result)
+
     def test_proxy_metadata_default(self):
         result = self.proxy.metadata
         expected = None
@@ -254,6 +274,12 @@ class TestProxyUtils(unittest.TestCase):
         self.proxy.set_parent_uuid(valid_uuid)
         result = self.proxy.parent_uuid
         self.assertEqual(valid_uuid, result)
+
+    def test_proxy_set_parent_uuid_from_proxy(self):
+        mocked_proxy = Proxy()
+        self.proxy.set_parent_uuid_from_proxy(mocked_proxy)
+        result = self.proxy.parent_uuid
+        self.assertEqual(mocked_proxy.uuid, result)
 
     def test_proxy_get_metadata(self):
         mocked_dict = {"metadata_key": "metadata_value"}

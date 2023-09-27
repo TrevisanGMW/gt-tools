@@ -73,8 +73,9 @@ def get_long_name(short_name):
     try:
         long_name = cmds.ls(short_name, long=True)[0]
         return long_name
-    except IndexError:
-        return None
+    except (IndexError, RuntimeError) as e:
+        logger.debug(f'Unable to retrieve long name. Issue: {str(e)}')
+    return None
 
 
 def get_short_name(long_name, remove_namespace=False):
@@ -98,3 +99,7 @@ def get_short_name(long_name, remove_namespace=False):
     if remove_namespace:
         output_short_name = output_short_name.split(":")[-1]
     return output_short_name
+
+
+if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)

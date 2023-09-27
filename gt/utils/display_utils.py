@@ -4,30 +4,41 @@ This script should not import "maya.cmds" as it's also intended to be used outsi
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import FeedbackMessage
+from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
 import sys
 
 # Logging Setup
-from gt.utils.naming_utils import get_short_name
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def toggle_uniform_lra():
+def toggle_uniform_lra(obj_list=None, verbose=True):
     """
-    Makes the visibility of the Local Rotation Axis uniform among
-    the selected objects according to the current state of the majority of them.
+    Makes the visibility of the Local Rotation Axis uniform  according to the current state of the majority of them.
+
+    Args:
+        obj_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the LRA visibility (toggle target) or None if operation failed.
     """
     function_name = 'Uniform LRA Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    lra_state_result = None
     try:
         errors = ''
-        selection = cmds.ls(selection=True, long=True) or []
-        if not selection:
+        _target_list = None
+        if obj_list and isinstance(obj_list, list):
+            _target_list = obj_list
+        if obj_list and isinstance(obj_list, str):
+            _target_list = [obj_list]
+        if not _target_list:
+            _target_list = cmds.ls(selection=True, long=True) or []
+        if not _target_list:
             cmds.warning('Select at least one object and try again.')
             return
 
@@ -35,7 +46,7 @@ def toggle_uniform_lra():
         active_lra = []
         operation_result = 'off'
 
-        for obj in selection:
+        for obj in _target_list:
             try:
                 current_lra_state = cmds.getAttr(obj + '.displayLocalAxis')
                 if current_lra_state:
@@ -50,12 +61,14 @@ def toggle_uniform_lra():
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
                     operation_result = 'on'
+                    lra_state_result = True
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_lra) == 0:
             for obj in active_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
+                    lra_state_result = False
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(active_lra) > len(inactive_lra):
@@ -63,23 +76,25 @@ def toggle_uniform_lra():
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 1)
                     operation_result = 'on'
+                    lra_state_result = True
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
             for obj in active_lra:
                 try:
                     cmds.setAttr(obj + '.displayLocalAxis', 0)
+                    lra_state_result = False
                 except Exception as e:
                     errors += str(e) + '\n'
+        if verbose:
+            feedback = FeedbackMessage(intro='LRA Visibility set to:',
+                                       conclusion=str(operation_result),
+                                       style_conclusion='color:#FF0000;text-decoration:underline;',
+                                       zero_overwrite_message='No user defined attributes were deleted.')
+            feedback.print_inview_message(system_write=False)
+            sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
 
-        feedback = FeedbackMessage(intro='LRA Visibility set to:',
-                                   conclusion=str(operation_result),
-                                   style_conclusion='color:#FF0000;text-decoration:underline;',
-                                   zero_overwrite_message='No user defined attributes were deleted.')
-        feedback.print_inview_message(system_write=False)
-        sys.stdout.write('\n' + 'Local Rotation Axes Visibility set to: "' + operation_result + '"')
-
-        if errors != '':
+        if errors != '' and verbose:
             print('#### Errors: ####')
             print(errors)
             cmds.warning("The script couldn't read or write some LRA states. Open script editor for more info.")
@@ -87,24 +102,37 @@ def toggle_uniform_lra():
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    return lra_state_result
 
 
-def toggle_uniform_jnt_label():
+def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
     """
     Makes the visibility of the Joint Labels uniform according to the current state of the majority of them.
+    Args:
+        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the label visibility (toggle target) or None if operation failed.
     """
 
     function_name = 'Uniform Joint Label Toggle'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    label_state = None
     try:
         errors = ''
-        joints = cmds.ls(type='joint', long=True)
+        _joints = None
+        if jnt_list and isinstance(jnt_list, list):
+            _joints = jnt_list
+        if jnt_list and isinstance(jnt_list, str):
+            _joints = [jnt_list]
+        if not _joints:
+            _joints = cmds.ls(type='joint', long=True) or []
 
         inactive_label = []
         active_label = []
         operation_result = 'off'
 
-        for obj in joints:
+        for obj in _joints:
             try:
                 current_label_state = cmds.getAttr(obj + '.drawLabel')
                 if current_label_state:
@@ -119,12 +147,14 @@ def toggle_uniform_jnt_label():
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
                     operation_result = 'on'
+                    label_state = True
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(inactive_label) == 0:
             for obj in active_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 0)
+                    label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(active_label) > len(inactive_label):
@@ -132,25 +162,27 @@ def toggle_uniform_jnt_label():
                 try:
                     cmds.setAttr(obj + '.drawLabel', 1)
                     operation_result = 'on'
+                    label_state = True
                 except Exception as e:
                     errors += str(e) + '\n'
         else:
             for obj in active_label:
                 try:
                     cmds.setAttr(obj + '.drawLabel', 0)
+                    label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
+        if verbose:
+            feedback = FeedbackMessage(quantity=len(_joints),
+                                       skip_quantity_print=True,
+                                       intro='Joint Label Visibility set to:',
+                                       conclusion=str(operation_result),
+                                       style_conclusion="color:#FF0000;text-decoration:underline;",
+                                       zero_overwrite_message='No joints found in this scene.')
+            feedback.print_inview_message(system_write=False)
+            sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
 
-        feedback = FeedbackMessage(quantity=len(joints),
-                                   skip_quantity_print=True,
-                                   intro='Joint Label Visibility set to:',
-                                   conclusion=str(operation_result),
-                                   style_conclusion="color:#FF0000;text-decoration:underline;",
-                                   zero_overwrite_message='No joints found in this scene.')
-        feedback.print_inview_message(system_write=False)
-        sys.stdout.write('\n' + 'Joint Label Visibility set to: "' + operation_result + '"')
-
-        if errors != '':
+        if errors != '' and verbose:
             print('#### Errors: ####')
             print(errors)
             cmds.warning("The script couldn't read or write some \"drawLabel\" states. "
@@ -159,10 +191,17 @@ def toggle_uniform_jnt_label():
         logger.debug(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    return label_state
 
 
-def toggle_full_hud():
-    """ Toggles common HUD options so all the common ones are either active or inactive  """
+def toggle_full_hud(verbose=True):
+    """
+    Toggles common HUD options so all the common ones are either active or inactive
+    Args:
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        bool or None: Current status of the hud visibility (toggle target) or None if operation failed.
+    """
     hud_current_state = {}
 
     # 1 - Animation Details
@@ -287,35 +326,47 @@ def toggle_full_hud():
         mel.eval('setViewportRendererVisibility(false)')
         mel.eval('catchQuiet(setXGenHUDVisibility(false));')
     # Default states are preserved: camera names, caps lock, symmetry, view axis, in-view messages and in-view editor
-    print("?")
     # Give feedback
     operation_result = 'off'
     if toggle:
         operation_result = 'on'
-    feedback = FeedbackMessage(intro='Hud Visibility set to:',
-                               conclusion=str(operation_result),
-                               style_conclusion='color:#FF0000;text-decoration:underline;',
-                               zero_overwrite_message='No user defined attributes were deleted.')
-    feedback.print_inview_message(system_write=False)
-    sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
+    if verbose:
+        feedback = FeedbackMessage(intro='Hud Visibility set to:',
+                                   conclusion=str(operation_result),
+                                   style_conclusion='color:#FF0000;text-decoration:underline;',
+                                   zero_overwrite_message='No user defined attributes were deleted.')
+        feedback.print_inview_message(system_write=False)
+        sys.stdout.write('\n' + 'Hud Visibility set to: "' + operation_result + '"')
+    return toggle
 
 
-def set_joint_name_as_label():
+def set_joint_name_as_label(jnt_list=None, verbose=True):
     """
-    Transfer the selected joint name to
+    Transfer the name of the joint to its label.
+    Args:
+        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected joints.
     """
+    _joints = None
+    if jnt_list and isinstance(jnt_list, list):
+        _joints = jnt_list
+    if jnt_list and isinstance(jnt_list, str):
+        _joints = [jnt_list]
+    if not _joints:
+        _joints = cmds.ls(selection=True, typ="joint") or []
 
-    selection_joints = cmds.ls(selection=True, typ="joint") or []
-
-    if not selection_joints:
-        cmds.warning("No joints found in selection. Select joints and try again.")
+    if not _joints:
+        if verbose:
+            cmds.warning("No joints found in selection. Select joints and try again.")
         return
 
-    function_name = 'GTU Set Joint Name as Label'
+    function_name = 'Set Joint Name as Label'
     counter = 0
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
-        for joint in selection_joints:
+        for joint in _joints:
             short_name = get_short_name(joint)
             cmds.setAttr(joint + '.side', 0)  # Center (No Extra String)
             cmds.setAttr(joint + '.type', 18)  # Other
@@ -325,47 +376,71 @@ def set_joint_name_as_label():
         cmds.warning(str(e))
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if verbose:
+        feedback = FeedbackMessage(quantity=counter,
+                                   singular='label was',
+                                   plural='labels were',
+                                   conclusion='updated.',
+                                   zero_overwrite_message='No labels were updated.')
+        feedback.print_inview_message()
+    return counter
 
-    feedback = FeedbackMessage(quantity=counter,
-                               singular='label was',
-                               plural='labels were',
-                               conclusion='updated.',
-                               zero_overwrite_message='No labels were updated.')
-    feedback.print_inview_message()
 
-
-def generate_udim_previews():
-    """ Generates UDIM previews for all file nodes """
+def generate_udim_previews(verbose=True):
+    """
+    Generates UDIM previews for all file nodes
+    Args:
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected file nodes.
+    """
     errors = ''
+    counter = 0
     all_file_nodes = cmds.ls(type='file')
     for file_node in all_file_nodes:
         try:
             mel.eval('generateUvTilePreview ' + file_node + ';')
+            counter += 1
         except Exception as e:
             errors += str(e) + '\n'
 
-    if errors:
+    if errors and verbose:
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
-    feedback = FeedbackMessage(prefix='Previews generated for all',
-                               intro='UDIM',
-                               style_intro='color:#FF0000;text-decoration:underline;',
-                               conclusion='file nodes.')
-    feedback.print_inview_message()
+    if verbose:
+        feedback = FeedbackMessage(prefix='Previews generated for all',
+                                   intro='UDIM',
+                                   style_intro='color:#FF0000;text-decoration:underline;',
+                                   conclusion='file nodes.')
+        feedback.print_inview_message()
+    return counter
 
 
-def reset_joint_display():
+def reset_joint_display(jnt_list=None, verbose=True):
     """
-    Resets the radius and drawStyle attributes for all joints,
+    Resets the radius and drawStyle attributes for provided joints. (or all joints)
     then changes the global multiplier (jointDisplayScale) back to one
+
+    Args:
+        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected joints.
     """
     errors = ''
     target_radius = 1
     counter = 0
-    all_joints = cmds.ls(type='joint', long=True)
-    all_joints_short = cmds.ls(type='joint')
-    for obj in all_joints:
+
+    _joints = None
+    if jnt_list and isinstance(jnt_list, list):
+        _joints = jnt_list
+    if jnt_list and isinstance(jnt_list, str):
+        _joints = [jnt_list]
+    if not _joints:
+        _joints = cmds.ls(type='joint', long=True) or []
+    # Update joints
+    for obj in _joints:
         try:
             if cmds.objExists(obj):
                 if cmds.getAttr(obj + ".radius", lock=True) is False:
@@ -381,49 +456,68 @@ def reset_joint_display():
             logger.debug(str(exception))
             errors += str(exception) + '\n'
     cmds.jointDisplayScale(target_radius)
-
-    feedback = FeedbackMessage(quantity=counter,
-                               singular='joint had its',
-                               plural='joints had their',
-                               conclusion='display reset.',
-                               zero_overwrite_message='No joints found in this scene.')
-    feedback.print_inview_message(system_write=False)
-    feedback.conclusion = '"radius", "drawStyle" and "visibility" attributes reset.'
-    sys.stdout.write(f'\n{feedback.get_string_message()}')
-
-    if errors:
+    # Give feedback
+    if verbose:
+        feedback = FeedbackMessage(quantity=counter,
+                                   singular='joint had its',
+                                   plural='joints had their',
+                                   conclusion='display reset.',
+                                   zero_overwrite_message='No joints found in this scene.')
+        feedback.print_inview_message(system_write=False)
+        feedback.conclusion = '"radius", "drawStyle" and "visibility" attributes reset.'
+        sys.stdout.write(f'\n{feedback.get_string_message()}')
+    # Print errors
+    if errors and verbose:
         print(('#' * 50) + '\n')
         print(errors)
         print('#' * 50)
         cmds.warning('A few joints were not fully reset. Open script editor for more details.')
+    return counter
 
 
-def delete_display_layers():
-    """ Deletes all display layers """
+def delete_display_layers(layer_list=None, verbose=True):
+    """
+    Deletes provided (or all) display layers
+
+    Args:
+        layer_list (list, str): A list with the name of the layers it should affect. (Strings are converted into list)
+        verbose (bool, optional): If True, it will return feedback about the operation.
+    Returns:
+        int: Number of affected joints.
+    """
     function_name = 'Delete All Display Layers'
     cmds.undoInfo(openChunk=True, chunkName=function_name)
+    deleted_counter = 0
     try:
-        display_layers = cmds.ls(type='displayLayer')
-        deleted_counter = 0
-        for layer in display_layers:
+        _layers = None
+        if layer_list and isinstance(layer_list, list):
+            _layers = layer_list
+        if layer_list and isinstance(layer_list, str):
+            _layers = [layer_list]
+        if not _layers:
+            _layers = cmds.ls(type='displayLayer', long=True) or []
+        for layer in _layers:
             if layer != 'defaultLayer':
                 cmds.delete(layer)
                 deleted_counter += 1
-        feedback = FeedbackMessage(quantity=deleted_counter,
-                                   singular='layer was',
-                                   plural='layers were',
-                                   conclusion='deleted.',
-                                   zero_overwrite_message='No display layers found in this scene.')
-        feedback.print_inview_message()
+        if verbose:
+            feedback = FeedbackMessage(quantity=deleted_counter,
+                                       singular='layer was',
+                                       plural='layers were',
+                                       conclusion='deleted.',
+                                       zero_overwrite_message='No display layers found in this scene.')
+            feedback.print_inview_message()
 
     except Exception as e:
-        cmds.warning(str(e))
+        message = f'Error while deleting display layers: {str(e)}'
+        if verbose:
+            cmds.warning(message)
+        else:
+            logger.debug(message)
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    return deleted_counter
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)

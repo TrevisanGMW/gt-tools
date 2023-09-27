@@ -1,5 +1,5 @@
 """
-Parametric Mesh Creation Scripts (Meshes with Logic or extra components)
+Parametric Mesh Creation functions for Scale and Volume meshes (Meshes with Logic or extra components)
 """
 from gt.utils.iterable_utils import round_numbers_in_list
 from gt.utils.data.py_meshes.mesh_data import MeshData

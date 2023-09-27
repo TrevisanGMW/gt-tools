@@ -494,17 +494,19 @@ def get_multiple_attr(attribute_path=None, obj_list=None, attr_list=None, enum_a
     return attribute_values
 
 
-def get_trs_attr_as_list(obj):
+def get_trs_attr_as_list(obj, verbose=True):
     """
     Gets Translate, Rotation and Scale values as a list
     Args:
         obj (str): Name of the source object
+        verbose (bool, optional): If active, it will return a warning when the object is missing.
     Returns:
         list or None: A list with TRS values in order [TX, TY, TZ, RX, RY, RZ, SX, SY, SZ], None if missing object.
                      e.g. [0, 0, 0, 15, 15, 15, 1, 1, 1]
     """
     if not obj or not cmds.objExists(obj):
-        logger.warning(f'Unable to get TRS channels as list. Unable to find object "{obj}".')
+        if verbose:
+            logger.warning(f'Unable to get TRS channels as list. Unable to find object "{obj}".')
         return
     output = []
     for channel in DEFAULT_CHANNELS:  # TRS

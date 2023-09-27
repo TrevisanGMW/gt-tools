@@ -17,6 +17,7 @@ class ColorConstants:
         """
         Constant tuple RGB values used for element colors.
         """
+    CENTER = (1, 1, 0.65)
     LEFT = (0, 0.5, 1)
     RIGHT = (1, 0.5, 0.5)
 
@@ -61,7 +62,9 @@ def set_color_override_outliner(obj, rgb_color=(1, 1, 1)):
 
 
 def add_side_color_setup(obj, color_attr_name="autoColor",
-                         left_clr=ColorConstants.LEFT, right_clr=ColorConstants.RIGHT):
+                         clr_default=ColorConstants.CENTER,
+                         clr_left=ColorConstants.LEFT,
+                         clr_right=ColorConstants.RIGHT):
     """
     This function sets up a side color setup for the specified object in the Maya scene.
     It creates connections and attributes to control the color of the object based on its position in the scene.
@@ -69,8 +72,9 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
     Parameters:
         obj (str): The name of the object to set up the color for.
         color_attr_name (str, optional): Name of the attribute used to determine if auto color is active or not.
-        left_clr (tuple, optional): The RGB color values for the left side of the object. Default is (0, 0.5, 1).
-        right_clr (tuple, optional): The RGB color values for the right side of the object. Default is (1, 0.5, 0.5).
+        clr_default (tuple, optional): The RGB color for when the object is in the center or not automatically defined.
+        clr_left (tuple, optional): The RGB color for when on the left side. e.g. (0, 0.5, 1).
+        clr_right (tuple, optional): The RGB color for when on the right side. e.g.(1, 0.5, 0.5).
 
     Example:
         # Example usage in Maya Python script editor:
@@ -80,7 +84,6 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
         return
 
     # Setup Base Connections
-    default_clr = (1, 1, 0.65)
     cmds.setAttr(obj + ".overrideEnabled", 1)
     cmds.setAttr(obj + ".overrideRGBColors", 1)
     clr_side_condition = cmds.createNode("condition", name=obj + "_clr_side_condition")
@@ -103,26 +106,26 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
     # Setup Color Attributes
     clr_attr = "colorDefault"
     add_attr_double_three(obj, clr_attr, keyable=False)
-    cmds.setAttr(f'{obj}.{clr_attr}R', default_clr[0])
-    cmds.setAttr(f'{obj}.{clr_attr}G', default_clr[1])
-    cmds.setAttr(f'{obj}.{clr_attr}B', default_clr[2])
+    cmds.setAttr(f'{obj}.{clr_attr}R', clr_default[0])
+    cmds.setAttr(f'{obj}.{clr_attr}G', clr_default[1])
+    cmds.setAttr(f'{obj}.{clr_attr}B', clr_default[2])
     cmds.connectAttr(f'{obj}.{clr_attr}R', clr_center_condition + ".colorIfTrueR")
     cmds.connectAttr(f'{obj}.{clr_attr}G', clr_center_condition + ".colorIfTrueG")
     cmds.connectAttr(f'{obj}.{clr_attr}B', clr_center_condition + ".colorIfTrueB")
     cmds.connectAttr(f'{obj}.{clr_attr}', clr_auto_blend + ".color2")  # Blend node input
     r_clr_attr = "colorRight"
     add_attr_double_three(obj, r_clr_attr, keyable=False)
-    cmds.setAttr(obj + "." + r_clr_attr + "R", left_clr[0])
-    cmds.setAttr(obj + "." + r_clr_attr + "G", left_clr[1])
-    cmds.setAttr(obj + "." + r_clr_attr + "B", left_clr[2])
+    cmds.setAttr(obj + "." + r_clr_attr + "R", clr_left[0])
+    cmds.setAttr(obj + "." + r_clr_attr + "G", clr_left[1])
+    cmds.setAttr(obj + "." + r_clr_attr + "B", clr_left[2])
     cmds.connectAttr(obj + "." + r_clr_attr + "R", clr_side_condition + ".colorIfTrueR")
     cmds.connectAttr(obj + "." + r_clr_attr + "G", clr_side_condition + ".colorIfTrueG")
     cmds.connectAttr(obj + "." + r_clr_attr + "B", clr_side_condition + ".colorIfTrueB")
     l_clr_attr = "colorLeft"
     add_attr_double_three(obj, l_clr_attr, keyable=False)
-    cmds.setAttr(obj + "." + l_clr_attr + "R", right_clr[0])
-    cmds.setAttr(obj + "." + l_clr_attr + "G", right_clr[1])
-    cmds.setAttr(obj + "." + l_clr_attr + "B", right_clr[2])
+    cmds.setAttr(obj + "." + l_clr_attr + "R", clr_right[0])
+    cmds.setAttr(obj + "." + l_clr_attr + "G", clr_right[1])
+    cmds.setAttr(obj + "." + l_clr_attr + "B", clr_right[2])
     cmds.connectAttr(obj + "." + l_clr_attr + "R", clr_side_condition + ".colorIfFalseR")
     cmds.connectAttr(obj + "." + l_clr_attr + "G", clr_side_condition + ".colorIfFalseG")
     cmds.connectAttr(obj + "." + l_clr_attr + "B", clr_side_condition + ".colorIfFalseB")
@@ -130,7 +133,4 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)
-
+    add_side_color_setup("pSphere1")

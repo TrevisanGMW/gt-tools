@@ -8,7 +8,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import Tested Utility and Maya Test Tools
+# Import Utility and Maya Test Tools
 test_utils_dir = os.path.dirname(__file__)
 tests_dir = os.path.dirname(test_utils_dir)
 package_root_dir = os.path.dirname(tests_dir)
@@ -275,3 +275,10 @@ class TestMeshUtils(unittest.TestCase):
         for input_str in invalid_strings:
             with self.subTest(input_str=input_str):
                 self.assertFalse(mesh_utils.is_vertex_string(input_str), f"Expected {input_str} to be invalid")
+
+    def test_extract_components_from_face(self):
+        cube = maya_test_tools.create_poly_cube()
+        result = mesh_utils.extract_components_from_face(f'{cube}.f[0]')
+        expected = ("FaceComponents(vertices=['pCube1.vtx[0]', 'pCube1.vtx[1]', 'pCube1.vtx[2]', "
+                    "'pCube1.vtx[3]'], edges=['pCube1.e[0]', 'pCube1.e[1]', 'pCube1.e[4]', 'pCube1.e[5]'])")
+        self.assertEqual(expected, str(result))
