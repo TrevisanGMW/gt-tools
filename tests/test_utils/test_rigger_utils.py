@@ -222,6 +222,12 @@ class TestProxyUtils(unittest.TestCase):
         expected = 2
         self.assertEqual(expected, result)
 
+    def test_proxy_set_attr_dict(self):
+        expected = {"attrName": 2}
+        self.proxy.set_attr_dict(expected)
+        result = self.proxy.attr_dict
+        self.assertEqual(expected, result)
+
     def test_proxy_metadata_default(self):
         result = self.proxy.metadata
         expected = None
@@ -268,6 +274,12 @@ class TestProxyUtils(unittest.TestCase):
         self.proxy.set_parent_uuid(valid_uuid)
         result = self.proxy.parent_uuid
         self.assertEqual(valid_uuid, result)
+
+    def test_proxy_set_parent_uuid_from_proxy(self):
+        mocked_proxy = Proxy()
+        self.proxy.set_parent_uuid_from_proxy(mocked_proxy)
+        result = self.proxy.parent_uuid
+        self.assertEqual(mocked_proxy.uuid, result)
 
     def test_proxy_get_metadata(self):
         mocked_dict = {"metadata_key": "metadata_value"}
