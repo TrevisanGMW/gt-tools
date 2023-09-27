@@ -818,7 +818,6 @@ def create_object(class_name, raise_errors=True, class_path=None, *args, **kwarg
         AttributeError: If the specified class_name is not found in the module.
         NameError: If the specified class_name is not found in the global namespace.
     """
-    class_obj = None
     if class_path and isinstance(class_path, str):
         # Attempt to import the module dynamically
         try:
