@@ -2,8 +2,8 @@
 Mesh (Geometry) Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.data.py_meshes import scale_volume, scene_setup
 from gt.utils import system_utils, iterable_utils
-from gt.utils.data.py_meshes import scale_volume
 from gt.utils.data_utils import DataDirConstants
 from collections import namedtuple
 import maya.cmds as cmds
@@ -665,6 +665,7 @@ class ParametricMeshes:
     # Creatures/Bipeds
     scale_human_male = ParametricMesh(build_function=scale_volume.create_scale_human_male)
     scale_human_female = ParametricMesh(build_function=scale_volume.create_scale_human_female)
+    studio_background = ParametricMesh(build_function=scene_setup.create_studio_background)
 
 
 def print_code_for_obj_files(target_dir=None, ignore_private=True, use_output_window=False):
