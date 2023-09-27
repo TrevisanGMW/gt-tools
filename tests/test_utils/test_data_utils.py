@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import unittest
 import logging
 import json
@@ -320,3 +321,11 @@ class TestDataUtils(unittest.TestCase):
         data_utils.make_empty_file(temp_file)
         self.assertTrue(os.path.exists(temp_file))
         self.assertTrue(os.path.isfile(temp_file))
+
+    @patch('os.chmod')
+    @patch('os.unlink')
+    def test_on_rm_error(self, mock_chmod, mock_unlink):
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        data_utils.on_rm_error(func=None, file_path=test_temp_dir, exc_info=(None,))
+        mock_chmod.assert_called()
+        mock_unlink.assert_called()

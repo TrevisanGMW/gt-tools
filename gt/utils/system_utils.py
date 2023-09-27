@@ -797,6 +797,85 @@ def execute_python_code(code, import_cmds=False, use_maya_warning=False, verbose
         log_when_true(input_logger=_logger, input_string=str(e), do_log=verbose, level=log_level)
 
 
+def create_object(class_name, raise_errors=True, class_path=None, *args, **kwargs):
+    """
+    Creates an instance of a class based on the provided class name.
+
+    Args:
+        class_name (str): The name of the class to be instantiated.
+        raise_errors (bool, optional): Whether to raise errors or log warnings for exceptions. Default is True.
+        class_path (str, dict, optional): The module path where the class is located. Default is None.
+                                          A dictionary can also be provided, for example "locals()"
+        *args: Positional arguments to pass when creating the object.
+        **kwargs: Keyword arguments to pass when creating the object.
+
+    Returns:
+        object: An instance of the specified class.
+
+    Raises:
+        TypeError: If the specified class_name does not correspond to a valid class.
+        ImportError: If the specified module or class cannot be imported.
+        AttributeError: If the specified class_name is not found in the module.
+        NameError: If the specified class_name is not found in the global namespace.
+    """
+    if class_path and isinstance(class_path, str):
+        # Attempt to import the module dynamically
+        try:
+            module = importlib.import_module(class_path)
+        except ImportError as e:
+            message = f"Error importing module '{class_path}': {str(e)}"
+            if raise_errors:
+                raise ImportError(message)
+            else:
+                logger.warning(message)
+                return None
+
+        # Check if the class name exists in the imported module
+        if hasattr(module, class_name):
+            class_obj = getattr(module, class_name)
+        else:
+            message = f"{class_name} not found in module '{class_path}'."
+            if raise_errors:
+                raise AttributeError(message)
+            else:
+                logger.warning(message)
+                return None
+    elif class_name in globals():
+        # Get the class object using globals()
+        class_obj = globals()[class_name]
+    elif class_path and isinstance(class_path, dict) and class_name in class_path:
+        class_obj = class_path[class_name]
+    else:
+        message = (f'Unable to create object. A path  for "{class_name}" was not provided and it was not found in the '
+                   f'global namespace.')
+        if raise_errors:
+            raise NameError(message)
+        else:
+            logger.warning(message)
+            return None
+
+    # Check if the object is a class
+    if isinstance(class_obj, type):
+        try:
+            # Create an instance of the class with args and kwargs
+            obj = class_obj(*args, **kwargs)
+            return obj
+        except Exception as e:
+            message = f"Error creating an instance of '{class_name}': {str(e)}"
+            if raise_errors:
+                raise TypeError(message)
+            else:
+                logger.warning(message)
+                return None
+    else:
+        message = f"{class_name} is not a class."
+        if raise_errors:
+            raise TypeError(message)
+        else:
+            logger.warning(message)
+            return None
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None

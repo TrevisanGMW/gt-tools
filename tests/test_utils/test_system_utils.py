@@ -647,7 +647,9 @@ class TestSystemUtils(unittest.TestCase):
     def test_execution_error_without_raise(self):
         code = "result = 1 / 0"
         expected = None  # Exception caught, no error raised
+        logging.disable(logging.WARNING)
         result = system_utils.execute_python_code(code)
+        logging.disable(logging.NOTSET)
         self.assertEqual(expected, result)
 
     def test_execution_error_with_raise(self):
@@ -659,3 +661,30 @@ class TestSystemUtils(unittest.TestCase):
         code = "result = 1 / 0"
         with self.assertRaises(ZeroDivisionError):
             system_utils.execute_python_code(code, raise_errors=True, verbose=True)
+
+    def test_create_object_from_local_namespace(self):
+        class MyClass:
+            pass
+        obj = system_utils.create_object("MyClass", class_path=locals())
+        self.assertIsInstance(obj, MyClass)
+
+    def test_create_object_with_module_path(self):
+        # Test creating an object by specifying a module path
+        obj = system_utils.create_object("JSONDecoder", class_path="json")
+        import json
+        self.assertIsInstance(obj, json.JSONDecoder)
+
+    def test_create_object_with_invalid_module_path(self):
+        # Test creating an object with an invalid module path
+        with self.assertRaises(ImportError):
+            system_utils.create_object("MyClass", class_path="non_existent_module")
+
+    def test_create_object_with_missing_class_in_module(self):
+        # Test creating an object when the class is missing in the module
+        with self.assertRaises(NameError):
+            system_utils.create_object("NonExistentClass")
+
+    def test_create_object_with_warning(self):
+        logging.disable(logging.WARNING)
+        system_utils.create_object("NonExistentClass", raise_errors=False)
+        logging.disable(logging.NOTSET)

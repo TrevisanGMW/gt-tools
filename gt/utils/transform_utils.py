@@ -2,8 +2,8 @@
 Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.attr_utils import set_trs_attr, get_multiple_attr
 from gt.utils.feedback_utils import FeedbackMessage
-from gt.utils.attr_utils import set_trs_attr
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
@@ -254,6 +254,39 @@ class Vector3:
         else:
             raise ValueError("Input list must contain exactly 3 numeric values" + str(values))
 
+    def set_x(self, x):
+        """
+        Sets only the X value for this object.
+        Args:
+            x (int, float): An integer or float number to be used as new X value.
+        """
+        if x and not isinstance(x, (float, int)):
+            logger.debug(f'Unable to set X value. Input must be a float or integer.')
+            return
+        self.x = x
+
+    def set_y(self, y):
+        """
+        Sets only the X value for this object.
+        Args:
+            y (int, float): An integer or float number to be used as new X value.
+        """
+        if y and not isinstance(y, (float, int)):
+            logger.debug(f'Unable to set Y value. Input must be a float or integer.')
+            return
+        self.y = y
+
+    def set_z(self, z):
+        """
+        Sets only the X value for this object.
+        Args:
+            z (int, float): An integer or float number to be used as new X value.
+        """
+        if z and not isinstance(z, (float, int)):
+            logger.debug(f'Unable to set X value. Input must be a float or integer.')
+            return
+        self.z = z
+
 
 # ------------------------------------------------- Transform Start -----------------------------------------------
 class Transform:
@@ -389,6 +422,16 @@ class Transform:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.position = Vector3(x=x, y=y, z=z)
                 return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.position.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.position.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.position.set_z(z=z)
+                return
         logger.warning(f'Unable to set position. Invalid input.')
 
     def set_rotation(self, x=None, y=None, z=None, xyz=None):
@@ -411,6 +454,16 @@ class Transform:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.rotation = Vector3(x=x, y=y, z=z)
                 return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.rotation.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.rotation.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.rotation.set_z(z=z)
+                return
         logger.warning(f'Unable to set rotation. Invalid input.')
 
     def set_scale(self, x=None, y=None, z=None, xyz=None):
@@ -432,6 +485,16 @@ class Transform:
         if x is not None and y is not None and z is not None:
             if all(isinstance(val, (float, int)) for val in (x, y, z)):
                 self.scale = Vector3(x=x, y=y, z=z)
+                return
+        # Not all channels
+        if x is not None or y is not None or z is not None:
+            if any(isinstance(val, (float, int)) for val in (x, y, z)):
+                if x is not None and isinstance(x, (float, int)):
+                    self.scale.set_x(x=x)
+                if y is not None and isinstance(y, (float, int)):
+                    self.scale.set_y(y=y)
+                if z is not None and isinstance(z, (float, int)):
+                    self.scale.set_z(z=z)
                 return
         logger.warning(f'Unable to set scale. Invalid input.')
 
@@ -522,6 +585,64 @@ class Transform:
         """
         self.scale.set_from_tuple(scale_tuple)
 
+    def set_transform_from_object(self, obj_name, world_space=True):
+        """
+        Attempts to extract translation, rotation and scale data from the provided object.
+        Updates the transform object with these extracted values.
+        No changes in case object is missing or function fails to extract data.
+        Args:
+            obj_name (str): Name of the object to get the data from.
+            world_space (bool, optional): Space used to extract values. True uses world-space, False uses object-space.
+        Returns:
+            Transform: it returns itself (The updated transform object)
+        """
+        if obj_name and not cmds.objExists(obj_name):
+            logger.debug(f'Unable to extract transform data. Missing provided object: "{str(obj_name)}".')
+            return self
+
+        if world_space:
+            position = cmds.xform(obj_name, q=True, t=True, ws=True)
+            if position and len(position) == 3:
+                self.set_position(xyz=position)
+            rotation = cmds.xform(obj_name, q=True, ro=True, ws=True)
+            if rotation and len(rotation) == 3:
+                self.set_rotation(xyz=rotation)
+        else:
+            position = get_multiple_attr(obj_list=[obj_name], attr_list=['tx', 'ty', 'tz'], verbose=False)
+            if position and len(position) == 3:
+                self.set_position(xyz=list(position.values()))
+            rotation = get_multiple_attr(obj_list=[obj_name], attr_list=['rx', 'ry', 'rz'], verbose=False)
+            if rotation and len(rotation) == 3:
+                self.set_rotation(xyz=list(rotation.values()))
+        scale = get_multiple_attr(obj_list=[obj_name], attr_list=['sx', 'sy', 'sz'], verbose=False)
+        if scale and len(scale) == 3:
+            self.set_scale(xyz=list(scale.values()))
+
+        return self
+
+    def set_transform_from_dict(self, transform_dict):
+        """
+        Sets transform data from dictionary
+        Args:
+            transform_dict (dict): Dictionary with "position", "rotation", and "scale" keys.
+                                   Their values should be tuples with three floats or integers each.
+        """
+        if transform_dict and not isinstance(transform_dict, dict):
+            logger.debug(f'Unable to set transform from dictionary. '
+                         f'Invalid input, argument must be a dictionary.')
+            return
+        position = transform_dict.get('position')
+        rotation = transform_dict.get('rotation')
+        scale = transform_dict.get('scale')
+        for data in [position, rotation, scale]:
+            if not data or not isinstance(data, (tuple, list)) or len(data) != 3:
+                logger.debug(f'Unable to set transform from dictionary. '
+                             f'Provide position, rotation and scale keys with tuples as their values.')
+                return
+        self.set_position(xyz=position)
+        self.set_rotation(xyz=rotation)
+        self.set_scale(xyz=scale)
+
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
         if not target_object or not cmds.objExists(target_object):
             logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
@@ -541,6 +662,49 @@ class Transform:
             set_trs_attr(target_obj=target_object, value_tuple=position, translate=True)
             set_trs_attr(target_obj=target_object, value_tuple=rotation, rotate=True)
             set_trs_attr(target_obj=target_object, value_tuple=scale, scale=True)
+
+    def get_position(self, as_tuple=False):
+        """
+        Gets the transform position
+        Returns:
+            Vector3 or tuple: Position value stored in this transform
+        """
+        if as_tuple:
+            return self.position.get_as_tuple()
+        return self.position
+
+    def get_rotation(self, as_tuple=False):
+        """
+        Gets the transform rotation
+        Returns:
+            Vector3 or tuple: Rotation value stored in this transform
+        """
+        if as_tuple:
+            return self.rotation.get_as_tuple()
+        return self.rotation
+
+    def get_scale(self, as_tuple=False):
+        """
+        Gets the transform scale
+        Returns:
+            Vector3 or tuple: Scale value stored in this transform
+        """
+        if as_tuple:
+            return self.scale.get_as_tuple()
+        return self.scale
+
+    def get_transform_as_dict(self):
+        """
+        Gets the transform as a dictionary (used to serialize)
+        Returns:
+            dict: Dictionary with the transform data. Keys: "position", "rotation", "scale". Values: tuples (3 floats)
+        """
+        transform_dict = {"position": self.get_position(as_tuple=True),
+                          "rotation": self.get_rotation(as_tuple=True),
+                          "scale": self.get_scale(as_tuple=True),
+                          }
+        return transform_dict
+
 
 # -------------------------------------------------- Transform End ------------------------------------------------
 
