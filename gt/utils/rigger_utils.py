@@ -852,6 +852,12 @@ class ModuleBipedLeg(ModuleGeneric):
         return super().is_valid()
 
 
+class RigModules:
+    import gt.utils.rigger_utils as rigger_utils
+    ModuleGeneric = rigger_utils.ModuleGeneric
+    ModuleBipedLeg = rigger_utils.ModuleBipedLeg
+
+
 class RigProject:
     def __init__(self,
                  name=None,
@@ -1067,12 +1073,6 @@ class RigProject:
         # Parent Proxy
         for module in self.modules:
             parent_proxies(module.get_proxies())
-
-
-class RigModules:
-    import gt.utils
-    ModuleGeneric = gt.utils.rigger_utils.ModuleGeneric
-    ModuleBipedLeg = gt.utils.rigger_utils.ModuleBipedLeg
 
 
 def parent_proxies(proxy_list):
