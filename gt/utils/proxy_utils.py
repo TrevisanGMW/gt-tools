@@ -411,6 +411,46 @@ class Proxy:
         parent_uuid = parent_proxy.get_uuid()
         self.set_parent_uuid(parent_uuid)
 
+    def read_data_from_dict(self, proxy_dict):
+        """
+        Reads the data from a proxy dictionary and updates the values of this proxy to match it.
+        Args:
+            proxy_dict (dict): A dictionary describing the proxy data. e.g. {"name": "proxy", "parent": "1234...", ...}
+        """
+        if proxy_dict and not isinstance(proxy_dict, dict):
+            logger.debug(f'Unable o read data from dict. Input must be a dictionary.')
+            return
+
+        _name = proxy_dict.get('name')
+        if _name:
+            self.set_name(name=_name)
+
+        _parent = proxy_dict.get('parent')
+        if _parent:
+            self.set_parent_uuid(uuid=_parent)
+
+        _loc_scale = proxy_dict.get('locatorScale')
+        if _loc_scale:
+            self.set_locator_scale(scale=_loc_scale)
+
+        transform = proxy_dict.get('transform')
+        if transform and len(transform) == 3:
+            self.transform.set_transform_from_dict(transform_dict=transform)
+
+        offset_transform = proxy_dict.get('offsetTransform')
+        if offset_transform and len(offset_transform) == 3:
+            if not self.offset_transform:
+                self.offset_transform = Transform()
+            self.offset_transform.set_transform_from_dict(transform_dict=transform)
+
+        attributes = proxy_dict.get('attributes')
+        if attributes:
+            self.set_attr_dict(attr_dict=attributes)
+
+        metadata = proxy_dict.get('metadata')
+        if metadata:
+            self.set_metadata_dict(metadata=metadata)
+
     def read_data_from_scene(self):
         """
         Attempts to find the proxy in the scene. If found, it reads the data into the proxy object.
@@ -481,28 +521,15 @@ class Proxy:
         Returns:
             dict: Proxy data as a dictionary
         """
-        # Extract Transform
-        transform = {'position': self.transform.get_position(as_tuple=True),
-                     'rotation': self.transform.get_rotation(as_tuple=True),
-                     'scale': self.transform.get_scale(as_tuple=True),
-                     }
-        # Extract Offset Transform (If present)
-        offset_transform = None
-        if self.offset_transform:
-            offset_transform = {'position': self.offset_transform.get_position(as_tuple=True),
-                                'rotation': self.offset_transform.get_rotation(as_tuple=True),
-                                'scale': self.offset_transform.get_scale(as_tuple=True),
-                                }
         # Create Proxy Data
         proxy_data = {"name": self.name,
                       "parent": self.get_parent_uuid(),
                       "locatorScale": self.locator_scale,
-                      "transform": transform,
-
+                      "transform": self.transform.get_transform_as_dict(),
                       }
 
-        if offset_transform:
-            proxy_data["offset_transform"] = offset_transform
+        if self.offset_transform:
+            proxy_data["offsetTransform"] = self.offset_transform.get_transform_as_dict()
 
         if self.get_attr_dict():
             proxy_data["attributes"] = self.get_attr_dict()
