@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ProxyConstants:
+class RiggerConstants:
     def __init__(self):
         """
         Constant values used by all proxy elements.
@@ -40,8 +40,8 @@ class ProxyConstants:
 def parent_proxies(proxy_list):
     # Parent Joints
     for proxy in proxy_list:
-        built_proxy = find_object_with_uuid(proxy.get_uuid(), ProxyConstants.PROXY_ATTR_UUID)
-        parent_proxy = find_object_with_uuid(proxy.get_parent_uuid(), ProxyConstants.PROXY_ATTR_UUID)
+        built_proxy = find_object_with_uuid(proxy.get_uuid(), RiggerConstants.PROXY_ATTR_UUID)
+        parent_proxy = find_object_with_uuid(proxy.get_parent_uuid(), RiggerConstants.PROXY_ATTR_UUID)
         print(f'built_proxy: {built_proxy}')
         print(f'parent_proxy: {parent_proxy}')
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
@@ -145,7 +145,7 @@ class Proxy:
         if metadata:
             self.set_metadata_dict(metadata=metadata)
 
-    def is_proxy_valid(self):
+    def is_valid(self):
         """
         Checks if the current proxy element is valid
         """
@@ -163,7 +163,7 @@ class Proxy:
         Returns:
             ProxyData: Name of the proxy that was generated/built.
         """
-        if not self.is_proxy_valid():
+        if not self.is_valid():
             logger.warning(f'Unable to build proxy. Invalid proxy object.')
             return
         proxy_offset = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
@@ -172,11 +172,11 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
-        add_separator_attr(target_object=proxy_crv, attr_name=ProxyConstants.SEPARATOR_ATTR)
+        add_separator_attr(target_object=proxy_crv, attr_name=RiggerConstants.SEPARATOR_ATTR)
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
-                                        attr_name=ProxyConstants.PROXY_ATTR_UUID,
+                                        attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                         set_initial_uuid_value=False)
-        scale_attr = add_attr(target_list=proxy_crv, attributes=ProxyConstants.PROXY_ATTR_SCALE, default=1) or []
+        scale_attr = add_attr(target_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
         loc_scale_cluster = None
         if scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
@@ -457,9 +457,9 @@ class Proxy:
         e.g. The user moved the proxy, a new position will be read and saved to this proxy.
              New custom attributes or anything else added to the proxy will also be saved.
         """
-        ignore_attr_list = [ProxyConstants.PROXY_ATTR_UUID,
-                            ProxyConstants.PROXY_ATTR_SCALE]
-        proxy = find_object_with_uuid(uuid_string=self.uuid, attr_name=ProxyConstants.PROXY_ATTR_UUID)
+        ignore_attr_list = [RiggerConstants.PROXY_ATTR_UUID,
+                            RiggerConstants.PROXY_ATTR_SCALE]
+        proxy = find_object_with_uuid(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
         if proxy:
             try:
                 self.transform.set_transform_from_object(proxy)
@@ -538,11 +538,10 @@ class Proxy:
             proxy_data["metadata"] = self.get_metadata()
 
         proxy_dict = {self.get_uuid(): proxy_data}
-
         return proxy_dict
 
 
-class RigComponentBase:
+class ModuleGeneric:
     def __init__(self,
                  name=None,
                  prefix=None,
@@ -694,6 +693,29 @@ class RigComponentBase:
         """
         return self.metadata
 
+    def get_component_as_dict(self):
+        """
+        Gets the properties of this component (including proxies) as a dictionary
+        Returns:
+            dict: Dictionary describing this component
+        """
+        component_data = {}
+        if self.name:
+            component_data["name"] = self.name
+        if self.prefix:
+            component_data["prefix"] = self.prefix
+        if self.parent_uuid:
+            component_data["parent"] = self.parent_uuid
+        if self.metadata:
+            component_data["metadata"] = self.metadata
+        component_proxies = {}
+        for proxy in self.proxies:
+            component_proxies.update(proxy.get_proxy_as_dict())
+        component_data["proxies"] = component_proxies
+        module_name = str(self.__class__.__name__).replace("Module", "")
+        component_dict = {module_name: component_data}
+        return component_dict
+
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
@@ -709,7 +731,15 @@ class RigComponentBase:
             proxy.build()
 
 
-class RigComponentBipedLeg(RigComponentBase):
+def create_root_curve(name):
+    root_curve = get_curve('_rig_root')
+    root_curve.set_name(name=name)
+    root_crv = root_curve.build()
+    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
+    cmds.parent(root_crv, root_grp)
+
+
+class ModuleBipedLeg(ModuleGeneric):
     def __init__(self,
                  name="Leg",
                  prefix=None,
@@ -754,7 +784,7 @@ class RigProject:
                  prefix=None,
                  metadata=None):
         # Default Values
-        self.name = None
+        self.name = "Untitled"
         self.prefix = None
         self.components = []
         self.metadata = None
@@ -796,11 +826,11 @@ class RigProject:
         Args:
             component (RigComponentBase, List[RigComponentBase]): New component element to be added to this project.
         """
-        if component and isinstance(component, RigComponentBase):
+        if component and isinstance(component, ModuleGeneric):
             component = [component]
         if component and isinstance(component, list):
             for obj in component:
-                if isinstance(obj, RigComponentBase):
+                if isinstance(obj, ModuleGeneric):
                     self.components.append(obj)
                 else:
                     logger.debug(f'Unable to add "{str(obj)}". Incompatible type.')
@@ -865,6 +895,27 @@ class RigProject:
         """
         return self.metadata
 
+    def get_project_as_dict(self):
+        """
+        Gets the description for this project (including components and its proxies) as a dictionary.
+        Returns:
+            dict: Dictionary describing this project.
+        """
+        project_components = {}
+        for component in self.components:
+            project_components.update(component.get_component_as_dict())
+
+        project_data = {}
+        if self.name:
+            project_data["name"] = self.name
+        if self.prefix:
+            project_data["prefix"] = self.prefix
+        project_data["modules"] = project_components
+        if self.metadata:
+            project_data["metadata"] = self.metadata
+
+        return project_data
+
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
@@ -885,44 +936,39 @@ class RigProject:
             parent_proxies(component.get_proxies())
 
 
-def create_root_curve(name):
-    root_curve = get_curve('_rig_root')
-    root_curve.set_name(name=name)
-    root_crv = root_curve.build()
-    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
-    cmds.parent(root_crv, root_grp)
-
-
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    a_leg = RigComponentBipedLeg()
-    a_component = RigComponentBase()
+    a_leg = ModuleBipedLeg()
+    a_component = ModuleGeneric()
 
-    a_hip = Proxy(name="hip")
-    a_hip.set_position(y=84.5)
+    a_hip = Proxy()
+    a_hip.set_position(y=5.5)
     a_hip.set_locator_scale(scale=0.4)
     built_hip = a_hip.build()
     cmds.setAttr(f'{built_hip}.tx', 5)
     add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
     cmds.setAttr(f'{built_hip}.customOne', 5)
     a_hip.read_data_from_scene()
-    print(a_hip.transform)
-    import json
-    json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
-    print(json_string)
 
     a_knee = Proxy(name="knee")
-    a_knee.set_position(y=47.05)
+    a_knee.set_position(y=2.05)
     a_knee.set_locator_scale(scale=0.5)
     a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
 
     a_component.add_to_proxies([a_hip, a_knee])
 
-    # a_project = RigProject()
-    # a_project.add_to_components(a_component)
-    # a_project.add_to_components(a_leg)
-    # a_project.build_proxy()
-
+    cmds.file(new=True, force=True)
+    a_project = RigProject()
+    a_project.add_to_components(a_component)
+    a_project.add_to_components(a_leg)
+    a_project.build_proxy()
+    import json
+    # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
+    json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
+    print(json_string)
+    from gt.utils.data_utils import write_json
+    a_path = r"C:\Users\guilherme.trevisan\Desktop\out.json"
+    write_json(path=a_path, data=a_project.get_project_as_dict())
     # create_root_curve("main")
