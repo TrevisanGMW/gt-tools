@@ -26,7 +26,9 @@ class TestProxyUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
         self.proxy = Proxy()
-        self.proxy_data = rigger_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"))
+        self.proxy.uuid = "123e4567-e89b-12d3-a456-426655440000"
+        self.proxy_data = rigger_utils.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"),
+                                                 uuid="123e4567-e89b-12d3-a456-426655440000")
 
     @classmethod
     def setUpClass(cls):
