@@ -2,14 +2,16 @@
 Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, hide_lock_default_attributes, connect_attr
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
-from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
+from gt.utils.color_utils import set_color_override_viewport
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.string_utils import remove_prefix
 from gt.utils.transform_utils import Transform
+from gt.utils.attr_utils import set_attr_state
 from gt.utils.hierarchy_utils import parent
 from dataclasses import dataclass
 import maya.cmds as cmds
@@ -1083,12 +1085,18 @@ def parent_proxies(proxy_list):
                 parent(source_objects=offset, target_parent=parent_proxy)
 
 
-def create_root_curve(name):
-    root_curve = get_curve('_rig_root')
-    root_curve.set_name(name=name)
-    root_crv = root_curve.build()
-    root_grp = cmds.group(empty=True, world=True, name="tempGrp")
-    cmds.parent(root_crv, root_grp)
+def create_root_curve(name="root"):
+    root_crv = get_curve('_rig_root')
+    root_crv.set_name(name=name)
+    root_transform = root_crv.build()
+    root_grp = cmds.group(empty=True, world=True, name="rigger_proxy_grp")
+    hide_lock_default_attributes(obj=root_grp)
+    add_separator_attr(target_object=root_transform, attr_name="proxyOptions")
+    connect_attr(source_attr=f'{root_transform}.sy', target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
+    hide_lock_default_attributes(obj=root_transform, scale=False)
+    set_attr_state(obj_list=root_transform, attr_list=['sx', 'sz'], hidden=True)
+    set_color_override_viewport(obj=root_transform, rgb_color=(1, 0, 0))
+    cmds.parent(root_transform, root_grp)
 
 
 if __name__ == "__main__":
@@ -1128,6 +1136,8 @@ if __name__ == "__main__":
     another_project = RigProject()
     another_project.read_data_from_dict(a_project_dict)
     another_project.build_proxy()
+    cmds.file(new=True, force=True)
+    create_root_curve()
     # import json
     # # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
     # json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
