@@ -22,43 +22,69 @@ class ColorConstants:
     RIGHT = (1, 0.5, 0.5)
 
 
-def set_color_override_viewport(obj, rgb_color=(1, 1, 1)):
+def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
     """
-    Sets the outliner color for the selected object
+    Sets the overwrite viewport color for the provided object(s).
+    Activates viewport override outliner color in case it's off.
 
     Args:
-        obj (str): Name (path) of the object to change.
-        rgb_color (tuple) : A tuple of 3 floats, RGB values. e.g. Red = (1, 0, 0)
+        obj_list (list, str): Name (path) to the object to be affected.
+        rgb_color (tuple, list) : RGB values. e.g. Red = (1, 0, 0) - Must have at least 3 floats/integers.
     Returns:
-        Set color if operation was successful. None if it failed
+        list: A list of objects that had their viewport colors changed.
     """
-    if cmds.objExists(obj) and cmds.getAttr(f'{obj}.overrideEnabled', lock=True) is False:
-        cmds.setAttr(f'{obj}.overrideEnabled', 1)
-        cmds.setAttr(f'{obj}.overrideRGBColors', 1)
-        cmds.setAttr(f'{obj}.overrideColorRGB', rgb_color[0], rgb_color[1], rgb_color[2])
-        set_color = cmds.getAttr(f'{obj}.overrideColorRGB') or []
-        if set_color and len(set_color) > 0:
-            return set_color[0]
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if obj_list and not isinstance(obj_list, list):
+        logger.debug(f'Unable to set override viewport color. Unexpected object list type.')
+        return []
+    if not rgb_color or not isinstance(rgb_color, (list, tuple)) or len(rgb_color) < 3:
+        logger.debug(f'Unable to set override viewport color. Unexpected RGB input.')
+        return []
+    result_list = []
+    for obj in obj_list:
+        if cmds.objExists(obj) and cmds.getAttr(f'{obj}.overrideEnabled', lock=True) is False:
+            try:
+                cmds.setAttr(f'{obj}.overrideEnabled', 1)
+                cmds.setAttr(f'{obj}.overrideRGBColors', 1)
+                cmds.setAttr(f'{obj}.overrideColorRGB', rgb_color[0], rgb_color[1], rgb_color[2])
+                result_list.append(obj)
+            except Exception as e:
+                logger.debug(f'Unable to set override viewport color for "{obj}". Issue: {str(e)}')
+    return result_list
 
 
-def set_color_override_outliner(obj, rgb_color=(1, 1, 1)):
+def set_color_outliner(obj_list, rgb_color=(1, 1, 1)):
     """
-    Sets the outliner color for the selected object
+    Sets the overwrite outliner color for the provided object(s).
+    Activates override outliner color in case it's off.
 
     Args:
-        obj (str): Name of the object to change.
-        rgb_color (tuple) : A tuple of 3 floats, RGB values. e.g. Red = (1, 0, 0) - Range 0 to 1
+        obj_list (list, str): Name (path) to the object to be affected.
+        rgb_color (tuple, list) : RGB values. e.g. Red = (1, 0, 0) - Must have at least 3 floats/integers.
     Returns:
-        Set color if operation was successful. None if it failed
+        list: A list of objects that had their outliner colors changed.
     """
-    if cmds.objExists(obj) and cmds.getAttr(f'{obj}.useOutlinerColor', lock=True) is False:
-        cmds.setAttr(f'{obj}.useOutlinerColor', 1)
-        cmds.setAttr(f'{obj}.outlinerColorR', rgb_color[0])
-        cmds.setAttr(f'{obj}.outlinerColorG', rgb_color[1])
-        cmds.setAttr(f'{obj}.outlinerColorB', rgb_color[2])
-        set_color = cmds.getAttr(f'{obj}.outlinerColor') or []
-        if set_color and len(set_color) > 0:
-            return set_color[0]
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if obj_list and not isinstance(obj_list, list):
+        logger.debug(f'Unable to set override outliner color. Unexpected object list type.')
+        return []
+    if not rgb_color or not isinstance(rgb_color, (list, tuple)) or len(rgb_color) < 3:
+        logger.debug(f'Unable to set override outliner color. Unexpected RGB input.')
+        return []
+    result_list = []
+    for obj in obj_list:
+        try:
+            if cmds.objExists(obj) and cmds.getAttr(f'{obj}.useOutlinerColor', lock=True) is False:
+                cmds.setAttr(f'{obj}.useOutlinerColor', 1)
+                cmds.setAttr(f'{obj}.outlinerColorR', rgb_color[0])
+                cmds.setAttr(f'{obj}.outlinerColorG', rgb_color[1])
+                cmds.setAttr(f'{obj}.outlinerColorB', rgb_color[2])
+                result_list.append(obj)
+        except Exception as e:
+            logger.debug(f'Unable to set override outliner color for "{obj}". Issue: {str(e)}')
+    return result_list
 
 
 def add_side_color_setup(obj, color_attr_name="autoColor",

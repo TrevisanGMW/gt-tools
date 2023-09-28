@@ -39,21 +39,59 @@ class TestColorUtils(unittest.TestCase):
             if len(color) != 3:
                 raise Exception(f'Incorrect color length. Expected 3, but got: "{str(len(color))}".')
 
-    def test_set_color_override_viewport(self):
-        test_obj = 'test_cube'
-        maya_test_tools.create_poly_cube(name=test_obj)
+    def test_set_color_viewport(self):
+        cube_one = maya_test_tools.create_poly_cube(name='test_cube_one')
+        expected_color = (0, 0.5, 1)
+        result = color_utils.set_color_viewport(obj_list=cube_one, rgb_color=expected_color)
+        expected_result = [cube_one]
+        self.assertEqual(expected_result, result)
+        set_color = maya_test_tools.cmds.getAttr(f'{cube_one}.overrideColorRGB')[0]
+        self.assertEqual(expected_color, set_color)
+        override_state = maya_test_tools.cmds.getAttr(f'{cube_one}.overrideEnabled')
+        self.assertTrue(override_state, "Expected override to be enabled.")
 
-        expected = (0, 0.5, 1)
-        result = color_utils.set_color_override_viewport(test_obj, rgb_color=expected)
-        self.assertEqual(expected, result)
+    def test_set_color_viewport_list(self):
+        cube_one = maya_test_tools.create_poly_cube(name='test_cube_one')
+        cube_two = maya_test_tools.create_poly_cube(name='test_cube_two')
+        expected_color = (0, 0.5, 1)
+        result = color_utils.set_color_viewport(obj_list=[cube_one, cube_two],
+                                                rgb_color=expected_color)
+        expected_result = [cube_one, cube_two]
+        self.assertEqual(expected_result, result)
+        for obj in [cube_one, cube_two]:
+            set_color = maya_test_tools.cmds.getAttr(f'{obj}.overrideColorRGB')[0]
+            self.assertEqual(expected_color, set_color)
+            override_state = maya_test_tools.cmds.getAttr(f'{obj}.overrideEnabled')
+            self.assertTrue(override_state, "Expected override to be enabled.")
 
-    def test_set_color_override_outliner(self):
-        test_obj = 'test_cube'
-        maya_test_tools.create_poly_cube(name=test_obj)
+    def test_set_color_outliner(self):
+        cube_one = maya_test_tools.create_poly_cube(name='test_cube_one')
+        expected_color = (0, 0.5, 1)
+        result = color_utils.set_color_outliner(obj_list=cube_one, rgb_color=expected_color)
+        expected_result = [cube_one]
+        self.assertEqual(expected_result, result)
+        clr_r = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorR')
+        clr_g = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorG')
+        clr_b = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorB')
+        self.assertEqual(expected_color, (clr_r, clr_g, clr_b))
+        override_state = maya_test_tools.cmds.getAttr(f'{cube_one}.useOutlinerColor')
+        self.assertTrue(override_state, "Expected override to be enabled.")
 
-        expected = (0, 0.5, 1)
-        result = color_utils.set_color_override_outliner(test_obj, rgb_color=expected)
-        self.assertEqual(expected, result)
+    def test_set_color_outliner_list(self):
+        cube_one = maya_test_tools.create_poly_cube(name='test_cube_one')
+        cube_two = maya_test_tools.create_poly_cube(name='test_cube_two')
+        expected_color = (0, 0.5, 1)
+        result = color_utils.set_color_outliner(obj_list=[cube_one, cube_two],
+                                                rgb_color=expected_color)
+        expected_result = [cube_one, cube_two]
+        self.assertEqual(expected_result, result)
+        for obj in [cube_one, cube_two]:
+            clr_r = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorR')
+            clr_g = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorG')
+            clr_b = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorB')
+            self.assertEqual(expected_color, (clr_r, clr_g, clr_b))
+            override_state = maya_test_tools.cmds.getAttr(f'{obj}.useOutlinerColor')
+            self.assertTrue(override_state, "Expected override to be enabled.")
 
     def test_add_side_color_setup(self):
         test_obj = 'test_cube'
