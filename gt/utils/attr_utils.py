@@ -842,6 +842,46 @@ def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
+# -------------------------------------------- Connection -------------------------------------------
+def connect_attr(source_attr, target_attr_list, force=False,
+                 verbose=False, log_level=logging.INFO, raise_exceptions=False):
+    """
+    This function sets locked or hidden states of specified attributes of objects using Maya's `cmds.setAttr` function.
+    It provides options to set locked or hidden states for a single attribute path, multiple objects and attributes.
+    It does not raise errors, but can log them with the provided level determined as an argument.
+
+    Args:
+        source_attr (str, optional): A single-line object attribute path in the format "object.attribute".
+        target_attr_list (str ,list, optional): The name of the attribute or a list of attribute names to receive
+                                                the connection. e.g. ["obj.tx", "obj.ty"]
+        force (bool, optional): If active, it will try to force the connection (overwrite when existing)
+        verbose (bool, optional): If True, log messages will be displayed describing the operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+        raise_exceptions (bool, optional): If active, the function will raise exceptions whenever something fails.
+    """
+    if source_attr and not isinstance(source_attr, str):
+        message = f'Unable to create connection invalid source attribute "{source_attr}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+    if not cmds.objExists(source_attr):
+        message = f'Unable to create connection missing source attribute "{source_attr}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+
+    # Add object and attribute lists
+    if isinstance(target_attr_list, str):
+        target_attr_list = [target_attr_list]
+
+    for target_attr in target_attr_list:
+        try:
+            cmds.connectAttr(source_attr, target_attr, force=force)
+        except Exception as e:
+            message = f'Unable to connect attributes. Issue: "{e}".'
+            log_when_true(logger, message, do_log=verbose, level=log_level)
+            if raise_exceptions:
+                raise e
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     sel = cmds.ls(selection=True)

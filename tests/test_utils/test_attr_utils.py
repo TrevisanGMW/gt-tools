@@ -1098,3 +1098,29 @@ class TestAttributeUtils(unittest.TestCase):
 
         expected = [f'{cube}.custom_attr_two']
         self.assertEqual(expected, result)
+
+    def test_connect_attr(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        target_attr_list = [f'{cube}.scaleX', f'{cube}.scaleZ']
+        attr_utils.connect_attr(source_attr=f'{cube}.scaleY', target_attr_list=target_attr_list)
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sy', destination=True, plugs=True)
+        for attr in target_attr_list:
+            self.assertIn(attr, result)
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', source=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleY', attr)
+
+    def test_connect_attr_str_input(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        attr_utils.connect_attr(source_attr=f'{cube}.scaleY', target_attr_list=f'{cube}.scaleZ')
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', source=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleY', attr)
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', destination=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleZ', attr)
