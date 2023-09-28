@@ -27,11 +27,23 @@ class TestColorUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
-    def test_color_constants_class(self):
-        attributes = vars(color_utils.ColorConstants)
+    def test_color_constants_rig_class(self):
+        attributes = vars(color_utils.ColorConstants.Rig)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for clr_key in keys:
-            color = getattr(color_utils.ColorConstants, clr_key)
+            color = getattr(color_utils.ColorConstants.Rig, clr_key)
+            if not color:
+                raise Exception(f'Missing color: {clr_key}')
+            if not isinstance(color, tuple):
+                raise Exception(f'Incorrect color type. Expected tuple, but got: "{type(color)}".')
+            if len(color) != 3:
+                raise Exception(f'Incorrect color length. Expected 3, but got: "{str(len(color))}".')
+
+    def test_color_constants_rgb_class(self):
+        attributes = vars(color_utils.ColorConstants.RGB)
+        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for clr_key in keys:
+            color = getattr(color_utils.ColorConstants.RGB, clr_key)
             if not color:
                 raise Exception(f'Missing color: {clr_key}')
             if not isinstance(color, tuple):

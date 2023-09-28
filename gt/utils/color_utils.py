@@ -17,9 +17,29 @@ class ColorConstants:
         """
         Constant tuple RGB values used for element colors.
         """
-    CENTER = (1, 1, 0.65)
-    LEFT = (0, 0.5, 1)
-    RIGHT = (1, 0.5, 0.5)
+    class RGB:
+        def __init__(self):
+            """
+            A library of colors RGB colors.
+            Type: tuple
+            Format: (Red, Green, Blue)
+            Value range  0 to 1
+            e.g. (1, 0, 0) = Red
+            """
+        RED = (1, 0, 0)
+
+    class Rig:
+        def __init__(self):
+            """
+            A library of colors RGB colors for rigs.
+            Type: tuple
+            Format: (Red, Green, Blue)
+            Value range  0 to 1
+            e.g. (1, 0, 0) = Red
+            """
+        CENTER = (1, 1, 0.65)
+        LEFT = (0, 0.5, 1)
+        RIGHT = (1, 0.5, 0.5)
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
@@ -88,9 +108,9 @@ def set_color_outliner(obj_list, rgb_color=(1, 1, 1)):
 
 
 def add_side_color_setup(obj, color_attr_name="autoColor",
-                         clr_default=ColorConstants.CENTER,
-                         clr_left=ColorConstants.LEFT,
-                         clr_right=ColorConstants.RIGHT):
+                         clr_default=ColorConstants.Rig.CENTER,
+                         clr_left=ColorConstants.Rig.LEFT,
+                         clr_right=ColorConstants.Rig.RIGHT):
     """
     This function sets up a side color setup for the specified object in the Maya scene.
     It creates connections and attributes to control the color of the object based on its position in the scene.
