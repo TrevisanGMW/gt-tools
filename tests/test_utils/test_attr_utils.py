@@ -586,7 +586,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_with_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, include_visibility=True)
+        attr_utils.hide_lock_default_attributes(cube, visibility=True)
 
         attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz', 'v']
         for attr in attr_to_test:
@@ -599,9 +599,9 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_without_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, include_visibility=False)
+        attr_utils.hide_lock_default_attributes(cube, visibility=False)
 
-        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz']
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz']
         for attr in attr_to_test:
             is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
             is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
@@ -609,6 +609,78 @@ class TestAttributeUtils(unittest.TestCase):
             self.assertTrue(is_locked)
             self.assertFalse(is_keyable)
             self.assertFalse(is_keyable_ch)
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_translate(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attributes(cube, translate=False, visibility=False)
+
+        attr_to_test = ['rx', 'ry', 'rz', 'sx', 'sy', 'sz']
+        attr_to_test_inactive = ['tx', 'ty', 'tz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_rotate(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attributes(cube, rotate=False, visibility=False)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'sx', 'sy', 'sz']
+        attr_to_test_inactive = ['rx', 'ry', 'rz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_scale(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attributes(cube, scale=False, visibility=False)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
+        attr_to_test_inactive = ['sx', 'sy', 'sz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
 
         is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
         is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
