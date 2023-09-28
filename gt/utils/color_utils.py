@@ -107,6 +107,46 @@ def set_color_outliner(obj_list, rgb_color=(1, 1, 1)):
     return result_list
 
 
+def apply_gamma_correction_to_rgb(rgb_color, gamma_correction=2.2):
+    """
+    Convert RGB colors from display space to render space in Maya by applying gamma correction
+
+    Args:
+        rgb_color (tuple): RGB color as a tuple of three floats (Red, Green, Blue).
+        gamma_correction (float, int): Gamma correction value
+
+    Returns:
+        tuple: RGB color in render space as a tuple of three floats (Red, Green, Blue).
+    """
+    # Apply gamma correction to each channel
+    _new_rgb_color = (
+        rgb_color[0] ** gamma_correction,
+        rgb_color[1] ** gamma_correction,
+        rgb_color[2] ** gamma_correction
+    )
+    return _new_rgb_color
+
+
+def remove_gamma_correction_from_rgb(rgb_color, gamma_correction=2.2):
+    """
+    Convert RGB colors from render space to display space in Maya by removing gamma correction.
+
+    Args:
+        rgb_color (tuple): RGB color in render space as a tuple of three floats (Red, Green, Blue).
+        gamma_correction (float, int): Gamma correction value
+
+    Returns:
+        tuple: RGB color in display space as a tuple of three floats (Red, Green, Blue).
+    """
+    # Remove gamma correction from each channel
+    _new_rgb_color = (
+        rgb_color[0] ** (1.0 / gamma_correction),
+        rgb_color[1] ** (1.0 / gamma_correction),
+        rgb_color[2] ** (1.0 / gamma_correction)
+    )
+    return _new_rgb_color
+
+
 def add_side_color_setup(obj, color_attr_name="autoColor",
                          clr_default=ColorConstants.Rig.CENTER,
                          clr_left=ColorConstants.Rig.LEFT,

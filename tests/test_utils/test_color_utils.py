@@ -27,6 +27,40 @@ class TestColorUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
+    def assertAlmostEqualSigFig(self, arg1, arg2, tolerance=2):
+        """
+        Asserts that two numbers are almost equal up to a given number of significant figures.
+
+        Args:
+            self (object): The current test case or class object.
+            arg1 (float): The first number for comparison.
+            arg2 (float): The second number for comparison.
+            tolerance (int, optional): The number of significant figures to consider for comparison. Default is 2.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If the significands of arg1 and arg2 differ by more than the specified tolerance.
+
+        Example:
+            obj = TestClass()
+            obj.assertAlmostEqualSigFig(3.145, 3.14159, tolerance=3)
+            # No assertion error will be raised as the first 3 significant figures are equal (3.14)
+        """
+        if tolerance > 1:
+            tolerance = tolerance - 1
+
+        str_formatter = '{0:.' + str(tolerance) + 'e}'
+        significand_1 = float(str_formatter.format(arg1).split('e')[0])
+        significand_2 = float(str_formatter.format(arg2).split('e')[0])
+
+        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
+        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
+
+        self.assertEqual(significand_1, significand_2)
+        self.assertEqual(exponent_1, exponent_2)
+
     def test_color_constants_rig_class(self):
         attributes = vars(color_utils.ColorConstants.Rig)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
@@ -104,6 +138,28 @@ class TestColorUtils(unittest.TestCase):
             self.assertEqual(expected_color, (clr_r, clr_g, clr_b))
             override_state = maya_test_tools.cmds.getAttr(f'{obj}.useOutlinerColor')
             self.assertTrue(override_state, "Expected override to be enabled.")
+
+    def test_apply_gamma_correction_to_rgb(self):
+        expected_color = (.2, .3, 1)
+        result = color_utils.apply_gamma_correction_to_rgb(rgb_color=expected_color)
+        expected = (0.0289, 0.0707, 1.0)
+        for index in range(0, 3):
+            self.assertAlmostEqualSigFig(expected[index], result[index])
+
+    def test_remove_gamma_correction_from_rgb(self):
+        expected_color = (.2, .3, 1)
+        result = color_utils.remove_gamma_correction_from_rgb(rgb_color=expected_color)
+        expected = (0.4811, 0.5785, 1.0)
+        for index in range(0, 3):
+            self.assertAlmostEqualSigFig(expected[index], result[index])
+
+    def test_apply_remove_gamma_correction_from_rgb(self):
+        expected_color = (.2, .3, 1)
+        result = color_utils.apply_gamma_correction_to_rgb(rgb_color=expected_color)
+        result = color_utils.remove_gamma_correction_from_rgb(rgb_color=result)
+        expected = (.2, .3, 1)
+        for index in range(0, 3):
+            self.assertAlmostEqualSigFig(expected[index], result[index])
 
     def test_add_side_color_setup(self):
         test_obj = 'test_cube'
