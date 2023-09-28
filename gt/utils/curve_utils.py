@@ -1548,8 +1548,8 @@ def generate_package_curve_thumbnail(target_dir, curve, image_format="jpg", line
 
     # Prepare Curve
     curve_name = curve.build()
-    from gt.utils.color_utils import set_color_override_viewport
-    set_color_override_viewport(obj=curve_name, rgb_color=rgb_color)
+    from gt.utils.color_utils import set_color_viewport
+    set_color_viewport(obj_list=curve_name, rgb_color=rgb_color)
     for shape in cmds.listRelatives(curve_name, shapes=True) or []:
         cmds.setAttr(f'{shape}.lineWidth', line_width)
 
