@@ -330,8 +330,8 @@
     Add twist joints option (upper and lower arm, legs, etc)
     Add option to auto create proxy geo
 """
-from gt.tools.auto_rigger_legacy.rigger_utilities import *
-from gt.tools.auto_rigger_legacy.rigger_data import *
+from gt.tools.biped_rigger_legacy.rigger_utilities import *
+from gt.tools.biped_rigger_legacy.rigger_data import *
 from gt.tools.shape_offset.shape_offset  import offset_curve_shape
 import maya.cmds as cmds
 import logging
@@ -10418,7 +10418,7 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
     biped_obj.debugging_import_proxy = True
 
     if biped_obj.debugging_import_proxy:
-        from gt.tools.auto_rigger_legacy import rigger_biped_gui
+        from gt.tools.biped_rigger_legacy import rigger_biped_gui
         rigger_biped_gui.import_biped_proxy_pose(source_path=biped_obj.debugging_import_path)
 
     # Create Controls

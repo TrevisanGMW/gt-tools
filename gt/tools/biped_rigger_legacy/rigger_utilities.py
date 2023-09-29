@@ -24,7 +24,7 @@
 
 """
 from gt.utils.iterable_utils import make_flat_list
-from gt.tools.auto_rigger_legacy.rigger_data import *
+from gt.tools.biped_rigger_legacy.rigger_data import *
 from functools import partial
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
