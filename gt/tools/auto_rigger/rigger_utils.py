@@ -4,11 +4,11 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attributes, connect_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants
+from gt.utils.curve_utils import get_curve, set_curve_width
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.attr_utils import set_attr_state
 from gt.utils.hierarchy_utils import parent
-from gt.utils.curve_utils import get_curve
 import maya.cmds as cmds
 import logging
 
@@ -43,19 +43,22 @@ def parent_proxies(proxy_list):
                 parent(source_objects=offset, target_parent=parent_proxy)
 
 
-def create_root_curve(name="main", separator_name="options", top_group_name="rigger"):
+def create_root_curve(name="root", group_name="root"):
     """
-
+    Creates a circle/arrow curve to be used as the root of a control rig or a proxy guide
+    Args:
+        name (str, optional): Name of the curve transform
+        group_name (str, optional): Name of the parent group (transform) of the curve
+    Returns:
+        tuple: A tuple with the name of the curve transform and the name of the parent group
     """
     selection = cmds.ls(selection=True)
     root_crv = get_curve('_rig_root')
     root_crv.set_name(name=name)
     root_transform = root_crv.build()
-    root_grp = cmds.group(empty=True, world=True, name=f"{top_group_name}_{NamingConstants.Suffix.GRP}")
+    root_grp = cmds.group(empty=True, world=True, name=f"{group_name}_{NamingConstants.Suffix.GRP}")
     hide_lock_default_attributes(obj=root_grp)
-    add_separator_attr(target_object=root_transform, attr_name=separator_name)
     connect_attr(source_attr=f'{root_transform}.sy', target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
-    hide_lock_default_attributes(obj=root_transform, scale=False)
     set_attr_state(obj_list=root_transform, attr_list=['sx', 'sz'], hidden=True)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigProxy.CENTER)
     cmds.parent(root_transform, root_grp)
@@ -65,8 +68,36 @@ def create_root_curve(name="main", separator_name="options", top_group_name="rig
             cmds.select(selection=True)
         except Exception as e:
             logger.debug(f'Unable to restore initial selection. Issue: {str(e)}')
+    return root_transform, root_grp
+
+
+def create_proxy_root_curve():
+    """
+    Creates a curve to be used as the root of a proxy skeleton
+    Returns:
+        tuple: A tuple with the name of the curve transform and the name of the parent group
+    """
+    root_transform, root_group = create_root_curve(name="root", group_name="rigger_proxy")
+    hide_lock_default_attributes(obj=root_transform, scale=False)
+    add_separator_attr(target_object=root_transform, attr_name="proxyAttributes")
+    set_curve_width(obj_list=root_transform, line_width=2)
+    return root_transform, root_group
+
+
+def create_control_root_curve():
+    """
+    Creates a curve to be used as the root of a control rig skeleton
+    Returns:
+        tuple: A tuple with the name of the curve transform and the name of the parent group
+    """
+    root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
+    add_separator_attr(target_object=root_transform, attr_name="rigAttributes")
+    set_curve_width(obj_list=root_transform, line_width=3)
+    set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
+    return root_transform, root_group
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
+    cmds.viewFit(all=True)
