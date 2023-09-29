@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 RigProject > Module > Proxy > Joint/Control
 """
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
-from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_root_curve
+from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
@@ -794,8 +794,9 @@ class ModuleGeneric:
         return True
 
     def build_proxy(self):
+        proxy_data = []
         for proxy in self.proxies:
-            proxy.build()
+            proxy_data.append(proxy.build())
 
 
 class RigProject:
@@ -846,6 +847,7 @@ class RigProject:
         Args:
             module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to this project.
         """
+        print(f"type: {type(module)}")
         if module and isinstance(module, ModuleGeneric):
             module = [module]
         if module and isinstance(module, list):
@@ -1007,20 +1009,24 @@ class RigProject:
         return True
 
     def build_proxy(self):
+
+        create_proxy_root_curve()
+
         # Build Proxy
         for module in self.modules:
-            module.build_proxy()
+            proxy_data = module.build_proxy()
+            print(proxy_data)
 
-        # Parent Proxy
-        for module in self.modules:
-            parent_proxies(module.get_proxies())
+        # # Parent Proxy
+        # for module in self.modules:
+        #     parent_proxies(module.get_proxies())
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-
+    from gt.tools.auto_rigger.rigger_modules import RigModules
     a_leg = RigModules.ModuleBipedLeg()
     a_module = ModuleGeneric()
 
@@ -1054,13 +1060,4 @@ if __name__ == "__main__":
     another_project = RigProject()
     another_project.read_data_from_dict(a_project_dict)
     another_project.build_proxy()
-    cmds.file(new=True, force=True)
-    create_root_curve()
-    # import json
-    # # json_string = json.dumps(a_hip.get_proxy_as_dict(), indent=4)
-    # json_string = json.dumps(a_project.get_project_as_dict(), indent=4)
-    # print(json_string)
-    # from gt.utils.data_utils import write_json
-    # a_path = r"C:\Users\guilherme.trevisan\Desktop\out.json"
-    # write_json(path=a_path, data=a_project.get_project_as_dict())
-    # create_root_curve("main")
+    cmds.viewFit(all=True)

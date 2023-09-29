@@ -54,3 +54,9 @@ class ModuleBipedLeg(ModuleGeneric):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
+
+    from gt.tools.auto_rigger.rigger_framework import RigProject
+    a_leg = ModuleBipedLeg()
+    a_project = RigProject()
+    a_project.add_to_modules(a_leg)
+    a_project.build_proxy()
