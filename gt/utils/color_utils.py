@@ -247,7 +247,7 @@ class ColorConstants:
             Value range  0 to 1
             e.g. (1, 0, 0) = Red
             """
-        MAIN = (1, 0.17, 0.44)  # Soft Pink
+        ROOT = (1, 0.17, 0.44)  # Soft Pink
         CENTER = (1, 1, 0)  # Yellow
         LEFT = (0.21, 0.45, 1)  # Soft Blue
         RIGHT = (1, 0.1, 0.1)  # Soft Red
