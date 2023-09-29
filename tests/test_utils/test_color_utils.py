@@ -61,7 +61,19 @@ class TestColorUtils(unittest.TestCase):
         self.assertEqual(significand_1, significand_2)
         self.assertEqual(exponent_1, exponent_2)
 
-    def test_color_constants_rig_class(self):
+    def test_color_constants_rgb_class(self):
+        attributes = vars(color_utils.ColorConstants.RGB)
+        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for clr_key in keys:
+            color = getattr(color_utils.ColorConstants.RGB, clr_key)
+            if not color:
+                raise Exception(f'Missing color: {clr_key}')
+            if not isinstance(color, tuple):
+                raise Exception(f'Incorrect color type. Expected tuple, but got: "{type(color)}".')
+            if len(color) != 3:
+                raise Exception(f'Incorrect color length. Expected 3, but got: "{str(len(color))}".')
+
+    def test_color_constants_rig_proxy_class(self):
         attributes = vars(color_utils.ColorConstants.RigProxy)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for clr_key in keys:
@@ -73,11 +85,23 @@ class TestColorUtils(unittest.TestCase):
             if len(color) != 3:
                 raise Exception(f'Incorrect color length. Expected 3, but got: "{str(len(color))}".')
 
-    def test_color_constants_rgb_class(self):
-        attributes = vars(color_utils.ColorConstants.RGB)
+    def test_color_constants_rig_control_class(self):
+        attributes = vars(color_utils.ColorConstants.RigControl)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for clr_key in keys:
-            color = getattr(color_utils.ColorConstants.RGB, clr_key)
+            color = getattr(color_utils.ColorConstants.RigControl, clr_key)
+            if not color:
+                raise Exception(f'Missing color: {clr_key}')
+            if not isinstance(color, tuple):
+                raise Exception(f'Incorrect color type. Expected tuple, but got: "{type(color)}".')
+            if len(color) != 3:
+                raise Exception(f'Incorrect color length. Expected 3, but got: "{str(len(color))}".')
+
+    def test_color_constants_rig_joint_class(self):
+        attributes = vars(color_utils.ColorConstants.RigJoint)
+        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for clr_key in keys:
+            color = getattr(color_utils.ColorConstants.RigJoint, clr_key)
             if not color:
                 raise Exception(f'Missing color: {clr_key}')
             if not isinstance(color, tuple):
