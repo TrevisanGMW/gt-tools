@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 class ColorConstants:
     def __init__(self):
         """
-        Constant tuple RGB values used for element colors.
+        Constant tuple RGB values used as colors.
         """
     class RGB:
         def __init__(self):
@@ -27,8 +27,15 @@ class ColorConstants:
             e.g. (1, 0, 0) = Red
             """
         RED = (1, 0, 0)
+        RED_SOFT = (1, 0.4, 0.4)
 
-    class Rig:
+        GREEN = (0, 1, 0)
+        GREEN_SOFT = (0.4, 1, 0.4)
+
+        BLUE = (0, 0, 1)
+        BLUE_SOFT = (0.2, 0.6, 1)
+
+    class RigProxy:
         def __init__(self):
             """
             A library of colors RGB colors for rigs.
@@ -37,9 +44,48 @@ class ColorConstants:
             Value range  0 to 1
             e.g. (1, 0, 0) = Red
             """
-        CENTER = (1, 1, 0.65)
-        LEFT = (0, 0.5, 1)
-        RIGHT = (1, 0.5, 0.5)
+        CENTER = (1, 1, 0.65)  # Yellowish White
+        LEFT = (0.2, 0.6, 1)  # Soft Blue
+        RIGHT = (1, 0.4, 0.4)  # Soft Red
+        PIVOT = (1, 0, 0)  # Red (Pure)
+        FOLLOWER = (0.3, 0.3, 0)  # Dark Yellow
+        TWEAK = (0.6, 0.2, 1)  # Pinkish Purple
+
+    class RigControl:
+        def __init__(self):
+            """
+            A library of colors RGB colors for rigs.
+            Type: tuple
+            Format: (Red, Green, Blue)
+            Value range  0 to 1
+            e.g. (1, 0, 0) = Red
+            """
+        MAIN = (1, 0.17, 0.44)  # Soft Pink
+        CENTER = (1, 1, 0)  # Yellow
+        LEFT = (0.21, 0.45, 1)  # Soft Blue
+        RIGHT = (1, 0.1, 0.1)  # Soft Red
+        OFFSET = (0.4, 0.4, 0)  # Dark Yellow
+        PIVOT = (1, 0, 0)  # Red (Pure)
+        END = (1, 0, 0)
+        TWEAK = (0.6, 0.2, 1)  # Pinkish Purple
+
+    class RigJoint:
+        def __init__(self):
+            """
+            A library of colors RGB colors for rigs.
+            Type: tuple
+            Format: (Red, Green, Blue)
+            Value range  0 to 1
+            e.g. (1, 0, 0) = Red
+            """
+        ROOT = (0.4, 0.4, 0.4)  # Gray
+        GENERAL = (1, 1, 0)  # Yellow
+        OFFSET = (0.4, 0.4, 0)  # Dark Yellow
+        FK = (1, 0.5, .5)  # Soft Red
+        IK = (0.5, 0.5, 1)  # Soft Blue/Purple
+        END = (1, 0, 0)  # Red Pure
+        UNIQUE = (0, 1, 0)  # Green
+        AUTOMATION = (1, 0.17, 0.75)  # Hot Pink
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
@@ -148,9 +194,9 @@ def remove_gamma_correction_from_rgb(rgb_color, gamma_correction=2.2):
 
 
 def add_side_color_setup(obj, color_attr_name="autoColor",
-                         clr_default=ColorConstants.Rig.CENTER,
-                         clr_left=ColorConstants.Rig.LEFT,
-                         clr_right=ColorConstants.Rig.RIGHT):
+                         clr_default=ColorConstants.RigProxy.CENTER,
+                         clr_left=ColorConstants.RigProxy.LEFT,
+                         clr_right=ColorConstants.RigProxy.RIGHT):
     """
     This function sets up a side color setup for the specified object in the Maya scene.
     It creates connections and attributes to control the color of the object based on its position in the scene.

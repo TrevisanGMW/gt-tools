@@ -4,8 +4,8 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, hide_lock_default_attributes, connect_attr
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
-from gt.utils.color_utils import set_color_override_viewport, ColorConstants
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
+from gt.utils.color_utils import set_color_viewport, ColorConstants
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
@@ -1089,7 +1089,6 @@ def create_root_curve(name="main", separator_name="options", top_group_name="rig
     """
 
     """
-
     selection = cmds.ls(selection=True)
     root_crv = get_curve('_rig_root')
     root_crv.set_name(name=name)
@@ -1100,7 +1099,7 @@ def create_root_curve(name="main", separator_name="options", top_group_name="rig
     connect_attr(source_attr=f'{root_transform}.sy', target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
     hide_lock_default_attributes(obj=root_transform, scale=False)
     set_attr_state(obj_list=root_transform, attr_list=['sx', 'sz'], hidden=True)
-    set_color_override_viewport(obj=root_transform, rgb_color=ColorConstants.CENTER)
+    set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigProxy.CENTER)
     cmds.parent(root_transform, root_grp)
     cmds.select(clear=True)
     if selection:

@@ -62,10 +62,10 @@ class TestColorUtils(unittest.TestCase):
         self.assertEqual(exponent_1, exponent_2)
 
     def test_color_constants_rig_class(self):
-        attributes = vars(color_utils.ColorConstants.Rig)
+        attributes = vars(color_utils.ColorConstants.RigProxy)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for clr_key in keys:
-            color = getattr(color_utils.ColorConstants.Rig, clr_key)
+            color = getattr(color_utils.ColorConstants.RigProxy, clr_key)
             if not color:
                 raise Exception(f'Missing color: {clr_key}')
             if not isinstance(color, tuple):
