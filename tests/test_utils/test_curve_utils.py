@@ -843,3 +843,24 @@ class TestCurveUtils(unittest.TestCase):
                    '7.0, 8.0, 9.0, 10.0], name=\'nurbsCircleShape2_transform\')'
         result = curve_utils.get_python_curve_code(crv_list=items)
         self.assertEqual(expected, result)
+
+    def test_set_curve_width(self):
+        circle_one = maya_test_tools.cmds.circle()[0]
+        result = curve_utils.set_curve_width(obj_list=circle_one, line_width=5)
+        expected_shapes = ['|nurbsCircle1|nurbsCircleShape1']
+        self.assertEqual(expected_shapes, result)
+        value = maya_test_tools.cmds.getAttr(f'{expected_shapes[0]}.lineWidth')
+        expected_width = 5
+        self.assertEqual(expected_width, value)
+
+    def test_set_curve_width_list(self):
+        circle_one = maya_test_tools.cmds.circle()[0]
+        circle_two = maya_test_tools.cmds.circle()[0]
+        crv_transforms = [circle_one, circle_two]
+        result = curve_utils.set_curve_width(obj_list=crv_transforms, line_width=5)
+        expected_shapes = ['|nurbsCircle1|nurbsCircleShape1', '|nurbsCircle2|nurbsCircleShape2']
+        self.assertEqual(expected_shapes, result)
+        for shape in expected_shapes:
+            value = maya_test_tools.cmds.getAttr(f'{shape}.lineWidth')
+            expected_width = 5
+            self.assertEqual(expected_width, value)

@@ -1802,6 +1802,37 @@ def get_python_curve_code(crv_list):
     return output
 
 
+def set_curve_width(obj_list, line_width=-1):
+    """
+    Changes the curve shape width (lineWidth) of all shapes found under a transform or the shape directly.
+    Args:
+        obj_list (str, list): A list of transform  or curve shapes to have their lineWidth attributes updated.
+        line_width (float, int, optional): New line width. Default -1 (Same as Maya's default)
+    Returns:
+        list: A list of affected shapes.
+    """
+    shapes = []
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if not isinstance(obj_list, list):
+        logger.debug(f'Unable to set curve width. Input must be a list of strings.')
+        return
+    for obj in obj_list:
+        if obj and isinstance(obj, str) and cmds.objExists(obj):
+            if cmds.objectType(obj) in CURVE_TYPES:
+                shapes.append(obj)
+            if cmds.objectType(obj) == "transform":
+                shapes += cmds.listRelatives(obj, shapes=True, fullPath=True, typ=CURVE_TYPES) or []
+    affected_shapes = []
+    for shape in shapes:
+        try:
+            cmds.setAttr(f'{shape}.lineWidth', line_width)
+            affected_shapes.append(shape)
+        except Exception as e:
+            logger.debug(f'Unable to set lineWidth for "{shape}". Issue: {str(e)}')
+    return affected_shapes
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()
@@ -1809,5 +1840,5 @@ if __name__ == "__main__":
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
     sel = cmds.ls(selection=True)
-    out = get_python_curve_code(sel)
+    out = set_curve_width("nurbsCircle1", 5)
     print(out)
