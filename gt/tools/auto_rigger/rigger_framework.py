@@ -14,9 +14,11 @@ from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.string_utils import remove_prefix
 from gt.utils.transform_utils import Transform
+from gt.utils.hierarchy_utils import parent
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -797,6 +799,7 @@ class ModuleGeneric:
         proxy_data = []
         for proxy in self.proxies:
             proxy_data.append(proxy.build())
+        return proxy_data
 
 
 class RigProject:
@@ -847,15 +850,17 @@ class RigProject:
         Args:
             module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to this project.
         """
-        print(f"type: {type(module)}")
-        if module and isinstance(module, ModuleGeneric):
+        from gt.tools.auto_rigger.rigger_modules import RigModules
+        modules_attrs = vars(RigModules)
+        all_modules = [attr for attr in modules_attrs if not (attr.startswith('__') and attr.endswith('__'))]
+        if module and str(module.__class__.__name__) in all_modules:
             module = [module]
         if module and isinstance(module, list):
             for obj in module:
-                if isinstance(obj, ModuleGeneric):
+                if str(obj.__class__.__name__) in all_modules:
                     self.modules.append(obj)
                 else:
-                    logger.debug(f'Unable to add "{str(obj)}". Incompatible type.')
+                    logger.debug(f'Unable to add "{str(obj)}". Provided module not found in "RigModules".')
             return
         logger.debug(f'Unable to add provided module to rig project. '
                      f'Must be of the type "ModuleGeneric" or a list containing only ModuleGeneric elements.')
@@ -918,7 +923,6 @@ class RigProject:
         Returns:
             RigProject: This project (self)
         """
-
         self.modules = []
         self.metadata = None
 
@@ -1010,16 +1014,21 @@ class RigProject:
 
     def build_proxy(self):
 
-        create_proxy_root_curve()
+        root_transform, root_group = create_proxy_root_curve()
+        proxy_setup_grp = cmds.group(name="proxy_setup_grp", empty=True, world=True)
+        parent(source_objects=proxy_setup_grp, target_parent=root_group)
 
         # Build Proxy
+        proxy_data_list = []
         for module in self.modules:
-            proxy_data = module.build_proxy()
-            print(proxy_data)
+            proxy_data_list += module.build_proxy()
 
-        # # Parent Proxy
-        # for module in self.modules:
-        #     parent_proxies(module.get_proxies())
+        for proxy_data in proxy_data_list:
+            parent(source_objects=proxy_data.get_setup(), target_parent=proxy_setup_grp)
+
+        # Parent Proxy
+        for module in self.modules:
+            parent_proxies(module.get_proxies())
 
 
 if __name__ == "__main__":
