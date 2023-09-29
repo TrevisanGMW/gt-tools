@@ -159,19 +159,19 @@ def load_menu(*args):
                       icon=resource_library.Icon.root_rigging,
                       parent_to_root=True)
     menu.add_menu_item(label='Biped Auto Rigger',
-                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger")',
+                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger_legacy")',
                        tooltip='Automated solution for creating a biped rig.',
                        icon=resource_library.Icon.tool_auto_rigger)
     menu.add_menu_item(label='Biped Rig Interface',
-                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger", "launch_biped_rig_interface")',
+                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger_legacy", "launch_biped_rig_interface")',
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
                        icon=resource_library.Icon.tool_rig_interface)
     menu.add_menu_item(label='Retarget Assistant',
-                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger", "launch_retarget_assistant")',
+                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger_legacy", "launch_retarget_assistant")',
                        tooltip='Script with HumanIK patches.',
                        icon=resource_library.Icon.tool_retarget_assistant)
     menu.add_menu_item(label='Game FBX Exporter',
-                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger", "launch_game_exporter")',
+                       command=IMPORT_TOOL + 'initialize_tool("auto_rigger_legacy", "launch_game_exporter")',
                        tooltip='Automated solution for exporting real-time FBX files.',
                        icon=resource_library.Icon.tool_game_fbx_exporter)
 

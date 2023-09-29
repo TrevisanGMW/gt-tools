@@ -46,10 +46,10 @@ TODO
     Add corrective and facial reference position
     Add side GUI, fingers and feet positioning
 """
-from gt.tools.auto_rigger.rigger_utilities import *
-from gt.tools.auto_rigger.rigger_data import *
-from gt.tools.auto_rigger.rigger_facial_logic import create_facial_proxy
-from gt.tools.auto_rigger.rigger_corrective_logic import create_corrective_proxy
+from gt.tools.auto_rigger_legacy.rigger_utilities import *
+from gt.tools.auto_rigger_legacy.rigger_data import *
+from gt.tools.auto_rigger_legacy.rigger_facial_logic import create_facial_proxy
+from gt.tools.auto_rigger_legacy.rigger_corrective_logic import create_corrective_proxy
 import rigger_biped_gui as rigger_gui
 import maya.cmds as cmds
 import traceback
