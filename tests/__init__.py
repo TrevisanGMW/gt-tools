@@ -20,6 +20,7 @@ for to_append in [source_dir, tools_root_dir]:
         sys.path.append(to_append)
 
 # Import Tests
+from tests import test_auto_rigger
 from tests import test_curve_library
 from tests import test_package_updater
 from tests import test_sample_tool
@@ -37,6 +38,7 @@ modules_to_test = [
     test_ui.test_qt_utils,
     test_ui.test_resource_library,
     # Tools
+    test_auto_rigger.test_rigger_framework,
     test_curve_library.test_curve_library_model,
     test_package_updater.test_package_updater_model,
     test_sample_tool.test_sample_tool_model,
@@ -63,7 +65,6 @@ modules_to_test = [
     test_utils.test_playblast_utils,
     test_utils.test_prefs_utils,
     test_utils.test_request_utils,
-    test_utils.test_rigger_utils,
     test_utils.test_scene_utils,
     test_utils.test_session_utils,
     test_utils.test_setup_utils,
