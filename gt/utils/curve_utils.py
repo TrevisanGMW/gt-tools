@@ -1833,6 +1833,42 @@ def set_curve_width(obj_list, line_width=-1):
     return affected_shapes
 
 
+def create_connection_line(object_a, object_b):
+    """
+    Creates a curve attached to two objects, often used to better visualize hierarchies
+
+    Args:
+        object_a (str): Name of the object driving the start of the curve
+        object_b (str): Name of the object driving end of the curve (usually a child of object_a)
+
+    Returns:
+        tuple: A list with the generated curve, cluster_a, and cluster_b
+
+    """
+    crv = cmds.curve(p=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], d=1)
+    cluster_a = cmds.cluster(crv + '.cv[0]')
+    cluster_b = cmds.cluster(crv + '.cv[1]')
+
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_a, cluster_a[1])
+
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_b, cluster_b[1])
+
+    object_a_short = object_a.split('|')[-1]
+    object_b_short = object_b.split('|')[-1]
+    crv = cmds.rename(crv, object_a_short + '_to_' + object_b_short)
+    cluster_a = cmds.rename(cluster_a[1], object_a_short + '_cluster')
+    cluster_b = cmds.rename(cluster_b[1], object_b_short + '_cluster')
+    cmds.setAttr(cluster_a + '.v', 0)
+    cmds.setAttr(cluster_b + '.v', 0)
+
+    shapes = cmds.listRelatives(crv, s=True, f=True) or []
+    cmds.setAttr(shapes[0] + ".lineWidth", 3)
+
+    return crv, cluster_a, cluster_b
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()

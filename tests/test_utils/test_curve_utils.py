@@ -864,3 +864,10 @@ class TestCurveUtils(unittest.TestCase):
             value = maya_test_tools.cmds.getAttr(f'{shape}.lineWidth')
             expected_width = 5
             self.assertEqual(expected_width, value)
+
+    def test_create_connection_line(self):
+        cube_one = maya_test_tools.create_poly_cube(name="myCubeA")
+        cube_two = maya_test_tools.create_poly_cube(name="myCubeB")
+        result = curve_utils.create_connection_line(object_a=cube_one, object_b=cube_two)
+        expected = ('myCubeA_to_myCubeB', 'myCubeA_cluster', 'myCubeB_cluster')
+        self.assertEqual(expected, result)
