@@ -4,8 +4,8 @@ github.com/TrevisanGMW/gt-tools
 
 RigProject > Module > Proxy > Joint/Control
 """
+from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
-from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
@@ -1015,8 +1015,9 @@ class RigProject:
     def build_proxy(self):
 
         root_transform, root_group = create_proxy_root_curve()
-        proxy_setup_grp = cmds.group(name="proxy_setup_grp", empty=True, world=True)
-        parent(source_objects=proxy_setup_grp, target_parent=root_group)
+        rig_setup_grp = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
+        set_attr(obj_list=rig_setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+        parent(source_objects=rig_setup_grp, target_parent=root_group)
 
         # Build Proxy
         proxy_data_list = []
@@ -1024,11 +1025,14 @@ class RigProject:
             proxy_data_list += module.build_proxy()
 
         for proxy_data in proxy_data_list:
-            parent(source_objects=proxy_data.get_setup(), target_parent=proxy_setup_grp)
+            parent(source_objects=proxy_data.get_setup(), target_parent=rig_setup_grp)
+            parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
+            cmds.refresh()  # Without refresh, it fails to show the correct scale
 
         # Parent Proxy
         for module in self.modules:
-            parent_proxies(module.get_proxies())
+            parent_proxies(proxy_list=module.get_proxies())
+            create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=rig_setup_grp)
 
 
 if __name__ == "__main__":
@@ -1042,10 +1046,10 @@ if __name__ == "__main__":
     a_hip = Proxy()
     a_hip.set_position(y=5.5)
     a_hip.set_locator_scale(scale=0.4)
-    built_hip = a_hip.build()
-    cmds.setAttr(f'{built_hip}.tx', 5)
-    add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
-    cmds.setAttr(f'{built_hip}.customOne', 5)
+    # built_hip = a_hip.build()
+    # cmds.setAttr(f'{built_hip}.tx', 5)
+    # add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
+    # cmds.setAttr(f'{built_hip}.customOne', 5)
     a_hip.read_data_from_scene()
 
     a_knee = Proxy(name="knee")
