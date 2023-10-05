@@ -9,9 +9,11 @@ from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
+from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid
 from gt.tools.auto_rigger.rigger_utils import RiggerConstants
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.color_utils import add_side_color_setup
 from gt.utils.string_utils import remove_prefix
 from gt.utils.transform_utils import Transform
 from gt.utils.hierarchy_utils import parent
@@ -157,7 +159,7 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
-        add_separator_attr(target_object=proxy_crv, attr_name=RiggerConstants.SEPARATOR_ATTR)
+        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_SUFFIX}')
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
                                         attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                         set_initial_uuid_value=False)
@@ -168,15 +170,33 @@ class Proxy:
             loc_scale_cluster = add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr)
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
+        # Set Transforms
         if self.offset_transform:
             self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
         if self.transform:
-            self.transform.apply_transform(target_object=proxy_crv, object_space=True)
+            self.transform.apply_transform(target_object=proxy_crv, world_space=True)
+        # Set Locator Scale
         if self.locator_scale and scale_attr:
             cmds.refresh()  # Without refresh, it fails to show the correct scale
             set_attr(scale_attr, self.locator_scale)
 
         return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
+
+    def apply_attr_dict(self, target_obj=None):
+        """
+        Attempts to apply attributes found under the attribute dictionary of this proxy
+        Args:
+            target_obj (str, optional): Affected object, this is the object to get its attributes updated.
+                                        If not provided it will attempt to retrieve the proxy using its UUID
+        """
+        if not target_obj:
+            target_obj = find_proxy_with_uuid(self.get_uuid())
+        if not target_obj or not cmds.objExists(target_obj):
+            logger.debug(f"Unable to apply proxy attributes. Failed to find target object.")
+            return
+        if self.attr_dict:
+            for attr, value in self.attr_dict.items():
+                set_attr(obj_list=str(target_obj), attr_list=str(attr), value=value)
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
@@ -325,6 +345,16 @@ class Proxy:
             return
         self.attr_dict = attr_dict
 
+    def add_to_attr_dict(self, attr, value):
+        """
+        Adds a new item to the attribute dictionary.
+        If an element with the same key already exists in the attribute dictionary, it will be overwritten.
+        Args:
+            attr (str): Attribute name (also used as key on the dictionary)
+            value (Any): Value for the attribute
+        """
+        self.attr_dict[attr] = value
+
     def set_metadata_dict(self, metadata):
         """
         Sets the metadata property. The metadata is any extra value used to further describe the curve.
@@ -339,7 +369,7 @@ class Proxy:
     def add_to_metadata(self, key, value):
         """
         Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
-        If an element with the same key already exists in the metadata dictionary, it will be overwritten
+        If an element with the same key already exists in the metadata dictionary, it will be overwritten.
         Args:
             key (str): Key of the new metadata element
             value (Any): Value of the new metadata element
@@ -348,20 +378,35 @@ class Proxy:
             self.metadata = {}
         self.metadata[key] = value
 
-    def add_line_parent(self, line_parent):
+    def add_meta_parent(self, line_parent):
         """
-        Adds a line parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
-        This is used to created visualization lines without actually parenting the element.
+        Adds a meta parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
+        This is used to created visualization lines or other elements without actually parenting the element.
         Args:
-            line_parent (str, Proxy): New line parent, if a string, it should be a UUID,
-                                      if Proxy, it will get the UUID.
+            line_parent (str, Proxy): New meta parent, if a UUID string. If Proxy, it will get the UUID (get_uuid).
         """
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
         if isinstance(line_parent, str) and is_uuid_valid(line_parent):
-            self.metadata[RiggerConstants.PROXY_LINE_PARENT] = line_parent
+            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent
         if isinstance(line_parent, Proxy):
-            self.metadata[RiggerConstants.PROXY_LINE_PARENT] = line_parent.get_uuid()
+            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent.get_uuid()
+
+    def add_color(self, rgb_color):
+        """
+        Adds a color attribute to the metadata dictionary.
+        This attribute is used to determine a fixed proxy color (instead of the side setup)
+        Args:
+            rgb_color (tuple, list): New RGB color. Must be a tuple or a list with 3 floats/integers
+        """
+        if isinstance(rgb_color, (tuple, list)) and len(rgb_color) >= 3:  # 3 = RGB
+            if all(isinstance(item, (int, float)) for item in rgb_color):
+                self.attr_dict["autoColor"] = False
+                self.attr_dict["colorDefault"] = [rgb_color[0], rgb_color[1], rgb_color[2]]
+            else:
+                logger.debug(f'Unable to set color. Input must contain only numeric values.')
+        else:
+            logger.debug(f'Unable to set color. Input must be a tuple or a list with at least 3 elements (RGB).')
 
     def set_uuid(self, uuid):
         """
@@ -1042,6 +1087,7 @@ class RigProject:
             proxy_data_list += module.build_proxy()
 
         for proxy_data in proxy_data_list:
+            add_side_color_setup(obj=proxy_data.get_long_name())
             parent(source_objects=proxy_data.get_setup(), target_parent=rig_setup_grp)
             parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
             cmds.refresh()  # Without refresh, it fails to show the correct scale
@@ -1050,10 +1096,13 @@ class RigProject:
         for module in self.modules:
             parent_proxies(proxy_list=module.get_proxies())
             create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=rig_setup_grp)
+            for proxy in module.get_proxies():
+                proxy.apply_attr_dict()
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    from pprint import pprint
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_modules import RigModules
@@ -1073,6 +1122,7 @@ if __name__ == "__main__":
     a_knee.set_position(y=2.05, x=-10)
     a_knee.set_locator_scale(scale=0.5)
     a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
+    a_knee.add_color((1, 0, 0))
 
     a_module.add_to_proxies([a_hip, a_knee])
 
@@ -1082,12 +1132,13 @@ if __name__ == "__main__":
 
     a_project = RigProject()
     a_project.add_to_modules(a_module)
-    a_project.add_to_modules(a_leg)
+    # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     a_project_dict = a_project.get_project_as_dict()
-    cmds.file(new=True, force=True)
-
-    another_project = RigProject()
-    another_project.read_data_from_dict(a_project_dict)
-    another_project.build_proxy()
-    cmds.viewFit(all=True)
+    pprint(a_project_dict)
+    # cmds.file(new=True, force=True)
+    #
+    # another_project = RigProject()
+    # another_project.read_data_from_dict(a_project_dict)
+    # another_project.build_proxy()
+    # cmds.viewFit(all=True)
