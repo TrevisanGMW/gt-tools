@@ -348,6 +348,21 @@ class Proxy:
             self.metadata = {}
         self.metadata[key] = value
 
+    def add_line_parent(self, line_parent):
+        """
+        Adds a line parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
+        This is used to created visualization lines without actually parenting the element.
+        Args:
+            line_parent (str, Proxy): New line parent, if a string, it should be a UUID,
+                                      if Proxy, it will get the UUID.
+        """
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        if isinstance(line_parent, str) and is_uuid_valid(line_parent):
+            self.metadata[RiggerConstants.PROXY_LINE_PARENT] = line_parent
+        if isinstance(line_parent, Proxy):
+            self.metadata[RiggerConstants.PROXY_LINE_PARENT] = line_parent.get_uuid()
+
     def set_uuid(self, uuid):
         """
         Sets a new UUID for the proxy.
@@ -1013,7 +1028,9 @@ class RigProject:
         return True
 
     def build_proxy(self):
-
+        """
+        Builds Proxy/Guide Armature/Skeleton
+        """
         root_transform, root_group = create_proxy_root_curve()
         rig_setup_grp = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
         set_attr(obj_list=rig_setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
@@ -1044,7 +1061,7 @@ if __name__ == "__main__":
     a_module = ModuleGeneric()
 
     a_hip = Proxy()
-    a_hip.set_position(y=5.5)
+    a_hip.set_position(y=5.5, x=-10)
     a_hip.set_locator_scale(scale=0.4)
     # built_hip = a_hip.build()
     # cmds.setAttr(f'{built_hip}.tx', 5)
@@ -1053,7 +1070,7 @@ if __name__ == "__main__":
     a_hip.read_data_from_scene()
 
     a_knee = Proxy(name="knee")
-    a_knee.set_position(y=2.05)
+    a_knee.set_position(y=2.05, x=-10)
     a_knee.set_locator_scale(scale=0.5)
     a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
 
