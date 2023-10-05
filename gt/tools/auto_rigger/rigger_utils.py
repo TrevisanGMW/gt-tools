@@ -21,14 +21,15 @@ logger.setLevel(logging.INFO)
 class RiggerConstants:
     def __init__(self):
         """
-        Constant values used by proxy elements.
+        Constant values used by the auto rigging system.
+        e.g. Attribute names, dictionary keys or initial values.
         """
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
-    PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
-    PROXY_LINE_PARENT = "lineParentUUID"  # Stored in a proxy metadata, used to create lines when not parenting
-    SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
+    PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
+    PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
+    SEPARATOR_SUFFIX = "Options"  # Separator attribute locked at the top of the related attributes (a.k.a. header)
 
 
 def find_proxy_with_uuid(uuid_string):
@@ -63,25 +64,39 @@ def parent_proxies(proxy_list):
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
+    """
+    Creates visualization lines according to the proxy UUID parent attribute.
+    If a proxy meta parent is found, this is used instead.
+    Args:
+        proxy_list (list): A list of Proxy objects to be parented.
+                           UUID and parent UUID fields are required for the operation.
+                           Objects without it will be ignored.
+        lines_parent (str, optional): If provided, it will automatically parent all generated elements to this object.
+                                      Must exist and allow objects to be parented to it. e.g. "pSphere1"
+    Returns:
+        list: List of generated elements.
+    """
     for proxy in proxy_list:
         built_proxy = find_proxy_with_uuid(proxy.get_uuid())
         parent_proxy = find_proxy_with_uuid(proxy.get_parent_uuid())
 
-        # Check for Meta Parent
-        if not parent_proxy:
-            metadata = proxy.get_metadata()
-            if metadata:
-                line_parent = metadata.get(RiggerConstants.PROXY_LINE_PARENT, None)
-                if line_parent:
-                    parent_proxy = find_proxy_with_uuid(line_parent)
+        # Check for Meta Parent - OVERWRITES parent!
+        metadata = proxy.get_metadata()
+        if metadata:
+            meta_parent = metadata.get(RiggerConstants.PROXY_META_PARENT, None)
+            if meta_parent:
+                parent_proxy = find_proxy_with_uuid(meta_parent)
 
         # Create Line
+        generated_objects = []
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             try:
-                crv, cluster_a, cluster_b = create_connection_line(object_a=built_proxy,
-                                                                   object_b=parent_proxy) or [None, None, None]
+                line_objects = create_connection_line(object_a=built_proxy,
+                                                      object_b=parent_proxy) or []
                 if lines_parent and cmds.objExists(lines_parent):
-                    parent(source_objects=[crv, cluster_a, cluster_b], target_parent=lines_parent)
+                    generated_objects += parent(source_objects=line_objects, target_parent=lines_parent) or []
+                else:
+                    generated_objects += line_objects
             except Exception as e:
                 logger.debug(f'Failed to create visualization line. Issue: {str(e)}')
 
@@ -122,7 +137,7 @@ def create_proxy_root_curve():
     """
     root_transform, root_group = create_root_curve(name="root", group_name="rigger_proxy")
     hide_lock_default_attributes(obj=root_transform, scale=False)
-    add_separator_attr(target_object=root_transform, attr_name="proxyPreferences")
+    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_SUFFIX}')
     set_curve_width(obj_list=root_transform, line_width=2)
     return root_transform, root_group
 
@@ -134,7 +149,7 @@ def create_control_root_curve():
         tuple: A tuple with the name of the curve transform and the name of the parent group
     """
     root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
-    add_separator_attr(target_object=root_transform, attr_name="rigPreferences")
+    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_SUFFIX}')
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return root_transform, root_group
