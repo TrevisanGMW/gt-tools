@@ -2,7 +2,8 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric, RiggerConstants
+from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
+from gt.utils.color_utils import ColorConstants
 import maya.cmds as cmds
 import logging
 
@@ -28,17 +29,17 @@ class ModuleBipedLeg(ModuleGeneric):
         knee = Proxy(name="knee")
         knee.set_position(y=47.05)
         knee.set_locator_scale(scale=0.5)
-        knee.add_line_parent(line_parent=hip)
+        knee.add_meta_parent(line_parent=hip)
 
         ankle = Proxy(name="ankle")
         ankle.set_position(y=9.6)
         ankle.set_locator_scale(scale=0.4)
-        ankle.add_line_parent(line_parent=knee)
+        ankle.add_meta_parent(line_parent=knee)
 
         ball = Proxy(name="ball")
         ball.set_position(z=13.1)
         ball.set_locator_scale(scale=0.4)
-        ball.add_line_parent(line_parent=ankle)
+        ball.add_meta_parent(line_parent=ankle)
 
         toe = Proxy(name="toe")
         toe.set_position(z=23.4)
@@ -48,7 +49,8 @@ class ModuleBipedLeg(ModuleGeneric):
 
         heel_pivot = Proxy(name="heelPivot")
         heel_pivot.set_locator_scale(scale=0.1)
-        heel_pivot.add_line_parent(line_parent=ankle)
+        heel_pivot.add_meta_parent(line_parent=ankle)
+        heel_pivot.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
         self.proxies.extend([hip, knee, ankle, ball, toe, heel_pivot])
 
     # --------------------------------------------------- Misc ---------------------------------------------------
