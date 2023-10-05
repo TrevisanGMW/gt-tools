@@ -111,8 +111,8 @@ def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
     """
     obj_list = cmds.ls(typ=obj_type, long=True) or []
     for obj in obj_list:
-        if cmds.objExists(obj + "." + attr_name):
-            existing_uuid = cmds.getAttr(obj + "." + attr_name)
+        if cmds.objExists(f'{obj}.{attr_name}'):
+            existing_uuid = cmds.getAttr(f'{obj}.{attr_name}')
             if existing_uuid == uuid_string:
                 return obj
 
