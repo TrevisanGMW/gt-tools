@@ -1833,13 +1833,14 @@ def set_curve_width(obj_list, line_width=-1):
     return affected_shapes
 
 
-def create_connection_line(object_a, object_b):
+def create_connection_line(object_a, object_b, constraint=True):
     """
     Creates a curve attached to two objects, often used to better visualize hierarchies
 
     Args:
         object_a (str): Name of the object driving the start of the curve
         object_b (str): Name of the object driving end of the curve (usually a child of object_a)
+        constraint (bool, optional): If True, it will constrain the clusters to "object_a" and "object_b".
 
     Returns:
         tuple: A list with the generated curve, cluster_a, and cluster_b
@@ -1862,6 +1863,12 @@ def create_connection_line(object_a, object_b):
     cluster_b = cmds.rename(cluster_b[1], object_b_short + '_cluster')
     cmds.setAttr(cluster_a + '.v', 0)
     cmds.setAttr(cluster_b + '.v', 0)
+
+    if constraint and cmds.objExists(object_a):
+        cmds.pointConstraint(object_a, cluster_a)
+
+    if constraint and cmds.objExists(object_b):
+        cmds.pointConstraint(object_b, cluster_b)
 
     shapes = cmds.listRelatives(crv, s=True, f=True) or []
     cmds.setAttr(shapes[0] + ".lineWidth", 3)
