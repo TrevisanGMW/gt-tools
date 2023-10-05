@@ -3,8 +3,10 @@ Color Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_attr_double_three
+from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -402,25 +404,26 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
     if not obj or not cmds.objExists(obj):
         return
 
+    obj_name = get_short_name(obj)
     # Setup Base Connections
-    cmds.setAttr(obj + ".overrideEnabled", 1)
-    cmds.setAttr(obj + ".overrideRGBColors", 1)
-    clr_side_condition = cmds.createNode("condition", name=obj + "_clr_side_condition")
-    clr_center_condition = cmds.createNode("condition", name=obj + "_clr_center_condition")
-    decompose_matrix = cmds.createNode("decomposeMatrix", name=obj + "_decompose_matrix")
-    cmds.connectAttr(obj + ".worldMatrix[0]", decompose_matrix + ".inputMatrix")
-    cmds.connectAttr(decompose_matrix + ".outputTranslateX", clr_side_condition + ".firstTerm")
-    cmds.connectAttr(decompose_matrix + ".outputTranslateX", clr_center_condition + ".firstTerm")
-    cmds.connectAttr(clr_side_condition + ".outColor", clr_center_condition + ".colorIfFalse")
-    cmds.setAttr(clr_side_condition + ".operation", 2)
+    cmds.setAttr(f'{obj}.overrideEnabled', 1)
+    cmds.setAttr(f'{obj}.overrideRGBColors', 1)
+    clr_side_condition = cmds.createNode("condition", name=f'{obj_name}_clr_side_condition')
+    clr_center_condition = cmds.createNode("condition", name=f'{obj_name}_clr_center_condition')
+    decompose_matrix = cmds.createNode("decomposeMatrix", name=f'{obj_name}_decompose_matrix')
+    cmds.connectAttr(f'{obj}.worldMatrix[0]', f'{decompose_matrix}.inputMatrix')
+    cmds.connectAttr(f"{decompose_matrix}.outputTranslateX", f"{clr_side_condition}.firstTerm")
+    cmds.connectAttr(f"{decompose_matrix}.outputTranslateX", f"{clr_center_condition}.firstTerm")
+    cmds.connectAttr(f"{clr_side_condition}.outColor", f"{clr_center_condition}.colorIfFalse")
+    cmds.setAttr(f"{clr_side_condition}.operation", 2)
 
     # Create Auto Color Attribute
     cmds.addAttr(obj, ln=color_attr_name, at='bool', k=True)
-    cmds.setAttr(obj + "." + color_attr_name, 1)
-    clr_auto_blend = cmds.createNode("blendColors", name=obj + "_clr_auto_blend")
-    cmds.connectAttr(clr_auto_blend + ".output", obj + ".overrideColorRGB")
+    cmds.setAttr(f"{obj}.{color_attr_name}", 1)
+    clr_auto_blend = cmds.createNode("blendColors", name=f"{obj_name}_clr_auto_blend")
+    cmds.connectAttr(f"{clr_auto_blend}.output", f"{obj}.overrideColorRGB")
     cmds.connectAttr(clr_center_condition + ".outColor", clr_auto_blend + ".color1")
-    cmds.connectAttr(obj + "." + color_attr_name, clr_auto_blend + ".blender")
+    cmds.connectAttr(f"{obj}.{color_attr_name}", f"{clr_auto_blend}.blender")
 
     # Setup Color Attributes
     clr_attr = "colorDefault"
@@ -434,20 +437,20 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
     cmds.connectAttr(f'{obj}.{clr_attr}', clr_auto_blend + ".color2")  # Blend node input
     r_clr_attr = "colorRight"
     add_attr_double_three(obj, r_clr_attr, keyable=False)
-    cmds.setAttr(obj + "." + r_clr_attr + "R", clr_left[0])
-    cmds.setAttr(obj + "." + r_clr_attr + "G", clr_left[1])
-    cmds.setAttr(obj + "." + r_clr_attr + "B", clr_left[2])
-    cmds.connectAttr(obj + "." + r_clr_attr + "R", clr_side_condition + ".colorIfTrueR")
-    cmds.connectAttr(obj + "." + r_clr_attr + "G", clr_side_condition + ".colorIfTrueG")
-    cmds.connectAttr(obj + "." + r_clr_attr + "B", clr_side_condition + ".colorIfTrueB")
+    cmds.setAttr(f"{obj}.{r_clr_attr}R", clr_left[0])
+    cmds.setAttr(f"{obj}.{r_clr_attr}G", clr_left[1])
+    cmds.setAttr(f"{obj}.{r_clr_attr}B", clr_left[2])
+    cmds.connectAttr(f"{obj}.{r_clr_attr}R", f"{clr_side_condition}.colorIfTrueR")
+    cmds.connectAttr(f"{obj}.{r_clr_attr}G", f"{clr_side_condition}.colorIfTrueG")
+    cmds.connectAttr(f"{obj}.{r_clr_attr}B", f"{clr_side_condition}.colorIfTrueB")
     l_clr_attr = "colorLeft"
     add_attr_double_three(obj, l_clr_attr, keyable=False)
-    cmds.setAttr(obj + "." + l_clr_attr + "R", clr_right[0])
-    cmds.setAttr(obj + "." + l_clr_attr + "G", clr_right[1])
-    cmds.setAttr(obj + "." + l_clr_attr + "B", clr_right[2])
-    cmds.connectAttr(obj + "." + l_clr_attr + "R", clr_side_condition + ".colorIfFalseR")
-    cmds.connectAttr(obj + "." + l_clr_attr + "G", clr_side_condition + ".colorIfFalseG")
-    cmds.connectAttr(obj + "." + l_clr_attr + "B", clr_side_condition + ".colorIfFalseB")
+    cmds.setAttr(f"{obj}.{l_clr_attr}R", clr_right[0])
+    cmds.setAttr(f"{obj}.{l_clr_attr}G", clr_right[1])
+    cmds.setAttr(f"{obj}.{l_clr_attr}B", clr_right[2])
+    cmds.connectAttr(f"{obj}.{l_clr_attr}R", f"{clr_side_condition}.colorIfFalseR")
+    cmds.connectAttr(f"{obj}.{l_clr_attr}G", f"{clr_side_condition}.colorIfFalseG")
+    cmds.connectAttr(f"{obj}.{l_clr_attr}B", f"{clr_side_condition}.colorIfFalseB")
 
 
 if __name__ == "__main__":
