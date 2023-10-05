@@ -304,6 +304,13 @@ class TestAttributeUtils(unittest.TestCase):
         expected = "string_value"
         self.assertEqual(expected, result)
 
+    def test_set_attr_double3(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.set_attr(obj_list=cube, attr_list="translate", value=[1, 0, 0])
+        expected = [(1.0, 0.0, 0.0)]
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="translate")
+        self.assertEqual(expected, result)
+
     def test_set_attr_multiple_objects(self):
         cube_list = []
         for index in range(0, 10):

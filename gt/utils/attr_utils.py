@@ -69,6 +69,8 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
                     cmds.setAttr(attr_path, lock=False)
             if isinstance(value, str):
                 cmds.setAttr(attr_path, value, typ="string", clamp=clamp)
+            if isinstance(value, (tuple, list)):
+                cmds.setAttr(attr_path, *value, typ="double3", clamp=clamp)
             else:
                 cmds.setAttr(attr_path, value, clamp=clamp)
         except Exception as e:
