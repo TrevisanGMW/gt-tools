@@ -21,12 +21,13 @@ logger.setLevel(logging.INFO)
 class RiggerConstants:
     def __init__(self):
         """
-        Constant values used by all proxy elements.
+        Constant values used by proxy elements.
         """
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_MAIN_CRV = "proxy_main_crv"  # Main control that holds many proxies
+    PROXY_LINE_PARENT = "lineParentUUID"  # Stored in a proxy metadata, used to create lines when not parenting
     SEPARATOR_ATTR = "proxyPreferences"  # Locked attribute at the top of the proxy options
 
 
@@ -55,8 +56,6 @@ def parent_proxies(proxy_list):
     for proxy in proxy_list:
         built_proxy = find_proxy_with_uuid(proxy.get_uuid())
         parent_proxy = find_proxy_with_uuid(proxy.get_parent_uuid())
-        # print(f'built_proxy: {built_proxy}')
-        # print(f'parent_proxy: {parent_proxy}')
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
             if offset:
@@ -64,11 +63,19 @@ def parent_proxies(proxy_list):
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
-    # Parent Joints
     for proxy in proxy_list:
         built_proxy = find_proxy_with_uuid(proxy.get_uuid())
         parent_proxy = find_proxy_with_uuid(proxy.get_parent_uuid())
-        print(parent_proxy)
+
+        # Check for Meta Parent
+        if not parent_proxy:
+            metadata = proxy.get_metadata()
+            if metadata:
+                line_parent = metadata.get(RiggerConstants.PROXY_LINE_PARENT, None)
+                if line_parent:
+                    parent_proxy = find_proxy_with_uuid(line_parent)
+
+        # Create Line
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             try:
                 crv, cluster_a, cluster_b = create_connection_line(object_a=built_proxy,
