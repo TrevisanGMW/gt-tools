@@ -861,6 +861,19 @@ class ModuleGeneric:
             proxy_data.append(proxy.build())
         return proxy_data
 
+    def proxy_post(self):
+        """
+        Runs post proxy function.
+        """
+        logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
+
+    def build_rig(self):
+        """
+        Runs build rig function.
+        """
+        logger.debug('"build_rig" called.')
+        # TODO @@@ - Create joints and parent joints, then orient joints.
+
 
 class RigProject:
     def __init__(self,
@@ -1098,6 +1111,7 @@ class RigProject:
             create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=rig_setup_grp)
             for proxy in module.get_proxies():
                 proxy.apply_attr_dict()
+            module.proxy_post()
 
 
 if __name__ == "__main__":
@@ -1122,7 +1136,7 @@ if __name__ == "__main__":
     a_knee.set_position(y=2.05, x=-10)
     a_knee.set_locator_scale(scale=0.5)
     a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
-    a_knee.add_color((1, 0, 0))
+    a_knee.add_color((1, 1, 0))
 
     a_module.add_to_proxies([a_hip, a_knee])
 
@@ -1132,13 +1146,12 @@ if __name__ == "__main__":
 
     a_project = RigProject()
     a_project.add_to_modules(a_module)
-    # a_project.add_to_modules(a_leg)
+    a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     a_project_dict = a_project.get_project_as_dict()
-    pprint(a_project_dict)
-    # cmds.file(new=True, force=True)
-    #
-    # another_project = RigProject()
-    # another_project.read_data_from_dict(a_project_dict)
-    # another_project.build_proxy()
-    # cmds.viewFit(all=True)
+    cmds.file(new=True, force=True)
+
+    another_project = RigProject()
+    another_project.read_data_from_dict(a_project_dict)
+    another_project.build_proxy()
+    cmds.viewFit(all=True)
