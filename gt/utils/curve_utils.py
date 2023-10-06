@@ -3,9 +3,9 @@ Curve Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.naming_utils import get_short_name, NamingConstants
+from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
-from gt.utils.attr_utils import add_separator_attr
 from gt.utils.system_utils import DataDirConstants
 from gt.utils import attr_utils
 from decimal import Decimal
@@ -1697,7 +1697,7 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True, use_output_wi
 # ------------------------------ Curves Collection Utilities End ------------------------------
 
 
-def add_shape_scale_cluster(curve, scale_driver_attr):
+def add_shape_scale_cluster(obj, scale_driver_attr, reset_pivot=True):
     """
     Creates a cluster to control the scale of the provided curve.
 
@@ -1706,17 +1706,23 @@ def add_shape_scale_cluster(curve, scale_driver_attr):
     scale_driver_attr (str): The object name and attribute used to drive the scale.
                              Example: "curveName.locatorScale"
                              This attribute will control the scale of the curve shape.
+    create_driver (bool, optional): If active, it will create a group and snap to the object instead of using
 
     Returns:
         str or None: Cluster handle if successful, None if it failed.
     """
-    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{get_short_name(curve)}_LocScale')
+    cluster = cmds.cluster(f'{obj}.cv[*]', name=f'{get_short_name(obj)}_LocScale')
     if not cluster:
-        logger.debug(f'Unable to create scale cluster. Missing "{str(curve)}".')
+        logger.debug(f'Failed to create scale cluster. Missing "{str(obj)}".')
         return
     else:
         cluster_handle = cluster[1]
-        cmds.setAttr(cluster_handle + '.v', 0)
+        if reset_pivot:
+            set_attr(obj_list=cluster_handle,
+                     attr_list=["scalePivotX", "scalePivotY", "scalePivotZ",
+                                "rotatePivotX", "rotatePivotY", "rotatePivotZ"],
+                     value=0)
+        cmds.setAttr(f'{cluster_handle}.v', 0)
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sx')
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sy')
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sz')
