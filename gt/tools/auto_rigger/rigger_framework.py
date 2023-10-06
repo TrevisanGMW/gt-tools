@@ -848,7 +848,9 @@ class ModuleGeneric:
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
-        Checks if the rig module is valid (can be used)
+        Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.
+        Returns
+            bool: True if valid, False otherwise
         """
         if not self.proxies:
             logger.warning('Missing proxies. A rig module needs at least one proxy to function.')
@@ -856,23 +858,37 @@ class ModuleGeneric:
         return True
 
     def build_proxy(self):
+        """
+        Builds the proxy representation of the rig (for the user to adjust and determine the pose)
+        Returns:
+            list: A list of ProxyData objects. These objects describe the created proxy elements.
+        """
         proxy_data = []
         for proxy in self.proxies:
             proxy_data.append(proxy.build())
         return proxy_data
 
-    def proxy_post(self):
+    def build_proxy_post(self):
         """
-        Runs post proxy function.
+        Runs post proxy script.
+        When in a project, this runs after the "build_proxy" is done in all modules.
+        Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
         """
         logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
 
     def build_rig(self):
         """
-        Runs build rig function.
+        Runs build rig script.
         """
-        logger.debug('"build_rig" called.')
-        # TODO @@@ - Create joints and parent joints, then orient joints.
+        logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+        # TODO @@@ - Create, parent, and orient joints.
+
+    def build_rig_post(self):
+        """
+        Runs post rig script.
+        When in a project, this runs after the "build_rig" is done in all modules.
+        """
+        logger.debug(f'"build_rig_post" function from "{self.get_module_class_name()}" was called.')
 
 
 class RigProject:
@@ -1111,7 +1127,7 @@ class RigProject:
             create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=rig_setup_grp)
             for proxy in module.get_proxies():
                 proxy.apply_attr_dict()
-            module.proxy_post()
+            module.build_proxy_post()
 
 
 if __name__ == "__main__":
