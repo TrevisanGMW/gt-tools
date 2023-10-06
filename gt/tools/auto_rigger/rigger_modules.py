@@ -1,5 +1,5 @@
 from gt.tools.auto_rigger.rigger_framework import ModuleGeneric
-from gt.tools.auto_rigger.rigger_modules_leg import ModuleBipedLeg
+from gt.tools.auto_rigger.rigger_module_leg_biped import ModuleBipedLeg
 
 
 class RigModules:

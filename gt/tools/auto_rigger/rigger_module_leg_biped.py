@@ -63,13 +63,29 @@ class ModuleBipedLeg(ModuleGeneric):
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
-        Checks if the rig module is valid (can be used)
+        Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.
+        Returns
+            bool: True if valid, False otherwise
         """
         # TODO Other checks here
-        return super().is_valid()
+        is_valid = super().is_valid()  # Passthrough
+        return is_valid
 
-    def proxy_post(self):
-        """ Proxy Post Overwrite (Called after proxy is created and parented """
+    def build_proxy(self):
+        """
+        Build proxy elements in the viewport
+        Returns:
+            list: A list of ProxyData objects. These objects describe the created proxy elements.
+        """
+        proxy = super().build_proxy()  # Passthrough
+        return proxy
+
+    def build_proxy_post(self):
+        """
+        Runs post proxy script.
+        When in a project, this runs after the "build_proxy" is done in all modules.
+        Creates leg proxy behavior through constraints and offsets.
+        """
         hip = find_proxy_with_uuid(self.hip.get_uuid())
         ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         knee = find_proxy_with_uuid(self.knee.get_uuid())
@@ -79,11 +95,12 @@ class ModuleBipedLeg(ModuleGeneric):
         print(ball)
         offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
         print(offset)
-        ball_pivot_grp = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ball))}_pivot')
+        ball_pivot_grp = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ankle))}_pivot')
+        cmds.delete(cmds.pointConstraint())
         hierarchy_utils.parent(source_objects=offset, target_parent=ball_pivot_grp)
 
     def build_rig(self):
-        print('"build_rig" executed.')
+        super().build_rig()  # Passthrough
 
 
 if __name__ == "__main__":
