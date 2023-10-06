@@ -2,8 +2,12 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric, get_curve
+from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
+from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid
+from gt.utils.naming_utils import get_short_name
 from gt.utils.color_utils import ColorConstants
+from gt.utils.curve_utils import get_curve
+from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
 
@@ -22,37 +26,39 @@ class ModuleBipedLeg(ModuleGeneric):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
         # Default Proxies
-        hip = Proxy(name="hip")
-        hip.set_position(y=84.5)
-        hip.set_locator_scale(scale=0.4)
+        self.hip = Proxy(name="hip")
+        self.hip.set_position(y=84.5)
+        self.hip.set_locator_scale(scale=0.4)
 
-        knee = Proxy(name="knee")
-        knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
-        knee.set_position(y=47.05)
-        knee.set_locator_scale(scale=0.5)
-        knee.add_meta_parent(line_parent=hip)
+        self.knee = Proxy(name="knee")
+        self.knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
+        self.knee.set_position(y=47.05)
+        self.knee.set_locator_scale(scale=0.5)
+        self.knee.add_meta_parent(line_parent=self.hip)
 
-        ankle = Proxy(name="ankle")
-        ankle.set_position(y=9.6)
-        ankle.set_locator_scale(scale=0.4)
-        ankle.add_meta_parent(line_parent=knee)
+        self.ankle = Proxy(name="ankle")
+        self.ankle.set_position(y=9.6)
+        self.ankle.set_locator_scale(scale=0.4)
+        self.ankle.add_meta_parent(line_parent=self.knee)
 
-        ball = Proxy(name="ball")
-        ball.set_position(z=13.1)
-        ball.set_locator_scale(scale=0.4)
-        ball.add_meta_parent(line_parent=ankle)
+        self.ball = Proxy(name="ball")
+        self.ball.set_position(z=13.1)
+        self.ball.set_locator_scale(scale=0.4)
+        self.ball.add_meta_parent(line_parent=self.ankle)
 
-        toe = Proxy(name="toe")
-        toe.set_position(z=23.4)
-        toe.set_locator_scale(scale=0.4)
-        toe.set_parent_uuid(uuid=ball.get_uuid())
-        toe.set_parent_uuid_from_proxy(parent_proxy=ball)
+        self.toe = Proxy(name="toe")
+        self.toe.set_position(z=23.4)
+        self.toe.set_locator_scale(scale=0.4)
+        self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
+        self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
 
-        heel_pivot = Proxy(name="heelPivot")
-        heel_pivot.set_locator_scale(scale=0.1)
-        heel_pivot.add_meta_parent(line_parent=ankle)
-        heel_pivot.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
-        self.proxies.extend([hip, knee, ankle, ball, toe, heel_pivot])
+        self.heel_pivot = Proxy(name="heelPivot")
+        self.heel_pivot.set_locator_scale(scale=0.1)
+        self.heel_pivot.add_meta_parent(line_parent=self.ankle)
+        self.heel_pivot.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
+
+        # Update Proxies
+        self.proxies.extend([self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel_pivot])
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -61,6 +67,23 @@ class ModuleBipedLeg(ModuleGeneric):
         """
         # TODO Other checks here
         return super().is_valid()
+
+    def proxy_post(self):
+        """ Proxy Post Overwrite (Called after proxy is created and parented """
+        hip = find_proxy_with_uuid(self.hip.get_uuid())
+        ankle = find_proxy_with_uuid(self.ankle.get_uuid())
+        knee = find_proxy_with_uuid(self.knee.get_uuid())
+        cmds.pointConstraint([hip, ankle], knee)
+
+        ball = find_proxy_with_uuid(self.ball.get_uuid())
+        print(ball)
+        offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
+        print(offset)
+        ball_pivot_grp = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ball))}_pivot')
+        hierarchy_utils.parent(source_objects=offset, target_parent=ball_pivot_grp)
+
+    def build_rig(self):
+        print('"build_rig" executed.')
 
 
 if __name__ == "__main__":
