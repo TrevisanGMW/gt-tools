@@ -2,7 +2,7 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
+from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric, get_curve
 from gt.utils.color_utils import ColorConstants
 import maya.cmds as cmds
 import logging
@@ -27,6 +27,7 @@ class ModuleBipedLeg(ModuleGeneric):
         hip.set_locator_scale(scale=0.4)
 
         knee = Proxy(name="knee")
+        knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
         knee.set_position(y=47.05)
         knee.set_locator_scale(scale=0.5)
         knee.add_meta_parent(line_parent=hip)
@@ -71,3 +72,6 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_leg)
     a_project.build_proxy()
+    # get_curve('_proxy_joint_arrow').build()
+
+    cmds.viewFit(all=True)
