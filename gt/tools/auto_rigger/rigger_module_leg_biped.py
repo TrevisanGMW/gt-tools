@@ -2,14 +2,16 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
+from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, RiggerConstants
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
-from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid
+from gt.utils.attr_utils import add_attr, connect_attr
 from gt.utils.naming_utils import get_short_name
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -86,18 +88,33 @@ class ModuleBipedLeg(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         Creates leg proxy behavior through constraints and offsets.
         """
+        # Get Maya Elements
         hip = find_proxy_with_uuid(self.hip.get_uuid())
         ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         knee = find_proxy_with_uuid(self.knee.get_uuid())
+        ball = find_proxy_with_uuid(self.ball.get_uuid())
+        heel_pivot = find_proxy_with_uuid(self.heel_pivot.get_uuid())
+
+        # Knee
         cmds.pointConstraint([hip, ankle], knee)
 
-        ball = find_proxy_with_uuid(self.ball.get_uuid())
-        print(ball)
-        offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
-        print(offset)
-        ball_pivot_grp = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ankle))}_pivot')
-        cmds.delete(cmds.pointConstraint())
-        hierarchy_utils.parent(source_objects=offset, target_parent=ball_pivot_grp)
+        # Ankle
+        ankle_offset = cmds.listRelatives(ankle, parent=True, typ="transform", fullPath=True) or []
+        add_attr(target_list=ankle, attributes="followHip", attr_type='bool', default=True)
+        constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')
+        connect_attr(source_attr=f'{hip}.', target_attr_list=f'{ankle_offset}.')
+
+        # # Basic Setup
+        # ball_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
+        # ball_driver = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ankle))}_pivot')
+        # # Heel
+        # heel_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
+        # add_attr(target_list=heel_pivot, attributes="followAnkle", attr_type='bool')
+        # constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')
+        # cmds.connectAttr(f'{heel_pivot}.followAnkle', constraint[0] + '.w0')
+        # hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
+
+        # Setup Knee
 
     def build_rig(self):
         super().build_rig()  # Passthrough
