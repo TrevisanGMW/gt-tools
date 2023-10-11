@@ -159,7 +159,7 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
-        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_SUFFIX}')
+        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
         uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
                                         attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                         set_initial_uuid_value=False)

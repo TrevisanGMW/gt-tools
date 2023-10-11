@@ -29,7 +29,7 @@ class RiggerConstants:
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
-    SEPARATOR_SUFFIX = "Options"  # Separator attribute locked at the top of the related attributes (a.k.a. header)
+    SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
 
 
 def find_proxy_with_uuid(uuid_string):
@@ -137,7 +137,7 @@ def create_proxy_root_curve():
     """
     root_transform, root_group = create_root_curve(name="root", group_name="rigger_proxy")
     hide_lock_default_attributes(obj=root_transform, scale=False)
-    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_SUFFIX}')
+    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     set_curve_width(obj_list=root_transform, line_width=2)
     return root_transform, root_group
 
@@ -149,7 +149,7 @@ def create_control_root_curve():
         tuple: A tuple with the name of the curve transform and the name of the parent group
     """
     root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
-    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_SUFFIX}')
+    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return root_transform, root_group
