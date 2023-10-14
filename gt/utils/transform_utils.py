@@ -985,30 +985,34 @@ def convert_transforms_to_locators():
         sys.stdout.write(f'\n{feedback.get_string_message()}')
 
 
-def filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter=None):
+def overwrite_xyz_values(passthrough_xyz, overwrite_xyz=(0, 0, 0), overwrite_dimensions=None):
     """
     Helper function to skip/filter dimensions when applying transforms.
     Starts with the original XYZ values and overwrite each dimension with the provided overwrite values.
     If a filter is provided, a value can be ignored, in which case the original value is retained.
 
     Args:
-        original_xyz (tuple, list): A tuple with X, Y and Z floats. These are the original values.
-        overwrite_xyz (tuple, list): A tuple with overwrite X, Y, Z floats. If no filter is provided, all three
-                                     floats are overwritten. So this becomes the return value.
-        skip_filter (str, tuple, list): Dimensions to skip ("x", "y", "z"). Other strings are ignored. e.g. "a"
+        passthrough_xyz (tuple, list): A tuple with X, Y and Z floats. These are the return values when not overwritten.
+        overwrite_xyz (tuple, list): A tuple/list with overwrite X, Y, Z floats. If no filter (overwrite_dimensions)
+                                     is provided, nothing is overwritten. So the return value is the "passthrough_xyz".
+                                     Default is (0, 0, 0) - Must contain three dimensions
+        overwrite_dimensions (str, tuple, list, optional): Dimensions to overwrite ("x", "y", "z").
+                                                           Any other characters are ignored. e.g. "a" does nothing.
+                                                           Whatever dimension is provided here is overwritten using the
+                                                           "overwrite_xyz" argument.
     Returns:
-        tuple: A tuple with 3 float numbers (X, Y and Z) - Skipped axis retain the original value, while others
-               are overwritten by the "overwrite_xyz" tuple
+        tuple: A tuple with 3 float numbers (X, Y and Z) - Return is the original passthrough value, with specified
+               dimensions overwritten by the "overwrite_xyz" tuple. (See example below)
     Example:
         original_xyz = [1, 2, 3]
         overwrite_xyz = [4, 5, 6]
         skip_filter = "x"
         print(filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter))  # [1, 5, 6]
     """
-    if skip_filter is None:
-        return original_xyz
-    result_val = list(original_xyz)
-    for char in skip_filter:
+    if overwrite_dimensions is None:
+        return passthrough_xyz
+    result_val = list(passthrough_xyz)
+    for char in overwrite_dimensions:
         if char == "x":
             result_val[0] = overwrite_xyz[0]
         elif char == "y":
@@ -1018,14 +1022,15 @@ def filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter=None):
     return result_val
 
 
-def match_translate(source, target_list, skip):
+def match_translate(source, target_list, skip=None):
     """
     Matches the translation values of an object by extracting the values from the source object and applying it to the
     target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Similar to point constraint.
     Args:
         source (str): The name of the source object (to extract the translation from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate updates)
-        skip (str or list): Dimensions to skip for translation ("x", "y", "z"). Other strings are ignored.
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
     """
     if not source or not cmds.objExists(source):
         logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
@@ -1038,18 +1043,19 @@ def match_translate(source, target_list, skip):
             logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
             continue
         target_translation = cmds.xform(target, query=True, translation=True, worldSpace=True)
-        target_translation = filter_xyz_dimensions(source_translation, target_translation, skip)
+        target_translation = overwrite_xyz_values(source_translation, target_translation, skip)
         cmds.xform(target, translation=target_translation, worldSpace=True)
 
 
-def match_rotate(source, target_list, skip):
+def match_rotate(source, target_list, skip=None):
     """
     Matches the rotation (orientation) values of an object by extracting the values from the source object and
     applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Similar to orient constraint.
     Args:
         source (str): The name of the source object (to extract the rotation from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate updates)
-        skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
     """
     if not source or not cmds.objExists(source):
         logger.debug(f'Missing source object "{str(source)}" while matching rotate values.')
@@ -1062,18 +1068,18 @@ def match_rotate(source, target_list, skip):
             logger.debug(f'Missing target object "{str(target)}" while matching rotate values.')
             continue
         target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
-        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip)
+        target_rotation = overwrite_xyz_values(source_rotation, target_rotation, skip)
         cmds.xform(target, rotation=target_rotation, worldSpace=True)
 
 
-def match_scale(source, target_list, skip):
+def match_scale(source, target_list, skip=None):
     """
     Matches the scale values of an object by extracting the values from the source object and applying it to the
     target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
     Args:
         source (str): The name of the source object (to extract the scale from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive scale updates)
-        skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
     """
     if not source or not cmds.objExists(source):
         logger.debug(f'Missing source object "{str(source)}" while matching scale values.')
@@ -1086,7 +1092,7 @@ def match_scale(source, target_list, skip):
             logger.debug(f'Missing target object "{str(target)}" while matching scale values.')
             continue
         target_scale = cmds.xform(target, query=True, scale=True, worldSpace=True)
-        target_scale = filter_xyz_dimensions(source_scale, target_scale, skip)
+        target_scale = overwrite_xyz_values(source_scale, target_scale, skip)
         cmds.xform(target, scale=target_scale, worldSpace=True)
 
 
@@ -1127,6 +1133,6 @@ if __name__ == "__main__":
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    match_transform("pSphere1", "pCube1")
+    match_translate("pSphere1", "pCube1")
 
 
