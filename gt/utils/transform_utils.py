@@ -1020,7 +1020,8 @@ def filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter=None):
 
 def match_translate(source, target_list, skip):
     """
-    Matches the transform of an object by extracting the values from the source and applying it to the target object(s)
+    Matches the translation values of an object by extracting the values from the source object and applying it to the
+    target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
     Args:
         source (str): The name of the source object (to extract the translation from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate update)
@@ -1039,6 +1040,54 @@ def match_translate(source, target_list, skip):
         target_translation = cmds.xform(target, query=True, translation=True, worldSpace=True)
         target_translation = filter_xyz_dimensions(source_translation, target_translation, skip)
         cmds.xform(target, translation=target_translation, worldSpace=True)
+
+
+def match_rotate(source, target_list, skip):
+    """
+    Matches the rotation (orientation) values of an object by extracting the values from the source object and
+    applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Args:
+        source (str): The name of the source object (to extract the rotation from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate update)
+        skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            continue
+        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
+        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip)
+        cmds.xform(target, rotation=target_rotation, worldSpace=True)
+
+
+def match_scale(source, target_list, skip):
+    """
+    Matches the rotation (orientation) values of an object by extracting the values from the source object and
+    applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Args:
+        source (str): The name of the source object (to extract the rotation from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate update)
+        skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            continue
+        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
+        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip)
+        cmds.xform(target, rotation=target_rotation, worldSpace=True)
 
 
 def match_transform(source, target_list, translate=True, rotate=True, scale=True,
@@ -1061,7 +1110,6 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
     #     raise ValueError("Source or target object does not exist.")
 
     #
-
 
     # Match translation
     if translate:
@@ -1091,6 +1139,6 @@ if __name__ == "__main__":
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    match_translate("pSphere1", "pCube1", skip="y")
+    match_rotate("pSphere1", "pCube1", skip=None)
 
 
