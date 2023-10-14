@@ -985,8 +985,112 @@ def convert_transforms_to_locators():
         sys.stdout.write(f'\n{feedback.get_string_message()}')
 
 
+def filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter=None):
+    """
+    Helper function to skip/filter dimensions when applying transforms.
+    Starts with the original XYZ values and overwrite each dimension with the provided overwrite values.
+    If a filter is provided, a value can be ignored, in which case the original value is retained.
+
+    Args:
+        original_xyz (tuple, list): A tuple with X, Y and Z floats. These are the original values.
+        overwrite_xyz (tuple, list): A tuple with overwrite X, Y, Z floats. If no filter is provided, all three
+                                     floats are overwritten. So this becomes the return value.
+        skip_filter (str, tuple, list): Dimensions to skip ("x", "y", "z"). Other strings are ignored. e.g. "a"
+    Returns:
+        tuple: A tuple with 3 float numbers (X, Y and Z) - Skipped axis retain the original value, while others
+               are overwritten by the "overwrite_xyz" tuple
+    Example:
+        original_xyz = [1, 2, 3]
+        overwrite_xyz = [4, 5, 6]
+        skip_filter = "x"
+        print(filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter))  # [1, 5, 6]
+    """
+    if skip_filter is None:
+        return original_xyz
+    result_val = list(original_xyz)
+    for char in skip_filter:
+        if char == "x":
+            result_val[0] = overwrite_xyz[0]
+        elif char == "y":
+            result_val[1] = overwrite_xyz[1]
+        elif char == "z":
+            result_val[2] = overwrite_xyz[2]
+    return result_val
+
+
+def match_translate(source, target_list, skip):
+    """
+    Matches the transform of an object by extracting the values from the source and applying it to the target object(s)
+    Args:
+        source (str): The name of the source object (to extract the translation from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate update)
+        skip (str or list): Dimensions to skip for translation ("x", "y", "z"). Other strings are ignored.
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_translation = cmds.xform(source, query=True, translation=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            continue
+        target_translation = cmds.xform(target, query=True, translation=True, worldSpace=True)
+        target_translation = filter_xyz_dimensions(source_translation, target_translation, skip)
+        cmds.xform(target, translation=target_translation, worldSpace=True)
+
+
+def match_transform(source, target_list, translate=True, rotate=True, scale=True,
+                    skip_translate=None, skip_rotate=None, skip_scale=None):
+    """
+    Match the transform attributes of the target object to the source object.
+
+    Args:
+        source (str): The name of the source object (to extract the transform from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive transform update)
+        translate (bool): Match translation attributes if True.
+        rotate (bool): Match rotation attributes if True.
+        scale (bool): Match scale attributes if True.
+        skip_translate (str or list): Dimensions to skip for translation ("x", "y", "z"). Other strings are ignored.
+        skip_rotate (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+        skip_scale (str or list): Dimensions to skip for scale ("x", "y", "z"). Other strings are ignored.
+    """
+    # # Check if source and target objects exist
+    # if not cmds.objExists(source) or not cmds.objExists(target_list):
+    #     raise ValueError("Source or target object does not exist.")
+
+    #
+
+
+    # Match translation
+    if translate:
+        source_translation = cmds.xform(source, query=True, translation=True, worldSpace=True)
+        print(source_translation)
+        target_translation = cmds.xform(target_list, query=True, translation=True, worldSpace=True)
+        target_translation = filter_xyz_dimensions(source_translation, target_translation, skip_translate)
+        cmds.xform(target_list, translation=target_translation, worldSpace=True)
+
+    # Match rotation
+    if rotate:
+        source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
+        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
+        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip_rotate)
+        cmds.xform(target, rotation=target_rotation, worldSpace=True)
+
+    # Match scale
+    if scale:
+        source_scale = cmds.xform(source, query=True, scale=True, worldSpace=True)
+        target_scale = cmds.xform(target, query=True, scale=True, worldSpace=True)
+        target_scale = filter_xyz_dimensions(source_scale, target_scale, skip_scale)
+        cmds.xform(target, scale=target_scale, worldSpace=True)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    transform = Transform()
-    transform.set_position(0, 10, 0)
-    transform.apply_transform('pSphere1')
+    # transform = Transform()
+    # transform.set_position(0, 10, 0)
+    # transform.apply_transform('pSphere1')
+    match_translate("pSphere1", "pCube1", skip="y")
+
+
