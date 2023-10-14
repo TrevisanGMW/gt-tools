@@ -1130,9 +1130,6 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # transform = Transform()
-    # transform.set_position(0, 10, 0)
-    # transform.apply_transform('pSphere1')
-    match_translate("pSphere1", "pCube1")
-
-
+    transform = Transform()
+    transform.set_position(0, 10, 0)
+    transform.apply_transform('pSphere1')
