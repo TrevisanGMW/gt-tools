@@ -1024,7 +1024,7 @@ def match_translate(source, target_list, skip):
     target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
     Args:
         source (str): The name of the source object (to extract the translation from)
-        target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate update)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate updates)
         skip (str or list): Dimensions to skip for translation ("x", "y", "z"). Other strings are ignored.
     """
     if not source or not cmds.objExists(source):
@@ -1048,18 +1048,18 @@ def match_rotate(source, target_list, skip):
     applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
     Args:
         source (str): The name of the source object (to extract the rotation from)
-        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate update)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate updates)
         skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
     """
     if not source or not cmds.objExists(source):
-        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        logger.debug(f'Missing source object "{str(source)}" while matching rotate values.')
         return
     if isinstance(target_list, str):
         target_list = [target_list]
     source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
     for target in target_list:
         if not target or not cmds.objExists(target):
-            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            logger.debug(f'Missing target object "{str(target)}" while matching rotate values.')
             continue
         target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
         target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip)
@@ -1068,26 +1068,26 @@ def match_rotate(source, target_list, skip):
 
 def match_scale(source, target_list, skip):
     """
-    Matches the rotation (orientation) values of an object by extracting the values from the source object and
-    applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Matches the scale values of an object by extracting the values from the source object and applying it to the
+    target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
     Args:
-        source (str): The name of the source object (to extract the rotation from)
-        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate update)
+        source (str): The name of the source object (to extract the scale from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive scale updates)
         skip (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
     """
     if not source or not cmds.objExists(source):
-        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        logger.debug(f'Missing source object "{str(source)}" while matching scale values.')
         return
     if isinstance(target_list, str):
         target_list = [target_list]
-    source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
+    source_scale = cmds.xform(source, query=True, scale=True, worldSpace=True)
     for target in target_list:
         if not target or not cmds.objExists(target):
-            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            logger.debug(f'Missing target object "{str(target)}" while matching scale values.')
             continue
-        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
-        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip)
-        cmds.xform(target, rotation=target_rotation, worldSpace=True)
+        target_scale = cmds.xform(target, query=True, scale=True, worldSpace=True)
+        target_scale = filter_xyz_dimensions(source_scale, target_scale, skip)
+        cmds.xform(target, scale=target_scale, worldSpace=True)
 
 
 def match_transform(source, target_list, translate=True, rotate=True, scale=True,
@@ -1105,33 +1105,21 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
         skip_rotate (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
         skip_scale (str or list): Dimensions to skip for scale ("x", "y", "z"). Other strings are ignored.
     """
-    # # Check if source and target objects exist
-    # if not cmds.objExists(source) or not cmds.objExists(target_list):
-    #     raise ValueError("Source or target object does not exist.")
-
-    #
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching transform values.')
+        return
 
     # Match translation
     if translate:
-        source_translation = cmds.xform(source, query=True, translation=True, worldSpace=True)
-        print(source_translation)
-        target_translation = cmds.xform(target_list, query=True, translation=True, worldSpace=True)
-        target_translation = filter_xyz_dimensions(source_translation, target_translation, skip_translate)
-        cmds.xform(target_list, translation=target_translation, worldSpace=True)
+        match_translate(source=source, target_list=target_list, skip=skip_translate)
 
     # Match rotation
     if rotate:
-        source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
-        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
-        target_rotation = filter_xyz_dimensions(source_rotation, target_rotation, skip_rotate)
-        cmds.xform(target, rotation=target_rotation, worldSpace=True)
+        match_rotate(source=source, target_list=target_list, skip=skip_rotate)
 
     # Match scale
     if scale:
-        source_scale = cmds.xform(source, query=True, scale=True, worldSpace=True)
-        target_scale = cmds.xform(target, query=True, scale=True, worldSpace=True)
-        target_scale = filter_xyz_dimensions(source_scale, target_scale, skip_scale)
-        cmds.xform(target, scale=target_scale, worldSpace=True)
+        match_scale(source=source, target_list=target_list, skip=skip_scale)
 
 
 if __name__ == "__main__":
@@ -1139,6 +1127,6 @@ if __name__ == "__main__":
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    match_rotate("pSphere1", "pCube1", skip=None)
+    match_transform("pSphere1", "pCube1")
 
 
