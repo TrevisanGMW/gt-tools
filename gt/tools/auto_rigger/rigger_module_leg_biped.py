@@ -2,13 +2,12 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import add_attr, connect_attr, add_separator_attr, hide_lock_default_attrs, set_attr_state
 from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, RiggerConstants, find_objects_with_attr
-from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
+from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
+from gt.utils.transform_utils import match_translate, match_transform
 from gt.utils.naming_utils import get_short_name, NamingConstants
-from gt.utils.uuid_utils import find_object_with_uuid
-from gt.utils.transform_utils import match_translate
+from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -93,8 +92,8 @@ class ModuleBipedLeg(ModuleGeneric):
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.ROOT_PROXY_ATTR)
         hip = find_proxy_with_uuid(self.hip.get_uuid())
-        ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         knee = find_proxy_with_uuid(self.knee.get_uuid())
+        ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         ball = find_proxy_with_uuid(self.ball.get_uuid())
         heel_pivot = find_proxy_with_uuid(self.heel_pivot.get_uuid())
 
@@ -161,10 +160,19 @@ class ModuleBipedLeg(ModuleGeneric):
         constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
         cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
 
-        # # Basic Setup
-        # ball_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
-        # ball_driver = cmds.group(empty=True, world=True, name=f'{str(get_short_name(ankle))}_pivot')
-        # # Heel
+        # Ball
+        ankle_tag = get_short_name(ankle)
+        ball_offset = get_proxy_offset(ball)
+        ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
+        hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)
+        ankle_pos = cmds.xform(ankle, q=True, ws=True, rp=True)
+        cmds.move(ankle_pos[0], ball_driver, moveX=True)
+        cmds.pointConstraint(ankle, ball_driver, maintainOffset=True, skip=['y'])
+        cmds.orientConstraint(ankle, ball_driver, maintainOffset=True, skip=['x', 'z'])
+        cmds.scaleConstraint(ankle, ball_driver, skip=['y'])
+        cmds.parent(ball_offset, ball_driver)
+
+        # Heel
         # heel_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
         # add_attr(target_list=heel_pivot, attributes="followAnkle", attr_type='bool')
         # constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')
