@@ -593,7 +593,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_with_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, visibility=True)
+        attr_utils.hide_lock_default_attrs(cube, visibility=True)
 
         attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz', 'v']
         for attr in attr_to_test:
@@ -606,7 +606,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_without_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, visibility=False)
+        attr_utils.hide_lock_default_attrs(cube, visibility=False)
 
         attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz']
         for attr in attr_to_test:
@@ -624,7 +624,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_no_translate(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, translate=False, visibility=False)
+        attr_utils.hide_lock_default_attrs(cube, translate=False, visibility=False)
 
         attr_to_test = ['rx', 'ry', 'rz', 'sx', 'sy', 'sz']
         attr_to_test_inactive = ['tx', 'ty', 'tz']
@@ -648,7 +648,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_no_rotate(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, rotate=False, visibility=False)
+        attr_utils.hide_lock_default_attrs(cube, rotate=False, visibility=False)
 
         attr_to_test = ['tx', 'ty', 'tz', 'sx', 'sy', 'sz']
         attr_to_test_inactive = ['rx', 'ry', 'rz']
@@ -672,7 +672,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_no_scale(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, scale=False, visibility=False)
+        attr_utils.hide_lock_default_attrs(cube, scale=False, visibility=False)
 
         attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
         attr_to_test_inactive = ['sx', 'sy', 'sz']
