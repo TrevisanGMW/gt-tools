@@ -163,6 +163,7 @@ class ModuleBipedLeg(ModuleGeneric):
         add_attr(target_list=ankle, attributes="followHip", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
         cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
+        set_attr_state(obj_list=ankle, attr_list=["rx", "rz"], locked=True, hidden=True)
 
         # Ball -----------------------------------------------------------------------------------
         ankle_tag = get_short_name(ankle)
@@ -194,6 +195,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{heel_pivot}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
         hide_lock_default_attrs(heel_pivot, translate=False, rotate=True, scale=True)
+        cmds.select(clear=True)
 
     def build_rig(self):
         super().build_rig()  # Passthrough
