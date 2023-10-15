@@ -223,6 +223,19 @@ class Proxy:
             return
         self.transform = transform
 
+    def set_initial_position(self, x=None, y=None, z=None, xyz=None):
+        """
+        Sets the position and the offset position as the same value causing it to be zeroed. (Initial position)
+        Useful to determine where the proxy should initially appear and be able to go back to when zeroed.
+        Args:
+            x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
+            y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
+            z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
+            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+        """
+        self.set_position(x=x, y=y, z=z, xyz=xyz)
+        self.set_offset_position(x=x, y=y, z=z, xyz=xyz)
+
     def set_position(self, x=None, y=None, z=None, xyz=None):
         """
         Sets the position of the proxy element (introduce values to its curve)
@@ -1142,7 +1155,7 @@ if __name__ == "__main__":
     a_hip = Proxy()
     a_hip.set_position(y=5.5, x=-10)
     a_hip.set_locator_scale(scale=0.4)
-    # built_hip = a_hip.build()
+    built_hip = a_hip.build()
     # cmds.setAttr(f'{built_hip}.tx', 5)
     # add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
     # cmds.setAttr(f'{built_hip}.customOne', 5)
