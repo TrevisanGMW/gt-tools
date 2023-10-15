@@ -196,9 +196,9 @@ def set_trs_attr(target_obj, value_tuple, translate=False, rotate=False, scale=F
         log_when_true(logger, message, do_log=verbose, level=log_level)
 
 
-def hide_lock_default_attributes(obj, translate=True, rotate=True, scale=True, visibility=False):
+def hide_lock_default_attrs(obj, translate=True, rotate=True, scale=True, visibility=False):
     """
-    Locks default TRS channels
+    Locks default TRS+V channels
     Args:
         obj (str): Name of the object to lock TRS attributes
         translate (bool, optional): If active, translate (position) will be included. (locked, hidden)
