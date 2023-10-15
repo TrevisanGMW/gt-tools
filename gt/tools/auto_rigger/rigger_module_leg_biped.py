@@ -4,6 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_attr, connect_attr, add_separator_attr, hide_lock_default_attrs, set_attr_state
 from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, RiggerConstants, find_objects_with_attr
+from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
 from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.utils.uuid_utils import find_object_with_uuid
@@ -105,7 +106,7 @@ class ModuleBipedLeg(ModuleGeneric):
         hide_lock_default_attrs(knee, translate=False, rotate=False)
 
         # Knee Setup - Always Between Hip and Ankle
-        knee_offset = cmds.listRelatives(knee, parent=True, typ="transform", fullPath=True)[0]
+        knee_offset = get_proxy_offset(knee)
         cmds.pointConstraint([hip, ankle], knee_offset)
 
         knee_pv_dir = cmds.spaceLocator(name=f'{knee_tag}_poleVectorDir')[0]
@@ -152,11 +153,13 @@ class ModuleBipedLeg(ModuleGeneric):
                            worldUpType='none', skip=['x', 'z'])
         set_attr_state(obj_list=knee, attr_list="rotate", locked=True)
 
+        cmds.transformLimits(knee, translationZ=(0, 1), enableTranslationZ=(1, 0))
+
         # Ankle ----------------------------------------------------------------------------------
-        # ankle_offset = cmds.listRelatives(ankle, parent=True, typ="transform", fullPath=True) or []
-        # add_attr(target_list=ankle, attributes="followHip", attr_type='bool', default=True)
-        # constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')
-        # connect_attr(source_attr=f'{hip}.', target_attr_list=f'{ankle_offset}.')
+        ankle_offset = get_proxy_offset(ankle)
+        add_attr(target_list=ankle, attributes="followHip", attr_type='bool', default=True)
+        constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
+        cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
 
         # # Basic Setup
         # ball_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
