@@ -28,6 +28,7 @@ class RiggerConstants:
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
+    PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
