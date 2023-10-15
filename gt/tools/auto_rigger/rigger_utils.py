@@ -2,7 +2,7 @@
 Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attributes, connect_attr
+from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.utils.color_utils import set_color_viewport, ColorConstants
 from gt.utils.uuid_utils import find_object_with_uuid
@@ -30,6 +30,9 @@ class RiggerConstants:
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
+    SEPARATOR_BEHAVIOR = "Behavior"
+    ROOT_PROXY_ATTR = "proxyData"
+    ROOT_RIG_ATTR = "rigData"
 
 
 def find_proxy_with_uuid(uuid_string):
@@ -115,7 +118,7 @@ def create_root_curve(name="root", group_name="root"):
     root_crv.set_name(name=name)
     root_transform = root_crv.build()
     root_grp = cmds.group(empty=True, world=True, name=f"{group_name}_{NamingConstants.Suffix.GRP}")
-    hide_lock_default_attributes(obj=root_grp)
+    hide_lock_default_attrs(obj=root_grp)
     connect_attr(source_attr=f'{root_transform}.sy', target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
     set_attr_state(obj_list=root_transform, attr_list=['sx', 'sz'], hidden=True)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigProxy.CENTER)
@@ -136,8 +139,10 @@ def create_proxy_root_curve():
         tuple: A tuple with the name of the curve transform and the name of the parent group
     """
     root_transform, root_group = create_root_curve(name="root", group_name="rigger_proxy")
-    hide_lock_default_attributes(obj=root_transform, scale=False)
+    hide_lock_default_attrs(obj=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
+             attributes=RiggerConstants.ROOT_PROXY_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=2)
     return root_transform, root_group
 
@@ -150,9 +155,28 @@ def create_control_root_curve():
     """
     root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
+             attributes=RiggerConstants.ROOT_RIG_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return root_transform, root_group
+
+
+def find_objects_with_attr(attr_name, obj_type="transform"):
+    """
+    Return object if provided UUID is present in it
+    Args:
+        attr_name (string): Name of the attribute where the UUID is stored.
+        obj_type (optional, string): Type of objects to look for (default is "transform")
+    Returns:
+        str, None: If found, the object with a matching UUID, otherwise None
+    """
+    obj_list = cmds.ls(typ=obj_type, long=True) or []
+    result_list = []
+    for obj in obj_list:
+        if cmds.objExists(f'{obj}.{attr_name}'):
+            result_list.append(obj)
+    return result_list
 
 
 if __name__ == "__main__":
