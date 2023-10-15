@@ -32,36 +32,78 @@ class ModuleBipedLeg(ModuleGeneric):
         self.hip = Proxy(name="hip")
         self.hip.set_initial_position(y=84.5)
         self.hip.set_locator_scale(scale=0.4)
+        self.hip.set_meta_type(value="hip")
 
         self.knee = Proxy(name="knee")
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
         self.knee.set_initial_position(y=47.05)
         self.knee.set_locator_scale(scale=0.5)
         self.knee.add_meta_parent(line_parent=self.hip)
+        self.knee.set_meta_type(value="knee")
 
         self.ankle = Proxy(name="ankle")
         self.ankle.set_initial_position(y=9.6)
         self.ankle.set_locator_scale(scale=0.4)
         self.ankle.add_meta_parent(line_parent=self.knee)
+        self.ankle.set_meta_type(value="ankle")
 
         self.ball = Proxy(name="ball")
         self.ball.set_initial_position(z=13.1)
         self.ball.set_locator_scale(scale=0.4)
         self.ball.add_meta_parent(line_parent=self.ankle)
+        self.ball.set_meta_type(value="ball")
 
         self.toe = Proxy(name="toe")
         self.toe.set_initial_position(z=23.4)
         self.toe.set_locator_scale(scale=0.4)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
+        self.toe.set_meta_type(value="toe")
 
-        self.heel_pivot = Proxy(name="heelPivot")
-        self.heel_pivot.set_locator_scale(scale=0.1)
-        self.heel_pivot.add_meta_parent(line_parent=self.ankle)
-        self.heel_pivot.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
+        self.heel = Proxy(name="heelPivot")
+        self.heel.set_locator_scale(scale=0.1)
+        self.heel.add_meta_parent(line_parent=self.ankle)
+        self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
+        self.heel.set_meta_type(value="heel_pivot")
 
         # Update Proxies
-        self.proxies.extend([self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel_pivot])
+        self.proxies = [self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel]
+
+    def read_proxies_from_dict(self, proxy_dict):
+        """
+        Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
+        Args:
+            proxy_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
+                               Acceptable pattern: {"uuid_str": {<description>}}
+                               "uuid_str" being the actual uuid string value of the proxy.
+                               "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+        """
+        if not proxy_dict or not isinstance(proxy_dict, dict):
+            logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
+            return
+        for uuid, description in proxy_dict.items():
+            metadata = description.get("metadata")
+            if metadata:
+                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+
+                if meta_type == "hip":
+                    self.hip.set_uuid(uuid)
+                    self.hip.read_data_from_dict(proxy_dict=description)
+                if meta_type == "knee":
+                    self.knee.set_uuid(uuid)
+                    self.knee.read_data_from_dict(proxy_dict=description)
+                if meta_type == "ankle":
+                    self.ankle.set_uuid(uuid)
+                    self.ankle.read_data_from_dict(proxy_dict=description)
+                if meta_type == "ball":
+                    self.ball.set_uuid(uuid)
+                    self.ball.read_data_from_dict(proxy_dict=description)
+                if meta_type == "toe":
+                    self.toe.set_uuid(uuid)
+                    self.toe.read_data_from_dict(proxy_dict=description)
+                if meta_type == "heel":
+                    self.heel.set_uuid(uuid)
+                    self.heel.read_data_from_dict(proxy_dict=description)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -95,7 +137,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee = find_proxy_with_uuid(self.knee.get_uuid())
         ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         ball = find_proxy_with_uuid(self.ball.get_uuid())
-        heel_pivot = find_proxy_with_uuid(self.heel_pivot.get_uuid())
+        heel_pivot = find_proxy_with_uuid(self.heel.get_uuid())
 
         # Hip -----------------------------------------------------------------------------------
         hide_lock_default_attrs(hip, translate=False)
@@ -195,6 +237,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{heel_pivot}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
         hide_lock_default_attrs(heel_pivot, translate=False, rotate=True, scale=True)
+        self.apply_transforms()
         cmds.select(clear=True)
 
     def build_rig(self):
@@ -211,5 +254,18 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     # get_curve('_proxy_joint_arrow').build()
+
+    cmds.setAttr(f'hip.tx', 10)
+    cmds.setAttr(f'ankle.tz', 8)
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+    print(a_project.get_project_as_dict().get("modules"))
+
+    # cmds.file(new=True, force=True)
+    # # a_project = RigProject()
+    # a_project.read_data_from_dict(dictionary)
+    #
+    # print(a_project.get_project_as_dict().get("modules"))
+    # a_project.build_proxy()
 
     cmds.viewFit(all=True)
