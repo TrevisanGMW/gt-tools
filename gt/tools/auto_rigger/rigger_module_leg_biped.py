@@ -3,11 +3,11 @@ Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, RiggerConstants, find_objects_with_attr
-from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state
+from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
-from gt.utils.transform_utils import match_translate, match_transform
 from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
+from gt.utils.transform_utils import match_translate
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -112,7 +112,6 @@ class ModuleBipedLeg(ModuleGeneric):
         match_translate(source=knee, target_list=knee_pv_dir)
         cmds.move(0, 0, 13, knee_pv_dir, relative=True)  # More it forward (in front of the knee)
         cmds.parent(knee_pv_dir, knee)
-        # cmds.setAttr(f'{knee_pv_dir}.v', 0)
 
         # Lock Knee Unstable Channels
         cmds.addAttr(knee, ln='lockTranslateX', at='bool', k=True, niceName="Lock Unstable Channel")
@@ -126,8 +125,13 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_dir_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParent_{NamingConstants.Suffix.LOC}')[0]
         knee_aim_loc = cmds.spaceLocator(name=f'{knee_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
         knee_upvec_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
-        knee_upvec_loc_grp = cmds.group(name=f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.GRP}',
-                                        empty=True, world=True)
+        knee_upvec_loc_grp = f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
+        knee_upvec_loc_grp = cmds.group(name=knee_upvec_loc_grp, empty=True, world=True)
+        # Hide Reference Elements
+        set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
+                 attr_list="visibility", value=0)  # Set Visibility to Off
+        set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
+                 attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
         cmds.parent(knee_upvec_loc, knee_upvec_loc_grp)
         hierarchy_utils.parent(source_objects=[knee_upvec_loc_grp, knee_dir_loc], target_parent=root)
         hierarchy_utils.parent(source_objects=knee_aim_loc, target_parent=knee_dir_loc)
@@ -160,7 +164,7 @@ class ModuleBipedLeg(ModuleGeneric):
         constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
         cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
 
-        # Ball
+        # Ball -----------------------------------------------------------------------------------
         ankle_tag = get_short_name(ankle)
         ball_offset = get_proxy_offset(ball)
         ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
@@ -172,14 +176,24 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.scaleConstraint(ankle, ball_driver, skip=['y'])
         cmds.parent(ball_offset, ball_driver)
 
-        # Heel
-        # heel_offset = cmds.listRelatives(ball, parent=True, typ="transform", fullPath=True) or []
-        # add_attr(target_list=heel_pivot, attributes="followAnkle", attr_type='bool')
-        # constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')
-        # cmds.connectAttr(f'{heel_pivot}.followAnkle', constraint[0] + '.w0')
-        # hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
+        # Keep Grounded
+        ball = find_proxy_with_uuid(self.ball.get_uuid())  # Refresh
+        toe = find_proxy_with_uuid(self.toe.get_uuid())  # Refresh
+        for to_lock_ty in [toe, ball]:
+            cmds.addAttr(to_lock_ty, ln='lockTranslateY', at='bool', k=True, niceName="Keep Grounded")
+            cmds.setAttr(to_lock_ty + '.lockTranslateY', 0)
+            cmds.setAttr(to_lock_ty + '.minTransYLimit', 0)
+            cmds.setAttr(to_lock_ty + '.maxTransYLimit', 0)
+            cmds.connectAttr(to_lock_ty + '.lockTranslateY', to_lock_ty + '.minTransYLimitEnable', f=True)
+            cmds.connectAttr(to_lock_ty + '.lockTranslateY', to_lock_ty + '.maxTransYLimitEnable', f=True)
 
-        # Setup Knee
+        # Heel -----------------------------------------------------------------------------------
+        heel_offset = get_proxy_offset(heel_pivot)
+        add_attr(target_list=heel_pivot, attributes="followAnkle", attr_type='bool', default=True)
+        constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')[0]
+        cmds.connectAttr(f'{heel_pivot}.followAnkle', f'{constraint}.w0')
+        hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
+        hide_lock_default_attrs(heel_pivot, translate=False, rotate=True, scale=True)
 
     def build_rig(self):
         super().build_rig()  # Passthrough
