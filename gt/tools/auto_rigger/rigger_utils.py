@@ -179,6 +179,22 @@ def find_objects_with_attr(attr_name, obj_type="transform"):
     return result_list
 
 
+def get_proxy_offset(proxy_name):
+    """
+    Return the offset transform (parent) of the provided proxy object. If not found, it returns "None"
+    Args:
+        proxy_name (string): Name of the attribute where the UUID is stored.
+    Returns:
+        str, None: If found, the offset object (parent of the proxy), otherwise None
+    """
+    if not proxy_name or not cmds.objExists(proxy_name):
+        logger.debug(f'Unable to find offset for "{str(proxy_name)}".')
+        return
+    offset_list = cmds.listRelatives(proxy_name, parent=True, typ="transform", fullPath=True) or []
+    for offset in offset_list:
+        return offset
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
