@@ -2,7 +2,7 @@
 Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import set_trs_attr, get_multiple_attr
+from gt.utils.attr_utils import set_trs_attr, get_multiple_attr, set_attr
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
@@ -652,9 +652,9 @@ class Transform:
                       worldSpace=world_space, relative=relative, objectSpace=object_space)
             cmds.rotate(self.rotation.x, self.rotation.y, self.rotation.z, target_object,
                         worldSpace=world_space, relative=relative, objectSpace=object_space)
-            cmds.setAttr(f'{target_object}.sx', self.scale.x)
-            cmds.setAttr(f'{target_object}.sy', self.scale.y)
-            cmds.setAttr(f'{target_object}.sz', self.scale.z)
+            set_attr(attribute_path=f'{target_object}.sx', value=self.scale.x)
+            set_attr(attribute_path=f'{target_object}.sy', value=self.scale.y)
+            set_attr(attribute_path=f'{target_object}.sz', value=self.scale.z)
         else:
             position = self.position.get_as_tuple()
             rotation = self.rotation.get_as_tuple()
