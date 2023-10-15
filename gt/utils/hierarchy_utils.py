@@ -18,12 +18,15 @@ def parent(source_objects, target_parent, verbose=False):
     Makes sure that the provided object is really parented under the desired parent element.
     Args:
         source_objects (list, str): Name of the source objects (children) to be parented (e.g. "pSphere1" or ["obj"])
-        target_parent (str): Name of the desired parent object.
+        target_parent (str, list): Name of the desired parent object.
+                                   If a list is provided, it will attempt to use the first object found
         verbose (bool, optional): If True, it will print feedback in case the operation failed. Default is False.
     Returns:
         list: A list of the parented objects. (Long if not unique)
     """
     store_selection = cmds.ls(selection=True) or []
+    if target_parent and isinstance(target_parent, list) and len(target_parent) > 0:
+        target_parent = target_parent[0]
     if not target_parent or not cmds.objExists(target_parent):
         log_when_true(input_logger=logger,
                       input_string=f'Unable to execute parenting operation.'
