@@ -5,12 +5,11 @@ github.com/TrevisanGMW/gt-tools
 RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
+from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
-from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid
-from gt.tools.auto_rigger.rigger_utils import RiggerConstants
 from gt.utils.uuid_utils import find_object_with_uuid
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.color_utils import add_side_color_setup
@@ -144,9 +143,12 @@ class Proxy:
             return False
         return True
 
-    def build(self):
+    def build(self, apply_transforms=False):
         """
         Builds a proxy object.
+        Args:
+            apply_transforms (bool, optional): If True, the creation of the proxy will apply transform values.
+                                               Used by modules to only apply transforms after setup. (post script)
         Returns:
             ProxyData: Name of the proxy that was generated/built.
         """
@@ -171,9 +173,9 @@ class Proxy:
         for attr in uuid_attrs:
             set_attr(attribute_path=attr, value=self.uuid)
         # Set Transforms
-        if self.offset_transform:
+        if self.offset_transform and apply_transforms:
             self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
-        if self.transform:
+        if self.transform and apply_transforms:
             self.transform.apply_transform(target_object=proxy_crv, world_space=True)
         # Set Locator Scale
         if self.locator_scale and scale_attr:
@@ -182,9 +184,24 @@ class Proxy:
 
         return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
 
+    def apply_transforms(self, apply_offset=True):
+        """
+        Attempts to apply offset and parent offset transforms to the proxy elements.
+        To be used only after proxy is built.
+        Args:
+            apply_offset (bool, optional): If True, it will attempt to also apply the offset data. (Happens first)
+        """
+        proxy_crv = find_proxy_with_uuid(uuid_string=self.uuid)
+        if proxy_crv and apply_offset:
+            proxy_offset = get_proxy_offset(proxy_crv)
+            if proxy_offset and self.offset_transform:
+                self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
+        if proxy_crv and self.transform:
+            self.transform.apply_transform(target_object=proxy_crv, world_space=True)
+
     def apply_attr_dict(self, target_obj=None):
         """
-        Attempts to apply attributes found under the attribute dictionary of this proxy
+        Attempts to apply (set) attributes found under the attribute dictionary of this proxy
         Args:
             target_obj (str, optional): Affected object, this is the object to get its attributes updated.
                                         If not provided it will attempt to retrieve the proxy using its UUID
@@ -468,6 +485,15 @@ class Proxy:
             return
         parent_uuid = parent_proxy.get_uuid()
         self.set_parent_uuid(parent_uuid)
+
+    def set_meta_type(self, value):
+        """
+        Adds a proxy meta type key and value to the metadata dictionary. Used to define proxy type in modules.
+        Args:
+            value (str, optional): Type "tag" used to determine overwrites.
+                                   e.g. "hip", so the module knows it's a "hip" proxy.
+        """
+        self.add_to_metadata(key=RiggerConstants.PROXY_META_TYPE, value=value)
 
     def read_data_from_dict(self, proxy_dict):
         """
@@ -871,6 +897,16 @@ class ModuleGeneric:
         return str(self.__class__.__name__)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
+    def apply_transforms(self, apply_offset=False):
+        """
+        Attempts to apply offset and parent offset transforms to the proxy elements.
+        To be used only after proxy is built.
+        Args:
+            apply_offset (bool, optional): If True, it will attempt to also apply the offset data. (Happens first)
+        """
+        for proxy in self.proxies:
+            proxy.apply_transforms(apply_offset=apply_offset)
+
     def is_valid(self):
         """
         Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.
@@ -890,7 +926,7 @@ class ModuleGeneric:
         """
         proxy_data = []
         for proxy in self.proxies:
-            proxy_data.append(proxy.build())
+            proxy_data.append(proxy.build(apply_transforms=True))
         return proxy_data
 
     def build_proxy_post(self):
@@ -899,6 +935,7 @@ class ModuleGeneric:
         When in a project, this runs after the "build_proxy" is done in all modules.
         Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
         """
+        self.apply_transforms()
         logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
 
     def build_rig(self):
@@ -1061,6 +1098,18 @@ class RigProject:
             self.set_metadata_dict(metadata=metadata)
         return self
 
+    def read_data_from_scene(self):
+        """
+        Attempts to find the proxies within modules that are present in the scene. If found, their data is extracted.
+        e.g. The user moved the proxy, a new position will be read and saved to this proxy.
+             New custom attributes or anything else added to the proxy will also be saved.
+        Returns:
+            RigProject: This object (self)
+        """
+        for module in self.modules:
+            module.read_data_from_scene()
+        return self
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
@@ -1186,15 +1235,31 @@ if __name__ == "__main__":
     #
     # cmds.file(new=True, force=True)
     #
-    a_project = RigProject()
-    # a_project.add_to_modules(a_module)
-    a_project.add_to_modules(a_leg)
-    a_project.build_proxy()
-    cmds.setAttr(f'hip.tx', 12)
-    cmds.setAttr(f'ankle.ry', 15)
-    a_project_dict = a_project.get_project_as_dict()
-    a_leg.read_data_from_scene()
-    print(a_leg.get_module_as_dict)
+
+    a_proxy = Proxy()
+    a_proxy.set_position(x=10)
+    # a_proxy.build()
+    a_module = ModuleGeneric()
+    a_module.add_to_proxies(a_proxy)
+    a_module.build_proxy()
+    a_module.build_proxy_post()
+
+    # a_project = RigProject()
+    # # a_project.add_to_modules(a_module)
+    # a_project.add_to_modules(a_leg)
+    # a_project.build_proxy()
+    # cmds.setAttr(f'hip.tx', 12)
+    # cmds.setAttr(f'ankle.ry', 15)
+    # a_project_dict = a_project.get_project_as_dict()
+    # print(a_project_dict)
+    # a_project_two = RigProject()
+    # a_project_two.add_to_modules(a_leg)
+    # a_project_two.read_data_from_scene()
+    # a_project_dict_two = a_project_two.get_project_as_dict()
+    # cmds.file(new=True, force=True)
+    # print(a_project_dict_two)
+    # a_project.build_proxy()
+
     # cmds.file(new=True, force=True)
     #
     # another_project = RigProject()
