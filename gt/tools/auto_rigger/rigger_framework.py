@@ -785,6 +785,18 @@ class ModuleGeneric:
             self.set_metadata_dict(metadata=metadata)
         return self
 
+    def read_data_from_scene(self):
+        """
+        Attempts to find the proxies in the scene. If found, their data is read into the proxy object.
+        e.g. The user moved the proxy, a new position will be read and saved to this proxy.
+             New custom attributes or anything else added to the proxy will also be saved.
+        Returns:
+            ModuleGeneric: This object (self)
+        """
+        for proxy in self.proxies:
+            proxy.read_data_from_scene()
+        return self
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
@@ -1150,37 +1162,42 @@ if __name__ == "__main__":
 
     from gt.tools.auto_rigger.rigger_modules import RigModules
     a_leg = RigModules.ModuleBipedLeg()
-    a_module = ModuleGeneric()
 
-    a_hip = Proxy()
-    a_hip.set_position(y=5.5, x=-10)
-    a_hip.set_locator_scale(scale=0.4)
-    built_hip = a_hip.build()
-    # cmds.setAttr(f'{built_hip}.tx', 5)
-    # add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
-    # cmds.setAttr(f'{built_hip}.customOne', 5)
-    a_hip.read_data_from_scene()
-
-    a_knee = Proxy(name="knee")
-    a_knee.set_position(y=2.05, x=-10)
-    a_knee.set_locator_scale(scale=0.5)
-    a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
-    a_knee.add_color((1, 1, 0))
-
-    a_module.add_to_proxies([a_hip, a_knee])
-
-    a_module_dict = a_module.get_module_as_dict()
-
-    cmds.file(new=True, force=True)
-
+    # a_module = ModuleGeneric()
+    #
+    # a_hip = Proxy()
+    # a_hip.set_position(y=5.5, x=-10)
+    # a_hip.set_locator_scale(scale=0.4)
+    # built_hip = a_hip.build()
+    # # cmds.setAttr(f'{built_hip}.tx', 5)
+    # # add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
+    # # cmds.setAttr(f'{built_hip}.customOne', 5)
+    # a_hip.read_data_from_scene()
+    #
+    # a_knee = Proxy(name="knee")
+    # a_knee.set_position(y=2.05, x=-10)
+    # a_knee.set_locator_scale(scale=0.5)
+    # a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
+    # a_knee.add_color((1, 1, 0))
+    #
+    # a_module.add_to_proxies([a_hip, a_knee])
+    #
+    # a_module_dict = a_module.get_module_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    #
     a_project = RigProject()
-    a_project.add_to_modules(a_module)
+    # a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_leg)
     a_project.build_proxy()
+    cmds.setAttr(f'hip.tx', 12)
+    cmds.setAttr(f'ankle.ry', 15)
     a_project_dict = a_project.get_project_as_dict()
-    cmds.file(new=True, force=True)
-
-    another_project = RigProject()
-    another_project.read_data_from_dict(a_project_dict)
-    another_project.build_proxy()
-    cmds.viewFit(all=True)
+    a_leg.read_data_from_scene()
+    print(a_leg.get_module_as_dict)
+    # cmds.file(new=True, force=True)
+    #
+    # another_project = RigProject()
+    # another_project.read_data_from_dict(a_project_dict)
+    # another_project.build_proxy()
+    # cmds.viewFit(all=True)
