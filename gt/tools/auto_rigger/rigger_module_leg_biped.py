@@ -25,7 +25,8 @@ class ModuleBipedLeg(ModuleGeneric):
                  name="Leg",
                  prefix=None,
                  parent_uuid=None,
-                 metadata=None):
+                 metadata=None,
+                 side=None):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
         # Default Proxies
@@ -64,10 +65,18 @@ class ModuleBipedLeg(ModuleGeneric):
         self.heel.set_locator_scale(scale=0.1)
         self.heel.add_meta_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
-        self.heel.set_meta_type(value="heel_pivot")
+        self.heel.set_meta_type(value="heel")
 
         # Update Proxies
         self.proxies = [self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel]
+
+    def get_module_as_dict(self, **kwargs):
+        """
+        Overwrite to remove offset data from the export
+        Args:
+            kwargs: Key arguments, not used for anything
+        """
+        return super().get_module_as_dict(include_offset_data=False)
 
     def read_proxies_from_dict(self, proxy_dict):
         """
@@ -85,7 +94,6 @@ class ModuleBipedLeg(ModuleGeneric):
             metadata = description.get("metadata")
             if metadata:
                 meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-
                 if meta_type == "hip":
                     self.hip.set_uuid(uuid)
                     self.hip.read_data_from_dict(proxy_dict=description)
@@ -112,7 +120,6 @@ class ModuleBipedLeg(ModuleGeneric):
         Returns
             bool: True if valid, False otherwise
         """
-        # TODO Other checks here
         is_valid = super().is_valid()  # Passthrough
         return is_valid
 
@@ -238,6 +245,12 @@ class ModuleBipedLeg(ModuleGeneric):
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
         hide_lock_default_attrs(heel_pivot, translate=False, rotate=True, scale=True)
         self.apply_transforms()
+        # self.hip.apply_transforms()
+        # self.ankle.apply_transforms()
+        # self.ball.apply_transforms()
+        # self.toe.apply_transforms()
+        self.heel.apply_transforms()
+        # self.knee.apply_transforms()
         cmds.select(clear=True)
 
     def build_rig(self):
@@ -249,7 +262,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_leg = ModuleBipedLeg()
+    a_leg = ModuleBipedLeg(prefix="left_")
     a_project = RigProject()
     a_project.add_to_modules(a_leg)
     a_project.build_proxy()
@@ -259,13 +272,13 @@ if __name__ == "__main__":
     cmds.setAttr(f'ankle.tz', 8)
     a_project.read_data_from_scene()
     dictionary = a_project.get_project_as_dict()
-    print(a_project.get_project_as_dict().get("modules"))
+    print(a_project.get_project_as_dict())
 
-    # cmds.file(new=True, force=True)
-    # # a_project = RigProject()
-    # a_project.read_data_from_dict(dictionary)
-    #
-    # print(a_project.get_project_as_dict().get("modules"))
-    # a_project.build_proxy()
+    cmds.file(new=True, force=True)
+    # a_project = RigProject()
+    a_project.read_data_from_dict(dictionary)
+
+    print(a_project.get_project_as_dict())
+    a_project.build_proxy()
 
     cmds.viewFit(all=True)

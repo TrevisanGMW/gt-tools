@@ -525,8 +525,6 @@ class Proxy:
 
         offset_transform = proxy_dict.get('offsetTransform')
         if offset_transform and len(offset_transform) == 3:
-            if not self.offset_transform:
-                self.offset_transform = Transform()
             self.offset_transform.set_transform_from_dict(transform_dict=transform)
 
         attributes = proxy_dict.get('attributes')
@@ -609,11 +607,12 @@ class Proxy:
         """
         return self.attr_dict
 
-    def get_proxy_as_dict(self, include_uuid=False):
+    def get_proxy_as_dict(self, include_uuid=False, include_offset_data=True):
         """
         Returns all necessary information to recreate this proxy as a dictionary
         Args:
             include_uuid (bool, optional): If True, it will also include an "uuid" key and value in the dictionary.
+            include_offset_data (bool, optional): If True, it will also export the offset transform data.
         Returns:
             dict: Proxy data as a dictionary
         """
@@ -624,7 +623,7 @@ class Proxy:
                       "transform": self.transform.get_transform_as_dict(),
                       }
 
-        if self.offset_transform:
+        if self.offset_transform and include_offset_data:
             proxy_data["offsetTransform"] = self.offset_transform.get_transform_as_dict()
 
         if self.get_attr_dict():
@@ -856,12 +855,13 @@ class ModuleGeneric:
         """
         return self.metadata
 
-    def get_module_as_dict(self, include_module_name=False):
+    def get_module_as_dict(self, include_module_name=False, include_offset_data=True):
         """
         Gets the properties of this module (including proxies) as a dictionary
         Args:
             include_module_name (bool, optional): If True, it will also include the name of the class in the dictionary.
                                                   e.g. "ModuleGeneric"
+            include_offset_data (bool, optional): If True, it will include the offset transform data in the dictionary.
         Returns:
             dict: Dictionary describing this module
         """
@@ -876,7 +876,7 @@ class ModuleGeneric:
             module_data["metadata"] = self.metadata
         module_proxies = {}
         for proxy in self.proxies:
-            module_proxies[proxy.get_uuid()] = proxy.get_proxy_as_dict()
+            module_proxies[proxy.get_uuid()] = proxy.get_proxy_as_dict(include_offset_data=include_offset_data)
         module_data["proxies"] = module_proxies
         if include_module_name:
             module_name = self.get_module_class_name()
@@ -926,7 +926,7 @@ class ModuleGeneric:
         """
         proxy_data = []
         for proxy in self.proxies:
-            proxy_data.append(proxy.build(apply_transforms=True))
+            proxy_data.append(proxy.build(apply_transforms=False))
         return proxy_data
 
     def build_proxy_post(self):
@@ -935,7 +935,7 @@ class ModuleGeneric:
         When in a project, this runs after the "build_proxy" is done in all modules.
         Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
         """
-        self.apply_transforms()
+        # self.apply_transforms()
         logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
 
     def build_rig(self):
