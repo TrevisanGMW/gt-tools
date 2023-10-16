@@ -143,10 +143,11 @@ class Proxy:
             return False
         return True
 
-    def build(self, apply_transforms=False):
+    def build(self, prefix=None, apply_transforms=False):
         """
         Builds a proxy object.
         Args:
+            prefix (str, optional): If provided, this prefix will be added to the proxy when it's created.
             apply_transforms (bool, optional): If True, the creation of the proxy will apply transform values.
                                                Used by modules to only apply transforms after setup. (post script)
         Returns:
@@ -155,8 +156,15 @@ class Proxy:
         if not self.is_valid():
             logger.warning(f'Unable to build proxy. Invalid proxy object.')
             return
-        proxy_offset = cmds.group(name=f'{self.name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
+
+        name = self.name
+        if prefix and isinstance(prefix, str):
+            name = f'{prefix}_{name}'
+            self.curve.set_name(name)
+        proxy_offset = cmds.group(name=f'{name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
         proxy_crv = self.curve.build()
+        if prefix:
+            self.curve.set_name(self.name)  # Restore name without prefix
         proxy_crv = cmds.parent(proxy_crv, proxy_offset)[0]
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
@@ -684,7 +692,7 @@ class ModuleGeneric:
         if not name or not isinstance(name, str):
             logger.warning(f'Unable to set name. Expected string but got "{str(type(name))}"')
             return
-        self.prefix = name
+        self.name = name
 
     def set_prefix(self, prefix):
         """
@@ -929,15 +937,28 @@ class ModuleGeneric:
             return False
         return True
 
-    def build_proxy(self):
+    def build_proxy(self, project_prefix=None):
         """
         Builds the proxy representation of the rig (for the user to adjust and determine the pose)
+        Args:
+            project_prefix (str, optional): If provided, this prefix will be added to the proxies when they are created.
+                                            This is an extra prefix, added on top of the module prefix (self.prefix)
+                                            So the final pattern is "<project_prefix>_<module_prefix>_<name>"
+                                            Module prefix is the prefix stored in this object "self.prefix"
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
         proxy_data = []
+        _prefix = ''
+        prefix_list = []
+        if project_prefix and isinstance(project_prefix, str):
+            prefix_list.append(project_prefix)
+        if self.prefix and isinstance(self.prefix, str):
+            prefix_list.append(self.prefix)
+        if prefix_list:
+            _prefix = '_'.join(prefix_list)
         for proxy in self.proxies:
-            proxy_data.append(proxy.build(apply_transforms=False))
+            proxy_data.append(proxy.build(prefix=_prefix, apply_transforms=False))
         return proxy_data
 
     def build_proxy_post(self):
@@ -1252,8 +1273,9 @@ if __name__ == "__main__":
     # a_proxy.build()
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_proxy)
-    a_module.build_proxy()
-    a_module.build_proxy_post()
+    a_module.set_prefix("module")
+    a_module.build_proxy(project_prefix="project")
+    # a_module.build_proxy_post()
 
     # a_project = RigProject()
     # # a_project.add_to_modules(a_module)
