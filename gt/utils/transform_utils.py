@@ -131,7 +131,7 @@ class Vector3:
 
     def __add__(self, other):
         """
-        Add two Vector3 objects element-wise.
+        Add two Vector3 objects element-wise. If None, operation is ignored.
 
         Args:
             other (Vector3): The other Vector3 object to add.
@@ -142,6 +142,8 @@ class Vector3:
         Raises:
             TypeError: If the operand type for addition is not supported.
         """
+        if other is None:
+            return self
         if not isinstance(other, self.__class__):
             raise TypeError("Unsupported operand type for +")
         return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
