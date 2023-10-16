@@ -184,7 +184,18 @@ class Proxy:
 
         return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
 
-    def apply_transforms(self, apply_offset=True):
+    def apply_offset_transform(self):
+        """
+        Attempts to apply transform values to the offset of the proxy.
+        To be used only after proxy is built.
+        """
+        proxy_crv = find_proxy_with_uuid(uuid_string=self.uuid)
+        if proxy_crv:
+            proxy_offset = get_proxy_offset(proxy_crv)
+            if proxy_offset and self.offset_transform:
+                self.offset_transform.apply_transform(target_object=proxy_offset, world_space=True)
+
+    def apply_transforms(self, apply_offset=False):
         """
         Attempts to apply offset and parent offset transforms to the proxy elements.
         To be used only after proxy is built.

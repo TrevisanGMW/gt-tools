@@ -144,7 +144,13 @@ class ModuleBipedLeg(ModuleGeneric):
         knee = find_proxy_with_uuid(self.knee.get_uuid())
         ankle = find_proxy_with_uuid(self.ankle.get_uuid())
         ball = find_proxy_with_uuid(self.ball.get_uuid())
-        heel_pivot = find_proxy_with_uuid(self.heel.get_uuid())
+        heel = find_proxy_with_uuid(self.heel.get_uuid())
+
+        self.hip.apply_offset_transform()
+        self.knee.apply_offset_transform()
+        self.ankle.apply_offset_transform()
+        self.ball.apply_offset_transform()
+        self.heel.apply_offset_transform()
 
         # Hip -----------------------------------------------------------------------------------
         hide_lock_default_attrs(hip, translate=False)
@@ -238,19 +244,16 @@ class ModuleBipedLeg(ModuleGeneric):
             cmds.connectAttr(to_lock_ty + '.lockTranslateY', to_lock_ty + '.maxTransYLimitEnable', f=True)
 
         # Heel -----------------------------------------------------------------------------------
-        heel_offset = get_proxy_offset(heel_pivot)
-        add_attr(target_list=heel_pivot, attributes="followAnkle", attr_type='bool', default=True)
+        heel_offset = get_proxy_offset(heel)
+        add_attr(target_list=heel, attributes="followAnkle", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')[0]
-        cmds.connectAttr(f'{heel_pivot}.followAnkle', f'{constraint}.w0')
+        cmds.connectAttr(f'{heel}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
-        hide_lock_default_attrs(heel_pivot, translate=False, rotate=True, scale=True)
+        hide_lock_default_attrs(heel, translate=False, rotate=True, scale=True)
         self.apply_transforms()
-        # self.hip.apply_transforms()
-        # self.ankle.apply_transforms()
-        # self.ball.apply_transforms()
-        # self.toe.apply_transforms()
+        self.ball.apply_transforms()
         self.heel.apply_transforms()
-        # self.knee.apply_transforms()
+        self.knee.apply_transforms()  # Refresh due to automation
         cmds.select(clear=True)
 
     def build_rig(self):
@@ -270,15 +273,15 @@ if __name__ == "__main__":
 
     cmds.setAttr(f'hip.tx', 10)
     cmds.setAttr(f'ankle.tz', 8)
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
     print(a_project.get_project_as_dict())
+    a_project.read_data_from_scene()
+    print(a_project.get_project_as_dict())
+    dictionary = a_project.get_project_as_dict()
 
     cmds.file(new=True, force=True)
     # a_project = RigProject()
-    a_project.read_data_from_dict(dictionary)
+    # a_project.read_data_from_dict(dictionary)
 
-    print(a_project.get_project_as_dict())
     a_project.build_proxy()
 
     cmds.viewFit(all=True)
