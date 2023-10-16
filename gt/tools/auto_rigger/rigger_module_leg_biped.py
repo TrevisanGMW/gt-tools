@@ -250,9 +250,12 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{heel}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
         hide_lock_default_attrs(heel, translate=False, rotate=True, scale=True)
-        self.apply_transforms()
+        # self.apply_transforms()
+        self.hip.apply_transforms()
+        self.ankle.apply_transforms()
         self.ball.apply_transforms()
         self.heel.apply_transforms()
+        self.toe.apply_transforms()
         self.knee.apply_transforms()  # Refresh due to automation
         cmds.select(clear=True)
 
@@ -273,15 +276,16 @@ if __name__ == "__main__":
 
     cmds.setAttr(f'hip.tx', 10)
     cmds.setAttr(f'ankle.tz', 8)
+    cmds.setAttr(f'knee.tz', 1.5)
     print(a_project.get_project_as_dict())
     a_project.read_data_from_scene()
     print(a_project.get_project_as_dict())
     dictionary = a_project.get_project_as_dict()
-
+    #
     cmds.file(new=True, force=True)
-    # a_project = RigProject()
-    # a_project.read_data_from_dict(dictionary)
-
-    a_project.build_proxy()
-
-    cmds.viewFit(all=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    #
+    a_project2.build_proxy()
+    #
+    # cmds.viewFit(all=True)
