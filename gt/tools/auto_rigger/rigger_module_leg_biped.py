@@ -7,7 +7,7 @@ from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_stat
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
 from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
-from gt.utils.transform_utils import match_translate
+from gt.utils.transform_utils import match_translate, Vector3
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -26,42 +26,49 @@ class ModuleBipedLeg(ModuleGeneric):
                  prefix=None,
                  parent_uuid=None,
                  metadata=None,
-                 side=None):
+                 pos_offset=None):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
         # Default Proxies
         self.hip = Proxy(name="hip")
-        self.hip.set_initial_position(y=84.5)
+        pos_hip = Vector3(y=84.5) + pos_offset
+        self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=0.4)
         self.hip.set_meta_type(value="hip")
 
         self.knee = Proxy(name="knee")
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
-        self.knee.set_initial_position(y=47.05)
+        pos_knee = Vector3(y=47.05) + pos_offset
+        self.knee.set_initial_position(xyz=pos_knee)
         self.knee.set_locator_scale(scale=0.5)
         self.knee.add_meta_parent(line_parent=self.hip)
         self.knee.set_meta_type(value="knee")
 
         self.ankle = Proxy(name="ankle")
-        self.ankle.set_initial_position(y=9.6)
+        pos_ankle = Vector3(y=9.6) + pos_offset
+        self.ankle.set_initial_position(xyz=pos_ankle)
         self.ankle.set_locator_scale(scale=0.4)
         self.ankle.add_meta_parent(line_parent=self.knee)
         self.ankle.set_meta_type(value="ankle")
 
         self.ball = Proxy(name="ball")
-        self.ball.set_initial_position(z=13.1)
+        pos_ball = Vector3(z=13.1) + pos_offset
+        self.ball.set_initial_position(xyz=pos_ball)
         self.ball.set_locator_scale(scale=0.4)
         self.ball.add_meta_parent(line_parent=self.ankle)
         self.ball.set_meta_type(value="ball")
 
         self.toe = Proxy(name="toe")
-        self.toe.set_initial_position(z=23.4)
+        pos_toe = Vector3(z=23.4) + pos_offset
+        self.toe.set_initial_position(xyz=pos_toe)
         self.toe.set_locator_scale(scale=0.4)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
         self.toe.set_meta_type(value="toe")
 
         self.heel = Proxy(name="heelPivot")
+        pos_heel = Vector3() + pos_offset
+        self.heel.set_initial_position(xyz=pos_heel)
         self.heel.set_locator_scale(scale=0.1)
         self.heel.add_meta_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
@@ -192,10 +199,10 @@ class ModuleBipedLeg(ModuleGeneric):
         hierarchy_utils.parent(source_objects=knee_aim_loc, target_parent=knee_dir_loc)
 
         knee_divide_node = cmds.createNode('multiplyDivide', name=f'{knee_tag}_divide')
-        cmds.setAttr(knee_divide_node + '.operation', 2)  # Change operation to Divide
-        cmds.setAttr(knee_divide_node + '.input2X', -2)
-        cmds.connectAttr(ankle + '.tx', knee_divide_node + '.input1X')
-        cmds.connectAttr(knee_divide_node + '.outputX', knee_upvec_loc + '.tx')
+        cmds.setAttr(f'{knee_divide_node}.operation', 2)  # Change operation to Divide
+        cmds.setAttr(f'{knee_divide_node}.input2X', -2)
+        cmds.connectAttr(f'{ankle}.tx', f'{knee_divide_node}.input1X')
+        cmds.connectAttr(f'{knee_divide_node}.outputX', f'{knee_upvec_loc}.tx')
 
         match_translate(source=hip, target_list=knee_upvec_loc_grp)
         cmds.move(10, knee_upvec_loc, moveY=True, relative=True)  # More it forward (in front of the knee)
@@ -263,29 +270,57 @@ class ModuleBipedLeg(ModuleGeneric):
         super().build_rig()  # Passthrough
 
 
+class ModuleBipedLegLeft(ModuleBipedLeg):
+    def __init__(self,
+                 name="Left Leg",
+                 prefix=NamingConstants.Prefix.LEFT,
+                 parent_uuid=None,
+                 metadata=None):
+        super().__init__(name=name,
+                         prefix=prefix,
+                         parent_uuid=parent_uuid,
+                         metadata=metadata,
+                         pos_offset=Vector3(x=10.2))
+
+
+class ModuleBipedLegRight(ModuleBipedLeg):
+    def __init__(self,
+                 name="Right Leg",
+                 prefix=NamingConstants.Prefix.RIGHT,
+                 parent_uuid=None,
+                 metadata=None):
+        super().__init__(name=name,
+                         prefix=prefix,
+                         parent_uuid=parent_uuid,
+                         metadata=metadata,
+                         pos_offset=Vector3(x=-10.2))
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_leg = ModuleBipedLeg(prefix="left_")
+    a_leg_right = ModuleBipedLegLeft()
+    a_leg_left = ModuleBipedLegRight()
     a_project = RigProject()
-    a_project.add_to_modules(a_leg)
+    a_project.add_to_modules(a_leg_left)
+    a_project.add_to_modules(a_leg_right)
     a_project.build_proxy()
     # get_curve('_proxy_joint_arrow').build()
 
-    cmds.setAttr(f'hip.tx', 10)
-    cmds.setAttr(f'ankle.tz', 8)
-    cmds.setAttr(f'knee.tz', 1.5)
-    print(a_project.get_project_as_dict())
-    a_project.read_data_from_scene()
-    print(a_project.get_project_as_dict())
-    dictionary = a_project.get_project_as_dict()
+    # cmds.setAttr(f'left_hip.tx', 10)
+    # cmds.setAttr(f'left_ankle.tz', 5)
+    # cmds.setAttr(f'left_knee.tz', 3)
+    # print(a_project.get_project_as_dict())
+    # a_project.read_data_from_scene()
+    # print(a_project.get_project_as_dict())
+    # dictionary = a_project.get_project_as_dict()
     #
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    #
-    a_project2.build_proxy()
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # #
+    # a_project2.build_proxy()
     #
     # cmds.viewFit(all=True)
