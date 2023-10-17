@@ -173,7 +173,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_pv_dir = cmds.spaceLocator(name=f'{knee_tag}_poleVectorDir')[0]
         match_translate(source=knee, target_list=knee_pv_dir)
         cmds.move(0, 0, 13, knee_pv_dir, relative=True)  # More it forward (in front of the knee)
-        cmds.parent(knee_pv_dir, knee)
+        hierarchy_utils.parent(knee_pv_dir, knee)
 
         # Lock Knee Unstable Channels
         cmds.addAttr(knee, ln='lockTranslateX', at='bool', k=True, niceName="Lock Unstable Channel")
@@ -194,10 +194,10 @@ class ModuleBipedLeg(ModuleGeneric):
                  attr_list="visibility", value=0)  # Set Visibility to Off
         set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
                  attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
-        knee_upvec_loc_grp = cmds.parent(knee_upvec_loc_grp, root)[0]
-        knee_upvec_loc = cmds.parent(knee_upvec_loc, knee_upvec_loc_grp)[0]
-        knee_dir_loc = cmds.parent(knee_dir_loc, root)[0]
-        knee_aim_loc = cmds.parent(knee_aim_loc, knee_dir_loc)[0]
+        knee_upvec_loc_grp = hierarchy_utils.parent(knee_upvec_loc_grp, root)[0]
+        knee_upvec_loc = hierarchy_utils.parent(knee_upvec_loc, knee_upvec_loc_grp)[0]
+        knee_dir_loc = hierarchy_utils.parent(knee_dir_loc, root)[0]
+        knee_aim_loc = hierarchy_utils.parent(knee_aim_loc, knee_dir_loc)[0]
 
         knee_divide_node = cmds.createNode('multiplyDivide', name=f'{knee_tag}_divide')
         cmds.setAttr(f'{knee_divide_node}.operation', 2)  # Change operation to Divide
@@ -238,7 +238,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.pointConstraint(ankle, ball_driver, maintainOffset=True, skip=['y'])
         cmds.orientConstraint(ankle, ball_driver, maintainOffset=True, skip=['x', 'z'])
         cmds.scaleConstraint(ankle, ball_driver, skip=['y'])
-        cmds.parent(ball_offset, ball_driver)
+        hierarchy_utils.parent(ball_offset, ball_driver)
 
         # Keep Grounded
         ball = find_proxy_with_uuid(self.ball.get_uuid())  # Refresh
@@ -303,26 +303,23 @@ if __name__ == "__main__":
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
     a_leg_lf = ModuleBipedLegLeft()
-    a_leg_lf2 = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
     a_project = RigProject()
-    a_project.add_to_modules(a_leg_lf2)
+    a_project.add_to_modules(a_leg_rt)
     a_project.add_to_modules(a_leg_lf)
     a_project.build_proxy()
-    # get_curve('_proxy_joint_arrow').build()
 
-    # cmds.setAttr(f'left_hip.tx', 10)
-    # cmds.setAttr(f'left_ankle.tz', 5)
-    # cmds.setAttr(f'left_knee.tz', 3)
-    # print(a_project.get_project_as_dict())
-    # a_project.read_data_from_scene()
-    # print(a_project.get_project_as_dict())
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # #
-    # a_project2.build_proxy()
-    #
-    # cmds.viewFit(all=True)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_hip.tx', 10)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.tz', 5)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_knee.tz', 3)
+    print(a_project.get_project_as_dict())
+    a_project.read_data_from_scene()
+    print(a_project.get_project_as_dict())
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    a_project2.build_proxy()
+    # Show all
+    cmds.viewFit(all=True)
