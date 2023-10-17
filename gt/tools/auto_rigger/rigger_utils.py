@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.utils.color_utils import set_color_viewport, ColorConstants
-from gt.utils.uuid_utils import find_object_with_uuid
+from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.attr_utils import set_attr_state
 from gt.utils.hierarchy_utils import parent
@@ -44,9 +44,9 @@ def find_proxy_with_uuid(uuid_string):
     Returns:
         str or None: If found, the proxy with the matching UUID, otherwise None
     """
-    return find_object_with_uuid(uuid_string=uuid_string,
-                                 attr_name=RiggerConstants.PROXY_ATTR_UUID,
-                                 obj_type="transform")
+    return get_object_from_uuid_attr(uuid_string=uuid_string,
+                                     attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                     obj_type="transform")
 
 
 def parent_proxies(proxy_list):
