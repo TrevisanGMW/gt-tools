@@ -194,9 +194,10 @@ class ModuleBipedLeg(ModuleGeneric):
                  attr_list="visibility", value=0)  # Set Visibility to Off
         set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
                  attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
-        cmds.parent(knee_upvec_loc, knee_upvec_loc_grp)
-        hierarchy_utils.parent(source_objects=[knee_upvec_loc_grp, knee_dir_loc], target_parent=root)
-        hierarchy_utils.parent(source_objects=knee_aim_loc, target_parent=knee_dir_loc)
+        knee_upvec_loc_grp = cmds.parent(knee_upvec_loc_grp, root)[0]
+        knee_upvec_loc = cmds.parent(knee_upvec_loc, knee_upvec_loc_grp)[0]
+        knee_dir_loc = cmds.parent(knee_dir_loc, root)[0]
+        knee_aim_loc = cmds.parent(knee_aim_loc, knee_dir_loc)[0]
 
         knee_divide_node = cmds.createNode('multiplyDivide', name=f'{knee_tag}_divide')
         cmds.setAttr(f'{knee_divide_node}.operation', 2)  # Change operation to Divide
@@ -231,7 +232,7 @@ class ModuleBipedLeg(ModuleGeneric):
         ankle_tag = get_short_name(ankle)
         ball_offset = get_proxy_offset(ball)
         ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
-        hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)
+        ball_driver = hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)[0]
         ankle_pos = cmds.xform(ankle, q=True, ws=True, rp=True)
         cmds.move(ankle_pos[0], ball_driver, moveX=True)
         cmds.pointConstraint(ankle, ball_driver, maintainOffset=True, skip=['y'])
@@ -301,11 +302,12 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_leg_right = ModuleBipedLegLeft()
-    a_leg_left = ModuleBipedLegRight()
+    a_leg_lf = ModuleBipedLegLeft()
+    a_leg_lf2 = ModuleBipedLegLeft()
+    a_leg_rt = ModuleBipedLegRight()
     a_project = RigProject()
-    a_project.add_to_modules(a_leg_left)
-    a_project.add_to_modules(a_leg_right)
+    a_project.add_to_modules(a_leg_lf2)
+    a_project.add_to_modules(a_leg_lf)
     a_project.build_proxy()
     # get_curve('_proxy_joint_arrow').build()
 
