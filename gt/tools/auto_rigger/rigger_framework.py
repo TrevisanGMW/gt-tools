@@ -6,11 +6,11 @@ RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, get_proxy_offset, RiggerConstants
-from gt.utils.uuid_utils import add_uuid_attribute, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
-from gt.utils.uuid_utils import find_object_with_uuid
+from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.color_utils import add_side_color_setup
 from gt.utils.string_utils import remove_prefix
@@ -170,9 +170,9 @@ class Proxy:
         proxy_crv = get_long_name(proxy_crv)
         add_snapping_shape(proxy_crv)
         add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
-        uuid_attrs = add_uuid_attribute(obj_list=proxy_crv,
-                                        attr_name=RiggerConstants.PROXY_ATTR_UUID,
-                                        set_initial_uuid_value=False)
+        uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
+                                   attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                   set_initial_uuid_value=False)
         scale_attr = add_attr(target_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
         loc_scale_cluster = None
         if scale_attr and len(scale_attr) == 1:
@@ -569,7 +569,7 @@ class Proxy:
         """
         ignore_attr_list = [RiggerConstants.PROXY_ATTR_UUID,
                             RiggerConstants.PROXY_ATTR_SCALE]
-        proxy = find_object_with_uuid(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
+        proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
         if proxy:
             try:
                 self.transform.set_transform_from_object(proxy)
