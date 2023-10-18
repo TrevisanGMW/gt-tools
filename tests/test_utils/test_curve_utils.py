@@ -540,7 +540,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_curve_path(self):
-        path = curve_utils.get_curve_path("circle")
+        path = curve_utils.get_curve_file_path("circle")
         result = os.path.exists(path)
         self.assertTrue(result)
         result = os.path.basename(path)
