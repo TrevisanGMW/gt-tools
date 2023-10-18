@@ -25,9 +25,9 @@ MESH_TYPES = [MESH_TYPE_DEFAULT, MESH_TYPE_SURFACE]
 MESH_FILE_EXTENSION = "obj"
 
 
-def get_mesh_path(file_name):
+def get_mesh_file_path(file_name):
     """
-    Get the path to a mesh data file. This file should exist inside the utils/data/meshes folder.
+    Get the path to a mesh data file. This file should exist inside the "utils/data/meshes" folder.
     Args:
         file_name (str): Name of the file. It doesn't need to contain its extension as it will always be "obj"
     Returns:
@@ -618,31 +618,31 @@ class Meshes:
         Use "build()" to create them in Maya.
         """
 
-    cube_box_base_smooth = MeshFile(file_path=get_mesh_path("cube_box_base_smooth"))
-    cube_box_base_with_hole = MeshFile(file_path=get_mesh_path("cube_box_base_with_hole"))
-    cylinder_side_hole = MeshFile(file_path=get_mesh_path("cylinder_side_hole"))
-    cylinder_top_polar_four = MeshFile(file_path=get_mesh_path("cylinder_top_polar_four"))
-    cylinder_to_half_squashed_cylinder = MeshFile(file_path=get_mesh_path("cylinder_to_half_squashed_cylinder"))
-    human_head_low_poly = MeshFile(file_path=get_mesh_path("human_head_low_poly"))
-    pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_path("pattern_diamond_wire_fence"))
-    pattern_hexagon_hole = MeshFile(file_path=get_mesh_path("pattern_hexagon_hole"))
-    pipe_ninety_degree = MeshFile(file_path=get_mesh_path("pipe_ninety_degree"))
-    pipe_to_cylinder_a = MeshFile(file_path=get_mesh_path("pipe_to_cylinder_a"))
-    primitive_die_twenty_sides = MeshFile(file_path=get_mesh_path("primitive_die_twenty_sides"))
-    primitive_gem_diamond = MeshFile(file_path=get_mesh_path("primitive_gem_diamond"))
-    primitive_gem_emerald = MeshFile(file_path=get_mesh_path("primitive_gem_emerald"))
-    primitive_gem_sapphire = MeshFile(file_path=get_mesh_path("primitive_gem_sapphire"))
-    primitive_sphere_cube = MeshFile(file_path=get_mesh_path("primitive_sphere_cube"))
-    primitive_sphere_platonic_octahedron = MeshFile(file_path=get_mesh_path("primitive_sphere_platonic_octahedron"))
-    qr_code_package_github = MeshFile(file_path=get_mesh_path("qr_code_package_github"))
-    topology_five_to_three_a = MeshFile(file_path=get_mesh_path("topology_five_to_three_a"))
-    topology_five_to_three_b = MeshFile(file_path=get_mesh_path("topology_five_to_three_b"))
-    topology_four_to_two_a = MeshFile(file_path=get_mesh_path("topology_four_to_two_a"))
-    topology_three_to_one_a = MeshFile(file_path=get_mesh_path("topology_three_to_one_a"))
-    topology_three_to_two_a = MeshFile(file_path=get_mesh_path("topology_three_to_two_a"))
-    topology_two_to_one_a = MeshFile(file_path=get_mesh_path("topology_two_to_one_a"))
-    topology_two_to_one_b = MeshFile(file_path=get_mesh_path("topology_two_to_one_b"))
-    topology_two_to_one_c = MeshFile(file_path=get_mesh_path("topology_two_to_one_c"))
+    cube_box_base_smooth = MeshFile(file_path=get_mesh_file_path("cube_box_base_smooth"))
+    cube_box_base_with_hole = MeshFile(file_path=get_mesh_file_path("cube_box_base_with_hole"))
+    cylinder_side_hole = MeshFile(file_path=get_mesh_file_path("cylinder_side_hole"))
+    cylinder_top_polar_four = MeshFile(file_path=get_mesh_file_path("cylinder_top_polar_four"))
+    cylinder_to_half_squashed_cylinder = MeshFile(file_path=get_mesh_file_path("cylinder_to_half_squashed_cylinder"))
+    human_head_low_poly = MeshFile(file_path=get_mesh_file_path("human_head_low_poly"))
+    pattern_diamond_wire_fence = MeshFile(file_path=get_mesh_file_path("pattern_diamond_wire_fence"))
+    pattern_hexagon_hole = MeshFile(file_path=get_mesh_file_path("pattern_hexagon_hole"))
+    pipe_ninety_degree = MeshFile(file_path=get_mesh_file_path("pipe_ninety_degree"))
+    pipe_to_cylinder_a = MeshFile(file_path=get_mesh_file_path("pipe_to_cylinder_a"))
+    primitive_die_twenty_sides = MeshFile(file_path=get_mesh_file_path("primitive_die_twenty_sides"))
+    primitive_gem_diamond = MeshFile(file_path=get_mesh_file_path("primitive_gem_diamond"))
+    primitive_gem_emerald = MeshFile(file_path=get_mesh_file_path("primitive_gem_emerald"))
+    primitive_gem_sapphire = MeshFile(file_path=get_mesh_file_path("primitive_gem_sapphire"))
+    primitive_sphere_cube = MeshFile(file_path=get_mesh_file_path("primitive_sphere_cube"))
+    primitive_sphere_platonic_octahedron = MeshFile(file_path=get_mesh_file_path("primitive_sphere_platonic_octahedron"))
+    qr_code_package_github = MeshFile(file_path=get_mesh_file_path("qr_code_package_github"))
+    topology_five_to_three_a = MeshFile(file_path=get_mesh_file_path("topology_five_to_three_a"))
+    topology_five_to_three_b = MeshFile(file_path=get_mesh_file_path("topology_five_to_three_b"))
+    topology_four_to_two_a = MeshFile(file_path=get_mesh_file_path("topology_four_to_two_a"))
+    topology_three_to_one_a = MeshFile(file_path=get_mesh_file_path("topology_three_to_one_a"))
+    topology_three_to_two_a = MeshFile(file_path=get_mesh_file_path("topology_three_to_two_a"))
+    topology_two_to_one_a = MeshFile(file_path=get_mesh_file_path("topology_two_to_one_a"))
+    topology_two_to_one_b = MeshFile(file_path=get_mesh_file_path("topology_two_to_one_b"))
+    topology_two_to_one_c = MeshFile(file_path=get_mesh_file_path("topology_two_to_one_c"))
 
 
 class ParametricMeshes:
