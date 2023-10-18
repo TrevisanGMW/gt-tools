@@ -29,7 +29,7 @@ PROJECTION_SCALE_KEY = 'projectionScale'
 PROJECTION_FIT_KEY = 'projectionFit'
 
 
-def get_curve_path(file_name):
+def get_curve_file_path(file_name):
     """
     Get the path to a curve data file. This file should exist inside the utils/data/curves folder.
     Args:
