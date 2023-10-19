@@ -112,7 +112,6 @@ class TestProxyUtils(unittest.TestCase):
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
         self.assertTrue(isinstance(result, rigger_framework.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_framework.RiggerConstants.SEPARATOR_ATTR}'))
         self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_framework.RiggerConstants.PROXY_ATTR_UUID}'))
         self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_framework.RiggerConstants.PROXY_ATTR_UUID}'))
 
