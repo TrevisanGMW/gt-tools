@@ -215,9 +215,9 @@ def hide_lock_default_attrs(obj, translate=True, rotate=True, scale=True, visibi
         channels.append('s')
     for channel in channels:
         for axis in ['x', 'y', 'z']:
-            cmds.setAttr(obj + '.' + channel + axis, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr(f'{obj}.{channel}{axis}', lock=True, keyable=False, channelBox=False)
     if visibility:
-        cmds.setAttr(obj + '.v', lock=True, keyable=False, channelBox=False)
+        cmds.setAttr(f'{obj}.v', lock=True, keyable=False, channelBox=False)
 
 
 def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
