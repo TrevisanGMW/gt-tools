@@ -111,7 +111,7 @@ class TestNodeUtils(unittest.TestCase):
         expected = ['mesh']
         self.assertEqual(expected, result)
 
-    def test_string_conversion(self):
+    def test_node_string_conversion(self):
         cube = maya_test_tools.create_poly_cube()
         node = Node(path=cube)
         maya_test_tools.cmds.setAttr(f"{node}.ty", 5)
@@ -122,7 +122,7 @@ class TestNodeUtils(unittest.TestCase):
         result = str(node)
         self.assertEqual(expected, result)
 
-    def test_string_conversion_non_unique(self):
+    def test_node_string_conversion_non_unique(self):
         cube_one = maya_test_tools.create_poly_cube()
         cube_two = maya_test_tools.create_poly_cube()
         node = Node(path=cube_one)
@@ -134,3 +134,22 @@ class TestNodeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.getAttr(f"{node}.ty")
         expected = 5
         self.assertEqual(expected, result)
+
+    def test_node_string_conversion_add(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        node_one = Node(path=cube_one)
+        node_two = Node(path=cube_two)
+
+        result = node_one + " mocked string " + node_two
+        expected = "|pCube1 mocked string |pCube2"
+        self.assertEqual(expected, result)
+        result = "cube_one " + node_one
+        expected = "cube_one |pCube1"
+        self.assertEqual(expected, result)
+
+    def test_node_with_non_string_operand(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        node_one = Node(cube_one)
+        with self.assertRaises(TypeError):
+            result = node_one + 42  # 42 is not a string, TypeError

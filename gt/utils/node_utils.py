@@ -48,7 +48,7 @@ class Node:
 
     def __repr__(self):
         """
-        Return the long name of the object when using it as a string.
+        Return the long name of the object when using it as a string/printing.
 
         Returns:
             str: Long name (path) - Empty string if not found
@@ -57,6 +57,51 @@ class Node:
         if not path:
             path = ''
         return path
+
+    def __str__(self):
+        """
+        Return the long name of the object when using it as a string/printing.
+
+        Returns:
+            str: Long name (path) - Empty string if not found
+        """
+        return self.get_long_name()
+
+    def __add__(self, other):
+        """
+        Concatenate the long name of the Node instance with another string.
+
+        Args:
+           other (str): The string to concatenate with the long name of the Node instance.
+
+        Returns:
+           str: The result of the concatenation as a regular string.
+
+        Raises:
+           TypeError: If the 'other' operand is not a string.
+        """
+        if isinstance(other, str):
+            return str(self.get_long_name() + other)
+        else:
+            raise TypeError('Unsupported operand type for +: "str" and ' + type(other).__name__)
+
+    def __radd__(self, other):
+        """
+        Concatenate another string with the long name of the Node instance.
+
+        Args:
+           other (str): The string to concatenate with the long name of the Node.
+
+        Returns:
+           str: The result of the concatenation as a regular string.
+
+        Raises:
+           TypeError: If the 'other' operand is not a string.
+        """
+        if isinstance(other, str):
+            return str(other + self.get_long_name())
+        else:
+            raise TypeError('Unsupported operand type for +: ' + type(other).__name__ + ' and "str"')
 
     def get_uuid(self):
         """
@@ -74,7 +119,10 @@ class Node:
         Returns:
            str or None: The long name of the Maya node. None if not found.
         """
-        return get_object_from_uuid(uuid_string=str(self.uuid))
+        long_name = get_object_from_uuid(uuid_string=str(self.uuid))
+        if long_name:
+            return long_name
+        return ""
 
     def get_short_name(self):
         """
