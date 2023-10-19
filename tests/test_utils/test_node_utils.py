@@ -35,7 +35,7 @@ class TestNodeUtils(unittest.TestCase):
         result = Node(path=cube)
         expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
         self.assertEqual(expected, result.uuid)
-        self.assertEqual(f'|{cube}', result)
+        self.assertEqual(f'|{cube}', str(result))
 
     def test_node_get_uuid(self):
         cube = maya_test_tools.create_poly_cube()

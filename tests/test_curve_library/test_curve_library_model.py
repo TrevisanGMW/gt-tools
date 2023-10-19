@@ -31,7 +31,11 @@ class TestCurveLibraryModel(unittest.TestCase):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_is_conflicting_name_true(self):
-        self.model.base_curves = [Curves.circle]
+        a_curve = Curves.circle
+        a_curve.set_name("circle")
+        self.model.base_curves = [a_curve]
+        self.model.user_curves = []
+        self.model.controls = []
         result = self.model.is_conflicting_name("circle")
         expected = True
         self.assertEqual(expected, result)
