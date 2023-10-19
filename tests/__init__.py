@@ -62,6 +62,7 @@ modules_to_test = [
     test_utils.test_math_utils,
     test_utils.test_namespace_utils,
     test_utils.test_naming_utils,
+    test_utils.test_node_utils,
     test_utils.test_playblast_utils,
     test_utils.test_prefs_utils,
     test_utils.test_request_utils,

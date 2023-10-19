@@ -17,6 +17,7 @@ from . import test_joint_utils
 from . import test_math_utils
 from . import test_namespace_utils
 from . import test_naming_utils
+from . import test_node_utils
 from . import test_playblast_utils
 from . import test_prefs_utils
 from . import test_request_utils

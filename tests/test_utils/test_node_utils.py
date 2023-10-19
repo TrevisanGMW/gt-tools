@@ -35,7 +35,7 @@ class TestNodeUtils(unittest.TestCase):
         result = Node(path=cube)
         expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
         self.assertEqual(expected, result.uuid)
-        self.assertEqual(cube, result)
+        self.assertEqual(f'|{cube}', result)
 
     def test_node_get_uuid(self):
         cube = maya_test_tools.create_poly_cube()
@@ -109,4 +109,28 @@ class TestNodeUtils(unittest.TestCase):
         node = Node(path=cube)
         result = node.get_shape_types()
         expected = ['mesh']
+        self.assertEqual(expected, result)
+
+    def test_string_conversion(self):
+        cube = maya_test_tools.create_poly_cube()
+        node = Node(path=cube)
+        maya_test_tools.cmds.setAttr(f"{node}.ty", 5)
+        result = maya_test_tools.cmds.getAttr(f"{node}.ty")
+        expected = 5
+        self.assertEqual(expected, result)
+        expected = '|pCube1'
+        result = str(node)
+        self.assertEqual(expected, result)
+
+    def test_string_conversion_non_unique(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        node = Node(path=cube_one)
+        group = maya_test_tools.cmds.group(empty=True, world=True, name="group")
+        maya_test_tools.cmds.parent(cube_two, group)
+        maya_test_tools.cmds.rename(cube_one, "mocked_name")
+        maya_test_tools.cmds.rename(cube_two, "mocked_name")
+        maya_test_tools.cmds.setAttr(f"{node}.ty", 5)
+        result = maya_test_tools.cmds.getAttr(f"{node}.ty")
+        expected = 5
         self.assertEqual(expected, result)
