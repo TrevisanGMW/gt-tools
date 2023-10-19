@@ -1130,8 +1130,33 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
         match_scale(source=source, target_list=target_list, skip=skip_scale)
 
 
+def set_equidistant_transforms(start, end, target_list, skip_start_end=True):
+    """
+    Sets equidistant transforms for a list of objects between a start and end point.
+    Args:
+        start
+        end
+        target_list (list, str): A list of objects to affect
+        skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
+                                         in-between start and end points, but not on top of start/end points.
+    """
+    if skip_start_end:
+        target_list.insert(0, '')  # Skip start point.
+        steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
+    else:
+        steps = 1.0 / (len(target_list) - 1)  # -1 to reach both end point.
+    perc = 0  # Influence: range of 0.0 to 1.0
+    for index, obj in enumerate(target_list):
+        if obj and cmds.objExists(obj):
+            constraint = cmds.parentConstraint(start, obj, weight=1.0 - perc)[0]
+            cmds.parentConstraint(end, obj, weight=perc)
+            cmds.delete(constraint)
+        perc += steps  # Increase percentage for next iteration.
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     transform = Transform()
     transform.set_position(0, 10, 0)
     transform.apply_transform('pSphere1')
+
