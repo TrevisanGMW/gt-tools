@@ -2,7 +2,7 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, RiggerConstants, find_objects_with_attr
+from gt.tools.auto_rigger.rigger_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
 from gt.utils.naming_utils import get_short_name, NamingConstants
@@ -13,6 +13,7 @@ from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -147,11 +148,12 @@ class ModuleBipedLeg(ModuleGeneric):
         """
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.ROOT_PROXY_ATTR)
-        hip = find_proxy_with_uuid(self.hip.get_uuid())
-        knee = find_proxy_with_uuid(self.knee.get_uuid())
-        ankle = find_proxy_with_uuid(self.ankle.get_uuid())
-        ball = find_proxy_with_uuid(self.ball.get_uuid())
-        heel = find_proxy_with_uuid(self.heel.get_uuid())
+        hip = find_proxy_node_from_uuid(self.hip.get_uuid())
+        knee = find_proxy_node_from_uuid(self.knee.get_uuid())
+        ankle = find_proxy_node_from_uuid(self.ankle.get_uuid())
+        ball = find_proxy_node_from_uuid(self.ball.get_uuid())
+        heel = find_proxy_node_from_uuid(self.heel.get_uuid())
+        toe = find_proxy_node_from_uuid(self.toe.get_uuid())
 
         self.hip.apply_offset_transform()
         self.knee.apply_offset_transform()
@@ -163,7 +165,7 @@ class ModuleBipedLeg(ModuleGeneric):
         hide_lock_default_attrs(hip, translate=False)
 
         # Knee  ---------------------------------------------------------------------------------
-        knee_tag = get_short_name(knee)
+        knee_tag = knee.get_short_name()
         hide_lock_default_attrs(knee, translate=False, rotate=False)
 
         # Knee Setup - Always Between Hip and Ankle
@@ -223,13 +225,13 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Ankle ----------------------------------------------------------------------------------
         ankle_offset = get_proxy_offset(ankle)
-        add_attr(target_list=ankle, attributes="followHip", attr_type='bool', default=True)
+        add_attr(target_list=ankle.get_long_name(), attributes="followHip", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
         cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
         set_attr_state(obj_list=ankle, attr_list=["rx", "rz"], locked=True, hidden=True)
 
         # Ball -----------------------------------------------------------------------------------
-        ankle_tag = get_short_name(ankle)
+        ankle_tag = ankle.get_short_name()
         ball_offset = get_proxy_offset(ball)
         ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
         ball_driver = hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)[0]
@@ -241,8 +243,6 @@ class ModuleBipedLeg(ModuleGeneric):
         hierarchy_utils.parent(ball_offset, ball_driver)
 
         # Keep Grounded
-        ball = find_proxy_with_uuid(self.ball.get_uuid())  # Refresh
-        toe = find_proxy_with_uuid(self.toe.get_uuid())  # Refresh
         for to_lock_ty in [toe, ball]:
             cmds.addAttr(to_lock_ty, ln='lockTranslateY', at='bool', k=True, niceName="Keep Grounded")
             cmds.setAttr(to_lock_ty + '.lockTranslateY', 0)
@@ -253,7 +253,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Heel -----------------------------------------------------------------------------------
         heel_offset = get_proxy_offset(heel)
-        add_attr(target_list=heel, attributes="followAnkle", attr_type='bool', default=True)
+        add_attr(target_list=heel.get_long_name(), attributes="followAnkle", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')[0]
         cmds.connectAttr(f'{heel}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)

@@ -9,8 +9,10 @@ from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.attr_utils import set_attr_state
 from gt.utils.hierarchy_utils import parent
+from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -36,17 +38,31 @@ class RiggerConstants:
     ROOT_RIG_ATTR = "rigData"
 
 
-def find_proxy_with_uuid(uuid_string):
+def find_proxy_from_uuid(uuid_string):
     """
     Return a proxy if the provided UUID is present in the attribute RiggerConstants.PROXY_ATTR_UUID
     Args:
-        uuid_string (string): UUID to look for (if it matches, then the proxy is found)
+        uuid_string (str): UUID to look for (if it matches, then the proxy is found)
     Returns:
         str or None: If found, the proxy with the matching UUID, otherwise None
     """
-    return get_object_from_uuid_attr(uuid_string=uuid_string,
-                                     attr_name=RiggerConstants.PROXY_ATTR_UUID,
-                                     obj_type="transform")
+    proxy = get_object_from_uuid_attr(uuid_string=uuid_string,
+                                      attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                      obj_type="transform")
+    return proxy
+
+
+def find_proxy_node_from_uuid(uuid_string):
+    """
+    Returns the found proxy as a "Node" object (gt.utils.node_utils)
+    Args:
+        uuid_string (str): UUID to look for (if it matches, then the proxy is found)
+    Returns:
+        Node or None: If found, the proxy (as a Node) with the matching UUID, otherwise None
+    """
+    proxy = find_proxy_from_uuid(uuid_string)
+    if proxy:
+        return Node(proxy)
 
 
 def parent_proxies(proxy_list):
@@ -59,8 +75,8 @@ def parent_proxies(proxy_list):
     """
     # Parent Joints
     for proxy in proxy_list:
-        built_proxy = find_proxy_with_uuid(proxy.get_uuid())
-        parent_proxy = find_proxy_with_uuid(proxy.get_parent_uuid())
+        built_proxy = find_proxy_from_uuid(proxy.get_uuid())
+        parent_proxy = find_proxy_from_uuid(proxy.get_parent_uuid())
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
             if offset:
@@ -81,15 +97,15 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
         list: List of generated elements.
     """
     for proxy in proxy_list:
-        built_proxy = find_proxy_with_uuid(proxy.get_uuid())
-        parent_proxy = find_proxy_with_uuid(proxy.get_parent_uuid())
+        built_proxy = find_proxy_from_uuid(proxy.get_uuid())
+        parent_proxy = find_proxy_from_uuid(proxy.get_parent_uuid())
 
         # Check for Meta Parent - OVERWRITES parent!
         metadata = proxy.get_metadata()
         if metadata:
             meta_parent = metadata.get(RiggerConstants.PROXY_META_PARENT, None)
             if meta_parent:
-                parent_proxy = find_proxy_with_uuid(meta_parent)
+                parent_proxy = find_proxy_from_uuid(meta_parent)
 
         # Create Line
         generated_objects = []

@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
-from gt.tools.auto_rigger.rigger_utils import find_proxy_with_uuid, get_proxy_offset, RiggerConstants
+from gt.tools.auto_rigger.rigger_utils import find_proxy_from_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
@@ -197,7 +197,7 @@ class Proxy:
         Attempts to apply transform values to the offset of the proxy.
         To be used only after proxy is built.
         """
-        proxy_crv = find_proxy_with_uuid(uuid_string=self.uuid)
+        proxy_crv = find_proxy_from_uuid(uuid_string=self.uuid)
         if proxy_crv:
             proxy_offset = get_proxy_offset(proxy_crv)
             if proxy_offset and self.offset_transform:
@@ -210,7 +210,7 @@ class Proxy:
         Args:
             apply_offset (bool, optional): If True, it will attempt to also apply the offset data. (Happens first)
         """
-        proxy_crv = find_proxy_with_uuid(uuid_string=self.uuid)
+        proxy_crv = find_proxy_from_uuid(uuid_string=self.uuid)
         if proxy_crv and apply_offset:
             proxy_offset = get_proxy_offset(proxy_crv)
             if proxy_offset and self.offset_transform:
@@ -226,7 +226,7 @@ class Proxy:
                                         If not provided it will attempt to retrieve the proxy using its UUID
         """
         if not target_obj:
-            target_obj = find_proxy_with_uuid(self.get_uuid())
+            target_obj = find_proxy_from_uuid(self.get_uuid())
         if not target_obj or not cmds.objExists(target_obj):
             logger.debug(f"Unable to apply proxy attributes. Failed to find target object.")
             return
