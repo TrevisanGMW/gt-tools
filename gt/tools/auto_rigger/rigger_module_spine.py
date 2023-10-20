@@ -38,18 +38,25 @@ class ModuleSpine(ModuleGeneric):
         self.hip.set_meta_type(value="hip")
 
         self.spines = []
+        _parent_uuid = self.hip.get_uuid()
         for num in range(0, num_spine):
             new_spine = Proxy(name=f'spine{str(num+1).zfill(2)}')
             new_spine.set_locator_scale(scale=0.5)
             new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
             new_spine.set_meta_type(value=f'spine{str(num+1).zfill(2)}')
+            new_spine.add_meta_parent(line_parent=_parent_uuid)
+            _parent_uuid = new_spine.get_uuid()
             self.spines.append(new_spine)
 
         self.chest = Proxy(name="chest")
         pos_ankle = Vector3(y=114.5) + pos_offset
         self.chest.set_initial_position(xyz=pos_ankle)
         self.chest.set_locator_scale(scale=1)
-        # self.chest.add_meta_parent(line_parent=self.knee)
+        if self.spines:
+            self.chest.add_meta_parent(line_parent=self.spines[-1].get_uuid())
+        else:
+            self.chest.add_meta_parent(line_parent=self.hip.get_uuid())
+
         self.chest.set_meta_type(value="chest")
         self.refresh_proxies_list()
 
