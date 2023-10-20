@@ -49,8 +49,8 @@ class ModuleSpine(ModuleGeneric):
             self.spines.append(new_spine)
 
         self.chest = Proxy(name="chest")
-        pos_ankle = Vector3(y=114.5) + pos_offset
-        self.chest.set_initial_position(xyz=pos_ankle)
+        pos_chest = Vector3(y=114.5) + pos_offset
+        self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1)
         if self.spines:
             self.chest.add_meta_parent(line_parent=self.spines[-1].get_uuid())

@@ -14,7 +14,6 @@ from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
