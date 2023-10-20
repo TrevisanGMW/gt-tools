@@ -102,7 +102,7 @@ class Proxy:
 
         # Default Values
         self.name = "proxy"
-        self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
+        self.transform = None
         self.offset_transform = None
         self.curve = get_curve('_proxy_joint')
         self.curve.set_name(name=self.name)
@@ -234,6 +234,22 @@ class Proxy:
             for attr, value in self.attr_dict.items():
                 set_attr(obj_list=str(target_obj), attr_list=str(attr), value=value)
 
+    def _initialize_transform(self):
+        """
+        In case a transform is necessary and none is present,
+        a default Transform object is created and stored in "self.transform".
+        """
+        if not self.transform:
+            self.transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
+
+    def _initialize_offset_transform(self):
+        """
+        In case an offset transform is necessary and none is present,
+        a default Transform object is created and stored in "self.offset_transform".
+        """
+        if not self.offset_transform:
+            self.offset_transform = Transform()  # Default is T:(0,0,0) R:(0,0,0) and S:(1,1,1)
+
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
         """
@@ -281,6 +297,7 @@ class Proxy:
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        self._initialize_transform()
         self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
 
     def set_rotation(self, x=None, y=None, z=None, xyz=None):
@@ -292,6 +309,7 @@ class Proxy:
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        self._initialize_transform()
         self.transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
 
     def set_scale(self, x=None, y=None, z=None, xyz=None):
@@ -303,6 +321,7 @@ class Proxy:
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
+        self._initialize_transform()
         self.transform.set_scale(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_transform(self, transform):
@@ -326,8 +345,7 @@ class Proxy:
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
-        if not self.offset_transform:
-            self.offset_transform = Transform()
+        self._initialize_offset_transform()
         self.offset_transform.set_position(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_rotation(self, x=None, y=None, z=None, xyz=None):
@@ -339,8 +357,7 @@ class Proxy:
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
-        if not self.offset_transform:
-            self.offset_transform = Transform()
+        self._initialize_offset_transform()
         self.offset_transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
 
     def set_offset_scale(self, x=None, y=None, z=None, xyz=None):
@@ -352,8 +369,7 @@ class Proxy:
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
             xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
-        if not self.offset_transform:
-            self.offset_transform = Transform()
+        self._initialize_offset_transform()
         self.offset_transform.set_scale(x=x, y=y, z=z, xyz=xyz)
 
     def set_curve(self, curve, inherit_curve_name=False):
@@ -540,10 +556,12 @@ class Proxy:
 
         transform = proxy_dict.get('transform')
         if transform and len(transform) == 3:
+            self._initialize_transform()
             self.transform.set_transform_from_dict(transform_dict=transform)
 
         offset_transform = proxy_dict.get('offsetTransform')
         if offset_transform and len(offset_transform) == 3:
+            self._initialize_offset_transform()
             self.offset_transform.set_transform_from_dict(transform_dict=transform)
 
         attributes = proxy_dict.get('attributes')
@@ -572,6 +590,7 @@ class Proxy:
         proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
         if proxy:
             try:
+                self._initialize_transform()
                 self.transform.set_transform_from_object(proxy)
                 attr_dict = {}
                 user_attrs = cmds.listAttr(proxy, userDefined=True) or []
@@ -626,11 +645,12 @@ class Proxy:
         """
         return self.attr_dict
 
-    def get_proxy_as_dict(self, include_uuid=False, include_offset_data=True):
+    def get_proxy_as_dict(self, include_uuid=False, include_transform_data=True, include_offset_data=True):
         """
         Returns all necessary information to recreate this proxy as a dictionary
         Args:
             include_uuid (bool, optional): If True, it will also include an "uuid" key and value in the dictionary.
+            include_transform_data (bool, optional): If True, it will also export the transform data.
             include_offset_data (bool, optional): If True, it will also export the offset transform data.
         Returns:
             dict: Proxy data as a dictionary
@@ -639,8 +659,10 @@ class Proxy:
         proxy_data = {"name": self.name,
                       "parent": self.get_parent_uuid(),
                       "locatorScale": self.locator_scale,
-                      "transform": self.transform.get_transform_as_dict(),
                       }
+
+        if self.transform and include_transform_data:
+            proxy_data["transform"] = self.transform.get_transform_as_dict()
 
         if self.offset_transform and include_offset_data:
             proxy_data["offsetTransform"] = self.offset_transform.get_transform_as_dict()
