@@ -3,11 +3,13 @@ Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import set_trs_attr, get_multiple_attr, set_attr
+from gt.utils.constraint_utils import equidistant_constraints
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
 import sys
+
 
 # Logging Setup
 
@@ -1130,7 +1132,7 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
         match_scale(source=source, target_list=target_list, skip=skip_scale)
 
 
-def set_equidistant_transforms(start, end, target_list, skip_start_end=True):
+def set_equidistant_transforms(start, end, target_list, skip_start_end=True, constraint='parent'):
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
@@ -1139,19 +1141,14 @@ def set_equidistant_transforms(start, end, target_list, skip_start_end=True):
         target_list (list, str): A list of objects to affect
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.
+        constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
     """
-    if skip_start_end:
-        target_list.insert(0, '')  # Skip start point.
-        steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
-    else:
-        steps = 1.0 / (len(target_list) - 1)  # -1 to reach both end point.
-    perc = 0  # Influence: range of 0.0 to 1.0
-    for index, obj in enumerate(target_list):
-        if obj and cmds.objExists(obj):
-            constraint = cmds.parentConstraint(start, obj, weight=1.0 - perc)[0]
-            cmds.parentConstraint(end, obj, weight=perc)
-            cmds.delete(constraint)
-        perc += steps  # Increase percentage for next iteration.
+    constraints = equidistant_constraints(start,
+                                          end,
+                                          target_list,
+                                          skip_start_end=skip_start_end,
+                                          constraint=constraint)
+    cmds.delete(constraints)
 
 
 if __name__ == "__main__":

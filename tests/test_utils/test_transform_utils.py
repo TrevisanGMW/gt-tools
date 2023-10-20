@@ -1250,7 +1250,8 @@ class TestTransformUtils(unittest.TestCase):
         transform_utils.set_equidistant_transforms(start=cube_start,
                                                    end=cube_end,
                                                    target_list=targets,
-                                                   skip_start_end=True)
+                                                   skip_start_end=True,
+                                                   constraint='parent')
 
         expected_values = {cube_one: [0, 2.5, 2.5,
                                       21.59, 0, 0],
@@ -1289,7 +1290,8 @@ class TestTransformUtils(unittest.TestCase):
         transform_utils.set_equidistant_transforms(start=cube_start,
                                                    end=cube_end,
                                                    target_list=targets,
-                                                   skip_start_end=False)
+                                                   skip_start_end=False,
+                                                   constraint='parent')
 
         expected_values = {cube_one: [0, 0, 0,
                                       0, 0, 0],
@@ -1297,6 +1299,46 @@ class TestTransformUtils(unittest.TestCase):
                                       45, 0, 0],
                            cube_three: [0, 10, 10,
                                         90, 0, 0]}
+        for cube, expected in expected_values.items():
+            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            self.assertAlmostEqualSigFig(tx, expected[0])
+            self.assertAlmostEqualSigFig(ty, expected[1])
+            self.assertAlmostEqualSigFig(tz, expected[2])
+            self.assertAlmostEqualSigFig(rx, expected[3])
+            self.assertAlmostEqualSigFig(ry, expected[4])
+            self.assertAlmostEqualSigFig(rz, expected[5])
+
+    def test_set_equidistant_transforms_point_type(self):
+        cube_start = maya_test_tools.create_poly_cube()
+        cube_end = maya_test_tools.create_poly_cube()
+
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        cube_three = maya_test_tools.create_poly_cube()
+
+        targets = [cube_one, cube_two, cube_three]
+
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+
+        transform_utils.set_equidistant_transforms(start=cube_start,
+                                                   end=cube_end,
+                                                   target_list=targets,
+                                                   skip_start_end=False,
+                                                   constraint='point')
+
+        expected_values = {cube_one: [0, 0, 0,
+                                      0, 0, 0],
+                           cube_two: [0, 5, 5,
+                                      0, 0, 0],
+                           cube_three: [0, 10, 10,
+                                        0, 0, 0]}
         for cube, expected in expected_values.items():
             tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
             ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
