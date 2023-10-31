@@ -31,7 +31,7 @@ class ModuleBipedArm(ModuleGeneric):
 
         # Default Proxies
         self.clavicle = Proxy(name="clavicle")
-        # self.clavicle.set_curve(curve=get_curve('_proxy_joint_arrow'))
+        self.clavicle.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         pos_clavicle = Vector3(x=3, y=130.4) + pos_offset
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=0.4)
@@ -41,11 +41,11 @@ class ModuleBipedArm(ModuleGeneric):
         pos_shoulder = Vector3(x=17.2, y=130.4) + pos_offset
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=0.4)
-        self.shoulder.add_meta_parent(line_parent=self.clavicle)
+        self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
         self.shoulder.set_meta_type(value="shoulder")
 
         self.elbow = Proxy(name="elbow")
-        self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow'))
+        self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
         pos_elbow = Vector3(x=37.7, y=130.4) + pos_offset
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=0.5)
@@ -53,6 +53,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.set_meta_type(value="elbow")
 
         self.wrist = Proxy(name="wrist")
+        self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         pos_wrist = Vector3(x=58.2, y=130.4) + pos_offset
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=0.4)
