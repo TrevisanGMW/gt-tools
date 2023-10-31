@@ -32,7 +32,7 @@ class ModuleSpine(ModuleGeneric):
 
         # Default Proxies
         self.hip = Proxy(name="hip")
-        pos_hip = Vector3(y=89.2) + pos_offset
+        pos_hip = Vector3(y=84.5) + pos_offset
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1)
         self.hip.set_meta_type(value="hip")
