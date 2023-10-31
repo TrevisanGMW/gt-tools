@@ -37,7 +37,7 @@ class ModuleBipedLeg(ModuleGeneric):
         self.hip.set_meta_type(value="hip")
 
         self.knee = Proxy(name="knee")
-        self.knee.set_curve(curve=get_curve('_proxy_joint_arrow'))
+        self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
         pos_knee = Vector3(y=47.05) + pos_offset
         self.knee.set_initial_position(xyz=pos_knee)
         self.knee.set_locator_scale(scale=0.5)
