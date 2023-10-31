@@ -36,6 +36,7 @@ class RiggerConstants:
     SEPARATOR_BEHAVIOR = "Behavior"
     ROOT_PROXY_ATTR = "proxyData"
     ROOT_RIG_ATTR = "rigData"
+    SETUP_GRP_ATTR = "setupData"  # Attribute used to find setup group
 
 
 def find_proxy_from_uuid(uuid_string):
