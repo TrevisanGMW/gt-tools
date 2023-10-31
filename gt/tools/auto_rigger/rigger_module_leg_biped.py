@@ -5,9 +5,9 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rigger_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
-from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
 from gt.utils.transform_utils import match_translate, Vector3
+from gt.utils.naming_utils import NamingConstants
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -130,12 +130,14 @@ class ModuleBipedLeg(ModuleGeneric):
         is_valid = super().is_valid()  # Passthrough
         return is_valid
 
-    def build_proxy(self):
+    def build_proxy(self, **kwargs):
         """
         Build proxy elements in the viewport
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
+        if self.parent_uuid:
+            self.hip.set_parent_uuid(self.parent_uuid)
         proxy = super().build_proxy()  # Passthrough
         return proxy
 
@@ -257,13 +259,14 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{heel}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
         hide_lock_default_attrs(heel, translate=False, rotate=True, scale=True)
-        # self.apply_transforms()
+
         self.hip.apply_transforms()
         self.ankle.apply_transforms()
         self.ball.apply_transforms()
         self.heel.apply_transforms()
         self.toe.apply_transforms()
         self.knee.apply_transforms()  # Refresh due to automation
+
         cmds.select(clear=True)
 
     def build_rig(self):
@@ -301,9 +304,18 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
+    a_proxy = Proxy()
+    a_proxy.set_initial_position(y=84.5)
+    a_proxy.set_name("test")
     a_leg_lf = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
+    a_module = ModuleGeneric()
+    a_module.add_to_proxies(a_proxy)
+    a_leg_lf.set_parent_uuid(a_proxy.get_uuid())
+    print(a_proxy.transform)
+
     a_project = RigProject()
+    a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_leg_rt)
     a_project.add_to_modules(a_leg_lf)
     a_project.build_proxy()
@@ -316,9 +328,10 @@ if __name__ == "__main__":
     print(a_project.get_project_as_dict())
     dictionary = a_project.get_project_as_dict()
 
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    a_project2.build_proxy()
-    # Show all
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # a_project2.build_proxy()
+
+    # Frame all
     cmds.viewFit(all=True)
