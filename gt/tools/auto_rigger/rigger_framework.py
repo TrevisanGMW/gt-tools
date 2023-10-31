@@ -989,7 +989,7 @@ class ModuleGeneric:
         When in a project, this runs after the "build_proxy" is done in all modules.
         Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
         """
-        # self.apply_transforms()
+        self.apply_transforms()
         logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
 
     def build_rig(self):
@@ -1234,9 +1234,11 @@ class RigProject:
         Builds Proxy/Guide Armature/Skeleton
         """
         root_transform, root_group = create_proxy_root_curve()
-        rig_setup_grp = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
-        set_attr(obj_list=rig_setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
-        parent(source_objects=rig_setup_grp, target_parent=root_group)
+        setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
+        add_attr(target_list=setup, attr_type="string", is_keyable=False,
+                 attributes=RiggerConstants.SETUP_GRP_ATTR, verbose=True)
+        set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+        parent(source_objects=setup, target_parent=root_group)
 
         # Build Proxy
         proxy_data_list = []
@@ -1245,14 +1247,14 @@ class RigProject:
 
         for proxy_data in proxy_data_list:
             add_side_color_setup(obj=proxy_data.get_long_name())
-            parent(source_objects=proxy_data.get_setup(), target_parent=rig_setup_grp)
+            parent(source_objects=proxy_data.get_setup(), target_parent=setup)
             parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
             cmds.refresh()  # Without refresh, it fails to show the correct scale
 
         # Parent Proxy
         for module in self.modules:
             parent_proxies(proxy_list=module.get_proxies())
-            create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=rig_setup_grp)
+            create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup)
             for proxy in module.get_proxies():
                 proxy.apply_attr_dict()
             module.build_proxy_post()
