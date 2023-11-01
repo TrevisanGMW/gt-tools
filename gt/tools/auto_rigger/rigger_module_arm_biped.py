@@ -11,8 +11,10 @@ from gt.utils.transform_utils import match_translate, Vector3
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
+from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -136,6 +138,95 @@ class ModuleBipedArm(ModuleGeneric):
         self.shoulder.apply_offset_transform()
         self.elbow.apply_offset_transform()
         self.wrist.apply_offset_transform()
+
+        # Shoulder -----------------------------------------------------------------------------------
+        hide_lock_default_attrs(shoulder, translate=False)
+
+        # Elbow  ---------------------------------------------------------------------------------
+        elbow_tag = elbow.get_short_name()
+        hide_lock_default_attrs(elbow, translate=False, rotate=False)
+
+        # Elbow Setup
+        elbow_offset = get_proxy_offset(elbow)
+
+        elbow_pv_dir = cmds.spaceLocator(name=f'{elbow_tag}_poleVectorDir')[0]
+        match_translate(source=elbow, target_list=elbow_pv_dir)
+        cmds.move(0, 0, -10, elbow_pv_dir, relative=True)  # More it backwards (in front of the elbow)
+        hierarchy_utils.parent(elbow_pv_dir, elbow)
+
+        elbow_dir_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirParent_{NamingConstants.Suffix.LOC}')[0]
+        elbow_aim_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
+        elbow_upvec_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
+        elbow_upvec_loc_grp = f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
+        elbow_upvec_loc_grp = cmds.group(name=elbow_upvec_loc_grp, empty=True, world=True)
+
+        elbow_dir_loc = Node(elbow_dir_loc)
+        elbow_aim_loc = Node(elbow_aim_loc)
+        elbow_upvec_loc = Node(elbow_upvec_loc)
+        elbow_upvec_loc_grp = Node(elbow_upvec_loc_grp)
+
+        # Hide Reference Elements
+        hierarchy_utils.parent(elbow_aim_loc, elbow_dir_loc)
+        hierarchy_utils.parent(elbow_dir_loc, root)
+        hierarchy_utils.parent(elbow_upvec_loc_grp, root)
+        hierarchy_utils.parent(elbow_upvec_loc, elbow_upvec_loc_grp)
+
+        cmds.pointConstraint(shoulder, elbow_dir_loc)
+        cmds.pointConstraint([wrist, shoulder], elbow_aim_loc)
+        cmds.aimConstraint(wrist, elbow_dir_loc)
+        cmds.pointConstraint(shoulder, elbow_upvec_loc_grp, skip=['x', 'z'])
+
+        elbow_divide_node = cmds.createNode('multiplyDivide', name=f'{elbow_tag}_divide')
+        cmds.setAttr(f'{elbow_divide_node}.operation', 2)  # Change operation to Divide
+        cmds.setAttr(f'{elbow_divide_node}.input2X', -2)
+        cmds.connectAttr(f'{wrist}.ty', f'{elbow_divide_node}.input1X')
+        cmds.connectAttr(f'{elbow_divide_node}.outputX', f'{elbow_upvec_loc}.tx')
+
+
+        cmds.pointConstraint(shoulder, elbow_dir_loc)
+        cmds.pointConstraint([shoulder, wrist], elbow_aim_loc)
+
+        cmds.connectAttr(f'{elbow_dir_loc}.rotate', f'{elbow_offset}.rotate')
+        cmds.pointConstraint([wrist, shoulder], elbow_offset)
+
+        cmds.aimConstraint(wrist, elbow_dir_loc, aimVector=(1, 0, 0), upVector=(1, 0, 0),
+                           worldUpType='object', worldUpObject=str(elbow_upvec_loc))
+        cmds.aimConstraint(elbow_aim_loc, elbow, aimVector=(0, 0, 1), upVector=(0, 1, 0),
+                           worldUpType='none', skip=['y', 'z'])
+
+        cmds.setAttr(f'{elbow}.tz', -0.01)
+
+        # Elbow Limits and Locks
+        cmds.setAttr(f'{elbow}.maxTransZLimit', -0.01)
+        cmds.setAttr(f'{elbow}.maxTransZLimitEnable', True)
+
+        set_attr_state(obj_list=str(elbow), attr_list="rotate", locked=True)
+
+        # Elbow Hide
+        set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
+                 attr_list="visibility", value=0)  # Set Visibility to Off
+        set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
+                 attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
+
+        #
+        # # Ankle ----------------------------------------------------------------------------------
+        # ankle_offset = get_proxy_offset(ankle)
+        # add_attr(target_list=ankle.get_long_name(), attributes="followHip", attr_type='bool', default=True)
+        # constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
+        # cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
+        # set_attr_state(obj_list=ankle, attr_list=["rx", "rz"], locked=True, hidden=True)
+        #
+        # # Ball -----------------------------------------------------------------------------------
+        # ankle_tag = ankle.get_short_name()
+        # ball_offset = get_proxy_offset(ball)
+        # ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
+        # ball_driver = hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)[0]
+        # ankle_pos = cmds.xform(ankle, q=True, ws=True, rp=True)
+        # cmds.move(ankle_pos[0], ball_driver, moveX=True)
+        # cmds.pointConstraint(ankle, ball_driver, maintainOffset=True, skip=['y'])
+        # cmds.orientConstraint(ankle, ball_driver, maintainOffset=True, skip=['x', 'z'])
+        # cmds.scaleConstraint(ankle, ball_driver, skip=['y'])
+        # hierarchy_utils.parent(ball_offset, ball_driver)
 
         cmds.select(clear=True)
 
