@@ -2,8 +2,8 @@
 Auto Rigger Project Template for Biped Rigs
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_module_leg_biped import ModuleBipedLegRight
-from gt.tools.auto_rigger.rigger_module_leg_biped import ModuleBipedLegLeft
+from gt.tools.auto_rigger.rigger_module_arm_biped import ModuleBipedArmRight, ModuleBipedArmLeft
+from gt.tools.auto_rigger.rigger_module_leg_biped import ModuleBipedLegRight, ModuleBipedLegLeft
 from gt.tools.auto_rigger.rigger_module_spine import ModuleSpine
 from gt.tools.auto_rigger.rigger_framework import RigProject
 import maya.cmds as cmds
@@ -27,6 +27,8 @@ def create_template_biped():
     spine = ModuleSpine()
     leg_lf = ModuleBipedLegLeft()
     leg_rt = ModuleBipedLegRight()
+    arm_lf = ModuleBipedArmLeft()
+    arm_rt = ModuleBipedArmRight()
 
     spine_hip_uuid = spine.hip.get_uuid()
     leg_lf.set_parent_uuid(spine_hip_uuid)
@@ -35,6 +37,8 @@ def create_template_biped():
     biped_project.add_to_modules(spine)
     biped_project.add_to_modules(leg_lf)
     biped_project.add_to_modules(leg_rt)
+    biped_project.add_to_modules(arm_lf)
+    biped_project.add_to_modules(arm_rt)
     return biped_project
 
 
