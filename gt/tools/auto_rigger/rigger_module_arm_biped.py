@@ -180,7 +180,7 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.setAttr(f'{elbow_divide_node}.operation', 2)  # Change operation to Divide
         cmds.setAttr(f'{elbow_divide_node}.input2X', -2)
         cmds.connectAttr(f'{wrist}.ty', f'{elbow_divide_node}.input1X')
-        cmds.connectAttr(f'{elbow_divide_node}.outputX', f'{elbow_upvec_loc}.tx')
+        cmds.connectAttr(f'{elbow_divide_node}.outputX', f'{elbow_upvec_loc}.ty')
 
 
         cmds.pointConstraint(shoulder, elbow_dir_loc)
@@ -202,31 +202,16 @@ class ModuleBipedArm(ModuleGeneric):
 
         set_attr_state(obj_list=str(elbow), attr_list="rotate", locked=True)
 
-        # Elbow Hide
+        # Elbow Hide Setup
         set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
                  attr_list="visibility", value=0)  # Set Visibility to Off
         set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
                  attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
 
-        #
-        # # Ankle ----------------------------------------------------------------------------------
-        # ankle_offset = get_proxy_offset(ankle)
-        # add_attr(target_list=ankle.get_long_name(), attributes="followHip", attr_type='bool', default=True)
-        # constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
-        # cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
-        # set_attr_state(obj_list=ankle, attr_list=["rx", "rz"], locked=True, hidden=True)
-        #
-        # # Ball -----------------------------------------------------------------------------------
-        # ankle_tag = ankle.get_short_name()
-        # ball_offset = get_proxy_offset(ball)
-        # ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
-        # ball_driver = hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)[0]
-        # ankle_pos = cmds.xform(ankle, q=True, ws=True, rp=True)
-        # cmds.move(ankle_pos[0], ball_driver, moveX=True)
-        # cmds.pointConstraint(ankle, ball_driver, maintainOffset=True, skip=['y'])
-        # cmds.orientConstraint(ankle, ball_driver, maintainOffset=True, skip=['x', 'z'])
-        # cmds.scaleConstraint(ankle, ball_driver, skip=['y'])
-        # hierarchy_utils.parent(ball_offset, ball_driver)
+        self.clavicle.apply_transforms()
+        self.shoulder.apply_transforms()
+        self.elbow.apply_transforms()
+        self.wrist.apply_transforms()
 
         cmds.select(clear=True)
 
@@ -243,18 +228,20 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_arm)
     a_project.build_proxy()
-    #
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_hip.tx', 10)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.tz', 5)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_knee.tz', 3)
-    # print(a_project.get_project_as_dict())
-    # a_project.read_data_from_scene()
-    # print(a_project.get_project_as_dict())
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
-    # Show all
+
+    cmds.setAttr(f'clavicle.ty', 15)
+    cmds.setAttr(f'elbow.tz', -15)
+
+    print(a_project.get_project_as_dict().get("modules"))
+    a_project.read_data_from_scene()
+    print(a_project.get_project_as_dict().get("modules"))
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    print(a_project2.get_project_as_dict().get("modules"))
+    a_project2.build_proxy()
+
+    # Frame all
     cmds.viewFit(all=True)
