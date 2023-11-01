@@ -3,6 +3,7 @@ Hierarchy Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.feedback_utils import log_when_true
+from gt.utils.naming_utils import get_long_name
 import maya.cmds as cmds
 import logging
 
@@ -27,7 +28,7 @@ def parent(source_objects, target_parent, verbose=False):
     store_selection = cmds.ls(selection=True) or []
     if target_parent and isinstance(target_parent, list) and len(target_parent) > 0:
         target_parent = target_parent[0]
-    if not target_parent or not cmds.objExists(target_parent):
+    if not target_parent or not cmds.objExists(str(target_parent)):
         log_when_true(input_logger=logger,
                       input_string=f'Unable to execute parenting operation.'
                                    f'Missing target parent object "{str(target_parent)}".',
@@ -37,20 +38,20 @@ def parent(source_objects, target_parent, verbose=False):
         source_objects = [source_objects]
     parented_objects = []
     for child in source_objects:
-        if not child or not cmds.objExists(child):
+        if not child or not cmds.objExists(str(child)):
             log_when_true(input_logger=logger,
                           input_string=f'Missing source object "{str(child)}" while '
                                        f'parenting it to "{str(target_parent)}".',
                           do_log=verbose)
             continue
-        current_parent = cmds.listRelatives(child, parent=True) or []
+        current_parent = cmds.listRelatives(child, parent=True, fullPath=True) or []
         if current_parent:
             current_parent = current_parent[0]
-            if current_parent != target_parent:
-                for obj in cmds.parent(child, target_parent) or []:
+            if current_parent != get_long_name(str(target_parent)):
+                for obj in cmds.parent(child, str(target_parent)) or []:
                     parented_objects.append(obj)
         else:
-            for obj in cmds.parent(child, target_parent) or []:
+            for obj in cmds.parent(child, str(target_parent)) or []:
                 parented_objects.append(obj)
     if store_selection:
         try:

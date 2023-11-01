@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import hierarchy_utils
+from gt.utils.node_utils import Node
 
 
 class TestHierarchyUtils(unittest.TestCase):
@@ -59,4 +60,14 @@ class TestHierarchyUtils(unittest.TestCase):
         expected = [f"|{self.transform_two}|cube_one"]
         self.assertEqual(expected, result)
         children = maya_test_tools.cmds.listRelatives(self.transform_two, children=True, fullPath=True)
+        self.assertEqual(expected, children)
+
+    def test_parent_with_nodes(self):
+        cube_one_node = Node(self.cube_one)
+        transform_one_node = Node(self.transform_one)
+        result = hierarchy_utils.parent(source_objects=cube_one_node, target_parent=transform_one_node, verbose=True)
+
+        expected = [f"|{self.transform_one}|{self.cube_one}"]
+        self.assertEqual(expected, result)
+        children = maya_test_tools.cmds.listRelatives(self.transform_one, children=True, fullPath=True)
         self.assertEqual(expected, children)
