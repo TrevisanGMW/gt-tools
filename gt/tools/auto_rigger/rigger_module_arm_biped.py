@@ -242,13 +242,44 @@ class ModuleBipedArm(ModuleGeneric):
         super().build_rig()  # Passthrough
 
 
+class ModuleBipedArmLeft(ModuleBipedArm):
+    def __init__(self,
+                 name="Left Arm",
+                 prefix=NamingConstants.Prefix.LEFT,
+                 parent_uuid=None,
+                 metadata=None,
+                 pos_offset=None):
+        super().__init__(name=name,
+                         prefix=prefix,
+                         parent_uuid=parent_uuid,
+                         metadata=metadata,
+                         pos_offset=pos_offset,
+                         side="left")
+
+
+class ModuleBipedArmRight(ModuleBipedArm):
+    def __init__(self,
+                 name="Right Arm",
+                 prefix=NamingConstants.Prefix.RIGHT,
+                 parent_uuid=None,
+                 metadata=None,
+                 pos_offset=None):
+        super().__init__(name=name,
+                         prefix=prefix,
+                         parent_uuid=parent_uuid,
+                         metadata=metadata,
+                         pos_offset=pos_offset,
+                         side="right")
+
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_arm_rt = ModuleBipedArm(prefix=NamingConstants.Prefix.RIGHT, side="right")
-    a_arm_lf = ModuleBipedArm(prefix=NamingConstants.Prefix.LEFT, side="left")
+    a_arm_rt = ModuleBipedArmRight()
+    a_arm_lf = ModuleBipedArmLeft()
     a_project = RigProject()
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
