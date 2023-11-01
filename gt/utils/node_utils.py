@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class Node:
+class Node(str):
     """
    Represents a node in Autodesk Maya.
 

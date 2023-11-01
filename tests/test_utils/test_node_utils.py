@@ -153,3 +153,8 @@ class TestNodeUtils(unittest.TestCase):
         node_one = Node(cube_one)
         with self.assertRaises(TypeError):
             result = node_one + 42  # 42 is not a string, TypeError
+
+    def test_node_inheritance(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        node_one = Node(cube_one)
+        self.assertTrue(isinstance(node_one, str))
