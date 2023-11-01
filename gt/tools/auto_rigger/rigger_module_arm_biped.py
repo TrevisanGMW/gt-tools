@@ -3,18 +3,16 @@ Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rigger_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
-from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
+from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
-from gt.utils.naming_utils import get_short_name, NamingConstants
 from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
 from gt.utils.transform_utils import match_translate, Vector3
-from gt.utils.color_utils import ColorConstants
+from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -28,19 +26,30 @@ class ModuleBipedArm(ModuleGeneric):
                  prefix=None,
                  parent_uuid=None,
                  metadata=None,
-                 pos_offset=None):
+                 pos_offset=None,
+                 side=None):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+
+        self.side = side
 
         # Default Proxies
         self.clavicle = Proxy(name="clavicle")
         self.clavicle.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_clavicle = Vector3(x=3, y=130.4) + pos_offset
+        pos_clavicle = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_clavicle = Vector3(x=3, y=130.4) + pos_offset  # Right
+        elif self.side == "left":
+            pos_clavicle = Vector3(x=-3, y=130.4) + pos_offset  # Left
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=0.4)
         self.clavicle.set_meta_type(value="clavicle")
 
         self.shoulder = Proxy(name="shoulder")
-        pos_shoulder = Vector3(x=17.2, y=130.4) + pos_offset
+        pos_shoulder = Vector3(z=17.2, y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_shoulder = Vector3(x=17.2, y=130.4) + pos_offset  # Right
+        elif self.side == "left":
+            pos_shoulder = Vector3(x=-17.2, y=130.4) + pos_offset  # Left
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=0.4)
         self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
@@ -48,7 +57,11 @@ class ModuleBipedArm(ModuleGeneric):
 
         self.elbow = Proxy(name="elbow")
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
-        pos_elbow = Vector3(x=37.7, y=130.4) + pos_offset
+        pos_elbow = Vector3(z=37.7, y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_elbow = Vector3(x=37.7, y=130.4) + pos_offset  # Right
+        elif self.side == "left":
+            pos_elbow = Vector3(x=-37.7, y=130.4) + pos_offset  # Left
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=0.5)
         self.elbow.add_meta_parent(line_parent=self.shoulder)
@@ -56,7 +69,11 @@ class ModuleBipedArm(ModuleGeneric):
 
         self.wrist = Proxy(name="wrist")
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_wrist = Vector3(x=58.2, y=130.4) + pos_offset
+        pos_wrist = Vector3(z=58.2, y=130.4) + pos_offset
+        if self.side == "right":
+            pos_wrist = Vector3(x=58.2, y=130.4) + pos_offset  # Right
+        elif self.side == "left":
+            pos_wrist = Vector3(x=-58.2, y=130.4) + pos_offset  # Left
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=0.4)
         self.wrist.add_meta_parent(line_parent=self.elbow)
@@ -142,7 +159,7 @@ class ModuleBipedArm(ModuleGeneric):
         # Shoulder -----------------------------------------------------------------------------------
         hide_lock_default_attrs(shoulder, translate=False)
 
-        # Elbow  ---------------------------------------------------------------------------------
+        # Elbow  -------------------------------------------------------------------------------------
         elbow_tag = elbow.get_short_name()
         hide_lock_default_attrs(elbow, translate=False, rotate=False)
 
@@ -150,6 +167,7 @@ class ModuleBipedArm(ModuleGeneric):
         elbow_offset = get_proxy_offset(elbow)
 
         elbow_pv_dir = cmds.spaceLocator(name=f'{elbow_tag}_poleVectorDir')[0]
+        elbow_pv_dir = Node(elbow_pv_dir)
         match_translate(source=elbow, target_list=elbow_pv_dir)
         cmds.move(0, 0, -10, elbow_pv_dir, relative=True)  # More it backwards (in front of the elbow)
         hierarchy_utils.parent(elbow_pv_dir, elbow)
@@ -171,10 +189,10 @@ class ModuleBipedArm(ModuleGeneric):
         hierarchy_utils.parent(elbow_upvec_loc_grp, root)
         hierarchy_utils.parent(elbow_upvec_loc, elbow_upvec_loc_grp)
 
-        cmds.pointConstraint(shoulder, elbow_dir_loc)
-        cmds.pointConstraint([wrist, shoulder], elbow_aim_loc)
-        cmds.aimConstraint(wrist, elbow_dir_loc)
-        cmds.pointConstraint(shoulder, elbow_upvec_loc_grp, skip=['x', 'z'])
+        cmds.pointConstraint(shoulder, elbow_dir_loc.get_long_name())
+        cmds.pointConstraint([wrist, shoulder], elbow_aim_loc.get_long_name())
+        cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name())
+        cmds.pointConstraint(shoulder, elbow_upvec_loc_grp.get_long_name(), skip=['x', 'z'])
 
         elbow_divide_node = cmds.createNode('multiplyDivide', name=f'{elbow_tag}_divide')
         cmds.setAttr(f'{elbow_divide_node}.operation', 2)  # Change operation to Divide
@@ -182,17 +200,22 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.connectAttr(f'{wrist}.ty', f'{elbow_divide_node}.input1X')
         cmds.connectAttr(f'{elbow_divide_node}.outputX', f'{elbow_upvec_loc}.ty')
 
-
-        cmds.pointConstraint(shoulder, elbow_dir_loc)
-        cmds.pointConstraint([shoulder, wrist], elbow_aim_loc)
+        cmds.pointConstraint(shoulder, elbow_dir_loc.get_long_name())
+        cmds.pointConstraint([shoulder, wrist], elbow_aim_loc.get_long_name())
 
         cmds.connectAttr(f'{elbow_dir_loc}.rotate', f'{elbow_offset}.rotate')
         cmds.pointConstraint([wrist, shoulder], elbow_offset)
 
-        cmds.aimConstraint(wrist, elbow_dir_loc, aimVector=(1, 0, 0), upVector=(1, 0, 0),
-                           worldUpType='object', worldUpObject=str(elbow_upvec_loc))
-        cmds.aimConstraint(elbow_aim_loc, elbow, aimVector=(0, 0, 1), upVector=(0, 1, 0),
-                           worldUpType='none', skip=['y', 'z'])
+        aim_vec = (-1, 0, 0)
+        if self.side == "right":
+            aim_vec = (1, 0, 0)
+        elif self.side == "left":
+            aim_vec = (-1, 0, 0)
+
+        cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name(), aimVector=aim_vec, upVector=aim_vec,
+                           worldUpType='object', worldUpObject=elbow_upvec_loc.get_long_name())
+        cmds.aimConstraint(elbow_aim_loc.get_long_name(), elbow.get_long_name(), aimVector=(0, 0, 1),
+                           upVector=(0, 1, 0), worldUpType='none', skip=['y', 'z'])
 
         cmds.setAttr(f'{elbow}.tz', -0.01)
 
@@ -224,24 +247,26 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_arm = ModuleBipedArm()
+    a_arm_rt = ModuleBipedArm(prefix=NamingConstants.Prefix.RIGHT, side="right")
+    a_arm_lf = ModuleBipedArm(prefix=NamingConstants.Prefix.LEFT, side="left")
     a_project = RigProject()
-    a_project.add_to_modules(a_arm)
+    a_project.add_to_modules(a_arm_rt)
+    a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
 
-    cmds.setAttr(f'clavicle.ty', 15)
-    cmds.setAttr(f'elbow.tz', -15)
-
-    print(a_project.get_project_as_dict().get("modules"))
-    a_project.read_data_from_scene()
-    print(a_project.get_project_as_dict().get("modules"))
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    print(a_project2.get_project_as_dict().get("modules"))
-    a_project2.build_proxy()
+    # cmds.setAttr(f'clavicle.ty', 15)
+    # cmds.setAttr(f'elbow.tz', -15)
+    #
+    # print(a_project.get_project_as_dict().get("modules"))
+    # a_project.read_data_from_scene()
+    # print(a_project.get_project_as_dict().get("modules"))
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # print(a_project2.get_project_as_dict().get("modules"))
+    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
