@@ -245,6 +245,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Keep Grounded
         for to_lock_ty in [toe, ball]:
+            to_lock_ty = str(to_lock_ty)
             cmds.addAttr(to_lock_ty, ln='lockTranslateY', at='bool', k=True, niceName="Keep Grounded")
             cmds.setAttr(to_lock_ty + '.lockTranslateY', 0)
             cmds.setAttr(to_lock_ty + '.minTransYLimit', 0)
