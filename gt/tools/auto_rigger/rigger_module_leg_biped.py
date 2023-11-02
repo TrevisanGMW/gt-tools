@@ -324,15 +324,16 @@ if __name__ == "__main__":
     cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_hip.tx', 10)
     cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.tz', 5)
     cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_knee.tz', 3)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.ry', 45)
     print(a_project.get_project_as_dict())
     a_project.read_data_from_scene()
     print(a_project.get_project_as_dict())
     dictionary = a_project.get_project_as_dict()
 
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
