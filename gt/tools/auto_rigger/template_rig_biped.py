@@ -51,8 +51,13 @@ if __name__ == "__main__":
 
     a_biped_project = create_template_biped()
     a_biped_project.build_proxy()
-    print(a_biped_project)
 
+    # # Modify Proxy
+    # cmds.setAttr(f'rt_elbow.tz', -15)
+    # cmds.setAttr(f'lf_knee.tz', 15)
+    # cmds.setAttr(f'chest.ty', 10)
+    #
+    # # Re-build
     # print(a_biped_project.get_project_as_dict())
     # a_biped_project.read_data_from_scene()
     # print(a_biped_project.get_project_as_dict())
