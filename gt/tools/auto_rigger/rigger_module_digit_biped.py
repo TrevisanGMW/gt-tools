@@ -35,8 +35,8 @@ class ModuleBipedDigits(ModuleGeneric):
 
         self.side = side
 
+        # Thumb -------------------------------------------------------------------------------------
         self.thumb_digits = []
-        # Thumb ---------------------------------------------------------------------
         self.thumb01 = Proxy(name="thumb01")
         self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         pos_thumb_base = Vector3(y=130.4) + pos_offset  # Center
@@ -67,52 +67,215 @@ class ModuleBipedDigits(ModuleGeneric):
         self.thumb04 = Proxy(name="thumb04")
         self.thumb04.set_parent_uuid(self.thumb03.get_uuid())
         self.thumb04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_thumb04 = pos_thumb03 + Vector3(z=4.4)
+        pos_thumb04 = pos_thumb03 + Vector3(z=4.6)
         self.thumb04.set_initial_position(xyz=pos_thumb04)
         self.thumb04.set_locator_scale(scale=0.15)
         self.thumb04.set_meta_type(value=self.thumb04.get_name())
         self.thumb04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.thumb_digits = [self.thumb01, self.thumb02, self.thumb03, self.thumb04]
 
-        #
-        # self.shoulder = Proxy(name="shoulder")
-        # pos_shoulder = Vector3(z=17.2, y=130.4) + pos_offset  # Center
-        # if self.side == "right":
-        #     pos_shoulder = Vector3(x=17.2, y=130.4) + pos_offset  # Right
-        # elif self.side == "left":
-        #     pos_shoulder = Vector3(x=-17.2, y=130.4) + pos_offset  # Left
-        # self.shoulder.set_initial_position(xyz=pos_shoulder)
-        # self.shoulder.set_locator_scale(scale=0.4)
-        # self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
-        # self.shoulder.set_meta_type(value="shoulder")
-        #
-        # self.elbow = Proxy(name="elbow")
-        # self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
-        # pos_elbow = Vector3(z=37.7, y=130.4) + pos_offset  # Center
-        # if self.side == "right":
-        #     pos_elbow = Vector3(x=37.7, y=130.4) + pos_offset  # Right
-        # elif self.side == "left":
-        #     pos_elbow = Vector3(x=-37.7, y=130.4) + pos_offset  # Left
-        # self.elbow.set_initial_position(xyz=pos_elbow)
-        # self.elbow.set_locator_scale(scale=0.5)
-        # self.elbow.add_meta_parent(line_parent=self.shoulder)
-        # self.elbow.set_meta_type(value="elbow")
-        #
-        # self.wrist = Proxy(name="wrist")
-        # self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        # pos_wrist = Vector3(z=58.2, y=130.4) + pos_offset
-        # if self.side == "right":
-        #     pos_wrist = Vector3(x=58.2, y=130.4) + pos_offset  # Right
-        # elif self.side == "left":
-        #     pos_wrist = Vector3(x=-58.2, y=130.4) + pos_offset  # Left
-        # self.wrist.set_initial_position(xyz=pos_wrist)
-        # self.wrist.set_locator_scale(scale=0.4)
-        # self.wrist.add_meta_parent(line_parent=self.elbow)
-        # self.wrist.set_meta_type(value="wrist")
-        #
-        # # Update Proxies
-        # self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
+        # Index -------------------------------------------------------------------------------------
+        self.index_digits = []
+        self.index01 = Proxy(name="index01")
+        self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_index_base = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_index_base = Vector3(x=-66.9, y=130.4, z=3.5) + pos_offset  # Right
+        elif self.side == "left":
+            pos_index_base = Vector3(x=66.9, y=130.4, z=3.5) + pos_offset  # Left
+        self.index01.set_initial_position(xyz=pos_index_base)
+        self.index01.set_locator_scale(scale=0.2)
+        self.index01.set_meta_type(value=self.index01.get_name())
+
+        self.index02 = Proxy(name="index02")
+        self.index02.set_parent_uuid(self.index01.get_uuid())
+        self.index02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_index02 = pos_index_base + Vector3(x=3.2)
+        self.index02.set_initial_position(xyz=pos_index02)
+        self.index02.set_locator_scale(scale=0.2)
+        self.index02.set_meta_type(value=self.index02.get_name())
+
+        self.index03 = Proxy(name="index03")
+        self.index03.set_parent_uuid(self.index02.get_uuid())
+        self.index03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_index03 = pos_index02 + Vector3(x=4.1)
+        self.index03.set_initial_position(xyz=pos_index03)
+        self.index03.set_locator_scale(scale=0.2)
+        self.index03.set_meta_type(value=self.index03.get_name())
+
+        self.index04 = Proxy(name="index04")
+        self.index04.set_parent_uuid(self.index03.get_uuid())
+        self.index04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_index04 = pos_index03 + Vector3(x=3.3)
+        self.index04.set_initial_position(xyz=pos_index04)
+        self.index04.set_locator_scale(scale=0.15)
+        self.index04.set_meta_type(value=self.index04.get_name())
+        self.index04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.index_digits = [self.index01, self.index02, self.index03, self.index04]
+
+        # Middle -------------------------------------------------------------------------------------
+        self.middle_digits = []
+        self.middle01 = Proxy(name="middle01")
+        self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_middle_base = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_middle_base = Vector3(x=-66.9, y=130.4, z=1.1) + pos_offset  # Right
+        elif self.side == "left":
+            pos_middle_base = Vector3(x=66.9, y=130.4, z=1.1) + pos_offset  # Left
+        self.middle01.set_initial_position(xyz=pos_middle_base)
+        self.middle01.set_locator_scale(scale=0.2)
+        self.middle01.set_meta_type(value=self.middle01.get_name())
+
+        self.middle02 = Proxy(name="middle02")
+        self.middle02.set_parent_uuid(self.middle01.get_uuid())
+        self.middle02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_middle02 = pos_middle_base + Vector3(x=3.8)
+        self.middle02.set_initial_position(xyz=pos_middle02)
+        self.middle02.set_locator_scale(scale=0.2)
+        self.middle02.set_meta_type(value=self.middle02.get_name())
+
+        self.middle03 = Proxy(name="middle03")
+        self.middle03.set_parent_uuid(self.middle02.get_uuid())
+        self.middle03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_middle03 = pos_middle02 + Vector3(x=3.7)
+        self.middle03.set_initial_position(xyz=pos_middle03)
+        self.middle03.set_locator_scale(scale=0.2)
+        self.middle03.set_meta_type(value=self.middle03.get_name())
+
+        self.middle04 = Proxy(name="middle04")
+        self.middle04.set_parent_uuid(self.middle03.get_uuid())
+        self.middle04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_middle04 = pos_middle03 + Vector3(x=3.6)
+        self.middle04.set_initial_position(xyz=pos_middle04)
+        self.middle04.set_locator_scale(scale=0.15)
+        self.middle04.set_meta_type(value=self.middle04.get_name())
+        self.middle04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.middle_digits = [self.middle01, self.middle02, self.middle03, self.middle04]
+
+        # Ring -------------------------------------------------------------------------------------
+        self.ring_digits = []
+        self.ring01 = Proxy(name="ring01")
+        self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_ring_base = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_ring_base = Vector3(x=-66.9, y=130.4, z=-1.1) + pos_offset  # Right
+        elif self.side == "left":
+            pos_ring_base = Vector3(x=66.9, y=130.4, z=-1.1) + pos_offset  # Left
+        self.ring01.set_initial_position(xyz=pos_ring_base)
+        self.ring01.set_locator_scale(scale=0.2)
+        self.ring01.set_meta_type(value=self.ring01.get_name())
+
+        self.ring02 = Proxy(name="ring02")
+        self.ring02.set_parent_uuid(self.ring01.get_uuid())
+        self.ring02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_ring02 = pos_ring_base + Vector3(x=3.5)
+        self.ring02.set_initial_position(xyz=pos_ring02)
+        self.ring02.set_locator_scale(scale=0.2)
+        self.ring02.set_meta_type(value=self.ring02.get_name())
+
+        self.ring03 = Proxy(name="ring03")
+        self.ring03.set_parent_uuid(self.ring02.get_uuid())
+        self.ring03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_ring03 = pos_ring02 + Vector3(x=3.6)
+        self.ring03.set_initial_position(xyz=pos_ring03)
+        self.ring03.set_locator_scale(scale=0.2)
+        self.ring03.set_meta_type(value=self.ring03.get_name())
+
+        self.ring04 = Proxy(name="ring04")
+        self.ring04.set_parent_uuid(self.ring03.get_uuid())
+        self.ring04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_ring04 = pos_ring03 + Vector3(x=3.5)
+        self.ring04.set_initial_position(xyz=pos_ring04)
+        self.ring04.set_locator_scale(scale=0.15)
+        self.ring04.set_meta_type(value=self.ring04.get_name())
+        self.ring04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.ring_digits = [self.ring01, self.ring02, self.ring03, self.ring04]
+
+        # Pinky -------------------------------------------------------------------------------------
+        self.pinky_digits = []
+        self.pinky01 = Proxy(name="pinky01")
+        self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_pinky_base = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_pinky_base = Vector3(x=-66.9, y=130.4, z=-3.2) + pos_offset  # Right
+        elif self.side == "left":
+            pos_pinky_base = Vector3(x=66.9, y=130.4, z=-3.2) + pos_offset  # Left
+        self.pinky01.set_initial_position(xyz=pos_pinky_base)
+        self.pinky01.set_locator_scale(scale=0.2)
+        self.pinky01.set_meta_type(value=self.pinky01.get_name())
+
+        self.pinky02 = Proxy(name="pinky02")
+        self.pinky02.set_parent_uuid(self.pinky01.get_uuid())
+        self.pinky02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_pinky02 = pos_pinky_base + Vector3(x=3.3)
+        self.pinky02.set_initial_position(xyz=pos_pinky02)
+        self.pinky02.set_locator_scale(scale=0.2)
+        self.pinky02.set_meta_type(value=self.pinky02.get_name())
+
+        self.pinky03 = Proxy(name="pinky03")
+        self.pinky03.set_parent_uuid(self.pinky02.get_uuid())
+        self.pinky03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_pinky03 = pos_pinky02 + Vector3(x=3.2)
+        self.pinky03.set_initial_position(xyz=pos_pinky03)
+        self.pinky03.set_locator_scale(scale=0.2)
+        self.pinky03.set_meta_type(value=self.pinky03.get_name())
+
+        self.pinky04 = Proxy(name="pinky04")
+        self.pinky04.set_parent_uuid(self.pinky03.get_uuid())
+        self.pinky04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_pinky04 = pos_pinky03 + Vector3(x=3.5)
+        self.pinky04.set_initial_position(xyz=pos_pinky04)
+        self.pinky04.set_locator_scale(scale=0.15)
+        self.pinky04.set_meta_type(value=self.pinky04.get_name())
+        self.pinky04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.pinky_digits = [self.pinky01, self.pinky02, self.pinky03, self.pinky04]
+
+        # Extra -------------------------------------------------------------------------------------
+        self.extra_digits = []
+        self.extra01 = Proxy(name="extra01")
+        self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_extra_base = Vector3(y=130.4) + pos_offset  # Center
+        if self.side == "right":
+            pos_extra_base = Vector3(x=-66.9, y=130.4, z=-5.3) + pos_offset  # Right
+        elif self.side == "left":
+            pos_extra_base = Vector3(x=66.9, y=130.4, z=-5.3) + pos_offset  # Left
+        self.extra01.set_initial_position(xyz=pos_extra_base)
+        self.extra01.set_locator_scale(scale=0.2)
+        self.extra01.set_meta_type(value=self.extra01.get_name())
+
+        self.extra02 = Proxy(name="extra02")
+        self.extra02.set_parent_uuid(self.extra01.get_uuid())
+        self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_extra02 = pos_extra_base + Vector3(x=3)
+        self.extra02.set_initial_position(xyz=pos_extra02)
+        self.extra02.set_locator_scale(scale=0.2)
+        self.extra02.set_meta_type(value=self.extra02.get_name())
+
+        self.extra03 = Proxy(name="extra03")
+        self.extra03.set_parent_uuid(self.extra02.get_uuid())
+        self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_extra03 = pos_extra02 + Vector3(x=3)
+        self.extra03.set_initial_position(xyz=pos_extra03)
+        self.extra03.set_locator_scale(scale=0.2)
+        self.extra03.set_meta_type(value=self.extra03.get_name())
+
+        self.extra04 = Proxy(name="extra04")
+        self.extra04.set_parent_uuid(self.extra03.get_uuid())
+        self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
+        pos_extra04 = pos_extra03 + Vector3(x=3.3)
+        self.extra04.set_initial_position(xyz=pos_extra04)
+        self.extra04.set_locator_scale(scale=0.15)
+        self.extra04.set_meta_type(value=self.extra04.get_name())
+        self.extra04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.extra_digits = [self.extra01, self.extra02, self.extra03, self.extra04]
+
+        # Update Proxies ----------------------------------------------------------------------------
         self.proxies.extend(self.thumb_digits)
+        self.proxies.extend(self.index_digits)
+        self.proxies.extend(self.middle_digits)
+        self.proxies.extend(self.ring_digits)
+        self.proxies.extend(self.pinky_digits)
+        self.proxies.extend(self.extra_digits)
 
     def get_module_as_dict(self, **kwargs):
         """
@@ -138,18 +301,14 @@ class ModuleBipedDigits(ModuleGeneric):
             metadata = description.get("metadata")
             if metadata:
                 meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type == "clavicle":
-                    self.clavicle.set_uuid(uuid)
-                    self.clavicle.read_data_from_dict(proxy_dict=description)
-                if meta_type == "shoulder":
-                    self.shoulder.set_uuid(uuid)
-                    self.shoulder.read_data_from_dict(proxy_dict=description)
-                if meta_type == "elbow":
-                    self.elbow.set_uuid(uuid)
-                    self.elbow.read_data_from_dict(proxy_dict=description)
-                if meta_type == "wrist":
-                    self.wrist.set_uuid(uuid)
-                    self.wrist.read_data_from_dict(proxy_dict=description)
+                for digit in self.proxies:
+                    proxy_metadata = digit.get_metadata()
+                    if not proxy_metadata or not isinstance(proxy_metadata, dict):
+                        continue
+                    if meta_type == proxy_metadata.get(RiggerConstants.PROXY_META_TYPE):
+                        digit.set_uuid(uuid)
+                        digit.read_data_from_dict(proxy_dict=description)
+
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -168,7 +327,18 @@ class ModuleBipedDigits(ModuleGeneric):
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
         if self.parent_uuid:
-            self.clavicle.set_parent_uuid(self.parent_uuid)
+            if self.thumb01:
+                self.thumb01.set_parent_uuid(self.parent_uuid)
+            if self.index01:
+                self.index01.set_parent_uuid(self.parent_uuid)
+            if self.middle01:
+                self.middle01.set_parent_uuid(self.parent_uuid)
+            if self.ring01:
+                self.ring01.set_parent_uuid(self.parent_uuid)
+            if self.pinky01:
+                self.pinky01.set_parent_uuid(self.parent_uuid)
+            if self.extra01:
+                self.extra01.set_parent_uuid(self.parent_uuid)
         proxy = super().build_proxy()  # Passthrough
         return proxy
 
@@ -180,18 +350,25 @@ class ModuleBipedDigits(ModuleGeneric):
         """
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.ROOT_PROXY_ATTR)
-        thumb01 = find_proxy_node_from_uuid(self.thumb01.get_uuid())
-        thumb02 = find_proxy_node_from_uuid(self.thumb02.get_uuid())
-        thumb03 = find_proxy_node_from_uuid(self.thumb03.get_uuid())
-        thumb04 = find_proxy_node_from_uuid(self.thumb04.get_uuid())
+        # thumb01 = find_proxy_node_from_uuid(self.thumb01.get_uuid())
+        # thumb02 = find_proxy_node_from_uuid(self.thumb02.get_uuid())
+        # thumb03 = find_proxy_node_from_uuid(self.thumb03.get_uuid())
+        # thumb04 = find_proxy_node_from_uuid(self.thumb04.get_uuid())
         # shoulder = find_proxy_node_from_uuid(self.shoulder.get_uuid())
         # elbow = find_proxy_node_from_uuid(self.elbow.get_uuid())
         # wrist = find_proxy_node_from_uuid(self.wrist.get_uuid())
         #
-        self.thumb01.apply_offset_transform()
-        self.thumb02.apply_offset_transform()
-        self.thumb03.apply_offset_transform()
-        self.thumb04.apply_offset_transform()
+
+        for digit in self.proxies:
+            digit.apply_offset_transform()
+
+
+        for digit in self.proxies:
+            digit.apply_transforms()
+        # self.thumb01.apply_offset_transform()
+        # self.thumb02.apply_offset_transform()
+        # self.thumb03.apply_offset_transform()
+        # self.thumb04.apply_offset_transform()
         # self.shoulder.apply_offset_transform()
         # self.elbow.apply_offset_transform()
         # self.wrist.apply_offset_transform()
@@ -312,7 +489,6 @@ class ModuleBipedDigitsRight(ModuleBipedDigits):
                          side="right")
 
 
-
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
@@ -325,8 +501,9 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_fingers_lf)
     a_project.build_proxy()
 
-    # cmds.setAttr(f'clavicle.ty', 15)
-    # cmds.setAttr(f'elbow.tz', -15)
+    # cmds.setAttr(f'lf_thumb02.rx', 30)
+    # cmds.setAttr(f'rt_thumb02.rx', 30)
+    # cmds.setAttr(f'lf_ring02.rz', -45)
     #
     # print(a_project.get_project_as_dict().get("modules"))
     # a_project.read_data_from_scene()
