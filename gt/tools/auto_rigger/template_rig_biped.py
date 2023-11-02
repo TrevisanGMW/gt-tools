@@ -33,6 +33,9 @@ def create_template_biped():
     spine_hip_uuid = spine.hip.get_uuid()
     leg_lf.set_parent_uuid(spine_hip_uuid)
     leg_rt.set_parent_uuid(spine_hip_uuid)
+    spine_chest_uuid = spine.chest.get_uuid()
+    arm_lf.set_parent_uuid(spine_chest_uuid)
+    arm_rt.set_parent_uuid(spine_chest_uuid)
 
     biped_project.add_to_modules(spine)
     biped_project.add_to_modules(leg_lf)
