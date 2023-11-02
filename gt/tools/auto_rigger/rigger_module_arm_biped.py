@@ -129,12 +129,14 @@ class ModuleBipedArm(ModuleGeneric):
         is_valid = super().is_valid()  # Passthrough
         return is_valid
 
-    def build_proxy(self):
+    def build_proxy(self, **kwargs):
         """
         Build proxy elements in the viewport
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
+        if self.parent_uuid:
+            self.clavicle.set_parent_uuid(self.parent_uuid)
         proxy = super().build_proxy()  # Passthrough
         return proxy
 
