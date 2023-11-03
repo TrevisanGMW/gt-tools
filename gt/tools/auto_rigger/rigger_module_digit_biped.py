@@ -39,7 +39,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.thumb_digits = []
         self.thumb01 = Proxy(name="thumb01")
         self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_thumb_base = Vector3(x=-1, y=130.4, z=2.9) + pos_offset  # Center
+        pos_thumb_base = Vector3(x=-4, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_thumb_base = Vector3(x=-60.8, y=130.4, z=2.9) + pos_offset  # Right
         elif self.side == "left":
@@ -78,7 +78,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.index_digits = []
         self.index01 = Proxy(name="index01")
         self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_index_base = Vector3(x=-66.9, y=130.4, z=3.5) + pos_offset  # Center
+        pos_index_base = Vector3(x=-2, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_index_base = Vector3(x=-66.9, y=130.4, z=3.5) + pos_offset  # Right
         elif self.side == "left":
@@ -90,7 +90,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.index02 = Proxy(name="index02")
         self.index02.set_parent_uuid(self.index01.get_uuid())
         self.index02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_index02 = pos_index_base + Vector3(x=3.2) + pos_offset
+        pos_index02 = pos_index_base + Vector3(z=3.2) + pos_offset
         if self.side == "right":
             pos_index02 = pos_index_base + Vector3(x=-3.2) + pos_offset  # Right
         elif self.side == "left":
@@ -102,7 +102,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.index03 = Proxy(name="index03")
         self.index03.set_parent_uuid(self.index02.get_uuid())
         self.index03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_index03 = pos_index02 + Vector3(x=4.1) + pos_offset
+        pos_index03 = pos_index02 + Vector3(z=4.1) + pos_offset
         if self.side == "right":
             pos_index03 = pos_index02 + Vector3(x=-4.1) + pos_offset  # Right
         elif self.side == "left":
@@ -114,7 +114,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.index04 = Proxy(name="index04")
         self.index04.set_parent_uuid(self.index03.get_uuid())
         self.index04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_index04 = pos_index03 + Vector3(x=3.3) + pos_offset
+        pos_index04 = pos_index03 + Vector3(z=3.3) + pos_offset
         if self.side == "right":
             pos_index04 = pos_index03 + Vector3(x=-3.3) + pos_offset  # Right
         elif self.side == "left":
@@ -129,7 +129,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.middle_digits = []
         self.middle01 = Proxy(name="middle01")
         self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_middle_base = Vector3(x=-66.9, y=130.4, z=1.1) + pos_offset  # Center
+        pos_middle_base = Vector3(x=0, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_middle_base = Vector3(x=-66.9, y=130.4, z=1.1) + pos_offset  # Right
         elif self.side == "left":
@@ -141,7 +141,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.middle02 = Proxy(name="middle02")
         self.middle02.set_parent_uuid(self.middle01.get_uuid())
         self.middle02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_middle02 = pos_middle_base + Vector3(x=3.8) + pos_offset
+        pos_middle02 = pos_middle_base + Vector3(z=3.8) + pos_offset
         if self.side == "right":
             pos_middle02 = pos_middle_base + Vector3(x=-3.8) + pos_offset  # Right
         elif self.side == "left":
@@ -153,7 +153,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.middle03 = Proxy(name="middle03")
         self.middle03.set_parent_uuid(self.middle02.get_uuid())
         self.middle03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_middle03 = pos_middle02 + Vector3(x=3.7) + pos_offset
+        pos_middle03 = pos_middle02 + Vector3(z=3.7) + pos_offset
         if self.side == "right":
             pos_middle03 = pos_middle02 + Vector3(x=-3.7) + pos_offset  # Right
         elif self.side == "left":
@@ -165,7 +165,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.middle04 = Proxy(name="middle04")
         self.middle04.set_parent_uuid(self.middle03.get_uuid())
         self.middle04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_middle04 = pos_middle03 + Vector3(x=3.6) + pos_offset
+        pos_middle04 = pos_middle03 + Vector3(z=3.6) + pos_offset
         if self.side == "right":
             pos_middle04 = pos_middle03 + Vector3(x=-3.6) + pos_offset  # Right
         elif self.side == "left":
@@ -180,7 +180,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.ring_digits = []
         self.ring01 = Proxy(name="ring01")
         self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_ring_base = Vector3(x=-66.9, y=130.4, z=-1.1) + pos_offset  # Center
+        pos_ring_base = Vector3(x=2, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_ring_base = Vector3(x=-66.9, y=130.4, z=-1.1) + pos_offset  # Right
         elif self.side == "left":
@@ -192,7 +192,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.ring02 = Proxy(name="ring02")
         self.ring02.set_parent_uuid(self.ring01.get_uuid())
         self.ring02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_ring02 = pos_ring_base + Vector3(x=3.5) + pos_offset
+        pos_ring02 = pos_ring_base + Vector3(z=3.5) + pos_offset
         if self.side == "right":
             pos_ring02 = pos_ring_base + Vector3(x=-3.5) + pos_offset  # Right
         elif self.side == "left":
@@ -204,7 +204,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.ring03 = Proxy(name="ring03")
         self.ring03.set_parent_uuid(self.ring02.get_uuid())
         self.ring03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_ring03 = pos_ring02 + Vector3(x=3.6) + pos_offset
+        pos_ring03 = pos_ring02 + Vector3(z=3.6) + pos_offset
         if self.side == "right":
             pos_ring03 = pos_ring02 + Vector3(x=-3.6) + pos_offset  # Right
         elif self.side == "left":
@@ -216,7 +216,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.ring04 = Proxy(name="ring04")
         self.ring04.set_parent_uuid(self.ring03.get_uuid())
         self.ring04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_ring04 = pos_ring03 + Vector3(x=3.5) + pos_offset
+        pos_ring04 = pos_ring03 + Vector3(z=3.5) + pos_offset
         if self.side == "right":
             pos_ring04 = pos_ring03 + Vector3(x=-3.5) + pos_offset  # Right
         elif self.side == "left":
@@ -231,7 +231,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.pinky_digits = []
         self.pinky01 = Proxy(name="pinky01")
         self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_pinky_base = Vector3(x=-66.9, y=130.4, z=-3.2) + pos_offset  # Center
+        pos_pinky_base = Vector3(x=4, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_pinky_base = Vector3(x=-66.9, y=130.4, z=-3.2) + pos_offset  # Right
         elif self.side == "left":
@@ -243,7 +243,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.pinky02 = Proxy(name="pinky02")
         self.pinky02.set_parent_uuid(self.pinky01.get_uuid())
         self.pinky02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_pinky02 = pos_pinky_base + Vector3(x=3.3) + pos_offset
+        pos_pinky02 = pos_pinky_base + Vector3(z=3.3) + pos_offset
         if self.side == "right":
             pos_pinky02 = pos_pinky_base + Vector3(x=-3.3) + pos_offset  # Right
         elif self.side == "left":
@@ -255,7 +255,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.pinky03 = Proxy(name="pinky03")
         self.pinky03.set_parent_uuid(self.pinky02.get_uuid())
         self.pinky03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_pinky03 = pos_pinky02 + Vector3(x=3.2)
+        pos_pinky03 = pos_pinky02 + Vector3(z=3.2)
         if self.side == "right":
             pos_pinky03 = pos_pinky02 + Vector3(x=-3.2) + pos_offset  # Right
         elif self.side == "left":
@@ -267,7 +267,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.pinky04 = Proxy(name="pinky04")
         self.pinky04.set_parent_uuid(self.pinky03.get_uuid())
         self.pinky04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_pinky04 = pos_pinky03 + Vector3(x=3.5) + pos_offset
+        pos_pinky04 = pos_pinky03 + Vector3(z=3.5) + pos_offset
         if self.side == "right":
             pos_pinky04 = pos_pinky03 + Vector3(x=-3.5) + pos_offset  # Right
         elif self.side == "left":
@@ -282,7 +282,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.extra_digits = []
         self.extra01 = Proxy(name="extra01")
         self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_extra_base = Vector3(x=-66.9, y=130.4, z=-5.3) + pos_offset  # Center
+        pos_extra_base = Vector3(x=6, y=130.4) + pos_offset  # Center
         if self.side == "right":
             pos_extra_base = Vector3(x=-66.9, y=130.4, z=-5.3) + pos_offset  # Right
         elif self.side == "left":
@@ -294,7 +294,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.extra02 = Proxy(name="extra02")
         self.extra02.set_parent_uuid(self.extra01.get_uuid())
         self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_extra02 = pos_extra_base + Vector3(x=3) + pos_offset
+        pos_extra02 = pos_extra_base + Vector3(z=3) + pos_offset
         if self.side == "right":
             pos_extra02 = pos_extra_base + Vector3(x=-3) + pos_offset  # Right
         elif self.side == "left":
@@ -306,7 +306,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.extra03 = Proxy(name="extra03")
         self.extra03.set_parent_uuid(self.extra02.get_uuid())
         self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_extra03 = pos_extra02 + Vector3(x=3) + pos_offset
+        pos_extra03 = pos_extra02 + Vector3(z=3) + pos_offset
         if self.side == "right":
             pos_extra03 = pos_extra02 + Vector3(x=-3) + pos_offset  # Right
         elif self.side == "left":
@@ -318,7 +318,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.extra04 = Proxy(name="extra04")
         self.extra04.set_parent_uuid(self.extra03.get_uuid())
         self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_extra04 = pos_extra03 + Vector3(x=3.3) + pos_offset
+        pos_extra04 = pos_extra03 + Vector3(z=3.3) + pos_offset
         if self.side == "right":
             pos_extra04 = pos_extra03 + Vector3(x=-3.3) + pos_offset  # Right
         elif self.side == "left":
@@ -457,9 +457,9 @@ if __name__ == "__main__":
     a_digit_mod_lf = ModuleBipedFingersLeft()
     a_digit_mod_rt = ModuleBipedFingersRight()
     a_project = RigProject()
-    # a_project.add_to_modules(a_digit_mod)
-    a_project.add_to_modules(a_digit_mod_lf)
-    a_project.add_to_modules(a_digit_mod_rt)
+    a_project.add_to_modules(a_digit_mod)
+    # a_project.add_to_modules(a_digit_mod_lf)
+    # a_project.add_to_modules(a_digit_mod_rt)
     a_project.build_proxy()
 
     # cmds.setAttr(f'lf_thumb02.rx', 30)
