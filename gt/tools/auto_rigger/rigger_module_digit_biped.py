@@ -39,7 +39,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.thumb_digits = []
         self.thumb01 = Proxy(name="thumb01")
         self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_thumb_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_thumb_base = Vector3(x=-1, y=130.4, z=2.9) + pos_offset  # Center
         if self.side == "right":
             pos_thumb_base = Vector3(x=-60.8, y=130.4, z=2.9) + pos_offset  # Right
         elif self.side == "left":
@@ -78,7 +78,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.index_digits = []
         self.index01 = Proxy(name="index01")
         self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_index_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_index_base = Vector3(x=-66.9, y=130.4, z=3.5) + pos_offset  # Center
         if self.side == "right":
             pos_index_base = Vector3(x=-66.9, y=130.4, z=3.5) + pos_offset  # Right
         elif self.side == "left":
@@ -117,7 +117,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.middle_digits = []
         self.middle01 = Proxy(name="middle01")
         self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_middle_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_middle_base = Vector3(x=-66.9, y=130.4, z=1.1) + pos_offset  # Center
         if self.side == "right":
             pos_middle_base = Vector3(x=-66.9, y=130.4, z=1.1) + pos_offset  # Right
         elif self.side == "left":
@@ -156,7 +156,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.ring_digits = []
         self.ring01 = Proxy(name="ring01")
         self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_ring_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_ring_base = Vector3(x=-66.9, y=130.4, z=-1.1) + pos_offset  # Center
         if self.side == "right":
             pos_ring_base = Vector3(x=-66.9, y=130.4, z=-1.1) + pos_offset  # Right
         elif self.side == "left":
@@ -195,7 +195,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.pinky_digits = []
         self.pinky01 = Proxy(name="pinky01")
         self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_pinky_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_pinky_base = Vector3(x=-66.9, y=130.4, z=-3.2) + pos_offset  # Center
         if self.side == "right":
             pos_pinky_base = Vector3(x=-66.9, y=130.4, z=-3.2) + pos_offset  # Right
         elif self.side == "left":
@@ -234,7 +234,7 @@ class ModuleBipedDigits(ModuleGeneric):
         self.extra_digits = []
         self.extra01 = Proxy(name="extra01")
         self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_extra_base = Vector3(y=130.4) + pos_offset  # Center
+        pos_extra_base = Vector3(x=-66.9, y=130.4, z=-5.3) + pos_offset  # Center
         if self.side == "right":
             pos_extra_base = Vector3(x=-66.9, y=130.4, z=-5.3) + pos_offset  # Right
         elif self.side == "left":
@@ -309,8 +309,8 @@ class ModuleBipedDigits(ModuleGeneric):
                         digit.set_uuid(uuid)
                         digit.read_data_from_dict(proxy_dict=description)
 
-
     # --------------------------------------------------- Misc ---------------------------------------------------
+
     def is_valid(self):
         """
         Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.
@@ -348,120 +348,19 @@ class ModuleBipedDigits(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         Creates leg proxy behavior through constraints and offsets.
         """
-        # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.ROOT_PROXY_ATTR)
-        # thumb01 = find_proxy_node_from_uuid(self.thumb01.get_uuid())
-        # thumb02 = find_proxy_node_from_uuid(self.thumb02.get_uuid())
-        # thumb03 = find_proxy_node_from_uuid(self.thumb03.get_uuid())
-        # thumb04 = find_proxy_node_from_uuid(self.thumb04.get_uuid())
-        # shoulder = find_proxy_node_from_uuid(self.shoulder.get_uuid())
-        # elbow = find_proxy_node_from_uuid(self.elbow.get_uuid())
-        # wrist = find_proxy_node_from_uuid(self.wrist.get_uuid())
-        #
-
         for digit in self.proxies:
             digit.apply_offset_transform()
-
-
         for digit in self.proxies:
             digit.apply_transforms()
-        # self.thumb01.apply_offset_transform()
-        # self.thumb02.apply_offset_transform()
-        # self.thumb03.apply_offset_transform()
-        # self.thumb04.apply_offset_transform()
-        # self.shoulder.apply_offset_transform()
-        # self.elbow.apply_offset_transform()
-        # self.wrist.apply_offset_transform()
-        #
-        # # Shoulder -----------------------------------------------------------------------------------
-        # hide_lock_default_attrs(shoulder, translate=False)
-        #
-        # # Elbow  -------------------------------------------------------------------------------------
-        # elbow_tag = elbow.get_short_name()
-        # hide_lock_default_attrs(elbow, translate=False, rotate=False)
-        #
-        # # Elbow Setup
-        # elbow_offset = get_proxy_offset(elbow)
-        #
-        # elbow_pv_dir = cmds.spaceLocator(name=f'{elbow_tag}_poleVectorDir')[0]
-        # elbow_pv_dir = Node(elbow_pv_dir)
-        # match_translate(source=elbow, target_list=elbow_pv_dir)
-        # cmds.move(0, 0, -10, elbow_pv_dir, relative=True)  # More it backwards (in front of the elbow)
-        # hierarchy_utils.parent(elbow_pv_dir, elbow)
-        #
-        # elbow_dir_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirParent_{NamingConstants.Suffix.LOC}')[0]
-        # elbow_aim_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
-        # elbow_upvec_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
-        # elbow_upvec_loc_grp = f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
-        # elbow_upvec_loc_grp = cmds.group(name=elbow_upvec_loc_grp, empty=True, world=True)
-        #
-        # elbow_dir_loc = Node(elbow_dir_loc)
-        # elbow_aim_loc = Node(elbow_aim_loc)
-        # elbow_upvec_loc = Node(elbow_upvec_loc)
-        # elbow_upvec_loc_grp = Node(elbow_upvec_loc_grp)
-        #
-        # # Hide Reference Elements
-        # hierarchy_utils.parent(elbow_aim_loc, elbow_dir_loc)
-        # hierarchy_utils.parent(elbow_dir_loc, root)
-        # hierarchy_utils.parent(elbow_upvec_loc_grp, root)
-        # hierarchy_utils.parent(elbow_upvec_loc, elbow_upvec_loc_grp)
-        #
-        # cmds.pointConstraint(shoulder, elbow_dir_loc.get_long_name())
-        # cmds.pointConstraint([wrist, shoulder], elbow_aim_loc.get_long_name())
-        # cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name())
-        # cmds.pointConstraint(shoulder, elbow_upvec_loc_grp.get_long_name(), skip=['x', 'z'])
-        #
-        # elbow_divide_node = cmds.createNode('multiplyDivide', name=f'{elbow_tag}_divide')
-        # cmds.setAttr(f'{elbow_divide_node}.operation', 2)  # Change operation to Divide
-        # cmds.setAttr(f'{elbow_divide_node}.input2X', -2)
-        # cmds.connectAttr(f'{wrist}.ty', f'{elbow_divide_node}.input1X')
-        # cmds.connectAttr(f'{elbow_divide_node}.outputX', f'{elbow_upvec_loc}.ty')
-        #
-        # cmds.pointConstraint(shoulder, elbow_dir_loc.get_long_name())
-        # cmds.pointConstraint([shoulder, wrist], elbow_aim_loc.get_long_name())
-        #
-        # cmds.connectAttr(f'{elbow_dir_loc}.rotate', f'{elbow_offset}.rotate')
-        # cmds.pointConstraint([wrist, shoulder], elbow_offset)
-        #
-        # aim_vec = (-1, 0, 0)
-        # if self.side == "right":
-        #     aim_vec = (1, 0, 0)
-        # elif self.side == "left":
-        #     aim_vec = (-1, 0, 0)
-        #
-        # cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name(), aimVector=aim_vec, upVector=aim_vec,
-        #                    worldUpType='object', worldUpObject=elbow_upvec_loc.get_long_name())
-        # cmds.aimConstraint(elbow_aim_loc.get_long_name(), elbow.get_long_name(), aimVector=(0, 0, 1),
-        #                    upVector=(0, 1, 0), worldUpType='none', skip=['y', 'z'])
-        #
-        # cmds.setAttr(f'{elbow}.tz', -0.01)
-        #
-        # # Elbow Limits and Locks
-        # cmds.setAttr(f'{elbow}.maxTransZLimit', -0.01)
-        # cmds.setAttr(f'{elbow}.maxTransZLimitEnable', True)
-        #
-        # set_attr_state(obj_list=str(elbow), attr_list="rotate", locked=True)
-        #
-        # # Elbow Hide Setup
-        # set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
-        #          attr_list="visibility", value=0)  # Set Visibility to Off
-        # set_attr(obj_list=[elbow_pv_dir, elbow_upvec_loc_grp, elbow_dir_loc],
-        #          attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
-        #
-        # self.clavicle.apply_transforms()
-        # self.shoulder.apply_transforms()
-        # self.elbow.apply_transforms()
-        # self.wrist.apply_transforms()
-
         cmds.select(clear=True)
 
     def build_rig(self):
         super().build_rig()  # Passthrough
 
 
-class ModuleBipedDigitsLeft(ModuleBipedDigits):
+class ModuleBipedFingersLeft(ModuleBipedDigits):
     def __init__(self,
-                 name="Left Digits",
+                 name="Left Fingers",
                  prefix=NamingConstants.Prefix.LEFT,
                  parent_uuid=None,
                  metadata=None,
@@ -474,9 +373,9 @@ class ModuleBipedDigitsLeft(ModuleBipedDigits):
                          side="left")
 
 
-class ModuleBipedDigitsRight(ModuleBipedDigits):
+class ModuleBipedFingersRight(ModuleBipedDigits):
     def __init__(self,
-                 name="Right Digits",
+                 name="Right Fingers",
                  prefix=NamingConstants.Prefix.RIGHT,
                  parent_uuid=None,
                  metadata=None,
@@ -494,11 +393,13 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
-    a_fingers_rt = ModuleBipedDigitsRight()
-    a_fingers_lf = ModuleBipedDigitsLeft()
+    a_digit_mod = ModuleBipedDigits()
+    a_digit_mod_lf = ModuleBipedFingersLeft()
+    a_digit_mod_rt = ModuleBipedFingersRight()
     a_project = RigProject()
-    a_project.add_to_modules(a_fingers_rt)
-    a_project.add_to_modules(a_fingers_lf)
+    a_project.add_to_modules(a_digit_mod)
+    a_project.add_to_modules(a_digit_mod_lf)
+    # a_project.add_to_modules(a_digit_mod_rt)
     a_project.build_proxy()
 
     # cmds.setAttr(f'lf_thumb02.rx', 30)
