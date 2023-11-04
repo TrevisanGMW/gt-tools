@@ -2,8 +2,10 @@
 Hierarchy Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.naming_utils import get_long_name, get_short_name
+from gt.utils.transform_utils import match_transform
 from gt.utils.feedback_utils import log_when_true
-from gt.utils.naming_utils import get_long_name
+from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
 
@@ -72,5 +74,55 @@ def parent(source_objects, target_parent, verbose=False):
     return parented_objects_long
 
 
+def add_offset_transform(target_list, transform_type="group", pivot_source="target", transform_suffix="offset"):
+    """
+    Adds an in-between offset transform to the target object.
+    Args:
+        target_list (list, str): Objects to receive a new parent offset transform
+        transform_type (str, optional): Transform type to be created. Can be "group", "joint", or "locator"
+        pivot_source (str, optional): Source of the pivot of the new transform. Can be "parent" or "target"
+                                      "parent" means that it will use the pivot of the parent of the provided object.
+                                      "target" means that it will use the pivot of the object (self)
+        transform_suffix (str, optional): Suffix of the new transform. Name will be "<object-name>_<transform_suffix>"
+    Returns:
+        list: A list of created in-between transforms (offsets) - Full paths
+    """
+    offset_transforms = []
+    if target_list and isinstance(target_list, str):
+        target_list = [target_list]
+    for obj in target_list:
+        cmds.select(clear=True)
+        offset = f'{get_short_name(obj)}_{transform_suffix}'
+        if transform_type.lower() == "group":
+            offset = cmds.group(name=offset, empty=True, world=True)
+        elif transform_type.lower() == "joint":
+            offset = cmds.joint(name=offset)
+        elif transform_type.lower() == "locator":
+            offset = cmds.spaceLocator(name=offset)[0]
+        offset_node = Node(offset)
+
+        _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
+
+        if len(_parent) != 0 and pivot_source == "parent":
+            match_transform(source=_parent[0], target_list=offset)
+            cmds.parent(offset, _parent[0])
+            cmds.parent(obj, offset)
+        elif len(_parent) == 0 and pivot_source == "parent":
+            cmds.parent(obj, offset)
+
+        if len(_parent) != 0 and pivot_source == "target":
+            match_transform(source=obj, target_list=offset)
+            cmds.parent(offset, _parent[0])
+            cmds.parent(obj, offset_node.get_long_name())
+        elif len(_parent) == 0 and pivot_source == "target":
+            match_transform(source=obj, target_list=offset)
+            cmds.parent(obj, offset_node.get_long_name())
+
+        offset_transforms.append(offset_node.get_long_name())
+    return offset_transforms
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    offset_transforms2 = add_offset_transform(target_list=["pSphere1", "pSphere2"], pivot_source="target")
+    print(offset_transforms2)
