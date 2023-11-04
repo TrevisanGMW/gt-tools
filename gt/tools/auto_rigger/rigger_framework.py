@@ -288,6 +288,16 @@ class Proxy:
         self.set_position(x=x, y=y, z=z, xyz=xyz)
         self.set_offset_position(x=x, y=y, z=z, xyz=xyz)
 
+    def set_initial_transform(self, transform):
+        """
+        Sets the transform and the offset transform as the same value causing it to be zeroed. (Initial position)
+        Useful to determine where the proxy should initially appear and be able to go back to when zeroed.
+        Args:
+            transform (Transform): A transform  describing position, rotation and scale. (Applied to offset and proxy)
+        """
+        self.set_transform(transform)
+        self.set_offset_transform(transform)
+
     def set_position(self, x=None, y=None, z=None, xyz=None):
         """
         Sets the position of the proxy element (introduce values to its curve)
