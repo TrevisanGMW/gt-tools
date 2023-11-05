@@ -384,7 +384,7 @@ class ModuleBipedFingersLeft(ModuleBipedDigits):
         pos_ring03 = pos_ring02 + Vector3(x=3.6)
         pos_ring04 = pos_ring03 + Vector3(x=3.5)
 
-        pos_pinky01 = Vector3(x=66.9, y=130.4, z=-3.2)
+        pos_pinky01 = Vector3(x=66.9, y=130.4, z=-1.1)
         pos_pinky02 = pos_pinky01 + Vector3(x=3.3)
         pos_pinky03 = pos_pinky02 + Vector3(x=3.2)
         pos_pinky04 = pos_pinky03 + Vector3(x=3.5)
@@ -460,7 +460,7 @@ class ModuleBipedFingersRight(ModuleBipedDigits):
         pos_ring03 = pos_ring02 + Vector3(x=-3.6)
         pos_ring04 = pos_ring03 + Vector3(x=-3.5)
 
-        pos_pinky01 = Vector3(x=-66.9, y=130.4, z=-3.2)
+        pos_pinky01 = Vector3(x=-66.9, y=130.4, z=-1.1)
         pos_pinky02 = pos_pinky01 + Vector3(x=-3.3)
         pos_pinky03 = pos_pinky02 + Vector3(x=-3.2)
         pos_pinky04 = pos_pinky03 + Vector3(x=-3.5)
