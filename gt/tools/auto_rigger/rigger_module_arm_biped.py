@@ -26,54 +26,43 @@ class ModuleBipedArm(ModuleGeneric):
                  prefix=None,
                  parent_uuid=None,
                  metadata=None,
-                 pos_offset=None,
-                 side=None):
+                 orientation=None):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
-        self.side = side
+        self.orientation = orientation
+
+        clavicle_name = "clavicle"
+        shoulder_name = "shoulder"
+        elbow_name = "elbow"
+        wrist_name = "wrist"
+
+        pos_clavicle = Vector3(y=130)
+        pos_shoulder = Vector3(z=17.2, y=130)
+        pos_elbow = Vector3(z=37.7, y=130)
+        pos_wrist = Vector3(z=58.2, y=130)
 
         # Default Proxies
-        self.clavicle = Proxy(name="clavicle")
+        self.clavicle = Proxy(name=clavicle_name)
         self.clavicle.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_clavicle = Vector3(y=130.4) + pos_offset  # Center
-        if self.side == "right":
-            pos_clavicle = Vector3(x=3, y=130.4) + pos_offset  # Right
-        elif self.side == "left":
-            pos_clavicle = Vector3(x=-3, y=130.4) + pos_offset  # Left
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=0.4)
         self.clavicle.set_meta_type(value="clavicle")
 
-        self.shoulder = Proxy(name="shoulder")
-        pos_shoulder = Vector3(z=17.2, y=130.4) + pos_offset  # Center
-        if self.side == "right":
-            pos_shoulder = Vector3(x=17.2, y=130.4) + pos_offset  # Right
-        elif self.side == "left":
-            pos_shoulder = Vector3(x=-17.2, y=130.4) + pos_offset  # Left
+        self.shoulder = Proxy(name=shoulder_name)
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=0.4)
         self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
         self.shoulder.set_meta_type(value="shoulder")
 
-        self.elbow = Proxy(name="elbow")
+        self.elbow = Proxy(name=elbow_name)
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
-        pos_elbow = Vector3(z=37.7, y=130.4) + pos_offset  # Center
-        if self.side == "right":
-            pos_elbow = Vector3(x=37.7, y=130.4) + pos_offset  # Right
-        elif self.side == "left":
-            pos_elbow = Vector3(x=-37.7, y=130.4) + pos_offset  # Left
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=0.5)
         self.elbow.add_meta_parent(line_parent=self.shoulder)
         self.elbow.set_meta_type(value="elbow")
 
-        self.wrist = Proxy(name="wrist")
+        self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        pos_wrist = Vector3(z=58.2, y=130.4) + pos_offset
-        if self.side == "right":
-            pos_wrist = Vector3(x=58.2, y=130.4) + pos_offset  # Right
-        elif self.side == "left":
-            pos_wrist = Vector3(x=-58.2, y=130.4) + pos_offset  # Left
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=0.4)
         self.wrist.add_meta_parent(line_parent=self.elbow)
@@ -209,9 +198,9 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.pointConstraint([wrist, shoulder], elbow_offset)
 
         aim_vec = (-1, 0, 0)
-        if self.side == "right":
+        if self.orientation == "+":
             aim_vec = (1, 0, 0)
-        elif self.side == "left":
+        elif self.orientation == "-":
             aim_vec = (-1, 0, 0)
 
         cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name(), aimVector=aim_vec, upVector=aim_vec,
@@ -250,13 +239,22 @@ class ModuleBipedArmLeft(ModuleBipedArm):
                  prefix=NamingConstants.Prefix.LEFT,
                  parent_uuid=None,
                  metadata=None,
-                 pos_offset=None):
+                 orientation="-"):
         super().__init__(name=name,
                          prefix=prefix,
                          parent_uuid=parent_uuid,
                          metadata=metadata,
-                         pos_offset=pos_offset,
-                         side="left")
+                         orientation=orientation)
+
+        pos_clavicle = Vector3(x=-3, y=130)
+        pos_shoulder = Vector3(x=-17.2, y=130)
+        pos_elbow = Vector3(x=-37.7, y=130)
+        pos_wrist = Vector3(x=-58.2, y=130)
+
+        self.clavicle.set_initial_position(xyz=pos_clavicle)
+        self.shoulder.set_initial_position(xyz=pos_shoulder)
+        self.elbow.set_initial_position(xyz=pos_elbow)
+        self.wrist.set_initial_position(xyz=pos_wrist)
 
 
 class ModuleBipedArmRight(ModuleBipedArm):
@@ -265,14 +263,22 @@ class ModuleBipedArmRight(ModuleBipedArm):
                  prefix=NamingConstants.Prefix.RIGHT,
                  parent_uuid=None,
                  metadata=None,
-                 pos_offset=None):
+                 orientation="+"):
         super().__init__(name=name,
                          prefix=prefix,
                          parent_uuid=parent_uuid,
                          metadata=metadata,
-                         pos_offset=pos_offset,
-                         side="right")
+                         orientation=orientation)
 
+        pos_clavicle = Vector3(x=3, y=130)
+        pos_shoulder = Vector3(x=17.2, y=130)
+        pos_elbow = Vector3(x=37.7, y=130)
+        pos_wrist = Vector3(x=58.2, y=130)
+
+        self.clavicle.set_initial_position(xyz=pos_clavicle)
+        self.shoulder.set_initial_position(xyz=pos_shoulder)
+        self.elbow.set_initial_position(xyz=pos_elbow)
+        self.wrist.set_initial_position(xyz=pos_wrist)
 
 
 if __name__ == "__main__":
@@ -280,15 +286,17 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rigger_framework import RigProject
+    a_arm = ModuleBipedArm()
     a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
     a_project = RigProject()
+    a_project.add_to_modules(a_arm)
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
 
-    # cmds.setAttr(f'clavicle.ty', 15)
-    # cmds.setAttr(f'elbow.tz', -15)
+    # cmds.setAttr(f'rt_clavicle.ty', 15)
+    # cmds.setAttr(f'rt_elbow.tz', -15)
     #
     # print(a_project.get_project_as_dict().get("modules"))
     # a_project.read_data_from_scene()
