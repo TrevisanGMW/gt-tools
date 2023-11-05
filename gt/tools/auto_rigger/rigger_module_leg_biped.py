@@ -26,53 +26,63 @@ class ModuleBipedLeg(ModuleGeneric):
                  prefix=None,
                  parent_uuid=None,
                  metadata=None,
-                 pos_offset=None):
+                 orientation="+"):
         super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
 
+        hip_name = "hip"
+        knee_name = "knee"
+        ankle_name = "ankle"
+        ball_name = "ball"
+        toe_name = "toe"
+        heel_name = "heel"
+
         # Default Proxies
-        self.hip = Proxy(name="hip")
-        pos_hip = Vector3(y=84.5) + pos_offset
-        self.hip.set_initial_position(xyz=pos_hip)
+        self.hip = Proxy(name=hip_name)
         self.hip.set_locator_scale(scale=0.4)
         self.hip.set_meta_type(value="hip")
 
-        self.knee = Proxy(name="knee")
+        self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
-        pos_knee = Vector3(y=47.05) + pos_offset
-        self.knee.set_initial_position(xyz=pos_knee)
         self.knee.set_locator_scale(scale=0.5)
         self.knee.add_meta_parent(line_parent=self.hip)
         self.knee.set_meta_type(value="knee")
 
-        self.ankle = Proxy(name="ankle")
-        pos_ankle = Vector3(y=9.6) + pos_offset
-        self.ankle.set_initial_position(xyz=pos_ankle)
+        self.ankle = Proxy(name=ankle_name)
         self.ankle.set_locator_scale(scale=0.4)
         self.ankle.add_meta_parent(line_parent=self.knee)
         self.ankle.set_meta_type(value="ankle")
 
-        self.ball = Proxy(name="ball")
-        pos_ball = Vector3(z=13.1) + pos_offset
-        self.ball.set_initial_position(xyz=pos_ball)
+        self.ball = Proxy(name=ball_name)
         self.ball.set_locator_scale(scale=0.4)
         self.ball.add_meta_parent(line_parent=self.ankle)
         self.ball.set_meta_type(value="ball")
 
-        self.toe = Proxy(name="toe")
-        pos_toe = Vector3(z=23.4) + pos_offset
-        self.toe.set_initial_position(xyz=pos_toe)
+        self.toe = Proxy(name=toe_name)
         self.toe.set_locator_scale(scale=0.4)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
         self.toe.set_meta_type(value="toe")
 
-        self.heel = Proxy(name="heelPivot")
-        pos_heel = Vector3() + pos_offset
-        self.heel.set_initial_position(xyz=pos_heel)
+        self.heel = Proxy(name=heel_name)
         self.heel.set_locator_scale(scale=0.1)
         self.heel.add_meta_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
         self.heel.set_meta_type(value="heel")
+
+        # Initial Pose
+        hip_pos = Vector3(y=84.5)
+        knee_pos = Vector3(y=47.05)
+        ankle_pos = Vector3(y=9.6)
+        ball_pos = Vector3(z=13.1)
+        toe_pos = Vector3(z=23.4)
+        heel_pos = Vector3()
+
+        self.hip.set_initial_position(xyz=hip_pos)
+        self.knee.set_initial_position(xyz=knee_pos)
+        self.ankle.set_initial_position(xyz=ankle_pos)
+        self.ball.set_initial_position(xyz=ball_pos)
+        self.toe.set_initial_position(xyz=toe_pos)
+        self.heel.set_initial_position(xyz=heel_pos)
 
         # Update Proxies
         self.proxies = [self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel]
@@ -185,18 +195,20 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.setAttr(knee + '.maxTransXLimit', 0)
         cmds.connectAttr(knee + '.lockTranslateX', knee + '.minTransXLimitEnable')
         cmds.connectAttr(knee + '.lockTranslateX', knee + '.maxTransXLimitEnable')
-        
+
         #  Knee Constraints (Limits)
         knee_dir_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParent_{NamingConstants.Suffix.LOC}')[0]
         knee_aim_loc = cmds.spaceLocator(name=f'{knee_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
         knee_upvec_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
         knee_upvec_loc_grp = f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
         knee_upvec_loc_grp = cmds.group(name=knee_upvec_loc_grp, empty=True, world=True)
+
         # Hide Reference Elements
         set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
                  attr_list="visibility", value=0)  # Set Visibility to Off
         set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
                  attr_list="hiddenInOutliner", value=1)  # Set Outline Hidden to On
+
         knee_upvec_loc_grp = hierarchy_utils.parent(knee_upvec_loc_grp, root)[0]
         knee_upvec_loc = hierarchy_utils.parent(knee_upvec_loc, knee_upvec_loc_grp)[0]
         knee_dir_loc = hierarchy_utils.parent(knee_dir_loc, root)[0]
@@ -218,11 +230,15 @@ class ModuleBipedLeg(ModuleGeneric):
 
         cmds.aimConstraint(ankle, knee_dir_loc, aimVector=(0, -1, 0), upVector=(0, -1, 0),
                            worldUpType='object', worldUpObject=knee_upvec_loc)
+
         cmds.aimConstraint(knee_aim_loc, knee, aimVector=(0, 0, -1), upVector=(0, 1, 0),
                            worldUpType='none', skip=['x', 'z'])
+
         set_attr_state(obj_list=knee, attr_list="rotate", locked=True)
 
-        cmds.transformLimits(knee, translationZ=(0, 1), enableTranslationZ=(1, 0))
+        # Knee Limits
+        cmds.setAttr(f'{knee}.minTransZLimit', 0)
+        cmds.setAttr(f'{knee}.minTransZLimitEnable', True)
 
         # Ankle ----------------------------------------------------------------------------------
         ankle_offset = get_proxy_offset(ankle)
@@ -279,12 +295,28 @@ class ModuleBipedLegLeft(ModuleBipedLeg):
                  name="Left Leg",
                  prefix=NamingConstants.Prefix.LEFT,
                  parent_uuid=None,
-                 metadata=None):
+                 metadata=None,
+                 pos_offset=None):
         super().__init__(name=name,
                          prefix=prefix,
                          parent_uuid=parent_uuid,
-                         metadata=metadata,
-                         pos_offset=Vector3(x=10.2))
+                         metadata=metadata)
+
+        # Initial Pose
+        overall_pos_offset = Vector3(x=10.2)
+        hip_pos = Vector3(y=84.5) + overall_pos_offset
+        knee_pos = Vector3(y=47.05) + overall_pos_offset
+        ankle_pos = Vector3(y=9.6) + overall_pos_offset
+        ball_pos = Vector3(z=13.1) + overall_pos_offset
+        toe_pos = Vector3(z=23.4) + overall_pos_offset
+        heel_pos = Vector3() + overall_pos_offset
+
+        self.hip.set_initial_position(xyz=hip_pos)
+        self.knee.set_initial_position(xyz=knee_pos)
+        self.ankle.set_initial_position(xyz=ankle_pos)
+        self.ball.set_initial_position(xyz=ball_pos)
+        self.toe.set_initial_position(xyz=toe_pos)
+        self.heel.set_initial_position(xyz=heel_pos)
 
 
 class ModuleBipedLegRight(ModuleBipedLeg):
@@ -296,8 +328,23 @@ class ModuleBipedLegRight(ModuleBipedLeg):
         super().__init__(name=name,
                          prefix=prefix,
                          parent_uuid=parent_uuid,
-                         metadata=metadata,
-                         pos_offset=Vector3(x=-10.2))
+                         metadata=metadata)
+
+        # Initial Pose
+        overall_pos_offset = Vector3(x=-10.2)
+        hip_pos = Vector3(y=84.5) + overall_pos_offset
+        knee_pos = Vector3(y=47.05) + overall_pos_offset
+        ankle_pos = Vector3(y=9.6) + overall_pos_offset
+        ball_pos = Vector3(z=13.1) + overall_pos_offset
+        toe_pos = Vector3(z=23.4) + overall_pos_offset
+        heel_pos = Vector3() + overall_pos_offset
+
+        self.hip.set_initial_position(xyz=hip_pos)
+        self.knee.set_initial_position(xyz=knee_pos)
+        self.ankle.set_initial_position(xyz=ankle_pos)
+        self.ball.set_initial_position(xyz=ball_pos)
+        self.toe.set_initial_position(xyz=toe_pos)
+        self.heel.set_initial_position(xyz=heel_pos)
 
 
 if __name__ == "__main__":
@@ -308,23 +355,28 @@ if __name__ == "__main__":
     a_proxy = Proxy()
     a_proxy.set_initial_position(y=84.5)
     a_proxy.set_name("test")
+    a_leg = ModuleBipedLeg()
     a_leg_lf = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_proxy)
     a_leg_lf.set_parent_uuid(a_proxy.get_uuid())
-    print(a_proxy.transform)
 
     a_project = RigProject()
     a_project.add_to_modules(a_module)
-    a_project.add_to_modules(a_leg_rt)
     a_project.add_to_modules(a_leg_lf)
+    a_project.add_to_modules(a_leg_rt)
+    a_project.add_to_modules(a_leg)
     a_project.build_proxy()
 
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_hip.tx', 10)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.tz', 5)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_knee.tz', 3)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_ankle.ry', 45)
+    # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
+    #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
+    #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
+
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
     print(a_project.get_project_as_dict())
     a_project.read_data_from_scene()
     print(a_project.get_project_as_dict())
