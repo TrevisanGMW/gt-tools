@@ -233,10 +233,10 @@ class ModuleBipedArm(ModuleGeneric):
         super().build_rig()  # Passthrough
 
 
-class ModuleBipedArmLeft(ModuleBipedArm):
+class ModuleBipedArmRight(ModuleBipedArm):
     def __init__(self,
-                 name="Left Arm",
-                 prefix=NamingConstants.Prefix.LEFT,
+                 name="Right Arm",
+                 prefix=NamingConstants.Prefix.RIGHT,
                  parent_uuid=None,
                  metadata=None,
                  orientation="-"):
@@ -257,10 +257,10 @@ class ModuleBipedArmLeft(ModuleBipedArm):
         self.wrist.set_initial_position(xyz=pos_wrist)
 
 
-class ModuleBipedArmRight(ModuleBipedArm):
+class ModuleBipedArmLeft(ModuleBipedArm):
     def __init__(self,
-                 name="Right Arm",
-                 prefix=NamingConstants.Prefix.RIGHT,
+                 name="Left Arm",
+                 prefix=NamingConstants.Prefix.LEFT,
                  parent_uuid=None,
                  metadata=None,
                  orientation="+"):
@@ -290,9 +290,9 @@ if __name__ == "__main__":
     a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
     a_project = RigProject()
-    a_project.add_to_modules(a_arm)
-    a_project.add_to_modules(a_arm_rt)
-    a_project.add_to_modules(a_arm_lf)
+    a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
+    # a_project.add_to_modules(a_arm_rt)
+    # a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
 
     # cmds.setAttr(f'rt_clavicle.ty', 15)
