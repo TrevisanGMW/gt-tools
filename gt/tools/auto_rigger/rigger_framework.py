@@ -713,6 +713,7 @@ class ModuleGeneric:
         self.proxies = []
         self.parent_uuid = None  # Module is parented to this object
         self.metadata = None
+        self.active = True
 
         if name:
             self.set_name(name)
@@ -791,6 +792,18 @@ class ModuleGeneric:
             return
         self.metadata = metadata
 
+    def set_active_state(self, is_active):
+        """
+        Sets the "is_active" variable. This variable determines if the module will be skipped while in a project or not.
+        Args:
+            is_active (bool): True if active, False if inactive. Inactive modules are ignored when in a project.
+        """
+        if not isinstance(is_active, bool):
+            logger.warning(f'Unable to set active state. '
+                           f'Expected a boolean, but got: "{str(type(is_active))}"')
+            return
+        self.active = is_active
+
     def add_to_metadata(self, key, value):
         """
         Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
@@ -867,6 +880,10 @@ class ModuleGeneric:
         if _proxies and isinstance(_proxies, dict):
             self.read_proxies_from_dict(proxy_dict=_proxies)
 
+        is_active = module_dict.get('is_active')
+        if is_active:
+            self.set_active_state(is_active=is_active)
+
         metadata = module_dict.get('metadata')
         if metadata:
             self.set_metadata_dict(metadata=metadata)
@@ -917,6 +934,14 @@ class ModuleGeneric:
         """
         return self.metadata
 
+    def get_active_state(self):
+        """
+        Gets the active state. (True or False)
+        Returns:
+            bool: True if module is active, False if not.
+        """
+        return self.active
+
     def get_module_as_dict(self, include_module_name=False, include_offset_data=True):
         """
         Gets the properties of this module (including proxies) as a dictionary
@@ -934,6 +959,8 @@ class ModuleGeneric:
             module_data["prefix"] = self.prefix
         if self.parent_uuid:
             module_data["parent"] = self.parent_uuid
+        if self.active:
+            module_data["active"] = self.active
         if self.metadata:
             module_data["metadata"] = self.metadata
         module_proxies = {}
@@ -1286,6 +1313,8 @@ class RigProject:
             # Build Proxy
             proxy_data_list = []
             for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
                 proxy_data_list += module.build_proxy()
 
             for proxy_data in proxy_data_list:
@@ -1295,6 +1324,8 @@ class RigProject:
 
             # Parent Proxy
             for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
                 parent_proxies(proxy_list=module.get_proxies())
                 create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup)
                 for proxy in module.get_proxies():
@@ -1322,10 +1353,14 @@ class RigProject:
 
             # Build Rig
             for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
                 module.build_rig()
 
             # Build Rig Post
             for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
                 module.build_rig_post()
 
         except Exception as e:
