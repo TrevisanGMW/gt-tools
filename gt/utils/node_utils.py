@@ -33,6 +33,14 @@ class Node(str):
        exists: Check if the Maya node exists in the scene.
 
    """
+    def __new__(cls, path):
+        """
+        Since str objects are immutable, the "path" value needs to be defined in "__new__" instead of "__init__" only.
+        This is because the value is set during object creation and not during object initialization.
+        """
+        instance = super().__new__(cls, path)
+        return instance
+
     def __init__(self, path):
         """
         Initialize a Node instance.
