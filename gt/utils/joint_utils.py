@@ -36,10 +36,10 @@ def orient_joint(joint_list,
             parent = parent[0]
 
         # Un-parent children
-        children = cmds.listRelatives(jnt, children=True, typ="transform") or []
-        children += cmds.listRelatives(jnt, children=True, typ="joint") or []
+        children = cmds.listRelatives(jnt, children=True, typ="transform", fullPath=True) or []
+        children += cmds.listRelatives(jnt, children=True, typ="joint", fullPath=True) or []
         if len(children) > 0:
-            children = cmds.parent(children, w=True)
+            children = cmds.parent(children, world=True)
 
         # Determine aim joint (if available)
         aim_target = ""
@@ -71,9 +71,9 @@ def orient_joint(joint_list,
 
                     up_vec = get_cross_direction(jnt, aim_target, aim_child)
                 else:
-                    print("parent", parent)
-                    print("jnt", jnt)
-                    print("aim_target", aim_target)
+                    # print("parent", parent)
+                    # print("jnt", jnt)
+                    # print("aim_target", aim_target)
                     up_vec = get_cross_direction(parent, jnt, aim_target)
 
             if not detect_up_dir or (up_vec[0] == 0.0 and
@@ -264,6 +264,7 @@ def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
-    convert_joints_to_mesh()
-    out = None
-    pprint(out)
+    # convert_joints_to_mesh()
+    # out = None
+    # pprint(out)
+    orient_joint(joint_list=['|prefix_first'])
