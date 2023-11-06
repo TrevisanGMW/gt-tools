@@ -289,6 +289,13 @@ class ModuleBipedLeg(ModuleGeneric):
     def build_rig(self):
         super().build_rig()  # Passthrough
 
+    def build_rig_post(self):
+        """
+        Runs post rig script.
+        When in a project, this runs after the "build_rig" is done in all modules.
+        """
+        super().build_rig_post()  # Passthrough
+
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
     def __init__(self,
