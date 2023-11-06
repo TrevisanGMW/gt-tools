@@ -6,16 +6,19 @@ RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rigger_utils import find_proxy_from_uuid, get_proxy_offset, RiggerConstants
+from gt.tools.auto_rigger.rigger_utils import create_control_root_curve, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rigger_utils import find_joint_node_from_uuid
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.naming_utils import NamingConstants, get_long_name
+from gt.utils.transform_utils import Transform, match_translate
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.color_utils import add_side_color_setup
 from gt.utils.string_utils import remove_prefix
-from gt.utils.transform_utils import Transform
-from gt.utils.hierarchy_utils import parent
+from gt.utils.node_utils import Node
+from gt.utils import hierarchy_utils
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
@@ -646,6 +649,14 @@ class Proxy:
         """
         return self.parent_uuid
 
+    def get_locator_scale(self):
+        """
+        Gets the locator scale for this proxy
+        Returns:
+            float: The locator scale
+        """
+        return self.locator_scale
+
     def get_attr_dict(self):
         """
         Gets the attribute dictionary for this proxy
@@ -999,15 +1010,35 @@ class ModuleGeneric:
         When in a project, this runs after the "build_proxy" is done in all modules.
         Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
         """
+        logger.debug(f'"build_proxy_post" function for "{self.get_module_class_name()}" was called.')
         self.apply_transforms()
-        logger.debug(f'Post proxy function for "{self.get_module_class_name()}" was called.')
 
     def build_rig(self):
         """
         Runs build rig script.
+        Expects proxy to be present in the scene.
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
-        # TODO @@@ - Create, parent, and orient joints.
+        for proxy in self.proxies:
+            proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
+            if not proxy_node:
+                continue
+            cmds.select(clear=True)  # When creating a joint, selection affects its hierarchy
+            joint = cmds.joint(name=proxy_node.get_short_name())
+
+            locator_scale = proxy.get_locator_scale()
+            cmds.setAttr(f'{joint}.radius', locator_scale)
+            match_translate(source=proxy_node, target_list=joint)
+
+            parent_proxy_node = find_joint_node_from_uuid(proxy.get_parent_uuid())
+            hierarchy_utils.parent(source_objects=joint, target_parent=parent_proxy_node)
+
+            # Add proxy data for reference
+            add_attr(target_list=joint,
+                     attributes=RiggerConstants.JOINT_ATTR_UUID,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            cmds.select(clear=True)  # When creating a joint, the new joint is selected.
 
     def build_rig_post(self):
         """
@@ -1243,31 +1274,65 @@ class RigProject:
         """
         Builds Proxy/Guide Armature/Skeleton
         """
-        root_transform, root_group = create_proxy_root_curve()
-        setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
-        add_attr(target_list=setup, attr_type="string", is_keyable=False,
-                 attributes=RiggerConstants.SETUP_GRP_ATTR, verbose=True)
-        set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
-        parent(source_objects=setup, target_parent=root_group)
+        cmds.refresh(suspend=True)
+        try:
+            root_transform, root_group = create_proxy_root_curve()
+            setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
+            add_attr(target_list=setup, attr_type="string", is_keyable=False,
+                     attributes=RiggerConstants.SETUP_DATA_ATTR, verbose=True)
+            set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+            hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
 
-        # Build Proxy
-        proxy_data_list = []
-        for module in self.modules:
-            proxy_data_list += module.build_proxy()
+            # Build Proxy
+            proxy_data_list = []
+            for module in self.modules:
+                proxy_data_list += module.build_proxy()
 
-        for proxy_data in proxy_data_list:
-            add_side_color_setup(obj=proxy_data.get_long_name())
-            parent(source_objects=proxy_data.get_setup(), target_parent=setup)
-            parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
-            cmds.refresh()  # Without refresh, it fails to show the correct scale
+            for proxy_data in proxy_data_list:
+                add_side_color_setup(obj=proxy_data.get_long_name())
+                hierarchy_utils.parent(source_objects=proxy_data.get_setup(), target_parent=setup)
+                hierarchy_utils.parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
 
-        # Parent Proxy
-        for module in self.modules:
-            parent_proxies(proxy_list=module.get_proxies())
-            create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup)
-            for proxy in module.get_proxies():
-                proxy.apply_attr_dict()
-            module.build_proxy_post()
+            # Parent Proxy
+            for module in self.modules:
+                parent_proxies(proxy_list=module.get_proxies())
+                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup)
+                for proxy in module.get_proxies():
+                    proxy.apply_attr_dict()
+                module.build_proxy_post()
+        except Exception as e:
+            raise e
+        finally:
+            cmds.refresh(suspend=False)
+            cmds.refresh()
+
+    def build_rig(self):
+        """
+        Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
+        """
+        cmds.refresh(suspend=True)
+        try:
+            root_transform, root_group = create_control_root_curve()
+            setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
+            setup = Node(setup)
+            add_attr(target_list=setup, attr_type="string", is_keyable=False,
+                     attributes=RiggerConstants.SETUP_DATA_ATTR, verbose=True)
+            set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+            hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
+
+            # Build Rig
+            for module in self.modules:
+                module.build_rig()
+
+            # Build Rig Post
+            for module in self.modules:
+                module.build_rig_post()
+
+        except Exception as e:
+            raise e
+        finally:
+            cmds.refresh(suspend=False)
+            cmds.refresh()
 
 
 if __name__ == "__main__":
@@ -1275,61 +1340,19 @@ if __name__ == "__main__":
     from pprint import pprint
     cmds.file(new=True, force=True)
 
-    from gt.tools.auto_rigger.rigger_modules import RigModules
-    a_leg = RigModules.ModuleBipedLeg()
+    a_1st_proxy = Proxy(name="first")
+    a_1st_proxy.set_position(y=5)
+    a_2nd_proxy = Proxy(name="second")
+    a_2nd_proxy.set_position(x=10)
+    a_2nd_proxy.set_rotation(z=-35)
+    a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
 
-    # a_module = ModuleGeneric()
-    #
-    # a_hip = Proxy()
-    # a_hip.set_position(y=5.5, x=-10)
-    # a_hip.set_locator_scale(scale=0.4)
-    # built_hip = a_hip.build()
-    # # cmds.setAttr(f'{built_hip}.tx', 5)
-    # # add_attr(target_list=str(built_hip), attributes=["customOne", "customTwo"], attr_type='double')
-    # # cmds.setAttr(f'{built_hip}.customOne', 5)
-    # a_hip.read_data_from_scene()
-    #
-    # a_knee = Proxy(name="knee")
-    # a_knee.set_position(y=2.05, x=-10)
-    # a_knee.set_locator_scale(scale=0.5)
-    # a_knee.set_parent_uuid_from_proxy(parent_proxy=a_hip)
-    # a_knee.add_color((1, 1, 0))
-    #
-    # a_module.add_to_proxies([a_hip, a_knee])
-    #
-    # a_module_dict = a_module.get_module_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    #
-
-    a_proxy = Proxy()
-    a_proxy.set_position(x=10)
-    # a_proxy.build()
     a_module = ModuleGeneric()
-    a_module.add_to_proxies(a_proxy)
-    a_module.set_prefix("module")
-    a_module.build_proxy(project_prefix="project")
-    # a_module.build_proxy_post()
+    a_module.add_to_proxies(a_1st_proxy)
+    a_module.add_to_proxies(a_2nd_proxy)
+    a_module.set_prefix("prefix")
 
-    # a_project = RigProject()
-    # # a_project.add_to_modules(a_module)
-    # a_project.add_to_modules(a_leg)
-    # a_project.build_proxy()
-    # cmds.setAttr(f'hip.tx', 12)
-    # cmds.setAttr(f'ankle.ry', 15)
-    # a_project_dict = a_project.get_project_as_dict()
-    # print(a_project_dict)
-    # a_project_two = RigProject()
-    # a_project_two.add_to_modules(a_leg)
-    # a_project_two.read_data_from_scene()
-    # a_project_dict_two = a_project_two.get_project_as_dict()
-    # cmds.file(new=True, force=True)
-    # print(a_project_dict_two)
-    # a_project.build_proxy()
-
-    # cmds.file(new=True, force=True)
-    #
-    # another_project = RigProject()
-    # another_project.read_data_from_dict(a_project_dict)
-    # another_project.build_proxy()
-    # cmds.viewFit(all=True)
+    a_project = RigProject()
+    a_project.add_to_modules(a_module)
+    a_project.build_proxy()
+    a_project.build_rig()
