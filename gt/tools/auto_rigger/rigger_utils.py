@@ -36,7 +36,7 @@ class RiggerConstants:
     SEPARATOR_BEHAVIOR = "Behavior"
     ROOT_PROXY_ATTR = "proxyData"
     ROOT_RIG_ATTR = "rigData"
-    SETUP_GRP_ATTR = "setupData"  # Attribute used to find setup group
+    SETUP_DATA_ATTR = "setupData"  # Attribute used to find setup group
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -62,6 +62,33 @@ def find_proxy_node_from_uuid(uuid_string):
         Node or None: If found, the proxy (as a Node) with the matching UUID, otherwise None
     """
     proxy = find_proxy_from_uuid(uuid_string)
+    if proxy:
+        return Node(proxy)
+
+
+def find_joint_from_uuid(uuid_string):
+    """
+    Return a joint if the provided UUID is present in the attribute RiggerConstants.JOINT_ATTR_UUID
+    Args:
+        uuid_string (str): UUID to look for (if it matches, then the joint is found)
+    Returns:
+        str or None: If found, the joint with the matching UUID, otherwise None
+    """
+    proxy = get_object_from_uuid_attr(uuid_string=uuid_string,
+                                      attr_name=RiggerConstants.JOINT_ATTR_UUID,
+                                      obj_type="joint")
+    return proxy
+
+
+def find_joint_node_from_uuid(uuid_string):
+    """
+    Returns the found joint as a "Node" object (gt.utils.node_utils)
+    Args:
+        uuid_string (str): UUID to look for (if it matches, then the joint is found)
+    Returns:
+        Node or None: If found, the joint (as a Node) with the matching UUID, otherwise None
+    """
+    proxy = find_joint_from_uuid(uuid_string)
     if proxy:
         return Node(proxy)
 
