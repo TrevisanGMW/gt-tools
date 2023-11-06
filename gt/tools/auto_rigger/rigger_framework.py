@@ -880,8 +880,8 @@ class ModuleGeneric:
         if _proxies and isinstance(_proxies, dict):
             self.read_proxies_from_dict(proxy_dict=_proxies)
 
-        is_active = module_dict.get('is_active')
-        if is_active:
+        is_active = module_dict.get('active')
+        if isinstance(is_active, bool):
             self.set_active_state(is_active=is_active)
 
         metadata = module_dict.get('metadata')
@@ -955,12 +955,11 @@ class ModuleGeneric:
         module_data = {}
         if self.name:
             module_data["name"] = self.name
+        module_data["active"] = self.active
         if self.prefix:
             module_data["prefix"] = self.prefix
         if self.parent_uuid:
             module_data["parent"] = self.parent_uuid
-        if self.active:
-            module_data["active"] = self.active
         if self.metadata:
             module_data["metadata"] = self.metadata
         module_proxies = {}
