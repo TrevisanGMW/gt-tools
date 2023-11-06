@@ -36,6 +36,9 @@ class Node(str):
     def __init__(self, path):
         """
         Initialize a Node instance.
+        A node object uses the UUID of the Maya node retrieve data, so once initialized it doesn't depend on the
+        string path of the object. When used as a string, it will return the full path to the object, even if not
+        unique.
 
         Args:
            path (str): The path to the Maya node.
