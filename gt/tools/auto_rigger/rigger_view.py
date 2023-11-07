@@ -1,7 +1,7 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QAction, QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout
+from PySide2.QtWidgets import QAction, QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QFrame
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
@@ -28,6 +28,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.menubar = None
         self.module_tree = None
         self.splitter = None
+        self.frame = None
 
         window_title = "GT Auto Rigger"
         if version:
@@ -78,6 +79,9 @@ class RiggerView(metaclass=MayaWindowMeta):
 
         item1.addChild(item2)
 
+        self.frame = QFrame()
+        self.frame.setFrameShape(QFrame.Box)
+
         self.module_tree.addTopLevelItem(item1)
         self.module_tree.setHeaderHidden(True)  # Hide the header
 
@@ -87,13 +91,11 @@ class RiggerView(metaclass=MayaWindowMeta):
         main_layout = QVBoxLayout()
         main_layout.setMenuBar(self.menubar)  # Set the menu bar at the top
 
-        temp_layout = QWidget()
-
         self.splitter = QSplitter(self)
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(self.module_tree)
-        self.splitter.addWidget(temp_layout)
+        self.splitter.addWidget(self.frame)
 
         body_layout = QHBoxLayout()  # Below the menu bar
 
