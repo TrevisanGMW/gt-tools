@@ -369,6 +369,14 @@ class Icon:
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
     ui_checkbox_enabled = get_icon_path(r"ui_checkbox_enabled.svg")
     ui_checkbox_disabled = get_icon_path(r"ui_checkbox_disabled.svg")
+    ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
+    ui_branch_end = get_icon_path(r"ui_branch_end.svg")
+    ui_branch_line = get_icon_path(r"ui_branch_line.svg")
+    ui_branch_more = get_icon_path(r"ui_branch_more.svg")
+    ui_branch_open = get_icon_path(r"ui_branch_open.svg")
+    ui_branch_root_closed = get_icon_path(r"ui_branch_root_closed.svg")
+    ui_branch_root_open = get_icon_path(r"ui_branch_root_open.svg")
+    ui_branch_single = get_icon_path(r"ui_branch_single.svg")
 
 
 class Color:
