@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
+from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow, QTreeWidget
 from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.utils.system_utils import is_system_macos
@@ -626,6 +626,37 @@ def get_screen_dpi_scale(screen_number):
         return dpi_scale_factor
     else:
         raise ValueError("Invalid screen number. Please provide a valid screen number.")
+
+
+def expand_tree_item_recursively(item):
+    """
+    Recursively expands all child items in a tree view starting from the given item.
+
+    This function sets the expansion state of the provided item to True and then
+    recursively expands all its child items, if any.
+
+    Args:
+        item (QTreeWidgetItem): The root item from which to start expanding child items.
+
+    Example:
+        # Expand all child items in a tree view
+        root_item = QTreeWidgetItem()
+        expand_tree_item_recursively(root_item)
+    """
+    if item is not None:
+        item.setExpanded(True)
+        for i in range(item.childCount()):
+            expand_tree_item_recursively(item.child(i))
+
+
+def expand_all_tree_items_recursively(tree_widget):
+    """
+    Recursively expands all items and their children in a QTreeWidget.
+    Args:
+        tree_widget (QTreeWidget): The QTreeWidget to expand the items in.
+    """
+    for i in range(tree_widget.topLevelItemCount()):
+        expand_tree_item_recursively(tree_widget.topLevelItem(i))
 
 
 if __name__ == "__main__":
