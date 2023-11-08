@@ -1077,6 +1077,8 @@ class ModuleGeneric:
 
 
 class RigProject:
+    icon = resource_library.Icon.dev_brain  # TODO TEMP @@@
+
     def __init__(self,
                  name=None,
                  prefix=None,
@@ -1240,7 +1242,7 @@ class RigProject:
         Returns:
             str or None: Name of the rig project, None if it's not set.
         """
-        return self.prefix
+        return self.name
 
     def get_prefix(self):
         """
