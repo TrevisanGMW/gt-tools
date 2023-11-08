@@ -11,6 +11,7 @@ from gt.utils.naming_utils import NamingConstants
 from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
+from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 
@@ -21,6 +22,8 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedLeg(ModuleGeneric):
+    icon = resource_library.Icon.dev_ruler
+
     def __init__(self,
                  name="Leg",
                  prefix=None,
