@@ -1,7 +1,7 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rigger_view import create_module_attr_widget
+from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget
 from PySide2.QtWidgets import QTreeWidgetItem
 from PySide2.QtGui import QIcon
 import logging
@@ -57,14 +57,12 @@ class RiggerController:
 
     def item_clicked(self, item, column):
         print("Clicked item:", item.text(column))
-        module = item.data(1, 0)
-        if isinstance(module, rig_framework.RigProject):
-            # module_widget = create_module_attr_widget(module)
-            # self.view.set_module_widget(module_widget)
+        data_obj = item.data(1, 0)
+        if isinstance(data_obj, rig_framework.RigProject):  # Project
+            # self.view.set_module_widget(ProjectAttrWidget(module=data_obj))
             print("Project")
-        if isinstance(module, rig_framework.ModuleGeneric):
-            module_widget = create_module_attr_widget(module)
-            self.view.set_module_widget(module_widget)
+        if isinstance(data_obj, rig_framework.ModuleGeneric):  # Modules
+            self.view.set_module_widget(ModuleAttrWidget(module=data_obj))
         else:
             self.view.clear_module_widget()
 
