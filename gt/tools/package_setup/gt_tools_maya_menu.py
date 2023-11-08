@@ -386,6 +386,10 @@ def load_menu(*args):
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
+        menu.add_menu_item(label='Auto Rigger (Alpha)',
+                           command=IMPORT_TOOL + 'initialize_tool("auto_rigger")',
+                           tooltip="Opens auto rigger (work in progress).",
+                           icon=resource_library.Icon.dev_brain)
         menu.add_divider(divider_label="Curves")  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Add Thumbnail Metadata to Selection',
                            command='from gt.utils.curve_utils import add_thumbnail_metadata_attr_to_selection\n'
