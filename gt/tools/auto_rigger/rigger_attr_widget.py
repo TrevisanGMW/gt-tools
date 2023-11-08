@@ -68,5 +68,45 @@ class ModuleAttrWidget(QWidget):
         self.module.set_name(new_name)
 
 
+class ProjectAttrWidget(QWidget):
+    def __init__(self, parent=None, project=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.project = project
+
+        # Project Header (Icon, Type, Name, Buttons) ----------------------------------------------
+        header_layout = QHBoxLayout()
+
+        # Icon
+        icon = QIcon(project.icon)
+        icon_label = QLabel()
+        icon_label.setPixmap(icon.pixmap(32, 32))
+        header_layout.addWidget(icon_label)
+
+        # Type (Project)
+        header_layout.addWidget(QLabel("RigProject"))
+
+        # Name (User Custom)
+        name = project.get_name()
+        self.name_text_field = QLineEdit()
+        if name:
+            self.name_text_field.setText(name)
+        self.name_text_field.textChanged.connect(self.set_module_name)
+        header_layout.addWidget(self.name_text_field)
+
+        # Help Button
+        self.help_btn = QPushButton()
+        self.help_btn.setIcon(QIcon(resource_library.Icon.root_help))
+        header_layout.addWidget(self.help_btn)
+
+        # Create Layout
+        scroll_content_layout = QVBoxLayout(self)
+        scroll_content_layout.addLayout(header_layout)
+
+    def set_module_name(self):
+        new_name = self.name_text_field.text() or ""
+        self.project.set_name(new_name)
+
+
 if __name__ == "__main__":
     print('Run it from "__init__.py".')
