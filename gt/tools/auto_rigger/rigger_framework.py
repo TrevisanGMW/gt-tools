@@ -19,6 +19,7 @@ from gt.utils.color_utils import add_side_color_setup
 from gt.utils.string_utils import remove_prefix
 from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
+from gt.ui import resource_library
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
@@ -701,6 +702,8 @@ class Proxy:
 
 
 class ModuleGeneric:
+    icon = resource_library.Icon.dev_code  # TODO TEMP @@@
+
     def __init__(self,
                  name=None,
                  prefix=None,
@@ -908,7 +911,7 @@ class ModuleGeneric:
         Returns:
             str or None: Name of the rig module, None if it's not set.
         """
-        return self.prefix
+        return self.name
 
     def get_prefix(self):
         """
