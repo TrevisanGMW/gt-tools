@@ -22,7 +22,7 @@ def create_template_biped():
     Returns:
         RigProject: A rig project containing modules used in a biped rig
     """
-    biped_project = RigProject()
+    biped_project = RigProject(name="Biped Character Template")
 
     spine = ModuleSpine()
     leg_lf = ModuleBipedLegLeft()
