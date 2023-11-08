@@ -1,7 +1,7 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QAction, QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QFrame
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
@@ -26,9 +26,9 @@ class RiggerView(metaclass=MayaWindowMeta):
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.menubar = None
-        self.module_tree = None
         self.splitter = None
-        self.frame = None
+        self.module_tree = None
+        self.module_attr_area = None
 
         window_title = "GT Auto Rigger"
         if version:
@@ -44,64 +44,47 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        # Style Window
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
-        stylesheet += resource_library.Stylesheet.maya_basic_dialog
-        stylesheet += resource_library.Stylesheet.list_widget_dark
-        stylesheet += resource_library.Stylesheet.combobox_dark
-        self.setStyleSheet(stylesheet)
+        # # Style Window
+        # stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        # stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        # stylesheet += resource_library.Stylesheet.list_widget_dark
+        # stylesheet += resource_library.Stylesheet.combobox_dark
+        # self.setStyleSheet(stylesheet)
 
         # Final Adjustments
         qt_utils.resize_to_screen(self, percentage=35)
         qt_utils.center_window(self)
-        qt_utils.expand_all_tree_items_recursively(self.module_tree)
+
         self.resize_splitter_to_screen()
 
     def create_widgets(self):
         """Create the widgets for the window."""
         # Create a menu bar
         self.menubar = QMenuBar(self)
-        file_menu = self.menubar.addMenu("File")
-
-        # Add an "Exit" action to the menu
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # Create a QTreeWidget and add items to it
-        self.module_tree = QTreeWidget()
-
-        item1 = QTreeWidgetItem(["Item 1"])
-        item2 = QTreeWidgetItem(["Item 2"])
-
-        item1.setIcon(0, QIcon(resource_library.Icon.dev_code))  # Set the icon for the first column (0)
-        item2.setIcon(0, QIcon(resource_library.Icon.dev_ruler))  # Set the icon for the first column (0)
-
-        item1.addChild(item2)
-
-        self.frame = QFrame()
-        self.frame.setFrameShape(QFrame.Box)
-
-        self.module_tree.addTopLevelItem(item1)
-        self.module_tree.setHeaderHidden(True)  # Hide the header
-
-    def create_layout(self):
-        """Create the layout for the window."""
-
-        main_layout = QVBoxLayout()
-        main_layout.setMenuBar(self.menubar)  # Set the menu bar at the top
 
         self.splitter = QSplitter(self)
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
+
+        self.module_tree = QTreeWidget()
+        self.module_tree.setHeaderHidden(True)  # Hide the header
+
+        self.module_attr_area = QScrollArea()
+
+    def create_layout(self):
+        """Create the layout for the window."""
+        # Main Layout
+        main_layout = QVBoxLayout()
+        main_layout.setMenuBar(self.menubar)  # Set the menu bar at the top
+
+        # Splitter
         self.splitter.addWidget(self.module_tree)
-        self.splitter.addWidget(self.frame)
+        self.splitter.addWidget(self.module_attr_area)
 
+        # Body (Below Menu Bar)
         body_layout = QHBoxLayout()  # Below the menu bar
-
         body_layout.addWidget(self.splitter)  # Add the QTreeWidget below the menu bar
         main_layout.addLayout(body_layout)
-
         self.setLayout(main_layout)
 
     def resize_splitter_to_screen(self, percentage=20):
@@ -119,10 +102,61 @@ class RiggerView(metaclass=MayaWindowMeta):
             raise ValueError("Percentage should be between 0 and 100")
         screen_geometry = QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width*.55, width*.60])
+        self.splitter.setSizes([width * .55, width * .60])
+
+    def set_module_widget(self, widget):
+        self.module_attr_area.setWidget(widget)
+
+    def get_menu_bar(self):
+        return self.menubar
+
+    def add_item_to_module_tree(self, item):
+        self.module_tree.addTopLevelItem(item)
+
+    def expand_all_module_tree_items(self):
+        qt_utils.expand_all_tree_items_recursively(self.module_tree)
+
+    def clear_module_tree(self):
+        self.module_tree.clear()
 
 
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = RiggerView()
+
+
+        def create_test_content(test):
+            # Create a widget to hold the labels
+            scroll_content = QWidget()
+            scroll_content_layout = QVBoxLayout(scroll_content)
+
+            # Add a bunch of labels to the scroll content
+            for i in range(20):
+                label = QLabel(f"Label {i} {test}")
+                scroll_content_layout.addWidget(label)
+            return scroll_content
+
+        # Test Adding Module Parameter Widget
+        content = create_test_content("test")
+        window.set_module_widget(content)
+
+        # Test Adding Menubar Item
+        file_menu = window.get_menu_bar().addMenu("Project")
+
+        # Add an "Exit" action to the menu
+        exit_action = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
+        exit_action.triggered.connect(window.close)
+        file_menu.addAction(exit_action)
+
+        # Test Adding Modules to Tree
+        item1 = QTreeWidgetItem(["Item 1"])
+        item2 = QTreeWidgetItem(["Item 2"])
+
+        item1.setIcon(0, QIcon(resource_library.Icon.dev_code))  # Set the icon for the first column (0)
+        item2.setIcon(0, QIcon(resource_library.Icon.dev_ruler))  # Set the icon for the first column (0)
+
+        item1.addChild(item2)
+        window.add_item_to_module_tree(item1)
+        window.expand_all_module_tree_items()
+
         window.show()
