@@ -1,12 +1,13 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, \
+    QLineEdit
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QPixmap
 from PySide2 import QtCore
 
 
@@ -120,24 +121,40 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_tree.clear()
 
 
+def create_module_attr_widget(module):
+
+    scroll_content = QWidget()
+    scroll_content_layout = QVBoxLayout(scroll_content)
+
+    icon_path = module.icon
+    module_type = module.get_module_class_name(remove_module_prefix=True)
+    name = module.get_name()
+
+    name_layout = QHBoxLayout(scroll_content)
+    icon = QIcon(icon_path)
+    icon_label = QLabel()
+    icon_label.setPixmap(icon.pixmap(32, 32))
+    name_layout.addWidget(icon_label)
+    name_layout.addWidget(QLabel(f"{module_type}"))
+    name_text_field = QLineEdit()
+    if name:
+        name_text_field.setText(name)
+    name_layout.addWidget(name_text_field)
+
+    scroll_content_layout.addLayout(name_layout)
+
+    return scroll_content
+
+
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = RiggerView()
 
-
-        def create_test_content(test):
-            # Create a widget to hold the labels
-            scroll_content = QWidget()
-            scroll_content_layout = QVBoxLayout(scroll_content)
-
-            # Add a bunch of labels to the scroll content
-            for i in range(20):
-                label = QLabel(f"Label {i} {test}")
-                scroll_content_layout.addWidget(label)
-            return scroll_content
+        from gt.tools.auto_rigger.rigger_framework import ModuleGeneric
+        a_generic_module = ModuleGeneric(name="my module")
 
         # Test Adding Module Parameter Widget
-        content = create_test_content("test")
+        content = create_module_attr_widget(a_generic_module)
         window.set_module_widget(content)
 
         # Test Adding Menubar Item
