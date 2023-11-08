@@ -1124,7 +1124,7 @@ class RigProject:
         Args:
             module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to this project.
         """
-        from gt.tools.auto_rigger.rigger_modules import RigModules
+        from gt.tools.auto_rigger.rig_modules import RigModules
         modules_attrs = vars(RigModules)
         all_modules = [attr for attr in modules_attrs if not (attr.startswith('__') and attr.endswith('__'))]
         if module and str(module.__class__.__name__) in all_modules:
@@ -1177,7 +1177,7 @@ class RigProject:
             return
 
         self.modules = []
-        from gt.tools.auto_rigger.rigger_modules import RigModules
+        from gt.tools.auto_rigger.rig_modules import RigModules
         available_modules = vars(RigModules)
         for class_name, description in modules_dict.items():
             if not class_name.startswith("Module"):
