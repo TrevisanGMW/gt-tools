@@ -1,7 +1,7 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget
+from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget, ProjectAttrWidget
 from PySide2.QtWidgets import QTreeWidgetItem
 from PySide2.QtGui import QIcon
 import logging
@@ -31,6 +31,8 @@ class RiggerController:
 
         # Connections
         self.view.module_tree.itemClicked.connect(self.item_clicked)
+        self.view.build_proxy_btn.clicked.connect(self.build_proxy)
+        self.view.build_rig_btn.clicked.connect(self.build_rig)
 
         # Show
         self.view.show()
@@ -58,11 +60,10 @@ class RiggerController:
     def item_clicked(self, item, column):
         print("Clicked item:", item.text(column))
         data_obj = item.data(1, 0)
-        if isinstance(data_obj, rig_framework.RigProject):  # Project
-            # self.view.set_module_widget(ProjectAttrWidget(module=data_obj))
-            print("Project")
         if isinstance(data_obj, rig_framework.ModuleGeneric):  # Modules
             self.view.set_module_widget(ModuleAttrWidget(module=data_obj))
+        elif isinstance(data_obj, rig_framework.RigProject):  # Project
+            self.view.set_module_widget(ProjectAttrWidget(project=data_obj))
         else:
             self.view.clear_module_widget()
 
@@ -74,6 +75,14 @@ class RiggerController:
 
     def load_project(self):
         pass
+
+    def build_proxy(self):
+        project = self.model.get_project()
+        project.build_proxy()
+
+    def build_rig(self):
+        project = self.model.get_project()
+        project.build_rig()
 
 
 if __name__ == "__main__":

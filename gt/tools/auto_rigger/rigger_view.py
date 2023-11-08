@@ -1,7 +1,8 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, \
+    QPushButton
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
 import gt.ui.resource_library as resource_library
@@ -30,6 +31,8 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.splitter = None
         self.module_tree = None
         self.module_attr_area = None
+        self.build_proxy_btn = None
+        self.build_rig_btn = None
 
         window_title = "GT Auto Rigger"
         if version:
@@ -70,6 +73,9 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_tree = QTreeWidget()
         self.module_tree.setHeaderHidden(True)  # Hide the header
 
+        self.build_proxy_btn = QPushButton("Build Proxy")
+        self.build_rig_btn = QPushButton("Build Rig")
+
         self.module_attr_area = QScrollArea()
 
     def create_layout(self):
@@ -78,8 +84,18 @@ class RiggerView(metaclass=MayaWindowMeta):
         main_layout = QVBoxLayout()
         main_layout.setMenuBar(self.menubar)  # Set the menu bar at the top
 
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addWidget(self.module_tree)
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.build_proxy_btn)
+        buttons_layout.addWidget(self.build_rig_btn)
+        left_layout.addLayout(buttons_layout)
+
         # Splitter
-        self.splitter.addWidget(self.module_tree)
+        self.splitter.addWidget(left_widget)
         self.splitter.addWidget(self.module_attr_area)
 
         # Body (Below Menu Bar)
