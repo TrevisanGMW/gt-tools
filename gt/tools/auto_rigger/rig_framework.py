@@ -1106,7 +1106,7 @@ class RigProject:
         if not name or not isinstance(name, str):
             logger.warning(f'Unable to set name. Expected string but got "{str(type(name))}"')
             return
-        self.prefix = name
+        self.name = name
 
     def set_prefix(self, prefix):
         """
