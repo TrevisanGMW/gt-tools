@@ -17,8 +17,8 @@ class RiggerModel:
         """
         Initialize the RiggerModel object.
         """
-        # self.project = create_template_biped()  # TODO TEMP
-        self.project = RigProject()  # TODO TEMP
+        self.project = create_template_biped()  # TODO TEMP
+        # self.project = RigProject()  # TODO TEMP
 
     def set_project(self, project):
         if not project or not isinstance(project, RigProject):
@@ -28,6 +28,9 @@ class RiggerModel:
 
     def get_project(self):
         return self.project
+
+    def get_modules(self):
+        return self.project.get_modules()
 
     def save_project_to_file(self):
         pass  # TODO

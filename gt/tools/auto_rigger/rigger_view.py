@@ -105,6 +105,9 @@ class RiggerView(metaclass=MayaWindowMeta):
         width = screen_geometry.width() * percentage / 100
         self.splitter.setSizes([width * .55, width * .60])
 
+    def clear_module_widget(self):
+        self.module_attr_area.setWidget(QWidget())
+
     def set_module_widget(self, widget):
         self.module_attr_area.setWidget(widget)
 
