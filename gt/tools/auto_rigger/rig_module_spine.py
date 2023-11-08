@@ -2,10 +2,10 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rigger_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
-from gt.tools.auto_rigger.rigger_framework import Proxy, ModuleGeneric
-from gt.tools.auto_rigger.rigger_utils import get_proxy_offset
+from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.utils.constraint_utils import equidistant_constraints
+from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.color_utils import ColorConstants
 from gt.utils.transform_utils import Vector3
 import maya.cmds as cmds
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    from gt.tools.auto_rigger.rigger_framework import RigProject
+    from gt.tools.auto_rigger.rig_framework import RigProject
 
     a_spine = ModuleSpine()
     a_project = RigProject()

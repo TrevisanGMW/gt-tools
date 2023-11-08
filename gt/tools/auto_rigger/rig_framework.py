@@ -4,10 +4,9 @@ github.com/TrevisanGMW/gt-tools
 
 RigProject > Module > Proxy > Joint/Control
 """
-from gt.tools.auto_rigger.rigger_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
-from gt.tools.auto_rigger.rigger_utils import find_proxy_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rigger_utils import create_control_root_curve, find_proxy_node_from_uuid
-from gt.tools.auto_rigger.rigger_utils import find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
+from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr

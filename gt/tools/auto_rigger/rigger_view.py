@@ -1,13 +1,13 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, \
-    QLineEdit
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
+from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon, QPixmap
+from PySide2.QtGui import QIcon
 from PySide2 import QtCore
 
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = RiggerView()
 
-        from gt.tools.auto_rigger.rigger_framework import ModuleGeneric
+        from gt.tools.auto_rigger.rig_framework import ModuleGeneric
         a_generic_module = ModuleGeneric(name="my module")
 
         # Test Adding Module Parameter Widget
