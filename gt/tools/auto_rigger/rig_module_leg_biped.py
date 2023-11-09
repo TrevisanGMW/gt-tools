@@ -304,6 +304,10 @@ class ModuleBipedLeg(ModuleGeneric):
         super().build_rig_post()  # Passthrough
         self.ankle.clear_parent_uuid()
 
+        heel_jnt = find_joint_node_from_uuid(self.heel.get_uuid())
+        if heel_jnt and cmds.objExists(heel_jnt):
+            cmds.delete(heel_jnt)
+
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
     def __init__(self,
