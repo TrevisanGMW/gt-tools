@@ -60,7 +60,8 @@ if __name__ == "__main__":
 
     a_biped_project = create_template_biped()
     a_biped_project.build_proxy()
-
+    a_biped_project.build_rig()
+    #
     # # Modify Proxy
     # cmds.setAttr(f'rt_elbow.tz', -15)
     # cmds.setAttr(f'lf_knee.tz', 15)

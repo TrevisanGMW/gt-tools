@@ -45,6 +45,7 @@ class ModuleSpine(ModuleGeneric):
             new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
             new_spine.set_meta_type(value=f'spine{str(num+1).zfill(2)}')
             new_spine.add_meta_parent(line_parent=_parent_uuid)
+            new_spine.set_parent_uuid(uuid=_parent_uuid)
             _parent_uuid = new_spine.get_uuid()
             self.spines.append(new_spine)
 
@@ -160,6 +161,15 @@ class ModuleSpine(ModuleGeneric):
     def build_rig(self):
         super().build_rig()  # Passthrough
 
+    def build_rig_post(self):
+        """
+        Runs post rig script.
+        When in a project, this runs after the "build_rig" is done in all modules.
+        """
+        self.chest.set_parent_uuid(uuid=self.chest.get_meta_parent_uuid())
+        super().build_rig_post()  # Passthrough
+        self.chest.clear_parent_uuid()
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -171,17 +181,17 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_spine)
     a_project.build_proxy()
-
-    cmds.setAttr(f'hip.tx', 10)
-    cmds.setAttr(f'spine02.tx', 10)
-
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    a_project2.build_proxy()
+    #
+    # cmds.setAttr(f'hip.tx', 10)
+    # cmds.setAttr(f'spine02.tx', 10)
+    #
+    # a_project.read_data_from_scene()
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # a_project2.build_proxy()
 
     # Show all
     cmds.viewFit(all=True)

@@ -232,6 +232,17 @@ class ModuleBipedArm(ModuleGeneric):
     def build_rig(self):
         super().build_rig()  # Passthrough
 
+    def build_rig_post(self):
+        """
+        Runs post rig script.
+        When in a project, this runs after the "build_rig" is done in all modules.
+        """
+        self.elbow.set_parent_uuid(self.shoulder.get_uuid())
+        self.wrist.set_parent_uuid(self.elbow.get_uuid())
+        super().build_rig_post()  # Passthrough
+        self.elbow.clear_parent_uuid()
+        self.wrist.clear_parent_uuid()
+
 
 class ModuleBipedArmRight(ModuleBipedArm):
     def __init__(self,

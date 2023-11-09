@@ -534,6 +534,12 @@ class Proxy:
         parent_uuid = parent_proxy.get_uuid()
         self.set_parent_uuid(parent_uuid)
 
+    def clear_parent_uuid(self):
+        """
+        Clears the parent UUID by setting the "parent_uuid" to None
+        """
+        self.parent_uuid = None
+
     def set_meta_type(self, value):
         """
         Adds a proxy meta type key and value to the metadata dictionary. Used to define proxy type in modules.
@@ -624,6 +630,15 @@ class Proxy:
             dict: Metadata dictionary
         """
         return self.metadata
+
+    def get_meta_parent_uuid(self):
+        """
+        Gets the meta parent of this proxy (if present)
+        Returns:
+            str or None: The UUID set as meta parent, otherwise, None.
+        """
+        if self.metadata and isinstance(self.metadata, dict):
+            return self.metadata.get(RiggerConstants.PROXY_META_PARENT, None)
 
     def get_name(self):
         """
@@ -1058,8 +1073,8 @@ class ModuleGeneric:
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
 
-            parent_proxy_node = find_joint_node_from_uuid(proxy.get_parent_uuid())
-            hierarchy_utils.parent(source_objects=joint, target_parent=parent_proxy_node)
+            # parent_proxy_node = find_joint_node_from_uuid(proxy.get_parent_uuid())
+            # hierarchy_utils.parent(source_objects=joint, target_parent=parent_proxy_node)
 
             # Add proxy data for reference
             add_attr(target_list=joint,
@@ -1074,6 +1089,13 @@ class ModuleGeneric:
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         logger.debug(f'"build_rig_post" function from "{self.get_module_class_name()}" was called.')
+        for proxy in self.proxies:
+            joint = find_joint_node_from_uuid(proxy.get_uuid())
+            if not joint:
+                continue
+            parent_joint_node = find_joint_node_from_uuid(proxy.get_parent_uuid())
+            hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
+        cmds.select(clear=True)
 
 
 class RigProject:
@@ -1300,7 +1322,7 @@ class RigProject:
             return False
         return True
 
-    def build_proxy(self):
+    def build_proxy(self, callback=None):
         """
         Builds Proxy/Guide Armature/Skeleton
         """
@@ -1340,7 +1362,7 @@ class RigProject:
             cmds.refresh(suspend=False)
             cmds.refresh()
 
-    def build_rig(self):
+    def build_rig(self, callback=None):
         """
         Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
         """

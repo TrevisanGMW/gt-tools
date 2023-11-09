@@ -2,7 +2,8 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid, \
+    find_joint_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.utils.transform_utils import match_translate, Vector3
@@ -48,6 +49,7 @@ class ModuleBipedLeg(ModuleGeneric):
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
         self.knee.set_locator_scale(scale=0.5)
         self.knee.add_meta_parent(line_parent=self.hip)
+        self.knee.set_parent_uuid(uuid=self.hip.get_uuid())
         self.knee.set_meta_type(value="knee")
 
         self.ankle = Proxy(name=ankle_name)
@@ -58,6 +60,7 @@ class ModuleBipedLeg(ModuleGeneric):
         self.ball = Proxy(name=ball_name)
         self.ball.set_locator_scale(scale=0.4)
         self.ball.add_meta_parent(line_parent=self.ankle)
+        self.ball.set_parent_uuid(uuid=self.ankle.get_uuid())
         self.ball.set_meta_type(value="ball")
 
         self.toe = Proxy(name=toe_name)
@@ -297,7 +300,9 @@ class ModuleBipedLeg(ModuleGeneric):
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
+        self.ankle.set_parent_uuid(self.knee.get_uuid())
         super().build_rig_post()  # Passthrough
+        self.ankle.clear_parent_uuid()
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
@@ -305,8 +310,7 @@ class ModuleBipedLegLeft(ModuleBipedLeg):
                  name="Left Leg",
                  prefix=NamingConstants.Prefix.LEFT,
                  parent_uuid=None,
-                 metadata=None,
-                 pos_offset=None):
+                 metadata=None):
         super().__init__(name=name,
                          prefix=prefix,
                          parent_uuid=parent_uuid,
