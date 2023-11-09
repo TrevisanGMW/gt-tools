@@ -1,7 +1,9 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout
+from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout, \
+    QSizePolicy
 import gt.ui.resource_library as resource_library
 from PySide2.QtGui import QIcon
 
@@ -14,6 +16,7 @@ class ModuleAttrWidget(QWidget):
 
         # Module Header (Icon, Type, Name, Buttons) ----------------------------------------------
         header_layout = QHBoxLayout()
+        header_layout.setAlignment(Qt.AlignTop)
 
         # Icon
         icon = QIcon(module.icon)
@@ -45,6 +48,7 @@ class ModuleAttrWidget(QWidget):
 
         # Other Options --------------------------------------------------------------------------
         attr_layout = QGridLayout()
+        attr_layout.setAlignment(Qt.AlignTop)
 
         prefix_label = QLabel("Prefix:")
         self.prefix_text_field = QLineEdit()
@@ -53,13 +57,17 @@ class ModuleAttrWidget(QWidget):
 
         parent_label = QLabel("Parent:")
         self.parent_text_field = QLineEdit()
-        self.parent_btn = QPushButton("Set")
+        self.parent_btn = QPushButton("Get Selection")
         attr_layout.addWidget(parent_label, 1, 0)
         attr_layout.addWidget(self.parent_text_field, 1, 1)
         attr_layout.addWidget(self.parent_btn, 1, 2)
 
+        for i in range(1, 40):
+            attr_layout.addWidget(QLabel(f"Test{str(i+1)}"), i+1, 0)
+
         # Create Layout
         scroll_content_layout = QVBoxLayout(self)
+        scroll_content_layout.setAlignment(Qt.AlignTop)
         scroll_content_layout.addLayout(header_layout)
         scroll_content_layout.addLayout(attr_layout)
 
@@ -85,6 +93,7 @@ class ProjectAttrWidget(QWidget):
 
         # Type (Project)
         header_layout.addWidget(QLabel("RigProject"))
+        header_layout.setAlignment(Qt.AlignTop)
 
         # Name (User Custom)
         name = project.get_name()

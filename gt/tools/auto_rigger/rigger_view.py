@@ -1,14 +1,13 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, \
-    QPushButton
-from PySide2.QtWidgets import QLineEdit
-from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
+from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
+from PySide2.QtCore import Qt
 from PySide2 import QtCore
 
 
@@ -77,6 +76,8 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.build_rig_btn = QPushButton("Build Rig")
 
         self.module_attr_area = QScrollArea()
+        self.module_attr_area.setWidgetResizable(True)
+        self.module_attr_area.setAlignment(Qt.AlignTop)
 
     def create_layout(self):
         """Create the layout for the window."""
@@ -165,5 +166,15 @@ if __name__ == "__main__":
         item1.addChild(item2)
         window.add_item_to_module_tree(item1)
         window.expand_all_module_tree_items()
+
+        # Test Widget Side
+        a_widget = QWidget()
+        a_layout = QHBoxLayout()
+        a_widget.setLayout(a_layout)
+        a_layout.addWidget(QLabel("A long name.............................................."))
+        a_layout.addWidget(QPushButton("Button"))
+        a_layout.setAlignment(Qt.AlignTop)
+
+        window.set_module_widget(a_widget)
 
         window.show()

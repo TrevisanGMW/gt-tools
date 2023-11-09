@@ -64,6 +64,7 @@ class RiggerController:
             self.view.set_module_widget(ModuleAttrWidget(module=data_obj))
         elif isinstance(data_obj, rig_framework.RigProject):  # Project
             self.view.set_module_widget(ProjectAttrWidget(project=data_obj))
+
         else:
             self.view.clear_module_widget()
 
