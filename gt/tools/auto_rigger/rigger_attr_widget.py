@@ -44,14 +44,11 @@ class ModuleAttrWidget(QWidget):
         self.table_proxy_wdg = None
         self.mod_name_field = None
         self.mod_prefix_field = None
+        self.mod_suffix_field = None
 
         # Body Options --------------------------------------------------------------------------
         self.content_layout = QVBoxLayout()
         self.content_layout.setAlignment(Qt.AlignTop)
-
-        # self.add_widget_module_header()
-        # self.add_widget_module_prefix()
-        # self.add_widget_module_parent()
 
         # Create Layout
         self.scroll_content_layout = QVBoxLayout(self)
@@ -64,18 +61,18 @@ class ModuleAttrWidget(QWidget):
         Adds the header for controlling a module. With Icon, Type, Name and modify buttons.
         """
         # Module Header (Icon, Type, Name, Buttons)
-        header_layout = QHBoxLayout()
-        header_layout.setAlignment(Qt.AlignTop)
+        _layout = QHBoxLayout()
+        _layout.setAlignment(Qt.AlignTop)
 
         # Icon
         icon = QIcon(self.module.icon)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(32, 32))
-        header_layout.addWidget(icon_label)
+        _layout.addWidget(icon_label)
 
         # Type (Module Class)
         module_type = self.module.get_module_class_name(remove_module_prefix=True)
-        header_layout.addWidget(QLabel(f"{module_type}"))
+        _layout.addWidget(QLabel(f"{module_type}"))
 
         # Name (User Custom)
         name = self.module.get_name()
@@ -83,57 +80,68 @@ class ModuleAttrWidget(QWidget):
         if name:
             self.mod_name_field.setText(name)
         self.mod_name_field.textChanged.connect(self.set_module_name)
-        header_layout.addWidget(self.mod_name_field)
+        _layout.addWidget(self.mod_name_field)
 
         # Delete Button
         delete_btn = QPushButton()
-        delete_btn.setIcon(QIcon(resource_library.Icon.dev_trash))
-        header_layout.addWidget(delete_btn)
+        delete_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
+        _layout.addWidget(delete_btn)
 
-        # Help Button
-        help_btn = QPushButton()
-        help_btn.setIcon(QIcon(resource_library.Icon.root_help))
-        header_layout.addWidget(help_btn)
-        self.content_layout.addLayout(header_layout)
+        # Edit Button
+        edit_btn = QPushButton()
+        edit_btn.setIcon(QIcon(resource_library.Icon.ui_edit))
+        _layout.addWidget(edit_btn)
+        self.content_layout.addLayout(_layout)
         # self.body_layout
 
-    def add_widget_module_prefix(self):
+    def add_widget_module_prefix_suffix(self):
         """
         Adds widgets to control the prefix of the module
         """
-        prefix_layout = QHBoxLayout()
+        _layout = QHBoxLayout()
+        # Prefix
         prefix_label = QLabel("Prefix:")
         prefix_label.setFixedWidth(50)
         self.mod_prefix_field = QLineEdit()
-        prefix_layout.addWidget(prefix_label)
-        prefix_layout.addWidget(self.mod_prefix_field)
+        _layout.addWidget(prefix_label)
+        _layout.addWidget(self.mod_prefix_field)
         prefix = self.module.get_prefix()
+        self.mod_prefix_field.textChanged.connect(self.set_module_prefix)
         if prefix:
             self.mod_prefix_field.setText(prefix)
-        self.mod_prefix_field.textChanged.connect(self.set_module_prefix)
-        self.content_layout.addLayout(prefix_layout)
+        # Suffix
+        suffix_label = QLabel("Suffix:")
+        suffix_label.setFixedWidth(50)
+        self.mod_suffix_field = QLineEdit()
+        _layout.addWidget(suffix_label)
+        _layout.addWidget(self.mod_suffix_field)
+        suffix = self.module.get_suffix()
+        if suffix:
+            self.mod_suffix_field.setText(suffix)
+        self.mod_suffix_field.textChanged.connect(self.set_module_suffix)
+        self.content_layout.addLayout(_layout)
 
     def add_widget_module_parent(self):
         """
         Adds a widget to control the parent of the module
         """
-        parent_layout = QHBoxLayout()
+        _layout = QHBoxLayout()
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
         parent_label.setFixedWidth(50)
         module_parent_combo_box = self.create_widget_parent_combobox(target=self.module)
-        parent_layout.addWidget(parent_label)
-        parent_layout.addWidget(module_parent_combo_box)
+        _layout.addWidget(parent_label)
+        _layout.addWidget(module_parent_combo_box)
         module_parent_combo_box.setMinimumSize(1, 1)
         combo_func = partial(self.on_parent_combo_box_changed, combobox=module_parent_combo_box)
         module_parent_combo_box.currentIndexChanged.connect(combo_func)
-        self.content_layout.addLayout(parent_layout)
+        self.content_layout.addLayout(_layout)
 
     def add_widget_proxy_table(self):
         """
         Adds a table widget to control the parent of the proxies inside this proxy
         """
-        proxy_table = QVBoxLayout()
+        _layout = QVBoxLayout()
         self.table_parent_proxy_wdg = QTableWidget()
         self.table_parent_proxy_wdg.setRowCount(0)
         self.table_parent_proxy_wdg.setColumnCount(4)  # Icon, Name, Parent, Get, More
@@ -143,10 +151,11 @@ class ModuleAttrWidget(QWidget):
         header_view.setSectionResizeMode(1, QHeaderView.Interactive)
         header_view.setSectionResizeMode(2, QHeaderView.Stretch)
         header_view.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        proxy_table.addWidget(self.table_parent_proxy_wdg)
+        _layout.addWidget(self.table_parent_proxy_wdg)
         self.table_parent_proxy_wdg.setColumnWidth(1, 110)
         self.refresh_proxy_parent_table()
-        self.scroll_content_layout.addLayout(proxy_table)
+        self.table_parent_proxy_wdg.cellChanged.connect(self.on_table_parent_cell_changed)
+        self.scroll_content_layout.addLayout(_layout)
 
     # Utils ----------------------------------------------------------------------------------------------------
     def refresh_current_widgets(self):
@@ -274,6 +283,21 @@ class ModuleAttrWidget(QWidget):
             self.module.set_parent_uuid(_parent_proxy.get_uuid())
             logger.debug(f"{self.module.get_name()}: to : {_parent_proxy.get_name()}")
 
+    def on_table_parent_cell_changed(self, row, column):
+        """
+        Updates the name of the proxy object in case the user writes a new name in the name cell.
+        Args:
+            row (int): Row where the cell changed.
+            column (int): Column where the cell changed.
+        """
+        _name_cell = self.table_parent_proxy_wdg.item(row, 1)  # 1 = Name
+        _proxy = self.get_table_item_proxy_object(_name_cell)
+        current_name = _proxy.get_name()
+        new_name = _name_cell.text()
+        if new_name:
+            _proxy.set_name(new_name)
+        _name_cell.setText(current_name)
+
     def create_widget_parent_combobox(self, target):
         """
         Creates a populated combobox with all potential parent targets.
@@ -335,6 +359,14 @@ class ModuleAttrWidget(QWidget):
         self.module.set_prefix(new_prefix)
         self.refresh_current_widgets()
 
+    def set_module_suffix(self):
+        """
+        Set the name of the module based on the text in the name text field.
+        """
+        new_suffix = self.mod_suffix_field.text() or ""
+        self.module.set_suffix(new_suffix)
+        self.refresh_current_widgets()
+
     def set_table_item_proxy_object(self, item, proxy):
         """
         Set the proxy object as data for a table item.
@@ -375,7 +407,7 @@ class ModuleGenericAttrWidget(ModuleAttrWidget):
         super().__init__(parent, *args, **kwargs)
 
         self.add_widget_module_header()
-        self.add_widget_module_prefix()
+        self.add_widget_module_prefix_suffix()
         self.add_widget_proxy_table()
 
 
@@ -388,7 +420,7 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
         super().__init__(parent, *args, **kwargs)
 
         self.add_widget_module_header()
-        self.add_widget_module_prefix()
+        self.add_widget_module_prefix_suffix()
         self.add_widget_module_parent()
         # self.add_widget_proxy_table()
 
@@ -420,10 +452,10 @@ class ProjectAttrWidget(QWidget):
         self.name_text_field.textChanged.connect(self.set_module_name)
         header_layout.addWidget(self.name_text_field)
 
-        # Help Button
-        self.help_btn = QPushButton()
-        self.help_btn.setIcon(QIcon(resource_library.Icon.root_help))
-        header_layout.addWidget(self.help_btn)
+        # Edit Button
+        self.edit_btn = QPushButton()
+        self.edit_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+        header_layout.addWidget(self.edit_btn)
 
         # Create Layout
         scroll_content_layout = QVBoxLayout(self)
