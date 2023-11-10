@@ -120,7 +120,7 @@ class RiggerView(metaclass=MayaWindowMeta):
             raise ValueError("Percentage should be between 0 and 100")
         screen_geometry = QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width * .55, width * .60])
+        self.splitter.setSizes([width * .2, width * .60])
 
     def clear_module_widget(self):
         self.module_attr_area.setWidget(QWidget())
