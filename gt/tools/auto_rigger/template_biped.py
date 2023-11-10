@@ -37,7 +37,8 @@ def create_template_biped():
     generic.set_prefix("prefix")
     proxy_one = Proxy(name="named_proxy")
     proxy_two = Proxy()
-    proxy_two.set_parent_uuid_from_proxy(proxy_one)
+    proxy_two.set_parent_uuid(proxy_one.get_uuid())
+    print(proxy_two.get_parent_uuid())
     generic.add_to_proxies(proxy_one)
     generic.add_to_proxies(proxy_two)
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
