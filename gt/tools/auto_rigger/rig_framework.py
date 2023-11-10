@@ -935,6 +935,14 @@ class ModuleGeneric:
         """
         return self.prefix
 
+    def get_parent_uuid(self):
+        """
+        Gets the parent uuid value of this proxy.
+        Returns:
+            str: uuid string for the potential parent of this proxy.
+        """
+        return self.parent_uuid
+
     def get_proxies(self):
         """
         Gets the proxies in this rig module.

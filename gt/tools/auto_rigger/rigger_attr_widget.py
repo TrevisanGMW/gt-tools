@@ -4,11 +4,13 @@ Auto Rigger Attr Widgets
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 import gt.ui.resource_library as resource_library
+from gt.tools.auto_rigger import rig_framework
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -72,15 +74,24 @@ class ModuleAttrWidget(QWidget):
         self.help_btn.setIcon(QIcon(resource_library.Icon.root_help))
         header_layout.addWidget(self.help_btn)
 
-        # Other Options --------------------------------------------------------------------------
-
-        self.body_layout = QGridLayout()
+        # Body Options --------------------------------------------------------------------------
+        self.body_layout = QVBoxLayout()
         self.body_layout.setAlignment(Qt.AlignTop)
 
+        prefix_layout = QGridLayout()
         prefix_label = QLabel("Prefix:")
         self.prefix_text_field = QLineEdit()
-        self.body_layout.addWidget(prefix_label, 0, 0)
-        self.body_layout.addWidget(self.prefix_text_field, 0, 1)
+        prefix_layout.addWidget(prefix_label, 0, 0)
+        prefix_layout.addWidget(self.prefix_text_field, 0, 1)
+        self.body_layout.addLayout(prefix_layout)
+
+        parent_layout = QGridLayout()
+        self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
+        parent_label = QLabel("Parent:")
+        module_parent_combo_box = self.create_parent_combobox(target=self.module)
+        parent_layout.addWidget(parent_label, 1, 0)
+        parent_layout.addWidget(module_parent_combo_box, 1, 2)
+        self.body_layout.addLayout(parent_layout)
 
         # Create Layout
         self.scroll_content_layout = QVBoxLayout(self)
@@ -185,6 +196,7 @@ class ModuleAttrWidget(QWidget):
                              data_object=proxy)
 
             # Parent Combobox ----------------------------------------------------------------
+            self.refresh_known_proxy_dict()
             combo_box = self.create_parent_combobox(proxy)
             combo_func = partial(self.on_table_parent_combo_box_changed, source_row=row, source_col=2)
             combo_box.currentIndexChanged.connect(combo_func)
@@ -217,13 +229,13 @@ class ModuleAttrWidget(QWidget):
             _proxy.set_parent_uuid(_parent_proxy.get_uuid())
             logger.debug(f"{_proxy.get_name()}: to : {_parent_proxy.get_name()}")
 
-    def create_parent_combobox(self, proxy):
+    def create_parent_combobox(self, target):
         """
         Creates a populated combobox with all potential parent targets.
         An extra initial item called "No Parent" is also added for the proxies without parents.
         Current parent is pre-selected during creation.
         Args:
-            proxy (Proxy): A proxy object used to determine current parent and pre-select it.
+            target (Proxy, Module): A proxy or module object used to determine current parent and pre-select it.
         Returns:
             QComboBox: A pre-populated combobox with potential parents. Current parent is also pre-selected.
         """
@@ -231,8 +243,11 @@ class ModuleAttrWidget(QWidget):
 
         combo_box = QComboBox()
         combo_box.addItem("No Parent", None)
-        _proxy_uuid = proxy.get_uuid()
-        _proxy_parent_uuid = proxy.get_parent_uuid()
+
+        _proxy_uuid = None
+        if target and hasattr(target, 'get_uuid'):  # Is proxy
+            _proxy_uuid = target.get_uuid()
+        _proxy_parent_uuid = target.get_parent_uuid()
 
         # Populate Combobox
         for key, (_proxy, _module) in self.known_proxy.items():
