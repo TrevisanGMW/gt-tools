@@ -1,12 +1,19 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout, \
-    QSizePolicy, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout
+from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 import gt.ui.resource_library as resource_library
-from PySide2.QtGui import QIcon, QPixmap
+from PySide2 import QtWidgets, QtCore
+from PySide2.QtGui import QIcon
+from PySide2.QtCore import Qt
+from functools import partial
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class ModuleAttrWidget(QWidget):
@@ -107,9 +114,8 @@ class ModuleAttrWidget(QWidget):
                              data_object=proxy)
 
             # Parent Combobox ----------------------------------------------------------------
-            _row = row
-            combo_box = self.create_parent_combobox()
-            combo_func = lambda state, row=_row, col=2: self.on_parent_combo_box_changed(row, col)
+            combo_box = self.create_parent_combobox(proxy)
+            combo_func = partial(self.on_parent_combo_box_changed, source_row=row, source_col=2)
             combo_box.currentIndexChanged.connect(combo_func)
 
             # Proxy Setup --------------------------------------------------------------------
@@ -141,12 +147,19 @@ class ModuleAttrWidget(QWidget):
 
         self.table_wdg.setItem(row, column, item)
 
-    def on_parent_combo_box_changed(self, row, col):
-        _name_cell = self.table_wdg.item(row, 1)
+    def on_parent_combo_box_changed(self, index, source_row, source_col):
+
+        _name_cell = self.table_wdg.item(source_row, 1)
         _proxy = self.get_table_item_proxy_object(_name_cell)
-        _combo_box = self.table_wdg.cellWidget(row, col)
-        _parent_proxy = _combo_box.itemData(_combo_box.currentIndex())
-        _proxy.set_parent_uuid(_parent_proxy.get_uuid())
+        _combo_box = self.table_wdg.cellWidget(source_row, source_col)
+        _parent_proxy = _combo_box.itemData(index)
+        if _parent_proxy is None:
+            _proxy.clear_parent_uuid()
+            logger.debug(f"{_proxy.get_name()}: to : None")
+        else:
+            _proxy.set_parent_uuid(_parent_proxy.get_uuid())
+            logger.debug(f"{_proxy.get_name()}: to : {_parent_proxy.get_name()}")
+        print("on_parent_combo_box_changed called")
 
     @staticmethod
     def set_item_text(item, text):
@@ -167,21 +180,45 @@ class ModuleAttrWidget(QWidget):
             for proxy in module.get_proxies():
                 self.known_proxy[proxy.get_uuid()] = (proxy, module)
 
-    def create_parent_combobox(self):
+    def create_parent_combobox(self, proxy):
+        """
+        Creates a populated combobox with all potential parent targets.
+        An extra initial item called "No Parent" is also added for the proxies without parents.
+        Current parent is pre-selected during creation.
+        Args:
+            proxy (Proxy): A proxy object used to determine current parent and pre-select it.
+        Returns:
+            QComboBox: A pre-populated combobox with potential parents. Current parent is also pre-selected.
+        """
         self.refresh_known_proxy_dict()
-        combo_box = QComboBox()
 
-        for key, (proxy, module) in self.known_proxy.items():
-            description = f'{str(proxy.get_name())}'
-            module_name = module.get_name()
+        combo_box = QComboBox()
+        combo_box.addItem("No Parent", None)
+        _proxy_uuid = proxy.get_uuid()
+        _proxy_parent_uuid = proxy.get_parent_uuid()
+
+        # Populate Combobox
+        for key, (_proxy, _module) in self.known_proxy.items():
+            if key == _proxy_uuid:
+                continue  # Skip Itself
+            description = f'{str(_proxy.get_name())}'
+            module_name = _module.get_name()
             if module_name:
                 description += f' : {str(module_name)}'
             description += f' ({str(key)})'
-            combo_box.addItem(description, proxy)
+            combo_box.addItem(description, _proxy)
 
-        # combo_box.currentIndexChanged.connect(self.on_combo_box_changed)
-        # self.set_combobox_proxy_object(combo_box, proxy)
-        # combo_box.addItems(self.get_formatted_known_proxy_list())
+        # Unknown Target
+        if _proxy_parent_uuid and _proxy_parent_uuid in self.known_proxy:
+            for index in range(combo_box.count()):
+                _parent_proxy = combo_box.itemData(index)
+                if _parent_proxy and _proxy_parent_uuid == _parent_proxy.get_uuid():
+                    combo_box.setCurrentIndex(index)
+        elif _proxy_parent_uuid and _proxy_parent_uuid not in self.known_proxy:
+            description = f'unknown : ???'
+            description += f' ({str(_proxy_parent_uuid)})'
+            combo_box.addItem(description, None)
+            combo_box.setCurrentIndex(combo_box.count() - 1)  # Last item, which was just added
 
         return combo_box
 
@@ -189,6 +226,10 @@ class ModuleAttrWidget(QWidget):
         new_name = self.name_text_field.text() or ""
         self.module.set_name(new_name)
 
+
+class ModuleGenericAttrWidget(ModuleAttrWidget):
+    def __init__(self, parent=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
 
 
 class ProjectAttrWidget(QWidget):
