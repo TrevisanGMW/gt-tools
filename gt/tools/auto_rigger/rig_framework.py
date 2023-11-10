@@ -260,7 +260,7 @@ class Proxy:
         Args:
             name (str): New name to use on the proxy.
         """
-        if not name or not isinstance(name, str):
+        if name is None or not isinstance(name, str):
             logger.warning(f'Unable to set new name. Expected string but got "{str(type(name))}"')
             return
         self.curve.set_name(name)
@@ -750,7 +750,7 @@ class ModuleGeneric:
         Args:
             name (str): New name to use on the proxy.
         """
-        if not name or not isinstance(name, str):
+        if name is None or not isinstance(name, str):
             logger.warning(f'Unable to set name. Expected string but got "{str(type(name))}"')
             return
         self.name = name
@@ -848,6 +848,12 @@ class ModuleGeneric:
             self.parent_uuid = uuid
         else:
             logger.warning(error_message)
+
+    def clear_parent_uuid(self):
+        """
+        Clears the parent UUID by setting the "parent_uuid" attribute to None
+        """
+        self.parent_uuid = None
 
     def read_proxies_from_dict(self, proxy_dict):
         """
@@ -1133,7 +1139,7 @@ class RigProject:
         Args:
             name (str): New name to use on the proxy.
         """
-        if not name or not isinstance(name, str):
+        if name is None or not isinstance(name, str):
             logger.warning(f'Unable to set name. Expected string but got "{str(type(name))}"')
             return
         self.name = name
