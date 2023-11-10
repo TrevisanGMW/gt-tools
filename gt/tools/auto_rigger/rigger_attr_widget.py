@@ -4,13 +4,11 @@ Auto Rigger Attr Widgets
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 import gt.ui.resource_library as resource_library
-from gt.tools.auto_rigger import rig_framework
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -103,11 +101,12 @@ class ModuleAttrWidget(QWidget):
         """
         Adds widgets to control the prefix of the module
         """
-        prefix_layout = QGridLayout()
+        prefix_layout = QHBoxLayout()
         prefix_label = QLabel("Prefix:")
+        prefix_label.setFixedWidth(50)
         self.mod_prefix_field = QLineEdit()
-        prefix_layout.addWidget(prefix_label, 0, 0)
-        prefix_layout.addWidget(self.mod_prefix_field, 0, 1)
+        prefix_layout.addWidget(prefix_label)
+        prefix_layout.addWidget(self.mod_prefix_field)
         prefix = self.module.get_prefix()
         if prefix:
             self.mod_prefix_field.setText(prefix)
@@ -118,12 +117,14 @@ class ModuleAttrWidget(QWidget):
         """
         Adds a widget to control the parent of the module
         """
-        parent_layout = QGridLayout()
+        parent_layout = QHBoxLayout()
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
+        parent_label.setFixedWidth(50)
         module_parent_combo_box = self.create_widget_parent_combobox(target=self.module)
-        parent_layout.addWidget(parent_label, 1, 0)
-        parent_layout.addWidget(module_parent_combo_box, 1, 2)
+        parent_layout.addWidget(parent_label)
+        parent_layout.addWidget(module_parent_combo_box)
+        module_parent_combo_box.setMinimumSize(1, 1)
         combo_func = partial(self.on_parent_combo_box_changed, combobox=module_parent_combo_box)
         module_parent_combo_box.currentIndexChanged.connect(combo_func)
         self.content_layout.addLayout(parent_layout)
@@ -195,8 +196,9 @@ class ModuleAttrWidget(QWidget):
             self.table_parent_proxy_wdg.setCellWidget(row, 2, combo_box)
 
             # Proxy Setup --------------------------------------------------------------------
-            self.insert_item(row=row,
-                             column=2)
+            edit_proxy_btn = QPushButton()
+            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+            self.table_parent_proxy_wdg.setCellWidget(row, 3, edit_proxy_btn)
 
     def clear_proxy_parent_table(self):
         if self.table_parent_proxy_wdg:
@@ -387,6 +389,7 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
 
         self.add_widget_module_header()
         self.add_widget_module_prefix()
+        self.add_widget_module_parent()
         # self.add_widget_proxy_table()
 
 

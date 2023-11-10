@@ -761,7 +761,7 @@ class ModuleGeneric:
         Args:
             prefix (str): New name to use on the proxy.
         """
-        if not prefix or not isinstance(prefix, str):
+        if prefix is None or not isinstance(prefix, str):
             logger.warning(f'Unable to set prefix. Expected string but got "{str(type(prefix))}"')
             return
         self.prefix = prefix
@@ -1150,7 +1150,7 @@ class RigProject:
         Args:
             prefix (str): New name to use on the proxy.
         """
-        if not prefix or not isinstance(prefix, str):
+        if prefix is None or not isinstance(prefix, str):
             logger.warning(f'Unable to set prefix. Expected string but got "{str(type(prefix))}"')
             return
         self.prefix = prefix
