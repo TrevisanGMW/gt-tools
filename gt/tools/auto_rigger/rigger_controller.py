@@ -1,12 +1,12 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget, ProjectAttrWidget, ModuleGenericAttrWidget
+from gt.tools.auto_rigger.rig_modules import RigModules
+from gt.tools.auto_rigger import rigger_attr_widget
+from gt.tools.auto_rigger import rig_framework
 from PySide2.QtWidgets import QTreeWidgetItem
 from PySide2.QtGui import QIcon
 import logging
-
-from gt.tools.auto_rigger import rig_framework
 
 # Logging Setup
 logging.basicConfig()
@@ -14,9 +14,19 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class RiggerController:
-    widget_connections = {}
+def get_module_attr_widgets(module):
+    """
+    Gets the associated attribute widget used to populate the attribute editor in the main UI.
+    Returns:
+        ModuleAttrWidget: Widget used to populate the attribute editor of the rigger window.
+    """
+    if type(module) is RigModules.ModuleGeneric:
+        return rigger_attr_widget.ModuleGenericAttrWidget
+    if isinstance(module, RigModules.ModuleSpine):
+        return rigger_attr_widget.ModuleSpineAttrWidget
 
+
+class RiggerController:
     def __init__(self, model, view):
         """
         Initialize the RiggerController object.
@@ -62,15 +72,18 @@ class RiggerController:
     def item_clicked(self, item, column):
         print("Clicked item:", item.text(column))
         data_obj = item.data(1, 0)
-        if isinstance(data_obj, rig_framework.ModuleGeneric):  # Modules
-            if type(data_obj) is rig_framework.ModuleGeneric:
-                self.view.set_module_widget(ModuleGenericAttrWidget(module=data_obj, project=self.model.get_project()))
-            else:
-                self.view.set_module_widget(ModuleAttrWidget(module=data_obj, project=self.model.get_project()))
-        elif isinstance(data_obj, rig_framework.RigProject):  # Project
-            self.view.set_module_widget(ProjectAttrWidget(project=data_obj))
-        else:
-            self.view.clear_module_widget()
+        # Modules ---------------------------------------------------------------
+        if isinstance(data_obj, rig_framework.ModuleGeneric):
+            widget_obj = get_module_attr_widgets(module=data_obj)
+            if widget_obj:
+                self.view.set_module_widget(widget_obj(module=data_obj, project=self.model.get_project()))
+                return
+        # Project ---------------------------------------------------------------
+        if isinstance(data_obj, rig_framework.RigProject):  # Project
+            self.view.set_module_widget(rigger_attr_widget.ProjectAttrWidget(project=data_obj))
+            return
+        # Unknown ---------------------------------------------------------------
+        self.view.clear_module_widget()
 
     def get_selected_module(self):
         pass
