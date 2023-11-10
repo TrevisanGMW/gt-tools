@@ -5,8 +5,8 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_module_arm_biped import ModuleBipedArmRight, ModuleBipedArmLeft
 from gt.tools.auto_rigger.rig_module_leg_biped import ModuleBipedLegRight, ModuleBipedLegLeft
 from gt.tools.auto_rigger.rig_module_digit_biped import ModuleBipedFingersLeft, ModuleBipedFingersRight
+from gt.tools.auto_rigger.rig_framework import RigProject, ModuleGeneric, Proxy
 from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
-from gt.tools.auto_rigger.rig_framework import RigProject
 import maya.cmds as cmds
 import logging
 
@@ -32,6 +32,16 @@ def create_template_biped():
     fingers_lf = ModuleBipedFingersLeft()
     fingers_rt = ModuleBipedFingersRight()
 
+    # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
+    generic = ModuleGeneric(name="this is a temporary test module")
+    generic.set_prefix("prefix")
+    proxy_one = Proxy(name="named_proxy")
+    proxy_two = Proxy()
+    proxy_two.set_parent_uuid_from_proxy(proxy_one)
+    generic.add_to_proxies(proxy_one)
+    generic.add_to_proxies(proxy_two)
+    # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
+
     spine_hip_uuid = spine.hip.get_uuid()
     leg_lf.set_parent_uuid(spine_hip_uuid)
     leg_rt.set_parent_uuid(spine_hip_uuid)
@@ -50,6 +60,7 @@ def create_template_biped():
     biped_project.add_to_modules(arm_rt)
     biped_project.add_to_modules(fingers_lf)
     biped_project.add_to_modules(fingers_rt)
+    biped_project.add_to_modules(generic)  # TODO TEMP @@@ -------------------------------------------------------
 
     return biped_project
 
