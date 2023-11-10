@@ -35,12 +35,17 @@ def create_template_biped():
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
     generic = ModuleGeneric(name="this is a temporary test module")
     generic.set_prefix("prefix")
-    proxy_one = Proxy(name="named_proxy")
-    proxy_two = Proxy()
+    generic.set_suffix("suffix")
+    proxy_one = Proxy(name="one")
+    proxy_two = Proxy(name="two")
+    proxy_two.set_initial_position(z=-5)
     proxy_two.set_parent_uuid(proxy_one.get_uuid())
-    print(proxy_two.get_parent_uuid())
+    proxy_three = Proxy(name="three")
+    proxy_three.set_initial_position(z=-10)
+    proxy_three.set_parent_uuid(proxy_two.get_uuid())
     generic.add_to_proxies(proxy_one)
     generic.add_to_proxies(proxy_two)
+    generic.add_to_proxies(proxy_three)
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
 
     spine_hip_uuid = spine.hip.get_uuid()

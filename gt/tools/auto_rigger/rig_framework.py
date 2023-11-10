@@ -146,11 +146,12 @@ class Proxy:
             return False
         return True
 
-    def build(self, prefix=None, apply_transforms=False):
+    def build(self, prefix=None, suffix=None, apply_transforms=False):
         """
         Builds a proxy object.
         Args:
             prefix (str, optional): If provided, this prefix will be added to the proxy when it's created.
+            suffix (str, optional): If provided, this suffix will be added to the proxy when it's created.
             apply_transforms (bool, optional): If True, the creation of the proxy will apply transform values.
                                                Used by modules to only apply transforms after setup. (post script)
         Returns:
@@ -164,6 +165,10 @@ class Proxy:
         if prefix and isinstance(prefix, str):
             name = f'{prefix}_{name}'
             self.curve.set_name(name)
+        if suffix and isinstance(suffix, str):
+            name = f'{name}_{suffix}'
+            self.curve.set_name(name)
+
         proxy_offset = cmds.group(name=f'{name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
         proxy_crv = self.curve.build()
         if prefix:
@@ -721,12 +726,14 @@ class ModuleGeneric:
     def __init__(self,
                  name=None,
                  prefix=None,
+                 suffix=None,
                  proxies=None,
                  parent_uuid=None,
                  metadata=None):
         # Default Values
         self.name = None
         self.prefix = None
+        self.suffix = None
         self.proxies = []
         self.parent_uuid = None  # Module is parented to this object
         self.metadata = None
@@ -736,6 +743,8 @@ class ModuleGeneric:
             self.set_name(name)
         if prefix:
             self.set_prefix(prefix)
+        if suffix:
+            self.set_suffix(suffix)
         if proxies:
             self.set_proxies(proxies)
         if parent_uuid:
@@ -759,12 +768,23 @@ class ModuleGeneric:
         """
         Sets a new module prefix.
         Args:
-            prefix (str): New name to use on the proxy.
+            prefix (str): New prefix to use on the proxy.
         """
         if prefix is None or not isinstance(prefix, str):
             logger.warning(f'Unable to set prefix. Expected string but got "{str(type(prefix))}"')
             return
         self.prefix = prefix
+
+    def set_suffix(self, suffix):
+        """
+        Sets a new module prefix.
+        Args:
+            suffix (str): New suffix to use on the proxy.
+        """
+        if suffix is None or not isinstance(suffix, str):
+            logger.warning(f'Unable to set prefix. Expected string but got "{str(type(suffix))}"')
+            return
+        self.suffix = suffix
 
     def set_proxies(self, proxy_list):
         """
@@ -895,6 +915,10 @@ class ModuleGeneric:
         if _prefix:
             self.set_prefix(prefix=_prefix)
 
+        _suffix = module_dict.get('suffix')
+        if _suffix:
+            self.set_suffix(suffix=_suffix)
+
         _parent = module_dict.get('parent')
         if _parent:
             self.set_parent_uuid(uuid=_parent)
@@ -940,6 +964,14 @@ class ModuleGeneric:
             str or None: Prefix of the rig module, None if it's not set.
         """
         return self.prefix
+
+    def get_suffix(self):
+        """
+        Gets the suffix property of the rig module.
+        Returns:
+            str or None: Suffix of the rig module, None if it's not set.
+        """
+        return self.suffix
 
     def get_parent_uuid(self):
         """
@@ -989,6 +1021,8 @@ class ModuleGeneric:
         module_data["active"] = self.active
         if self.prefix:
             module_data["prefix"] = self.prefix
+        if self.suffix:
+            module_data["suffix"] = self.suffix
         if self.parent_uuid:
             module_data["parent"] = self.parent_uuid
         if self.metadata:
@@ -1058,7 +1092,7 @@ class ModuleGeneric:
         if prefix_list:
             _prefix = '_'.join(prefix_list)
         for proxy in self.proxies:
-            proxy_data.append(proxy.build(prefix=_prefix, apply_transforms=False))
+            proxy_data.append(proxy.build(prefix=_prefix, suffix=self.suffix, apply_transforms=False))
         return proxy_data
 
     def build_proxy_post(self):
