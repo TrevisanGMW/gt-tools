@@ -17,10 +17,23 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleAttrWidget(QWidget):
+    """
+    Base Widget for managing attributes of a module.
+    """
     PROXY_ROLE = QtCore.Qt.UserRole
     PARENT_ROLE = QtCore.Qt.UserRole + 1
 
     def __init__(self, parent=None, module=None, project=None, *args, **kwargs):
+        """
+        Initialize the ModuleAttrWidget.
+
+        Args:
+            parent (QWidget): The parent widget.
+            module: The module associated with this widget.
+            project: The project associated with this widget.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(parent, *args, **kwargs)
 
         self.project = project
@@ -60,74 +73,66 @@ class ModuleAttrWidget(QWidget):
         header_layout.addWidget(self.help_btn)
 
         # Other Options --------------------------------------------------------------------------
-        proxy_table = QVBoxLayout()
 
-        attr_layout = QGridLayout()
-        attr_layout.setAlignment(Qt.AlignTop)
+        self.body_layout = QGridLayout()
+        self.body_layout.setAlignment(Qt.AlignTop)
 
         prefix_label = QLabel("Prefix:")
         self.prefix_text_field = QLineEdit()
-        attr_layout.addWidget(prefix_label, 0, 0)
-        attr_layout.addWidget(self.prefix_text_field, 0, 1)
-
-        parent_label = QLabel("Parent:")
-        self.parent_text_field = QLineEdit()
-        self.parent_btn = QPushButton("Get Selection")
-        attr_layout.addWidget(parent_label, 1, 0)
-        attr_layout.addWidget(self.parent_text_field, 1, 1)
-        attr_layout.addWidget(self.parent_btn, 1, 2)
-
-        self.table_wdg = QTableWidget()
-        self.table_wdg.setRowCount(0)
-        self.table_wdg.setColumnCount(4)  # Icon, Name, Parent, Get, More
-        self.table_wdg.setHorizontalHeaderLabels(["", "Name", "Parent", ""])
-        header_view = self.table_wdg.horizontalHeader()
-        header_view.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header_view.setSectionResizeMode(1, QHeaderView.Interactive)
-        header_view.setSectionResizeMode(2, QHeaderView.Stretch)
-        header_view.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        proxy_table.addWidget(self.table_wdg)
-        self.table_wdg.setColumnWidth(1, 110)
-        self.refresh_table()
+        self.body_layout.addWidget(prefix_label, 0, 0)
+        self.body_layout.addWidget(self.prefix_text_field, 0, 1)
 
         # Create Layout
-        scroll_content_layout = QVBoxLayout(self)
-        scroll_content_layout.setAlignment(Qt.AlignTop)
-        scroll_content_layout.addLayout(header_layout)
-        scroll_content_layout.addLayout(attr_layout)
-        scroll_content_layout.addLayout(proxy_table)
+        self.scroll_content_layout = QVBoxLayout(self)
+        self.scroll_content_layout.setAlignment(Qt.AlignTop)
+        self.scroll_content_layout.addLayout(header_layout)
+        self.scroll_content_layout.addLayout(self.body_layout)
 
-    def refresh_table(self):
-        for row, proxy in enumerate(self.module.get_proxies()):
-            self.table_wdg.insertRow(row)
-            # Icon ---------------------------------------------------------------------------
-            self.insert_item(row=row,
-                             column=0,
-                             icon_path=resource_library.Icon.dev_git_fork,
-                             editable=False,
-                             centered=True)
+    # Setters --------------------------------------------------------------------------------------------------
+    def set_module_name(self):
+        """
+        Set the name of the module based on the text in the name text field.
+        """
+        new_name = self.name_text_field.text() or ""
+        self.module.set_name(new_name)
 
-            # Name ---------------------------------------------------------------------------
-            self.insert_item(row=row,
-                             column=1,
-                             text=proxy.get_name(),
-                             data_object=proxy)
+    def set_table_item_proxy_object(self, item, proxy):
+        """
+        Set the proxy object as data for a table item.
 
-            # Parent Combobox ----------------------------------------------------------------
-            combo_box = self.create_parent_combobox(proxy)
-            combo_func = partial(self.on_parent_combo_box_changed, source_row=row, source_col=2)
-            combo_box.currentIndexChanged.connect(combo_func)
+        Args:
+            item (QTableWidgetItem): The table item.
+            proxy (Proxy): The proxy object.
+        """
+        item.setData(self.PROXY_ROLE, proxy)
 
-            # Proxy Setup --------------------------------------------------------------------
-            self.insert_item(row=row,
-                             column=2,
-                             data_object=proxy)
+    # Getters --------------------------------------------------------------------------------------------------
+    def get_table_item_proxy_object(self, item):
+        """
+        Get the proxy object associated with a table item.
 
-            # Add to Table -------------------------------------------------------------------
-            self.table_wdg.setCellWidget(row, 2, combo_box)
+        Args:
+            item (QTableWidgetItem): The table item.
+
+        Returns:
+            Proxy or None: The associated proxy object, None otherwise.
+        """
+        return item.data(self.PROXY_ROLE)
 
     def insert_item(self, row, column, text=None, data_object=None,
                     icon_path='', editable=True, centered=True):
+        """
+        Insert an item into the table.
+
+        Args:
+            row (int): Row index.
+            column (int): Column index.
+            text (str): Text to display in the item.
+            data_object: The associated data object.
+            icon_path (str): Path to the icon. (If provided, text is ignored)
+            editable (bool): Whether the item is editable.
+            centered (bool): Whether the text should be centered.
+        """
         item = QtWidgets.QTableWidgetItem(text)
         self.set_table_item_proxy_object(item, data_object)
 
@@ -147,8 +152,60 @@ class ModuleAttrWidget(QWidget):
 
         self.table_wdg.setItem(row, column, item)
 
-    def on_parent_combo_box_changed(self, index, source_row, source_col):
+    # Utils ----------------------------------------------------------------------------------------------------
+    def refresh_known_proxy_dict(self, ignore_list=None):
+        """
+        Refreshes the "known_proxy" attribute with all proxies that could be used as parents.
+        Args:
+            ignore_list (list, optional): A list of proxies to be ignored
+        """
+        for module in self.project.get_modules():
+            for proxy in module.get_proxies():
+                if ignore_list and proxy in ignore_list:
+                    continue
+                self.known_proxy[proxy.get_uuid()] = (proxy, module)
 
+    def refresh_table(self):
+        """
+        Refresh the table with proxies associated with the module.
+        """
+        for row, proxy in enumerate(self.module.get_proxies()):
+            self.table_wdg.insertRow(row)
+            # Icon ---------------------------------------------------------------------------
+            self.insert_item(row=row,
+                             column=0,
+                             icon_path=resource_library.Icon.dev_git_fork,
+                             editable=False,
+                             centered=True)
+
+            # Name ---------------------------------------------------------------------------
+            self.insert_item(row=row,
+                             column=1,
+                             text=proxy.get_name(),
+                             data_object=proxy)
+
+            # Parent Combobox ----------------------------------------------------------------
+            combo_box = self.create_parent_combobox(proxy)
+            combo_func = partial(self.on_table_parent_combo_box_changed, source_row=row, source_col=2)
+            combo_box.currentIndexChanged.connect(combo_func)
+
+            # Proxy Setup --------------------------------------------------------------------
+            self.insert_item(row=row,
+                             column=2,
+                             data_object=proxy)
+
+            # Add to Table -------------------------------------------------------------------
+            self.table_wdg.setCellWidget(row, 2, combo_box)
+
+    def on_table_parent_combo_box_changed(self, index, source_row, source_col):
+        """
+        Handle the change in the parent combo box for the proxy table.
+
+        Args:
+            index (int): Index of the selected item.
+            source_row (int): Row index.
+            source_col (int): Column index.
+        """
         _name_cell = self.table_wdg.item(source_row, 1)
         _proxy = self.get_table_item_proxy_object(_name_cell)
         _combo_box = self.table_wdg.cellWidget(source_row, source_col)
@@ -159,26 +216,6 @@ class ModuleAttrWidget(QWidget):
         else:
             _proxy.set_parent_uuid(_parent_proxy.get_uuid())
             logger.debug(f"{_proxy.get_name()}: to : {_parent_proxy.get_name()}")
-        print("on_parent_combo_box_changed called")
-
-    @staticmethod
-    def set_item_text(item, text):
-        item.setText(text)
-
-    @staticmethod
-    def get_item_text(item):
-        return item.text()
-
-    def set_table_item_proxy_object(self, item, proxy):
-        item.setData(self.PROXY_ROLE, proxy)
-
-    def get_table_item_proxy_object(self, item):
-        return item.data(self.PROXY_ROLE)
-
-    def refresh_known_proxy_dict(self):
-        for module in self.project.get_modules():
-            for proxy in module.get_proxies():
-                self.known_proxy[proxy.get_uuid()] = (proxy, module)
 
     def create_parent_combobox(self, proxy):
         """
@@ -219,17 +256,47 @@ class ModuleAttrWidget(QWidget):
             description += f' ({str(_proxy_parent_uuid)})'
             combo_box.addItem(description, None)
             combo_box.setCurrentIndex(combo_box.count() - 1)  # Last item, which was just added
-
         return combo_box
-
-    def set_module_name(self):
-        new_name = self.name_text_field.text() or ""
-        self.module.set_name(new_name)
 
 
 class ModuleGenericAttrWidget(ModuleAttrWidget):
     def __init__(self, parent=None, *args, **kwargs):
+        """
+        Initialize the ModuleGenericAttrWidget.
+        Used for generic nodes with options to edit parents and proxies directly.
+
+        Args:
+            parent (QWidget): The parent widget.
+            module: The module associated with this widget.
+            project: The project associated with this widget.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(parent, *args, **kwargs)
+
+        #
+        # parent_label = QLabel("Parent:")
+        # self.parent_text_field = QLineEdit()
+        # self.parent_btn = QPushButton("Get Selection")
+        # self.body_layout.addWidget(parent_label, 1, 0)
+        # self.body_layout.addWidget(self.parent_text_field, 1, 1)
+        # self.body_layout.addWidget(self.parent_btn, 1, 2)
+
+        proxy_table = QVBoxLayout()
+        self.table_wdg = QTableWidget()
+        self.table_wdg.setRowCount(0)
+        self.table_wdg.setColumnCount(4)  # Icon, Name, Parent, Get, More
+        self.table_wdg.setHorizontalHeaderLabels(["", "Name", "Parent", ""])
+        header_view = self.table_wdg.horizontalHeader()
+        header_view.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header_view.setSectionResizeMode(1, QHeaderView.Interactive)
+        header_view.setSectionResizeMode(2, QHeaderView.Stretch)
+        header_view.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        proxy_table.addWidget(self.table_wdg)
+        self.table_wdg.setColumnWidth(1, 110)
+        self.refresh_table()
+
+        self.scroll_content_layout.addLayout(proxy_table)
 
 
 class ProjectAttrWidget(QWidget):
