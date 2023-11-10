@@ -369,6 +369,12 @@ class Icon:
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
     ui_checkbox_enabled = get_icon_path(r"ui_checkbox_enabled.svg")
     ui_checkbox_disabled = get_icon_path(r"ui_checkbox_disabled.svg")
+    ui_toggle_enabled = get_icon_path(r"ui_toggle_enabled.svg")
+    ui_toggle_disabled = get_icon_path(r"ui_toggle_disabled.svg")
+    ui_edit = get_icon_path(r"ui_edit.svg")
+    ui_delete = get_icon_path(r"ui_delete.svg")
+    ui_trash = get_icon_path(r"ui_trash.svg")
+    # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
     ui_branch_line = get_icon_path(r"ui_branch_line.svg")
