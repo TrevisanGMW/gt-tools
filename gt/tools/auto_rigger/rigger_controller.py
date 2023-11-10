@@ -1,7 +1,7 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget, ProjectAttrWidget
+from gt.tools.auto_rigger.rigger_attr_widget import ModuleAttrWidget, ProjectAttrWidget, ModuleGenericAttrWidget
 from PySide2.QtWidgets import QTreeWidgetItem
 from PySide2.QtGui import QIcon
 import logging
@@ -15,6 +15,8 @@ logger.setLevel(logging.INFO)
 
 
 class RiggerController:
+    widget_connections = {}
+
     def __init__(self, model, view):
         """
         Initialize the RiggerController object.
@@ -61,7 +63,10 @@ class RiggerController:
         print("Clicked item:", item.text(column))
         data_obj = item.data(1, 0)
         if isinstance(data_obj, rig_framework.ModuleGeneric):  # Modules
-            self.view.set_module_widget(ModuleAttrWidget(module=data_obj, project=self.model.get_project()))
+            if type(data_obj) is rig_framework.ModuleGeneric:
+                self.view.set_module_widget(ModuleGenericAttrWidget(module=data_obj, project=self.model.get_project()))
+            else:
+                self.view.set_module_widget(ModuleAttrWidget(module=data_obj, project=self.model.get_project()))
         elif isinstance(data_obj, rig_framework.RigProject):  # Project
             self.view.set_module_widget(ProjectAttrWidget(project=data_obj))
         else:
