@@ -61,7 +61,7 @@ class RiggerController:
         print("Clicked item:", item.text(column))
         data_obj = item.data(1, 0)
         if isinstance(data_obj, rig_framework.ModuleGeneric):  # Modules
-            self.view.set_module_widget(ModuleAttrWidget(module=data_obj))
+            self.view.set_module_widget(ModuleAttrWidget(module=data_obj, project=self.model.get_project()))
         elif isinstance(data_obj, rig_framework.RigProject):  # Project
             self.view.set_module_widget(ProjectAttrWidget(project=data_obj))
         else:
