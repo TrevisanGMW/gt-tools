@@ -817,6 +817,20 @@ class ModuleGeneric:
         logger.debug(f'Unable to add proxy to module. '
                      f'Must be of the type "Proxy" or a list containing only Proxy elements.')
 
+    def remove_from_proxies(self, proxy):
+        """
+        Removes a proxy object from the proxies list
+        Args:
+            proxy (Proxy): The proxy to be removed.
+        Returns:
+            Proxy or None: The removed proxy, None otherwise.
+        """
+        for _proxy in self.proxies:
+            if proxy == _proxy:
+                self.proxies.remove(proxy)
+                return proxy
+        logger.debug(f'Unable to remove proxy from module. Not found.')
+
     def set_metadata_dict(self, metadata):
         """
         Sets the metadata property. The metadata is any extra value used to further describe the curve.
@@ -1210,6 +1224,20 @@ class RigProject:
             return
         logger.debug(f'Unable to add provided module to rig project. '
                      f'Must be of the type "ModuleGeneric" or a list containing only ModuleGeneric elements.')
+
+    def remove_from_modules(self, module):
+        """
+        Removes a module object from the modules list
+        Args:
+            module (ModuleGeneric): The module to be removed.
+        Returns:
+            ModuleGeneric or None: The removed proxy, None otherwise.
+        """
+        for _module in self.modules:
+            if module == _module:
+                self.modules.remove(module)
+                return module
+        logger.debug(f'Unable to remove module from project. Not found.')
 
     def set_metadata_dict(self, metadata):
         """
