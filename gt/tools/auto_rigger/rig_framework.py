@@ -721,7 +721,7 @@ class Proxy:
 
 
 class ModuleGeneric:
-    icon = resource_library.Icon.dev_code  # TODO TEMP @@@
+    icon = resource_library.Icon.util_reset_jnt_display  # TODO TEMP @@@
 
     def __init__(self,
                  name=None,

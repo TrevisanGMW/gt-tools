@@ -42,7 +42,7 @@ class RiggerController:
         self.populate_module_tree()
 
         # Connections
-        self.view.module_tree.itemClicked.connect(self.item_clicked)
+        self.view.module_tree.itemClicked.connect(self.on_tree_item_clicked)
         self.view.build_proxy_btn.clicked.connect(self.build_proxy)
         self.view.build_rig_btn.clicked.connect(self.build_rig)
 
@@ -69,8 +69,14 @@ class RiggerController:
 
         self.view.expand_all_module_tree_items()
 
-    def item_clicked(self, item, column):
-        print("Clicked item:", item.text(column))
+    def on_tree_item_clicked(self, item, column):
+        """
+        When an item from the tree is selected, it should populate the attribute editor with the available fields.
+        This function determines which widget should be used an updates the view with the generated widgets.
+        Args:
+            item (QTreeWidgetItem): Clicked item (selected)
+            column (int): Source column.
+        """
         data_obj = item.data(1, 0)
         # Modules ---------------------------------------------------------------
         if isinstance(data_obj, rig_framework.ModuleGeneric):
@@ -79,7 +85,7 @@ class RiggerController:
                 self.view.set_module_widget(widget_obj(module=data_obj, project=self.model.get_project()))
                 return
         # Project ---------------------------------------------------------------
-        if isinstance(data_obj, rig_framework.RigProject):  # Project
+        if isinstance(data_obj, rig_framework.RigProject):
             self.view.set_module_widget(rigger_attr_widget.ProjectAttrWidget(project=data_obj))
             return
         # Unknown ---------------------------------------------------------------
