@@ -33,7 +33,7 @@ def create_template_biped():
     fingers_rt = ModuleBipedFingersRight()
 
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
-    generic = ModuleGeneric(name="this is a temporary test module")
+    generic = ModuleGeneric(name="Temp Module")
     generic.set_prefix("prefix")
     generic.set_suffix("suffix")
     proxy_one = Proxy(name="one")

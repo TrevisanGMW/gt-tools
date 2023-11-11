@@ -40,8 +40,8 @@ class ModuleAttrWidget(QWidget):
         self.project = project
         self.module = module
         self.known_proxy = {}
-        self.table_parent_proxy_wdg = None
-        self.table_proxy_wdg = None
+        self.table_proxy_parent_wdg = None
+        self.table_proxy_basic_wdg = None
         self.mod_name_field = None
         self.mod_prefix_field = None
         self.mod_suffix_field = None
@@ -137,24 +137,48 @@ class ModuleAttrWidget(QWidget):
         module_parent_combo_box.currentIndexChanged.connect(combo_func)
         self.content_layout.addLayout(_layout)
 
-    def add_widget_proxy_table(self):
+    def add_widget_proxy_parent_table(self):
         """
-        Adds a table widget to control the parent of the proxies inside this proxy
+        Adds a table widget to control proxies with options to determine parent or delete the proxy
         """
         _layout = QVBoxLayout()
-        self.table_parent_proxy_wdg = QTableWidget()
-        self.table_parent_proxy_wdg.setRowCount(0)
-        self.table_parent_proxy_wdg.setColumnCount(4)  # Icon, Name, Parent, Get, More
-        self.table_parent_proxy_wdg.setHorizontalHeaderLabels(["", "Name", "Parent", ""])
-        header_view = self.table_parent_proxy_wdg.horizontalHeader()
+        self.table_proxy_parent_wdg = QTableWidget()
+        self.clear_proxy_parent_table()
+        columns = ["", "Name", "Parent", "", ""]  # Icon, Name, Parent, Get, More
+        self.table_proxy_parent_wdg.setColumnCount(len(columns))
+        self.table_proxy_parent_wdg.setHorizontalHeaderLabels(columns)
+        header_view = self.table_proxy_parent_wdg.horizontalHeader()
         header_view.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header_view.setSectionResizeMode(1, QHeaderView.Interactive)
         header_view.setSectionResizeMode(2, QHeaderView.Stretch)
         header_view.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        _layout.addWidget(self.table_parent_proxy_wdg)
-        self.table_parent_proxy_wdg.setColumnWidth(1, 110)
+        header_view.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        _layout.addWidget(self.table_proxy_parent_wdg)
+        self.table_proxy_parent_wdg.setColumnWidth(1, 110)
         self.refresh_proxy_parent_table()
-        self.table_parent_proxy_wdg.cellChanged.connect(self.on_table_parent_cell_changed)
+        self.table_proxy_parent_wdg.cellChanged.connect(self.on_table_parent_cell_changed)
+        self.scroll_content_layout.addLayout(_layout)
+
+    def add_widget_proxy_basic_table(self):
+        """
+        Adds a table widget to control the parent of the proxies inside this proxy
+        """
+        _layout = QVBoxLayout()
+        self.table_proxy_basic_wdg = QTableWidget()
+        self.clear_proxy_parent_table()
+        columns = ["", "Name", "Parent", "", ""]  # Icon, Name, Parent, Get, More
+        self.table_proxy_basic_wdg.setColumnCount(len(columns))
+        self.table_proxy_basic_wdg.setHorizontalHeaderLabels(columns)
+        header_view = self.table_proxy_basic_wdg.horizontalHeader()
+        header_view.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header_view.setSectionResizeMode(1, QHeaderView.Interactive)
+        header_view.setSectionResizeMode(2, QHeaderView.Stretch)
+        header_view.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        header_view.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        _layout.addWidget(self.table_proxy_basic_wdg)
+        self.table_proxy_basic_wdg.setColumnWidth(1, 110)
+        self.refresh_proxy_parent_table()
+        self.table_proxy_basic_wdg.cellChanged.connect(self.on_table_parent_cell_changed)
         self.scroll_content_layout.addLayout(_layout)
 
     # Utils ----------------------------------------------------------------------------------------------------
@@ -162,7 +186,7 @@ class ModuleAttrWidget(QWidget):
         """
         Refreshes available widgets. For example, tables, so they should the correct module name.
         """
-        if self.table_parent_proxy_wdg:
+        if self.table_proxy_parent_wdg:
             self.refresh_proxy_parent_table()
 
     def refresh_known_proxy_dict(self, ignore_list=None):
@@ -183,11 +207,11 @@ class ModuleAttrWidget(QWidget):
         """
         self.clear_proxy_parent_table()
         for row, proxy in enumerate(self.module.get_proxies()):
-            self.table_parent_proxy_wdg.insertRow(row)
+            self.table_proxy_parent_wdg.insertRow(row)
             # Icon ---------------------------------------------------------------------------
             self.insert_item(row=row,
                              column=0,
-                             icon_path=resource_library.Icon.dev_git_fork,
+                             icon_path=resource_library.Icon.util_reset_transforms,
                              editable=False,
                              centered=True)
 
@@ -202,16 +226,25 @@ class ModuleAttrWidget(QWidget):
             combo_box = self.create_widget_parent_combobox(proxy)
             combo_func = partial(self.on_table_parent_combo_box_changed, source_row=row, source_col=2)
             combo_box.currentIndexChanged.connect(combo_func)
-            self.table_parent_proxy_wdg.setCellWidget(row, 2, combo_box)
+            self.table_proxy_parent_wdg.setCellWidget(row, 2, combo_box)
 
-            # Proxy Setup --------------------------------------------------------------------
+            # Setup --------------------------------------------------------------------
             edit_proxy_btn = QPushButton()
             edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
-            self.table_parent_proxy_wdg.setCellWidget(row, 3, edit_proxy_btn)
+            self.table_proxy_parent_wdg.setCellWidget(row, 3, edit_proxy_btn)
+
+            # Delete Setup --------------------------------------------------------------------
+            edit_proxy_btn = QPushButton()
+            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
+            self.table_proxy_parent_wdg.setCellWidget(row, 4, edit_proxy_btn)
 
     def clear_proxy_parent_table(self):
-        if self.table_parent_proxy_wdg:
-            self.table_parent_proxy_wdg.setRowCount(0)
+        if self.table_proxy_parent_wdg:
+            self.table_proxy_parent_wdg.setRowCount(0)
+
+    def clear_proxy_basic_table(self):
+        if self.table_proxy_basic_wdg:
+            self.table_proxy_basic_wdg.setRowCount(0)
 
     def insert_item(self, row, column, text=None, data_object=None,
                     icon_path='', editable=True, centered=True):
@@ -235,7 +268,7 @@ class ModuleAttrWidget(QWidget):
             icon_label = QLabel()
             icon_label.setPixmap(icon.pixmap(32, 32))
             icon_label.setAlignment(Qt.AlignCenter)
-            self.table_parent_proxy_wdg.setCellWidget(row, column, icon_label)
+            self.table_proxy_parent_wdg.setCellWidget(row, column, icon_label)
             return
 
         if centered:
@@ -244,7 +277,7 @@ class ModuleAttrWidget(QWidget):
         if not editable:
             item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
 
-        self.table_parent_proxy_wdg.setItem(row, column, item)
+        self.table_proxy_parent_wdg.setItem(row, column, item)
 
     def on_table_parent_combo_box_changed(self, index, source_row, source_col):
         """
@@ -255,9 +288,9 @@ class ModuleAttrWidget(QWidget):
             source_row (int): Row index.
             source_col (int): Column index.
         """
-        _name_cell = self.table_parent_proxy_wdg.item(source_row, 1)
+        _name_cell = self.table_proxy_parent_wdg.item(source_row, 1)
         _proxy = self.get_table_item_proxy_object(_name_cell)
-        _combo_box = self.table_parent_proxy_wdg.cellWidget(source_row, source_col)
+        _combo_box = self.table_proxy_parent_wdg.cellWidget(source_row, source_col)
         _parent_proxy = _combo_box.itemData(index)
         if _parent_proxy is None:
             _proxy.clear_parent_uuid()
@@ -290,13 +323,17 @@ class ModuleAttrWidget(QWidget):
             row (int): Row where the cell changed.
             column (int): Column where the cell changed.
         """
-        _name_cell = self.table_parent_proxy_wdg.item(row, 1)  # 1 = Name
+        self.table_proxy_parent_wdg.cellChanged.disconnect(self.on_table_parent_cell_changed)
+        _name_cell = self.table_proxy_parent_wdg.item(row, 1)  # 1 = Name
         _proxy = self.get_table_item_proxy_object(_name_cell)
         current_name = _proxy.get_name()
         new_name = _name_cell.text()
         if new_name:
             _proxy.set_name(new_name)
-        _name_cell.setText(current_name)
+            self.refresh_proxy_parent_table()
+        else:
+            _name_cell.setText(current_name)
+        self.table_proxy_parent_wdg.cellChanged.connect(self.on_table_parent_cell_changed)
 
     def create_widget_parent_combobox(self, target):
         """
@@ -408,7 +445,7 @@ class ModuleGenericAttrWidget(ModuleAttrWidget):
 
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
-        self.add_widget_proxy_table()
+        self.add_widget_proxy_parent_table()
 
 
 class ModuleSpineAttrWidget(ModuleAttrWidget):
@@ -422,7 +459,7 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
         self.add_widget_module_parent()
-        # self.add_widget_proxy_table()
+        self.add_widget_proxy_basic_table()
 
 
 class ProjectAttrWidget(QWidget):
