@@ -1,11 +1,11 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout, \
-    QMessageBox
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
+from gt.ui.qt_utils import QHeaderWithWidgets
 from PySide2 import QtWidgets, QtCore
 from gt.utils import iterable_utils
 from PySide2.QtGui import QIcon
@@ -13,6 +13,7 @@ from PySide2.QtCore import Qt
 from functools import partial
 import logging
 import ast
+
 
 # Logging Setup
 logging.basicConfig()
@@ -158,7 +159,8 @@ class ModuleAttrWidget(QWidget):
         columns = ["", "Name", "Parent", "", ""]  # Icon, Name, Parent, Edit, Delete
         self.table_proxy_parent_wdg.setColumnCount(len(columns))
         self.table_proxy_parent_wdg.setHorizontalHeaderLabels(columns)
-        header_view = self.table_proxy_parent_wdg.horizontalHeader()
+        header_view = QHeaderWithWidgets()
+        self.table_proxy_parent_wdg.setHorizontalHeader(header_view)
         header_view.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header_view.setSectionResizeMode(1, QHeaderView.Interactive)
         header_view.setSectionResizeMode(2, QHeaderView.Stretch)
@@ -168,6 +170,11 @@ class ModuleAttrWidget(QWidget):
         self.table_proxy_parent_wdg.setColumnWidth(1, 110)
         self.refresh_proxy_parent_table()
         self.table_proxy_parent_wdg.cellChanged.connect(self.on_proxy_parent_table_cell_changed)
+        add_proxy_btn = QPushButton()
+        add_proxy_btn.setIcon(QIcon(resource_library.Icon.library_add))
+        add_proxy_btn.clicked.connect(self.on_button_add_proxy_clicked)
+        add_proxy_btn.setToolTip("Add New Proxy")
+        header_view.add_widget(4, add_proxy_btn)
         self.scroll_content_layout.addLayout(_layout)
 
     def add_widget_proxy_basic_table(self):
@@ -469,6 +476,13 @@ class ModuleAttrWidget(QWidget):
                                       self.module)
         param_win.confirm_button.clicked.connect(confirm_button_func)
         param_win.show()
+
+    def on_button_add_proxy_clicked(self):
+        """
+        Adds a new proxy to the current module and refreshes the UI
+        """
+        self.module.add_new_proxy()
+        self.refresh_current_widgets()
 
     def create_widget_parent_combobox(self, target):
         """
