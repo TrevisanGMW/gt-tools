@@ -1,14 +1,18 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QGridLayout, \
+    QMessageBox
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
+from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
 from PySide2 import QtWidgets, QtCore
+from gt.utils import iterable_utils
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
+import ast
 
 # Logging Setup
 logging.basicConfig()
@@ -23,14 +27,15 @@ class ModuleAttrWidget(QWidget):
     PROXY_ROLE = QtCore.Qt.UserRole
     PARENT_ROLE = QtCore.Qt.UserRole + 1
 
-    def __init__(self, parent=None, module=None, project=None, *args, **kwargs):
+    def __init__(self, parent=None, module=None, project=None, refresh_parent_func=None, *args, **kwargs):
         """
         Initialize the ModuleAttrWidget.
 
         Args:
             parent (QWidget): The parent widget.
-            module: The module associated with this widget.
-            project: The project associated with this widget.
+            module (ModuleGeneric): The module associated with this widget.
+            project (RigProject): The project associated with this widget.
+            refresh_parent_func (callable): A function used to refresh the widget's parent.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
@@ -40,13 +45,17 @@ class ModuleAttrWidget(QWidget):
         self.project = project
         self.module = module
         self.known_proxy = {}
-        self.table_proxy_parent_wdg = None
         self.table_proxy_basic_wdg = None
+        self.table_proxy_parent_wdg = None
         self.mod_name_field = None
         self.mod_prefix_field = None
         self.mod_suffix_field = None
+        self.refresh_parent_func = None
 
-        # Body Options --------------------------------------------------------------------------
+        if refresh_parent_func:
+            self.set_refresh_parent_func(refresh_parent_func)
+
+        # Content Layout
         self.content_layout = QVBoxLayout()
         self.content_layout.setAlignment(Qt.AlignTop)
 
@@ -82,17 +91,19 @@ class ModuleAttrWidget(QWidget):
         self.mod_name_field.textChanged.connect(self.set_module_name)
         _layout.addWidget(self.mod_name_field)
 
-        # Delete Button
-        delete_btn = QPushButton()
-        delete_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
-        _layout.addWidget(delete_btn)
-
         # Edit Button
-        edit_btn = QPushButton()
-        edit_btn.setIcon(QIcon(resource_library.Icon.ui_edit))
-        _layout.addWidget(edit_btn)
+        edit_mod_btn = QPushButton()
+        edit_mod_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+        edit_mod_btn.setToolTip("Edit Raw Data")
+        edit_mod_btn.clicked.connect(self.on_button_edit_module_clicked)
+        _layout.addWidget(edit_mod_btn)
         self.content_layout.addLayout(_layout)
-        # self.body_layout
+
+        # Delete Button
+        delete_mod_btn = QPushButton()
+        delete_mod_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
+        delete_mod_btn.clicked.connect(self.delete_module)
+        _layout.addWidget(delete_mod_btn)
 
     def add_widget_module_prefix_suffix(self):
         """
@@ -176,7 +187,6 @@ class ModuleAttrWidget(QWidget):
         _layout.addWidget(self.table_proxy_basic_wdg)
         self.table_proxy_basic_wdg.setColumnWidth(1, 110)
         self.refresh_proxy_basic_table()
-        self.table_proxy_basic_wdg.cellChanged.connect(self.on_proxy_parent_table_cell_changed)
         self.scroll_content_layout.addLayout(_layout)
 
     # Utils ----------------------------------------------------------------------------------------------------
@@ -186,6 +196,8 @@ class ModuleAttrWidget(QWidget):
         """
         if self.table_proxy_parent_wdg:
             self.refresh_proxy_parent_table()
+        if self.table_proxy_basic_wdg:
+            self.refresh_proxy_basic_table()
 
     def refresh_known_proxy_dict(self, ignore_list=None):
         """
@@ -229,15 +241,104 @@ class ModuleAttrWidget(QWidget):
             combo_box.currentIndexChanged.connect(combo_func)
             self.table_proxy_parent_wdg.setCellWidget(row, 2, combo_box)
 
-            # Setup --------------------------------------------------------------------
+            # Edit Proxy ---------------------------------------------------------------------
             edit_proxy_btn = QPushButton()
             edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+            edit_proxy_func = partial(self.on_button_edit_proxy_clicked, proxy=proxy)
+            edit_proxy_btn.clicked.connect(edit_proxy_func)
+            edit_proxy_btn.setToolTip("Edit Raw Data")
             self.table_proxy_parent_wdg.setCellWidget(row, 3, edit_proxy_btn)
 
             # Delete Setup --------------------------------------------------------------------
-            edit_proxy_btn = QPushButton()
-            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
-            self.table_proxy_parent_wdg.setCellWidget(row, 4, edit_proxy_btn)
+            delete_proxy_btn = QPushButton()
+            delete_proxy_btn.setIcon(QIcon(resource_library.Icon.ui_delete))
+            delete_proxy_func = partial(self.delete_proxy, proxy=proxy)
+            delete_proxy_btn.clicked.connect(delete_proxy_func)
+            delete_proxy_btn.setToolTip("Delete Proxy")
+            self.table_proxy_parent_wdg.setCellWidget(row, 4, delete_proxy_btn)
+
+    def on_button_edit_proxy_clicked(self, proxy):
+        """
+        Shows a text-editor window with the proxy converted to a dictionary (raw data)
+        If the user applies the changes, and they are considered valid, the proxy is updated with it.
+        Args:
+            proxy (Proxy): The target proxy (proxy to be converted to dictionary)
+        """
+        param_win = InputWindowText(parent=self,
+                                    message=f'Editing Raw Data for the Proxy "{proxy.get_name()}"',
+                                    window_title=f'Raw data for "{proxy.get_name()}"',
+                                    image=resource_library.Icon.dev_parameters,  # TODO TEMP @@@
+                                    window_icon=resource_library.Icon.library_parameters,
+                                    image_scale_pct=10,
+                                    is_python_code=True)
+        param_win.set_confirm_button_text("Apply")
+        proxy_raw_data = proxy.get_proxy_as_dict(include_uuid=True,
+                                                 include_transform_data=True,
+                                                 include_offset_data=True)
+        formatted_dict = iterable_utils.format_dict_with_keys_per_line(proxy_raw_data,
+                                                                       keys_per_line=1,
+                                                                       bracket_new_line=True)
+        param_win.set_text_field_text(formatted_dict)
+        confirm_button_func = partial(self.update_proxy_from_raw_data, param_win.get_text_field_text, proxy)
+        param_win.confirm_button.clicked.connect(confirm_button_func)
+        param_win.show()
+
+    def on_button_edit_module_clicked(self):
+        """
+        Shows a text-editor window with the module converted to a dictionary (raw data)
+        If the user applies the changes, and they are considered valid, the module is updated with it.
+        """
+        module_name = self.module.get_name()
+        if not module_name:
+            module_name = self.module.get_module_class_name(remove_module_prefix=True)
+        param_win = InputWindowText(parent=self,
+                                    message=f'Editing Raw Data for the Module "{module_name}"',
+                                    window_title=f'Raw data for "{module_name}"',
+                                    image=resource_library.Icon.dev_parameters,  # TODO TEMP @@@
+                                    window_icon=resource_library.Icon.library_parameters,
+                                    image_scale_pct=10,
+                                    is_python_code=True)
+        param_win.set_confirm_button_text("Apply")
+        module_raw_data = self.module.get_module_as_dict(include_module_name=True, include_offset_data=True)
+        formatted_dict = iterable_utils.format_dict_with_keys_per_line(module_raw_data,
+                                                                       keys_per_line=1,
+                                                                       bracket_new_line=True)
+        param_win.set_text_field_text(formatted_dict)
+        confirm_button_func = partial(self.update_module_from_raw_data,
+                                      param_win.get_text_field_text,
+                                      self.module)
+        param_win.confirm_button.clicked.connect(confirm_button_func)
+        param_win.show()
+
+    def update_proxy_from_raw_data(self, data_getter, proxy):
+        """
+        Updates a proxy description using raw string data.
+        Args:
+            data_getter (callable): A function used to retrieve the data string
+            proxy (Proxy): A proxy object to be updated using the data
+        """
+        data = data_getter()
+        try:
+            _data_as_dict = ast.literal_eval(data)
+            proxy.read_data_from_dict(_data_as_dict)
+            self.refresh_current_widgets()
+        except Exception as e:
+            raise Exception(f'Unable to set proxy attributes from provided raw data. Issue: "{e}".')
+
+    def update_module_from_raw_data(self, data_getter, module):
+        """
+        Updates a proxy description using raw string data.
+        Args:
+            data_getter (callable): A function used to retrieve the data string
+            module (ModuleGeneric): A module object to be updated using the data
+        """
+        data = data_getter()
+        try:
+            _data_as_dict = ast.literal_eval(data)
+            module.read_data_from_dict(_data_as_dict)
+            self.refresh_current_widgets()
+        except Exception as e:
+            raise Exception(f'Unable to set module attributes from provided raw data. Issue: "{e}".')
 
     def refresh_proxy_basic_table(self):
         """
@@ -261,9 +362,12 @@ class ModuleAttrWidget(QWidget):
                              text=proxy.get_name(),
                              data_object=proxy)
 
-            # Setup --------------------------------------------------------------------
+            # Edit Proxy ---------------------------------------------------------------------
             edit_proxy_btn = QPushButton()
             edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+            edit_proxy_func = partial(self.on_button_edit_proxy_clicked, proxy=proxy)
+            edit_proxy_btn.clicked.connect(edit_proxy_func)
+            edit_proxy_btn.setToolTip("Edit Raw Data")
             self.table_proxy_basic_wdg.setCellWidget(row, 2, edit_proxy_btn)
 
     def clear_proxy_parent_table(self):
@@ -445,6 +549,52 @@ class ModuleAttrWidget(QWidget):
         """
         item.setData(self.PROXY_ROLE, proxy)
 
+    def set_refresh_parent_func(self, func):
+        """
+        Set the function to be called for refreshing the parent widget.
+        Args:
+        func (callable): The function to be set as the refresh table function.
+        """
+        if not callable(func):
+            logger.warning(f'Unable to set refresh tree function. Provided argument is not a callable object.')
+            return
+        self.refresh_parent_func = func
+
+    def delete_proxy(self, proxy):
+        _proxy_name = proxy.get_name()
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle(f'Delete Proxy "{str(_proxy_name)}"?')
+        message_box.setText(f'Are you sure you want to delete proxy "{str(_proxy_name)}"?')
+        question_icon = QIcon(resource_library.Icon.ui_delete)
+        message_box.setIconPixmap(question_icon.pixmap(64, 64))
+        message_box.addButton(QMessageBox.Yes)
+        message_box.addButton(QMessageBox.No)
+        result = message_box.exec_()
+        if result == QMessageBox.Yes:
+            self.module.remove_from_proxies(proxy)
+            self.refresh_known_proxy_dict()
+            self.refresh_current_widgets()
+
+    def delete_module(self):
+        _module_name = self.module.get_name() or ""
+        _module_class = self.module.get_module_class_name(remove_module_prefix=False)
+        if _module_name:
+            _module_name = f'\n"{_module_name}" ({_module_class})'
+        else:
+            _module_name = f'\n{_module_class}'
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle(f'Delete Module {str(_module_name)}?')
+        message_box.setText(f'Are you sure you want to delete module {str(_module_name)}?')
+        question_icon = QIcon(resource_library.Icon.ui_delete)
+        message_box.setIconPixmap(question_icon.pixmap(64, 64))
+        message_box.addButton(QMessageBox.Yes)
+        message_box.addButton(QMessageBox.No)
+        result = message_box.exec_()
+        if result == QMessageBox.Yes:
+            self.project.remove_from_modules(self.module)
+            self.call_parent_refresh()
+            self.hide_content_layout()
+
     # Getters --------------------------------------------------------------------------------------------------
     def get_table_item_proxy_object(self, item):
         """
@@ -457,6 +607,19 @@ class ModuleAttrWidget(QWidget):
             Proxy or None: The associated proxy object, None otherwise.
         """
         return item.data(self.PROXY_ROLE)
+
+    def call_parent_refresh(self):
+        """
+        Calls the refresh parent function. This function needs to first be set before it can be used.
+        In case it has not been set, or it's missing, the operation will be ignored.
+        """
+        if not self.refresh_parent_func or not callable(self.refresh_parent_func):
+            logger.debug(f'Unable to call refresh tree function. Function has not been set or is missing.')
+            return
+        self.refresh_parent_func()
+
+    def hide_content_layout(self):
+        self.scroll_content_layout.parent().setHidden(not self.scroll_content_layout.parent().isHidden())
 
 
 class ModuleGenericAttrWidget(ModuleAttrWidget):
