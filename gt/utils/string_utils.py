@@ -150,27 +150,6 @@ def remove_strings_from_string(input_string, undesired_string_list, only_prefix=
     return input_string
 
 
-def extract_digits(input_string):
-    """
-    Extracts and returns only the digits from a given input string.
-
-    Args:
-        input_string (str): The input string from which digits will be extracted.
-
-    Returns:
-        str: A string containing only the extracted digits.
-
-    Examples:
-        input_string = "Hello, my phone number is +1 (123) 456-7890."
-        result = extract_digits(input_string)
-        print(result)
-        # Output: '11234567890'
-    """
-    pattern = r'\d+'
-    digits_list = re.findall(pattern, input_string)
-    return ''.join(digits_list)
-
-
 def snake_to_camel(snake_case_str):
     """
     Converts a string from snake_case to camelCase.
@@ -199,25 +178,55 @@ def snake_to_camel(snake_case_str):
     return camel_case_str
 
 
-def extract_digits_from_str(input_string, only_first_match=True):
+def extract_digits(input_string, can_be_negative=False):
     """
-    Extract digits from a string or return 0 if no digits are found.
+    Extracts and returns only the digits from a given input string.
+
+    Args:
+        input_string (str): The input string from which digits will be extracted.
+        can_be_negative (bool, optional): If True, it will also extract negative numbers by
+                                          keeping any negative "-" symbols in front of the number.
+
+    Returns:
+        str: A string containing only the extracted digits.
+
+    Examples:
+        input_string = "Hello, my phone number is +1 (123) 456-7890."
+        result = extract_digits(input_string)
+        print(result)
+        # Output: '11234567890'
+    """
+    pattern = r'\d+'
+    if can_be_negative:
+        pattern = r'-?\d+'
+    digits_list = re.findall(pattern, input_string)
+    return ''.join(digits_list)
+
+
+def extract_digits_as_int(input_string, only_first_match=True, can_be_negative=False, default=0):
+    """
+    Extract digits from a string or return default if no digits are found.
 
     Args:
         input_string (str): The input string.
         only_first_match (bool, optional): If True, only the first found digit is used.
                                            If False, it might combine numbers in an unexpected way.
                                            e.g. "1_word_2" would return 12.
+        can_be_negative (bool, optional): If True, it will also extract negative numbers.
+        default (int, optional): If provided, this is used when no digits are found in the "input_string"
 
     Returns:
-        int: Extracted digits or 0 if no digits are found.
+        int: Extracted digits or "default" (0) if no digits are found. - Default can be defined as an argument.
     """
+    pattern = r'\d+'
+    if can_be_negative:
+        pattern = r'-?\d+'
     if only_first_match:
-        match = re.search(r'\d+', input_string)
-        return int(match.group()) if match else 0
+        match = re.search(pattern, input_string)
+        return int(match.group()) if match else default
     else:
-        extracted_digits = [char for char in input_string if char.isdigit()]
-        result = int(''.join(extracted_digits)) if extracted_digits else 0
+        extracted_digits = extract_digits(input_string, can_be_negative=can_be_negative)
+        result = int(extracted_digits) if extracted_digits else default
         return result
 
 

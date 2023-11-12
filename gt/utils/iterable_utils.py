@@ -3,7 +3,7 @@ Iterable Utilities - Utilities used for dealing with iterable elements, such as 
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.string_utils import extract_digits_from_str
+from gt.utils.string_utils import extract_digits_as_int
 import logging
 
 # Logging Setup
@@ -244,7 +244,7 @@ def get_highest_int_from_str_list(str_list):
     Returns:
         int: The highest digit found in the matching items or 0 if no matching items are found.
     """
-    digits_list = [extract_digits_from_str(item) for item in str_list]
+    digits_list = [extract_digits_as_int(item) for item in str_list]
     return max(digits_list, default=0)
 
 
