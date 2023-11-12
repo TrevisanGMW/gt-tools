@@ -361,7 +361,11 @@ class Icon:
     library_remove = get_icon_path(r"library_remove.svg")
     library_add = get_icon_path(r"library_add.svg")
     library_shelf = get_icon_path(r"library_shelf.svg")
+    rigger_proxy = get_icon_path(r"rigger_proxy.svg")
+    rigger_project = get_icon_path(r"rigger_project.svg")
+    rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
     # User Interface
+    ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
     ui_arrow_down = get_icon_path(r"ui_arrow_down.svg")
     ui_arrow_left = get_icon_path(r"ui_arrow_left.svg")
@@ -383,6 +387,7 @@ class Icon:
     ui_branch_root_closed = get_icon_path(r"ui_branch_root_closed.svg")
     ui_branch_root_open = get_icon_path(r"ui_branch_root_open.svg")
     ui_branch_single = get_icon_path(r"ui_branch_single.svg")
+
 
 
 class Color:
