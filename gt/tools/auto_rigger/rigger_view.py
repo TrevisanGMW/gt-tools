@@ -47,12 +47,12 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        # # Style Window
-        # stylesheet = resource_library.Stylesheet.scroll_bar_dark
-        # stylesheet += resource_library.Stylesheet.maya_basic_dialog
-        # stylesheet += resource_library.Stylesheet.list_widget_dark
-        # stylesheet += resource_library.Stylesheet.combobox_dark
-        # self.setStyleSheet(stylesheet)
+        # Style Window
+        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        stylesheet += resource_library.Stylesheet.combobox_dark
+        stylesheet += resource_library.Stylesheet.tree_dark
+        self.setStyleSheet(stylesheet)
 
         # Final Adjustments
         qt_utils.resize_to_screen(self, percentage=35)

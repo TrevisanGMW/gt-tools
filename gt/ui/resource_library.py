@@ -389,7 +389,6 @@ class Icon:
     ui_branch_single = get_icon_path(r"ui_branch_single.svg")
 
 
-
 class Color:
     def __init__(self):
         """
@@ -876,6 +875,13 @@ class StylesheetVariables:
         "@image_unchecked_width;": 32,
         "@image_unchecked_height;": 32,
     }
+    tree_dark = {
+        # Colors
+        "@text_color;": Color.RGB.white,
+        "@background_color;": Color.RGB.gray_darker,
+        "@selected_background_color;": Color.RGB.blue_pastel,
+        "@hover_background_color;": Color.RGB.gray_light_slate,
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     button_metro_tools_default = {
         # Colors
@@ -920,6 +926,8 @@ class Stylesheet:
                                            stylesheet_variables=StylesheetVariables.combobox_dark)
     checkbox_dark = get_stylesheet_content(stylesheet_name="checkbox_dark",
                                            stylesheet_variables=StylesheetVariables.checkbox_dark)
+    tree_dark = get_stylesheet_content(stylesheet_name="tree_dark",
+                                       stylesheet_variables=StylesheetVariables.tree_dark)
     # --------------------------------------------- Buttons ---------------------------------------------
     push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)
