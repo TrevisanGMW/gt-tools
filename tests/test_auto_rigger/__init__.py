@@ -1,1 +1,1 @@
-from . import test_rigger_framework
+from . import test_rig_framework

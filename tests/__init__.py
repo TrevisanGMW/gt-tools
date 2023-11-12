@@ -38,7 +38,7 @@ modules_to_test = [
     test_ui.test_qt_utils,
     test_ui.test_resource_library,
     # Tools
-    test_auto_rigger.test_rigger_framework,
+    test_auto_rigger.test_rig_framework,
     test_curve_library.test_curve_library_model,
     test_package_updater.test_package_updater_model,
     test_sample_tool.test_sample_tool_model,

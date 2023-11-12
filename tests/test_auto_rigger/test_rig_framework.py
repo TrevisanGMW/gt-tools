@@ -16,17 +16,17 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from gt.utils.transform_utils import Transform
-from gt.tools.auto_rigger.rigger_framework import Proxy
-from gt.tools.auto_rigger import rigger_framework
+from gt.tools.auto_rigger.rig_framework import Proxy
+from gt.tools.auto_rigger import rig_framework
 from tests import maya_test_tools
 
 
-class TestProxyUtils(unittest.TestCase):
+class TestRigFramework(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
         self.proxy = Proxy()
         self.proxy.uuid = "123e4567-e89b-12d3-a456-426655440000"
-        self.proxy_data = rigger_framework.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"),
+        self.proxy_data = rig_framework.ProxyData(name="proxy1", offset="offset1", setup=("setup1", "setup2"),
                                                  uuid="123e4567-e89b-12d3-a456-426655440000")
 
     @classmethod
@@ -34,10 +34,10 @@ class TestProxyUtils(unittest.TestCase):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_proxy_constants(self):
-        attributes = vars(rigger_framework.RiggerConstants)
+        attributes = vars(rig_framework.RiggerConstants)
         keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for key in keys:
-            constant = getattr(rigger_framework.RiggerConstants, key)
+            constant = getattr(rig_framework.RiggerConstants, key)
             if not constant:
                 raise Exception(f'Missing proxy constant data: {key}')
             if not isinstance(constant, str):
@@ -75,7 +75,7 @@ class TestProxyUtils(unittest.TestCase):
         self.assertEqual(expected, str(result))
         expected = "proxy"
         self.assertEqual(expected, result.get_short_name())
-        self.assertTrue(isinstance(result, rigger_framework.ProxyData))
+        self.assertTrue(isinstance(result, rig_framework.ProxyData))
         expected = "|proxy_offset"
         self.assertEqual(expected, result.offset)
         expected = ("proxy_LocScaleHandle",)
@@ -111,9 +111,9 @@ class TestProxyUtils(unittest.TestCase):
         expected_short_name = "proxy"
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
-        self.assertTrue(isinstance(result, rigger_framework.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_framework.RiggerConstants.PROXY_ATTR_UUID}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rigger_framework.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(isinstance(result, rig_framework.ProxyData))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.PROXY_ATTR_UUID}'))
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
