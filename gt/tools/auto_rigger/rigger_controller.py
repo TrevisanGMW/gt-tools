@@ -69,6 +69,9 @@ class RiggerController:
 
         self.view.expand_all_module_tree_items()
 
+    def refresh_widgets(self):
+        self.populate_module_tree()
+
     def on_tree_item_clicked(self, item, column):
         """
         When an item from the tree is selected, it should populate the attribute editor with the available fields.
@@ -80,9 +83,12 @@ class RiggerController:
         data_obj = item.data(1, 0)
         # Modules ---------------------------------------------------------------
         if isinstance(data_obj, rig_framework.ModuleGeneric):
-            widget_obj = get_module_attr_widgets(module=data_obj)
-            if widget_obj:
-                self.view.set_module_widget(widget_obj(module=data_obj, project=self.model.get_project()))
+            widget_class = get_module_attr_widgets(module=data_obj)
+            if widget_class:
+                widget_object = widget_class(module=data_obj,
+                                             project=self.model.get_project(),
+                                             refresh_parent_func=self.refresh_widgets)
+                self.view.set_module_widget(widget_object)
                 return
         # Project ---------------------------------------------------------------
         if isinstance(data_obj, rig_framework.RigProject):
