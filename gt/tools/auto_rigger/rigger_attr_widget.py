@@ -171,7 +171,7 @@ class ModuleAttrWidget(QWidget):
         self.refresh_proxy_parent_table()
         self.table_proxy_parent_wdg.cellChanged.connect(self.on_proxy_parent_table_cell_changed)
         add_proxy_btn = QPushButton()
-        add_proxy_btn.setIcon(QIcon(resource_library.Icon.library_add))
+        add_proxy_btn.setIcon(QIcon(resource_library.Icon.ui_add))
         add_proxy_btn.clicked.connect(self.on_button_add_proxy_clicked)
         add_proxy_btn.setToolTip("Add New Proxy")
         header_view.add_widget(4, add_proxy_btn)
