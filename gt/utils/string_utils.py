@@ -199,6 +199,28 @@ def snake_to_camel(snake_case_str):
     return camel_case_str
 
 
+def extract_digits_from_str(input_string, only_first_match=True):
+    """
+    Extract digits from a string or return 0 if no digits are found.
+
+    Args:
+        input_string (str): The input string.
+        only_first_match (bool, optional): If True, only the first found digit is used.
+                                           If False, it might combine numbers in an unexpected way.
+                                           e.g. "1_word_2" would return 12.
+
+    Returns:
+        int: Extracted digits or 0 if no digits are found.
+    """
+    if only_first_match:
+        match = re.search(r'\d+', input_string)
+        return int(match.group()) if match else 0
+    else:
+        extracted_digits = [char for char in input_string if char.isdigit()]
+        result = int(''.join(extracted_digits)) if extracted_digits else 0
+        return result
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None

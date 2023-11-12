@@ -184,4 +184,23 @@ class TestStringUtils(unittest.TestCase):
         expected = "version210"
         result = string_utils.snake_to_camel("version_2_1_0")
         self.assertEqual(expected, result)
-        
+
+    def test_extract_digits_from_str(self):
+        expected = 123
+        result = string_utils.extract_digits_from_str("abc123def", only_first_match=True)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_from_str_no_digits(self):
+        expected = 0
+        result = string_utils.extract_digits_from_str("no_digits_here", only_first_match=True)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_from_str_separated_digits_first_only(self):
+        expected = 1
+        result = string_utils.extract_digits_from_str("1_test_2", only_first_match=True)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_from_str_separated_digits_all(self):
+        expected = 123
+        result = string_utils.extract_digits_from_str("1_test_2_then_3", only_first_match=False)
+        self.assertEqual(expected, result)
