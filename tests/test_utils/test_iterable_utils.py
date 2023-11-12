@@ -222,3 +222,22 @@ class TestListUtils(unittest.TestCase):
         expected_result = [1, 'two', 4, 'four']
         result = iterable_utils.round_numbers_in_list(input_list, num_digits=0)
         self.assertEqual(result, expected_result)
+
+    def test_get_highest_int_from_str_list(self):
+        expected = 987
+        result = iterable_utils.get_highest_int_from_str_list(["proxy123", "proxy456", "proxy987"])
+        self.assertEqual(expected, result)
+
+        expected = 3
+        result = iterable_utils.get_highest_int_from_str_list(["no_match1", "no_match2", "no_match3"])
+        self.assertEqual(expected, result)
+
+        # Test when the list is empty
+        expected = 0
+        result = iterable_utils.get_highest_int_from_str_list([])
+        self.assertEqual(expected, result)
+
+        # Test when the list does not contain numbers
+        expected = 0
+        result = iterable_utils.get_highest_int_from_str_list(["hello", "world", ""])
+        self.assertEqual(expected, result)

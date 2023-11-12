@@ -3,6 +3,7 @@ Iterable Utilities - Utilities used for dealing with iterable elements, such as 
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.string_utils import extract_digits_from_str
 import logging
 
 # Logging Setup
@@ -231,6 +232,20 @@ def round_numbers_in_list(input_list, num_digits=3):
     """
     rounded_list = [round(x, num_digits) if isinstance(x, (int, float)) else x for x in input_list]
     return rounded_list
+
+
+def get_highest_int_from_str_list(str_list):
+    """
+    Extract the highest digit from strings that follow the pattern 'proxy' followed by any number of digits.
+
+    Args:
+        str_list (list): A list of input strings.
+
+    Returns:
+        int: The highest digit found in the matching items or 0 if no matching items are found.
+    """
+    digits_list = [extract_digits_from_str(item) for item in str_list]
+    return max(digits_list, default=0)
 
 
 if __name__ == "__main__":
