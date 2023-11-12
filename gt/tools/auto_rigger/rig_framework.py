@@ -10,6 +10,7 @@ from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
+from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.transform_utils import Transform, match_translate
 from gt.utils.uuid_utils import get_object_from_uuid_attr
@@ -22,6 +23,7 @@ from gt.ui import resource_library
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
+import re
 
 
 # Logging Setup
@@ -817,6 +819,21 @@ class ModuleGeneric:
         logger.debug(f'Unable to add proxy to module. '
                      f'Must be of the type "Proxy" or a list containing only Proxy elements.')
 
+    def add_new_proxy(self):
+        """
+        Adds a clear new proxy to the proxies list.
+        Returns:
+            Proxy: The created proxy
+        """
+        pattern = r'^proxy\d*$'
+        proxy_names = [proxy.get_name() for proxy in self.proxies]
+        valid_proxies = [item for item in proxy_names if re.match(pattern, item)]
+        highest_proxy_num = get_highest_int_from_str_list(valid_proxies)
+        new_proxy = Proxy()
+        if highest_proxy_num > 0:
+            new_proxy.set_name(f'proxy{str(highest_proxy_num+1)}')
+        self.add_to_proxies(new_proxy)
+
     def remove_from_proxies(self, proxy):
         """
         Removes a proxy object from the proxies list
@@ -1485,10 +1502,11 @@ if __name__ == "__main__":
 
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_1st_proxy)
-    a_module.add_to_proxies(a_2nd_proxy)
-    a_module.set_prefix("prefix")
+    # a_module.add_to_proxies(a_2nd_proxy)
+    # a_module.set_prefix("prefix")
+    a_module.add_new_proxy()
 
-    a_project = RigProject()
-    a_project.add_to_modules(a_module)
-    a_project.build_proxy()
-    a_project.build_rig()
+    # a_project = RigProject()
+    # a_project.add_to_modules(a_module)
+    # a_project.build_proxy()
+    # a_project.build_rig()
