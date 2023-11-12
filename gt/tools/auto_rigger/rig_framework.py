@@ -723,7 +723,7 @@ class Proxy:
 
 
 class ModuleGeneric:
-    icon = resource_library.Icon.util_reset_jnt_display  # TODO TEMP @@@
+    icon = resource_library.Icon.rigger_module_generic
 
     def __init__(self,
                  name=None,
@@ -830,7 +830,7 @@ class ModuleGeneric:
         valid_proxies = [item for item in proxy_names if re.match(pattern, item)]
         highest_proxy_num = get_highest_int_from_str_list(valid_proxies)
         new_proxy = Proxy()
-        if highest_proxy_num > 0:
+        if valid_proxies:
             new_proxy.set_name(f'proxy{str(highest_proxy_num+1)}')
         self.add_to_proxies(new_proxy)
 
@@ -1178,7 +1178,7 @@ class ModuleGeneric:
 
 
 class RigProject:
-    icon = resource_library.Icon.dev_brain  # TODO TEMP @@@
+    icon = resource_library.Icon.rigger_project
 
     def __init__(self,
                  name=None,
