@@ -7,7 +7,7 @@ RigProject > Module > Proxy > Joint/Control
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rig_utils import create_category_groups
+from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.iterable_utils import get_highest_int_from_str_list, get_next_dict_item
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
@@ -1458,14 +1458,14 @@ class RigProject:
         """
         cmds.refresh(suspend=True)
         try:
-            root_transform, root_group = create_proxy_root_curve()
-            # setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
-            # add_attr(target_list=setup, attr_type="string", is_keyable=False,
-            #          attributes=RiggerConstants.REF_SETUP_ATTR, verbose=True)
-            group_dict = create_category_groups(setup=True)
-            setup = get_next_dict_item(group_dict)
-            set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
-            hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
+            root_group = create_root_group(is_proxy=True)
+            category_groups = create_utility_groups(control=True, setup=True, target_parent=root_group)
+            control_grp = category_groups.get(RiggerConstants.REF_CONTROL_ATTR)
+            setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
+            root_transform = create_proxy_root_curve()
+            hierarchy_utils.parent(source_objects=root_transform, target_parent=control_grp)
+            set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+            hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
 
             # Build Proxy
             proxy_data_list = []
@@ -1476,7 +1476,7 @@ class RigProject:
 
             for proxy_data in proxy_data_list:
                 add_side_color_setup(obj=proxy_data.get_long_name())
-                hierarchy_utils.parent(source_objects=proxy_data.get_setup(), target_parent=setup)
+                hierarchy_utils.parent(source_objects=proxy_data.get_setup(), target_parent=setup_grp)
                 hierarchy_utils.parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
 
             # Parent Proxy
@@ -1484,7 +1484,7 @@ class RigProject:
                 if not module.get_active_state():  # If not active, skip
                     continue
                 parent_proxies(proxy_list=module.get_proxies())
-                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup)
+                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup_grp)
                 for proxy in module.get_proxies():
                     proxy.apply_attr_dict()
                 module.build_proxy_post()
@@ -1500,11 +1500,18 @@ class RigProject:
         """
         cmds.refresh(suspend=True)
         try:
-            root_transform, root_group = create_control_root_curve()
-            setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
-            setup = Node(setup)
-            set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
-            hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
+            root_group = create_root_group()
+            root_transform = create_control_root_curve()
+            category_groups = create_utility_groups(geometry=True,
+                                                    skeleton=True,
+                                                    control=True,
+                                                    setup=True,
+                                                    target_parent=root_group)
+            control_grp = category_groups.get(RiggerConstants.REF_CONTROL_ATTR)
+            setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
+            set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+            hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
+            hierarchy_utils.parent(source_objects=root_transform, target_parent=control_grp)
 
             # Build Rig
             for module in self.modules:
@@ -1551,4 +1558,4 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.build_proxy()
-    # a_project.build_rig()
+    a_project.build_rig()
