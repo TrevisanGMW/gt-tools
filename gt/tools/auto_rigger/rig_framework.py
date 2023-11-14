@@ -6,20 +6,20 @@ RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
+from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_node
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group
+from gt.tools.auto_rigger.rig_utils import find_skeleton_group
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
-from gt.utils.iterable_utils import get_highest_int_from_str_list, get_next_dict_item
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
+from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.color_utils import add_side_color_setup
 from gt.utils.string_utils import remove_prefix
 from gt.utils.joint_utils import orient_joint
-from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 from dataclasses import dataclass
@@ -1166,13 +1166,13 @@ class ModuleGeneric:
         Expects proxy to be present in the scene.
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+        skeleton_grp = find_skeleton_group()
         for proxy in self.proxies:
             proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
             if not proxy_node:
                 continue
             cmds.select(clear=True)  # When creating a joint, selection affects its hierarchy
             joint = cmds.joint(name=proxy_node.get_short_name())
-
             locator_scale = proxy.get_locator_scale()
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
@@ -1182,6 +1182,7 @@ class ModuleGeneric:
                      attributes=RiggerConstants.JOINT_ATTR_UUID,
                      attr_type="string")
             set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
             cmds.select(clear=True)  # When creating a joint, the new joint is selected.
 
     def build_rig_post(self):
@@ -1193,6 +1194,7 @@ class ModuleGeneric:
         jnt_nodes = []
         for proxy in self.proxies:
             joint = find_joint_node_from_uuid(proxy.get_uuid())
+            set_attr(f'{joint}.displayLocalAxis', 1)  # TODO TEMP @@@
             if not joint:
                 continue
             # Inherit Orientation (Before Parenting)
@@ -1531,8 +1533,11 @@ class RigProject:
                     continue
                 module.build_rig_post()
 
-            # if delete_proxy:
-            #
+            # Delete Proxy
+            if delete_proxy:
+                proxy_root = find_proxy_root_node()
+                if proxy_root:
+                    cmds.delete(proxy_root)
 
         except Exception as e:
             raise e
@@ -1564,4 +1569,4 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.build_proxy()
-    # a_project.build_rig()
+    a_project.build_rig()

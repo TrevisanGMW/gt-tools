@@ -119,15 +119,27 @@ def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=Tru
         str, None: If found, the object with a matching UUID, otherwise None
     """
     obj_list = cmds.ls(typ=obj_type, long=True) or []
-    result_list = set()
     for obj in obj_list:
         if transform_lookup and obj_type != "transform":
             _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
             if _parent:
                 obj = _parent[0]
         if cmds.objExists(f'{obj}.{attr_name}'):
-            result_list.add(obj)
-    return list(result_list)
+            return Node(obj)
+
+
+def find_proxy_root_node():
+    """
+    Looks for the proxy root transform (group) by searching for objects containing the expected attribute.
+    """
+    return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type="transform")
+
+
+def find_rig_root_node():
+    """
+    Looks for the rig root transform (group) by searching for objects containing the expected attribute.
+    """
+    return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
 
 
 def find_control_root_curve_node(use_transform=False):
@@ -145,11 +157,11 @@ def find_control_root_curve_node(use_transform=False):
     return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
 
 
-def find_rig_root_transform_node():
+def find_skeleton_group():
     """
-    Looks for the rig transform (group) by searching for objects containing the expected attribute.
+    Looks for the rig skeleton transform (group) by searching for objects containing the expected attribute.
     """
-    return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_SKELETON_ATTR, obj_type="transform")
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
