@@ -27,7 +27,6 @@ import maya.cmds as cmds
 import logging
 import re
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -1212,6 +1211,12 @@ class ModuleGeneric:
                          aim_axis=(1, 0, 0),
                          up_axis=(1, 0, 0),
                          up_dir=(1, 0, 0))
+        elif self.orientation == "-":
+            orient_joint(jnt_nodes,
+                         aim_axis=(-1, 0, 0),
+                         up_axis=(0, 1, 0),
+                         up_dir=(1, 0, 0))
+
 
         cmds.select(clear=True)
 
@@ -1538,7 +1543,6 @@ class RigProject:
                 proxy_root = find_proxy_root_node()
                 if proxy_root:
                     cmds.delete(proxy_root)
-
         except Exception as e:
             raise e
         finally:
@@ -1551,22 +1555,34 @@ if __name__ == "__main__":
     from pprint import pprint
     cmds.file(new=True, force=True)
 
-    a_1st_proxy = Proxy(name="first")
-    a_1st_proxy.set_position(y=5)
-    a_2nd_proxy = Proxy(name="second")
-    a_2nd_proxy.set_position(x=10)
-    a_2nd_proxy.set_rotation(z=-35)
-    a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+    from gt.tools.auto_rigger.template_biped import create_template_biped
+    a_biped_project = create_template_biped()
+    a_biped_project.build_proxy()
+    a_biped_project.build_rig()
 
-    a_module = ModuleGeneric()
-    a_module.add_to_proxies(a_1st_proxy)
-    a_module.add_to_proxies(a_2nd_proxy)
-    # a_module.set_prefix("prefix")
-    a_new_proxy = a_module.add_new_proxy()
-    a_new_proxy.set_position(x=15, y=-5)
-    a_new_proxy.set_parent_uuid_from_proxy(a_2nd_proxy)
-
-    a_project = RigProject()
-    a_project.add_to_modules(a_module)
-    a_project.build_proxy()
-    a_project.build_rig()
+    # root = Proxy(name="root")
+    # a_1st_proxy = Proxy(name="first")
+    # a_1st_proxy.set_position(y=5, x=-1)
+    # a_1st_proxy.set_parent_uuid_from_proxy(root)
+    # a_2nd_proxy = Proxy(name="second")
+    # a_2nd_proxy.set_position(x=-10)
+    # a_2nd_proxy.set_rotation(z=-35)
+    # a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+    #
+    # a_root_module = ModuleGeneric()
+    # a_root_module.add_to_proxies(root)
+    #
+    # a_module = ModuleGeneric()
+    # a_module.add_to_proxies(a_1st_proxy)
+    # a_module.add_to_proxies(a_2nd_proxy)
+    # # a_module.set_prefix("prefix")
+    # a_new_proxy = a_module.add_new_proxy()
+    # a_new_proxy.set_position(x=-15, y=-5)
+    # a_new_proxy.set_parent_uuid_from_proxy(a_2nd_proxy)
+    # a_module.set_orientation(orientation="-")
+    #
+    # a_project = RigProject()
+    # a_project.add_to_modules(a_root_module)
+    # a_project.add_to_modules(a_module)
+    # a_project.build_proxy()
+    # a_project.build_rig(delete_proxy=True)

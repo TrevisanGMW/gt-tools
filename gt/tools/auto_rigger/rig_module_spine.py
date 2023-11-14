@@ -22,11 +22,10 @@ class ModuleSpine(ModuleGeneric):
     def __init__(self,
                  name="Spine",
                  prefix=None,
-                 parent_uuid=None,
                  metadata=None,
                  pos_offset=None,
                  num_spine=3):
-        super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+        super().__init__(name=name, prefix=prefix, metadata=metadata)
 
         self.num_spine = num_spine
 

@@ -24,10 +24,9 @@ class ModuleBipedArm(ModuleGeneric):
     def __init__(self,
                  name="Arm",
                  prefix=None,
-                 parent_uuid=None,
                  metadata=None,
                  orientation=None):
-        super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+        super().__init__(name=name, prefix=prefix, metadata=metadata)
 
         self.orientation = orientation
 
@@ -244,40 +243,14 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.clear_parent_uuid()
 
 
-class ModuleBipedArmRight(ModuleBipedArm):
-    def __init__(self,
-                 name="Right Arm",
-                 prefix=NamingConstants.Prefix.RIGHT,
-                 parent_uuid=None,
-                 metadata=None,
-                 orientation="-"):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         parent_uuid=parent_uuid,
-                         metadata=metadata,
-                         orientation=orientation)
-
-        pos_clavicle = Vector3(x=-3, y=130)
-        pos_shoulder = Vector3(x=-17.2, y=130)
-        pos_elbow = Vector3(x=-37.7, y=130)
-        pos_wrist = Vector3(x=-58.2, y=130)
-
-        self.clavicle.set_initial_position(xyz=pos_clavicle)
-        self.shoulder.set_initial_position(xyz=pos_shoulder)
-        self.elbow.set_initial_position(xyz=pos_elbow)
-        self.wrist.set_initial_position(xyz=pos_wrist)
-
-
 class ModuleBipedArmLeft(ModuleBipedArm):
     def __init__(self,
                  name="Left Arm",
                  prefix=NamingConstants.Prefix.LEFT,
-                 parent_uuid=None,
                  metadata=None,
                  orientation="+"):
         super().__init__(name=name,
                          prefix=prefix,
-                         parent_uuid=parent_uuid,
                          metadata=metadata,
                          orientation=orientation)
 
@@ -285,6 +258,30 @@ class ModuleBipedArmLeft(ModuleBipedArm):
         pos_shoulder = Vector3(x=17.2, y=130)
         pos_elbow = Vector3(x=37.7, y=130)
         pos_wrist = Vector3(x=58.2, y=130)
+
+        self.clavicle.set_initial_position(xyz=pos_clavicle)
+        self.shoulder.set_initial_position(xyz=pos_shoulder)
+        self.elbow.set_initial_position(xyz=pos_elbow)
+        self.wrist.set_initial_position(xyz=pos_wrist)
+
+
+class ModuleBipedArmRight(ModuleBipedArm):
+    def __init__(self,
+                 name="Right Arm",
+                 prefix=NamingConstants.Prefix.RIGHT,
+                 metadata=None,
+                 orientation="-"):
+        super().__init__(name=name,
+                         prefix=prefix,
+                         metadata=metadata,
+                         orientation=orientation)
+
+        self.set_orientation("-")
+
+        pos_clavicle = Vector3(x=-3, y=130)
+        pos_shoulder = Vector3(x=-17.2, y=130)
+        pos_elbow = Vector3(x=-37.7, y=130)
+        pos_wrist = Vector3(x=-58.2, y=130)
 
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.shoulder.set_initial_position(xyz=pos_shoulder)

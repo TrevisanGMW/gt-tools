@@ -28,10 +28,8 @@ class ModuleBipedLeg(ModuleGeneric):
     def __init__(self,
                  name="Leg",
                  prefix=None,
-                 parent_uuid=None,
-                 metadata=None,
-                 orientation="+"):
-        super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+                 metadata=None):
+        super().__init__(name=name, prefix=prefix, metadata=metadata)
 
         hip_name = "hip"
         knee_name = "knee"
@@ -313,11 +311,9 @@ class ModuleBipedLegLeft(ModuleBipedLeg):
     def __init__(self,
                  name="Left Leg",
                  prefix=NamingConstants.Prefix.LEFT,
-                 parent_uuid=None,
                  metadata=None):
         super().__init__(name=name,
                          prefix=prefix,
-                         parent_uuid=parent_uuid,
                          metadata=metadata)
 
         # Initial Pose
@@ -341,12 +337,12 @@ class ModuleBipedLegRight(ModuleBipedLeg):
     def __init__(self,
                  name="Right Leg",
                  prefix=NamingConstants.Prefix.RIGHT,
-                 parent_uuid=None,
                  metadata=None):
         super().__init__(name=name,
                          prefix=prefix,
-                         parent_uuid=parent_uuid,
                          metadata=metadata)
+
+        self.set_orientation("-")
 
         # Initial Pose
         overall_pos_offset = Vector3(x=-10.2)
@@ -379,31 +375,33 @@ if __name__ == "__main__":
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_proxy)
     a_leg_lf.set_parent_uuid(a_proxy.get_uuid())
+    a_leg_rt.set_parent_uuid(a_proxy.get_uuid())
 
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_leg_lf)
     a_project.add_to_modules(a_leg_rt)
-    a_project.add_to_modules(a_leg)
+    # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
+    a_project.build_rig()
 
     # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
     #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
     #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
 
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
-    print(a_project.get_project_as_dict())
-    a_project.read_data_from_scene()
-    print(a_project.get_project_as_dict())
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    a_project2.build_proxy()
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
+    # print(a_project.get_project_as_dict())
+    # a_project.read_data_from_scene()
+    # print(a_project.get_project_as_dict())
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)

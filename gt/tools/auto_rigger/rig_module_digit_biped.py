@@ -26,10 +26,9 @@ class ModuleBipedDigits(ModuleGeneric):
     def __init__(self,
                  name="Digits",
                  prefix=None,
-                 parent_uuid=None,
                  metadata=None,
                  orientation="+"):
-        super().__init__(name=name, prefix=prefix, parent_uuid=parent_uuid, metadata=metadata)
+        super().__init__(name=name, prefix=prefix, metadata=metadata)
 
         # Names
         self.orientation = orientation
@@ -354,12 +353,10 @@ class ModuleBipedFingersLeft(ModuleBipedDigits):
     def __init__(self,
                  name="Left Fingers",
                  prefix=NamingConstants.Prefix.LEFT,
-                 parent_uuid=None,
                  metadata=None,
                  orientation="-"):
         super().__init__(name=name,
                          prefix=prefix,
-                         parent_uuid=parent_uuid,
                          metadata=metadata,
                          orientation=orientation)
 
@@ -430,14 +427,14 @@ class ModuleBipedFingersRight(ModuleBipedDigits):
     def __init__(self,
                  name="Right Fingers",
                  prefix=NamingConstants.Prefix.RIGHT,
-                 parent_uuid=None,
                  metadata=None,
                  orientation="-"):
         super().__init__(name=name,
                          prefix=prefix,
-                         parent_uuid=parent_uuid,
                          metadata=metadata,
                          orientation=orientation)
+
+        self.set_orientation("-")
 
         # Describe Positions
         pos_thumb01 = Vector3(x=-60.8, y=130.4, z=2.9)
