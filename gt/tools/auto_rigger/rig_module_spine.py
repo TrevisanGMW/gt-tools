@@ -135,7 +135,7 @@ class ModuleSpine(ModuleGeneric):
         Creates leg proxy behavior through constraints and offsets.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.ROOT_PROXY_ATTR)
+        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
         hip = find_proxy_node_from_uuid(self.hip.get_uuid())
         chest = find_proxy_node_from_uuid(self.chest.get_uuid())
 

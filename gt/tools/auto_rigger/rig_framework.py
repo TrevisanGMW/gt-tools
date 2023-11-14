@@ -7,11 +7,12 @@ RigProject > Module > Proxy > Joint/Control
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
+from gt.tools.auto_rigger.rig_utils import create_category_groups
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.iterable_utils import get_highest_int_from_str_list, get_next_dict_item
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
-from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
@@ -1458,9 +1459,11 @@ class RigProject:
         cmds.refresh(suspend=True)
         try:
             root_transform, root_group = create_proxy_root_curve()
-            setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
-            add_attr(target_list=setup, attr_type="string", is_keyable=False,
-                     attributes=RiggerConstants.SETUP_GRP_ATTR, verbose=True)
+            # setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
+            # add_attr(target_list=setup, attr_type="string", is_keyable=False,
+            #          attributes=RiggerConstants.REF_SETUP_ATTR, verbose=True)
+            group_dict = create_category_groups(setup=True)
+            setup = get_next_dict_item(group_dict)
             set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
 
@@ -1491,7 +1494,7 @@ class RigProject:
             cmds.refresh(suspend=False)
             cmds.refresh()
 
-    def build_rig(self, callback=None):
+    def build_rig(self, callback=None, delete_proxy=True):
         """
         Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
         """
@@ -1500,8 +1503,6 @@ class RigProject:
             root_transform, root_group = create_control_root_curve()
             setup = cmds.group(name=f"setup_{NamingConstants.Suffix.GRP}", empty=True, world=True)
             setup = Node(setup)
-            add_attr(target_list=setup, attr_type="string", is_keyable=False,
-                     attributes=RiggerConstants.SETUP_GRP_ATTR, verbose=True)
             set_attr(obj_list=setup, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=setup, target_parent=root_group)
 
@@ -1516,6 +1517,9 @@ class RigProject:
                 if not module.get_active_state():  # If not active, skip
                     continue
                 module.build_rig_post()
+
+            # if delete_proxy:
+            #
 
         except Exception as e:
             raise e
@@ -1547,4 +1551,4 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.build_proxy()
-    a_project.build_rig()
+    # a_project.build_rig()
