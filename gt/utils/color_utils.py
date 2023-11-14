@@ -22,7 +22,7 @@ class ColorConstants:
     class RGB:
         def __init__(self):
             """
-            A library of colors RGB colors.
+            A library of RGB colors.
             Type: tuple
             Format: (Red, Green, Blue)
             Value range: 0 to 1
@@ -227,7 +227,7 @@ class ColorConstants:
     class RigProxy:
         def __init__(self):
             """
-            A library of colors RGB colors for rigs.
+            A library of RGB colors for rigs.
             Type: tuple
             Format: (Red, Green, Blue)
             Value range  0 to 1
@@ -243,7 +243,7 @@ class ColorConstants:
     class RigControl:
         def __init__(self):
             """
-            A library of colors RGB colors for rigs.
+            A library of RGB colors for rigs.
             Type: tuple
             Format: (Red, Green, Blue)
             Value range  0 to 1
@@ -261,7 +261,7 @@ class ColorConstants:
     class RigJoint:
         def __init__(self):
             """
-            A library of colors RGB colors for rigs.
+            A library of RGB colors for rigs.
             Type: tuple
             Format: (Red, Green, Blue)
             Value range  0 to 1
@@ -275,6 +275,23 @@ class ColorConstants:
         END = (1, 0, 0)  # Red Pure
         UNIQUE = (0, 1, 0)  # Green
         AUTOMATION = (1, 0.17, 0.75)  # Hot Pink
+
+    class RigOutliner:
+        def __init__(self):
+            """
+            A library of RGB colors for outliner.
+            Type: tuple
+            Format: (Red, Green, Blue)
+            Value range  0 to 1
+            e.g. (1, 0, 0) = Red
+            """
+        ROOT_RIG = (1, .45, .7)  # Salmon
+        GRP_GEOMETRY = (.3, 1, .8)  # Bright Turquoise
+        GRP_SKELETON = (.75, .45, .95)  # Purple
+        GRP_CONTROL = (1, 0.45, 0.2)  # Orange
+        GRP_SETUP = (1, .25, .25)  # Soft Red
+        AUTOMATION = (1, .65, .45)  # Soft Orange
+
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
