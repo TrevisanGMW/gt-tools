@@ -42,6 +42,7 @@ class RiggerConstants:
     GRP_SKELETON_NAME = f'skeleton_{NamingConstants.Suffix.GRP}'
     GRP_CONTROL_NAME = f'control_{NamingConstants.Suffix.GRP}'
     GRP_SETUP_NAME = f'setup_{NamingConstants.Suffix.GRP}'
+    GRP_LINE_NAME = f'visualization_lines'
     # Reference Attributes
     REF_ROOT_RIG_ATTR = "rigRootLookupAttr"
     REF_ROOT_PROXY_ATTR = "proxyRootLookupAttr"
@@ -50,6 +51,7 @@ class RiggerConstants:
     REF_SKELETON_ATTR = "skeletonLookupAttr"
     REF_CONTROL_ATTR = "controlLookupAttr"
     REF_SETUP_ATTR = "setupLookupAttr"
+    REF_LINE_ATTR = "linesLookupAttr"
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -222,15 +224,17 @@ def create_root_group(is_proxy=False):
     """
     _name = RiggerConstants.GRP_RIG_NAME
     _attr = RiggerConstants.REF_ROOT_RIG_ATTR
+    _color = ColorConstants.RigOutliner.GRP_ROOT_RIG
     if is_proxy:
         _name = RiggerConstants.GRP_PROXY_NAME
         _attr = RiggerConstants.REF_ROOT_PROXY_ATTR
+        _color = ColorConstants.RigOutliner.GRP_ROOT_PROXY
     root_group = cmds.group(name=_name, empty=True, world=True)
     root_group = Node(root_group)
     hide_lock_default_attrs(obj=root_group)
     add_attr(target_list=root_group, attr_type="string", is_keyable=False,
              attributes=_attr, verbose=True)
-    set_color_outliner(root_group, rgb_color=ColorConstants.RigOutliner.GRP_ROOT_RIG)
+    set_color_outliner(root_group, rgb_color=_color)
     return Node(root_group)
 
 
@@ -265,7 +269,8 @@ def create_control_root_curve():
     return Node(root_transform)
 
 
-def create_utility_groups(geometry=False, skeleton=False, control=False, setup=False, target_parent=None):
+def create_utility_groups(geometry=False, skeleton=False, control=False,
+                          setup=False, line=False, target_parent=None):
     """
     Creates category groups for the rig.
     This group holds invisible rigging elements used in the automation of the project.
@@ -274,6 +279,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False, setup=F
         skeleton (bool, optional): If True, the skeleton group is created.
         control (bool, optional): If True, the control group is created.
         setup (bool, optional): If True, the setup group is created.
+        line (bool, optional): If True, the visualization line group is created.
         target_parent (str, Node, optional): If provided, groups will be parented to this object after creation.
     Returns:
         dict: A dictionary with lookup attributes (RiggerConstants) as keys and "Node" objects as values.
@@ -296,6 +302,10 @@ def create_utility_groups(geometry=False, skeleton=False, control=False, setup=F
         _name = RiggerConstants.GRP_SETUP_NAME
         _color = ColorConstants.RigOutliner.GRP_SETUP
         desired_groups[RiggerConstants.REF_SETUP_ATTR] = (_name, _color)
+    if line:
+        _name = RiggerConstants.GRP_LINE_NAME
+        _color = None
+        desired_groups[RiggerConstants.REF_LINE_ATTR] = (_name, _color)
 
     group_dict = {}
     for attr, (name, color) in desired_groups.items():

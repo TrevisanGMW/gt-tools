@@ -1459,13 +1459,17 @@ class RigProject:
         cmds.refresh(suspend=True)
         try:
             root_group = create_root_group(is_proxy=True)
-            category_groups = create_utility_groups(control=True, setup=True, target_parent=root_group)
-            control_grp = category_groups.get(RiggerConstants.REF_CONTROL_ATTR)
-            setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
             root_transform = create_proxy_root_curve()
-            hierarchy_utils.parent(source_objects=root_transform, target_parent=control_grp)
-            set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
-            hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
+            hierarchy_utils.parent(source_objects=root_transform, target_parent=root_group)
+            category_groups = create_utility_groups(line=True, target_parent=root_group)
+            line_grp = category_groups.get(RiggerConstants.REF_LINE_ATTR)
+            attr_to_activate = ['overrideEnabled', 'overrideDisplayType', "hiddenInOutliner"]
+            set_attr(obj_list=line_grp, attr_list=attr_to_activate, value=1)
+            add_attr(target_list=str(root_transform),
+                     attributes="linesVisibility",
+                     attr_type="bool",
+                     default=True)
+            cmds.connectAttr(f'{root_transform}.linesVisibility', f'{line_grp}.visibility')
 
             # Build Proxy
             proxy_data_list = []
@@ -1476,7 +1480,7 @@ class RigProject:
 
             for proxy_data in proxy_data_list:
                 add_side_color_setup(obj=proxy_data.get_long_name())
-                hierarchy_utils.parent(source_objects=proxy_data.get_setup(), target_parent=setup_grp)
+                hierarchy_utils.parent(source_objects=proxy_data.get_setup(), target_parent=line_grp)
                 hierarchy_utils.parent(source_objects=proxy_data.get_offset(), target_parent=root_transform)
 
             # Parent Proxy
@@ -1484,17 +1488,19 @@ class RigProject:
                 if not module.get_active_state():  # If not active, skip
                     continue
                 parent_proxies(proxy_list=module.get_proxies())
-                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=setup_grp)
+                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=line_grp)
                 for proxy in module.get_proxies():
                     proxy.apply_attr_dict()
                 module.build_proxy_post()
+
+            cmds.select(clear=True)
         except Exception as e:
             raise e
         finally:
             cmds.refresh(suspend=False)
             cmds.refresh()
 
-    def build_rig(self, callback=None, delete_proxy=True):
+    def build_rig(self, delete_proxy=True, callback=None):
         """
         Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
         """
@@ -1558,4 +1564,4 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.build_proxy()
-    a_project.build_rig()
+    # a_project.build_rig()
