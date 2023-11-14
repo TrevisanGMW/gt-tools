@@ -36,6 +36,8 @@ class RiggerConstants:
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
     # Group Names
+    GRP_RIG_NAME = f'rig_{NamingConstants.Suffix.GRP}'
+    GRP_PROXY_NAME = f'rig_proxy_{NamingConstants.Suffix.GRP}'
     GRP_GEOMETRY_NAME = f'geometry_{NamingConstants.Suffix.GRP}'
     GRP_SKELETON_NAME = f'skeleton_{NamingConstants.Suffix.GRP}'
     GRP_CONTROL_NAME = f'control_{NamingConstants.Suffix.GRP}'
@@ -187,67 +189,83 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
                 logger.debug(f'Failed to create visualization line. Issue: {str(e)}')
 
 
-def create_root_curve(name="root", group_name="root"):
+def create_root_curve(name="root"):
     """
     Creates a circle/arrow curve to be used as the root of a control rig or a proxy guide
     Args:
         name (str, optional): Name of the curve transform
-        group_name (str, optional): Name of the parent group (transform) of the curve
     Returns:
-        tuple: A tuple with the name of the curve transform and the name of the parent group
+        Node, str: A Node containing the generated root curve
     """
     selection = cmds.ls(selection=True)
     root_crv = get_curve('_rig_root')
     root_crv.set_name(name=name)
     root_transform = root_crv.build()
-    root_grp = cmds.group(empty=True, world=True, name=f"{group_name}_{NamingConstants.Suffix.GRP}")
-    hide_lock_default_attrs(obj=root_grp)
-    connect_attr(source_attr=f'{root_transform}.sy', target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
+    connect_attr(source_attr=f'{root_transform}.sy',
+                 target_attr_list=[f'{root_transform}.sx', f'{root_transform}.sz'])
     set_attr_state(obj_list=root_transform, attr_list=['sx', 'sz'], hidden=True)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigProxy.CENTER)
-    cmds.parent(root_transform, root_grp)
     cmds.select(clear=True)
     if selection:
         try:
             cmds.select(selection=True)
         except Exception as e:
             logger.debug(f'Unable to restore initial selection. Issue: {str(e)}')
-    return root_transform, root_grp
+    return Node(root_transform)
+
+
+def create_root_group(is_proxy=False):
+    """
+    Creates a group to be used as the root of the current setup (rig or proxy)
+    Args:
+        is_proxy (bool, optional): If True, it will create the proxy group, instead of the main rig group
+    """
+    _name = RiggerConstants.GRP_RIG_NAME
+    _attr = RiggerConstants.REF_ROOT_RIG_ATTR
+    if is_proxy:
+        _name = RiggerConstants.GRP_PROXY_NAME
+        _attr = RiggerConstants.REF_ROOT_PROXY_ATTR
+    root_group = cmds.group(name=_name, empty=True, world=True)
+    root_group = Node(root_group)
+    hide_lock_default_attrs(obj=root_group)
+    add_attr(target_list=root_group, attr_type="string", is_keyable=False,
+             attributes=_attr, verbose=True)
+    set_color_outliner(root_group, rgb_color=ColorConstants.RigOutliner.GRP_ROOT_RIG)
+    return Node(root_group)
 
 
 def create_proxy_root_curve():
     """
     Creates a curve to be used as the root of a proxy skeleton
     Returns:
-        tuple: A tuple with the name of the curve transform and the name of the parent group
+        Node, str: A Node containing the generated root curve
     """
-    root_transform, root_group = create_root_curve(name="root", group_name="rigger_proxy")
+    root_transform = create_root_curve(name="root")
     hide_lock_default_attrs(obj=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
-    add_attr(target_list=root_group, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_ROOT_PROXY_ATTR, verbose=True)
+
     set_curve_width(obj_list=root_transform, line_width=2)
-    return root_transform, root_group
+    return Node(root_transform)
 
 
 def create_control_root_curve():
     """
     Creates a curve to be used as the root of a control rig skeleton
     Returns:
-        tuple: A tuple with the name of the curve transform and the name of the parent group
+        Node, str: A Node containing the generated root curve
     """
-    root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
+    root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ROOT_RIG_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
-    return root_transform, root_group
+    return Node(root_transform)
 
 
-def create_category_groups(geometry=False, skeleton=False, control=False, setup=False, target_parent=None):
+def create_utility_groups(geometry=False, skeleton=False, control=False, setup=False, target_parent=None):
     """
     Creates category groups for the rig.
     This group holds invisible rigging elements used in the automation of the project.
@@ -332,4 +350,4 @@ if __name__ == "__main__":
     # cmds.file(new=True, force=True)
     # create_proxy_root_curve()
     # cmds.viewFit(all=True)
-    out = create_category_groups(geometry=True, skeleton=True, setup=True, control=True, target_parent="rigger_proxy_grp")
+    out = create_utility_groups(geometry=True, skeleton=True, setup=True, control=True, target_parent="rigger_proxy_grp")
