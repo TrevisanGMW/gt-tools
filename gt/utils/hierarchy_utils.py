@@ -46,7 +46,7 @@ def parent(source_objects, target_parent, verbose=False):
                                        f'parenting it to "{str(target_parent)}".',
                           do_log=verbose)
             continue
-        current_parent = cmds.listRelatives(child, parent=True, fullPath=True) or []
+        current_parent = cmds.listRelatives(str(child), parent=True, fullPath=True) or []
         if current_parent:
             current_parent = current_parent[0]
             if current_parent != get_long_name(str(target_parent)):
