@@ -29,9 +29,9 @@ def orient_joint(joint_list,
     starting_up = OpenMaya.MVector((0, 0, 0))
     index = 0
     for jnt in joint_list:
-
+        jnt = str(jnt)
         # Store Parent
-        parent = cmds.listRelatives(jnt, parent=True) or []
+        parent = cmds.listRelatives(jnt, parent=True, fullPath=True) or []
         if len(parent) != 0:
             parent = parent[0]
 
@@ -62,7 +62,7 @@ def orient_joint(joint_list,
                 if parent == "" or (abs(pos_jnt_ws[0] - pos_parent_ws[0]) <= tolerance and
                                     abs(pos_jnt_ws[1] - pos_parent_ws[1]) <= tolerance and
                                     abs(pos_jnt_ws[2] - pos_parent_ws[2]) <= tolerance):
-                    aim_children = cmds.listRelatives(aim_target, children=True) or []
+                    aim_children = cmds.listRelatives(aim_target, children=True, fullPath=True) or []
                     aim_child = ""
 
                     for child in aim_children:
