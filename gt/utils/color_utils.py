@@ -286,6 +286,7 @@ class ColorConstants:
             e.g. (1, 0, 0) = Red
             """
         GRP_ROOT_RIG = (1, .45, .7)  # Salmon
+        GRP_ROOT_PROXY = (1, .75, .85)  # Soft Salmon
         GRP_GEOMETRY = (.3, 1, .8)  # Bright Turquoise
         GRP_SKELETON = (.75, .45, .95)  # Purple
         GRP_CONTROL = (1, 0.45, 0.2)  # Orange
