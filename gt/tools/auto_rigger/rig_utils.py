@@ -3,12 +3,12 @@ Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr
+from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
-from gt.utils.color_utils import set_color_viewport, ColorConstants
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.attr_utils import set_attr_state
-from gt.utils.hierarchy_utils import parent
+from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
@@ -25,20 +25,29 @@ class RiggerConstants:
         Constant values used by the auto rigging system.
         e.g. Attribute names, dictionary keys or initial values.
         """
+    # General Keys and Attributes
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
-    # Separators
+    # Separator Attributes
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
+    # Group Names
+    GRP_GEOMETRY_NAME = f'geometry_{NamingConstants.Suffix.GRP}'
+    GRP_SKELETON_NAME = f'skeleton_{NamingConstants.Suffix.GRP}'
+    GRP_CONTROL_NAME = f'control_{NamingConstants.Suffix.GRP}'
+    GRP_SETUP_NAME = f'setup_{NamingConstants.Suffix.GRP}'
     # Reference Attributes
-    ROOT_PROXY_ATTR = "proxyRootRef"
-    ROOT_CONTROL_ATTR = "controlRootRef"
-    ROOT_RIG_ATTR = "rigRootRef"
-    SETUP_GRP_ATTR = "setupRef"
+    REF_ROOT_RIG_ATTR = "rigRootLookupAttr"
+    REF_ROOT_PROXY_ATTR = "proxyRootLookupAttr"
+    REF_ROOT_CONTROL_ATTR = "controlRootLookupAttr"
+    REF_GEOMETRY_ATTR = "geometryLookupAttr"
+    REF_SKELETON_ATTR = "skeletonLookupAttr"
+    REF_CONTROL_ATTR = "controlLookupAttr"
+    REF_SETUP_ATTR = "setupLookupAttr"
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -129,14 +138,14 @@ def find_control_root_curve_node(use_transform=False):
     obj_type = "nurbsCurve"
     if use_transform:
         obj_type = "transform"
-    return find_objects_with_attr(RiggerConstants.ROOT_CONTROL_ATTR, obj_type=obj_type)
+    return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
 
 
 def find_rig_root_transform_node():
     """
     Looks for the rig transform (group) by searching for objects containing the expected attribute.
     """
-    return find_objects_with_attr(RiggerConstants.ROOT_RIG_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
@@ -170,7 +179,8 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
                 line_objects = create_connection_line(object_a=built_proxy,
                                                       object_b=parent_proxy) or []
                 if lines_parent and cmds.objExists(lines_parent):
-                    generated_objects += parent(source_objects=line_objects, target_parent=lines_parent) or []
+                    generated_objects += hierarchy_utils.parent(source_objects=line_objects,
+                                                                target_parent=lines_parent) or []
                 else:
                     generated_objects += line_objects
             except Exception as e:
@@ -215,9 +225,9 @@ def create_proxy_root_curve():
     hide_lock_default_attrs(obj=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.ROOT_CONTROL_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
     add_attr(target_list=root_group, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.ROOT_PROXY_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ROOT_PROXY_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=2)
     return root_transform, root_group
 
@@ -231,10 +241,56 @@ def create_control_root_curve():
     root_transform, root_group = create_root_curve(name="root_ctrl", group_name="rig")
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.ROOT_RIG_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ROOT_RIG_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return root_transform, root_group
+
+
+def create_category_groups(geometry=False, skeleton=False, control=False, setup=False, target_parent=None):
+    """
+    Creates category groups for the rig.
+    This group holds invisible rigging elements used in the automation of the project.
+    Args:
+        geometry (bool, optional): If True, the geometry group is created.
+        skeleton (bool, optional): If True, the skeleton group is created.
+        control (bool, optional): If True, the control group is created.
+        setup (bool, optional): If True, the setup group is created.
+        target_parent (str, Node, optional): If provided, groups will be parented to this object after creation.
+    Returns:
+        dict: A dictionary with lookup attributes (RiggerConstants) as keys and "Node" objects as values.
+              e.g. {RiggerConstants.REF_GEOMETRY_ATTR: Node("group_name")}
+    """
+    desired_groups = {}
+    if geometry:
+        _name = RiggerConstants.GRP_GEOMETRY_NAME
+        _color = ColorConstants.RigOutliner.GRP_GEOMETRY
+        desired_groups[RiggerConstants.REF_GEOMETRY_ATTR] = (_name, _color)
+    if skeleton:
+        _name = RiggerConstants.GRP_SKELETON_NAME
+        _color = ColorConstants.RigOutliner.GRP_SKELETON
+        desired_groups[RiggerConstants.REF_SKELETON_ATTR] = (_name, _color)
+    if control:
+        _name = RiggerConstants.GRP_CONTROL_NAME
+        _color = ColorConstants.RigOutliner.GRP_CONTROL
+        desired_groups[RiggerConstants.REF_CONTROL_ATTR] = (_name, _color)
+    if setup:
+        _name = RiggerConstants.GRP_SETUP_NAME
+        _color = ColorConstants.RigOutliner.GRP_SETUP
+        desired_groups[RiggerConstants.REF_SETUP_ATTR] = (_name, _color)
+
+    group_dict = {}
+    for attr, (name, color) in desired_groups.items():
+        group = cmds.group(name=name, empty=True, world=True)
+        add_attr(target_list=group, attr_type="string", is_keyable=False,
+                 attributes=attr, verbose=True)
+        _node = Node(group)
+        group_dict[attr] = _node
+        if color:
+            set_color_outliner(str(_node), rgb_color=color)
+        if target_parent:
+            hierarchy_utils.parent(source_objects=_node, target_parent=str(target_parent))
+    return group_dict
 
 
 def parent_proxies(proxy_list):
@@ -252,7 +308,7 @@ def parent_proxies(proxy_list):
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
             if offset:
-                parent(source_objects=offset, target_parent=parent_proxy)
+                hierarchy_utils.parent(source_objects=offset, target_parent=parent_proxy)
 
 
 def get_proxy_offset(proxy_name):
@@ -273,6 +329,7 @@ def get_proxy_offset(proxy_name):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    cmds.file(new=True, force=True)
-    create_proxy_root_curve()
-    cmds.viewFit(all=True)
+    # cmds.file(new=True, force=True)
+    # create_proxy_root_curve()
+    # cmds.viewFit(all=True)
+    out = create_category_groups(geometry=True, skeleton=True, setup=True, control=True, target_parent="rigger_proxy_grp")
