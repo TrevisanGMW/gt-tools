@@ -13,7 +13,6 @@ from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -32,11 +31,14 @@ class RiggerConstants:
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
+    # Separators
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
-    ROOT_PROXY_ATTR = "proxyData"
-    ROOT_RIG_ATTR = "rigData"
-    SETUP_DATA_ATTR = "setupData"  # Attribute used to find setup group
+    # Reference Attributes
+    ROOT_PROXY_ATTR = "proxyRootRef"
+    ROOT_CONTROL_ATTR = "controlRootRef"
+    ROOT_RIG_ATTR = "rigRootRef"
+    SETUP_GRP_ATTR = "setupRef"
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -93,22 +95,48 @@ def find_joint_node_from_uuid(uuid_string):
         return Node(proxy)
 
 
-def parent_proxies(proxy_list):
+def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True):
     """
-    Parent proxy elements (and their offset groups) according to their parent UUID
+    Return object if provided UUID is present in it
     Args:
-        proxy_list (list): A list of Proxy objects to be parented.
-                           UUID and parent UUID fields are required for the operation.
-                           Objects without it will be ignored.
+        attr_name (string): Name of the attribute where the UUID is stored.
+        obj_type (str, optional): Type of objects to look for (default is "transform")
+        transform_lookup (bool, optional): When not a transform, it checks the item parent instead of the item itself.
+    Returns:
+        str, None: If found, the object with a matching UUID, otherwise None
     """
-    # Parent Joints
-    for proxy in proxy_list:
-        built_proxy = find_proxy_from_uuid(proxy.get_uuid())
-        parent_proxy = find_proxy_from_uuid(proxy.get_parent_uuid())
-        if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
-            offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
-            if offset:
-                parent(source_objects=offset, target_parent=parent_proxy)
+    obj_list = cmds.ls(typ=obj_type, long=True) or []
+    result_list = set()
+    for obj in obj_list:
+        if transform_lookup and obj_type != "transform":
+            _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
+            if _parent:
+                obj = _parent[0]
+        if cmds.objExists(f'{obj}.{attr_name}'):
+            result_list.add(obj)
+    return list(result_list)
+
+
+def find_control_root_curve_node(use_transform=False):
+    """
+    Looks for the control root curve by searching for objects containing the expected attribute.
+    Args:
+        use_transform (bool, optional): If active, it will use the type transform to look for the object.
+                                        This can potentially make the operation less efficient, but will
+                                        run a more complete search as it will include curves that had
+                                        their shapes deleted.
+    """
+    obj_type = "nurbsCurve"
+    if use_transform:
+        obj_type = "transform"
+    return find_objects_with_attr(RiggerConstants.ROOT_CONTROL_ATTR, obj_type=obj_type)
+
+
+def find_rig_root_transform_node():
+    """
+    Looks for the rig transform (group) by searching for objects containing the expected attribute.
+    """
+    return find_objects_with_attr(RiggerConstants.ROOT_RIG_ATTR, obj_type="transform")
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
@@ -187,6 +215,8 @@ def create_proxy_root_curve():
     hide_lock_default_attrs(obj=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
+             attributes=RiggerConstants.ROOT_CONTROL_ATTR, verbose=True)
+    add_attr(target_list=root_group, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.ROOT_PROXY_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=2)
     return root_transform, root_group
@@ -207,21 +237,22 @@ def create_control_root_curve():
     return root_transform, root_group
 
 
-def find_objects_with_attr(attr_name, obj_type="transform"):
+def parent_proxies(proxy_list):
     """
-    Return object if provided UUID is present in it
+    Parent proxy elements (and their offset groups) according to their parent UUID
     Args:
-        attr_name (string): Name of the attribute where the UUID is stored.
-        obj_type (optional, string): Type of objects to look for (default is "transform")
-    Returns:
-        str, None: If found, the object with a matching UUID, otherwise None
+        proxy_list (list): A list of Proxy objects to be parented.
+                           UUID and parent UUID fields are required for the operation.
+                           Objects without it will be ignored.
     """
-    obj_list = cmds.ls(typ=obj_type, long=True) or []
-    result_list = []
-    for obj in obj_list:
-        if cmds.objExists(f'{obj}.{attr_name}'):
-            result_list.append(obj)
-    return result_list
+    # Parent Joints
+    for proxy in proxy_list:
+        built_proxy = find_proxy_from_uuid(proxy.get_uuid())
+        parent_proxy = find_proxy_from_uuid(proxy.get_parent_uuid())
+        if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
+            offset = cmds.listRelatives(built_proxy, parent=True, fullPath=True)
+            if offset:
+                parent(source_objects=offset, target_parent=parent_proxy)
 
 
 def get_proxy_offset(proxy_name):
