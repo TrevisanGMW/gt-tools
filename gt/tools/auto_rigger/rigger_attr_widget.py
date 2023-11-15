@@ -12,6 +12,7 @@ from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
+import pprint
 import ast
 
 
@@ -196,11 +197,42 @@ class ModuleAttrWidget(QWidget):
         self.refresh_proxy_basic_table()
         self.scroll_content_layout.addLayout(_layout)
 
+    def add_widget_action_buttons(self):
+        """
+        Adds actions buttons (read proxy, build proxy, etc…)
+        """
+        _layout = QHBoxLayout()
+        # Build Module Proxy
+        build_mod_proxy_btn = QPushButton("Build Proxy (This Module Only)")
+        build_mod_proxy_btn.setIcon(QIcon(resource_library.Icon.library_build))
+        build_mod_proxy_btn.clicked.connect(self.on_button_build_mod_proxy_clicked)
+        build_mod_proxy_btn.setToolTip("Read Scene Data")
+        _layout.addWidget(build_mod_proxy_btn)
+        # Read Scene Data
+        read_scene_data_btn = QPushButton("Read Scene Data")
+        read_scene_data_btn.setIcon(QIcon(resource_library.Icon.library_parameters))
+        read_scene_data_btn.clicked.connect(self.on_button_read_scene_data_clicked)
+        read_scene_data_btn.setToolTip("Read Scene Data")
+        _layout.addWidget(read_scene_data_btn)
+        self.scroll_content_layout.addLayout(_layout)
+
     # Utils ----------------------------------------------------------------------------------------------------
     def refresh_current_widgets(self):
         """
         Refreshes available widgets. For example, tables, so they should the correct module name.
         """
+        if self.mod_name_field:
+            _name = self.module.get_name()
+            if _name:
+                self.mod_name_field.setText(_name)
+        if self.mod_prefix_field:
+            _prefix = self.module.get_prefix()
+            if _prefix:
+                self.mod_prefix_field.setText(_prefix)
+        if self.mod_suffix_field:
+            _suffix = self.module.get_suffix()
+            if _suffix:
+                self.mod_suffix_field.setText(_suffix)
         if self.table_proxy_parent_wdg:
             self.refresh_proxy_parent_table()
         if self.table_proxy_basic_wdg:
@@ -321,6 +353,7 @@ class ModuleAttrWidget(QWidget):
             _data_as_dict = ast.literal_eval(data)
             module.read_data_from_dict(_data_as_dict)
             self.refresh_current_widgets()
+            print("got here")
         except Exception as e:
             raise Exception(f'Unable to set module attributes from provided raw data. Issue: "{e}".')
 
@@ -442,18 +475,19 @@ class ModuleAttrWidget(QWidget):
         proxy_raw_data = proxy.get_proxy_as_dict(include_uuid=True,
                                                  include_transform_data=True,
                                                  include_offset_data=True)
-        formatted_dict = iterable_utils.format_dict_with_keys_per_line(proxy_raw_data,
-                                                                       keys_per_line=1,
-                                                                       bracket_new_line=True)
+        formatted_dict = pprint.pformat(proxy_raw_data, sort_dicts=False, indent=4)
         param_win.set_text_field_text(formatted_dict)
         confirm_button_func = partial(self.update_proxy_from_raw_data, param_win.get_text_field_text, proxy)
         param_win.confirm_button.clicked.connect(confirm_button_func)
         param_win.show()
 
-    def on_button_edit_module_clicked(self):
+    def on_button_edit_module_clicked(self, skip_proxies=True, *args):
         """
         Shows a text-editor window with the module converted to a dictionary (raw data)
         If the user applies the changes, and they are considered valid, the module is updated with it.
+        Args:
+            skip_proxies (bool, optional): If active, the "proxies" key will be ignored.
+            *args: Variable-length argument list. - Here to avoid issues with the "skip_proxies" argument.
         """
         module_name = self.module.get_name()
         if not module_name:
@@ -467,9 +501,9 @@ class ModuleAttrWidget(QWidget):
                                     is_python_code=True)
         param_win.set_confirm_button_text("Apply")
         module_raw_data = self.module.get_module_as_dict(include_module_name=True, include_offset_data=True)
-        formatted_dict = iterable_utils.format_dict_with_keys_per_line(module_raw_data,
-                                                                       keys_per_line=1,
-                                                                       bracket_new_line=True)
+        if "proxies" in module_raw_data and skip_proxies:
+            module_raw_data.pop("proxies")
+        formatted_dict = pprint.pformat(module_raw_data, sort_dicts=False, indent=4)
         param_win.set_text_field_text(formatted_dict)
         confirm_button_func = partial(self.update_module_from_raw_data,
                                       param_win.get_text_field_text,
@@ -483,6 +517,20 @@ class ModuleAttrWidget(QWidget):
         """
         self.module.add_new_proxy()
         self.refresh_current_widgets()
+
+    def on_button_read_scene_data_clicked(self):
+        """
+        Reads proxy data from scene
+        """
+        print('"on_button_read_scene_data_clicked called')
+        self.module.read_data_from_scene()
+        self.refresh_current_widgets()
+
+    def on_button_build_mod_proxy_clicked(self):
+        """
+        Reads proxy data from scene
+        """
+        print('"on_button_build_mod_proxy_clicked called')
 
     def create_widget_parent_combobox(self, target):
         """
@@ -657,6 +705,7 @@ class ModuleGenericAttrWidget(ModuleAttrWidget):
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
         self.add_widget_proxy_parent_table()
+        self.add_widget_action_buttons()
 
 
 class ModuleSpineAttrWidget(ModuleAttrWidget):
