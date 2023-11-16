@@ -3,18 +3,16 @@ Auto Rigger Attr Widgets
 """
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
+from gt.utils.iterable_utils import dict_as_formatted_str
 from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import QHeaderWithWidgets
 from PySide2 import QtWidgets, QtCore
-from gt.utils import iterable_utils
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
-import pprint
 import ast
-
 
 # Logging Setup
 logging.basicConfig()
@@ -353,7 +351,6 @@ class ModuleAttrWidget(QWidget):
             _data_as_dict = ast.literal_eval(data)
             module.read_data_from_dict(_data_as_dict)
             self.refresh_current_widgets()
-            print("got here")
         except Exception as e:
             raise Exception(f'Unable to set module attributes from provided raw data. Issue: "{e}".')
 
@@ -475,7 +472,7 @@ class ModuleAttrWidget(QWidget):
         proxy_raw_data = proxy.get_proxy_as_dict(include_uuid=True,
                                                  include_transform_data=True,
                                                  include_offset_data=True)
-        formatted_dict = pprint.pformat(proxy_raw_data, sort_dicts=False, indent=4)
+        formatted_dict = dict_as_formatted_str(proxy_raw_data, one_key_per_line=True)
         param_win.set_text_field_text(formatted_dict)
         confirm_button_func = partial(self.update_proxy_from_raw_data, param_win.get_text_field_text, proxy)
         param_win.confirm_button.clicked.connect(confirm_button_func)
@@ -503,7 +500,7 @@ class ModuleAttrWidget(QWidget):
         module_raw_data = self.module.get_module_as_dict(include_module_name=True, include_offset_data=True)
         if "proxies" in module_raw_data and skip_proxies:
             module_raw_data.pop("proxies")
-        formatted_dict = pprint.pformat(module_raw_data, sort_dicts=False, indent=4)
+        formatted_dict = dict_as_formatted_str(module_raw_data, one_key_per_line=True)
         param_win.set_text_field_text(formatted_dict)
         confirm_button_func = partial(self.update_module_from_raw_data,
                                       param_win.get_text_field_text,

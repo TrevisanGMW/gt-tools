@@ -213,8 +213,7 @@ if __name__ == "__main__":
         'is_alive': True
     }
     from gt.utils import iterable_utils
-    formatted_dict = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=1,
-                                                                   bracket_new_line=True)
+    formatted_dict = iterable_utils.dict_as_formatted_str(sample_dict, one_key_per_line=True)
 
     with qt_utils.QtApplicationContext():
         mocked_message = r"Mocked Message. Mocked Message. Mocked Message. Mocked Message. Mocked Message."
