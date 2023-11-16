@@ -97,13 +97,16 @@ def compare_identical_dict_keys(dict1, dict2):
     return set(dict1.keys()) == set(dict2.keys())
 
 
-def compare_identical_dict_values_types(dict1, dict2):
+def compare_identical_dict_values_types(dict1, dict2, allow_none=False):
     """
     Compare the types of values in two dictionaries.
 
     Args:
         dict1 (dict): The first dictionary.
         dict2 (dict): The second dictionary.
+        allow_none (bool, optional): If True this function will consider None a valid type
+                                     when comparing with other types.
+                                     e.g. "int" compared with "None" = Ok
 
     Returns:
         bool: True if all corresponding values have the same type, False otherwise.
@@ -113,6 +116,8 @@ def compare_identical_dict_values_types(dict1, dict2):
     if keys1 != keys2:
         return False
     for key in keys1:
+        if (type(dict1[key]) is None or type(dict2[key] is None)) and allow_none:
+            continue
         if type(dict1[key]) != type(dict2[key]):
             return False
     return True
@@ -142,7 +147,7 @@ def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
             _key_dict = {key: value}
             _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth)
             formatted_dict += _formatted_line[1:-1]
-            if index != len(input_dict)-1:
+            if index != len(input_dict) - 1:
                 formatted_dict += ",\n "
         formatted_dict += "}"
 
@@ -151,9 +156,9 @@ def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
         end_index = formatted_dict.rfind("}")
 
         formatted_result = (
-            formatted_dict[:start_index] + "\n " +
-            formatted_dict[start_index:end_index] + "\n" +
-            formatted_dict[end_index:]
+                formatted_dict[:start_index] + "\n " +
+                formatted_dict[start_index:end_index] + "\n" +
+                formatted_dict[end_index:]
         )
         return formatted_result
     else:
