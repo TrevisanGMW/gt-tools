@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.string_utils import extract_digits_as_int
 import logging
+import pprint
 
 # Logging Setup
 logging.basicConfig()
@@ -166,6 +167,38 @@ def format_dict_with_keys_per_line(input_dict, keys_per_line=2, bracket_new_line
     return "{" + _bracket_new_line + ",\n".join(formatted_lines) + _bracket_new_line + "}"
 
 
+def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None, format_braces=True, sort_dicts=False):
+    """
+    Convert a dictionary to a formatted string.
+
+    Args:
+    input_dict (dict): The dictionary to be formatted.
+    indent (int): Number of spaces for indentation (default is 1).
+    width (int): Width of the formatted string (default is 80).
+    depth (int or None): The maximum depth to pretty-print nested structures.
+            If None, there is no limit (default is None).
+    format_braces (bool): If True, format braces on separate lines (default is True).
+    sort_dicts (bool): If True, sort dictionaries by key (default is False).
+
+    Returns:
+      str: The formatted string representation of the dictionary.
+    """
+    formatted_dict = pprint.pformat(input_dict, indent=indent, width=width, depth=depth, sort_dicts=sort_dicts)
+
+    if formatted_dict.startswith("{") and formatted_dict.endswith("}") and format_braces:
+        start_index = formatted_dict.find("{") + 1
+        end_index = formatted_dict.rfind("}")
+
+        formatted_result = (
+            formatted_dict[:start_index] + "\n" +
+            formatted_dict[start_index:end_index] + "\n" +
+            formatted_dict[end_index:]
+        )
+        return formatted_result
+    else:
+        return formatted_dict
+
+
 def remove_list_duplicates(input_list):
     """
     Remove duplicates from a list using a set.
@@ -250,3 +283,4 @@ def get_highest_int_from_str_list(str_list):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    print(dict_as_formatted_str({}))

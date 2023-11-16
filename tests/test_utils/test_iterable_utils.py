@@ -241,3 +241,33 @@ class TestListUtils(unittest.TestCase):
         expected = 0
         result = iterable_utils.get_highest_int_from_str_list(["hello", "world", ""])
         self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_default_formatting(self):
+        input_dict = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+        expected = "{\n 'a': 1, 'b': {'c': 2, 'd': {'e': 3}}\n}"
+        result = iterable_utils.dict_as_formatted_str(input_dict)
+        self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_custom_formatting(self):
+        input_dict = {'x': [1, 2, 3], 'y': {'z': 'hello'}}
+        expected = "{\n  'x': [1, 2, 3],\n  'y': {'z': 'hello'}\n}"
+        result = iterable_utils.dict_as_formatted_str(input_dict, indent=2, width=30, format_braces=True, sort_dicts=False)
+        self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_sort_dicts(self):
+        input_dict = {'b': 2, 'a': 1, 'c': {'z': 26, 'y': 25}}
+        expected = "{\n 'a': 1,\n 'b': 2,\n 'c': {'y': 25, 'z': 26}\n}"
+        result = iterable_utils.dict_as_formatted_str(input_dict, sort_dicts=True)
+        self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_custom_depth(self):
+        input_dict = {'a': {'b': {'c': {'d': 42}}}}
+        expected = "{\n 'a': {'b': {'c': {...}}}\n}"
+        result = iterable_utils.dict_as_formatted_str(input_dict, depth=2)
+        self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_no_format_braces(self):
+        input_dict = {'a': 1, 'b': {'c': 2}}
+        expected = "{'a': 1, 'b': {'c': 2}}"
+        result = iterable_utils.dict_as_formatted_str(input_dict, format_braces=False)
+        self.assertEqual(expected, result)
