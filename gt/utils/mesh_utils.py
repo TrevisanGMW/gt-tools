@@ -501,7 +501,9 @@ class ParametricMesh(MeshFile):
         if not iterable_utils.compare_identical_dict_keys(self.parameters, self._original_parameters):
             logger.debug(f"Invalid parameters, new unrecognized keys were added.")
             return False
-        if not iterable_utils.compare_identical_dict_values_types(self.parameters, self._original_parameters):
+        if not iterable_utils.compare_identical_dict_values_types(self.parameters,
+                                                                  self._original_parameters,
+                                                                  allow_none=True):
             logger.debug(f"Invalid parameters, values were assign new types.")
             return False
         return True
