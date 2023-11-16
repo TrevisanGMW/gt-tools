@@ -118,79 +118,41 @@ def compare_identical_dict_values_types(dict1, dict2):
     return True
 
 
-def format_dict_with_keys_per_line(input_dict, keys_per_line=2, bracket_new_line=False):
-    """
-    Format a dictionary with a specified number of keys per line.
-
-    Args:
-        input_dict (dict): The dictionary to be formatted.
-        keys_per_line (int, optional): The number of keys to include per line. Default is 2.
-        bracket_new_line (bool, optional): If active, it adds a new line after the first bracket and
-                                               before the last. e.g. "{\n"key":"value"\n}
-    Returns:
-        str: The formatted dictionary as a string.
-
-    Example:
-        sample_dict = {
-            'name': 'John Doe',
-            'age': 30,
-            'city': 'New York',
-            'email': 'john@example.com',
-            'occupation': 'Software Engineer'
-        }
-        keys_per_line = 2
-        formatted_dict = format_dict_with_keys_per_line(sample_dict, keys_per_line)
-        print(formatted_dict)
-        {
-            "name": "John Doe", "age": 30,
-            "city": "New York", "email": "john@example.com",
-            "occupation": "Software Engineer"
-        }
-    """
-    formatted_lines = []
-    keys = list(input_dict.keys())
-
-    for i in range(0, len(keys), keys_per_line):
-        line_keys = keys[i:i + keys_per_line]
-        line_entries = []
-        for key in line_keys:
-            value = input_dict[key]
-            if isinstance(value, str):
-                line_entries.append(f'"{key}": "{value}"')
-            else:
-                line_entries.append(f'"{key}": {repr(value)}')
-        formatted_lines.append(", ".join(line_entries))
-
-    _bracket_new_line = ""
-    if bracket_new_line:
-        _bracket_new_line = "\n"
-    return "{" + _bracket_new_line + ",\n".join(formatted_lines) + _bracket_new_line + "}"
-
-
-def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None, format_braces=True, sort_dicts=False):
+def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
+                          format_braces=True, sort_dicts=False, one_key_per_line=False):
     """
     Convert a dictionary to a formatted string.
 
     Args:
     input_dict (dict): The dictionary to be formatted.
-    indent (int): Number of spaces for indentation (default is 1).
-    width (int): Width of the formatted string (default is 80).
+    indent (int, optional): Number of spaces for indentation (default is 1).
+    width (int, optional): Width of the formatted string (default is 80).
     depth (int or None): The maximum depth to pretty-print nested structures.
             If None, there is no limit (default is None).
-    format_braces (bool): If True, format braces on separate lines (default is True).
-    sort_dicts (bool): If True, sort dictionaries by key (default is False).
+    format_braces (bool, optional): If True, format braces on separate lines (default is True).
+    sort_dicts (bool, optional): If True, sort dictionaries by key (default is False).
+    one_key_per_line (bool, optional): If True, it will enforce one key and one value per line (top level only)
 
     Returns:
       str: The formatted string representation of the dictionary.
     """
     formatted_dict = pprint.pformat(input_dict, indent=indent, width=width, depth=depth, sort_dicts=sort_dicts)
+    if one_key_per_line:
+        formatted_dict = "{"
+        for index, (key, value) in enumerate(input_dict.items()):
+            _key_dict = {key: value}
+            _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth, sort_dicts=sort_dicts)
+            formatted_dict += _formatted_line[1:-1]
+            if index != len(input_dict)-1:
+                formatted_dict += ",\n "
+        formatted_dict += "}"
 
     if formatted_dict.startswith("{") and formatted_dict.endswith("}") and format_braces:
         start_index = formatted_dict.find("{") + 1
         end_index = formatted_dict.rfind("}")
 
         formatted_result = (
-            formatted_dict[:start_index] + "\n" +
+            formatted_dict[:start_index] + "\n " +
             formatted_dict[start_index:end_index] + "\n" +
             formatted_dict[end_index:]
         )

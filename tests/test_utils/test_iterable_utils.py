@@ -149,56 +149,6 @@ class TestListUtils(unittest.TestCase):
         result = iterable_utils.compare_identical_dict_values_types(dict1, dict2)
         self.assertEqual(expected, result)
 
-    def test_default_keys_per_line(self):
-        sample_dict = {
-            'name': 'John Doe',
-            'age': 30,
-            'city': 'Vancouver',
-            'email': 'john@example.com',
-            'occupation': 'Software Engineer'
-        }
-        expected_result = ('{"name": "John Doe", "age": 30,\n'
-                           '"city": "Vancouver", "email": "john@example.com",\n'
-                           '"occupation": "Software Engineer"}')
-        result = iterable_utils.format_dict_with_keys_per_line(sample_dict)
-        self.assertEqual(result, expected_result)
-
-    def test_custom_keys_per_line(self):
-        sample_dict = {
-            'a': 1,
-            'b': 2,
-            'c': 3,
-            'd': 4,
-            'e': 5,
-        }
-        expected_result = ('{'
-                           '"a": 1, "b": 2,\n'
-                           '"c": 3, "d": 4,\n'
-                           '"e": 5}')
-        result = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=2)
-        self.assertEqual(result, expected_result)
-
-    def test_single_key_per_line(self):
-        sample_dict = {
-            'key1': 'value1',
-            'key2': 'value2',
-            'key3': 'value3'
-        }
-        expected_result = ('{"key1": "value1",\n'
-                           '"key2": "value2",\n'
-                           '"key3": "value3"}')
-        result = iterable_utils.format_dict_with_keys_per_line(sample_dict, keys_per_line=1)
-        self.assertEqual(result, expected_result)
-
-    def test_bracket_new_line(self):
-        input_dict = {
-            'key1': 'value1',
-            'key2': 'value2',
-        }
-        expected = '{\n"key1": "value1", "key2": "value2"\n}'
-        result = iterable_utils.format_dict_with_keys_per_line(input_dict, bracket_new_line=True)
-        self.assertEqual(expected, result)
-
     def test_round_numbers_in_list_integers(self):
         input_list = [1, 2, 3]
         expected_result = [1, 2, 3]
@@ -251,18 +201,19 @@ class TestListUtils(unittest.TestCase):
     def test_dict_as_formatted_str_custom_formatting(self):
         input_dict = {'x': [1, 2, 3], 'y': {'z': 'hello'}}
         expected = "{\n  'x': [1, 2, 3],\n  'y': {'z': 'hello'}\n}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, indent=2, width=30, format_braces=True, sort_dicts=False)
+        result = iterable_utils.dict_as_formatted_str(input_dict, indent=2, width=30,
+                                                      format_braces=True, sort_dicts=False)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_sort_dicts(self):
         input_dict = {'b': 2, 'a': 1, 'c': {'z': 26, 'y': 25}}
         expected = "{\n 'a': 1,\n 'b': 2,\n 'c': {'y': 25, 'z': 26}\n}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, sort_dicts=True)
+        result = iterable_utils.dict_as_formatted_str(input_dict, sort_dicts=True, width=30)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_custom_depth(self):
         input_dict = {'a': {'b': {'c': {'d': 42}}}}
-        expected = "{\n 'a': {'b': {'c': {...}}}\n}"
+        expected = "{\n 'a': {'b': {...}}\n}"
         result = iterable_utils.dict_as_formatted_str(input_dict, depth=2)
         self.assertEqual(expected, result)
 
@@ -270,4 +221,12 @@ class TestListUtils(unittest.TestCase):
         input_dict = {'a': 1, 'b': {'c': 2}}
         expected = "{'a': 1, 'b': {'c': 2}}"
         result = iterable_utils.dict_as_formatted_str(input_dict, format_braces=False)
+        self.assertEqual(expected, result)
+
+    def test_dict_as_formatted_str_no_format_braces_on_key_per_line(self):
+        input_dict = {'a': 1, 'b': {'c': 2}}
+        expected = "{'a': 1,\n 'b': {'c': 2}}"
+        result = iterable_utils.dict_as_formatted_str(input_dict,
+                                                      format_braces=False,
+                                                      one_key_per_line=True)
         self.assertEqual(expected, result)
