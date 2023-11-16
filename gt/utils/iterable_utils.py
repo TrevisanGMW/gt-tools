@@ -119,7 +119,7 @@ def compare_identical_dict_values_types(dict1, dict2):
 
 
 def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
-                          format_braces=True, sort_dicts=False, one_key_per_line=False):
+                          format_braces=True, one_key_per_line=False):
     """
     Convert a dictionary to a formatted string.
 
@@ -130,18 +130,17 @@ def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
     depth (int or None): The maximum depth to pretty-print nested structures.
             If None, there is no limit (default is None).
     format_braces (bool, optional): If True, format braces on separate lines (default is True).
-    sort_dicts (bool, optional): If True, sort dictionaries by key (default is False).
     one_key_per_line (bool, optional): If True, it will enforce one key and one value per line (top level only)
 
     Returns:
       str: The formatted string representation of the dictionary.
     """
-    formatted_dict = pprint.pformat(input_dict, indent=indent, width=width, depth=depth, sort_dicts=sort_dicts)
+    formatted_dict = pprint.pformat(input_dict, indent=indent, width=width, depth=depth)
     if one_key_per_line:
         formatted_dict = "{"
         for index, (key, value) in enumerate(input_dict.items()):
             _key_dict = {key: value}
-            _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth, sort_dicts=sort_dicts)
+            _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth)
             formatted_dict += _formatted_line[1:-1]
             if index != len(input_dict)-1:
                 formatted_dict += ",\n "
@@ -159,6 +158,18 @@ def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
         return formatted_result
     else:
         return formatted_dict
+
+
+def sort_dict_by_keys(input_dict):
+    """
+    Sorts a dictionary based on its keys.
+    Args:
+        input_dict (dict): The input dictionary to be sorted.
+    Returns:
+        dict: A new dictionary sorted by keys.
+    """
+    sorted_dict = {k: v for k, v in sorted(input_dict.items(), key=lambda item: str(item[0]))}
+    return sorted_dict
 
 
 def remove_list_duplicates(input_list):

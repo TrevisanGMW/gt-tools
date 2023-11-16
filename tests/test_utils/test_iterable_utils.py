@@ -201,26 +201,33 @@ class TestListUtils(unittest.TestCase):
     def test_dict_as_formatted_str_custom_formatting(self):
         input_dict = {'x': [1, 2, 3], 'y': {'z': 'hello'}}
         expected = "{\n  'x': [1, 2, 3],\n  'y': {'z': 'hello'}\n}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, indent=2, width=30,
-                                                      format_braces=True, sort_dicts=False)
+        result = iterable_utils.dict_as_formatted_str(input_dict,
+                                                      indent=2,
+                                                      width=30,
+                                                      format_braces=True,
+                                                      sort_dicts=False)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_sort_dicts(self):
         input_dict = {'b': 2, 'a': 1, 'c': {'z': 26, 'y': 25}}
         expected = "{\n 'a': 1,\n 'b': 2,\n 'c': {'y': 25, 'z': 26}\n}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, sort_dicts=True, width=30)
+        result = iterable_utils.dict_as_formatted_str(input_dict,
+                                                      sort_dicts=True,
+                                                      width=30)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_custom_depth(self):
         input_dict = {'a': {'b': {'c': {'d': 42}}}}
         expected = "{\n 'a': {'b': {...}}\n}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, depth=2)
+        result = iterable_utils.dict_as_formatted_str(input_dict,
+                                                      depth=2)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_no_format_braces(self):
         input_dict = {'a': 1, 'b': {'c': 2}}
         expected = "{'a': 1, 'b': {'c': 2}}"
-        result = iterable_utils.dict_as_formatted_str(input_dict, format_braces=False)
+        result = iterable_utils.dict_as_formatted_str(input_dict,
+                                                      format_braces=False)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_no_format_braces_on_key_per_line(self):
@@ -230,3 +237,22 @@ class TestListUtils(unittest.TestCase):
                                                       format_braces=False,
                                                       one_key_per_line=True)
         self.assertEqual(expected, result)
+
+    def test_sort_dict_by_keys_integer_keys(self):
+        input_dict = {3: 'three', 1: 'one', 2: 'two'}
+        expected_result = {1: 'one', 2: 'two', 3: 'three'}
+        result = iterable_utils.sort_dict_by_keys(input_dict)
+        self.assertEqual(expected_result, result)
+
+    def test_sort_dict_by_keys_empty_dict(self):
+        input_dict = {}
+        expected_result = {}
+        result = iterable_utils.sort_dict_by_keys(input_dict)
+        self.assertEqual(expected_result, result)
+
+    def test_sort_dict_by_keys_mixed_keys(self):
+        # Test case with mixed keys (integer and string)
+        input_dict = {'b': 'banana', 'a': 'apple', 2: 'two', 1: 'one'}
+        expected_result = {1: 'one', 2: 'two', 'a': 'apple', 'b': 'banana'}
+        result = iterable_utils.sort_dict_by_keys(input_dict)
+        self.assertEqual(expected_result, result)
