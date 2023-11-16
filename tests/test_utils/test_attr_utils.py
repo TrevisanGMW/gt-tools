@@ -1131,3 +1131,28 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listConnections(f'{cube}.sx', destination=True, plugs=True) or []
         for attr in result:
             self.assertEqual(f'{cube}.scaleZ', attr)
+
+    def test_list_user_defined_attr_skip_nested(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=True)
+        expected = ['custom_attr_one', 'custom_attr_two']
+        self.assertEqual(expected, result)
+
+    def test_list_user_defined_attr_keep_nested(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=False)
+        expected = ['custom_attr_one', 'custom_attr_two',
+                    'custom_attr_twoA', 'custom_attr_twoB', 'custom_attr_twoC']
+        self.assertEqual(expected, result)

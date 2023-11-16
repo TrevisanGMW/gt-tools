@@ -672,6 +672,28 @@ def get_user_attr_to_python(obj_list):
     return output
 
 
+def list_user_defined_attr(obj, skip_nested=True):
+    """
+    Lists user defined attributes of a given Maya object.
+
+    Args:
+    obj (str): The name of the Maya object.
+    skip_nested (bool, optional): If True, skip user defined attributes that are nested under other attributes.
+      Defaults to True.
+
+    Returns:
+    list: A list of user defined attribute names for the specified Maya object.
+    """
+    user_attrs = cmds.listAttr(obj, userDefined=True) or []
+    to_skip = set()
+    if skip_nested:
+        for attr in user_attrs:
+            children = cmds.attributeQuery(attr, node=obj, listChildren=True) or []
+            to_skip.update(children)
+    result = [item for item in user_attrs if item not in list(to_skip)]
+    return result
+
+
 # -------------------------------------------- Management -------------------------------------------
 def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     """
