@@ -364,6 +364,7 @@ class Icon:
     rigger_proxy = get_icon_path(r"rigger_proxy.svg")
     rigger_project = get_icon_path(r"rigger_project.svg")
     rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
+    rigger_dict = get_icon_path(r"rigger_dict.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
