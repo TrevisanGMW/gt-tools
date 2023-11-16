@@ -700,10 +700,13 @@ class Proxy:
             dict: Proxy data as a dictionary
         """
         # Create Proxy Data
-        proxy_data = {"name": self.name,
-                      "parent": self.get_parent_uuid(),
-                      "locatorScale": self.locator_scale,
-                      }
+        proxy_data = {"name": self.name}
+
+        if include_uuid and self.get_uuid():
+            proxy_data["uuid"] = self.get_uuid()
+
+        proxy_data["parent"] = self.get_parent_uuid()  # Add later to determine order
+        proxy_data["locatorScale"] = self.locator_scale
 
         if self.transform and include_transform_data:
             proxy_data["transform"] = self.transform.get_transform_as_dict()
@@ -716,9 +719,6 @@ class Proxy:
 
         if self.get_metadata():
             proxy_data["metadata"] = self.get_metadata()
-
-        if include_uuid and self.get_uuid():
-            proxy_data["uuid"] = self.get_uuid()
 
         return proxy_data
 
