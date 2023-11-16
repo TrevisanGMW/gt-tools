@@ -204,7 +204,6 @@ class MeshLibraryController:
         formatted_dict = None
         if isinstance(parameters, dict):
             formatted_dict = iterable_utils.dict_as_formatted_str(parameters, one_key_per_line=True)
-
         elif isinstance(parameters, str):
             formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)
