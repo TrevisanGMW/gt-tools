@@ -93,7 +93,7 @@ class ModuleAttrWidget(QWidget):
 
         # Edit Button
         edit_mod_btn = QPushButton()
-        edit_mod_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+        edit_mod_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
         edit_mod_btn.setToolTip("Edit Raw Data")
         edit_mod_btn.clicked.connect(self.on_button_edit_module_clicked)
         _layout.addWidget(edit_mod_btn)
@@ -280,7 +280,7 @@ class ModuleAttrWidget(QWidget):
 
             # Edit Proxy ---------------------------------------------------------------------
             edit_proxy_btn = QPushButton()
-            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
             edit_proxy_func = partial(self.on_button_edit_proxy_clicked, proxy=proxy)
             edit_proxy_btn.clicked.connect(edit_proxy_func)
             edit_proxy_btn.setToolTip("Edit Raw Data")
@@ -318,7 +318,7 @@ class ModuleAttrWidget(QWidget):
 
             # Edit Proxy ---------------------------------------------------------------------
             edit_proxy_btn = QPushButton()
-            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+            edit_proxy_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
             edit_proxy_func = partial(self.on_button_edit_proxy_clicked, proxy=proxy)
             edit_proxy_btn.clicked.connect(edit_proxy_func)
             edit_proxy_btn.setToolTip("Edit Raw Data")
@@ -748,7 +748,7 @@ class ProjectAttrWidget(QWidget):
 
         # Edit Button
         self.edit_btn = QPushButton()
-        self.edit_btn.setIcon(QIcon(resource_library.Icon.misc_cog))
+        self.edit_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
         header_layout.addWidget(self.edit_btn)
 
         # Create Layout
