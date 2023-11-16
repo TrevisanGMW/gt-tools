@@ -212,15 +212,13 @@ class TestListUtils(unittest.TestCase):
         result = iterable_utils.dict_as_formatted_str(input_dict,
                                                       indent=2,
                                                       width=30,
-                                                      format_braces=True,
-                                                      sort_dicts=False)
+                                                      format_braces=True)
         self.assertEqual(expected, result)
 
     def test_dict_as_formatted_str_sort_dicts(self):
         input_dict = {'b': 2, 'a': 1, 'c': {'z': 26, 'y': 25}}
         expected = "{\n 'a': 1,\n 'b': 2,\n 'c': {'y': 25, 'z': 26}\n}"
         result = iterable_utils.dict_as_formatted_str(input_dict,
-                                                      sort_dicts=True,
                                                       width=30)
         self.assertEqual(expected, result)
 

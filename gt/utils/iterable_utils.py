@@ -104,7 +104,7 @@ def compare_identical_dict_values_types(dict1, dict2, allow_none=False):
     Args:
         dict1 (dict): The first dictionary.
         dict2 (dict): The second dictionary.
-        allow_none (bool, optional): If True this function will consider None a valid type
+        allow_none (bool, optional): If True, this function will consider None a valid type
                                      when comparing with other types.
                                      e.g. "int" compared with "None" = Ok
 
@@ -116,7 +116,7 @@ def compare_identical_dict_values_types(dict1, dict2, allow_none=False):
     if keys1 != keys2:
         return False
     for key in keys1:
-        if (type(dict1[key]) is None or type(dict2[key] is None)) and allow_none:
+        if (dict1[key] is None or dict2[key] is None) and allow_none:
             continue
         if type(dict1[key]) != type(dict2[key]):
             return False
