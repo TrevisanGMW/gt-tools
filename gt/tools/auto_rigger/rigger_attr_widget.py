@@ -464,7 +464,7 @@ class ModuleAttrWidget(QWidget):
         param_win = InputWindowText(parent=self,
                                     message=f'Editing Raw Data for the Proxy "{proxy.get_name()}"',
                                     window_title=f'Raw data for "{proxy.get_name()}"',
-                                    image=resource_library.Icon.dev_parameters,  # TODO TEMP @@@
+                                    image=resource_library.Icon.rigger_dict,
                                     window_icon=resource_library.Icon.library_parameters,
                                     image_scale_pct=10,
                                     is_python_code=True)
@@ -492,7 +492,7 @@ class ModuleAttrWidget(QWidget):
         param_win = InputWindowText(parent=self,
                                     message=f'Editing Raw Data for the Module "{module_name}"',
                                     window_title=f'Raw data for "{module_name}"',
-                                    image=resource_library.Icon.dev_parameters,  # TODO TEMP @@@
+                                    image=resource_library.Icon.rigger_dict,
                                     window_icon=resource_library.Icon.library_parameters,
                                     image_scale_pct=10,
                                     is_python_code=True)
