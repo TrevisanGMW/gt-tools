@@ -2,6 +2,7 @@
 Joint Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.math_utils import dot_product, objects_cross_direction
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
@@ -18,14 +19,17 @@ def orient_joint(joint_list,
                  up_dir=(1, 0, 0),
                  detect_up_dir=False):
     """
-    Orient Joint list in a more predictable way (when compared to Maya)
+    Orient a list of joints in a predictable way.
+
     Args:
-        joint_list (list): A list of joints (strings) - Name of the joints
-        aim_axis (optional, tuple): Aim axis
-        up_axis (optional, tuple):
-        up_dir (optional, tuple):
-        detect_up_dir (optional, bool): If it should attempt to auto-detect up direction
+        joint_list (list): A list of joints (strings) - Name of the joints.
+        aim_axis (tuple, optional): The axis the joints should aim at. Defaults to X+ (1, 0, 0).
+                                    Commonly used as twist joint (aims towards its child)
+        up_axis (tuple, optional): The axis pointing upwards for the joints. Defaults to (1, 0, 0).
+        up_dir (tuple, optional): The up direction vector. Defaults to (1, 0, 0).
+        detect_up_dir (bool, optional): If True, attempt to auto-detect the up direction. Defaults to False.
     """
+    stored_selection = cmds.ls(selection=True) or []
     starting_up = OpenMaya.MVector((0, 0, 0))
     index = 0
     for jnt in joint_list:
@@ -69,12 +73,9 @@ def orient_joint(joint_list,
                         if cmds.nodeType(child) == "joint":
                             aim_child = child
 
-                    up_vec = get_cross_direction(jnt, aim_target, aim_child)
+                    up_vec = objects_cross_direction(jnt, aim_target, aim_child)
                 else:
-                    # print("parent", parent)
-                    # print("jnt", jnt)
-                    # print("aim_target", aim_target)
-                    up_vec = get_cross_direction(parent, jnt, aim_target)
+                    up_vec = objects_cross_direction(parent, jnt, aim_target)
 
             if not detect_up_dir or (up_vec[0] == 0.0 and
                                      up_vec[1] == 0.0 and
@@ -88,7 +89,7 @@ def orient_joint(joint_list,
                                            worldUpType="vector"))
 
             current_up = OpenMaya.MVector(up_vec).normal()
-            dot = get_dot_product(current_up, starting_up)
+            dot = dot_product(current_up, starting_up)
             starting_up = OpenMaya.MVector(up_vec).normal()
 
             # Flip in case dot is negative (wrong way)
@@ -106,6 +107,13 @@ def orient_joint(joint_list,
         if len(children) > 0:
             cmds.parent(children, jnt)
         index += 1
+    # Update selection
+    cmds.select(clear=True)
+    if stored_selection:
+        try:
+            cmds.select(stored_selection)
+        except Exception as e:
+            logger.debug(f'Unable to retrieve previous selection. Issue: {e}')
 
 
 def copy_parent_orients(joint_list):
@@ -119,69 +127,6 @@ def copy_parent_orients(joint_list):
         joint_list = [joint_list]
     for jnt in joint_list:
         cmds.joint(jnt, e=True, orientJoint="none", zeroScaleOrient=True)
-
-
-def get_dot_product(vector_a, vector_b):
-    """
-    Returns dot product
-        Args:
-            vector_a (list, MVector): first vector
-            vector_b (list, MVector): second vector
-    """
-    if type(vector_a) != 'OpenMaya.MVector':
-        vector_a = OpenMaya.MVector(vector_a)
-    if type(vector_b) != 'OpenMaya.MVector':
-        vector_b = OpenMaya.MVector(vector_b)
-    return vector_a * vector_b
-
-
-def get_cross_product(vector_a, vector_b, vector_c):
-    """
-    Get Cross Product
-        Args:
-            vector_a (list): A list of floats
-            vector_b (list): A list of floats
-            vector_c (list): A list of floats
-        Returns:
-            MVector: cross product
-    """
-    if type(vector_a) != 'OpenMaya.MVector':
-        vector_a = OpenMaya.MVector(vector_a)
-    if type(vector_b) != 'OpenMaya.MVector':
-        vector_b = OpenMaya.MVector(vector_b)
-    if type(vector_c) != 'OpenMaya.MVector':
-        vector_c = OpenMaya.MVector(vector_c)
-
-    vector_a = OpenMaya.MVector([vector_a[0] - vector_b[0],
-                                 vector_a[1] - vector_b[1],
-                                 vector_a[2] - vector_b[2]])
-
-    vector_b = OpenMaya.MVector([vector_c[0] - vector_b[0],
-                                 vector_c[1] - vector_b[1],
-                                 vector_c[2] - vector_b[2]])
-
-    return vector_a ^ vector_b
-
-
-def get_cross_direction(obj_a, obj_b, obj_c):
-    """
-    Get Cross Direction
-        Args:
-            obj_a (str): Name of the first object. (Must exist in scene)
-            obj_b (str): Name of the second object. (Must exist in scene)
-            obj_c (str): Name of the third object. (Must exist in scene)
-        Returns:
-            MVector: cross direction of the objects
-    """
-    cross = [0, 0, 0]
-    for obj in [obj_a, obj_b, obj_c]:
-        if not cmds.objExists(obj):
-            return cross
-    pos_a = cmds.xform(obj_a, q=True, ws=True, rp=True)
-    pos_b = cmds.xform(obj_b, q=True, ws=True, rp=True)
-    pos_c = cmds.xform(obj_c, q=True, ws=True, rp=True)
-
-    return get_cross_product(pos_a, pos_b, pos_c).normal()
 
 
 def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
@@ -263,8 +208,8 @@ def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    # convert_joints_to_mesh()
-    # out = None
-    # pprint(out)
-    orient_joint(joint_list=['|prefix_first'])
+    temp_list = []
+    from gt.utils.node_utils import Node
+    for item in ['joint1', 'joint2', 'joint3']:
+        temp_list.append(Node(item))
+    orient_joint(joint_list=temp_list, aim_axis=(0, 1, 0))
