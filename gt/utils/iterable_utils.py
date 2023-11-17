@@ -145,7 +145,11 @@ def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
         formatted_dict = "{"
         for index, (key, value) in enumerate(input_dict.items()):
             _key_dict = {key: value}
-            _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth)
+            try:
+                _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth, sort_dicts=False)
+            except Exception as e:
+                logger.debug(f'Unsupported kwarg called. Attempting with older version definition: {e}')
+                _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth)  # Older Python Versions
             formatted_dict += _formatted_line[1:-1]
             if index != len(input_dict) - 1:
                 formatted_dict += ",\n "
