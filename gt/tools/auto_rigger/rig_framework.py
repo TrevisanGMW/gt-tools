@@ -9,10 +9,10 @@ from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_cur
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_node
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group
+from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
-from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
@@ -620,10 +620,10 @@ class Proxy:
                 self._initialize_transform()
                 self.transform.set_transform_from_object(proxy)
                 attr_dict = {}
-                user_attrs = cmds.listAttr(proxy, userDefined=True) or []
+                user_attrs = list_user_defined_attr(proxy, skip_nested=True, skip_parents=False) or []
                 for attr in user_attrs:
                     if not cmds.getAttr(f'{proxy}.{attr}', lock=True) and attr not in ignore_attr_list:
-                        attr_dict[attr] = cmds.getAttr(f'{proxy}.{attr}')
+                        attr_dict[attr] = get_attr(f'{proxy}.{attr}')
                 if attr_dict:
                     self.set_attr_dict(attr_dict=attr_dict)
             except Exception as e:
@@ -1216,7 +1216,6 @@ class ModuleGeneric:
                          aim_axis=(-1, 0, 0),
                          up_axis=(0, 1, 0),
                          up_dir=(1, 0, 0))
-
 
         cmds.select(clear=True)
 
