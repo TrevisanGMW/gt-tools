@@ -81,7 +81,7 @@ class TestRigFramework(unittest.TestCase):
         expected = ("proxy_LocScaleHandle",)
         self.assertEqual(expected, result.setup)
 
-    def test_proxy_init(self):
+    def test_proxy_init_and_basic_setters(self):
         from gt.utils import transform_utils
         from gt.utils import curve_utils
         mocked_transform = transform_utils.Transform(position=(0, 10, 0))
@@ -89,13 +89,12 @@ class TestRigFramework(unittest.TestCase):
         expected_curve = curve_utils.get_curve("circle")
         expected_uuid = "123e4567-e89b-12d3-a456-426655440000"
         expected_metadata = {"metadata": "value"}
-        proxy = Proxy(name=expected_name,
-                      transform=mocked_transform,
-                      offset_transform=mocked_transform,
-                      curve=expected_curve,
-                      uuid=expected_uuid,
-                      parent_uuid=expected_uuid,
-                      metadata=expected_metadata)
+        proxy = Proxy(name=expected_name, uuid=expected_uuid)
+        proxy.set_transform(mocked_transform)
+        proxy.set_offset_transform(mocked_transform)
+        proxy.set_curve(expected_curve)
+        proxy.set_parent_uuid(expected_uuid)
+        proxy.set_metadata_dict(expected_metadata)
         self.assertEqual(expected_name, proxy.name)
         self.assertEqual(mocked_transform, proxy.transform)
         self.assertEqual(mocked_transform, proxy.offset_transform)
@@ -117,7 +116,8 @@ class TestRigFramework(unittest.TestCase):
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
-        proxy = Proxy(curve=Curves.circle)
+        proxy = Proxy()
+        proxy.set_curve(Curves.circle)
         result = proxy.build()
         self.assertTrue(proxy.is_valid())
         expected = "proxy"
@@ -136,7 +136,8 @@ class TestRigFramework(unittest.TestCase):
 
     def test_proxy_get_parent_uuid_default(self):
         expected_parent_uuid = "123e4567-e89b-12d3-a456-426655440002"
-        proxy = Proxy(parent_uuid=expected_parent_uuid)
+        proxy = Proxy()
+        proxy.set_parent_uuid(expected_parent_uuid)
         result = proxy.get_parent_uuid()
         self.assertEqual(expected_parent_uuid, result)
 
