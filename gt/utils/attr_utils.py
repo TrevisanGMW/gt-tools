@@ -672,14 +672,16 @@ def get_user_attr_to_python(obj_list):
     return output
 
 
-def list_user_defined_attr(obj, skip_nested=True):
+def list_user_defined_attr(obj, skip_nested=False, skip_parents=True):
     """
     Lists user defined attributes of a given Maya object.
 
     Args:
     obj (str): The name of the Maya object.
-    skip_nested (bool, optional): If True, skip user defined attributes that are nested under other attributes.
-      Defaults to True.
+    skip_nested (bool, optional): If True, skip user-defined attributes that are nested under other attributes.
+    skip_parents (bool, optional): If True, skip attributes that are parent of other of nested attributes.
+                                   Warning, if both "skip_nested" and "skip_parents" are active simultaneously,
+                                   vector attributes will be ignored completely.
 
     Returns:
     list: A list of user defined attribute names for the specified Maya object.
@@ -690,6 +692,11 @@ def list_user_defined_attr(obj, skip_nested=True):
         for attr in user_attrs:
             children = cmds.attributeQuery(attr, node=obj, listChildren=True) or []
             to_skip.update(children)
+    if skip_parents:
+        for attr in user_attrs:
+            children = cmds.attributeQuery(attr, node=obj, listChildren=True) or []
+            if children:
+                to_skip.add(attr)
     result = [item for item in user_attrs if item not in list(to_skip)]
     return result
 
