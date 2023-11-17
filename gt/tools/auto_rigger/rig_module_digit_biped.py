@@ -23,15 +23,10 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedDigits(ModuleGeneric):
-    def __init__(self,
-                 name="Digits",
-                 prefix=None,
-                 metadata=None,
-                 orientation="+"):
-        super().__init__(name=name, prefix=prefix, metadata=metadata)
+    def __init__(self, name="Digits", prefix=None, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         # Names
-        self.orientation = orientation
         thumb_name = "thumb"
         index_name = "index"
         middle_name = "middle"
@@ -350,15 +345,8 @@ class ModuleBipedDigits(ModuleGeneric):
 
 
 class ModuleBipedFingersLeft(ModuleBipedDigits):
-    def __init__(self,
-                 name="Left Fingers",
-                 prefix=NamingConstants.Prefix.LEFT,
-                 metadata=None,
-                 orientation="-"):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata,
-                         orientation=orientation)
+    def __init__(self, name="Left Fingers", prefix=NamingConstants.Prefix.LEFT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         # Describe Positions
         pos_thumb01 = Vector3(x=60.8, y=130.4, z=2.9)
@@ -424,15 +412,8 @@ class ModuleBipedFingersLeft(ModuleBipedDigits):
 
 
 class ModuleBipedFingersRight(ModuleBipedDigits):
-    def __init__(self,
-                 name="Right Fingers",
-                 prefix=NamingConstants.Prefix.RIGHT,
-                 metadata=None,
-                 orientation="-"):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata,
-                         orientation=orientation)
+    def __init__(self, name="Right Fingers", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         self.set_orientation("-")
 

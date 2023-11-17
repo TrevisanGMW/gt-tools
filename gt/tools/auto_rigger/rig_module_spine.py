@@ -19,13 +19,8 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    def __init__(self,
-                 name="Spine",
-                 prefix=None,
-                 metadata=None,
-                 pos_offset=None,
-                 num_spine=3):
-        super().__init__(name=name, prefix=prefix, metadata=metadata)
+    def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         self.num_spine = num_spine
 

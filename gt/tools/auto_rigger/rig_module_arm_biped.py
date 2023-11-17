@@ -21,14 +21,8 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedArm(ModuleGeneric):
-    def __init__(self,
-                 name="Arm",
-                 prefix=None,
-                 metadata=None,
-                 orientation=None):
-        super().__init__(name=name, prefix=prefix, metadata=metadata)
-
-        self.orientation = orientation
+    def __init__(self, name="Arm", prefix=None, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         clavicle_name = "clavicle"
         shoulder_name = "shoulder"
@@ -244,15 +238,8 @@ class ModuleBipedArm(ModuleGeneric):
 
 
 class ModuleBipedArmLeft(ModuleBipedArm):
-    def __init__(self,
-                 name="Left Arm",
-                 prefix=NamingConstants.Prefix.LEFT,
-                 metadata=None,
-                 orientation="+"):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata,
-                         orientation=orientation)
+    def __init__(self, name="Left Arm", prefix=NamingConstants.Prefix.LEFT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         pos_clavicle = Vector3(x=3, y=130)
         pos_shoulder = Vector3(x=17.2, y=130)
@@ -266,15 +253,8 @@ class ModuleBipedArmLeft(ModuleBipedArm):
 
 
 class ModuleBipedArmRight(ModuleBipedArm):
-    def __init__(self,
-                 name="Right Arm",
-                 prefix=NamingConstants.Prefix.RIGHT,
-                 metadata=None,
-                 orientation="-"):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata,
-                         orientation=orientation)
+    def __init__(self, name="Right Arm", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         self.set_orientation("-")
 

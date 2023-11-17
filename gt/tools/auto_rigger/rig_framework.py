@@ -95,16 +95,7 @@ class ProxyData:
 
 
 class Proxy:
-    def __init__(self,
-                 name=None,
-                 transform=None,
-                 offset_transform=None,
-                 curve=None,
-                 uuid=None,
-                 parent_uuid=None,
-                 locator_scale=None,
-                 attr_dict=None,
-                 metadata=None):
+    def __init__(self, name=None, uuid=None):
 
         # Default Values
         self.name = "proxy"
@@ -120,22 +111,8 @@ class Proxy:
 
         if name:
             self.set_name(name)
-        if transform:
-            self.set_transform(transform)
-        if offset_transform:
-            self.set_offset_transform(offset_transform)
-        if curve:
-            self.set_curve(curve)
         if uuid:
             self.set_uuid(uuid)
-        if parent_uuid:
-            self.set_parent_uuid(parent_uuid)
-        if locator_scale:
-            self.set_locator_scale(locator_scale)
-        if attr_dict:
-            self.set_attr_dict(attr_dict=attr_dict)
-        if metadata:
-            self.set_metadata_dict(metadata=metadata)
 
     def is_valid(self):
         """
@@ -726,11 +703,7 @@ class Proxy:
 class ModuleGeneric:
     icon = resource_library.Icon.rigger_module_generic
 
-    def __init__(self,
-                 name=None,
-                 prefix=None,
-                 suffix=None,
-                 metadata=None):
+    def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
         self.name = None
         self.prefix = None
@@ -747,8 +720,6 @@ class ModuleGeneric:
             self.set_prefix(prefix)
         if suffix:
             self.set_suffix(suffix)
-        if metadata:
-            self.set_metadata_dict(metadata=metadata)
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
@@ -1458,7 +1429,7 @@ class RigProject:
             return False
         return True
 
-    def build_proxy(self, callback=None):
+    def build_proxy(self):
         """
         Builds Proxy/Guide Armature/Skeleton
         """
@@ -1506,7 +1477,7 @@ class RigProject:
             cmds.refresh(suspend=False)
             cmds.refresh()
 
-    def build_rig(self, delete_proxy=True, callback=None):
+    def build_rig(self, delete_proxy=True):
         """
         Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
         """
@@ -1551,7 +1522,6 @@ class RigProject:
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.template_biped import create_template_biped

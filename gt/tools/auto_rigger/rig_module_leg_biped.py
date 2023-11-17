@@ -25,11 +25,8 @@ logger.setLevel(logging.INFO)
 class ModuleBipedLeg(ModuleGeneric):
     icon = resource_library.Icon.dev_ruler
 
-    def __init__(self,
-                 name="Leg",
-                 prefix=None,
-                 metadata=None):
-        super().__init__(name=name, prefix=prefix, metadata=metadata)
+    def __init__(self, name="Leg", prefix=None, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         hip_name = "hip"
         knee_name = "knee"
@@ -308,13 +305,8 @@ class ModuleBipedLeg(ModuleGeneric):
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
-    def __init__(self,
-                 name="Left Leg",
-                 prefix=NamingConstants.Prefix.LEFT,
-                 metadata=None):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata)
+    def __init__(self, name="Left Leg", prefix=NamingConstants.Prefix.LEFT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         # Initial Pose
         overall_pos_offset = Vector3(x=10.2)
@@ -334,13 +326,8 @@ class ModuleBipedLegLeft(ModuleBipedLeg):
 
 
 class ModuleBipedLegRight(ModuleBipedLeg):
-    def __init__(self,
-                 name="Right Leg",
-                 prefix=NamingConstants.Prefix.RIGHT,
-                 metadata=None):
-        super().__init__(name=name,
-                         prefix=prefix,
-                         metadata=metadata)
+    def __init__(self, name="Right Leg", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
+        super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         self.set_orientation("-")
 
