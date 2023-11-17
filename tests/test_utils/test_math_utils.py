@@ -69,3 +69,75 @@ class TestMathUtils(unittest.TestCase):
         expected = 1 * 4 + 2 * 5 + 3 * 6
         result = math_utils.dot_product(vector_a, vector_b)
         self.assertEqual(expected, result)
+
+    def test_cross_product(self):
+        # Test case 1
+        vector_a = [1, 2, 3]
+        vector_b = [4, 5, 6]
+        expected_result = [-3, 6, -3]
+        result = math_utils.cross_product(vector_a, vector_b)
+        self.assertEqual(result, expected_result)
+
+        # Test case 2
+        vector_a = [0, 0, 0]
+        vector_b = [1, 2, 3]
+        expected_result = [0, 0, 0]
+        result = math_utils.cross_product(vector_a, vector_b)
+        self.assertEqual(result, expected_result)
+
+        # Test case 3
+        vector_a = [2, 3, 4]
+        vector_b = [5, 6, 7]
+        expected_result = [-3, 6, -3]
+        result = math_utils.cross_product(vector_a, vector_b)
+        self.assertEqual(result, expected_result)
+
+    def test_is_float_equal_equal_floats(self):
+        x = 5.0
+        y = 5.0
+        tolerance = 0.00001
+        expected = True
+        result = math_utils.is_float_equal(x, y, tolerance)
+        self.assertEqual(expected, result)
+
+    def test_is_float_equal_unequal_floats_within_tolerance(self):
+        x = 5.000001
+        y = 5.0
+        tolerance = 0.00001
+        expected = True
+        result = math_utils.is_float_equal(x, y, tolerance)
+        self.assertEqual(expected, result)
+
+    def test_is_float_equal_unequal_floats_outside_tolerance(self):
+        x = 5.0001
+        y = 5.0
+        tolerance = 0.00001
+        expected = False
+        result = math_utils.is_float_equal(x, y, tolerance)
+        self.assertEqual(expected, result)
+
+    def test_is_float_equal_negative_floats_within_tolerance(self):
+        x = -3.0
+        y = -3.000001
+        tolerance = 0.00001
+        expected = True
+        result = math_utils.is_float_equal(x, y, tolerance)
+        self.assertEqual(expected, result)
+
+    def test_is_float_equal_negative_floats_outside_tolerance(self):
+        x = -3.0
+        y = -3.0001
+        tolerance = 0.00001
+        expected = False
+        result = math_utils.is_float_equal(x, y, tolerance)
+        self.assertEqual(expected, result)
+
+    def test_objects_cross_direction(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        cube_three = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.setAttr(f'{cube_two}.ty', 5)
+        maya_test_tools.cmds.setAttr(f'{cube_three}.tx', 5)
+        expected = (0, 0, 1)
+        result = math_utils.objects_cross_direction(cube_one, cube_two, cube_three)
+        self.assertEqual(expected, tuple(result))
