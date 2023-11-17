@@ -94,6 +94,200 @@ class ProxyData:
         return self.uuid
 
 
+class OrientationData:
+    """
+    OrientationData object.
+    """
+    class Methods:
+        """
+        List of recognized/accepted methods to apply
+        """
+        automatic = "automatic"  # Uses the "orient_joint" function to orient joints.
+        inherit = "inherit"  # Inherits the joint orientation from the proxy used to generate it.
+        world = "world"  # Orients the joint to the world.
+
+    def __init__(self, method=Methods.automatic,
+                 aim_axis=(1, 0, 0),
+                 up_axis=(1, 0, 0),
+                 up_dir=(1, 0, 0)):
+        """
+        Initializes an OrientationData object.
+        Args:
+            aim_axis (tuple, optional): The axis the joints should aim at in XYZ. Defaults to X+ (1, 0, 0).
+                                        Commonly used as twist joint (aims towards its child)
+            up_axis (tuple, optional): The axis pointing upwards for the joints. Defaults to (0, 1, 0).
+            up_dir (tuple, optional): The up direction vector. Defaults to (0, 1, 0).
+        """
+        self.method = None
+        self.aim_axis = None
+        self.up_axis = None
+        self.up_dir = None
+        self.set_method(method)
+        self.set_aim_axis(aim_axis)
+        self.set_up_axis(up_axis)
+        self.set_up_dir(up_dir)
+
+    # ------------------------------------------------- Setters -------------------------------------------------
+    def set_method(self, method):
+        """
+        This will define how the values are applied or not applied.
+        Args:
+            method (str, None): Orientation method. This will define how the values are applied or not applied.
+        """
+        if not method or not isinstance(method, str):
+            logger.debug('Unable to set orientation. Method must be a string.')
+            return
+        available_methods = self.get_available_methods()
+        if method not in available_methods:
+            valid_orientations_str = '\", "'.join(available_methods)
+            logger.debug(
+                f'Unable to set orientation. Input must be a recognized string: "{valid_orientations_str}".')
+            return
+        if method:
+            self.method = method
+
+    def set_aim_axis(self, aim_axis):
+        """
+        Sets the aim axis for the orientation data
+        Args:
+            aim_axis (tuple, optional): The axis the joints should aim at in XYZ. e.g. for X+ (1, 0, 0).
+                                        Commonly used as twist joint (aims towards its child)
+        """
+        if not aim_axis or not isinstance(aim_axis, tuple) or not len(aim_axis) == 3:
+            logger.debug(f'Unable to set aim axis. Input must be a tuple/list with 3 digits.')
+            return
+        self.aim_axis = aim_axis
+
+    def set_up_axis(self, up_axis):
+        """
+        Sets the up axis for the orientation data (determines if positive or negative for example)
+        Args:
+            up_axis (tuple, optional): The axis pointing upwards for the joints in XYZ.
+        """
+        if not up_axis or not isinstance(up_axis, tuple) or not len(up_axis) == 3:
+            logger.debug(f'Unable to set up axis. Input must be a tuple/list with 3 digits.')
+            return
+        self.up_axis = up_axis
+
+    def set_up_dir(self, up_dir):
+        """
+        Sets the up direction for the orientation data
+        Args:
+            up_dir (tuple, optional): The axis pointing upwards for the joints in XYZ.
+        """
+        if not up_dir or not isinstance(up_dir, tuple) or not len(up_dir) == 3:
+            logger.debug(f'Unable to set up direction. Input must be a tuple/list with 3 digits.')
+            return
+        self.up_dir = up_dir
+
+    def set_data_from_dict(self, orient_dict):
+        """
+        Gets the orientation data as a dictionary.
+        Args:
+            orient_dict (dict): A dictionary describing the desired orientation.
+        """
+        if not orient_dict or not isinstance(orient_dict, dict):
+            return
+
+        _method = orient_dict.get("method")
+        if _method:
+            self.set_method(_method)
+
+        _aim_axis = orient_dict.get("aim_axis")
+        if _aim_axis:
+            self.set_aim_axis(_aim_axis)
+
+        _up_axis = orient_dict.get("up_axis")
+        if _up_axis:
+            self.set_up_axis(_up_axis)
+
+        _up_dir = orient_dict.get("up_dir")
+        if _up_dir:
+            self.set_up_dir(_up_dir)
+
+    # ------------------------------------------------- Getters -------------------------------------------------
+    def get_method(self):
+        """
+        Gets the aim axis (twist) from this orientation data object.
+        Returns:
+            str: The method defined for this orientation.
+        """
+        return self.method
+
+    def get_aim_axis(self):
+        """
+        Gets the aim axis (twist) from this orientation data object.
+        Returns:
+            tuple: A tuple with three numeric values, (X, Y, Z)
+        """
+        return self.aim_axis
+
+    def get_up_axis(self):
+        """
+        Gets the up axis from this orientation data object.
+        Returns:
+            tuple: A tuple with three numeric values, (X, Y, Z)
+        """
+        return self.up_axis
+
+    def get_up_dir(self):
+        """
+        Gets the up direction from this orientation data object.
+        Returns:
+            tuple: A tuple with three numeric values, (X, Y, Z)
+        """
+        return self.up_dir
+
+    def get_available_methods(self):
+        """
+        Gets a list of all available methods. These are the same as the attributes under the subclass "Methods"
+        Returns:
+            list: A list of available methods (these are strings)
+                  Further description for each method can be found under the "Methods" class.
+        """
+        methods = []
+        attrs = vars(self.Methods)
+        attrs_keys = [attr for attr in attrs if not (attr.startswith('__') and attr.endswith('__'))]
+        for key in attrs_keys:
+            methods.append(getattr(self.Methods, key))
+        return methods
+
+    def get_data_as_dict(self):
+        """
+        Gets the orientation data as a dictionary.
+        Returns:
+            dict: A dictionary containing the entire orientation description.
+        """
+        _data = {"method": self.method,
+                 "aim_axis": self.aim_axis,
+                 "up_axis": self.up_axis,
+                 "up_dir": self.up_dir}
+        return _data
+
+    # -------------------------------------------------- Utils --------------------------------------------------
+    def __repr__(self):
+        """
+        String conversion returns the orientation data
+        Returns:
+            str: Formatted orientation data.
+        """
+        return (f'Method: {str(self.method)} ('
+                f'aim_axis={str(self.aim_axis)}, '
+                f'up_axis={str(self.up_axis)}, '
+                f'up_dir={str(self.up_dir)})')
+
+    def apply_automatic_orientation(self, joint_list):
+        """
+        Orients the provided joints, as long as the defined method is set to automatic.
+        Args:
+            joint_list (list): A list of joints to be oriented.
+        """
+        if not self.get_method() == self.Methods.automatic:
+            logger.debug(f'Method not set to automatic. Auto orientation call was ignored.')
+            return
+        orient_joint(joint_list, aim_axis=self.aim_axis, up_axis=self.up_axis, up_dir=self.up_dir)
+
+
 class Proxy:
     def __init__(self, name=None, uuid=None):
 
@@ -712,7 +906,7 @@ class ModuleGeneric:
         self.parent_uuid = None
         self.metadata = None
         self.active = True
-        self.orientation = "+"  # "world", "inherit", "-", "+",
+        self.orientation = OrientationData()
 
         if name:
             self.set_name(name)
@@ -840,24 +1034,24 @@ class ModuleGeneric:
             return
         self.active = is_active
 
-    def set_orientation(self, orientation):
+    def set_orientation(self, orientation_data):
+        """
+        Sets orientation by defining a new OrientationData object.
+        Args:
+            orientation_data (OrientationData): New orientation data object.
+        """
+        if not orientation_data or not isinstance(orientation_data, OrientationData):
+            logger.debug(f'Unable to set orientation data. Input must be a "OrientationData".')
+            return
+        self.orientation = orientation_data
+
+    def set_orientation_method(self, method):
         """
         Sets the orientation of the joints generated by this proxy.
         Args:
-            orientation (str): Orientation description.
-                               "world" = The joints will be orientated to the world. (No orientation)
-                               "inherit" = Orientation is inherited from the proxy rotation (it matches the proxy)
-                               "-" and "+" = Automatic orientation following X+ or X-
+            method (str, None): Orientation method. This will define how the values are applied or not applied.
         """
-        if not orientation or not isinstance(orientation, str):
-            logger.debug(f'Unable to set orientation. Input must be a string.')
-            return
-        valid_orientations = ['world', 'inherit', '-', '+']
-        if orientation not in valid_orientations:
-            valid_orientations_str = '\", "'.join(valid_orientations)
-            logger.debug(f'Unable to set orientation. Input must be a recognized string: "{valid_orientations_str}".')
-            return
-        self.orientation = orientation
+        self.orientation.set_method(method)
 
     def add_to_metadata(self, key, value):
         """
@@ -941,17 +1135,21 @@ class ModuleGeneric:
         if _parent:
             self.set_parent_uuid(uuid=_parent)
 
+        _orientation = module_dict.get('orientation')
+        if _orientation:
+            self.orientation.set_data_from_dict(orient_dict=_orientation)
+
         _proxies = module_dict.get('proxies')
         if _proxies and isinstance(_proxies, dict):
             self.read_proxies_from_dict(proxy_dict=_proxies)
 
-        is_active = module_dict.get('active')
-        if isinstance(is_active, bool):
-            self.set_active_state(is_active=is_active)
+        _is_active = module_dict.get('active')
+        if isinstance(_is_active, bool):
+            self.set_active_state(is_active=_is_active)
 
-        metadata = module_dict.get('metadata')
-        if metadata:
-            self.set_metadata_dict(metadata=metadata)
+        _metadata = module_dict.get('metadata')
+        if _metadata:
+            self.set_metadata_dict(metadata=_metadata)
         return self
 
     def read_data_from_scene(self):
@@ -1023,13 +1221,13 @@ class ModuleGeneric:
         """
         return self.active
 
-    def get_orientation(self):
+    def get_orientation_method(self):
         """
-        Gets orientation
+        Gets the orientation method
         Returns:
-            str: Orientation description.
+            str: Orientation method description.
         """
-        return self.orientation
+        return self.orientation.get_method()
 
     def get_module_as_dict(self, include_module_name=False, include_offset_data=True):
         """
@@ -1051,6 +1249,8 @@ class ModuleGeneric:
             module_data["suffix"] = self.suffix
         if self.parent_uuid:
             module_data["parent"] = self.parent_uuid
+        if self.orientation:
+            module_data['orientation'] = self.orientation.get_data_as_dict()
         if self.metadata:
             module_data["metadata"] = self.metadata
         module_proxies = {}
@@ -1168,7 +1368,7 @@ class ModuleGeneric:
             if not joint:
                 continue
             # Inherit Orientation (Before Parenting)
-            if self.orientation == "inherit":
+            if self.get_orientation_method() == OrientationData.Methods.inherit:
                 proxy_obj_path = find_proxy_node_from_uuid(proxy.get_uuid())
                 match_rotate(source=proxy_obj_path, target_list=joint)
             # Parent Joint
@@ -1177,16 +1377,8 @@ class ModuleGeneric:
             jnt_nodes.append(joint)
 
         # Auto Orientation (After Parenting)
-        if self.orientation == "+":
-            orient_joint(jnt_nodes,
-                         aim_axis=(1, 0, 0),
-                         up_axis=(1, 0, 0),
-                         up_dir=(1, 0, 0))
-        elif self.orientation == "-":
-            orient_joint(jnt_nodes,
-                         aim_axis=(-1, 0, 0),
-                         up_axis=(0, 1, 0),
-                         up_dir=(1, 0, 0))
+        if self.get_orientation_method() == OrientationData.Methods.automatic:
+            self.orientation.apply_automatic_orientation(joint_list=jnt_nodes)
 
         cmds.select(clear=True)
 
@@ -1524,10 +1716,13 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    from gt.tools.auto_rigger.template_biped import create_template_biped
-    a_biped_project = create_template_biped()
-    a_biped_project.build_proxy()
-    a_biped_project.build_rig()
+    test = OrientationData()
+    test.apply_automatic_orientation(['joint1', 'joint2', 'joint3'])
+
+    # from gt.tools.auto_rigger.template_biped import create_template_biped
+    # a_biped_project = create_template_biped()
+    # a_biped_project.build_proxy()
+    # a_biped_project.build_rig()
 
     # root = Proxy(name="root")
     # a_1st_proxy = Proxy(name="first")
@@ -1548,7 +1743,7 @@ if __name__ == "__main__":
     # a_new_proxy = a_module.add_new_proxy()
     # a_new_proxy.set_position(x=-15, y=-5)
     # a_new_proxy.set_parent_uuid_from_proxy(a_2nd_proxy)
-    # a_module.set_orientation(orientation="-")
+    # a_module.set_orientation(orientation="auto")
     #
     # a_project = RigProject()
     # a_project.add_to_modules(a_root_module)
