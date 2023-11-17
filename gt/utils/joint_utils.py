@@ -15,18 +15,18 @@ logger.setLevel(logging.INFO)
 
 def orient_joint(joint_list,
                  aim_axis=(1, 0, 0),
-                 up_axis=(1, 0, 0),
-                 up_dir=(1, 0, 0),
+                 up_axis=(0, 1, 0),
+                 up_dir=(0, 1, 0),
                  detect_up_dir=False):
     """
     Orient a list of joints in a predictable way.
 
     Args:
         joint_list (list): A list of joints (strings) - Name of the joints.
-        aim_axis (tuple, optional): The axis the joints should aim at. Defaults to X+ (1, 0, 0).
+        aim_axis (tuple, optional): The axis the joints should aim at in XYZ. Defaults to X+ (1, 0, 0).
                                     Commonly used as twist joint (aims towards its child)
-        up_axis (tuple, optional): The axis pointing upwards for the joints. Defaults to (1, 0, 0).
-        up_dir (tuple, optional): The up direction vector. Defaults to (1, 0, 0).
+        up_axis (tuple, optional): The axis pointing upwards for the joints. Defaults to (0, 1, 0).
+        up_dir (tuple, optional): The up direction vector. Defaults to (0, 1, 0).
         detect_up_dir (bool, optional): If True, attempt to auto-detect the up direction. Defaults to False.
     """
     stored_selection = cmds.ls(selection=True) or []
@@ -212,4 +212,4 @@ if __name__ == "__main__":
     from gt.utils.node_utils import Node
     for item in ['joint1', 'joint2', 'joint3']:
         temp_list.append(Node(item))
-    orient_joint(joint_list=temp_list, aim_axis=(0, 1, 0))
+    orient_joint(joint_list=temp_list, aim_axis=(1, 0, 0), up_axis=(0, -1, 0), up_dir=(0, 1, 0))
