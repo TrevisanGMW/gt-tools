@@ -78,7 +78,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_attributes_to_python))
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_orient_joints))
 
         stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
@@ -240,14 +240,17 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         top_layout = QtWidgets.QVBoxLayout()
+        mid_layout = QtWidgets.QVBoxLayout()
         bottom_layout = QtWidgets.QVBoxLayout()
-        top_layout.addLayout(utility_layout)
         top_layout.setContentsMargins(15, 15, 15, 15)  # L-T-R-B
+        mid_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
+        bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
+        top_layout.addLayout(utility_layout)
+        mid_layout.addLayout(body_layout)
+        bottom_layout.addLayout(action_layout)
         main_layout.addLayout(top_layout)
         main_layout.addWidget(separator)
-        bottom_layout.addLayout(body_layout)
-        bottom_layout.addLayout(action_layout)
-        bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
+        main_layout.addLayout(mid_layout)
         main_layout.addLayout(bottom_layout)
 
     @staticmethod
