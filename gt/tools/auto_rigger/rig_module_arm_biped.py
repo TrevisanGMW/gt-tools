@@ -3,8 +3,8 @@ Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.utils.naming_utils import NamingConstants
@@ -23,6 +23,9 @@ logger.setLevel(logging.INFO)
 class ModuleBipedArm(ModuleGeneric):
     def __init__(self, name="Arm", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
+
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(0, 1, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         clavicle_name = "clavicle"
         shoulder_name = "shoulder"
@@ -241,6 +244,9 @@ class ModuleBipedArmLeft(ModuleBipedArm):
     def __init__(self, name="Left Arm", prefix=NamingConstants.Prefix.LEFT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(0, 1, 0))
+        self.set_orientation(orientation_data=_orientation)
+
         pos_clavicle = Vector3(x=3, y=130)
         pos_shoulder = Vector3(x=17.2, y=130)
         pos_elbow = Vector3(x=37.7, y=130)
@@ -256,7 +262,8 @@ class ModuleBipedArmRight(ModuleBipedArm):
     def __init__(self, name="Right Arm", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
-        self.set_orientation("-")
+        _orientation = OrientationData(aim_axis=(-1, 0, 0), up_axis=(0, 0, -1), up_dir=(0, 1, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         pos_clavicle = Vector3(x=-3, y=130)
         pos_shoulder = Vector3(x=-17.2, y=130)

@@ -3,7 +3,7 @@ Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.color_utils import ColorConstants
@@ -21,6 +21,9 @@ logger.setLevel(logging.INFO)
 class ModuleSpine(ModuleGeneric):
     def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
+
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         self.num_spine = num_spine
 

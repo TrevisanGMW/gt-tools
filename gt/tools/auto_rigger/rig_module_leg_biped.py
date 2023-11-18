@@ -2,10 +2,10 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid, \
-    find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.naming_utils import NamingConstants
@@ -27,6 +27,9 @@ class ModuleBipedLeg(ModuleGeneric):
 
     def __init__(self, name="Leg", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
+
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, -1), up_dir=(1, 0, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         hip_name = "hip"
         knee_name = "knee"
@@ -308,6 +311,9 @@ class ModuleBipedLegLeft(ModuleBipedLeg):
     def __init__(self, name="Left Leg", prefix=NamingConstants.Prefix.LEFT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, -1), up_dir=(1, 0, 0))
+        self.set_orientation(orientation_data=_orientation)
+
         # Initial Pose
         overall_pos_offset = Vector3(x=10.2)
         hip_pos = Vector3(y=84.5) + overall_pos_offset
@@ -329,7 +335,8 @@ class ModuleBipedLegRight(ModuleBipedLeg):
     def __init__(self, name="Right Leg", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
-        self.set_orientation("-")
+        _orientation = OrientationData(aim_axis=(-1, 0, 0), up_axis=(0, 0, -1), up_dir=(1, 0, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         # Initial Pose
         overall_pos_offset = Vector3(x=-10.2)

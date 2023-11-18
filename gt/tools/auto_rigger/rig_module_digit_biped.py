@@ -2,19 +2,14 @@
 Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
-from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
-from gt.utils.transform_utils import match_translate, Vector3
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.tools.auto_rigger.rig_utils import RiggerConstants
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.color_utils import ColorConstants
+from gt.utils.transform_utils import Vector3
 from gt.utils.curve_utils import get_curve
-from gt.utils import hierarchy_utils
-from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -25,6 +20,9 @@ logger.setLevel(logging.INFO)
 class ModuleBipedDigits(ModuleGeneric):
     def __init__(self, name="Digits", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
+
+        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 1, 0), up_dir=(0, 1, 0))
+        self.set_orientation(orientation_data=_orientation)
 
         # Names
         thumb_name = "thumb"
@@ -414,8 +412,6 @@ class ModuleBipedFingersLeft(ModuleBipedDigits):
 class ModuleBipedFingersRight(ModuleBipedDigits):
     def __init__(self, name="Right Fingers", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
-
-        self.set_orientation("-")
 
         # Describe Positions
         pos_thumb01 = Vector3(x=-60.8, y=130.4, z=2.9)
