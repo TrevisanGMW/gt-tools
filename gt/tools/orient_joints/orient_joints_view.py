@@ -83,14 +83,15 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet += resource_library.Stylesheet.btn_radio_base
         self.setStyleSheet(stylesheet)
 
-        self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
-        self.orient_joints_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
-        self.copy_parent_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
-        self.copy_world_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
+        self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.orient_joints_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
+        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.copy_parent_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.copy_world_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
 
         # Initial Selection (Default)
         self.target_selected.setChecked(True)
@@ -130,7 +131,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.copy_parent_btn.setToolTip("Match orientation of the parent")
         self.copy_parent_btn.setStyleSheet("padding: 10;")
 
-        self.copy_world_btn = QPushButton("Copy World")
+        self.copy_world_btn = QPushButton("Reset to World")
         self.copy_world_btn.setToolTip("Match orientation of the world (origin)")
         self.copy_world_btn.setStyleSheet("padding: 10;")
 

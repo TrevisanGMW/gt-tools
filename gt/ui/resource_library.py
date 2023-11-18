@@ -841,7 +841,7 @@ class StylesheetVariables:
         "@list_hover_bg_color;": Color.RGB.gray_mid_dark,
         "@list_hover_text_color;": Color.RGB.white,
     }
-    push_button_base = {
+    btn_push_base = {
         # Colors
         "@background_color;": Color.RGB.gray_mid_lighter,
         "@background_hover_color;": Color.RGB.gray_mid_much_lighter,
@@ -853,13 +853,25 @@ class StylesheetVariables:
         # Formatting
         "@button_padding;": "15",
     }
-    push_button_bright = {
+    btn_push_bright = {
         # Colors
         "@background_color;": Color.RGB.grey_light,
         "@background_hover_color;": Color.RGB.gray_lighter,
         "@background_pressed_color;": Color.RGB.gray_mid_lighter,
         "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@text_color;": Color.RGB.black,
+        "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
+
+        # Formatting
+        "@button_padding;": "15",
+    }
+    btn_radio_base = {
+        # Colors
+        "@background_color;": Color.RGB.gray_mid_lighter,
+        "@background_hover_color;": Color.RGB.gray_mid_much_lighter,
+        "@background_pressed_color;": Color.RGB.gray_darker_mid,
+        "@background_disabled_color;": Color.RGB.gray_mid_light,
+        "@text_color;": Color.RGB.white,
         "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
 
         # Formatting
@@ -897,7 +909,7 @@ class StylesheetVariables:
         "@hover_background_color;": Color.RGB.gray_light_slate,
     }
     # Metro QToolButton Start ----------------------------------------------------------------
-    tool_btn_metro_base = {
+    btn_tool_metro_base = {
         # Colors
         "@tool_button_text;": Color.RGB.white,
         "@tool_bg_hover_color;": Color.RGB.gray_mid_much_lighter,
@@ -908,15 +920,15 @@ class StylesheetVariables:
         "@tool_button_font_size;": "16",
         "@tool_button_border_radius;": "5",
     }
-    tool_btn_metro_blue = deepcopy(tool_btn_metro_base)
-    tool_btn_metro_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid_cerulean
-    tool_btn_metro_blue["@tool_bg_click_color;"] = Color.RGB.blue_medium_persian
-    tool_btn_metro_red = deepcopy(tool_btn_metro_base)
-    tool_btn_metro_red["@tool_bg_hover_color;"] = Color.RGB.red_indian
-    tool_btn_metro_red["@tool_bg_click_color;"] = Color.RGB.red_metallic
-    tool_btn_metro_green = deepcopy(tool_btn_metro_base)
-    tool_btn_metro_green["@tool_bg_hover_color;"] = Color.RGB.green_oxley
-    tool_btn_metro_green["@tool_bg_click_color;"] = Color.RGB.green_wintergreen_dream
+    btn_tool_metro_blue = deepcopy(btn_tool_metro_base)
+    btn_tool_metro_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid_cerulean
+    btn_tool_metro_blue["@tool_bg_click_color;"] = Color.RGB.blue_medium_persian
+    btn_tool_metro_red = deepcopy(btn_tool_metro_base)
+    btn_tool_metro_red["@tool_bg_hover_color;"] = Color.RGB.red_indian
+    btn_tool_metro_red["@tool_bg_click_color;"] = Color.RGB.red_metallic
+    btn_tool_metro_green = deepcopy(btn_tool_metro_base)
+    btn_tool_metro_green["@tool_bg_hover_color;"] = Color.RGB.green_oxley
+    btn_tool_metro_green["@tool_bg_click_color;"] = Color.RGB.green_wintergreen_dream
     # Metro QToolButton End ------------------------------------------------------------------
 
 
@@ -943,19 +955,21 @@ class Stylesheet:
     tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
                                               stylesheet_variables=StylesheetVariables.tree_widget_base)
     # --------------------------------------------- Buttons ---------------------------------------------
-    push_button_base = get_stylesheet_content(stylesheet_name="push_button_base",
-                                              stylesheet_variables=StylesheetVariables.push_button_base)
-    push_button_bright = get_stylesheet_content(stylesheet_name="push_button_base",
-                                                stylesheet_variables=StylesheetVariables.push_button_bright)
+    btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
+                                           stylesheet_variables=StylesheetVariables.btn_push_base)
+    btn_push_bright = get_stylesheet_content(stylesheet_name="btn_push_base",
+                                             stylesheet_variables=StylesheetVariables.btn_push_bright)
+    btn_radio_base = get_stylesheet_content(stylesheet_name="btn_radio_base",
+                                            stylesheet_variables=StylesheetVariables.btn_radio_base)
     # Metro Tool Button
-    tool_btn_metro_base = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
-                                                 stylesheet_variables=StylesheetVariables.tool_btn_metro_base)
-    tool_btn_metro_red = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
-                                                stylesheet_variables=StylesheetVariables.tool_btn_metro_red)
-    tool_btn_metro_blue = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
-                                                 stylesheet_variables=StylesheetVariables.tool_btn_metro_blue)
-    tool_btn_metro_green = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
-                                                  stylesheet_variables=StylesheetVariables.tool_btn_metro_green)
+    btn_tool_metro_base = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
+                                                 stylesheet_variables=StylesheetVariables.btn_tool_metro_base)
+    btn_tool_metro_red = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
+                                                stylesheet_variables=StylesheetVariables.btn_tool_metro_red)
+    btn_tool_metro_blue = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
+                                                 stylesheet_variables=StylesheetVariables.btn_tool_metro_blue)
+    btn_tool_metro_green = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
+                                                  stylesheet_variables=StylesheetVariables.btn_tool_metro_green)
 
 
 class Font:

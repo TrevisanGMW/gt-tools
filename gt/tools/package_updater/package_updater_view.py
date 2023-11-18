@@ -63,7 +63,7 @@ class PackageUpdaterView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
-        self.update_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.update_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         qt_utils.resize_to_screen(self, percentage=35, width_percentage=30)
         qt_utils.center_window(self)
         # self.setWindowFlag(QtCore.Qt.Tool, True)  # Stay On Top Modality - Fixes Mac order issue

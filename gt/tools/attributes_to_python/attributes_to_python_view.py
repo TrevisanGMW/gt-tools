@@ -59,9 +59,9 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
-        self.extract_trs_set_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_trs_list_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.extract_user_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.extract_trs_set_attr_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
+        self.extract_trs_list_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
+        self.extract_user_attr_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
         qt_utils.center_window(self)
 

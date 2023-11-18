@@ -84,7 +84,7 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
         self.item_list.setFont(font)
         self.save_btn = QPushButton("Export Resource")
         self.save_btn.setIcon(QIcon(resource_library.Icon.library_build))
-        self.save_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.save_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText('Search...')

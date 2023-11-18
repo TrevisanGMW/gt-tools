@@ -81,7 +81,7 @@ class MeshLibraryView(metaclass=MayaWindowMeta):
         self.item_list.setFont(font)
         self.build_button = QPushButton("Build")
         self.build_button.setIcon(QIcon(resource_library.Icon.library_build))
-        self.build_button.setStyleSheet(resource_library.Stylesheet.push_button_bright)
+        self.build_button.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.search_bar = QLineEdit(self)
         self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText('Search...')
