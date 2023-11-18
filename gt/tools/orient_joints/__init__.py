@@ -8,8 +8,8 @@ from gt.tools.orient_joints import orient_joints_view
 from gt.ui import qt_utils
 
 # Tool Version
-__version_tuple__ = (0, 0, 1)
-__version_suffix__ = 'alpha'
+__version_tuple__ = (1, 0, 0)
+__version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
