@@ -1,11 +1,8 @@
 """
 Orient Joints Controller
 """
-from gt.utils.attr_utils import get_user_attr_to_python, get_trs_attr_as_python, get_trs_attr_as_formatted_string
-from gt.utils.system_utils import execute_python_code
-from gt.utils.misc_utils import create_shelf_button
-from gt.utils.feedback_utils import FeedbackMessage
-from gt.utils.joint_utils import orient_joint
+from gt.utils.joint_utils import orient_joint, copy_parent_orients, reset_orients
+from gt.utils.display_utils import set_lra_state
 import logging
 
 
@@ -19,7 +16,6 @@ class OrientJointsController:
     def __init__(self, view):
         """
         Initialize the OrientJointsController object.
-
         Args:
             view: The view object to interact with the user interface.
         """
@@ -30,7 +26,7 @@ class OrientJointsController:
         self.view.show_axis_btn.clicked.connect(self.show_axis)
         self.view.hide_axis_btn.clicked.connect(self.hide_axis)
         self.view.copy_parent_btn.clicked.connect(self.copy_parent)
-        self.view.copy_world_btn.clicked.connect(self.copy_world)
+        self.view.copy_world_btn.clicked.connect(self.reset_world)
         self.view.orient_joints_btn.clicked.connect(self.orient_joints)
         self.view.show()
 
@@ -63,16 +59,32 @@ class OrientJointsController:
         return selection
 
     def show_axis(self):
-        print("show_axis called")
+        """
+        Shows local rotation axis for target elements.
+        """
+        target = self._get_selection(hierarchy=self.view.is_selecting_hierarchy(), type_filter="joint") or []
+        set_lra_state(obj_list=target, state=True)
 
     def hide_axis(self):
-        print("hide_axis called")
+        """
+        Hides local rotation axis for target elements.
+        """
+        target = self._get_selection(hierarchy=self.view.is_selecting_hierarchy(), type_filter="joint") or []
+        set_lra_state(obj_list=target, state=False)
 
     def copy_parent(self):
-        print("copy_parent called")
+        """
+        Copies the orients from the parent of the target elements.
+        """
+        target = self._get_selection(hierarchy=self.view.is_selecting_hierarchy(), type_filter="joint") or []
+        copy_parent_orients(joint_list=target)
 
-    def copy_world(self):
-        print("copy_world called")
+    def reset_world(self):
+        """
+        Resets the orientation of the target elements to origin (world)
+        """
+        target = self._get_selection(hierarchy=self.view.is_selecting_hierarchy(), type_filter="joint") or []
+        reset_orients(joint_list=target)
 
     def orient_joints(self):
         """
