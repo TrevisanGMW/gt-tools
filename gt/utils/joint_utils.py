@@ -129,6 +129,29 @@ def copy_parent_orients(joint_list):
         cmds.joint(jnt, e=True, orientJoint="none", zeroScaleOrient=True)
 
 
+def reset_orients(joint_list, verbose=True):
+    """
+    Copy the orientations from the world (origin)
+    Args:
+        joint_list (list, str): A list of joints to receive the orientation of the world.
+                                If a string is given instead, it will be auto converted into a list for processing.
+        verbose (bool, optional): If active, it will give warnings when the operation failed.
+    """
+    if isinstance(joint_list, str):
+        joint_list = [joint_list]
+    for jnt in joint_list:
+        if not cmds.objExists(jnt):
+            if verbose:
+                cmds.warning(f'Unable to find "{str(jnt)}". Ignoring this object.')
+            continue
+        parent = cmds.listRelatives(jnt, parent=True, fullPath=True) or []
+        if parent:
+            cmds.parent(jnt, world=True)
+        cmds.joint(jnt, e=True, orientJoint="none", zeroScaleOrient=True)
+        if parent:
+            cmds.parent(jnt, parent)
+
+
 def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
     """
     Converts a joint hierarchy into a mesh representation of it (Helpful when sending it to sculpting apps)
@@ -208,4 +231,4 @@ def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # orient_joint(joint_list=cmds.ls(selection=True), aim_axis=(-1, 0, 0), up_axis=(0, 0, -1), up_dir=(0, 1, 0))
+    reset_orients("joint2")
