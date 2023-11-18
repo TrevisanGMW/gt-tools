@@ -497,7 +497,7 @@ class ModuleAttrWidget(QWidget):
                                     image_scale_pct=10,
                                     is_python_code=True)
         param_win.set_confirm_button_text("Apply")
-        module_raw_data = self.module.get_module_as_dict(include_module_name=True, include_offset_data=True)
+        module_raw_data = self.module.get_module_as_dict(include_module_name=False, include_offset_data=True)
         if "proxies" in module_raw_data and skip_proxies:
             module_raw_data.pop("proxies")
         formatted_dict = dict_as_formatted_str(module_raw_data, one_key_per_line=True)
