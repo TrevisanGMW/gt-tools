@@ -217,6 +217,10 @@ def load_menu(*args):
                        command=IMPORT_TOOL + 'initialize_tool("morphing_utilities")',
                        tooltip='Morphing utilities (Blend Shapes).',
                        icon=resource_library.Icon.tool_morphing_utils)
+    menu.add_menu_item(label='Orient Joints',
+                       command=IMPORT_TOOL + 'initialize_tool("orient_joints")',
+                       tooltip='Orients Joint in a more predictable way.',
+                       icon=resource_library.Icon.tool_orient_joints)
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Rivet Locator',
                        command=IMPORT_UTIL + 'initialize_utility("constraint_utils", "create_rivet")',
