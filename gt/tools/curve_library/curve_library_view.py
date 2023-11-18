@@ -52,9 +52,9 @@ class CurveLibraryView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_crv_library))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=30)
         qt_utils.center_window(self)

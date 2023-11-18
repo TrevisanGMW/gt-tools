@@ -52,10 +52,10 @@ class ResourceLibraryView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_resource_library))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_dark
-        stylesheet += resource_library.Stylesheet.combobox_dark
+        stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet += resource_library.Stylesheet.combobox_base
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=35)
         qt_utils.center_window(self)

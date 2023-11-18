@@ -48,10 +48,10 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.create_layout()
 
         # Style Window
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.combobox_dark
-        stylesheet += resource_library.Stylesheet.tree_dark
+        stylesheet += resource_library.Stylesheet.combobox_base
+        stylesheet += resource_library.Stylesheet.tree_widget_base
         self.setStyleSheet(stylesheet)
 
         # Final Adjustments

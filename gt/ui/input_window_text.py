@@ -92,7 +92,7 @@ class InputWindowText(metaclass=MayaWindowMeta):
 
         # Determine Style
         progress_bar_stylesheet = resource_library.Stylesheet.maya_dialog_base
-        progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_dark
+        progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_base
         self.setStyleSheet(progress_bar_stylesheet)
 
         # Create connections

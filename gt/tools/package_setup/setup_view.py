@@ -119,10 +119,10 @@ class PackageSetupWindow(metaclass=MayaWindowMeta):
         self.run_only_btn.setSizePolicy(button_size_policy)
         self.close_btn.setSizePolicy(button_size_policy)
 
-        self.install_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_blue)
-        self.uninstall_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_red)
-        self.run_only_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_green)
-        self.close_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool)
+        self.install_btn.setStyleSheet(resource_library.Stylesheet.tool_btn_metro_blue)
+        self.uninstall_btn.setStyleSheet(resource_library.Stylesheet.tool_btn_metro_red)
+        self.run_only_btn.setStyleSheet(resource_library.Stylesheet.tool_btn_metro_green)
+        self.close_btn.setStyleSheet(resource_library.Stylesheet.tool_btn_metro_base)
 
         # Icons
         icon_sizes = QtCore.QSize(50, 50)

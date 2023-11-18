@@ -130,9 +130,9 @@ class LineTextWidget(QFrame):
         horizontal_layout.addWidget(self.number_bar)
         horizontal_layout.addWidget(self.edit)
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
 
         frame_color = resource_library.Color.Hex.gray_darker
@@ -202,9 +202,9 @@ if __name__ == "__main__":
             self.setWindowTitle("Line Text Widget Example")
             self.setGeometry(100, 100, 800, 600)
 
-            stylesheet = resource_library.Stylesheet.scroll_bar_dark
+            stylesheet = resource_library.Stylesheet.scroll_bar_base
             stylesheet += resource_library.Stylesheet.maya_dialog_base
-            stylesheet += resource_library.Stylesheet.list_widget_dark
+            stylesheet += resource_library.Stylesheet.list_widget_base
             self.setStyleSheet(stylesheet)
 
             line_text_widget = LineTextWidget(self)

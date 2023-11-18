@@ -804,7 +804,7 @@ class StylesheetVariables:
         # Formatting
         "@maya_small_button_padding;": "5",
     }
-    scroll_bar_dark = {
+    scroll_bar_base = {
         "@background_mid;": Color.RGB.gray_mid_dark,
         "@background_dark;": Color.RGB.gray_darker,
         "@scroll_area_border;": Color.RGB.gray_mid_much_lighter,
@@ -822,16 +822,16 @@ class StylesheetVariables:
         "@image_scrollbar_left;": f"url({Icon.ui_arrow_left})".replace("\\", "/"),
         "@image_scrollbar_right;": f"url({Icon.ui_arrow_right})".replace("\\", "/"),
     }
-    text_edit_mid_grey = {
+    text_edit_base = {
         "@background_mid;": Color.RGB.gray_mid_dark,
         "@border_color;": Color.RGB.gray_mid_much_lighter,
     }
-    progress_bar_dark = {
+    progress_bar_base = {
         # Colors
         "@progress_bar_background;": Color.RGB.gray_mid_much_lighter,
         "@progress_bar_chunk;": Color.RGB.blue_lavender,
     }
-    list_widget_dark = {
+    list_widget_base = {
         # Colors
         "@list_background_color;": Color.RGB.gray_much_darker,
         "@list_text_color;": Color.RGB.gray_dark_silver,
@@ -840,7 +840,7 @@ class StylesheetVariables:
         "@list_hover_bg_color;": Color.RGB.gray_mid_dark,
         "@list_hover_text_color;": Color.RGB.white,
     }
-    push_button_regular = {
+    push_button_base = {
         # Colors
         "@background_color;": Color.RGB.gray_mid_lighter,
         "@background_hover_color;": Color.RGB.gray_mid_much_lighter,
@@ -864,7 +864,7 @@ class StylesheetVariables:
         # Formatting
         "@button_padding;": "15",
     }
-    combobox_dark = {
+    combobox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
         "@background_color;": Color.RGB.gray_darker,
@@ -876,7 +876,7 @@ class StylesheetVariables:
         "@image_arrow_down_width;": 12,
         "@image_arrow_down_height;": 12,
     }
-    checkbox_dark = {
+    checkbox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
         # Icons
@@ -888,7 +888,7 @@ class StylesheetVariables:
         "@image_unchecked_width;": 32,
         "@image_unchecked_height;": 32,
     }
-    tree_dark = {
+    tree_widget_base = {
         # Colors
         "@text_color;": Color.RGB.white,
         "@background_color;": Color.RGB.gray_darker,
@@ -896,7 +896,7 @@ class StylesheetVariables:
         "@hover_background_color;": Color.RGB.gray_light_slate,
     }
     # Metro QToolButton Start ----------------------------------------------------------------
-    button_metro_tools_default = {
+    tool_btn_metro_base = {
         # Colors
         "@tool_button_text;": Color.RGB.white,
         "@tool_bg_hover_color;": Color.RGB.gray_mid_much_lighter,
@@ -907,15 +907,15 @@ class StylesheetVariables:
         "@tool_button_font_size;": "16",
         "@tool_button_border_radius;": "5",
     }
-    button_metro_tools_blue = deepcopy(button_metro_tools_default)
-    button_metro_tools_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid_cerulean
-    button_metro_tools_blue["@tool_bg_click_color;"] = Color.RGB.blue_medium_persian
-    button_metro_tools_red = deepcopy(button_metro_tools_default)
-    button_metro_tools_red["@tool_bg_hover_color;"] = Color.RGB.red_indian
-    button_metro_tools_red["@tool_bg_click_color;"] = Color.RGB.red_metallic
-    button_metro_tools_green = deepcopy(button_metro_tools_default)
-    button_metro_tools_green["@tool_bg_hover_color;"] = Color.RGB.green_oxley
-    button_metro_tools_green["@tool_bg_click_color;"] = Color.RGB.green_wintergreen_dream
+    tool_btn_metro_blue = deepcopy(tool_btn_metro_base)
+    tool_btn_metro_blue["@tool_bg_hover_color;"] = Color.RGB.blue_vivid_cerulean
+    tool_btn_metro_blue["@tool_bg_click_color;"] = Color.RGB.blue_medium_persian
+    tool_btn_metro_red = deepcopy(tool_btn_metro_base)
+    tool_btn_metro_red["@tool_bg_hover_color;"] = Color.RGB.red_indian
+    tool_btn_metro_red["@tool_bg_click_color;"] = Color.RGB.red_metallic
+    tool_btn_metro_green = deepcopy(tool_btn_metro_base)
+    tool_btn_metro_green["@tool_bg_hover_color;"] = Color.RGB.green_oxley
+    tool_btn_metro_green["@tool_bg_click_color;"] = Color.RGB.green_wintergreen_dream
     # Metro QToolButton End ------------------------------------------------------------------
 
 
@@ -927,34 +927,34 @@ class Stylesheet:
     # Stylesheets Without Variations
     maya_dialog_base = get_stylesheet_content(stylesheet_name="maya_dialog_base",
                                               stylesheet_variables=StylesheetVariables.maya_basic)
-    progress_bar_dark = get_stylesheet_content(stylesheet_name="progress_bar_dark",
-                                               stylesheet_variables=StylesheetVariables.progress_bar_dark)
-    scroll_bar_dark = get_stylesheet_content(stylesheet_name="scroll_bar_dark",
-                                             stylesheet_variables=StylesheetVariables.scroll_bar_dark)
-    list_widget_dark = get_stylesheet_content(stylesheet_name="list_widget_dark",
-                                              stylesheet_variables=StylesheetVariables.list_widget_dark)
-    text_edit_mid_grey = get_stylesheet_content(stylesheet_name="text_edit_mid_grey",
-                                                stylesheet_variables=StylesheetVariables.text_edit_mid_grey)
-    combobox_dark = get_stylesheet_content(stylesheet_name="combobox_dark",
-                                           stylesheet_variables=StylesheetVariables.combobox_dark)
-    checkbox_dark = get_stylesheet_content(stylesheet_name="checkbox_dark",
-                                           stylesheet_variables=StylesheetVariables.checkbox_dark)
-    tree_dark = get_stylesheet_content(stylesheet_name="tree_dark",
-                                       stylesheet_variables=StylesheetVariables.tree_dark)
+    progress_bar_base = get_stylesheet_content(stylesheet_name="progress_bar_base",
+                                               stylesheet_variables=StylesheetVariables.progress_bar_base)
+    scroll_bar_base = get_stylesheet_content(stylesheet_name="scroll_bar_base",
+                                             stylesheet_variables=StylesheetVariables.scroll_bar_base)
+    list_widget_base = get_stylesheet_content(stylesheet_name="list_widget_base",
+                                              stylesheet_variables=StylesheetVariables.list_widget_base)
+    text_edit_base = get_stylesheet_content(stylesheet_name="text_edit_base",
+                                            stylesheet_variables=StylesheetVariables.text_edit_base)
+    combobox_base = get_stylesheet_content(stylesheet_name="combobox_base",
+                                           stylesheet_variables=StylesheetVariables.combobox_base)
+    checkbox_base = get_stylesheet_content(stylesheet_name="checkbox_base",
+                                           stylesheet_variables=StylesheetVariables.checkbox_base)
+    tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
+                                              stylesheet_variables=StylesheetVariables.tree_widget_base)
     # --------------------------------------------- Buttons ---------------------------------------------
+    push_button_base = get_stylesheet_content(stylesheet_name="push_button_base",
+                                              stylesheet_variables=StylesheetVariables.push_button_base)
     push_button_bright = get_stylesheet_content(stylesheet_name="push_button_base",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)
-    push_button_regular = get_stylesheet_content(stylesheet_name="push_button_base",
-                                                 stylesheet_variables=StylesheetVariables.push_button_regular)
     # Metro Tool Button
-    button_metro_tool = get_stylesheet_content(stylesheet_name="button_metro_tool",
-                                               stylesheet_variables=StylesheetVariables.button_metro_tools_default)
-    button_metro_tool_red = get_stylesheet_content(stylesheet_name="button_metro_tool",
-                                                   stylesheet_variables=StylesheetVariables.button_metro_tools_red)
-    button_metro_tool_blue = get_stylesheet_content(stylesheet_name="button_metro_tool",
-                                                    stylesheet_variables=StylesheetVariables.button_metro_tools_blue)
-    button_metro_tool_green = get_stylesheet_content(stylesheet_name="button_metro_tool",
-                                                     stylesheet_variables=StylesheetVariables.button_metro_tools_green)
+    tool_btn_metro_base = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
+                                                 stylesheet_variables=StylesheetVariables.tool_btn_metro_base)
+    tool_btn_metro_red = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
+                                                stylesheet_variables=StylesheetVariables.tool_btn_metro_red)
+    tool_btn_metro_blue = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
+                                                 stylesheet_variables=StylesheetVariables.tool_btn_metro_blue)
+    tool_btn_metro_green = get_stylesheet_content(stylesheet_name="tool_btn_metro_base",
+                                                  stylesheet_variables=StylesheetVariables.tool_btn_metro_green)
 
 
 class Font:

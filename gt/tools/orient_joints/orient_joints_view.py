@@ -72,17 +72,17 @@ class OrientJointsView(metaclass=MayaWindowMeta):
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.setWindowIcon(QIcon(resource_library.Icon.tool_attributes_to_python))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_dark
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
         stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_dark
+        stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
 
-        self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_regular)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_regular)
+        self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
+        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
         self.orient_joints_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_regular)
-        self.copy_parent_btn.setStyleSheet(resource_library.Stylesheet.push_button_regular)
-        self.copy_world_btn.setStyleSheet(resource_library.Stylesheet.push_button_regular)
+        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
+        self.copy_parent_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
+        self.copy_world_btn.setStyleSheet(resource_library.Stylesheet.push_button_base)
 
         qt_utils.resize_to_screen(self, percentage=20, width_percentage=30)
         qt_utils.center_window(self)
