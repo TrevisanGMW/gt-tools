@@ -1205,6 +1205,14 @@ class ModuleGeneric:
         """
         return self.proxies
 
+    def get_proxies_uuids(self):
+        """
+        Gets a list of UUIDs by extracting the UUIDs of all proxies found in "self.proxies"
+        Returns:
+            list: A list of proxy UUIDs (strings)
+        """
+        return [proxy.get_uuid() for proxy in self.proxies]
+
     def get_metadata(self):
         """
         Gets the metadata property.
@@ -1361,6 +1369,7 @@ class ModuleGeneric:
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         logger.debug(f'"build_rig_post" function from "{self.get_module_class_name()}" was called.')
+        module_uuids = self.get_proxies_uuids()
         jnt_nodes = []
         for proxy in self.proxies:
             joint = find_joint_node_from_uuid(proxy.get_uuid())
@@ -1371,14 +1380,24 @@ class ModuleGeneric:
             if self.get_orientation_method() == OrientationData.Methods.inherit:
                 proxy_obj_path = find_proxy_node_from_uuid(proxy.get_uuid())
                 match_rotate(source=proxy_obj_path, target_list=joint)
-            # Parent Joint
-            parent_joint_node = find_joint_node_from_uuid(proxy.get_parent_uuid())
-            hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
+            # Parent Joint (Internal Proxies)
+            parent_uuid = proxy.get_parent_uuid()
+            if parent_uuid in module_uuids:
+                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
             jnt_nodes.append(joint)
 
         # Auto Orientation (After Parenting)
         if self.get_orientation_method() == OrientationData.Methods.automatic:
             self.orientation.apply_automatic_orientation(joint_list=jnt_nodes)
+
+        # Parent Joints (External Proxies)
+        for proxy in self.proxies:
+            parent_uuid = proxy.get_parent_uuid()
+            if parent_uuid not in module_uuids:
+                joint = find_joint_node_from_uuid(proxy.get_uuid())
+                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
 
         cmds.select(clear=True)
 
@@ -1716,37 +1735,39 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    test = OrientationData()
-    test.apply_automatic_orientation(['joint1', 'joint2', 'joint3'])
-
     # from gt.tools.auto_rigger.template_biped import create_template_biped
     # a_biped_project = create_template_biped()
     # a_biped_project.build_proxy()
     # a_biped_project.build_rig()
 
-    # root = Proxy(name="root")
-    # a_1st_proxy = Proxy(name="first")
-    # a_1st_proxy.set_position(y=5, x=-1)
-    # a_1st_proxy.set_parent_uuid_from_proxy(root)
-    # a_2nd_proxy = Proxy(name="second")
-    # a_2nd_proxy.set_position(x=-10)
-    # a_2nd_proxy.set_rotation(z=-35)
-    # a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
-    #
-    # a_root_module = ModuleGeneric()
-    # a_root_module.add_to_proxies(root)
-    #
-    # a_module = ModuleGeneric()
-    # a_module.add_to_proxies(a_1st_proxy)
-    # a_module.add_to_proxies(a_2nd_proxy)
-    # # a_module.set_prefix("prefix")
-    # a_new_proxy = a_module.add_new_proxy()
-    # a_new_proxy.set_position(x=-15, y=-5)
-    # a_new_proxy.set_parent_uuid_from_proxy(a_2nd_proxy)
-    # a_module.set_orientation(orientation="auto")
-    #
-    # a_project = RigProject()
-    # a_project.add_to_modules(a_root_module)
-    # a_project.add_to_modules(a_module)
-    # a_project.build_proxy()
-    # a_project.build_rig(delete_proxy=True)
+    root = Proxy(name="root")
+    a_1st_proxy = Proxy(name="first")
+    a_1st_proxy.set_position(y=5, x=-1)
+    a_1st_proxy.set_parent_uuid_from_proxy(root)
+    a_2nd_proxy = Proxy(name="second")
+    a_2nd_proxy.set_position(x=-10)
+    a_2nd_proxy.set_rotation(z=-35)
+    a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+
+    a_root_module = ModuleGeneric()
+    a_root_module.add_to_proxies(root)
+
+    a_module = ModuleGeneric()
+    a_module.add_to_proxies(a_1st_proxy)
+    a_module.add_to_proxies(a_2nd_proxy)
+    # a_module.set_prefix("prefix")
+    a_new_proxy = a_module.add_new_proxy()
+    a_new_proxy.set_position(x=-15, y=-5)
+    a_new_proxy.set_parent_uuid_from_proxy(a_2nd_proxy)
+
+    another_module = ModuleGeneric()
+    another_proxy = Proxy(name="another")
+    another_proxy.set_position(y=-5)
+    another_module.add_to_proxies(another_proxy)
+
+    a_project = RigProject()
+    a_project.add_to_modules(a_root_module)
+    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(another_module)
+    a_project.build_proxy()
+    a_project.build_rig(delete_proxy=True)
