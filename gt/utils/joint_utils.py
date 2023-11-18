@@ -208,8 +208,4 @@ def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    temp_list = []
-    from gt.utils.node_utils import Node
-    for item in ['joint1', 'joint2', 'joint3']:
-        temp_list.append(Node(item))
-    orient_joint(joint_list=temp_list, aim_axis=(1, 0, 0), up_axis=(0, -1, 0), up_dir=(0, 1, 0))
+    # orient_joint(joint_list=cmds.ls(selection=True), aim_axis=(-1, 0, 0), up_axis=(0, 0, -1), up_dir=(0, 1, 0))
