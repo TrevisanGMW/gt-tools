@@ -16,6 +16,30 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def set_lra_state(obj_list, state=True, verbose=False):
+    """
+    Sets the state of the Local Rotation Axis (LRA) for the provided objects.
+    Args:
+        obj_list (list): A list of objects to be affected (strings, paths to the object)
+        state (bool, optional): Visibility state. If True, it's visible/active/on.
+                                If False, it's invisible/inactive/off
+        verbose (bool, optional): If active, it will give warnings when the operation failed.
+    Returns:
+        list: List of affected objects.
+    """
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
+    affected = []
+    for obj in obj_list:
+        try:
+            cmds.setAttr(f'{obj}.displayLocalAxis', int(state))
+            affected.append(obj)
+        except Exception as e:
+            if verbose:
+                cmds.warning(f'Unable to set LRA state for "{str(obj)}". Issue: {e}')
+    return affected
+
+
 def toggle_uniform_lra(obj_list=None, verbose=True):
     """
     Makes the visibility of the Local Rotation Axis uniform  according to the current state of the majority of them.
@@ -521,3 +545,4 @@ def delete_display_layers(layer_list=None, verbose=True):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    set_lra_state(cmds.ls(typ="joint"), True)
