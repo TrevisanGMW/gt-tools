@@ -64,7 +64,7 @@ class PackageSetupWindow(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setStyleSheet(resource_library.Stylesheet.maya_basic_dialog)
+        self.setStyleSheet(resource_library.Stylesheet.maya_dialog_base)
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
         # Widgets, Layout and Connections
         self.create_widgets()

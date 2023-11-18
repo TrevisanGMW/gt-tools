@@ -66,7 +66,7 @@ class ProgressBarWindow(QMainWindow):
         qt_utils.center_window(self)
         # Window Details
         self.setWindowTitle("Progress Bar")
-        progress_bar_stylesheet = resource_library.Stylesheet.maya_basic_dialog
+        progress_bar_stylesheet = resource_library.Stylesheet.maya_dialog_base
         progress_bar_stylesheet += resource_library.Stylesheet.progress_bar_dark
         progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_dark
         progress_bar_stylesheet += resource_library.Stylesheet.text_edit_mid_grey

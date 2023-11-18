@@ -131,7 +131,7 @@ class LineTextWidget(QFrame):
         horizontal_layout.addWidget(self.edit)
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
-        stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
             self.setGeometry(100, 100, 800, 600)
 
             stylesheet = resource_library.Stylesheet.scroll_bar_dark
-            stylesheet += resource_library.Stylesheet.maya_basic_dialog
+            stylesheet += resource_library.Stylesheet.maya_dialog_base
             stylesheet += resource_library.Stylesheet.list_widget_dark
             self.setStyleSheet(stylesheet)
 

@@ -840,6 +840,18 @@ class StylesheetVariables:
         "@list_hover_bg_color;": Color.RGB.gray_mid_dark,
         "@list_hover_text_color;": Color.RGB.white,
     }
+    push_button_regular = {
+        # Colors
+        "@background_color;": Color.RGB.gray_mid_lighter,
+        "@background_hover_color;": Color.RGB.gray_mid_much_lighter,
+        "@background_pressed_color;": Color.RGB.gray_darker_mid,
+        "@background_disabled_color;": Color.RGB.gray_mid_light,
+        "@text_color;": Color.RGB.white,
+        "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
+
+        # Formatting
+        "@button_padding;": "15",
+    }
     push_button_bright = {
         # Colors
         "@background_color;": Color.RGB.grey_light,
@@ -913,8 +925,8 @@ class Stylesheet:
         A library of stylesheets
         """
     # Stylesheets Without Variations
-    maya_basic_dialog = get_stylesheet_content(stylesheet_name="maya_basic_dialog",
-                                               stylesheet_variables=StylesheetVariables.maya_basic)
+    maya_dialog_base = get_stylesheet_content(stylesheet_name="maya_dialog_base",
+                                              stylesheet_variables=StylesheetVariables.maya_basic)
     progress_bar_dark = get_stylesheet_content(stylesheet_name="progress_bar_dark",
                                                stylesheet_variables=StylesheetVariables.progress_bar_dark)
     scroll_bar_dark = get_stylesheet_content(stylesheet_name="scroll_bar_dark",
@@ -930,8 +942,10 @@ class Stylesheet:
     tree_dark = get_stylesheet_content(stylesheet_name="tree_dark",
                                        stylesheet_variables=StylesheetVariables.tree_dark)
     # --------------------------------------------- Buttons ---------------------------------------------
-    push_button_bright = get_stylesheet_content(stylesheet_name="push_button_bright",
+    push_button_bright = get_stylesheet_content(stylesheet_name="push_button_base",
                                                 stylesheet_variables=StylesheetVariables.push_button_bright)
+    push_button_regular = get_stylesheet_content(stylesheet_name="push_button_base",
+                                                 stylesheet_variables=StylesheetVariables.push_button_regular)
     # Metro Tool Button
     button_metro_tool = get_stylesheet_content(stylesheet_name="button_metro_tool",
                                                stylesheet_variables=StylesheetVariables.button_metro_tools_default)

@@ -53,7 +53,7 @@ class MeshLibraryView(metaclass=MayaWindowMeta):
         self.setWindowIcon(QIcon(resource_library.Icon.tool_mesh_library))
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
-        stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=30)

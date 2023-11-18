@@ -56,7 +56,7 @@ class AttributesToPythonView(metaclass=MayaWindowMeta):
         self.setWindowIcon(QIcon(resource_library.Icon.tool_attributes_to_python))
 
         stylesheet = resource_library.Stylesheet.scroll_bar_dark
-        stylesheet += resource_library.Stylesheet.maya_basic_dialog
+        stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_dark
         self.setStyleSheet(stylesheet)
         self.extract_trs_set_attr_btn.setStyleSheet(resource_library.Stylesheet.push_button_bright)

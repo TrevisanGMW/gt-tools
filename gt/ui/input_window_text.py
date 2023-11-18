@@ -91,7 +91,7 @@ class InputWindowText(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint | Qt.WindowModal)
 
         # Determine Style
-        progress_bar_stylesheet = resource_library.Stylesheet.maya_basic_dialog
+        progress_bar_stylesheet = resource_library.Stylesheet.maya_dialog_base
         progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_dark
         self.setStyleSheet(progress_bar_stylesheet)
 
