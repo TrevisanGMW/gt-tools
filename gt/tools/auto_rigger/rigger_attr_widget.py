@@ -2,7 +2,9 @@
 Auto Rigger Attr Widgets
 """
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
+from gt.tools.auto_rigger.rigger_orient_view import RiggerOrientView
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
+from gt.tools.auto_rigger.rig_framework import OrientationData
 from gt.utils.iterable_utils import dict_as_formatted_str
 from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
@@ -13,6 +15,7 @@ from PySide2.QtCore import Qt
 from functools import partial
 import logging
 import ast
+
 
 # Logging Setup
 logging.basicConfig()
@@ -50,7 +53,8 @@ class ModuleAttrWidget(QWidget):
         self.mod_name_field = None
         self.mod_prefix_field = None
         self.mod_suffix_field = None
-        self.mod_orient_combobox = None
+        self.mod_orient_method = None
+        self.mod_edit_orient_btn = None
         self.refresh_parent_func = None
 
         if refresh_parent_func:
@@ -72,6 +76,7 @@ class ModuleAttrWidget(QWidget):
         """
         # Module Header (Icon, Type, Name, Buttons)
         _layout = QHBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
         _layout.setAlignment(Qt.AlignTop)
 
         # Icon
@@ -87,6 +92,7 @@ class ModuleAttrWidget(QWidget):
         # Name (User Custom)
         name = self.module.get_name()
         self.mod_name_field = QLineEdit()
+        self.mod_name_field.setFixedHeight(30)
         if name:
             self.mod_name_field.setText(name)
         self.mod_name_field.textChanged.connect(self.set_module_name)
@@ -111,10 +117,12 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the prefix of the module
         """
         _layout = QHBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
         # Prefix
         prefix_label = QLabel("Prefix:")
         prefix_label.setFixedWidth(50)
         self.mod_prefix_field = QLineEdit()
+        self.mod_prefix_field.setFixedHeight(30)
         _layout.addWidget(prefix_label)
         _layout.addWidget(self.mod_prefix_field)
         prefix = self.module.get_prefix()
@@ -125,6 +133,7 @@ class ModuleAttrWidget(QWidget):
         suffix_label = QLabel("Suffix:")
         suffix_label.setFixedWidth(50)
         self.mod_suffix_field = QLineEdit()
+        self.mod_suffix_field.setFixedHeight(30)
         _layout.addWidget(suffix_label)
         _layout.addWidget(self.mod_suffix_field)
         suffix = self.module.get_suffix()
@@ -138,15 +147,25 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the module orientation
         """
         _layout = QHBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
         # Prefix
         orient_label = QLabel("Orientation Method:")
         orient_label.setFixedWidth(170)
-        self.mod_orient_combobox = QComboBox()
-        edit_button = QPushButton("Edit Orientation")
+        self.mod_orient_method = QComboBox()
+        self.mod_orient_method.setFixedHeight(30)
+
+        for method in self.module.get_orientation_data().get_available_methods():
+            self.mod_orient_method.addItem(str(method).capitalize())
+
+        self.mod_edit_orient_btn = QPushButton("Edit Orientation Data")
+        self.mod_edit_orient_btn.setFixedHeight(30)
+
         _layout.addWidget(orient_label)
-        _layout.addWidget(self.mod_orient_combobox)
-        _layout.addWidget(edit_button)
-        # self.mod_suffix_field.textChanged.connect(self.set_module_suffix)
+        _layout.addWidget(self.mod_orient_method)
+        _layout.addWidget(self.mod_edit_orient_btn)
+        self.mod_orient_method.currentIndexChanged.connect(self.on_orientation_combobox_change)
+        self.mod_edit_orient_btn.clicked.connect(self.on_orientation_edit_clicked)
+
         self.content_layout.addLayout(_layout)
 
     def add_widget_module_parent(self):
@@ -154,6 +173,7 @@ class ModuleAttrWidget(QWidget):
         Adds a widget to control the parent of the module
         """
         _layout = QHBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
         parent_label.setFixedWidth(60)
@@ -471,6 +491,25 @@ class ModuleAttrWidget(QWidget):
             _name_cell.setText(current_name)
         _source_table.cellChanged.connect(self.on_proxy_parent_table_cell_changed)  # Fix recursion errors
 
+    def on_orientation_combobox_change(self, index):
+        """
+        Determines the module orientation method and updates the UI to allow edits.
+        Args:
+            index (int): Combo box index change (used to retrieve text item)
+        """
+        method = self.mod_orient_method.itemText(index)
+        self.module.set_orientation_method(method=method.lower())
+        self.mod_edit_orient_btn.setEnabled(False)
+        if method.lower() == OrientationData.Methods.automatic.lower():
+            self.mod_edit_orient_btn.setEnabled(True)
+
+    def on_orientation_edit_clicked(self):
+        """
+        Open edit orientation data edit view for the current module
+        """
+        edit_orient_window = RiggerOrientView(parent=self, module=self.module)
+        edit_orient_window.show()
+
     def on_button_edit_proxy_clicked(self, proxy):
         """
         Shows a text-editor window with the proxy converted to a dictionary (raw data)
@@ -733,6 +772,7 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
 
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
+        self.add_widget_module_orientation()
         self.add_widget_module_parent()
         self.add_widget_proxy_basic_table()
 
