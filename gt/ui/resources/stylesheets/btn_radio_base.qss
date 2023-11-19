@@ -1,18 +1,20 @@
 QRadioButton {
-	color: #ffffff; /* Text color */
-	padding: 5px; /* Padding for a better appearance */
+	color: @text_color;
+	padding: @button_padding;
 }
 
 QRadioButton::indicator {
 	width: 15px;
 	height: 15px;
 	border-radius: 7px;
-	border: 2px solid #FF0000; /* Default border color */
+	border: 2px solid @indicator_border_color;
 }
 
-
+QRadioButton::indicator:hover {
+	background-color: @indicator_hover_color;
+}
 
 QRadioButton::indicator:checked {
-	background-color: #ffffff; /* Checked background color */
-	border: 2px solid #ffffff; /* Border color when checked */
+	background-color: @indicator_checked_color;
+	border: 2px solid @indicator_checked_border_color;
 }

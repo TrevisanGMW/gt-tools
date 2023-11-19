@@ -867,15 +867,14 @@ class StylesheetVariables:
     }
     btn_radio_base = {
         # Colors
-        "@background_color;": Color.RGB.gray_mid_lighter,
-        "@background_hover_color;": Color.RGB.gray_mid_much_lighter,
-        "@background_pressed_color;": Color.RGB.gray_darker_mid,
-        "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@text_color;": Color.RGB.white,
-        "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
+        "@indicator_border_color;": Color.RGB.gray_mid_much_lighter,
+        "@indicator_hover_color;": Color.RGB.gray_lighter,
+        "@indicator_checked_color;": Color.RGB.white,
+        "@indicator_checked_border_color;": Color.RGB.gray_gainsboro,
 
         # Formatting
-        "@button_padding;": "15",
+        "@button_padding;": "5",
     }
     combobox_base = {
         # Colors
