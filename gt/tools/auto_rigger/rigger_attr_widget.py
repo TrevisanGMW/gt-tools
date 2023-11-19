@@ -50,6 +50,7 @@ class ModuleAttrWidget(QWidget):
         self.mod_name_field = None
         self.mod_prefix_field = None
         self.mod_suffix_field = None
+        self.mod_orient_combobox = None
         self.refresh_parent_func = None
 
         if refresh_parent_func:
@@ -132,6 +133,22 @@ class ModuleAttrWidget(QWidget):
         self.mod_suffix_field.textChanged.connect(self.set_module_suffix)
         self.content_layout.addLayout(_layout)
 
+    def add_widget_module_orientation(self):
+        """
+        Adds widgets to control the module orientation
+        """
+        _layout = QHBoxLayout()
+        # Prefix
+        orient_label = QLabel("Orientation Method:")
+        orient_label.setFixedWidth(170)
+        self.mod_orient_combobox = QComboBox()
+        edit_button = QPushButton("Edit Orientation")
+        _layout.addWidget(orient_label)
+        _layout.addWidget(self.mod_orient_combobox)
+        _layout.addWidget(edit_button)
+        # self.mod_suffix_field.textChanged.connect(self.set_module_suffix)
+        self.content_layout.addLayout(_layout)
+
     def add_widget_module_parent(self):
         """
         Adds a widget to control the parent of the module
@@ -139,7 +156,7 @@ class ModuleAttrWidget(QWidget):
         _layout = QHBoxLayout()
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
-        parent_label.setFixedWidth(50)
+        parent_label.setFixedWidth(60)
         module_parent_combo_box = self.create_widget_parent_combobox(target=self.module)
         _layout.addWidget(parent_label)
         _layout.addWidget(module_parent_combo_box)
@@ -701,6 +718,7 @@ class ModuleGenericAttrWidget(ModuleAttrWidget):
 
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
+        self.add_widget_module_orientation()
         self.add_widget_proxy_parent_table()
         self.add_widget_action_buttons()
 
