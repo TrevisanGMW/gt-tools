@@ -1229,6 +1229,14 @@ class ModuleGeneric:
         """
         return self.active
 
+    def get_orientation_data(self):
+        """
+        Gets the orientation data.
+        Returns:
+            OrientationData: OrientationData object with the module orientation description.
+        """
+        return self.orientation
+
     def get_orientation_method(self):
         """
         Gets the orientation method
