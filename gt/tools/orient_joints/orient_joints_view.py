@@ -84,6 +84,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.list_widget_base
         stylesheet += resource_library.Stylesheet.btn_radio_base
+        stylesheet += resource_library.Stylesheet.combobox_base
         self.setStyleSheet(stylesheet)
 
         self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
@@ -165,7 +166,6 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.up_dir_grp.addButton(self.up_dir_x)
         self.up_dir_grp.addButton(self.up_dir_y)
         self.up_dir_grp.addButton(self.up_dir_z)
-        # self.up_dir_x.setChecked(True)
 
         self.aim_axis_mod = QComboBox()
         self.up_axis_mod = QComboBox()
