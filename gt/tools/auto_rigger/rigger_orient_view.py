@@ -2,6 +2,7 @@
 OrientationData View
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QRadioButton, QComboBox, QButtonGroup, QHBoxLayout
+from gt.tools.auto_rigger.rig_framework import OrientationData
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -335,7 +336,7 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from gt.tools.auto_rigger.rig_framework import ModuleGeneric, OrientationData
+    from gt.tools.auto_rigger.rig_framework import ModuleGeneric
 
     _a_module = ModuleGeneric(name="My Module")
     _an_orientation = OrientationData(method=OrientationData.Methods.automatic,
