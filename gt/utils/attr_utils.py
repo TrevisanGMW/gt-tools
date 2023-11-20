@@ -69,6 +69,8 @@ def set_attr(attribute_path=None, value=None, obj_list=None, attr_list=None, cla
                     cmds.setAttr(attr_path, lock=False)
             if isinstance(value, str):
                 cmds.setAttr(attr_path, value, typ="string", clamp=clamp)
+            if isinstance(value, (tuple, list)):
+                cmds.setAttr(attr_path, *value, typ="double3", clamp=clamp)
             else:
                 cmds.setAttr(attr_path, value, clamp=clamp)
         except Exception as e:
@@ -194,18 +196,28 @@ def set_trs_attr(target_obj, value_tuple, translate=False, rotate=False, scale=F
         log_when_true(logger, message, do_log=verbose, level=log_level)
 
 
-def hide_lock_default_attributes(obj, include_visibility=False):
+def hide_lock_default_attrs(obj, translate=True, rotate=True, scale=True, visibility=False):
     """
-    Locks default TRS channels
+    Locks default TRS+V channels
     Args:
         obj (str): Name of the object to lock TRS attributes
-        include_visibility (optional, bool): If active, also locks and hides visibility
+        translate (bool, optional): If active, translate (position) will be included. (locked, hidden)
+        rotate (bool, optional): If active, rotate (rotation) will be included. (locked, hidden)
+        scale (bool, optional): If active, scale will be included. (locked, hidden)
+        visibility (bool, optional): If active, also locks and hides visibility
     """
-    for channel in ['t', 'r', 's']:
+    channels = []
+    if translate:
+        channels.append('t')
+    if rotate:
+        channels.append('r')
+    if scale:
+        channels.append('s')
+    for channel in channels:
         for axis in ['x', 'y', 'z']:
-            cmds.setAttr(obj + '.' + channel + axis, lock=True, keyable=False, channelBox=False)
-    if include_visibility:
-        cmds.setAttr(obj + '.v', lock=True, keyable=False, channelBox=False)
+            cmds.setAttr(f'{obj}.{channel}{axis}', lock=True, keyable=False, channelBox=False)
+    if visibility:
+        cmds.setAttr(f'{obj}.v', lock=True, keyable=False, channelBox=False)
 
 
 def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
@@ -660,6 +672,35 @@ def get_user_attr_to_python(obj_list):
     return output
 
 
+def list_user_defined_attr(obj, skip_nested=False, skip_parents=True):
+    """
+    Lists user defined attributes of a given Maya object.
+
+    Args:
+    obj (str): The name of the Maya object.
+    skip_nested (bool, optional): If True, skip user-defined attributes that are nested under other attributes.
+    skip_parents (bool, optional): If True, skip attributes that are parent of other of nested attributes.
+                                   Warning, if both "skip_nested" and "skip_parents" are active simultaneously,
+                                   vector attributes will be ignored completely.
+
+    Returns:
+    list: A list of user defined attribute names for the specified Maya object.
+    """
+    user_attrs = cmds.listAttr(obj, userDefined=True) or []
+    to_skip = set()
+    if skip_nested:
+        for attr in user_attrs:
+            children = cmds.attributeQuery(attr, node=obj, listChildren=True) or []
+            to_skip.update(children)
+    if skip_parents:
+        for attr in user_attrs:
+            children = cmds.attributeQuery(attr, node=obj, listChildren=True) or []
+            if children:
+                to_skip.add(attr)
+    result = [item for item in user_attrs if item not in list(to_skip)]
+    return result
+
+
 # -------------------------------------------- Management -------------------------------------------
 def add_attr_double_three(obj, attr_name, suffix="RGB", keyable=True):
     """
@@ -830,6 +871,46 @@ def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
         cmds.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+# -------------------------------------------- Connection -------------------------------------------
+def connect_attr(source_attr, target_attr_list, force=False,
+                 verbose=False, log_level=logging.INFO, raise_exceptions=False):
+    """
+    This function sets locked or hidden states of specified attributes of objects using Maya's `cmds.setAttr` function.
+    It provides options to set locked or hidden states for a single attribute path, multiple objects and attributes.
+    It does not raise errors, but can log them with the provided level determined as an argument.
+
+    Args:
+        source_attr (str, optional): A single-line object attribute path in the format "object.attribute".
+        target_attr_list (str ,list, optional): The name of the attribute or a list of attribute names to receive
+                                                the connection. e.g. ["obj.tx", "obj.ty"]
+        force (bool, optional): If active, it will try to force the connection (overwrite when existing)
+        verbose (bool, optional): If True, log messages will be displayed describing the operation.
+        log_level (int, optional): The logging level to use when verbose is True. Default is logging.INFO.
+        raise_exceptions (bool, optional): If active, the function will raise exceptions whenever something fails.
+    """
+    if source_attr and not isinstance(source_attr, str):
+        message = f'Unable to create connection invalid source attribute "{source_attr}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+    if not cmds.objExists(source_attr):
+        message = f'Unable to create connection missing source attribute "{source_attr}".'
+        log_when_true(logger, message, do_log=verbose, level=log_level)
+        return
+
+    # Add object and attribute lists
+    if isinstance(target_attr_list, str):
+        target_attr_list = [target_attr_list]
+
+    for target_attr in target_attr_list:
+        try:
+            cmds.connectAttr(source_attr, target_attr, force=force)
+        except Exception as e:
+            message = f'Unable to connect attributes. Issue: "{e}".'
+            log_when_true(logger, message, do_log=verbose, level=log_level)
+            if raise_exceptions:
+                raise e
 
 
 if __name__ == "__main__":

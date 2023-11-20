@@ -203,8 +203,7 @@ class MeshLibraryController:
         param_win.set_confirm_button_text("Build")
         formatted_dict = None
         if isinstance(parameters, dict):
-            formatted_dict = iterable_utils.format_dict_with_keys_per_line(parameters, keys_per_line=1,
-                                                                           bracket_new_line=True)
+            formatted_dict = iterable_utils.dict_as_formatted_str(parameters, one_key_per_line=True)
         elif isinstance(parameters, str):
             formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)

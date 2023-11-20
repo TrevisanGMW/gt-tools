@@ -68,16 +68,33 @@ def is_float_equal(x, y, tolerance=0.00001):
     return abs(x-y) < tolerance
 
 
-# ----------------------------------------- not yet refactored -----------------------------------------
-def cross_product(vector_a, vector_b, vector_c):
+def cross_product(vector_a, vector_b):
     """
     Get Cross Product
         Args:
-            vector_a (list): A list of floats
-            vector_b (list): A list of floats
-            vector_c (list): A list of floats
+            vector_a (tuple, list): A tuple or list with three floats/integers
+            vector_b (tuple, list): A tuple or list with three floats/integers
         Returns:
-            MVector: cross product
+            list: Cross product
+    """
+    result = [
+        vector_a[1] * vector_b[2] - vector_a[2] * vector_b[1],
+        vector_a[2] * vector_b[0] - vector_a[0] * vector_b[2],
+        vector_a[0] * vector_b[1] - vector_a[1] * vector_b[0]
+    ]
+    return result
+
+
+def cross_product_differences(vector_a, vector_b, vector_c):
+    """
+    This function calculates the cross product of the differences between
+    "vector_a" and "vector_b" and between "vector_c" and "vector_b".
+        Args:
+            vector_a (tuple, list): A tuple or list with three floats/integers
+            vector_b (tuple, list): A tuple or list with three floats/integers
+            vector_c (tuple, list): A tuple or list with three floats/integers
+        Returns:
+            MVector: cross product of differences
     """
     if type(vector_a) != 'OpenMaya.MVector':
         vector_a = OpenMaya.MVector(vector_a)
@@ -94,7 +111,7 @@ def cross_product(vector_a, vector_b, vector_c):
     return vector_a ^ vector_b
 
 
-def get_cross_direction(obj_a, obj_b, obj_c):
+def objects_cross_direction(obj_a, obj_b, obj_c):
     """
     Get Cross Direction
         Args:
@@ -102,21 +119,19 @@ def get_cross_direction(obj_a, obj_b, obj_c):
             obj_b (str): Name of the second object. (Must exist in scene)
             obj_c (str): Name of the third object. (Must exist in scene)
         Returns:
-            MVector: cross direction of the objects
+            tuple: cross direction of the objects
     """
     cross = [0, 0, 0]
     for obj in [obj_a, obj_b, obj_c]:
         if not cmds.objExists(obj):
             return cross
-    pos_a = cmds.xform(obj_a, q=True, ws=True, rp=True)
-    pos_b = cmds.xform(obj_b, q=True, ws=True, rp=True)
-    pos_c = cmds.xform(obj_c, q=True, ws=True, rp=True)
+    pos_a = cmds.xform(obj_a, q=True, worldSpace=True, rotatePivot=True)
+    pos_b = cmds.xform(obj_b, q=True, worldSpace=True, rotatePivot=True)
+    pos_c = cmds.xform(obj_c, q=True, worldSpace=True, rotatePivot=True)
 
-    return cross_product(pos_a, pos_b, pos_c).normal()
+    result = cross_product_differences(pos_a, pos_b, pos_c).normal()
+    return tuple(result)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    from pprint import pprint
-    out = None
-    pprint(out)

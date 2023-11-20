@@ -23,7 +23,8 @@ import maya.mel as mel
 import logging
 import sys
 
-from gt.tools.auto_rigger.rigger_utilities import find_joint, find_transform, get_metadata, select_items, get_children
+from gt.tools.biped_rigger_legacy.rigger_utilities import find_joint, find_transform, get_metadata, select_items
+from gt.tools.biped_rigger_legacy.rigger_utilities import get_children
 from gt.utils.iterable_utils import make_flat_list
 from collections import namedtuple
 from functools import partial

@@ -125,7 +125,7 @@ class TestUUIDUtils(unittest.TestCase):
     def test_add_proxy_attribute(self):
         cube = maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
-        result = uuid_utils.add_uuid_attribute(cube, attr_name)
+        result = uuid_utils.add_uuid_attr(cube, attr_name)
         expected = [f'{cube}.{attr_name}']
         self.assertEqual(expected, result)
 
@@ -133,19 +133,19 @@ class TestUUIDUtils(unittest.TestCase):
         cube_one = maya_test_tools.create_poly_cube()
         cube_two = maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
-        result = uuid_utils.add_uuid_attribute([cube_one, cube_two], attr_name)
+        result = uuid_utils.add_uuid_attr([cube_one, cube_two], attr_name)
         expected = [f'{cube_one}.{attr_name}', f'{cube_two}.{attr_name}']
         self.assertEqual(expected, result)
 
     def test_invalid_object_list_input(self):
         obj_list = 123  # Invalid input
-        proxy_attrs = uuid_utils.add_uuid_attribute(obj_list, 'mockedAttrName')
+        proxy_attrs = uuid_utils.add_uuid_attr(obj_list, 'mockedAttrName')
         expected = []
         self.assertEqual(proxy_attrs, expected)
 
     def test_invalid_attribute_name(self):
         objects = ['object1', 'object2']
-        proxy_attrs = uuid_utils.add_uuid_attribute(objects, None)  # Invalid attribute name
+        proxy_attrs = uuid_utils.add_uuid_attr(objects, None)  # Invalid attribute name
         expected = []
         self.assertEqual(proxy_attrs, expected)
 
@@ -159,7 +159,7 @@ class TestUUIDUtils(unittest.TestCase):
         mock_add_attr.return_value = [f'{cube_one}.mockedAttrName', f'{cube_two}.mockedAttrName']
 
         objects = [cube_one, cube_two]
-        proxy_attrs = uuid_utils.add_uuid_attribute(objects, 'mockedAttrName', set_initial_uuid_value=True)
+        proxy_attrs = uuid_utils.add_uuid_attr(objects, 'mockedAttrName', set_initial_uuid_value=True)
 
         expected = [f'{cube_one}.mockedAttrName', f'{cube_two}.mockedAttrName']
         self.assertEqual(proxy_attrs, expected)
@@ -172,9 +172,24 @@ class TestUUIDUtils(unittest.TestCase):
         cube_two = maya_test_tools.create_poly_cube()
         maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
-        created_uuid_attr = uuid_utils.add_uuid_attribute([cube_one, cube_two], attr_name)
+        created_uuid_attr = uuid_utils.add_uuid_attr([cube_one, cube_two], attr_name)
         maya_test_tools.cmds.setAttr(created_uuid_attr[0], "mocked_uuid_value", typ="string")
         maya_test_tools.cmds.setAttr(created_uuid_attr[1], "mocked_uuid_value_two", typ="string")
-        result = uuid_utils.find_object_with_uuid(uuid_string="mocked_uuid_value", attr_name="mockedAttrName")
+        result = uuid_utils.get_object_from_uuid_attr(uuid_string="mocked_uuid_value", attr_name="mockedAttrName")
         expected = "|pCube1"
+        self.assertEqual(expected, result)
+
+    def test_get_uuid(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        result = uuid_utils.get_uuid(cube)
+        expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        self.assertEqual(expected, result)
+
+    def test_get_object_from_uuid(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        _uuid = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        result = uuid_utils.get_object_from_uuid(_uuid)
+        expected = maya_test_tools.cmds.ls(cube, long=True)[0]
         self.assertEqual(expected, result)

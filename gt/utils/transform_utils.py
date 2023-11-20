@@ -2,12 +2,14 @@
 Transform Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import set_trs_attr, get_multiple_attr
+from gt.utils.attr_utils import set_trs_attr, get_multiple_attr, set_attr
+from gt.utils.constraint_utils import equidistant_constraints
 from gt.utils.feedback_utils import FeedbackMessage
 from gt.utils.math_utils import matrix_mult
 import maya.cmds as cmds
 import logging
 import sys
+
 
 # Logging Setup
 
@@ -131,7 +133,7 @@ class Vector3:
 
     def __add__(self, other):
         """
-        Add two Vector3 objects element-wise.
+        Add two Vector3 objects element-wise. If None, operation is ignored.
 
         Args:
             other (Vector3): The other Vector3 object to add.
@@ -142,6 +144,8 @@ class Vector3:
         Raises:
             TypeError: If the operand type for addition is not supported.
         """
+        if other is None:
+            return self
         if not isinstance(other, self.__class__):
             raise TypeError("Unsupported operand type for +")
         return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
@@ -652,9 +656,9 @@ class Transform:
                       worldSpace=world_space, relative=relative, objectSpace=object_space)
             cmds.rotate(self.rotation.x, self.rotation.y, self.rotation.z, target_object,
                         worldSpace=world_space, relative=relative, objectSpace=object_space)
-            cmds.setAttr(f'{target_object}.sx', self.scale.x)
-            cmds.setAttr(f'{target_object}.sy', self.scale.y)
-            cmds.setAttr(f'{target_object}.sz', self.scale.z)
+            set_attr(attribute_path=f'{target_object}.sx', value=self.scale.x)
+            set_attr(attribute_path=f'{target_object}.sy', value=self.scale.y)
+            set_attr(attribute_path=f'{target_object}.sz', value=self.scale.z)
         else:
             position = self.position.get_as_tuple()
             rotation = self.rotation.get_as_tuple()
@@ -985,8 +989,171 @@ def convert_transforms_to_locators():
         sys.stdout.write(f'\n{feedback.get_string_message()}')
 
 
+def overwrite_xyz_values(passthrough_xyz, overwrite_xyz=(0, 0, 0), overwrite_dimensions=None):
+    """
+    Helper function to skip/filter dimensions when applying transforms.
+    Starts with the original XYZ values and overwrite each dimension with the provided overwrite values.
+    If a filter is provided, a value can be ignored, in which case the original value is retained.
+
+    Args:
+        passthrough_xyz (tuple, list): A tuple with X, Y and Z floats. These are the return values when not overwritten.
+        overwrite_xyz (tuple, list): A tuple/list with overwrite X, Y, Z floats. If no filter (overwrite_dimensions)
+                                     is provided, nothing is overwritten. So the return value is the "passthrough_xyz".
+                                     Default is (0, 0, 0) - Must contain three dimensions
+        overwrite_dimensions (str, tuple, list, optional): Dimensions to overwrite ("x", "y", "z").
+                                                           Any other characters are ignored. e.g. "a" does nothing.
+                                                           Whatever dimension is provided here is overwritten using the
+                                                           "overwrite_xyz" argument.
+    Returns:
+        tuple: A tuple with 3 float numbers (X, Y and Z) - Return is the original passthrough value, with specified
+               dimensions overwritten by the "overwrite_xyz" tuple. (See example below)
+    Example:
+        original_xyz = [1, 2, 3]
+        overwrite_xyz = [4, 5, 6]
+        skip_filter = "x"
+        print(filter_xyz_dimensions(original_xyz, overwrite_xyz, skip_filter))  # [1, 5, 6]
+    """
+    if overwrite_dimensions is None:
+        return passthrough_xyz
+    result_val = list(passthrough_xyz)
+    for char in overwrite_dimensions:
+        if char == "x":
+            result_val[0] = overwrite_xyz[0]
+        elif char == "y":
+            result_val[1] = overwrite_xyz[1]
+        elif char == "z":
+            result_val[2] = overwrite_xyz[2]
+    return result_val
+
+
+def match_translate(source, target_list, skip=None):
+    """
+    Matches the translation values of an object by extracting the values from the source object and applying it to the
+    target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Similar to point constraint.
+    Args:
+        source (str): The name of the source object (to extract the translation from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive translate updates)
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching translate values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_translation = cmds.xform(source, query=True, translation=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
+            continue
+        target_translation = cmds.xform(target, query=True, translation=True, worldSpace=True)
+        target_translation = overwrite_xyz_values(source_translation, target_translation, skip)
+        cmds.xform(target, translation=target_translation, worldSpace=True)
+
+
+def match_rotate(source, target_list, skip=None):
+    """
+    Matches the rotation (orientation) values of an object by extracting the values from the source object and
+    applying it to the target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Similar to orient constraint.
+    Args:
+        source (str): The name of the source object (to extract the rotation from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive rotate updates)
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching rotate values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_rotation = cmds.xform(source, query=True, rotation=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching rotate values.')
+            continue
+        target_rotation = cmds.xform(target, query=True, rotation=True, worldSpace=True)
+        target_rotation = overwrite_xyz_values(source_rotation, target_rotation, skip)
+        cmds.xform(target, rotation=target_rotation, worldSpace=True)
+
+
+def match_scale(source, target_list, skip=None):
+    """
+    Matches the scale values of an object by extracting the values from the source object and applying it to the
+    target object(s) - Axis (dimensions) can be skipped (ignored) using the skip argument.
+    Args:
+        source (str): The name of the source object (to extract the scale from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive scale updates)
+        skip (str, list, tuple, optional): Dimensions to skip for translation ("x", "y", "z").
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching scale values.')
+        return
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    source_scale = cmds.xform(source, query=True, scale=True, worldSpace=True)
+    for target in target_list:
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Missing target object "{str(target)}" while matching scale values.')
+            continue
+        target_scale = cmds.xform(target, query=True, scale=True, worldSpace=True)
+        target_scale = overwrite_xyz_values(source_scale, target_scale, skip)
+        cmds.xform(target, scale=target_scale, worldSpace=True)
+
+
+def match_transform(source, target_list, translate=True, rotate=True, scale=True,
+                    skip_translate=None, skip_rotate=None, skip_scale=None):
+    """
+    Match the transform attributes of the target object to the source object.
+
+    Args:
+        source (str): The name of the source object (to extract the transform from)
+        target_list (str, list, tuple): The name(s) of the target objects (objects to receive transform update)
+        translate (bool): Match translation attributes if True.
+        rotate (bool): Match rotation attributes if True.
+        scale (bool): Match scale attributes if True.
+        skip_translate (str or list): Dimensions to skip for translation ("x", "y", "z"). Other strings are ignored.
+        skip_rotate (str or list): Dimensions to skip for rotation ("x", "y", "z"). Other strings are ignored.
+        skip_scale (str or list): Dimensions to skip for scale ("x", "y", "z"). Other strings are ignored.
+    """
+    if not source or not cmds.objExists(source):
+        logger.debug(f'Missing source object "{str(source)}" while matching transform values.')
+        return
+
+    # Match translation
+    if translate:
+        match_translate(source=source, target_list=target_list, skip=skip_translate)
+
+    # Match rotation
+    if rotate:
+        match_rotate(source=source, target_list=target_list, skip=skip_rotate)
+
+    # Match scale
+    if scale:
+        match_scale(source=source, target_list=target_list, skip=skip_scale)
+
+
+def set_equidistant_transforms(start, end, target_list, skip_start_end=True, constraint='parent'):
+    """
+    Sets equidistant transforms for a list of objects between a start and end point.
+    Args:
+        start
+        end
+        target_list (list, str): A list of objects to affect
+        skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
+                                         in-between start and end points, but not on top of start/end points.
+        constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
+    """
+    constraints = equidistant_constraints(start,
+                                          end,
+                                          target_list,
+                                          skip_start_end=skip_start_end,
+                                          constraint=constraint)
+    cmds.delete(constraints)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     transform = Transform()
     transform.set_position(0, 10, 0)
     transform.apply_transform('pSphere1')
+

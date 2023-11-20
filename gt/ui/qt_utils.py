@@ -1,9 +1,9 @@
-from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow
+from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow, QTreeWidget, QHeaderView
 from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.utils.system_utils import is_system_macos
 from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtCore import QPoint
+from PySide2.QtCore import QPoint, Qt
 import logging
 import sys
 import os
@@ -626,6 +626,87 @@ def get_screen_dpi_scale(screen_number):
         return dpi_scale_factor
     else:
         raise ValueError("Invalid screen number. Please provide a valid screen number.")
+
+
+def expand_tree_item_recursively(item):
+    """
+    Recursively expands all child items in a tree view starting from the given item.
+
+    This function sets the expansion state of the provided item to True and then
+    recursively expands all its child items, if any.
+
+    Args:
+        item (QTreeWidgetItem): The root item from which to start expanding child items.
+
+    Example:
+        # Expand all child items in a tree view
+        root_item = QTreeWidgetItem()
+        expand_tree_item_recursively(root_item)
+    """
+    if item is not None:
+        item.setExpanded(True)
+        for i in range(item.childCount()):
+            expand_tree_item_recursively(item.child(i))
+
+
+def expand_all_tree_items_recursively(tree_widget):
+    """
+    Recursively expands all items and their children in a QTreeWidget.
+    Args:
+        tree_widget (QTreeWidget): The QTreeWidget to expand the items in.
+    """
+    for i in range(tree_widget.topLevelItemCount()):
+        expand_tree_item_recursively(tree_widget.topLevelItem(i))
+
+
+class QHeaderWithWidgets(QHeaderView):
+    """
+    Subclass of QHeaderView with the ability to set custom widgets for individual sections.
+
+    Attributes:
+        widget_index_dict (dict): A dictionary to store custom widgets with their corresponding section indices.
+    """
+
+    def __init__(self, parent=None):
+        """
+        Constructor for QHeaderWithWidgets.
+
+        Args:
+            parent (QWidget): The parent widget. Defaults to None.
+        """
+        super().__init__(Qt.Horizontal, parent)
+        self.widget_index_dict = {}
+
+    def add_widget(self, index, widget):
+        """
+        Set a custom widget for a specific section.
+
+        Args:
+            index (int): The index of the section.
+            widget (QWidget): The custom widget to be set.
+        """
+        if not isinstance(index, int) or index < 0:
+            return
+        self.widget_index_dict[index] = widget
+        widget.setParent(self)
+        widget.setVisible(False)
+
+    def paintSection(self, painter, rect, logical_index):
+        """
+        Paint the section, and if a custom widget is set for the section, paint and display the widget.
+
+        Args:
+            painter (QPainter): The painter object for rendering.
+            rect (QRect): The rectangle defining the section's area.
+            logical_index (int): The logical index of the section.
+
+        """
+        super().paintSection(painter, rect, logical_index)
+        if logical_index in self.widget_index_dict:
+            widget = self.widget_index_dict.get(logical_index)
+            if widget:
+                widget.setVisible(True)
+                widget.setGeometry(rect)
 
 
 if __name__ == "__main__":

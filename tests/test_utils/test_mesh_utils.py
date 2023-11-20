@@ -35,7 +35,7 @@ class TestMeshUtils(unittest.TestCase):
 
     def test_get_mesh_path(self):
         from gt.utils.data_utils import DataDirConstants
-        result = mesh_utils.get_mesh_path("qr_code_package_github")
+        result = mesh_utils.get_mesh_file_path("qr_code_package_github")
         expected = os.path.join(DataDirConstants.DIR_MESHES,
                                 f"qr_code_package_github.{mesh_utils.MESH_FILE_EXTENSION}")
         self.assertEqual(expected, result)

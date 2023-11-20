@@ -94,8 +94,8 @@
 """
 from collections import namedtuple
 from gt.utils.string_utils import remove_strings_from_string
-from gt.tools.auto_rigger.rigger_utilities import *
-from gt.tools.auto_rigger.rigger_data import *
+from gt.tools.biped_rigger_legacy.rigger_utilities import *
+from gt.tools.biped_rigger_legacy.rigger_data import *
 import maya.cmds as cmds
 import random
 

@@ -116,8 +116,50 @@ def create_rivet(source_components=None, verbose=True):
     return locator_name
 
 
+def equidistant_constraints(start, end, target_list, skip_start_end=True, constraint='parent'):
+    """
+    Sets equidistant transforms for a list of objects between a start and end point.
+    Args:
+        start
+        end
+        target_list (list, str): A list of objects to affect
+        skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
+                                         in-between start and end points, but not on top of start/end points.
+        constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
+    Returns:
+        list: A list of the created constraints. Empty if something went wrong
+    """
+    if skip_start_end:
+        target_list.insert(0, '')  # Skip start point.
+        steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
+    else:
+        steps = 1.0 / (len(target_list) - 1)  # -1 to reach both end point.
+    perc = 0  # Influence: range of 0.0 to 1.0
+
+    # Determine Constraint Type
+    _func = None
+    if constraint == "parent":
+        _func = cmds.parentConstraint
+    elif constraint == "point":
+        _func = cmds.pointConstraint
+    elif constraint == "orient":
+        _func = cmds.orientConstraint
+    elif constraint == "scale":
+        _func = cmds.scaleConstraint
+    if not _func:
+        logger.warning(f'Unable to create equidistant constraints. Invalid constraint type: "{str(constraint)}".')
+        return []
+
+    # Create Constraints
+    constraints = []
+    for index, obj in enumerate(target_list):
+        if obj and cmds.objExists(obj):
+            constraints.append(_func(start, obj, weight=1.0 - perc)[0])
+            _func(end, obj, weight=perc)
+        perc += steps  # Increase percentage for next iteration.
+    return constraints
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    create_rivet()
-
-
+    equidistant_constraints(start="locator1", end="locator2", target_list=["pCube1", "pCube2", "pCube3"])

@@ -1,7 +1,7 @@
 """
 Slider Controls - Work in Progress File
 """
-from gt.utils.color_utils import set_color_override_viewport, set_color_override_outliner
+from gt.utils.color_utils import set_color_viewport, set_color_outliner
 from gt.utils.curve_utils import combine_curves_list, create_text
 from gt.utils.data.controls.control_data import ControlData
 from gt.utils.transform_utils import move_to_origin
@@ -398,14 +398,14 @@ def create_sliders_squared_mouth(name="mouth"):
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
         if f'{left}_' in obj.offset:
-            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+            set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
         elif f'{right}_' in obj.offset:
-            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
+            set_color_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -413,12 +413,12 @@ def create_sliders_squared_mouth(name="mouth"):
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    set_color_override_outliner(bg_grp, (0, 0, 0))
+    set_color_outliner(bg_grp, (0, 0, 0))
 
     # Final Color Adjustments
-    set_color_override_viewport(main_mouth_offset_ctrl.offset, (1, 0.35, 0.55))
-    set_color_override_viewport(tongue_ctrl.offset, (1, 0.35, 0.55))
-    set_color_override_viewport(in_out_tongue_ctrl.offset, (1, 0.35, 0.55))
+    set_color_viewport(main_mouth_offset_ctrl.offset, (1, 0.35, 0.55))
+    set_color_viewport(tongue_ctrl.offset, (1, 0.35, 0.55))
+    set_color_viewport(in_out_tongue_ctrl.offset, (1, 0.35, 0.55))
     cmds.select(clear=True)
     return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
 
@@ -517,14 +517,14 @@ def create_sliders_squared_eyebrows(name="eyebrow"):
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
         if 'left_' in obj.offset:
-            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+            set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj.offset:
-            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
+            set_color_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -532,7 +532,7 @@ def create_sliders_squared_eyebrows(name="eyebrow"):
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    set_color_override_outliner(bg_grp, (0, 0, 0))
+    set_color_outliner(bg_grp, (0, 0, 0))
     cmds.select(clear=True)
 
     return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
@@ -692,14 +692,14 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
         if 'left_' in obj.offset:
-            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+            set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj.offset:
-            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
+            set_color_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -707,7 +707,7 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    set_color_override_outliner(bg_grp, (0, 0, 0))
+    set_color_outliner(bg_grp, (0, 0, 0))
     cmds.select(clear=True)
 
     return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)
@@ -839,14 +839,14 @@ def create_sliders_squared_eyes(name="eyes"):
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
         if 'left_' in obj.offset:
-            set_color_override_viewport(obj.offset, LEFT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
+            set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
+            set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
         elif 'right_' in obj.offset:
-            set_color_override_viewport(obj.offset, RIGHT_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
+            set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
-            set_color_override_viewport(obj.offset, CENTER_CTRL_COLOR)
-            set_color_override_outliner(obj.offset, CENTER_CTRL_COLOR)
+            set_color_viewport(obj.offset, CENTER_CTRL_COLOR)
+            set_color_outliner(obj.offset, CENTER_CTRL_COLOR)
 
     for obj in background:
         cmds.parent(obj, bg_grp)
@@ -854,7 +854,7 @@ def create_sliders_squared_eyes(name="eyes"):
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
-    set_color_override_outliner(bg_grp, (0, 0, 0))
+    set_color_outliner(bg_grp, (0, 0, 0))
     cmds.select(clear=True)
 
     return ControlData(name=gui_grp, offset=gui_grp, drivers=controls)

@@ -64,7 +64,7 @@ class PackageSetupWindow(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setStyleSheet(resource_library.Stylesheet.maya_basic_dialog)
+        self.setStyleSheet(resource_library.Stylesheet.maya_dialog_base)
         self.setWindowIcon(QIcon(resource_library.Icon.package_icon))
         # Widgets, Layout and Connections
         self.create_widgets()
@@ -119,10 +119,10 @@ class PackageSetupWindow(metaclass=MayaWindowMeta):
         self.run_only_btn.setSizePolicy(button_size_policy)
         self.close_btn.setSizePolicy(button_size_policy)
 
-        self.install_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_blue)
-        self.uninstall_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_red)
-        self.run_only_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool_green)
-        self.close_btn.setStyleSheet(resource_library.Stylesheet.button_metro_tool)
+        self.install_btn.setStyleSheet(resource_library.Stylesheet.btn_tool_metro_blue)
+        self.uninstall_btn.setStyleSheet(resource_library.Stylesheet.btn_tool_metro_red)
+        self.run_only_btn.setStyleSheet(resource_library.Stylesheet.btn_tool_metro_green)
+        self.close_btn.setStyleSheet(resource_library.Stylesheet.btn_tool_metro_base)
 
         # Icons
         icon_sizes = QtCore.QSize(50, 50)

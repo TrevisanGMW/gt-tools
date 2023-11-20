@@ -1,0 +1,20 @@
+QTreeWidget {
+	background-color: @background_color;
+	color: @text_color;
+	alternate-background-color: @background_color;
+}
+
+QTreeWidget::item:selected {
+	background-color: @selected_background_color;
+	color: @text_color;
+}
+
+QTreeWidget::item:hover {
+	background-color: @hover_background_color;
+}
+
+QHeaderView::section {
+	background-color: @background_color;
+	color: @text_color;
+	padding: 4px;
+}
