@@ -772,7 +772,6 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
 
         self.add_widget_module_header()
         self.add_widget_module_prefix_suffix()
-        self.add_widget_module_orientation()
         self.add_widget_module_parent()
         self.add_widget_proxy_basic_table()
 
