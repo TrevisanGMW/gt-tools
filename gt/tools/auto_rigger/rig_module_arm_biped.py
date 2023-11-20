@@ -67,6 +67,20 @@ class ModuleBipedArm(ModuleGeneric):
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
 
+    def set_orientation_direction(self, is_positive, **kwargs):
+        """
+        Sets the direction of the orientation.
+        If positive, it will use "1" in the desired axis.
+        If negative, (not positive) it will use "-1" in the desired axis.
+        Args:
+            is_positive (bool): If True, it's set to a positive direction, if False to negative.
+                                e.g. True = (1, 0, 0) while False (-1, 0, 0)
+        """
+        super().set_orientation_direction(is_positive=is_positive,
+                                          set_aim_axis=True,
+                                          set_up_axis=True,
+                                          set_up_dir=False)  # No Up Direction
+
     def get_module_as_dict(self, **kwargs):
         """
         Overwrite to remove offset data from the export
@@ -193,11 +207,7 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.connectAttr(f'{elbow_dir_loc}.rotate', f'{elbow_offset}.rotate')
         cmds.pointConstraint([wrist, shoulder], elbow_offset)
 
-        aim_vec = (-1, 0, 0)
-        if self.orientation == "+":
-            aim_vec = (1, 0, 0)
-        elif self.orientation == "-":
-            aim_vec = (-1, 0, 0)
+        aim_vec = self.get_orientation_data().get_aim_axis()
 
         cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name(), aimVector=aim_vec, upVector=aim_vec,
                            worldUpType='object', worldUpObject=elbow_upvec_loc.get_long_name())

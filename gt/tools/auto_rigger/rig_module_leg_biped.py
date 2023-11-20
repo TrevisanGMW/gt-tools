@@ -91,6 +91,20 @@ class ModuleBipedLeg(ModuleGeneric):
         # Update Proxies
         self.proxies = [self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel]
 
+    def set_orientation_direction(self, is_positive, **kwargs):
+        """
+        Sets the direction of the orientation.
+        If positive, it will use "1" in the desired axis.
+        If negative, (not positive) it will use "-1" in the desired axis.
+        Args:
+            is_positive (bool): If True, it's set to a positive direction, if False to negative.
+                                e.g. True = (1, 0, 0) while False (-1, 0, 0)
+        """
+        super().set_orientation_direction(is_positive=is_positive,
+                                          set_aim_axis=True,  # Only Aim Axis
+                                          set_up_axis=False,
+                                          set_up_dir=False)
+
     def get_module_as_dict(self, **kwargs):
         """
         Overwrite to remove offset data from the export

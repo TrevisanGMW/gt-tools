@@ -1010,6 +1010,22 @@ class ModuleGeneric:
                 return proxy
         logger.debug(f'Unable to remove proxy from module. Not found.')
 
+    def set_parent_uuid(self, uuid):
+        """
+        Sets a new parent UUID for the proxy.
+        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
+        Args:
+            uuid (str): A new UUID for the parent of this proxy
+        """
+        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
+            self.parent_uuid = uuid
+        else:
+            logger.warning(error_message)
+
     def set_metadata_dict(self, metadata):
         """
         Sets the metadata property. The metadata is any extra value used to further describe the curve.
@@ -1053,6 +1069,35 @@ class ModuleGeneric:
         """
         self.orientation.set_method(method)
 
+    def set_orientation_direction(self, is_positive, set_aim_axis=True, set_up_axis=True, set_up_dir=True):
+        """
+        Sets the direction of the orientation.
+        If positive, it will use "1" in the desired axis.
+        If negative, (not positive) it will use "-1" in the desired axis.
+        Args:
+            is_positive (bool): If True, it's set to a positive direction, if False to negative.
+                                e.g. True = (1, 0, 0) while False (-1, 0, 0)
+            set_aim_axis (bool, optional): If True, aim axis is set/affected.
+            set_up_axis (bool, optional): If True, up axis is set/affected.
+            set_up_dir (bool, optional): If True, up direction is set/affected.
+        """
+        if is_positive:
+            multiplier = 1
+        else:
+            multiplier = -1
+        if set_aim_axis:
+            _aim_axis = self.orientation.get_aim_axis()
+            _aim_axis = tuple(abs(value)*multiplier for value in _aim_axis)
+            self.orientation.set_aim_axis(_aim_axis)
+        if set_up_axis:
+            _up_axis = self.orientation.get_up_axis()
+            _up_axis = tuple(abs(value)*multiplier for value in _up_axis)
+            self.orientation.set_up_axis(_up_axis)
+        if set_up_dir:
+            _up_dir = self.orientation.get_up_dir()
+            _up_dir = tuple(abs(value)*multiplier for value in _up_dir)
+            self.orientation.set_up_dir(_up_dir)
+
     def add_to_metadata(self, key, value):
         """
         Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
@@ -1064,22 +1109,6 @@ class ModuleGeneric:
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
         self.metadata[key] = value
-
-    def set_parent_uuid(self, uuid):
-        """
-        Sets a new parent UUID for the proxy.
-        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
-        Args:
-            uuid (str): A new UUID for the parent of this proxy
-        """
-        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
-        if not uuid or not isinstance(uuid, str):
-            logger.warning(error_message)
-            return
-        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
-            self.parent_uuid = uuid
-        else:
-            logger.warning(error_message)
 
     def clear_parent_uuid(self):
         """
@@ -1772,6 +1801,7 @@ if __name__ == "__main__":
     another_proxy = Proxy(name="another")
     another_proxy.set_position(y=-5)
     another_module.add_to_proxies(another_proxy)
+    # a_module.set_orientation_direction(True)
 
     a_project = RigProject()
     a_project.add_to_modules(a_root_module)
