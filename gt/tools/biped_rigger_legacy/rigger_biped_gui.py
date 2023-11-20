@@ -52,11 +52,11 @@ from shiboken2 import wrapInstance
 from PySide2.QtWidgets import QWidget
 from PySide2.QtGui import QIcon
 from maya import OpenMayaUI
-from gt.tools.auto_rigger.rigger_biped_logic import *
-from gt.tools.auto_rigger.rigger_data import *
+from gt.tools.biped_rigger_legacy.rigger_biped_logic import *
+from gt.tools.biped_rigger_legacy.rigger_data import *
 from gt.ui import resource_library
-from gt.tools.auto_rigger import rigger_corrective_logic
-from gt.tools.auto_rigger import rigger_facial_logic
+from gt.tools.biped_rigger_legacy import rigger_corrective_logic
+from gt.tools.biped_rigger_legacy import rigger_facial_logic
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -2512,7 +2512,7 @@ def rebuild_rig():
     """
     A button call for rig rebuild (Temporary)
     """
-    from tools.auto_rigger import rigger_rebuild
+    from tools.biped_rigger_legacy import rigger_rebuild
     rigger_rebuild.validate_rebuild()
 
 

@@ -130,26 +130,6 @@ class TestStringUtils(unittest.TestCase):
         expected = "hello_world"
         self.assertEqual(expected, result)
 
-    def test_extract_digits_no_digits(self):
-        input_string = "No digits here!"
-        self.assertEqual(string_utils.extract_digits(input_string), "")
-
-    def test_extract_digits_mixed_characters(self):
-        input_string = "It costs $20.99 only."
-        self.assertEqual(string_utils.extract_digits(input_string), "2099")
-
-    def test_extract_digits_special_characters(self):
-        input_string = "Password: $ecr3t!!123"
-        self.assertEqual(string_utils.extract_digits(input_string), "3123")
-
-    def test_extract_digits_empty_string(self):
-        input_string = ""
-        self.assertEqual(string_utils.extract_digits(input_string), "")
-
-    def test_extract_digits_only_digits(self):
-        input_string = "9876543210"
-        self.assertEqual(string_utils.extract_digits(input_string), "9876543210")
-
     def test_single_word(self):
         expected = "hello"
         result = string_utils.snake_to_camel("hello")
@@ -184,4 +164,101 @@ class TestStringUtils(unittest.TestCase):
         expected = "version210"
         result = string_utils.snake_to_camel("version_2_1_0")
         self.assertEqual(expected, result)
-        
+
+    def test_extract_digits_no_digits(self):
+        input_string = "No digits here!"
+        expected = ""
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=False)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_mixed_characters(self):
+        input_string = "It costs $20.99 only."
+        expected = "2099"
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=False)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_special_characters(self):
+        input_string = "Password: $ecr3t!!123"
+        expected = "3123"
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=False)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_empty_string(self):
+        input_string = ""
+        expected = ""
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=False)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_only_digits(self):
+        input_string = "9876543210"
+        expected = "9876543210"
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=False)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_negative_num(self):
+        input_string = "a string -150"
+        expected = "-150"
+        result = string_utils.extract_digits(input_string=input_string,
+                                             can_be_negative=True)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int(self):
+        expected = 123
+        result = string_utils.extract_digits_as_int("abc123def",
+                                                    can_be_negative=False,
+                                                    only_first_match=True,
+                                                    default=0)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_no_digits(self):
+        expected = 0
+        result = string_utils.extract_digits_as_int("no_digits_here",
+                                                    can_be_negative=False,
+                                                    only_first_match=True,
+                                                    default=0)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_separated_digits_first_only(self):
+        expected = 1
+        result = string_utils.extract_digits_as_int("1_test_2",
+                                                    can_be_negative=False,
+                                                    only_first_match=True,
+                                                    default=0)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_separated_digits_all(self):
+        expected = 123
+        result = string_utils.extract_digits_as_int("1_test_2_then_3",
+                                                    can_be_negative=False,
+                                                    only_first_match=False,
+                                                    default=0)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_alternative_default(self):
+        expected = -1
+        result = string_utils.extract_digits_as_int("no_digits_here",
+                                                    can_be_negative=False,
+                                                    only_first_match=False,
+                                                    default=-1)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_negative_number_only_first_match(self):
+        expected = -100
+        result = string_utils.extract_digits_as_int("negative string -100",
+                                                    can_be_negative=True,
+                                                    only_first_match=True,
+                                                    default=0)
+        self.assertEqual(expected, result)
+
+    def test_extract_digits_as_int_negative_number_all_digits(self):
+        expected = -150
+        result = string_utils.extract_digits_as_int("negative string -150",
+                                                    can_be_negative=True,
+                                                    only_first_match=False,
+                                                    default=0)
+        self.assertEqual(expected, result)

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<svg width="20" height="26" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+ <g>
+  <title>Layer 1</title>
+  <line x1="0" y1="12.5" x2="9" y2="12.5" style="stroke:rgb(147,147,147); stroke-width:1"/>
+  <ellipse ry="2" rx="2" cx="8.5" cy="12.5" style="stroke:rgb(147,147,147); fill:rgb(147,147,147)"/>
+ </g>
+</svg>

@@ -99,7 +99,7 @@ def is_short_uuid_valid(uuid_string, length=None):
     return all(c in valid_characters for c in uuid_string)
 
 
-def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
+def get_object_from_uuid_attr(uuid_string, attr_name, obj_type="transform"):
     """
     Return object if provided UUID is present in it
     Args:
@@ -111,13 +111,51 @@ def find_object_with_uuid(uuid_string, attr_name, obj_type="transform"):
     """
     obj_list = cmds.ls(typ=obj_type, long=True) or []
     for obj in obj_list:
-        if cmds.objExists(obj + "." + attr_name):
-            existing_uuid = cmds.getAttr(obj + "." + attr_name)
+        if cmds.objExists(f'{obj}.{attr_name}'):
+            existing_uuid = cmds.getAttr(f'{obj}.{attr_name}')
             if existing_uuid == uuid_string:
                 return obj
 
 
-def add_uuid_attribute(obj_list, attr_name, set_initial_uuid_value=True):
+def get_uuid(obj_name):
+    """
+    Get the UUID of a Maya object from its long name.
+
+    Args:
+        obj_name (str): The long name of the Maya object.
+
+    Returns:
+        str or None: The UUID of the object, or None if the object doesn't exist.
+    """
+    try:
+        # Use the ls command with -uuid flag to get the UUID
+        _uuid = cmds.ls(obj_name, uuid=True)[0]
+        return _uuid
+    except Exception as e:
+        logger.debug(f'Unable to get provided object UUID. Issue: {str(e)}')
+        return None
+
+
+def get_object_from_uuid(uuid_string):
+    """
+    Get the long name of a Maya object from its UUID.
+
+    Args:
+        uuid_string (str): The UUID of the Maya object.
+
+    Returns:
+        str or None: The long name of the object, or None if the object doesn't exist.
+    """
+    try:
+        # Use the ls command with -l flag to get the long name
+        long_name = cmds.ls(uuid_string, long=True)[0]
+        return long_name
+    except Exception as e:
+        logger.debug(f'Unable to get object from UUID. Issue: {str(e)}')
+        return None
+
+
+def add_uuid_attr(obj_list, attr_name, set_initial_uuid_value=True):
     """
     Adds an uuid attribute to a list of objects or a single object.
 

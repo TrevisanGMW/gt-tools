@@ -39,6 +39,7 @@ class NamingConstants:
         GRP = 'grp'  # Group
         JNT = 'jnt'  # Joint
         MAT = 'mat'  # Material
+        LOC = 'loc'  # Locator
         OFFSET = 'offset'  # Offset Transform
         PROXY = 'proxy'
         IK_HANDLE_SC = "ikSC"
@@ -58,6 +59,7 @@ class NamingConstants:
 
     class Description:
         OFFSET = "offset"
+        PIVOT = "pivot"
 
 
 def get_long_name(short_name):

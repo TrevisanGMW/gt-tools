@@ -41,7 +41,7 @@ class TestResourceLibrary(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_stylesheet_content(self):
-        result = resource_library.get_stylesheet_content(stylesheet_name="maya_basic_dialog")
+        result = resource_library.get_stylesheet_content(stylesheet_name="maya_dialog_base")
         expected = "QWidget"
         self.assertIn(expected, result)
 

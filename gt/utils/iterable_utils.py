@@ -3,7 +3,9 @@ Iterable Utilities - Utilities used for dealing with iterable elements, such as 
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.string_utils import extract_digits_as_int
 import logging
+import pprint
 
 # Logging Setup
 logging.basicConfig()
@@ -95,13 +97,16 @@ def compare_identical_dict_keys(dict1, dict2):
     return set(dict1.keys()) == set(dict2.keys())
 
 
-def compare_identical_dict_values_types(dict1, dict2):
+def compare_identical_dict_values_types(dict1, dict2, allow_none=False):
     """
     Compare the types of values in two dictionaries.
 
     Args:
         dict1 (dict): The first dictionary.
         dict2 (dict): The second dictionary.
+        allow_none (bool, optional): If True, this function will consider None a valid type
+                                     when comparing with other types.
+                                     e.g. "int" compared with "None" = Ok
 
     Returns:
         bool: True if all corresponding values have the same type, False otherwise.
@@ -111,58 +116,69 @@ def compare_identical_dict_values_types(dict1, dict2):
     if keys1 != keys2:
         return False
     for key in keys1:
+        if (dict1[key] is None or dict2[key] is None) and allow_none:
+            continue
         if type(dict1[key]) != type(dict2[key]):
             return False
     return True
 
 
-def format_dict_with_keys_per_line(input_dict, keys_per_line=2, bracket_new_line=False):
+def dict_as_formatted_str(input_dict, indent=1, width=80, depth=None,
+                          format_braces=True, one_key_per_line=False):
     """
-    Format a dictionary with a specified number of keys per line.
+    Convert a dictionary to a formatted string.
 
     Args:
-        input_dict (dict): The dictionary to be formatted.
-        keys_per_line (int, optional): The number of keys to include per line. Default is 2.
-        bracket_new_line (bool, optional): If active, it adds a new line after the first bracket and
-                                               before the last. e.g. "{\n"key":"value"\n}
+    input_dict (dict): The dictionary to be formatted.
+    indent (int, optional): Number of spaces for indentation (default is 1).
+    width (int, optional): Width of the formatted string (default is 80).
+    depth (int or None): The maximum depth to pretty-print nested structures.
+            If None, there is no limit (default is None).
+    format_braces (bool, optional): If True, format braces on separate lines (default is True).
+    one_key_per_line (bool, optional): If True, it will enforce one key and one value per line (top level only)
+
     Returns:
-        str: The formatted dictionary as a string.
-
-    Example:
-        sample_dict = {
-            'name': 'John Doe',
-            'age': 30,
-            'city': 'New York',
-            'email': 'john@example.com',
-            'occupation': 'Software Engineer'
-        }
-        keys_per_line = 2
-        formatted_dict = format_dict_with_keys_per_line(sample_dict, keys_per_line)
-        print(formatted_dict)
-        {
-            "name": "John Doe", "age": 30,
-            "city": "New York", "email": "john@example.com",
-            "occupation": "Software Engineer"
-        }
+      str: The formatted string representation of the dictionary.
     """
-    formatted_lines = []
-    keys = list(input_dict.keys())
+    formatted_dict = pprint.pformat(input_dict, indent=indent, width=width, depth=depth)
+    if one_key_per_line:
+        formatted_dict = "{"
+        for index, (key, value) in enumerate(input_dict.items()):
+            _key_dict = {key: value}
+            try:
+                _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth, sort_dicts=False)
+            except Exception as e:
+                logger.debug(f'Unsupported kwarg called. Attempting with older version definition: {e}')
+                _formatted_line = pprint.pformat(_key_dict, width=width, depth=depth)  # Older Python Versions
+            formatted_dict += _formatted_line[1:-1]
+            if index != len(input_dict) - 1:
+                formatted_dict += ",\n "
+        formatted_dict += "}"
 
-    for i in range(0, len(keys), keys_per_line):
-        line_keys = keys[i:i + keys_per_line]
-        line_entries = []
-        for key in line_keys:
-            value = input_dict[key]
-            if isinstance(value, str):
-                line_entries.append(f'"{key}": "{value}"')
-            else:
-                line_entries.append(f'"{key}": {repr(value)}')
-        formatted_lines.append(", ".join(line_entries))
+    if formatted_dict.startswith("{") and formatted_dict.endswith("}") and format_braces:
+        start_index = formatted_dict.find("{") + 1
+        end_index = formatted_dict.rfind("}")
 
-    _bracket_new_line = ""
-    if bracket_new_line:
-        _bracket_new_line = "\n"
-    return "{" + _bracket_new_line + ",\n".join(formatted_lines) + _bracket_new_line + "}"
+        formatted_result = (
+                formatted_dict[:start_index] + "\n " +
+                formatted_dict[start_index:end_index] + "\n" +
+                formatted_dict[end_index:]
+        )
+        return formatted_result
+    else:
+        return formatted_dict
+
+
+def sort_dict_by_keys(input_dict):
+    """
+    Sorts a dictionary based on its keys.
+    Args:
+        input_dict (dict): The input dictionary to be sorted.
+    Returns:
+        dict: A new dictionary sorted by keys.
+    """
+    sorted_dict = {k: v for k, v in sorted(input_dict.items(), key=lambda item: str(item[0]))}
+    return sorted_dict
 
 
 def remove_list_duplicates(input_list):
@@ -233,5 +249,20 @@ def round_numbers_in_list(input_list, num_digits=3):
     return rounded_list
 
 
+def get_highest_int_from_str_list(str_list):
+    """
+    Extract the highest digit from strings that follow the pattern 'proxy' followed by any number of digits.
+
+    Args:
+        str_list (list): A list of input strings.
+
+    Returns:
+        int: The highest digit found in the matching items or 0 if no matching items are found.
+    """
+    digits_list = [extract_digits_as_int(item) for item in str_list]
+    return max(digits_list, default=0)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    print(dict_as_formatted_str({}))

@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import hierarchy_utils
+from gt.utils.node_utils import Node
 
 
 class TestHierarchyUtils(unittest.TestCase):
@@ -60,3 +61,180 @@ class TestHierarchyUtils(unittest.TestCase):
         self.assertEqual(expected, result)
         children = maya_test_tools.cmds.listRelatives(self.transform_two, children=True, fullPath=True)
         self.assertEqual(expected, children)
+
+    def test_parent_with_nodes(self):
+        cube_one_node = Node(self.cube_one)
+        transform_one_node = Node(self.transform_one)
+        result = hierarchy_utils.parent(source_objects=cube_one_node, target_parent=transform_one_node, verbose=True)
+
+        expected = [f"|{self.transform_one}|{self.cube_one}"]
+        self.assertEqual(expected, result)
+        children = maya_test_tools.cmds.listRelatives(self.transform_one, children=True, fullPath=True)
+        self.assertEqual(expected, children)
+
+    def test_add_offset_transform(self):
+        cube_one_node = Node(self.cube_one)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=cube_one_node,
+                                                               transform_type="group",
+                                                               pivot_source="target",
+                                                               transform_suffix="offset")
+
+        expected = f"|{self.transform_one}|cube_one_offset|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_offset"]
+        self.assertEqual(expected, created_offsets)
+
+        expected = "transform"
+        result = maya_test_tools.cmds.objectType(created_offsets[0])
+        self.assertEqual(expected, result)
+
+        expected = 5
+        result = maya_test_tools.cmds.getAttr(f'{created_offsets[0]}.ty')
+        self.assertEqual(expected, result)
+
+    def test_add_offset_transform_joint(self):
+        cube_one_node = Node(self.cube_one)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=cube_one_node,
+                                                               transform_type="joint",
+                                                               pivot_source="target",
+                                                               transform_suffix="offset")
+
+        expected = f"|{self.transform_one}|cube_one_offset|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_offset"]
+        self.assertEqual(expected, created_offsets)
+
+        expected = "joint"
+        result = maya_test_tools.cmds.objectType(created_offsets[0])
+        self.assertEqual(expected, result)
+
+        expected = 5
+        result = maya_test_tools.cmds.getAttr(f'{created_offsets[0]}.ty')
+        self.assertEqual(expected, result)
+
+    def test_add_offset_transform_locator(self):
+        cube_one_node = Node(self.cube_one)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=cube_one_node,
+                                                               transform_type="locator",
+                                                               pivot_source="target",
+                                                               transform_suffix="offset")
+
+        expected = f"|{self.transform_one}|cube_one_offset|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_offset"]
+        self.assertEqual(expected, created_offsets)
+
+        expected = "locator"
+        child = maya_test_tools.cmds.listRelatives(created_offsets[0], shapes=True)[0]
+        result = maya_test_tools.cmds.objectType(child)
+        self.assertEqual(expected, result)
+
+        expected = 5
+        result = maya_test_tools.cmds.getAttr(f'{created_offsets[0]}.ty')
+        self.assertEqual(expected, result)
+
+    def test_add_offset_transform_pivot_parent(self):
+        cube_one_node = Node(self.cube_one)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=cube_one_node,
+                                                               transform_type="group",
+                                                               pivot_source="parent",
+                                                               transform_suffix="offset")
+
+        expected = f"|{self.transform_one}|cube_one_offset|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_offset"]
+        self.assertEqual(expected, created_offsets)
+
+        expected = "transform"
+        result = maya_test_tools.cmds.objectType(created_offsets[0])
+        self.assertEqual(expected, result)
+
+        expected = 0
+        result = maya_test_tools.cmds.getAttr(f'{created_offsets[0]}.ty')
+        self.assertEqual(expected, result)
+
+    def test_add_offset_transform_suffix(self):
+        cube_one_node = Node(self.cube_one)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=cube_one_node,
+                                                               transform_type="group",
+                                                               pivot_source="parent",
+                                                               transform_suffix="mocked_suffix")
+
+        expected = f"|{self.transform_one}|cube_one_mocked_suffix|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_mocked_suffix"]
+        self.assertEqual(expected, created_offsets)
+
+    def test_add_offset_transform_multiple(self):
+        cube_one_node = Node(self.cube_one)
+        cube_two_node = Node(self.cube_two)
+        maya_test_tools.cmds.parent(self.cube_one, self.transform_one)
+        maya_test_tools.cmds.parent(self.cube_two, self.transform_one)
+        maya_test_tools.cmds.setAttr(f'{self.transform_one}.ty', 15)
+        maya_test_tools.cmds.setAttr(f'{self.cube_one}.ty', 5)
+
+        expected = f"|{self.transform_one}|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        created_offsets = hierarchy_utils.add_offset_transform(target_list=[cube_one_node, cube_two_node],
+                                                               transform_type="group",
+                                                               pivot_source="parent",
+                                                               transform_suffix="offset")
+
+        expected = f"|{self.transform_one}|cube_one_offset|{self.cube_one}"
+        result = str(cube_one_node)
+        self.assertEqual(expected, result)
+
+        expected = [f"|{self.transform_one}|cube_one_offset", f"|{self.transform_one}|cube_two_offset"]
+        self.assertEqual(expected, created_offsets)

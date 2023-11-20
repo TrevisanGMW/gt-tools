@@ -304,6 +304,13 @@ class TestAttributeUtils(unittest.TestCase):
         expected = "string_value"
         self.assertEqual(expected, result)
 
+    def test_set_attr_double3(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.set_attr(obj_list=cube, attr_list="translate", value=[1, 0, 0])
+        expected = [(1.0, 0.0, 0.0)]
+        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="translate")
+        self.assertEqual(expected, result)
+
     def test_set_attr_multiple_objects(self):
         cube_list = []
         for index in range(0, 10):
@@ -586,7 +593,7 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_with_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, include_visibility=True)
+        attr_utils.hide_lock_default_attrs(cube, visibility=True)
 
         attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz', 'v']
         for attr in attr_to_test:
@@ -599,9 +606,9 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_hide_lock_default_attributes_without_visibility(self):
         cube = maya_test_tools.create_poly_cube()
-        attr_utils.hide_lock_default_attributes(cube, include_visibility=False)
+        attr_utils.hide_lock_default_attrs(cube, visibility=False)
 
-        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ty', 'rz', 'sx', 'sy', 'sz']
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz']
         for attr in attr_to_test:
             is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
             is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
@@ -609,6 +616,78 @@ class TestAttributeUtils(unittest.TestCase):
             self.assertTrue(is_locked)
             self.assertFalse(is_keyable)
             self.assertFalse(is_keyable_ch)
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_translate(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attrs(cube, translate=False, visibility=False)
+
+        attr_to_test = ['rx', 'ry', 'rz', 'sx', 'sy', 'sz']
+        attr_to_test_inactive = ['tx', 'ty', 'tz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_rotate(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attrs(cube, rotate=False, visibility=False)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'sx', 'sy', 'sz']
+        attr_to_test_inactive = ['rx', 'ry', 'rz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
+
+        is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
+        is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
+        self.assertFalse(is_locked)
+        self.assertTrue(is_keyable)
+
+    def test_hide_lock_default_attributes_no_scale(self):
+        cube = maya_test_tools.create_poly_cube()
+        attr_utils.hide_lock_default_attrs(cube, scale=False, visibility=False)
+
+        attr_to_test = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
+        attr_to_test_inactive = ['sx', 'sy', 'sz']
+        for attr in attr_to_test:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            is_keyable_ch = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', channelBox=True)
+            self.assertTrue(is_locked, f'Expected: "{str(attr)}" to be locked.')
+            self.assertFalse(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "False".')
+            self.assertFalse(is_keyable_ch, f'Expected: "{str(attr)}" to have "channelBox" set to "False".')
+        for attr in attr_to_test_inactive:
+            is_locked = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', lock=True)
+            is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.{attr}', keyable=True)
+            self.assertFalse(is_locked, f'Expected: "{str(attr)}" to be unlocked.')
+            self.assertTrue(is_keyable, f'Expected: "{str(attr)}" to have "keyable" set to "True".')
 
         is_locked = maya_test_tools.cmds.getAttr(f'{cube}.v', lock=True)
         is_keyable = maya_test_tools.cmds.getAttr(f'{cube}.v', keyable=True)
@@ -1025,4 +1104,79 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertFalse(attr_two)
 
         expected = [f'{cube}.custom_attr_two']
+        self.assertEqual(expected, result)
+
+    def test_connect_attr(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        target_attr_list = [f'{cube}.scaleX', f'{cube}.scaleZ']
+        attr_utils.connect_attr(source_attr=f'{cube}.scaleY', target_attr_list=target_attr_list)
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sy', destination=True, plugs=True)
+        for attr in target_attr_list:
+            self.assertIn(attr, result)
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', source=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleY', attr)
+
+    def test_connect_attr_str_input(self):
+        cube = maya_test_tools.create_poly_cube()
+
+        attr_utils.connect_attr(source_attr=f'{cube}.scaleY', target_attr_list=f'{cube}.scaleZ')
+
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', source=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleY', attr)
+        result = maya_test_tools.cmds.listConnections(f'{cube}.sx', destination=True, plugs=True) or []
+        for attr in result:
+            self.assertEqual(f'{cube}.scaleZ', attr)
+
+    def test_list_user_defined_attr_skip_nested(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=True, skip_parents=False)
+        expected = ['custom_attr_one', 'custom_attr_two']
+        self.assertEqual(expected, result)
+
+    def test_list_user_defined_attr_keep_nested_and_parents(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=False, skip_parents=False)
+        expected = ['custom_attr_one', 'custom_attr_two',
+                    'custom_attr_twoA', 'custom_attr_twoB', 'custom_attr_twoC']
+        self.assertEqual(expected, result)
+
+    def test_list_user_defined_attr_skip_parents(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=False, skip_parents=True)
+        expected = ['custom_attr_one', 'custom_attr_twoA', 'custom_attr_twoB', 'custom_attr_twoC']
+        self.assertEqual(expected, result)
+
+    def test_list_user_defined_attr_skip_nested_and_parents(self):
+        cube = maya_test_tools.create_poly_cube()
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", at='double3', k=True)
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoA", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoB", at='double', k=True, parent="custom_attr_two")
+        maya_test_tools.cmds.addAttr(cube, ln="custom_attr_twoC", at='double', k=True, parent="custom_attr_two")
+
+        result = attr_utils.list_user_defined_attr(cube, skip_nested=True, skip_parents=True)
+        expected = ['custom_attr_one']
         self.assertEqual(expected, result)

@@ -3,9 +3,9 @@ Curve Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.naming_utils import get_short_name, NamingConstants
+from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
-from gt.utils.attr_utils import add_separator_attr
 from gt.utils.system_utils import DataDirConstants
 from gt.utils import attr_utils
 from decimal import Decimal
@@ -29,7 +29,7 @@ PROJECTION_SCALE_KEY = 'projectionScale'
 PROJECTION_FIT_KEY = 'projectionFit'
 
 
-def get_curve_path(file_name):
+def get_curve_file_path(file_name):
     """
     Get the path to a curve data file. This file should exist inside the utils/data/curves folder.
     Args:
@@ -1548,8 +1548,8 @@ def generate_package_curve_thumbnail(target_dir, curve, image_format="jpg", line
 
     # Prepare Curve
     curve_name = curve.build()
-    from gt.utils.color_utils import set_color_override_viewport
-    set_color_override_viewport(obj=curve_name, rgb_color=rgb_color)
+    from gt.utils.color_utils import set_color_viewport
+    set_color_viewport(obj_list=curve_name, rgb_color=rgb_color)
     for shape in cmds.listRelatives(curve_name, shapes=True) or []:
         cmds.setAttr(f'{shape}.lineWidth', line_width)
 
@@ -1697,7 +1697,7 @@ def print_code_for_crv_files(target_dir=None, ignore_private=True, use_output_wi
 # ------------------------------ Curves Collection Utilities End ------------------------------
 
 
-def add_shape_scale_cluster(curve, scale_driver_attr):
+def add_shape_scale_cluster(obj, scale_driver_attr, reset_pivot=True):
     """
     Creates a cluster to control the scale of the provided curve.
 
@@ -1706,17 +1706,23 @@ def add_shape_scale_cluster(curve, scale_driver_attr):
     scale_driver_attr (str): The object name and attribute used to drive the scale.
                              Example: "curveName.locatorScale"
                              This attribute will control the scale of the curve shape.
+    create_driver (bool, optional): If active, it will create a group and snap to the object instead of using
 
     Returns:
         str or None: Cluster handle if successful, None if it failed.
     """
-    cluster = cmds.cluster(f'{curve}.cv[*]', name=f'{get_short_name(curve)}_LocScale')
+    cluster = cmds.cluster(f'{obj}.cv[*]', name=f'{get_short_name(obj)}_LocScale')
     if not cluster:
-        logger.debug(f'Unable to create scale cluster. Missing "{str(curve)}".')
+        logger.debug(f'Failed to create scale cluster. Missing "{str(obj)}".')
         return
     else:
         cluster_handle = cluster[1]
-        cmds.setAttr(cluster_handle + '.v', 0)
+        if reset_pivot:
+            set_attr(obj_list=cluster_handle,
+                     attr_list=["scalePivotX", "scalePivotY", "scalePivotZ",
+                                "rotatePivotX", "rotatePivotY", "rotatePivotZ"],
+                     value=0)
+        cmds.setAttr(f'{cluster_handle}.v', 0)
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sx')
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sy')
         cmds.connectAttr(scale_driver_attr, f'{cluster_handle}.sz')
@@ -1802,6 +1808,80 @@ def get_python_curve_code(crv_list):
     return output
 
 
+def set_curve_width(obj_list, line_width=-1):
+    """
+    Changes the curve shape width (lineWidth) of all shapes found under a transform or the shape directly.
+    Args:
+        obj_list (str, list): A list of transform  or curve shapes to have their lineWidth attributes updated.
+        line_width (float, int, optional): New line width. Default -1 (Same as Maya's default)
+    Returns:
+        list: A list of affected shapes.
+    """
+    shapes = []
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if not isinstance(obj_list, list):
+        logger.debug(f'Unable to set curve width. Input must be a list of strings.')
+        return
+    for obj in obj_list:
+        if obj and isinstance(obj, str) and cmds.objExists(obj):
+            if cmds.objectType(obj) in CURVE_TYPES:
+                shapes.append(obj)
+            if cmds.objectType(obj) == "transform":
+                shapes += cmds.listRelatives(obj, shapes=True, fullPath=True, typ=CURVE_TYPES) or []
+    affected_shapes = []
+    for shape in shapes:
+        try:
+            cmds.setAttr(f'{shape}.lineWidth', line_width)
+            affected_shapes.append(shape)
+        except Exception as e:
+            logger.debug(f'Unable to set lineWidth for "{shape}". Issue: {str(e)}')
+    return affected_shapes
+
+
+def create_connection_line(object_a, object_b, constraint=True):
+    """
+    Creates a curve attached to two objects, often used to better visualize hierarchies
+
+    Args:
+        object_a (str): Name of the object driving the start of the curve
+        object_b (str): Name of the object driving end of the curve (usually a child of object_a)
+        constraint (bool, optional): If True, it will constrain the clusters to "object_a" and "object_b".
+
+    Returns:
+        tuple: A list with the generated curve, cluster_a, and cluster_b
+
+    """
+    crv = cmds.curve(p=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], d=1)
+    cluster_a = cmds.cluster(crv + '.cv[0]')
+    cluster_b = cmds.cluster(crv + '.cv[1]')
+
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_a, cluster_a[1])
+
+    if cmds.objExists(object_a):
+        cmds.pointConstraint(object_b, cluster_b[1])
+
+    object_a_short = object_a.split('|')[-1]
+    object_b_short = object_b.split('|')[-1]
+    crv = cmds.rename(crv, object_a_short + '_to_' + object_b_short)
+    cluster_a = cmds.rename(cluster_a[1], object_a_short + '_cluster')
+    cluster_b = cmds.rename(cluster_b[1], object_b_short + '_cluster')
+    cmds.setAttr(cluster_a + '.v', 0)
+    cmds.setAttr(cluster_b + '.v', 0)
+
+    if constraint and cmds.objExists(object_a):
+        cmds.pointConstraint(object_a, cluster_a)
+
+    if constraint and cmds.objExists(object_b):
+        cmds.pointConstraint(object_b, cluster_b)
+
+    shapes = cmds.listRelatives(crv, s=True, f=True) or []
+    cmds.setAttr(shapes[0] + ".lineWidth", 3)
+
+    return crv, cluster_a, cluster_b
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()
@@ -1809,5 +1889,5 @@ if __name__ == "__main__":
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
     sel = cmds.ls(selection=True)
-    out = get_python_curve_code(sel)
+    out = set_curve_width("nurbsCircle1", 5)
     print(out)

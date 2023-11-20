@@ -98,3 +98,137 @@ class TestConstraintUtils(unittest.TestCase):
         result = maya_test_tools.cmds.getAttr(f'{rivet}.tz')
         expected = 1.5
         self.assertAlmostEqualSigFig(expected, result)
+
+    def test_equidistant_constraints(self):
+        cube_start = maya_test_tools.create_poly_cube()
+        cube_end = maya_test_tools.create_poly_cube()
+
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        cube_three = maya_test_tools.create_poly_cube()
+
+        targets = [cube_one, cube_two, cube_three]
+
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+
+        constraints = constraint_utils.equidistant_constraints(start=cube_start,
+                                                               end=cube_end,
+                                                               target_list=targets,
+                                                               skip_start_end=True,
+                                                               constraint='parent')
+        expected_constraints = ['pCube3_parentConstraint1', 'pCube4_parentConstraint1', 'pCube5_parentConstraint1']
+        self.assertEqual(expected_constraints, constraints)
+
+        weight_1 = [0.75, 0.25]
+        weight_2 = [0.5, 0.5]
+        weight_3 = [0.25, 0.75]
+        weights = [weight_1, weight_2, weight_3]
+        for index, constraint in enumerate(expected_constraints):
+            weight0 = maya_test_tools.cmds.getAttr(f'{constraint}.w0')
+            weight1 = maya_test_tools.cmds.getAttr(f'{constraint}.w1')
+            self.assertEqual(weights[index][0], weight0)
+            self.assertEqual(weights[index][1], weight1)
+
+        expected_values = {cube_one: [0, 2.5, 2.5,
+                                      21.59, 0, 0],
+                           cube_two: [0, 5, 5,
+                                      45, 0, 0],
+                           cube_three: [0, 7.5, 7.5,
+                                        68.4, 0, 0]}
+        for cube, expected in expected_values.items():
+            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            self.assertAlmostEqualSigFig(tx, expected[0])
+            self.assertAlmostEqualSigFig(ty, expected[1])
+            self.assertAlmostEqualSigFig(tz, expected[2])
+            self.assertAlmostEqualSigFig(rx, expected[3])
+            self.assertAlmostEqualSigFig(ry, expected[4])
+            self.assertAlmostEqualSigFig(rz, expected[5])
+
+    def test_equidistant_constraints_skip_start_end(self):
+        cube_start = maya_test_tools.create_poly_cube()
+        cube_end = maya_test_tools.create_poly_cube()
+
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        cube_three = maya_test_tools.create_poly_cube()
+
+        targets = [cube_one, cube_two, cube_three]
+
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+
+        constraints = constraint_utils.equidistant_constraints(start=cube_start,
+                                                               end=cube_end,
+                                                               target_list=targets,
+                                                               skip_start_end=False,
+                                                               constraint='parent')
+
+        expected_constraints = ['pCube3_parentConstraint1', 'pCube4_parentConstraint1', 'pCube5_parentConstraint1']
+        self.assertEqual(expected_constraints, constraints)
+
+        weight_1 = [1, 0]
+        weight_2 = [0.5, 0.5]
+        weight_3 = [0, 1]
+        weights = [weight_1, weight_2, weight_3]
+        for index, constraint in enumerate(expected_constraints):
+            weight0 = maya_test_tools.cmds.getAttr(f'{constraint}.w0')
+            weight1 = maya_test_tools.cmds.getAttr(f'{constraint}.w1')
+            self.assertEqual(weights[index][0], weight0)
+            self.assertEqual(weights[index][1], weight1)
+
+        expected_values = {cube_one: [0, 0, 0,
+                                      0, 0, 0],
+                           cube_two: [0, 5, 5,
+                                      45, 0, 0],
+                           cube_three: [0, 10, 10,
+                                        90, 0, 0]}
+        for cube, expected_constraints in expected_values.items():
+            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
+            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
+            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
+            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            self.assertAlmostEqualSigFig(tx, expected_constraints[0])
+            self.assertAlmostEqualSigFig(ty, expected_constraints[1])
+            self.assertAlmostEqualSigFig(tz, expected_constraints[2])
+            self.assertAlmostEqualSigFig(rx, expected_constraints[3])
+            self.assertAlmostEqualSigFig(ry, expected_constraints[4])
+            self.assertAlmostEqualSigFig(rz, expected_constraints[5])
+
+    def test_equidistant_constraints_types(self):
+        types_to_test = ['parent', 'point', 'orient', 'scale']
+        for typ in types_to_test:
+            cube_start = maya_test_tools.create_poly_cube()
+            cube_end = maya_test_tools.create_poly_cube()
+
+            cube_one = maya_test_tools.create_poly_cube()
+            cube_two = maya_test_tools.create_poly_cube()
+            cube_three = maya_test_tools.create_poly_cube()
+
+            targets = [cube_one, cube_two, cube_three]
+
+            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
+            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
+            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+
+            constraints = constraint_utils.equidistant_constraints(start=cube_start,
+                                                                   end=cube_end,
+                                                                   target_list=targets,
+                                                                   skip_start_end=False,
+                                                                   constraint=typ)
+
+            for constraint in constraints:
+                result = maya_test_tools.cmds.objectType(constraint)
+                expected = f'{typ}Constraint'
+                self.assertEqual(expected, result)
+
+            maya_test_tools.force_new_scene()

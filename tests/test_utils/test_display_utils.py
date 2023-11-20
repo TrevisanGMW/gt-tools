@@ -42,6 +42,34 @@ class TestDisplayUtils(unittest.TestCase):
         self.assertEqual(expected, lra_visibility_result)
         self.assertEqual(expected, result)
 
+    def test_set_lra_state_true(self):
+        cube = maya_test_tools.create_poly_cube()
+        affected_list = display_utils.set_lra_state(obj_list=cube, state=True, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        expected = True
+        self.assertEqual([cube], affected_list)
+        self.assertEqual(expected, result)
+
+    def test_set_lra_state_false(self):
+        cube = maya_test_tools.create_poly_cube()
+        affected_list = display_utils.set_lra_state(obj_list=cube, state=False, verbose=False)
+        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        expected = False
+        self.assertEqual([cube], affected_list)
+        self.assertEqual(expected, result)
+
+    def test_set_lra_state_multiple(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        cube_two = maya_test_tools.create_poly_cube()
+        to_test = [cube_one, cube_two]
+        affected_list = display_utils.set_lra_state(obj_list=to_test,
+                                                    state=True, verbose=False)
+        self.assertEqual(to_test, affected_list)
+        for obj in to_test:
+            result = maya_test_tools.cmds.getAttr(f'{obj}.displayLocalAxis')
+            expected = True
+            self.assertEqual(expected, result)
+
     def test_toggle_uniform_jnt_label(self):
         joint = maya_test_tools.cmds.joint()
         label_visibility_state = display_utils.toggle_uniform_jnt_label(jnt_list=joint, verbose=False)

@@ -407,7 +407,7 @@ def create_scale_human(name="scale_volume_human", target_height=165, is_female=F
         y_vert = "1646"
         x_vert = "363"
     from gt.utils import mesh_utils
-    mesh = mesh_utils.MeshFile(file_path=mesh_utils.get_mesh_path(file_name))
+    mesh = mesh_utils.MeshFile(file_path=mesh_utils.get_mesh_file_path(file_name))
     imported_mesh = mesh.build() or []
     imported_transforms = cmds.ls(imported_mesh, typ="transform") or []
     mesh_transform = None
