@@ -50,29 +50,52 @@ class RiggerController:
         self.view.build_rig_btn.clicked.connect(self.build_rig)
 
         # Add Menubar
-        self.add_menu_bar()
+        self.add_menu_file()
 
         # Show
         self.view.show()
 
-    def add_menu_bar(self):
+    def add_menu_file(self):
         """
         Adds a menu bar to the view
         """
-        # Menubar
-        submenu_file = self.view.add_submenu("File")
-        new_action = QAction("New Project", icon=QIcon(resource_library.Icon.dev_trowel))
-        new_action.triggered.connect(self.initialize_new_project)
-        open_action = QAction("Open Project", icon=QIcon(resource_library.Icon.dev_brain))
-        open_action.triggered.connect(self.load_project_from_file)
-        save_action = QAction("Save Project", icon=QIcon(resource_library.Icon.dev_code))
-        save_action.triggered.connect(self.save_project_to_file)
-        exit_action = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
-        exit_action.triggered.connect(self.view.close)
-        self.view.add_action_to_submenu(submenu=submenu_file, action=new_action)
-        self.view.add_action_to_submenu(submenu=submenu_file, action=open_action)
-        self.view.add_action_to_submenu(submenu=submenu_file, action=save_action)
-        self.view.add_action_to_submenu(submenu=submenu_file, action=exit_action)
+        menu_file = self.view.add_menu_parent("File")
+        action_new = QAction("New Project", icon=QIcon(resource_library.Icon.dev_trowel))
+        action_new.triggered.connect(self.initialize_new_project)
+
+        action_open = QAction("Open Project", icon=QIcon(resource_library.Icon.dev_brain))
+        action_open.triggered.connect(self.load_project_from_file)
+
+        action_save = QAction("Save Project", icon=QIcon(resource_library.Icon.dev_code))
+        action_save.triggered.connect(self.save_project_to_file)
+
+        action_exit = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
+        action_exit.triggered.connect(self.view.close)
+
+        action_template_biped = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
+        action_template_biped.triggered.connect(self.view.close)
+        # Menu Assembly -------------------------------------------------------------------------------------
+        self.view.add_menu_action(parent_menu=menu_file, action=action_new)
+        self.view.add_menu_action(parent_menu=menu_file, action=action_open)
+        self.view.add_menu_action(parent_menu=menu_file, action=action_save)
+        menu_templates = self.view.add_menu_submenu(parent_menu=menu_file,
+                                                    submenu_name="Templates",
+                                                    icon=QIcon(resource_library.Icon.dev_chainsaw))
+        self.view.add_menu_action(parent_menu=menu_templates, action=action_template_biped)
+        self.view.add_menu_action(parent_menu=menu_file, action=action_exit)
+
+    def add_menu_modules(self):
+        """
+        Adds a menu bar to the view
+        """
+        menu_modules = self.view.add_menu_parent("File")
+        pass
+        # from gt.tools.auto_rigger.rig_modules import RigModules
+        # modules_attrs = vars(RigModules)
+        # all_modules = [attr for attr in modules_attrs if not (attr.startswith('__') and attr.endswith('__'))]
+        # for module in all_modules:
+        #     self.view.add_menu_action(parent_menu=menu_modules, action=action_new)
+        # self.view.add_menu_action(parent_menu=menu_modules, action=action_exit)
 
     def initialize_new_project(self):
         """
