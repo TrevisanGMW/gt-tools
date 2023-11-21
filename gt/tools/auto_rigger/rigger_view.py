@@ -1,7 +1,7 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
@@ -26,13 +26,13 @@ class RiggerView(metaclass=MayaWindowMeta):
         # super(ResourceLibraryView, self).__init__(parent=parent)
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
-        self.menubar = None
+        self.menu_top = None
+        self.menu_items = []  # To avoid garbage collection
         self.splitter = None
         self.module_tree = None
         self.module_attr_area = None
         self.build_proxy_btn = None
         self.build_rig_btn = None
-        self.menu_actions = []
 
         window_title = "GT Auto Rigger"
         if version:
@@ -64,7 +64,7 @@ class RiggerView(metaclass=MayaWindowMeta):
     def create_widgets(self):
         """Create the widgets for the window."""
         # Create a menu bar
-        self.menubar = QMenuBar(self)
+        self.menu_top = QMenuBar(self)
 
         self.splitter = QSplitter(self)
         self.splitter.setHandleWidth(5)
@@ -84,7 +84,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         """Create the layout for the window."""
         # Main Layout
         main_layout = QVBoxLayout()
-        main_layout.setMenuBar(self.menubar)  # Set the menu bar at the top
+        main_layout.setMenuBar(self.menu_top)  # Set the menu bar at the top
 
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
@@ -138,16 +138,43 @@ class RiggerView(metaclass=MayaWindowMeta):
     def clear_module_tree(self):
         self.module_tree.clear()
 
-    # Menubar
-    def get_menu_bar(self):
-        return self.menubar
+    def add_menu_parent(self, item_name):
+        """
+        Adds a parent menu (child of the main menu)
+        Args:
+            item_name (str): Name of the item menu to be added
+        Returns:
+            QMenu: Added menu item.
+        """
+        return self.menu_top.addMenu(item_name)
 
-    def add_submenu(self, submenu_name):
-        return self.get_menu_bar().addMenu(submenu_name)
+    def add_menu_action(self, parent_menu, action):
+        """
+        Adds a QAction to a menu or target_menu
+        Args:
+            parent_menu (QMenu): The target menu item
+            action (QAction): Action to be added to the menu.
+        """
+        self.menu_items.append(action)  # Avoid garbage collector
+        parent_menu.addAction(action)
 
-    def add_action_to_submenu(self, submenu, action):
-        self.menu_actions.append(action)
-        submenu.addAction(action)
+    @staticmethod
+    def add_menu_submenu(parent_menu, submenu_name, icon=None):
+        """
+        Adds a submenu to a parent menu item.
+        Args:
+            parent_menu (QMenu): Parent menu item (where the submenu will exist)
+            submenu_name (str): Name of the submenu to be added.
+            icon (QIcon, optional): If provided, this will be the icon of the submenu
+        Returns:
+            QMenu: Created submenu.
+        """
+        params = {}
+        if icon:
+            params["icon"] = icon
+        submenu = QMenu(submenu_name, **params)
+        parent_menu.addMenu(submenu)
+        return submenu
 
 
 if __name__ == "__main__":
@@ -158,7 +185,7 @@ if __name__ == "__main__":
         a_generic_module = ModuleGeneric(name="my module")
 
         # Test Adding Menubar Item
-        file_menu = window.get_menu_bar().addMenu("Project")
+        file_menu = window.add_menu_parent("Project")
 
         # Add an "Exit" action to the menu
         exit_action = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
