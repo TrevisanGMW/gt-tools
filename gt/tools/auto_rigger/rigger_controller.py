@@ -4,9 +4,12 @@ Auto Rigger Controller
 from gt.tools.auto_rigger.rig_modules import RigModules
 from gt.tools.auto_rigger import rigger_attr_widget
 from gt.tools.auto_rigger import rig_framework
-from PySide2.QtWidgets import QTreeWidgetItem
+from PySide2.QtWidgets import QTreeWidgetItem, QAction
+from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 import logging
+
+from ui.file_dialog import file_dialog
 
 # Logging Setup
 logging.basicConfig()
@@ -46,8 +49,65 @@ class RiggerController:
         self.view.build_proxy_btn.clicked.connect(self.build_proxy)
         self.view.build_rig_btn.clicked.connect(self.build_rig)
 
+        # Add Menubar
+        self.add_menu_bar()
+
         # Show
         self.view.show()
+
+    def add_menu_bar(self):
+        """
+        Adds a menu bar to the view
+        """
+        # Menubar
+        submenu_file = self.view.add_submenu("File")
+        new_action = QAction("New Project", icon=QIcon(resource_library.Icon.dev_trowel))
+        new_action.triggered.connect(self.initialize_new_project)
+        open_action = QAction("Open Project", icon=QIcon(resource_library.Icon.dev_brain))
+        open_action.triggered.connect(self.load_project_from_file)
+        save_action = QAction("Save Project", icon=QIcon(resource_library.Icon.dev_code))
+        save_action.triggered.connect(self.save_project_to_file)
+        exit_action = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
+        exit_action.triggered.connect(self.view.close)
+        self.view.add_action_to_submenu(submenu=submenu_file, action=new_action)
+        self.view.add_action_to_submenu(submenu=submenu_file, action=open_action)
+        self.view.add_action_to_submenu(submenu=submenu_file, action=save_action)
+        self.view.add_action_to_submenu(submenu=submenu_file, action=exit_action)
+
+    def initialize_new_project(self):
+        """
+        Re-initializes the project to an empty one and refreshes the view.
+        """
+        self.model.clear_project()
+        self.populate_module_tree()
+
+    def save_project_to_file(self):
+        """
+        Shows a save file dialog offering to save the current project to a file. (JSON formatted)
+        """
+        file_path = file_dialog(caption="Save Rig Project",
+                                write_mode=True,
+                                starting_directory=None,
+                                file_filter="All Files (*);;",
+                                ok_caption="Save Project",
+                                cancel_caption="Cancel")
+        if file_path:
+            self.model.save_project_to_file(path=file_path)
+            self.populate_module_tree()
+
+    def load_project_from_file(self):
+        """
+        Shows an open file dialog offering to load a new project from a file. (JSON formatted)
+        """
+        file_path = file_dialog(caption="Open Rig Project",
+                                write_mode=False,
+                                starting_directory=None,
+                                file_filter="All Files (*);;",
+                                ok_caption="Open Project",
+                                cancel_caption="Cancel")
+        if file_path:
+            self.model.load_project_from_file(path=file_path)
+            self.populate_module_tree()
 
     def populate_module_tree(self):
         self.view.clear_module_tree()
