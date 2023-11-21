@@ -32,6 +32,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_attr_area = None
         self.build_proxy_btn = None
         self.build_rig_btn = None
+        self.menu_actions = []
 
         window_title = "GT Auto Rigger"
         if version:
@@ -128,9 +129,6 @@ class RiggerView(metaclass=MayaWindowMeta):
     def set_module_widget(self, widget):
         self.module_attr_area.setWidget(widget)
 
-    def get_menu_bar(self):
-        return self.menubar
-
     def add_item_to_module_tree(self, item):
         self.module_tree.addTopLevelItem(item)
 
@@ -139,6 +137,17 @@ class RiggerView(metaclass=MayaWindowMeta):
 
     def clear_module_tree(self):
         self.module_tree.clear()
+
+    # Menubar
+    def get_menu_bar(self):
+        return self.menubar
+
+    def add_submenu(self, submenu_name):
+        return self.get_menu_bar().addMenu(submenu_name)
+
+    def add_action_to_submenu(self, submenu, action):
+        self.menu_actions.append(action)
+        submenu.addAction(action)
 
 
 if __name__ == "__main__":
