@@ -2,7 +2,9 @@
 Auto Rigger Model
 """
 from gt.tools.auto_rigger.template_biped import create_template_biped
+from gt.utils.data_utils import write_json, read_json_dict
 from gt.tools.auto_rigger.rig_framework import RigProject
+from gt.ui.file_dialog import file_dialog
 import logging
 
 
@@ -33,12 +35,30 @@ class RiggerModel:
         return self.project.get_modules()
 
     def save_project_to_file(self):
-        pass  # TODO
+        file_path = file_dialog(caption="Save Rig Project",
+                                write_mode=False,
+                                starting_directory=None,
+                                file_filter="All Files (*);;",
+                                ok_caption="Save Project",
+                                cancel_caption="Cancel")
+        if file_path:
+            data = self.project.get_project_as_dict()
+            write_json(path=file_path, data=data)
 
     def load_project_from_file(self):
-        pass  # TODO
+        file_path = file_dialog(caption="Open Rig Project",
+                                write_mode=False,
+                                starting_directory=None,
+                                file_filter="All Files (*);;",
+                                ok_caption="Open Project",
+                                cancel_caption="Cancel")
+        if file_path:
+            self.project = RigProject()
+            data = read_json_dict(file_path)
+            self.project.read_data_from_dict(data)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     model = RiggerModel()
+    model.save_project_to_file()
