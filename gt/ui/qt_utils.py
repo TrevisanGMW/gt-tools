@@ -499,7 +499,7 @@ class QtApplicationContext:
         self.is_script_in_interactive_maya = is_script_in_interactive_maya()
         self.parent = None
 
-    def is_script_in_interactive_maya(self):
+    def is_in_interactive_maya(self):
         """
         Gets if script is running from inside of Maya or not (interactive Maya, not PyMaya)
         Returns:
