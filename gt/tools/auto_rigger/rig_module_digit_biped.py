@@ -345,8 +345,8 @@ class ModuleBipedDigits(ModuleGeneric):
             digit.apply_transforms()
         cmds.select(clear=True)
 
-    def build_rig(self):
-        super().build_rig()  # Passthrough
+    def build_skeleton(self):
+        super().build_skeleton()  # Passthrough
 
 
 class ModuleBipedFingersLeft(ModuleBipedDigits):

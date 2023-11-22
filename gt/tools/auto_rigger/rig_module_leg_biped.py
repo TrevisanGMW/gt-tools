@@ -307,16 +307,16 @@ class ModuleBipedLeg(ModuleGeneric):
 
         cmds.select(clear=True)
 
-    def build_rig(self):
-        super().build_rig()  # Passthrough
+    def build_skeleton(self):
+        super().build_skeleton()  # Passthrough
 
-    def build_rig_post(self):
+    def build_skeleton_post(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         self.ankle.set_parent_uuid(self.knee.get_uuid())
-        super().build_rig_post()  # Passthrough
+        super().build_skeleton_post()  # Passthrough
         self.ankle.clear_parent_uuid()
 
         heel_jnt = find_joint_node_from_uuid(self.heel.get_uuid())
