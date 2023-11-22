@@ -7,6 +7,7 @@ from gt.tools.auto_rigger import rig_framework
 from PySide2.QtWidgets import QTreeWidgetItem, QAction
 from gt.ui import resource_library
 from PySide2.QtGui import QIcon
+from functools import partial
 import logging
 
 from ui.file_dialog import file_dialog
@@ -51,6 +52,7 @@ class RiggerController:
 
         # Add Menubar
         self.add_menu_file()
+        self.add_menu_modules()
 
         # Show
         self.view.show()
@@ -88,21 +90,28 @@ class RiggerController:
         """
         Adds a menu bar to the view
         """
-        menu_modules = self.view.add_menu_parent("File")
-        pass
-        # from gt.tools.auto_rigger.rig_modules import RigModules
-        # modules_attrs = vars(RigModules)
-        # all_modules = [attr for attr in modules_attrs if not (attr.startswith('__') and attr.endswith('__'))]
-        # for module in all_modules:
-        #     self.view.add_menu_action(parent_menu=menu_modules, action=action_new)
-        # self.view.add_menu_action(parent_menu=menu_modules, action=action_exit)
+        from gt.tools.auto_rigger.rig_modules import RigModules
+        menu_modules = self.view.add_menu_parent("Modules")
+        for name, module in RigModules.get_dict_modules().items():
+            action_mod = QAction(name, icon=QIcon(module.icon))
+            combo_func = partial(self.add_module_to_current_project, module=module)
+            action_mod.triggered.connect(combo_func)
+            self.view.add_menu_action(parent_menu=menu_modules, action=action_mod)
+
+    def add_module_to_current_project(self, module):
+        """
+        Adds a module to the currently loaded module, then refresh the view.
+        """
+        initialized_module = module()
+        self.model.add_to_modules(module=initialized_module)
+        self.refresh_widgets()
 
     def initialize_new_project(self):
         """
         Re-initializes the project to an empty one and refreshes the view.
         """
         self.model.clear_project()
-        self.populate_module_tree()
+        self.refresh_widgets()
 
     def save_project_to_file(self):
         """
@@ -116,7 +125,6 @@ class RiggerController:
                                 cancel_caption="Cancel")
         if file_path:
             self.model.save_project_to_file(path=file_path)
-            self.populate_module_tree()
 
     def load_project_from_file(self):
         """
@@ -130,7 +138,7 @@ class RiggerController:
                                 cancel_caption="Cancel")
         if file_path:
             self.model.load_project_from_file(path=file_path)
-            self.populate_module_tree()
+            self.refresh_widgets()
 
     def populate_module_tree(self):
         self.view.clear_module_tree()
