@@ -53,6 +53,14 @@ class RiggerModel:
         """
         return self.project.get_modules()
 
+    def add_to_modules(self, module):
+        """
+        Adds a new item to the modules list of the current project.
+        Args:
+            module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to the current project.
+        """
+        self.project.add_to_modules(module=module)
+
     def save_project_to_file(self, path):
         """
         Save the current project to the provided path (JSON format)
