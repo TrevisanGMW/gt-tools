@@ -8,9 +8,11 @@ from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.color_utils import ColorConstants
 from gt.utils.transform_utils import Vector3
+from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -19,6 +21,11 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
+    icon = resource_library.Icon.rigger_module_generic
+    __version_tuple__ = (0, 0, 1)
+    __version_suffix__ = 'alpha'
+    __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+
     def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 

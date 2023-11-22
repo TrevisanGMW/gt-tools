@@ -11,8 +11,10 @@ from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
+from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -21,6 +23,11 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedArm(ModuleGeneric):
+    icon = resource_library.Icon.rigger_module_generic
+    __version_tuple__ = (0, 0, 1)
+    __version_suffix__ = 'alpha'
+    __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+
     def __init__(self, name="Arm", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
