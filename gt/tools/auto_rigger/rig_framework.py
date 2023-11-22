@@ -14,11 +14,11 @@ from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_vali
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.iterable_utils import get_highest_int_from_str_list
+from gt.utils.string_utils import remove_prefix, camel_case_split
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.color_utils import add_side_color_setup
-from gt.utils.string_utils import remove_prefix
 from gt.utils.joint_utils import orient_joint
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
@@ -902,7 +902,7 @@ class ModuleGeneric:
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
-        self.name = None
+        self.name = self.get_module_class_name(remove_module_prefix=True, formatted=True)
         self.prefix = None
         self.suffix = None
         self.proxies = []
@@ -1277,7 +1277,7 @@ class ModuleGeneric:
         """
         return self.orientation.get_method()
 
-    def get_module_as_dict(self, include_module_name=False, include_offset_data=True):
+    def get_module_as_dict(self, include_module_name=True, include_offset_data=True):
         """
         Gets the properties of this module (including proxies) as a dictionary
         Args:
@@ -1288,6 +1288,9 @@ class ModuleGeneric:
             dict: Dictionary describing this module
         """
         module_data = {}
+        if include_module_name:
+            module_name = self.get_module_class_name(remove_module_prefix=True)
+            module_data["module"] = module_name
         if self.name:
             module_data["name"] = self.name
         module_data["active"] = self.active
@@ -1305,23 +1308,25 @@ class ModuleGeneric:
         for proxy in self.proxies:
             module_proxies[proxy.get_uuid()] = proxy.get_proxy_as_dict(include_offset_data=include_offset_data)
         module_data["proxies"] = module_proxies
-        if include_module_name:
-            module_name = self.get_module_class_name()
-            module_data["module"] = module_name
         return module_data
 
-    def get_module_class_name(self, remove_module_prefix=False):
+    def get_module_class_name(self, remove_module_prefix=False, formatted=False):
         """
         Gets the name of this class
         Args:
             remove_module_prefix (bool, optional): If True, it will remove the prefix word "Module" from class name.
                                                    Used to reduce the size of the string in JSON outputs.
+            formatted (bool, optional): If True, it will return a formatted version of the module class name.
+                                        In this case, a title version of the string. e.g. "Module Generic"
         Returns:
-            str: Class name as a string
+            str: Class name as a string.
         """
+        _module_class_name = str(self.__class__.__name__)
         if remove_module_prefix:
-            return remove_prefix(input_string=str(self.__class__.__name__), prefix="Module")
-        return str(self.__class__.__name__)
+            _module_class_name = remove_prefix(input_string=str(self.__class__.__name__), prefix="Module")
+        if formatted:
+            _module_class_name = " ".join(camel_case_split(_module_class_name))
+        return _module_class_name
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def apply_transforms(self, apply_offset=False):
@@ -1378,12 +1383,12 @@ class ModuleGeneric:
         logger.debug(f'"build_proxy_post" function for "{self.get_module_class_name()}" was called.')
         self.apply_transforms()
 
-    def build_rig(self):
+    def build_skeleton(self):
         """
-        Runs build rig script.
+        Runs build skeleton script.
         Expects proxy to be present in the scene.
         """
-        logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+        logger.debug(f'"build_skeleton" function from "{self.get_module_class_name()}" was called.')
         skeleton_grp = find_skeleton_group()
         for proxy in self.proxies:
             proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
@@ -1403,12 +1408,12 @@ class ModuleGeneric:
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
             cmds.select(clear=True)  # When creating a joint, the new joint is selected.
 
-    def build_rig_post(self):
+    def build_skeleton_post(self):
         """
-        Runs post rig script.
-        When in a project, this runs after the "build_rig" is done in all modules.
+        Runs post skeleton script.
+        When in a project, this runs after the "build_skeleton" is done in all modules.
         """
-        logger.debug(f'"build_rig_post" function from "{self.get_module_class_name()}" was called.')
+        logger.debug(f'"build_skeleton_post" function from "{self.get_module_class_name()}" was called.')
         module_uuids = self.get_proxies_uuids()
         jnt_nodes = []
         for proxy in self.proxies:
@@ -1438,8 +1443,13 @@ class ModuleGeneric:
                 joint = find_joint_node_from_uuid(proxy.get_uuid())
                 parent_joint_node = find_joint_node_from_uuid(parent_uuid)
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
-
         cmds.select(clear=True)
+
+    # def build_rig(self):
+    #     logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+    #
+    # def build_rig_post(self):
+    #     logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
 
 class RigProject:
@@ -1543,30 +1553,28 @@ class RigProject:
             self.metadata = {}
         self.metadata[key] = value
 
-    def read_modules_from_dict(self, modules_dict):
+    def read_modules_from_dict(self, modules_list):
         """
         Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
         Args:
-            modules_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
-                                 Acceptable pattern: {"uuid_str": {<description>}}
-                                 "uuid_str" being the actual uuid string value of the proxy.
-                                 "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+            modules_list (list): A list of module descriptions.
         """
-        if not modules_dict or not isinstance(modules_dict, dict):
-            logger.debug(f'Unable to read modules from dictionary. Input must be a dictionary.')
+        if not modules_list or not isinstance(modules_list, list):
+            logger.debug(f'Unable to read modules from list. Input must be a list.')
             return
 
         self.modules = []
         from gt.tools.auto_rigger.rig_modules import RigModules
         available_modules = RigModules.get_dict_modules()
-        for class_name, description in modules_dict.items():
+        for module_description in modules_list:
+            class_name = module_description.get("module")
             if not class_name.startswith("Module"):
                 class_name = f'Module{class_name}'
             if class_name in available_modules:
                 _module = available_modules.get(class_name)()
             else:
                 _module = ModuleGeneric()
-            _module.read_data_from_dict(module_dict=description)
+            _module.read_data_from_dict(module_dict=module_description)
             self.modules.append(_module)
 
     def read_data_from_dict(self, module_dict):
@@ -1593,8 +1601,8 @@ class RigProject:
             self.set_prefix(prefix=_prefix)
 
         _modules = module_dict.get('modules')
-        if _modules and isinstance(_modules, dict):
-            self.read_modules_from_dict(modules_dict=_modules)
+        if _modules and isinstance(_modules, list):
+            self.read_modules_from_dict(modules_list=_modules)
 
         metadata = module_dict.get('metadata')
         if metadata:
@@ -1652,10 +1660,9 @@ class RigProject:
         Returns:
             dict: Dictionary describing this project.
         """
-        project_modules = {}
+        project_modules = []
         for module in self.modules:
-            module_class_name = module.get_module_class_name(remove_module_prefix=True)
-            project_modules[module_class_name] = module.get_module_as_dict()
+            project_modules.append(module.get_module_as_dict())
 
         project_data = {}
         if self.name:
@@ -1665,7 +1672,6 @@ class RigProject:
         project_data["modules"] = project_modules
         if self.metadata:
             project_data["metadata"] = self.metadata
-
         return project_data
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -1749,13 +1755,13 @@ class RigProject:
             for module in self.modules:
                 if not module.get_active_state():  # If not active, skip
                     continue
-                module.build_rig()
+                module.build_skeleton()
 
             # Build Rig Post
             for module in self.modules:
                 if not module.get_active_state():  # If not active, skip
                     continue
-                module.build_rig_post()
+                module.build_skeleton_post()
 
             # Delete Proxy
             if delete_proxy:
@@ -1808,5 +1814,8 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_root_module)
     a_project.add_to_modules(a_module)
     a_project.add_to_modules(another_module)
-    a_project.build_proxy()
-    a_project.build_rig(delete_proxy=True)
+    from pprint import pprint
+    # pprint(a_project.get_modules())
+    a_project.get_project_as_dict()
+    # a_project.build_proxy()
+    # a_project.build_rig(delete_proxy=True)
