@@ -1,16 +1,16 @@
 """
 Auto Rigger Controller
 """
+from gt.utils.string_utils import remove_prefix, camel_case_split
 from gt.tools.auto_rigger.rig_modules import RigModules
+from PySide2.QtWidgets import QTreeWidgetItem, QAction
 from gt.tools.auto_rigger import rigger_attr_widget
 from gt.tools.auto_rigger import rig_framework
-from PySide2.QtWidgets import QTreeWidgetItem, QAction
+from gt.ui.file_dialog import file_dialog
 from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 from functools import partial
 import logging
-
-from ui.file_dialog import file_dialog
 
 # Logging Setup
 logging.basicConfig()
@@ -93,7 +93,9 @@ class RiggerController:
         from gt.tools.auto_rigger.rig_modules import RigModules
         menu_modules = self.view.add_menu_parent("Modules")
         for name, module in RigModules.get_dict_modules().items():
-            action_mod = QAction(name, icon=QIcon(module.icon))
+            formatted_name = remove_prefix(input_string=name, prefix="Module")
+            formatted_name = " ".join(camel_case_split(formatted_name))
+            action_mod = QAction(formatted_name, icon=QIcon(module.icon))
             combo_func = partial(self.add_module_to_current_project, module=module)
             action_mod.triggered.connect(combo_func)
             self.view.add_menu_action(parent_menu=menu_modules, action=action_mod)
@@ -203,7 +205,7 @@ class RiggerController:
 
     def build_rig(self):
         project = self.model.get_project()
-        project.build_rig()
+        project.build_skeleton()
 
 
 if __name__ == "__main__":
