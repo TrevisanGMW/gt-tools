@@ -2,6 +2,7 @@
 Auto Rigger Controller
 """
 from gt.utils.string_utils import remove_prefix, camel_case_split
+from gt.tools.auto_rigger.rig_templates import RigTemplates
 from gt.tools.auto_rigger.rig_modules import RigModules
 from PySide2.QtWidgets import QTreeWidgetItem, QAction
 from gt.tools.auto_rigger import rigger_attr_widget
@@ -11,6 +12,7 @@ from gt.ui import resource_library
 from PySide2.QtGui import QIcon
 from functools import partial
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -80,11 +82,15 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu_file, action=action_new)
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
+        # Templates
         menu_templates = self.view.add_menu_submenu(parent_menu=menu_file,
                                                     submenu_name="Templates",
                                                     icon=QIcon(resource_library.Icon.dev_chainsaw))
-        self.view.add_menu_action(parent_menu=menu_templates, action=action_template_biped)
-        self.view.add_menu_action(parent_menu=menu_file, action=action_exit)
+        for name, template_func in RigTemplates.get_dict_templates().items():
+            action_template = QAction(name, icon=QIcon(resource_library.Icon.dev_chainsaw))
+            item_func = partial(self.replace_project, project=template_func)
+            action_template.triggered.connect(item_func)
+            self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
 
     def add_menu_modules(self):
         """
@@ -96,8 +102,8 @@ class RiggerController:
             formatted_name = remove_prefix(input_string=name, prefix="Module")
             formatted_name = " ".join(camel_case_split(formatted_name))
             action_mod = QAction(formatted_name, icon=QIcon(module.icon))
-            combo_func = partial(self.add_module_to_current_project, module=module)
-            action_mod.triggered.connect(combo_func)
+            item_func = partial(self.add_module_to_current_project, module=module)
+            action_mod.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_modules, action=action_mod)
 
     def add_module_to_current_project(self, module):
@@ -142,6 +148,20 @@ class RiggerController:
             self.model.load_project_from_file(path=file_path)
             self.refresh_widgets()
 
+    def replace_project(self, project):
+        """
+        Replaces the current loaded project.
+        Args:
+            project (RigProject, callable): A RigProject objects to replace the current project.
+                                            If a callable object is provided, it calls the function
+                                            expecting a RigProject as the output.
+        """
+        if callable(project):
+            project = project()
+        if project:
+            self.model.set_project(project=project)
+            self.refresh_widgets()
+
     def populate_module_tree(self):
         self.view.clear_module_tree()
         project = self.model.get_project()
@@ -154,7 +174,8 @@ class RiggerController:
         modules = self.model.get_modules()
         for module in modules:
             icon = QIcon(module.icon)
-            module_type = module.get_module_class_name(remove_module_prefix=True)
+            module_type = module.get_module_class_name(remove_module_prefix=True,
+                                                       formatted=True)
             tree_item = QTreeWidgetItem([module_type])
             tree_item.setIcon(0, icon)
             tree_item.setData(1, 0, module)
