@@ -108,8 +108,8 @@ class OrientationData:
 
     def __init__(self, method=Methods.automatic,
                  aim_axis=(1, 0, 0),
-                 up_axis=(1, 0, 0),
-                 up_dir=(1, 0, 0)):
+                 up_axis=(0, 1, 0),
+                 up_dir=(0, 1, 0)):
         """
         Initializes an OrientationData object.
         Args:
@@ -896,6 +896,9 @@ class Proxy:
 
 class ModuleGeneric:
     icon = resource_library.Icon.rigger_module_generic
+    __version_tuple__ = (0, 1, 0)
+    __version_suffix__ = 'beta'
+    __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
@@ -1484,14 +1487,12 @@ class RigProject:
 
     def add_to_modules(self, module):
         """
-        Adds a new item to the metadata dictionary. Initializes it in case it was not yet initialized.
-        If an element with the same key already exists in the metadata dictionary, it will be overwritten
+        Adds a new item to the modules list.
         Args:
             module (ModuleGeneric, List[ModuleGeneric]): New module element to be added to this project.
         """
         from gt.tools.auto_rigger.rig_modules import RigModules
-        modules_attrs = vars(RigModules)
-        all_modules = [attr for attr in modules_attrs if not (attr.startswith('__') and attr.endswith('__'))]
+        all_modules = RigModules.get_module_names()
         if module and str(module.__class__.__name__) in all_modules:
             module = [module]
         if module and isinstance(module, list):
@@ -1557,7 +1558,7 @@ class RigProject:
 
         self.modules = []
         from gt.tools.auto_rigger.rig_modules import RigModules
-        available_modules = vars(RigModules)
+        available_modules = RigModules.get_dict_modules()
         for class_name, description in modules_dict.items():
             if not class_name.startswith("Module"):
                 class_name = f'Module{class_name}'
