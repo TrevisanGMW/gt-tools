@@ -21,10 +21,9 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
+    __version__ = '0.0.1-alpha'
     icon = resource_library.Icon.rigger_module_generic
-    __version_tuple__ = (0, 0, 1)
-    __version_suffix__ = 'alpha'
-    __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+    allow_parenting = True
 
     def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):
         super().__init__(name=name, prefix=prefix, suffix=suffix)

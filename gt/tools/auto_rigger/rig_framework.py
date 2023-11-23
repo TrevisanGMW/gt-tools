@@ -895,11 +895,9 @@ class Proxy:
 
 
 class ModuleGeneric:
+    __version__ = '0.1.0-beta'
     icon = resource_library.Icon.rigger_module_generic
-    custom_hierarchy = False
-    __version_tuple__ = (0, 1, 0)
-    __version_suffix__ = 'beta'
-    __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+    allow_parenting = False
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
