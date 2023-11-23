@@ -1,5 +1,5 @@
-from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow, QTreeWidget, QHeaderView
-from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon
+from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow, QHeaderView, QLineEdit
+from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon, QKeyEvent
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.utils.system_utils import is_system_macos
 from PySide2 import QtGui, QtCore, QtWidgets
@@ -649,16 +649,6 @@ def expand_tree_item_recursively(item):
             expand_tree_item_recursively(item.child(i))
 
 
-def expand_all_tree_items_recursively(tree_widget):
-    """
-    Recursively expands all items and their children in a QTreeWidget.
-    Args:
-        tree_widget (QTreeWidget): The QTreeWidget to expand the items in.
-    """
-    for i in range(tree_widget.topLevelItemCount()):
-        expand_tree_item_recursively(tree_widget.topLevelItem(i))
-
-
 class QHeaderWithWidgets(QHeaderView):
     """
     Subclass of QHeaderView with the ability to set custom widgets for individual sections.
@@ -707,6 +697,18 @@ class QHeaderWithWidgets(QHeaderView):
             if widget:
                 widget.setVisible(True)
                 widget.setGeometry(rect)
+
+
+class ConfirmableQLineEdit(QLineEdit):
+    """
+    Custom QLineEdit that prevents the pressing of the Enter key to trigger other undesired behaviours.
+    """
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            event.accept()  # Prevent the default behavior of the Enter key
+            self.editingFinished.emit()
+        else:
+            super().keyPressEvent(event)  # Continue with the default behavior for other keys
 
 
 if __name__ == "__main__":
