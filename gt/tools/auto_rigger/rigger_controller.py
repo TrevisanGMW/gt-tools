@@ -1,6 +1,8 @@
 """
 Auto Rigger Controller
 """
+from PySide2.QtCore import Qt
+
 from gt.utils.string_utils import remove_prefix, camel_case_split
 from gt.tools.auto_rigger.rig_templates import RigTemplates
 from gt.tools.auto_rigger.rig_modules import RigModules
@@ -29,6 +31,8 @@ def get_module_attr_widgets(module):
     if type(module) is RigModules.ModuleGeneric:
         return rigger_attr_widget.ModuleGenericAttrWidget
     if isinstance(module, RigModules.ModuleSpine):
+        return rigger_attr_widget.ModuleSpineAttrWidget
+    if isinstance(module, RigModules.ModuleBipedLeg):  # TODO TEMP @@@
         return rigger_attr_widget.ModuleSpineAttrWidget
 
 
@@ -169,17 +173,35 @@ class RiggerController:
         project_item = QTreeWidgetItem([project.get_name()])
         project_item.setIcon(0, icon_project)
         project_item.setData(1, 0, project)
+        project_item.setFlags(project_item.flags() & ~Qt.ItemIsDragEnabled)
         self.view.add_item_to_module_tree(project_item)
 
         modules = self.model.get_modules()
+        tree_item_dict = {}
         for module in modules:
             icon = QIcon(module.icon)
-            module_type = module.get_module_class_name(remove_module_prefix=True,
-                                                       formatted=True)
+            module_type = module.get_description_name()
             tree_item = QTreeWidgetItem([module_type])
             tree_item.setIcon(0, icon)
             tree_item.setData(1, 0, module)
             project_item.addChild(tree_item)
+            tree_item_dict[module] = tree_item
+            # if module
+            tree_item.setFlags(tree_item.flags() & ~Qt.ItemIsDragEnabled)
+
+        # Create Hierarchy
+        for module, tree_item in tree_item_dict.items():
+            parent_proxy_uuid = module.get_parent_uuid()
+            if not parent_proxy_uuid or not isinstance(parent_proxy_uuid, str):
+                continue
+            parent_module = project.get_module_from_proxy_uuid(parent_proxy_uuid)
+            if module == parent_module:
+                continue
+            parent_tree_item = tree_item_dict.get(parent_module)
+            if parent_tree_item:
+                index = project_item.indexOfChild(tree_item)
+                child_item = project_item.takeChild(index)
+                parent_tree_item.insertChild(0, child_item)
 
         self.view.expand_all_module_tree_items()
 
