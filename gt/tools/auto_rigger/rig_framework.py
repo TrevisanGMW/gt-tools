@@ -896,6 +896,7 @@ class Proxy:
 
 class ModuleGeneric:
     icon = resource_library.Icon.rigger_module_generic
+    custom_hierarchy = False
     __version_tuple__ = (0, 1, 0)
     __version_suffix__ = 'beta'
     __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
@@ -1245,6 +1246,14 @@ class ModuleGeneric:
         """
         return [proxy.get_uuid() for proxy in self.proxies]
 
+    def get_proxy_uuid_existence(self, uuid):
+        """
+        Gets if the provided proxy uuid is within this module or not.
+        Returns:
+            bool: True if found, False otherwise.
+        """
+        return True if uuid in self.get_proxies_uuids() else False
+
     def get_metadata(self):
         """
         Gets the metadata property.
@@ -1327,6 +1336,24 @@ class ModuleGeneric:
         if formatted:
             _module_class_name = " ".join(camel_case_split(_module_class_name))
         return _module_class_name
+
+    def get_description_name(self, add_class_len=3):
+        """
+        Gets the name of the module. If too short or empty, use the class name instead.
+        Args:
+            add_class_len (bool, optional): Determine the length of the string before the class name is added.
+        Returns:
+            str: Formatted version of the object's name.
+        """
+        _module_name = ""
+        if self.name and isinstance(self.name, str):
+            _module_name = self.name
+        _class_name = self.get_module_class_name(remove_module_prefix=True)
+        if len(_module_name) == 0:
+            _module_name = f'({_class_name})'
+        elif len(_module_name) <= add_class_len:
+            _module_name = f'{_module_name} ({_class_name})'
+        return _module_name
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def apply_transforms(self, apply_offset=False):
@@ -1445,11 +1472,13 @@ class ModuleGeneric:
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
         cmds.select(clear=True)
 
-    # def build_rig(self):
-    #     logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
-    #
-    # def build_rig_post(self):
-    #     logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+    def build_rig(self):
+        # TODO TEMP @@@
+        logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+
+    def build_rig_post(self):
+        # TODO TEMP @@@
+        logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
 
 class RigProject:
@@ -1645,6 +1674,16 @@ class RigProject:
             list: A list of modules found in this project
         """
         return self.modules
+
+    def get_module_from_proxy_uuid(self, uuid):
+        """
+        Returns a module in case a proxy with the provided UUID is found within this project.
+        Returns:
+            ModuleGeneric or None: The module that contains the provided UUID, None otherwise.
+        """
+        for module in self.modules:
+            if module.get_proxy_uuid_existence(uuid):
+                return module
 
     def get_metadata(self):
         """
