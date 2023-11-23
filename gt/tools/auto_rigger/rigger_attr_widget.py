@@ -3,12 +3,12 @@ Auto Rigger Attr Widgets
 """
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
 from gt.tools.auto_rigger.rigger_orient_view import RiggerOrientView
+from gt.ui.qt_utils import QHeaderWithWidgets, ConfirmableQLineEdit
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 from gt.tools.auto_rigger.rig_framework import OrientationData
 from gt.utils.iterable_utils import dict_as_formatted_str
 from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import QHeaderWithWidgets
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
@@ -91,11 +91,11 @@ class ModuleAttrWidget(QWidget):
 
         # Name (User Custom)
         name = self.module.get_name()
-        self.mod_name_field = QLineEdit()
+        self.mod_name_field = ConfirmableQLineEdit()
         self.mod_name_field.setFixedHeight(30)
         if name:
             self.mod_name_field.setText(name)
-        self.mod_name_field.textChanged.connect(self.set_module_name)
+        self.mod_name_field.editingFinished.connect(self.set_module_name)
         _layout.addWidget(self.mod_name_field)
 
         # Edit Button
@@ -121,7 +121,7 @@ class ModuleAttrWidget(QWidget):
         # Prefix
         prefix_label = QLabel("Prefix:")
         prefix_label.setFixedWidth(50)
-        self.mod_prefix_field = QLineEdit()
+        self.mod_prefix_field = ConfirmableQLineEdit()
         self.mod_prefix_field.setFixedHeight(30)
         _layout.addWidget(prefix_label)
         _layout.addWidget(self.mod_prefix_field)
@@ -132,7 +132,7 @@ class ModuleAttrWidget(QWidget):
         # Suffix
         suffix_label = QLabel("Suffix:")
         suffix_label.setFixedWidth(50)
-        self.mod_suffix_field = QLineEdit()
+        self.mod_suffix_field = ConfirmableQLineEdit()
         self.mod_suffix_field.setFixedHeight(30)
         _layout.addWidget(suffix_label)
         _layout.addWidget(self.mod_suffix_field)
@@ -470,6 +470,7 @@ class ModuleAttrWidget(QWidget):
         else:
             self.module.set_parent_uuid(_parent_proxy.get_uuid())
             logger.debug(f"{self.module.get_name()}: to : {_parent_proxy.get_name()}")
+        self.call_parent_refresh()
 
     def on_proxy_parent_table_cell_changed(self, row, column):
         """
@@ -682,6 +683,7 @@ class ModuleAttrWidget(QWidget):
         new_name = self.mod_name_field.text() or ""
         self.module.set_name(new_name)
         self.refresh_current_widgets()
+        self.call_parent_refresh()
 
     def set_module_prefix(self):
         """
@@ -797,7 +799,7 @@ class ProjectAttrWidget(QWidget):
 
         # Name (User Custom)
         name = project.get_name()
-        self.name_text_field = QLineEdit()
+        self.name_text_field = ConfirmableQLineEdit()
         if name:
             self.name_text_field.setText(name)
         self.name_text_field.textChanged.connect(self.set_module_name)
