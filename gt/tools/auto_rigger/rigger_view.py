@@ -4,6 +4,7 @@ Auto Rigger View
 from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
 import gt.ui.resource_library as resource_library
+from gt.ui.tree_with_root import QTreeWithRoot
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
@@ -63,20 +64,16 @@ class RiggerView(metaclass=MayaWindowMeta):
 
     def create_widgets(self):
         """Create the widgets for the window."""
-        # Create a menu bar
         self.menu_top = QMenuBar(self)
 
         self.splitter = QSplitter(self)
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
 
-        self.module_tree = QTreeWidget()
+        self.module_tree = QTreeWithRoot()
         self.module_tree.setHeaderHidden(True)  # Hide the header
-
-        # Enable drag-and-drop for the tree
         self.module_tree.setDragDropMode(QTreeWidget.InternalMove)
         self.module_tree.setSelectionMode(QTreeWidget.SingleSelection)
-        # self.module_tree.setSortingEnabled(True)
 
         self.build_proxy_btn = QPushButton("Build Proxy")
         self.build_rig_btn = QPushButton("Build Rig")
