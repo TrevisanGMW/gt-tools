@@ -56,7 +56,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.setStyleSheet(stylesheet)
 
         # Final Adjustments
-        qt_utils.resize_to_screen(self, percentage=35)
+        qt_utils.resize_to_screen(self, percentage=30)
         qt_utils.center_window(self)
 
         self.resize_splitter_to_screen()
@@ -72,6 +72,11 @@ class RiggerView(metaclass=MayaWindowMeta):
 
         self.module_tree = QTreeWidget()
         self.module_tree.setHeaderHidden(True)  # Hide the header
+
+        # Enable drag-and-drop for the tree
+        self.module_tree.setDragDropMode(QTreeWidget.InternalMove)
+        self.module_tree.setSelectionMode(QTreeWidget.SingleSelection)
+        # self.module_tree.setSortingEnabled(True)
 
         self.build_proxy_btn = QPushButton("Build Proxy")
         self.build_rig_btn = QPushButton("Build Rig")
@@ -133,7 +138,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_tree.addTopLevelItem(item)
 
     def expand_all_module_tree_items(self):
-        qt_utils.expand_all_tree_items_recursively(self.module_tree)
+        self.module_tree.expandAll()
 
     def clear_module_tree(self):
         self.module_tree.clear()
