@@ -3,8 +3,8 @@ Auto Rigger View
 """
 from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
+from gt.ui.tree_widget_enhanced import QTreeEnhanced
 import gt.ui.resource_library as resource_library
-from gt.ui.tree_with_root import QTreeWithRoot
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 from PySide2.QtGui import QIcon
@@ -70,7 +70,8 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
 
-        self.module_tree = QTreeWithRoot()
+        self.module_tree = QTreeEnhanced()
+        self.module_tree.set_one_root_mode(state=True)
         self.module_tree.setHeaderHidden(True)  # Hide the header
         self.module_tree.setDragDropMode(QTreeWidget.InternalMove)
         self.module_tree.setSelectionMode(QTreeWidget.SingleSelection)
