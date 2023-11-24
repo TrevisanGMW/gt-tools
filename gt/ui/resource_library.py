@@ -907,6 +907,13 @@ class StylesheetVariables:
         "@selected_background_color;": Color.RGB.blue_pastel,
         "@hover_background_color;": Color.RGB.gray_light_slate,
     }
+    table_widget_base = {
+        # Colors
+        "@text_color;": Color.RGB.white,  # TODO TEMP @@@
+        "@background_color;": Color.RGB.gray_darker,
+        "@selected_background_color;": Color.RGB.blue_pastel,
+        "@hover_background_color;": Color.RGB.gray_light_slate,
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
         # Colors
@@ -953,6 +960,8 @@ class Stylesheet:
                                            stylesheet_variables=StylesheetVariables.checkbox_base)
     tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
                                               stylesheet_variables=StylesheetVariables.tree_widget_base)
+    table_widget_base = get_stylesheet_content(stylesheet_name="table_widget_base",
+                                               stylesheet_variables=StylesheetVariables.table_widget_base)
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
                                            stylesheet_variables=StylesheetVariables.btn_push_base)
