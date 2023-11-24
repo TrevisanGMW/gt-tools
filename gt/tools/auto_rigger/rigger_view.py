@@ -6,8 +6,8 @@ from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, Q
 from gt.ui.tree_widget_enhanced import QTreeEnhanced
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
+from PySide2.QtGui import QIcon, QFont
 import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
 from PySide2 import QtCore
 
@@ -54,6 +54,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.maya_dialog_base
         stylesheet += resource_library.Stylesheet.combobox_base
         stylesheet += resource_library.Stylesheet.tree_widget_base
+        stylesheet += resource_library.Stylesheet.table_widget_base
         self.setStyleSheet(stylesheet)
 
         # Final Adjustments
@@ -75,6 +76,12 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_tree.setHeaderHidden(True)  # Hide the header
         self.module_tree.setDragDropMode(QTreeWidget.InternalMove)
         self.module_tree.setSelectionMode(QTreeWidget.SingleSelection)
+
+        font = QFont()
+        font.setPointSize(14)
+        self.module_tree.setFont(font)
+        icon_size = 32
+        self.module_tree.setIconSize(QtCore.QSize(icon_size, icon_size))
 
         self.build_proxy_btn = QPushButton("Build Proxy")
         self.build_rig_btn = QPushButton("Build Rig")
