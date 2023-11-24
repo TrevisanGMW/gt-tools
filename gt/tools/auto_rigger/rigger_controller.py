@@ -1,10 +1,9 @@
 """
 Auto Rigger Controller
 """
-from PySide2.QtCore import Qt
-
 from gt.utils.string_utils import remove_prefix, camel_case_split
 from gt.tools.auto_rigger.rig_templates import RigTemplates
+from gt.ui.tree_widget_enhanced import QTreeItemEnhanced
 from gt.tools.auto_rigger.rig_modules import RigModules
 from PySide2.QtWidgets import QTreeWidgetItem, QAction
 from gt.tools.auto_rigger import rigger_attr_widget
@@ -12,6 +11,7 @@ from gt.tools.auto_rigger import rig_framework
 from gt.ui.file_dialog import file_dialog
 from gt.ui import resource_library
 from PySide2.QtGui import QIcon
+from PySide2.QtCore import Qt
 from functools import partial
 import logging
 
@@ -32,8 +32,8 @@ def get_module_attr_widgets(module):
         return rigger_attr_widget.ModuleGenericAttrWidget
     if isinstance(module, RigModules.ModuleSpine):
         return rigger_attr_widget.ModuleSpineAttrWidget
-    if isinstance(module, RigModules.ModuleBipedLeg):  # TODO TEMP @@@
-        return rigger_attr_widget.ModuleSpineAttrWidget
+    if isinstance(module, RigModules.ModuleBipedLeg):
+        return rigger_attr_widget.ModuleSpineAttrWidget  # TODO TEMP @@@
 
 
 class RiggerController:
@@ -55,6 +55,7 @@ class RiggerController:
         self.view.module_tree.itemClicked.connect(self.on_tree_item_clicked)
         self.view.build_proxy_btn.clicked.connect(self.build_proxy)
         self.view.build_rig_btn.clicked.connect(self.build_rig)
+        # self.view.module_tree.set_drop_callback(self.refresh_widgets)  # TODO TEMP @@@
 
         # Add Menubar
         self.add_menu_file()
@@ -170,7 +171,7 @@ class RiggerController:
         self.view.clear_module_tree()
         project = self.model.get_project()
         icon_project = QIcon(project.icon)
-        project_item = QTreeWidgetItem([project.get_name()])
+        project_item = QTreeItemEnhanced([project.get_name()])
         project_item.setIcon(0, icon_project)
         project_item.setData(1, 0, project)
         project_item.setFlags(project_item.flags() & ~Qt.ItemIsDragEnabled)
@@ -181,13 +182,13 @@ class RiggerController:
         for module in modules:
             icon = QIcon(module.icon)
             module_type = module.get_description_name()
-            tree_item = QTreeWidgetItem([module_type])
+            tree_item = QTreeItemEnhanced([module_type])
             tree_item.setIcon(0, icon)
             tree_item.setData(1, 0, module)
             project_item.addChild(tree_item)
             tree_item_dict[module] = tree_item
-            # if module
-            tree_item.setFlags(tree_item.flags() & ~Qt.ItemIsDragEnabled)
+            if not module.allow_parenting:
+                tree_item.set_skip_drop(skip=True)
 
         # Create Hierarchy
         for module, tree_item in tree_item_dict.items():
