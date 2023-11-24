@@ -68,9 +68,16 @@ class QTreeEnhanced(QTreeWidget):
         dragged_item = self.currentItem()
         if dragged_item and isinstance(dragged_item, QTreeItemEnhanced):
             dragged_item.run_drop_callback()
-            if dragged_item.get_skip_drop():
-                event.ignore()
-                return
+            if not dragged_item.is_allowed_parenting():
+                parent = dragged_item.parent()
+                target_item = self.itemAt(event.pos())
+                # print(f'parent: {str(parent)}')
+                # print(f'target_item: {str(target_item)}')
+                target_index = self.indexOfTopLevelItem(target_item)
+                print(f'target_index: {str(target_index)}')
+                if parent != target_item:
+                    event.ignore()
+                    return
         if self.one_root_mode:
             self.one_root_mode_drop_event(event=event)
         else:
@@ -101,23 +108,24 @@ class QTreeItemEnhanced(QTreeWidgetItem):
         super().__init__(parent)
 
         self.drop_callback = None
-        self.skip_drop = False
+        self.allow_parenting = True
 
-    def set_skip_drop(self, skip):
+    def set_allow_parenting(self, state):
         """
         Sets the skip drop value.
         If True and this item is part of an enhanced tree object, it will skip the drop event.
         (Callback is still invoked)
         Args:
-            skip (bool): True if the original drop event shouldn't happen, False if you want it to skip.
+            state (bool): True if the original drop event shouldn't happen, False if you want it to skip.
         """
-        self.skip_drop = skip
+        self.allow_parenting = state
 
-    def get_skip_drop(self):
+    def is_allowed_parenting(self):
         """
-        Gets the
+        Gets the allow parenting value. If True, it means that this item is allowed to be re-parented.
+        If False, it's not allowed to be re-parented, even if dragged and dropped.
         """
-        return self.skip_drop
+        return self.allow_parenting
 
     def set_drop_callback(self, callback):
         """
@@ -148,7 +156,7 @@ if __name__ == "__main__":
         a_root_item = QTreeItemEnhanced(["InitialRoot"])
         child_item_one = QTreeWidgetItem(["ChildOne"])
         child_item_two = QTreeItemEnhanced(["ChildTwo"])
-        child_item_two.set_skip_drop(True)
+        child_item_two.set_allow_parenting(True)
         def callback_test():
             print("Callback")
         child_item_two.set_drop_callback(callback_test)

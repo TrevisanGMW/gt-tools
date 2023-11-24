@@ -187,8 +187,7 @@ class RiggerController:
             tree_item.setData(1, 0, module)
             project_item.addChild(tree_item)
             tree_item_dict[module] = tree_item
-            if not module.allow_parenting:
-                tree_item.set_skip_drop(skip=True)
+            tree_item.set_allow_parenting(state=module.allow_parenting)
 
         # Create Hierarchy
         for module, tree_item in tree_item_dict.items():
