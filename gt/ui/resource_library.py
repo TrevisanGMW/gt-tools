@@ -904,16 +904,17 @@ class StylesheetVariables:
         # Colors
         "@text_color;": Color.RGB.white,
         "@background_color;": Color.RGB.gray_darker,
-        "@selected_background_color;": Color.RGB.blue_pastel,
-        "@hover_background_color;": Color.RGB.gray_light_slate,
+        "@item_selected_background_color;": Color.RGB.blue_pastel,
+        "@item_hover_background_color;": Color.RGB.gray_light_slate,
         "@image_branch_closed;": f"url({Icon.ui_branch_closed})".replace("\\", "/"),
         "@image_branch_opened;": f"url({Icon.ui_branch_open})".replace("\\", "/"),
         "@image_branch_root_open;": f"url({Icon.ui_branch_root_open})".replace("\\", "/"),
         "@image_branch_root_closed;": f"url({Icon.ui_branch_root_closed})".replace("\\", "/"),
-        "@image_branch_end;": f"url({Icon.ui_branch_end}) 0;".replace("\\", "/"),
+        "@image_branch_end;": f"url({Icon.ui_branch_end})".replace("\\", "/"),
         "@image_branch_line;": f"url({Icon.ui_branch_line}) 0;".replace("\\", "/"),
         "@image_branch_more;": f"url({Icon.ui_branch_more}) 0;".replace("\\", "/"),
         "@image_branch_single;": f"url({Icon.ui_branch_single})".replace("\\", "/"),
+        "@image_branch_test;": f"url({Icon.ui_add})".replace("\\", "/"),
     }
     table_widget_base = {
         # Colors
