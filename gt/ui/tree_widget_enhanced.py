@@ -22,7 +22,7 @@ def remove_tree_item_from_tree(item_to_remove):
 class QTreeEnhanced(QTreeWidget):
     def __init__(self):
         super().__init__()
-        self.setDragDropMode(QTreeWidget.InternalMove) # Drag and Drop enabled
+        self.setDragDropMode(QTreeWidget.InternalMove)  # Drag and Drop enabled
         self.drop_callback = None
         self.one_root_mode = False
 
