@@ -12,19 +12,18 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ModuleBipedDigits(ModuleGeneric):
+class ModuleBipedFingers(ModuleGeneric):
     __version__ = '0.0.1-alpha'
-    icon = resource_library.Icon.rigger_module_generic
+    icon = resource_library.Icon.rigger_module_biped_fingers
     allow_parenting = True
 
-    def __init__(self, name="Digits", prefix=None, suffix=None):
+    def __init__(self, name="Fingers", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 1, 0), up_dir=(0, 1, 0))
@@ -348,7 +347,7 @@ class ModuleBipedDigits(ModuleGeneric):
         super().build_skeleton()  # Passthrough
 
 
-class ModuleBipedFingersLeft(ModuleBipedDigits):
+class ModuleBipedFingersLeft(ModuleBipedFingers):
     def __init__(self, name="Left Fingers", prefix=NamingConstants.Prefix.LEFT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
@@ -415,7 +414,7 @@ class ModuleBipedFingersLeft(ModuleBipedDigits):
         self.extra04.set_initial_position(xyz=pos_extra04)
 
 
-class ModuleBipedFingersRight(ModuleBipedDigits):
+class ModuleBipedFingersRight(ModuleBipedFingers):
     def __init__(self, name="Right Fingers", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
@@ -487,7 +486,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_digit_mod = ModuleBipedDigits()
+    a_digit_mod = ModuleBipedFingers()
     a_digit_mod_lf = ModuleBipedFingersLeft()
     a_digit_mod_rt = ModuleBipedFingersRight()
     a_project = RigProject()
