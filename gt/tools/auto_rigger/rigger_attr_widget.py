@@ -76,7 +76,7 @@ class ModuleAttrWidget(QWidget):
         """
         # Module Header (Icon, Type, Name, Buttons)
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         _layout.setAlignment(Qt.AlignTop)
 
         # Icon
@@ -92,7 +92,7 @@ class ModuleAttrWidget(QWidget):
         # Name (User Custom)
         name = self.module.get_name()
         self.mod_name_field = ConfirmableQLineEdit()
-        self.mod_name_field.setFixedHeight(30)
+        self.mod_name_field.setFixedHeight(35)
         if name:
             self.mod_name_field.setText(name)
         self.mod_name_field.editingFinished.connect(self.set_module_name)
@@ -117,12 +117,12 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the prefix of the module
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         # Prefix
         prefix_label = QLabel("Prefix:")
         prefix_label.setFixedWidth(50)
         self.mod_prefix_field = ConfirmableQLineEdit()
-        self.mod_prefix_field.setFixedHeight(30)
+        self.mod_prefix_field.setFixedHeight(35)
         _layout.addWidget(prefix_label)
         _layout.addWidget(self.mod_prefix_field)
         prefix = self.module.get_prefix()
@@ -133,7 +133,7 @@ class ModuleAttrWidget(QWidget):
         suffix_label = QLabel("Suffix:")
         suffix_label.setFixedWidth(50)
         self.mod_suffix_field = ConfirmableQLineEdit()
-        self.mod_suffix_field.setFixedHeight(30)
+        self.mod_suffix_field.setFixedHeight(35)
         _layout.addWidget(suffix_label)
         _layout.addWidget(self.mod_suffix_field)
         suffix = self.module.get_suffix()
@@ -147,18 +147,18 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the module orientation
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         # Prefix
         orient_label = QLabel("Orientation Method:")
         orient_label.setFixedWidth(170)
         self.mod_orient_method = QComboBox()
-        self.mod_orient_method.setFixedHeight(30)
+        self.mod_orient_method.setFixedHeight(35)
 
         for method in self.module.get_orientation_data().get_available_methods():
             self.mod_orient_method.addItem(str(method).capitalize())
 
         self.mod_edit_orient_btn = QPushButton("Edit Orientation Data")
-        self.mod_edit_orient_btn.setFixedHeight(30)
+        self.mod_edit_orient_btn.setFixedHeight(35)
 
         _layout.addWidget(orient_label)
         _layout.addWidget(self.mod_orient_method)
@@ -173,7 +173,7 @@ class ModuleAttrWidget(QWidget):
         Adds a widget to control the parent of the module
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
         parent_label.setFixedWidth(60)
