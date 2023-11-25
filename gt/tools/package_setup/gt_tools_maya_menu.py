@@ -161,7 +161,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Biped Auto Rigger',
                        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy")',
                        tooltip='Automated solution for creating a biped rig.',
-                       icon=resource_library.Icon.tool_auto_rigger)
+                       icon=resource_library.Icon.tool_auto_rigger_legacy)
     menu.add_menu_item(label='Biped Rig Interface',
                        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_biped_rig_interface")',
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',

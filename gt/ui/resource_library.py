@@ -263,6 +263,7 @@ class Icon:
     util_mod_copy_material = get_icon_path(r"util_mod_copy_material.svg")
     util_mod_paste_material = get_icon_path(r"util_mod_paste_material.svg")
     # Rigging
+    tool_auto_rigger_legacy = get_icon_path(r"tool_auto_rigger_legacy.svg")
     tool_auto_rigger = get_icon_path(r"tool_auto_rigger.svg")
     tool_rig_interface = get_icon_path(r"tool_rig_interface.svg")
     tool_retarget_assistant = get_icon_path(r"tool_retarget_assistant.svg")
@@ -366,6 +367,11 @@ class Icon:
     rigger_project = get_icon_path(r"rigger_project.svg")
     rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
     rigger_dict = get_icon_path(r"rigger_dict.svg")
+    rigger_module_biped_arm = get_icon_path(r"rigger_module_biped_arm.svg")
+    rigger_module_biped_fingers = get_icon_path(r"rigger_module_biped_fingers.svg")
+    rigger_module_biped_leg = get_icon_path(r"rigger_module_biped_leg.svg")
+    rigger_module_root = get_icon_path(r"rigger_module_root.svg")
+    rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")

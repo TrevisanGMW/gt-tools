@@ -43,7 +43,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.rigger_project))  # TODO TEMP @@@
+        self.setWindowIcon(QIcon(resource_library.Icon.tool_auto_rigger))
 
         # Create Widgets and Layout
         self.create_widgets()
