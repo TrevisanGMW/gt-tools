@@ -13,7 +13,6 @@ import maya.cmds as cmds
 import logging
 import re
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ logger.setLevel(logging.INFO)
 
 class ModuleSpine(ModuleGeneric):
     __version__ = '0.0.1-alpha'
-    icon = resource_library.Icon.rigger_module_generic
+    icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
     def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):

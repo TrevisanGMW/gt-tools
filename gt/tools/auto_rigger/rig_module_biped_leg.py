@@ -24,7 +24,7 @@ logger.setLevel(logging.INFO)
 
 class ModuleBipedLeg(ModuleGeneric):
     __version__ = '0.0.1-alpha'
-    icon = resource_library.Icon.dev_ruler
+    icon = resource_library.Icon.rigger_module_biped_leg
     allow_parenting = True
 
     def __init__(self, name="Leg", prefix=None, suffix=None):

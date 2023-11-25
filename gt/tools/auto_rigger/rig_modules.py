@@ -1,15 +1,15 @@
 import inspect
 from gt.tools.auto_rigger.rig_framework import ModuleGeneric
-from gt.tools.auto_rigger.rig_module_leg_biped import (ModuleBipedLeg,
+from gt.tools.auto_rigger.rig_module_biped_leg import (ModuleBipedLeg,
                                                        ModuleBipedLegLeft,
                                                        ModuleBipedLegRight)
 from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
-from gt.tools.auto_rigger.rig_module_arm_biped import (ModuleBipedArm,
+from gt.tools.auto_rigger.rig_module_biped_arm import (ModuleBipedArm,
                                                        ModuleBipedArmLeft,
                                                        ModuleBipedArmRight)
-from gt.tools.auto_rigger.rig_module_digit_biped import (ModuleBipedDigits,
-                                                         ModuleBipedFingersLeft,
-                                                         ModuleBipedFingersRight)
+from gt.tools.auto_rigger.rig_module_biped_fingers import (ModuleBipedFingers,
+                                                           ModuleBipedFingersLeft,
+                                                           ModuleBipedFingersRight)
 
 
 class RigModules:
@@ -23,7 +23,7 @@ class RigModules:
     ModuleBipedLeg = ModuleBipedLeg
     ModuleBipedArmLeft = ModuleBipedArmLeft
     ModuleBipedArmRight = ModuleBipedArmRight
-    ModuleBipedDigits = ModuleBipedDigits
+    ModuleBipedDigits = ModuleBipedFingers
     ModuleBipedFingersLeft = ModuleBipedFingersLeft
     ModuleBipedFingersRight = ModuleBipedFingersRight
 

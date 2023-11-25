@@ -2,9 +2,9 @@
 Auto Rigger Project Template for Biped Rigs
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_module_arm_biped import ModuleBipedArmRight, ModuleBipedArmLeft
-from gt.tools.auto_rigger.rig_module_leg_biped import ModuleBipedLegRight, ModuleBipedLegLeft
-from gt.tools.auto_rigger.rig_module_digit_biped import ModuleBipedFingersLeft, ModuleBipedFingersRight
+from gt.tools.auto_rigger.rig_module_biped_arm import ModuleBipedArmRight, ModuleBipedArmLeft
+from gt.tools.auto_rigger.rig_module_biped_leg import ModuleBipedLegRight, ModuleBipedLegLeft
+from gt.tools.auto_rigger.rig_module_biped_fingers import ModuleBipedFingersLeft, ModuleBipedFingersRight
 from gt.tools.auto_rigger.rig_framework import RigProject, ModuleGeneric, Proxy
 from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
 import maya.cmds as cmds

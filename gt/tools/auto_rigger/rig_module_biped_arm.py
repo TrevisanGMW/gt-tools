@@ -15,7 +15,6 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -24,7 +23,7 @@ logger.setLevel(logging.INFO)
 
 class ModuleBipedArm(ModuleGeneric):
     __version__ = '0.0.1-alpha'
-    icon = resource_library.Icon.rigger_module_generic
+    icon = resource_library.Icon.rigger_module_biped_arm
     allow_parenting = True
 
     def __init__(self, name="Arm", prefix=None, suffix=None):
