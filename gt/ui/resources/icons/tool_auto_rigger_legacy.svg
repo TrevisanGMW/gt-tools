@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!-- Generator: Adobe Illustrator 27.9.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!-- Generator: Adobe Illustrator 27.7.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
-<g id="tool_x5F_auto_x5F_rigger">
+<g id="tool_x5F_rig_x5F_auto_x5F_rigger">
 	<rect x="0" style="fill:none;" width="512" height="512"/>
 	<g>
-		<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#999999;" d="M308.693,475.2c-19.2,0-34.773-15.573-34.773-34.773V349.56
+		<path style="fill-rule:evenodd;clip-rule:evenodd;fill:#BDBDBD;" d="M308.693,475.2c-19.2,0-34.773-15.573-34.773-34.773V349.56
 			h-35.627v90.867c0,19.2-15.573,34.773-34.773,34.773s-34.987-15.573-34.987-34.773V238.4h-70.4
 			c-19.2,0-34.773-15.573-34.773-34.773s15.573-34.773,34.773-34.773h315.733c19.2,0,34.773,15.573,34.773,34.773
 			S433.067,238.4,413.867,238.4h-70.4v202.027C343.467,459.627,327.893,475.2,308.693,475.2z M256,159.253
@@ -22,14 +22,9 @@
 			C325.76,59.627,294.4,28.48,256,28.48L256,28.48z"/>
 	</g>
 	<g>
-		<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="214.522" y1="265.3533" x2="293.9014" y2="265.3533">
-			<stop  offset="0.0013" style="stop-color:#FFCB4B"/>
-			<stop  offset="1" style="stop-color:#FFD748"/>
-		</linearGradient>
-		
-			<rect x="214.522" y="225.664" style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_1_);" width="79.379" height="79.379"/>
-		<path style="fill:#1D1D1D;" d="M286.401,233.163v64.38h-64.38v-64.38H286.401 M301.401,218.163h-15h-64.38h-15v15v64.38v15h15
-			h64.38h15v-15v-64.38V218.163L301.401,218.163z"/>
+		<rect x="215.522" y="225.664" style="fill-rule:evenodd;clip-rule:evenodd;fill:#AE9DD9;" width="79.379" height="79.379"/>
+		<path style="fill:#1D1D1D;" d="M287.401,233.163v64.38h-64.38v-64.38H287.401 M302.401,218.163h-15h-64.38h-15v15v64.38v15h15
+			h64.38h15v-15v-64.38V218.163L302.401,218.163z"/>
 	</g>
 </g>
 <g id="Layer_1">
