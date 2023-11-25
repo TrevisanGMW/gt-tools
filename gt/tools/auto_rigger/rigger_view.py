@@ -55,6 +55,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.combobox_base
         stylesheet += resource_library.Stylesheet.tree_widget_base
         stylesheet += resource_library.Stylesheet.table_widget_base
+        stylesheet += resource_library.Stylesheet.line_edit_base
         self.setStyleSheet(stylesheet)
 
         # Final Adjustments
