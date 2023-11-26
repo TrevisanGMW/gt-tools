@@ -898,6 +898,7 @@ class ModuleGeneric:
     __version__ = '0.1.0-beta'
     icon = resource_library.Icon.rigger_module_generic
     allow_parenting = False
+    allow_multiple = True
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
