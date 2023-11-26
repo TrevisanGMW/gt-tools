@@ -53,6 +53,14 @@ class RiggerModel:
         """
         return self.project.get_modules()
 
+    def set_modules(self, modules):
+        """
+        Sets the modules list directly.
+        Args:
+            modules (list): A list of modules (ModuleGeneric as base)
+        """
+        self.project.set_modules(modules=modules)
+
     def add_to_modules(self, module):
         """
         Adds a new item to the modules list of the current project.
