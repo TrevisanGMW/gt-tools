@@ -107,11 +107,11 @@ class RiggerController:
             formatted_name = remove_prefix(input_string=name, prefix="Module")
             formatted_name = " ".join(camel_case_split(formatted_name))
             action_mod = QAction(formatted_name, icon=QIcon(module.icon))
-            item_func = partial(self.add_module_to_current_project, module=module)
+            item_func = partial(self.add_module_to_project, module=module)
             action_mod.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_modules, action=action_mod)
 
-    def add_module_to_current_project(self, module):
+    def add_module_to_project(self, module):
         """
         Adds a module to the currently loaded module, then refresh the view.
         """
@@ -176,6 +176,7 @@ class RiggerController:
         project_item.setData(1, 0, project)
         project_item.setFlags(project_item.flags() & ~Qt.ItemIsDragEnabled)
         self.view.add_item_to_module_tree(project_item)
+        self.view.module_tree.set_drop_callback(self.update_modules_order)
 
         modules = self.model.get_modules()
         tree_item_dict = {}
@@ -190,7 +191,7 @@ class RiggerController:
             tree_item.set_allow_parenting(state=module.allow_parenting)
 
         # Create Hierarchy
-        for module, tree_item in tree_item_dict.items():
+        for module, tree_item in reversed(tree_item_dict.items()):
             parent_proxy_uuid = module.get_parent_uuid()
             if not parent_proxy_uuid or not isinstance(parent_proxy_uuid, str):
                 continue
@@ -204,6 +205,14 @@ class RiggerController:
                 parent_tree_item.insertChild(0, child_item)
 
         self.view.expand_all_module_tree_items()
+
+    def update_modules_order(self):
+        """
+        Updates the module order by matching the order of the QTreeWidget items in the project modules list
+        """
+        tree_items = self.view.module_tree.get_all_items()
+        modules = [item.data(1, 0) for item in tree_items if isinstance(item.data(1, 0), rig_framework.ModuleGeneric)]
+        self.model.get_project().set_modules(modules)
 
     def refresh_widgets(self):
         self.populate_module_tree()
