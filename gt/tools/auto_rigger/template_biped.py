@@ -4,11 +4,13 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_module_biped_arm import ModuleBipedArmRight, ModuleBipedArmLeft
 from gt.tools.auto_rigger.rig_module_biped_leg import ModuleBipedLegRight, ModuleBipedLegLeft
-from gt.tools.auto_rigger.rig_module_biped_fingers import ModuleBipedFingersLeft, ModuleBipedFingersRight
+from gt.tools.auto_rigger.rig_module_biped_finger import ModuleBipedFingersLeft, ModuleBipedFingersRight
 from gt.tools.auto_rigger.rig_framework import RigProject, ModuleGeneric, Proxy
 from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+from gt.tools.auto_rigger.rig_module_root import ModuleRoot
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -24,6 +26,7 @@ def create_template_biped():
     """
     biped_project = RigProject(name="Template Biped")
 
+    root = ModuleRoot()
     spine = ModuleSpine()
     leg_lf = ModuleBipedLegLeft()
     leg_rt = ModuleBipedLegRight()
@@ -51,7 +54,9 @@ def create_template_biped():
     spine_hip_uuid = spine.hip.get_uuid()
     leg_lf.set_parent_uuid(spine_hip_uuid)
     leg_rt.set_parent_uuid(spine_hip_uuid)
+    spine_hip_uuid = spine.hip.get_uuid()
     spine_chest_uuid = spine.chest.get_uuid()
+    root.set_parent_uuid(spine_hip_uuid)
     arm_lf.set_parent_uuid(spine_chest_uuid)
     arm_rt.set_parent_uuid(spine_chest_uuid)
     wrist_lf_uuid = arm_lf.wrist.get_uuid()
@@ -59,6 +64,7 @@ def create_template_biped():
     wrist_rt_uuid = arm_rt.wrist.get_uuid()
     fingers_rt.set_parent_uuid(wrist_rt_uuid)
 
+    biped_project.add_to_modules(root)
     biped_project.add_to_modules(spine)
     biped_project.add_to_modules(leg_lf)
     biped_project.add_to_modules(leg_rt)
@@ -66,7 +72,7 @@ def create_template_biped():
     biped_project.add_to_modules(arm_rt)
     biped_project.add_to_modules(fingers_lf)
     biped_project.add_to_modules(fingers_rt)
-    biped_project.add_to_modules(generic)  # TODO TEMP @@@ -------------------------------------------------------
+    # biped_project.add_to_modules(generic)  # TODO TEMP @@@ -------------------------------------------------------
 
     return biped_project
 
@@ -77,7 +83,7 @@ if __name__ == "__main__":
 
     a_biped_project = create_template_biped()
     a_biped_project.build_proxy()
-    a_biped_project.build_rig()
+    # a_biped_project.build_rig()
     #
     # # Modify Proxy
     # cmds.setAttr(f'rt_elbow.tz', -15)

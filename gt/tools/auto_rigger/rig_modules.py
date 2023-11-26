@@ -1,5 +1,6 @@
 import inspect
 from gt.tools.auto_rigger.rig_framework import ModuleGeneric
+from gt.tools.auto_rigger.rig_module_root import ModuleRoot
 from gt.tools.auto_rigger.rig_module_biped_leg import (ModuleBipedLeg,
                                                        ModuleBipedLegLeft,
                                                        ModuleBipedLegRight)
@@ -7,15 +8,16 @@ from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
 from gt.tools.auto_rigger.rig_module_biped_arm import (ModuleBipedArm,
                                                        ModuleBipedArmLeft,
                                                        ModuleBipedArmRight)
-from gt.tools.auto_rigger.rig_module_biped_fingers import (ModuleBipedFingers,
-                                                           ModuleBipedFingersLeft,
-                                                           ModuleBipedFingersRight)
+from gt.tools.auto_rigger.rig_module_biped_finger import (ModuleBipedFingers,
+                                                          ModuleBipedFingersLeft,
+                                                          ModuleBipedFingersRight)
 
 
 class RigModules:
     # General
     ModuleGeneric = ModuleGeneric
     ModuleSpine = ModuleSpine
+    ModuleRoot = ModuleRoot
     # Biped
     ModuleBipedLegLeft = ModuleBipedLegLeft
     ModuleBipedLegRight = ModuleBipedLegRight
