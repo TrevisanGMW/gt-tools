@@ -897,7 +897,7 @@ class Proxy:
 class ModuleGeneric:
     __version__ = '0.1.0-beta'
     icon = resource_library.Icon.rigger_module_generic
-    allow_parenting = False
+    allow_parenting = True
     allow_multiple = True
 
     def __init__(self, name=None, prefix=None, suffix=None):
@@ -1522,6 +1522,17 @@ class RigProject:
             logger.warning(f'Unable to set prefix. Expected string but got "{str(type(prefix))}"')
             return
         self.prefix = prefix
+
+    def set_modules(self, modules):
+        """
+        Sets the modules list directly.
+        Args:
+            modules (list): A list of modules (ModuleGeneric as base)
+        """
+        if modules is None or not isinstance(modules, list):
+            logger.warning(f'Unable to set modules list. Expected a list but got "{str(type(modules))}"')
+            return
+        self.modules = modules
 
     def add_to_modules(self, module):
         """
