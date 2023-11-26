@@ -24,6 +24,7 @@ class QTreeEnhanced(QTreeWidget):
         super().__init__()
         self.setDragDropMode(QTreeWidget.InternalMove)  # Drag and Drop enabled
         self.drop_callback = None
+        self.drop_callback_event_as_arg = False
         self.one_root_mode = False
 
     def set_one_root_mode(self, state):
@@ -67,15 +68,17 @@ class QTreeEnhanced(QTreeWidget):
 
         return all_items
 
-    def set_drop_callback(self, callback):
+    def set_drop_callback(self, callback, event_as_arg=False):
         """
         Sets a drop callback function.
         Args:
             callback (callable): A function that will be called when dropping an object.
+            event_as_arg (bool, optional): If True, it will pass the event to the callback function as an argument.
         """
         if not callable(callback):
             return
         self.drop_callback = callback
+        self.drop_callback_event_as_arg = event_as_arg
 
     def dropEvent(self, event):
         """
@@ -103,7 +106,10 @@ class QTreeEnhanced(QTreeWidget):
         else:
             super().dropEvent(event)
         if self.drop_callback:  # Tree callback, not item.
-            self.drop_callback()
+            if self.drop_callback_event_as_arg:
+                self.run_tree_drop_callback(event)
+            else:
+                self.run_tree_drop_callback()
 
     def one_root_mode_drop_event(self, event):
         """
@@ -121,6 +127,19 @@ class QTreeEnhanced(QTreeWidget):
         if parent is None and root_item:
             remove_tree_item_from_tree(dragged_item)
             root_item.addChild(dragged_item)
+
+    def run_tree_drop_callback(self, *args, **kwargs):
+        """
+        If a drop callback function was defined for this tree,
+        it will run when dropping it in an enhanced tree table.
+        Args:
+            *args: Variable-length positional arguments.
+            **kwargs: Variable-length keyword arguments.
+        Returns:
+            any: The output of the drop callback function.
+        """
+        if self.drop_callback:
+            return self.drop_callback(*args, **kwargs)
 
 
 class QTreeItemEnhanced(QTreeWidgetItem):
@@ -157,15 +176,18 @@ class QTreeItemEnhanced(QTreeWidgetItem):
             return
         self.drop_callback = callback
 
-    def run_drop_callback(self):
+    def run_drop_callback(self, *args, **kwargs):
         """
         If a drop callback function was defined for this object,
         it will run when dropping it in an enhanced tree table.
+        Args:
+            *args: Variable-length positional arguments.
+            **kwargs: Variable-length keyword arguments.
         Returns:
             any: The output of the drop callback function.
         """
         if self.drop_callback:
-            return self.drop_callback()
+            return self.drop_callback(*args, **kwargs)
 
 
 if __name__ == "__main__":
@@ -178,15 +200,19 @@ if __name__ == "__main__":
         child_item_two = QTreeItemEnhanced(["ChildTwo"])
         grand_child_item_one = QTreeItemEnhanced(["GrandchildOne"])
         child_item_two.set_allow_parenting(True)
-        def callback_test():
+
+        def callback_test(*args, **kwargs):
+            print(args)
+            print(kwargs)
             print("Callback")
-        child_item_two.set_drop_callback(callback_test)
+
+        a_tree_widget.set_drop_callback(callback_test, True)
 
         a_tree_widget.addTopLevelItem(a_root_item)
         a_root_item.addChild(child_item_one)
         a_root_item.addChild(child_item_two)
         child_item_one.addChild(grand_child_item_one)
-
-        for obj in a_tree_widget.get_all_items():
-            print(obj.text(0))
+        #
+        # for obj in a_tree_widget.get_all_items():
+        #     print(obj.text(0))
         a_tree_widget.show()
