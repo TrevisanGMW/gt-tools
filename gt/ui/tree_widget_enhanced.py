@@ -47,6 +47,26 @@ class QTreeEnhanced(QTreeWidget):
             top_level_items.append(self.topLevelItem(i))
         return top_level_items
 
+    def get_all_items(self):
+        """
+        Get all items in a QTreeWidget, including children.
+
+        Returns:
+            list: A list of all items in the QTreeWidget.
+        """
+        all_items = []
+
+        def traverse_items(item):
+            all_items.append(item)
+            for i in range(item.childCount()):
+                traverse_items(item.child(i))
+
+        top_level_items = self.invisibleRootItem()
+        for i in range(top_level_items.childCount()):
+            traverse_items(top_level_items.child(i))
+
+        return all_items
+
     def set_drop_callback(self, callback):
         """
         Sets a drop callback function.
@@ -156,6 +176,7 @@ if __name__ == "__main__":
         a_root_item = QTreeItemEnhanced(["InitialRoot"])
         child_item_one = QTreeWidgetItem(["ChildOne"])
         child_item_two = QTreeItemEnhanced(["ChildTwo"])
+        grand_child_item_one = QTreeItemEnhanced(["GrandchildOne"])
         child_item_two.set_allow_parenting(True)
         def callback_test():
             print("Callback")
@@ -164,5 +185,8 @@ if __name__ == "__main__":
         a_tree_widget.addTopLevelItem(a_root_item)
         a_root_item.addChild(child_item_one)
         a_root_item.addChild(child_item_two)
+        child_item_one.addChild(grand_child_item_one)
 
+        for obj in a_tree_widget.get_all_items():
+            print(obj.text(0))
         a_tree_widget.show()
