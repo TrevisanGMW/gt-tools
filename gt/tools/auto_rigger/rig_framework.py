@@ -11,10 +11,10 @@ from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.iterable_utils import get_highest_int_from_str_list
-from gt.utils.string_utils import remove_prefix, camel_case_split
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
@@ -1261,7 +1261,7 @@ class ModuleGeneric:
         """
         return self.metadata
 
-    def get_active_state(self):
+    def is_active(self):
         """
         Gets the active state. (True or False)
         Returns:
@@ -1318,7 +1318,7 @@ class ModuleGeneric:
         module_data["proxies"] = module_proxies
         return module_data
 
-    def get_module_class_name(self, remove_module_prefix=False, formatted=False):
+    def get_module_class_name(self, remove_module_prefix=False, formatted=False, remove_side=False):
         """
         Gets the name of this class
         Args:
@@ -1326,6 +1326,7 @@ class ModuleGeneric:
                                                    Used to reduce the size of the string in JSON outputs.
             formatted (bool, optional): If True, it will return a formatted version of the module class name.
                                         In this case, a title version of the string. e.g. "Module Generic"
+            remove_side (bool, optional): If active, it will remove suffixes that match "Right", "Left" and "Center"
         Returns:
             str: Class name as a string.
         """
@@ -1334,6 +1335,10 @@ class ModuleGeneric:
             _module_class_name = remove_prefix(input_string=str(self.__class__.__name__), prefix="Module")
         if formatted:
             _module_class_name = " ".join(camel_case_split(_module_class_name))
+        if remove_side:
+            _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Right")
+            _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Left")
+            _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Center")
         return _module_class_name
 
     def get_description_name(self, add_class_len=3):
@@ -1755,7 +1760,7 @@ class RigProject:
             # Build Proxy
             proxy_data_list = []
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 proxy_data_list += module.build_proxy()
 
@@ -1766,7 +1771,7 @@ class RigProject:
 
             # Parent Proxy
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 parent_proxies(proxy_list=module.get_proxies())
                 create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=line_grp)
@@ -1802,25 +1807,25 @@ class RigProject:
 
             # ------------------------------------- Build Skeleton
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 module.build_skeleton()
 
             # ------------------------------------- Build Skeleton Post
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 module.build_skeleton_post()
 
             # ------------------------------------- Build Rig
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 module.build_rig()
 
             # ------------------------------------- Build Rig Post
             for module in self.modules:
-                if not module.get_active_state():  # If not active, skip
+                if not module.is_active():  # If not active, skip
                     continue
                 module.build_rig_post()
 
