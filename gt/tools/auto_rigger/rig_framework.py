@@ -952,6 +952,22 @@ class ModuleGeneric:
             return
         self.suffix = suffix
 
+    def set_parent_uuid(self, uuid):
+        """
+        Sets a new parent UUID for the proxy.
+        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
+        Args:
+            uuid (str): A new UUID for the parent of this proxy
+        """
+        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
+            self.parent_uuid = uuid
+        else:
+            logger.warning(error_message)
+
     def set_proxies(self, proxy_list):
         """
         Sets a new proxy name.
@@ -1012,22 +1028,6 @@ class ModuleGeneric:
                 self.proxies.remove(proxy)
                 return proxy
         logger.debug(f'Unable to remove proxy from module. Not found.')
-
-    def set_parent_uuid(self, uuid):
-        """
-        Sets a new parent UUID for the proxy.
-        If a parent UUID is set, the proxy has enough information be re-parented when part of a set.
-        Args:
-            uuid (str): A new UUID for the parent of this proxy
-        """
-        error_message = f'Unable to set proxy parent UUID. Invalid UUID input.'
-        if not uuid or not isinstance(uuid, str):
-            logger.warning(error_message)
-            return
-        if is_uuid_valid(uuid) or is_short_uuid_valid(uuid):
-            self.parent_uuid = uuid
-        else:
-            logger.warning(error_message)
 
     def set_metadata_dict(self, metadata):
         """
@@ -1800,17 +1800,29 @@ class RigProject:
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_transform, target_parent=control_grp)
 
-            # Build Rig
+            # ------------------------------------- Build Skeleton
             for module in self.modules:
                 if not module.get_active_state():  # If not active, skip
                     continue
                 module.build_skeleton()
 
-            # Build Rig Post
+            # ------------------------------------- Build Skeleton Post
             for module in self.modules:
                 if not module.get_active_state():  # If not active, skip
                     continue
                 module.build_skeleton_post()
+
+            # ------------------------------------- Build Rig
+            for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
+                module.build_rig()
+
+            # ------------------------------------- Build Rig Post
+            for module in self.modules:
+                if not module.get_active_state():  # If not active, skip
+                    continue
+                module.build_rig_post()
 
             # Delete Proxy
             if delete_proxy:
