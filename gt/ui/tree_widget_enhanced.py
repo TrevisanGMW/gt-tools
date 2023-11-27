@@ -1,4 +1,3 @@
-from PySide2.QtGui import QDrag
 from PySide2.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 
@@ -87,7 +86,7 @@ class QTreeEnhanced(QTreeWidget):
         Returns:
             QTreeWidgetItem, any: The last item (source) extracted when a drag operation happens.
         """
-        return self.last_drag_source_item
+        return self.last_drop_source_item
 
     def get_last_drop_target_item(self):
         """
