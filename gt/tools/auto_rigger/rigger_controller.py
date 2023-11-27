@@ -247,6 +247,7 @@ class RiggerController:
         """
         self.update_module_parent()
         self.update_modules_order()
+        self.on_tree_item_clicked(item=self.view.module_tree.currentItem())
 
     # ------------------------------------------- General --------------------------------------------
     def refresh_widgets(self):
@@ -255,13 +256,13 @@ class RiggerController:
         """
         self.populate_module_tree()
 
-    def on_tree_item_clicked(self, item, column):
+    def on_tree_item_clicked(self, item, *kwargs):
         """
         When an item from the tree is selected, it should populate the attribute editor with the available fields.
         This function determines which widget should be used an updates the view with the generated widgets.
         Args:
             item (QTreeWidgetItem): Clicked item (selected)
-            column (int): Source column.
+            **kwargs: Additional keyword arguments. Not used in this case. (Receives column key argument)
         """
         data_obj = item.data(1, 0)
         # Modules ---------------------------------------------------------------
