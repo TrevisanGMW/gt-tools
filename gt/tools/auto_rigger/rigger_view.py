@@ -3,6 +3,7 @@ Auto Rigger View
 """
 from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
+from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.ui.tree_widget_enhanced import QTreeEnhanced
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
@@ -55,7 +56,10 @@ class RiggerView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.combobox_base
         stylesheet += resource_library.Stylesheet.tree_widget_base
         stylesheet += resource_library.Stylesheet.table_widget_base
+        stylesheet += resource_library.Stylesheet.checkbox_base
         stylesheet += resource_library.Stylesheet.line_edit_base
+        if not is_script_in_interactive_maya():
+            stylesheet += resource_library.Stylesheet.menu_base
         self.setStyleSheet(stylesheet)
 
         # Final Adjustments
