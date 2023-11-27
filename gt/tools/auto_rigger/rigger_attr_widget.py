@@ -47,7 +47,7 @@ class ModuleAttrWidget(QWidget):
         # Basic Variables
         self.project = project
         self.module = module
-        self.known_proxy = {}
+        self.known_proxies = {}
         self.table_proxy_basic_wdg = None
         self.table_proxy_parent_wdg = None
         self.mod_name_field = None
@@ -275,7 +275,7 @@ class ModuleAttrWidget(QWidget):
 
     def refresh_known_proxy_dict(self, ignore_list=None):
         """
-        Refreshes the "known_proxy" attribute with all proxies that could be used as parents.
+        Refreshes the "known_proxies" attribute with all proxies that could be used as parents.
         Args:
             ignore_list (list, optional): A list of proxies to be ignored
         """
@@ -283,7 +283,7 @@ class ModuleAttrWidget(QWidget):
             for proxy in module.get_proxies():
                 if ignore_list and proxy in ignore_list:
                     continue
-                self.known_proxy[proxy.get_uuid()] = (proxy, module)
+                self.known_proxies[proxy.get_uuid()] = (proxy, module)
 
     def refresh_proxy_parent_table(self):
         """
@@ -310,7 +310,7 @@ class ModuleAttrWidget(QWidget):
 
             # Parent Combobox ----------------------------------------------------------------
             self.refresh_known_proxy_dict()
-            combo_box = self.create_widget_parent_combobox(proxy)
+            combo_box = self.create_widget_parent_combobox(target=proxy, parent_filter=False)
             combo_func = partial(self.on_table_parent_combo_box_changed, source_row=row, source_col=2)
             combo_box.currentIndexChanged.connect(combo_func)
             self.table_proxy_parent_wdg.setCellWidget(row, 2, combo_box)
@@ -586,13 +586,15 @@ class ModuleAttrWidget(QWidget):
         """
         print('"on_button_build_mod_proxy_clicked called')
 
-    def create_widget_parent_combobox(self, target):
+    def create_widget_parent_combobox(self, target, parent_filter=True):
         """
         Creates a populated combobox with all potential parent targets.
         An extra initial item called "No Parent" is also added for the proxies without parents.
         Current parent is pre-selected during creation.
         Args:
             target (Proxy, Module): A proxy or module object used to determine current parent and pre-select it.
+            parent_filter (bool, optional): If True, it will only populate the combobox with proxies available under
+                                          the parent modules.
         Returns:
             QComboBox: A pre-populated combobox with potential parents. Current parent is also pre-selected.
         """
@@ -601,29 +603,34 @@ class ModuleAttrWidget(QWidget):
         combobox = QComboBox()
         combobox.addItem("No Parent", None)
 
+        # Get Variables
         _proxy_uuid = None
         if target and hasattr(target, 'get_uuid'):  # Is proxy
             _proxy_uuid = target.get_uuid()
         _proxy_parent_uuid = target.get_parent_uuid()
-
+        _parent_module = self.known_proxies.get(_proxy_parent_uuid, None)
+        if _parent_module:
+            _parent_module = _parent_module[1]  # Get second item in tuple (module)
         # Populate Combobox
-        for key, (_proxy, _module) in self.known_proxy.items():
+        for key, (_proxy, _module) in self.known_proxies.items():
+            if parent_filter and _parent_module and _parent_module != _module:
+                continue
             if key == _proxy_uuid:
                 continue  # Skip Itself
             description = f'{str(_proxy.get_name())}'
             module_name = _module.get_name()
             if module_name:
                 description += f' : {str(module_name)}'
-            description += f' ({str(key)})'
+            # description += f' ({str(key)})'
             combobox.addItem(description, _proxy)
 
-        # Unknown Target
-        if _proxy_parent_uuid and _proxy_parent_uuid in self.known_proxy:
+        # Unknown Target (Not present in any of the modules)
+        if _proxy_parent_uuid and _proxy_parent_uuid in self.known_proxies:
             for index in range(combobox.count()):
                 _parent_proxy = combobox.itemData(index)
                 if _parent_proxy and _proxy_parent_uuid == _parent_proxy.get_uuid():
                     combobox.setCurrentIndex(index)
-        elif _proxy_parent_uuid and _proxy_parent_uuid not in self.known_proxy:
+        elif _proxy_parent_uuid and _proxy_parent_uuid not in self.known_proxies:
             description = f'unknown : ???'
             description += f' ({str(_proxy_parent_uuid)})'
             combobox.addItem(description, None)
