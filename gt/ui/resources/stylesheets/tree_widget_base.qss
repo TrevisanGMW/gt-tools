@@ -21,11 +21,6 @@ QHeaderView::section {
 }
 
 
-QTreeWidget::item {
-	height: 35px;
-	color: @text_color;
-}
-
 QTreeView {
     alternate-background-color: rgba(35,35,35,255);
     background: rgba(45,45,45,255);
