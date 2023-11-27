@@ -64,6 +64,7 @@ class RiggerController:
         # Show
         self.view.show()
 
+    # ------------------------------------------- Top Menu -------------------------------------------
     def add_menu_file(self):
         """
         Adds a menu bar to the view
@@ -167,6 +168,7 @@ class RiggerController:
             self.model.set_project(project=project)
             self.refresh_widgets()
 
+    # ----------------------------------------- Modules Tree -----------------------------------------
     def populate_module_tree(self):
         self.view.clear_module_tree()
         project = self.model.get_project()
@@ -176,7 +178,7 @@ class RiggerController:
         project_item.setData(1, 0, project)
         project_item.setFlags(project_item.flags() & ~Qt.ItemIsDragEnabled)
         self.view.add_item_to_module_tree(project_item)
-        self.view.module_tree.set_drop_callback(self.update_modules_order)
+        self.view.module_tree.set_drop_callback(self.on_drop_tree_module_item)
 
         modules = self.model.get_modules()
         tree_item_dict = {}
@@ -214,7 +216,43 @@ class RiggerController:
         modules = [item.data(1, 0) for item in tree_items if isinstance(item.data(1, 0), rig_framework.ModuleGeneric)]
         self.model.get_project().set_modules(modules)
 
+    def update_module_parent(self):
+        """
+        Updates the module order by matching the order of the QTreeWidget items in the project modules list
+        """
+        source_item = self.view.module_tree.get_last_drop_source_item()
+        target_item = self.view.module_tree.get_last_drop_target_item()
+
+        if not source_item:
+            self.refresh_widgets()
+            return
+        source_module = source_item.data(1, 0)
+
+        if not target_item or target_item in self.view.module_tree.get_top_level_items():
+            source_module.clear_parent_uuid()
+            self.view.module_tree.setCurrentItem(source_item)
+            return
+
+        target_module = target_item.data(1, 0)
+        target_proxies = []
+        if target_module and hasattr(target_module, 'get_proxies'):  # Is proxy
+            target_proxies = target_module.get_proxies()
+        if len(target_proxies) > 0:
+            source_module.set_parent_uuid(target_proxies[0].get_uuid())
+        self.view.module_tree.setCurrentItem(source_item)
+
+    def on_drop_tree_module_item(self):
+        """
+        Function called when dropping a tree item
+        """
+        self.update_module_parent()
+        self.update_modules_order()
+
+    # ------------------------------------------- General --------------------------------------------
     def refresh_widgets(self):
+        """
+        Refreshes widgets
+        """
         self.populate_module_tree()
 
     def on_tree_item_clicked(self, item, column):
@@ -245,19 +283,13 @@ class RiggerController:
     def get_selected_module(self):
         pass
 
-    def save_project(self):
-        pass
-
-    def load_project(self):
-        pass
-
     def build_proxy(self):
         project = self.model.get_project()
         project.build_proxy()
 
     def build_rig(self):
         project = self.model.get_project()
-        project.build_skeleton()
+        project.build_rig()
 
 
 if __name__ == "__main__":
