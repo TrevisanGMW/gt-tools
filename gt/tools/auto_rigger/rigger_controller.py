@@ -10,7 +10,7 @@ from gt.tools.auto_rigger import rigger_attr_widget
 from gt.tools.auto_rigger import rig_framework
 from gt.ui.file_dialog import file_dialog
 from gt.ui import resource_library
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QColor
 from PySide2.QtCore import Qt
 from functools import partial
 import logging
@@ -171,6 +171,7 @@ class RiggerController:
     # ----------------------------------------- Modules Tree -----------------------------------------
     def populate_module_tree(self):
         self.view.clear_module_tree()
+
         project = self.model.get_project()
         icon_project = QIcon(project.icon)
         project_item = QTreeItemEnhanced([project.get_name()])
@@ -191,6 +192,8 @@ class RiggerController:
             project_item.addChild(tree_item)
             tree_item_dict[module] = tree_item
             tree_item.set_allow_parenting(state=module.allow_parenting)
+            if not module.is_active():
+                tree_item.setForeground(0, QColor(resource_library.Color.Hex.gray_dim))
 
         # Create Hierarchy
         for module, tree_item in reversed(tree_item_dict.items()):
@@ -247,7 +250,7 @@ class RiggerController:
         """
         self.update_module_parent()
         self.update_modules_order()
-        self.on_tree_item_clicked(item=self.view.module_tree.currentItem())
+        self.on_tree_item_clicked(item=self.view.module_tree.currentItem())  # Refresh Widget
 
     # ------------------------------------------- General --------------------------------------------
     def refresh_widgets(self):
