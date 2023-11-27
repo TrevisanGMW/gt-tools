@@ -64,7 +64,6 @@ def create_template_biped():
     wrist_rt_uuid = arm_rt.wrist.get_uuid()
     fingers_rt.set_parent_uuid(wrist_rt_uuid)
 
-    biped_project.add_to_modules(generic)
     biped_project.add_to_modules(root)
     biped_project.add_to_modules(spine)
     biped_project.add_to_modules(arm_lf)
@@ -73,7 +72,7 @@ def create_template_biped():
     biped_project.add_to_modules(leg_rt)
     biped_project.add_to_modules(fingers_lf)
     biped_project.add_to_modules(fingers_rt)
-    # biped_project.add_to_modules(generic)  # TODO TEMP @@@ -------------------------------------------------------
+    biped_project.add_to_modules(generic)  # TODO TEMP @@@ -------------------------------------------------------
 
     return biped_project
 
