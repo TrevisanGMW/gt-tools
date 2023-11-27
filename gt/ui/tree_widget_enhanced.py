@@ -1,3 +1,4 @@
+from PySide2.QtGui import QDrag
 from PySide2.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 
@@ -19,13 +20,45 @@ def remove_tree_item_from_tree(item_to_remove):
         item_to_remove.treeWidget().takeTopLevelItem(index)
 
 
+def reorder_tree_item(item, new_index):
+    """
+    Reorder the QTreeWidgetItem in its associated QTreeWidget to the specified index.
+
+    Args:
+        item (QTreeWidgetItem): The item to be reordered.
+        new_index (int): The new index for the item.
+
+    Returns:
+        int: The adjusted new index after considering the highest available index.
+    """
+    tree_widget = item.treeWidget()
+
+    if tree_widget is None:
+        raise ValueError("The provided item is not associated with any QTreeWidget.")
+
+    parent_item = item.parent()
+    if not parent_item:
+        parent_item = tree_widget.invisibleRootItem()
+
+    parent_item.removeChild(item)
+
+    if new_index > parent_item.childCount():
+        new_index = parent_item.childCount()
+
+    # Insert the item at the new index
+    parent_item.insertChild(new_index, item)
+
+    return new_index
+
+
 class QTreeEnhanced(QTreeWidget):
     def __init__(self):
         super().__init__()
         self.setDragDropMode(QTreeWidget.InternalMove)  # Drag and Drop enabled
         self.drop_callback = None
-        self.drop_callback_event_as_arg = False
         self.one_root_mode = False
+        self.last_drop_source_item = None
+        self.last_drop_target_item = None
 
     def set_one_root_mode(self, state):
         """
@@ -44,9 +77,25 @@ class QTreeEnhanced(QTreeWidget):
             list: List of top-level QTreeWidgetItems.
         """
         top_level_items = []
-        for i in range(self.topLevelItemCount()):
-            top_level_items.append(self.topLevelItem(i))
+        for index in range(self.topLevelItemCount()):
+            top_level_items.append(self.topLevelItem(index))
         return top_level_items
+
+    def get_last_drop_source_item(self):
+        """
+        Gets the last drop (source) object that is extracted when a drop operation happens. - Current item.
+        Returns:
+            QTreeWidgetItem, any: The last item (source) extracted when a drag operation happens.
+        """
+        return self.last_drag_source_item
+
+    def get_last_drop_target_item(self):
+        """
+        Gets the last drop (target) object that is extracted when a drop operation happens. - Current item.
+        Returns:
+            QTreeWidgetItem, any: The last item (target) extracted when a drag operation happens.
+        """
+        return self.last_drop_target_item
 
     def get_all_items(self):
         """
@@ -59,8 +108,8 @@ class QTreeEnhanced(QTreeWidget):
 
         def traverse_items(item):
             all_items.append(item)
-            for i in range(item.childCount()):
-                traverse_items(item.child(i))
+            for index in range(item.childCount()):
+                traverse_items(item.child(index))
 
         top_level_items = self.invisibleRootItem()
         for i in range(top_level_items.childCount()):
@@ -68,17 +117,15 @@ class QTreeEnhanced(QTreeWidget):
 
         return all_items
 
-    def set_drop_callback(self, callback, event_as_arg=False):
+    def set_drop_callback(self, callback):
         """
         Sets a drop callback function.
         Args:
             callback (callable): A function that will be called when dropping an object.
-            event_as_arg (bool, optional): If True, it will pass the event to the callback function as an argument.
         """
         if not callable(callback):
             return
         self.drop_callback = callback
-        self.drop_callback_event_as_arg = event_as_arg
 
     def dropEvent(self, event):
         """
@@ -89,27 +136,29 @@ class QTreeEnhanced(QTreeWidget):
             event (QDropEvent): The drop event.
         """
         dragged_item = self.currentItem()
+        target_item = self.itemAt(event.pos())
+        self.last_drop_source_item = dragged_item
+        self.last_drop_target_item = target_item
         if dragged_item and isinstance(dragged_item, QTreeItemEnhanced):
             dragged_item.run_drop_callback()
             if not dragged_item.is_allowed_parenting():
-                parent = dragged_item.parent()
-                target_item = self.itemAt(event.pos())
-                # print(f'parent: {str(parent)}')
-                # print(f'target_item: {str(target_item)}')
-                target_index = self.indexOfTopLevelItem(target_item)
-                print(f'target_index: {str(target_index)}')
-                if parent != target_item:
-                    event.ignore()
-                    return
+                target_pos = event.pos()
+                target_index = self.indexAt(target_pos).row()
+                if target_item == dragged_item.parent():
+                    target_index = dragged_item.parent().childCount()
+                if not target_index < 0:
+                    reorder_tree_item(dragged_item, target_index)
+
+                event.ignore()
+                if self.drop_callback:  # Tree callback, not item.
+                    self.run_tree_drop_callback()
+                return
         if self.one_root_mode:
             self.one_root_mode_drop_event(event=event)
         else:
             super().dropEvent(event)
         if self.drop_callback:  # Tree callback, not item.
-            if self.drop_callback_event_as_arg:
-                self.run_tree_drop_callback(event)
-            else:
-                self.run_tree_drop_callback()
+            self.run_tree_drop_callback()
 
     def one_root_mode_drop_event(self, event):
         """
@@ -196,21 +245,26 @@ if __name__ == "__main__":
         a_tree_widget = QTreeEnhanced()
         a_tree_widget.set_one_root_mode(state=True)
         a_root_item = QTreeItemEnhanced(["InitialRoot"])
-        child_item_one = QTreeWidgetItem(["ChildOne"])
+        child_item_one = QTreeItemEnhanced(["ChildOne"])
         child_item_two = QTreeItemEnhanced(["ChildTwo"])
+        child_item_three = QTreeItemEnhanced(["ChildThree"])
         grand_child_item_one = QTreeItemEnhanced(["GrandchildOne"])
-        child_item_two.set_allow_parenting(True)
 
-        def callback_test(*args, **kwargs):
-            print(args)
-            print(kwargs)
+        a_root_item.set_allow_parenting(False)
+        child_item_one.set_allow_parenting(False)
+        child_item_two.set_allow_parenting(False)
+        child_item_three.set_allow_parenting(False)
+        grand_child_item_one.set_allow_parenting(True)
+
+        def callback_test():
             print("Callback")
 
-        a_tree_widget.set_drop_callback(callback_test, True)
+        a_tree_widget.set_drop_callback(callback_test)
 
         a_tree_widget.addTopLevelItem(a_root_item)
         a_root_item.addChild(child_item_one)
         a_root_item.addChild(child_item_two)
+        a_root_item.addChild(child_item_three)
         child_item_one.addChild(grand_child_item_one)
         #
         # for obj in a_tree_widget.get_all_items():
