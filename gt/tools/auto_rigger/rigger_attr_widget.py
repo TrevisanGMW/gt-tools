@@ -1,7 +1,7 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox, QCheckBox
 from gt.tools.auto_rigger.rigger_orient_view import RiggerOrientView
 from gt.ui.qt_utils import QHeaderWithWidgets, ConfirmableQLineEdit
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
@@ -79,14 +79,28 @@ class ModuleAttrWidget(QWidget):
         _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         _layout.setAlignment(Qt.AlignTop)
 
+        # Active Checkbox
+        active_chk = QCheckBox()
+        active_chk.setChecked(self.module.is_active())
+        active_chk.setStyleSheet("QCheckBox { spacing: 0px; }")
+        active_chk.setToolTip("Module Active State")
+        active_chk.stateChanged.connect(self.on_checkbox_active_state_changed)
+        _layout.addWidget(active_chk)
+
         # Icon
         icon = QIcon(self.module.icon)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(32, 32))
+        label_tooltip = self.module.get_module_class_name(remove_module_prefix=True,
+                                                          formatted=True,
+                                                          remove_side=True)
+        icon_label.setToolTip(label_tooltip)
         _layout.addWidget(icon_label)
 
         # Type (Module Class)
-        module_type = self.module.get_module_class_name(remove_module_prefix=True)
+        module_type = self.module.get_module_class_name(remove_module_prefix=True,
+                                                        formatted=True,
+                                                        remove_side=False)
         _layout.addWidget(QLabel(f"{module_type}"))
 
         # Name (User Custom)
@@ -585,6 +599,15 @@ class ModuleAttrWidget(QWidget):
         Reads proxy data from scene
         """
         print('"on_button_build_mod_proxy_clicked called')
+
+    def on_checkbox_active_state_changed(self, state):
+        """
+        Uses the state of the checkbox to determine the active state of the module
+        Args:
+            state (bool): If True, the state of the module will be set to Active. If False, to Inactive.
+        """
+        self.module.set_active_state(is_active=bool(state))
+        self.call_parent_refresh()
 
     def create_widget_parent_combobox(self, target, parent_filter=True):
         """
