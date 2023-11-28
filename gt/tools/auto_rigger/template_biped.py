@@ -40,11 +40,12 @@ def create_template_biped():
     generic.set_prefix("prefix")
     generic.set_suffix("suffix")
     proxy_one = Proxy(name="one")
+    proxy_one.set_initial_position(z=-5)
     proxy_two = Proxy(name="two")
-    proxy_two.set_initial_position(z=-5)
+    proxy_two.set_initial_position(z=-10)
     proxy_two.set_parent_uuid(proxy_one.get_uuid())
     proxy_three = Proxy(name="three")
-    proxy_three.set_initial_position(z=-10)
+    proxy_three.set_initial_position(z=-15)
     proxy_three.set_parent_uuid(proxy_two.get_uuid())
     generic.add_to_proxies(proxy_one)
     generic.add_to_proxies(proxy_two)
@@ -83,7 +84,7 @@ if __name__ == "__main__":
 
     a_biped_project = create_template_biped()
     a_biped_project.build_proxy()
-    # a_biped_project.build_rig()
+    a_biped_project.build_rig(delete_proxy=False)
     #
     # # Modify Proxy
     # cmds.setAttr(f'rt_elbow.tz', -15)
