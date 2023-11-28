@@ -1326,7 +1326,7 @@ class ModuleGeneric:
                                                    Used to reduce the size of the string in JSON outputs.
             formatted (bool, optional): If True, it will return a formatted version of the module class name.
                                         In this case, a title version of the string. e.g. "Module Generic"
-            remove_side (bool, optional): If active, it will remove suffixes that match "Right", "Left" and "Center"
+            remove_side (bool, optional): If active, it will remove suffixes that match "Right", "Left"
         Returns:
             str: Class name as a string.
         """
@@ -1338,10 +1338,9 @@ class ModuleGeneric:
         if remove_side:
             _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Right")
             _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Left")
-            _module_class_name = remove_suffix(input_string=_module_class_name, suffix="Center")
         return _module_class_name
 
-    def get_description_name(self, add_class_len=3):
+    def get_description_name(self, add_class_len=2):
         """
         Gets the name of the module. If too short or empty, use the class name instead.
         Args:
