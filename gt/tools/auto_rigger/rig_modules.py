@@ -1,4 +1,5 @@
 import inspect
+from gt.ui import resource_library
 from gt.utils.string_utils import remove_suffix, remove_prefix
 from gt.tools.auto_rigger.rig_framework import ModuleGeneric
 from gt.tools.auto_rigger.rig_module_root import ModuleRoot
@@ -20,15 +21,15 @@ class RigModules:
     ModuleRoot = ModuleRoot
     ModuleSpine = ModuleSpine
     # Biped
-    ModuleBipedLeg = ModuleBipedLeg
-    ModuleBipedLegLeft = ModuleBipedLegLeft
-    ModuleBipedLegRight = ModuleBipedLegRight
     ModuleBipedArm = ModuleBipedArm
     ModuleBipedArmLeft = ModuleBipedArmLeft
     ModuleBipedArmRight = ModuleBipedArmRight
-    ModuleBipedDigits = ModuleBipedFingers
+    ModuleBipedFingers = ModuleBipedFingers
     ModuleBipedFingersLeft = ModuleBipedFingersLeft
     ModuleBipedFingersRight = ModuleBipedFingersRight
+    ModuleBipedLeg = ModuleBipedLeg
+    ModuleBipedLegLeft = ModuleBipedLegLeft
+    ModuleBipedLegRight = ModuleBipedLegRight
 
     @staticmethod
     def get_dict_modules():
@@ -62,7 +63,8 @@ class RigModules:
 
 
 class RigModulesCategories:
-    prefixes = ["Biped"]
+    known_categories = {"General": resource_library.Icon.rigger_module_generic,
+                        "Biped": resource_library.Icon.rigger_template_biped}
     categories = {}
     unique_modules = {}
 
@@ -71,25 +73,26 @@ class RigModulesCategories:
         _name = remove_prefix(input_string=name, prefix="Module")
         _name = remove_suffix(input_string=_name, suffix="Left")
         _name = remove_suffix(input_string=_name, suffix="Right")
-        _name = remove_suffix(input_string=_name, suffix="Center")
         if _name in unique_modules:
             unique_modules.get(_name).append(module)
         else:
             unique_modules[_name] = [module]
 
-    # Create categories based on the name which the module starts with. Otherwise it's general
+    # Create categories based on the name which the module starts with. Otherwise, it's general.
     for mod_name, mod_list in unique_modules.items():
-        _category = "General"
-        for prefix in prefixes:
-            if mod_name.startswith(prefix):
+        _category = "General"  # Default (Misc)
+        for prefix in known_categories:
+            if mod_name.startswith(prefix) and prefix != _category:
                 _category = prefix
+        if mod_name not in unique_modules:
+            continue  # Skip Sides
         if _category in categories:
-            categories.get(_category).append(mod_list)
+            categories.get(_category).append(mod_name)
         else:
-            categories[_category] = [mod_list]
+            categories[_category] = [mod_name]
 
 
 if __name__ == "__main__":
     import pprint
     # pprint.pprint(RigModules.get_dict_modules())
-    pprint.pprint(RigModulesCategories)
+    pprint.pprint(RigModulesCategories.categories)
