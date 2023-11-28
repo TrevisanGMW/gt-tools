@@ -1,11 +1,11 @@
 """
 Auto Rigger Controller
 """
-from gt.utils.string_utils import remove_prefix, camel_case_split
+from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
+from gt.utils.string_utils import camel_case_split, remove_prefix
 from gt.tools.auto_rigger.rig_templates import RigTemplates
 from gt.ui.tree_widget_enhanced import QTreeItemEnhanced
 from gt.tools.auto_rigger.rig_modules import RigModules
-from PySide2.QtWidgets import QTreeWidgetItem, QAction
 from gt.tools.auto_rigger import rigger_attr_widget
 from gt.tools.auto_rigger import rig_framework
 from gt.ui.file_dialog import file_dialog
@@ -88,7 +88,8 @@ class RiggerController:
                                                     submenu_name="Templates",
                                                     icon=QIcon(resource_library.Icon.ui_templates))
         for name, template_func in RigTemplates.get_dict_templates().items():
-            action_template = QAction(name, icon=QIcon(resource_library.Icon.rigger_template_biped))
+            formatted_name = " ".join(camel_case_split(name))
+            action_template = QAction(formatted_name, icon=QIcon(resource_library.Icon.rigger_template_biped))
             item_func = partial(self.replace_project, project=template_func)
             action_template.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
@@ -97,23 +98,64 @@ class RiggerController:
         """
         Adds a menu bar to the view
         """
-        from gt.tools.auto_rigger.rig_modules import RigModules
+        from gt.tools.auto_rigger.rig_modules import RigModulesCategories
         menu_modules = self.view.add_menu_parent("Modules")
-        for name, module in RigModules.get_dict_modules().items():
-            formatted_name = remove_prefix(input_string=name, prefix="Module")
-            formatted_name = " ".join(camel_case_split(formatted_name))
-            action_mod = QAction(formatted_name, icon=QIcon(module.icon))
-            item_func = partial(self.add_module_to_project, module=module)
-            action_mod.triggered.connect(item_func)
-            self.view.add_menu_action(parent_menu=menu_modules, action=action_mod)
+        known_categories = RigModulesCategories.known_categories
+        for name, module_name in RigModulesCategories.categories.items():
+            _icon_path = known_categories.get(name, None)
+
+            menu_templates = self.view.add_menu_submenu(parent_menu=menu_modules,
+                                                        submenu_name=name,
+                                                        icon=QIcon(_icon_path))
+            if isinstance(module_name, list):
+                for unique_mod in module_name:
+                    module_list = RigModulesCategories.unique_modules.get(unique_mod)
+                    formatted_name = " ".join(camel_case_split(unique_mod))
+                    action_mod = QAction(formatted_name, icon=QIcon(module_list[0].icon))
+                    item_func = partial(self.add_module_to_project_from_list,
+                                        module_name=formatted_name,
+                                        module_list=module_list)
+                    action_mod.triggered.connect(item_func)
+                    self.view.add_menu_action(parent_menu=menu_templates, action=action_mod)
 
     def add_module_to_project(self, module):
         """
         Adds a module to the currently loaded module, then refresh the view.
+        Args:
+            module (ModuleGeneric): A module using ModuleGeneric as base to be added to the project.
         """
         initialized_module = module()
         self.model.add_to_modules(module=initialized_module)
         self.refresh_widgets()
+
+    def add_module_to_project_from_list(self, module_name, module_list):
+        """
+        Adds a module to the currently loaded module, then refresh the view.
+        Args:
+            module_name (str): Name of the module
+            module_list (list): A list of modules sharing the same base. e.g. [BipedLeg, BipedLegRight, BipedLegLeft]
+        """
+        # Not a list or missing module
+        if not module_list or not isinstance(module_list, list):
+            logger.debug(f'Unable to create module choice dialog')
+            return
+        # One Module
+        if len(module_list) == 1:
+            self.add_module_to_project(module=module_list[0])
+            return
+        # Multiple Options
+        message_box = QMessageBox(self.view)
+        message_box.setWindowTitle(f'Which "{str(module_name)}" Module?')
+        message_box.setText(f'Which variation of "{str(module_name)}"\nwould like to add?')
+
+        question_icon = QIcon(module_list[0].icon)
+        message_box.setIconPixmap(question_icon.pixmap(64, 64))
+        for mod in module_list:
+            formatted_name = remove_prefix(input_string=str(mod.__name__), prefix="Module")
+            formatted_name = " ".join(camel_case_split(formatted_name))
+            message_box.addButton(formatted_name, QMessageBox.ActionRole)
+        result = message_box.exec_()
+        self.add_module_to_project(module=module_list[result])
 
     def initialize_new_project(self):
         """
