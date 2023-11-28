@@ -4,6 +4,7 @@ Auto Rigger Controller
 from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
 from gt.utils.string_utils import camel_case_split, remove_prefix
 from gt.tools.auto_rigger.rig_templates import RigTemplates
+from gt.tools.auto_rigger.rig_utils import RiggerConstants
 from gt.ui.tree_widget_enhanced import QTreeItemEnhanced
 from gt.tools.auto_rigger.rig_modules import RigModules
 from gt.tools.auto_rigger import rigger_attr_widget
@@ -33,6 +34,8 @@ def get_module_attr_widgets(module):
     if isinstance(module, RigModules.ModuleSpine):
         return rigger_attr_widget.ModuleSpineAttrWidget
     if isinstance(module, RigModules.ModuleBipedLeg):
+        return rigger_attr_widget.ModuleSpineAttrWidget  # TODO TEMP @@@
+    else:
         return rigger_attr_widget.ModuleSpineAttrWidget  # TODO TEMP @@@
 
 
@@ -171,7 +174,7 @@ class RiggerController:
         file_path = file_dialog(caption="Save Rig Project",
                                 write_mode=True,
                                 starting_directory=None,
-                                file_filter="All Files (*);;",
+                                file_filter=RiggerConstants.FILE_FILTER,
                                 ok_caption="Save Project",
                                 cancel_caption="Cancel")
         if file_path:
@@ -184,7 +187,7 @@ class RiggerController:
         file_path = file_dialog(caption="Open Rig Project",
                                 write_mode=False,
                                 starting_directory=None,
-                                file_filter="All Files (*);;",
+                                file_filter=RiggerConstants.FILE_FILTER,
                                 ok_caption="Open Project",
                                 cancel_caption="Cancel")
         if file_path:
@@ -233,7 +236,7 @@ class RiggerController:
                 tree_item.setForeground(0, QColor(resource_library.Color.Hex.gray_dim))
 
         # Create Hierarchy
-        for module, tree_item in reversed(tree_item_dict.items()):
+        for module, tree_item in reversed(list(tree_item_dict.items())):
             parent_proxy_uuid = module.get_parent_uuid()
             if not parent_proxy_uuid or not isinstance(parent_proxy_uuid, str):
                 continue
