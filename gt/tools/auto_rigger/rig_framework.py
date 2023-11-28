@@ -6,7 +6,7 @@ RigProject > Module > Proxy > Joint/Control
 """
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
-from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_node
+from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
@@ -1747,7 +1747,7 @@ class RigProject:
             root_transform = create_proxy_root_curve()
             hierarchy_utils.parent(source_objects=root_transform, target_parent=root_group)
             category_groups = create_utility_groups(line=True, target_parent=root_group)
-            line_grp = category_groups.get(RiggerConstants.REF_LINE_ATTR)
+            line_grp = category_groups.get(RiggerConstants.REF_LINES_ATTR)
             attr_to_activate = ['overrideEnabled', 'overrideDisplayType', "hiddenInOutliner"]
             set_attr(obj_list=line_grp, attr_list=attr_to_activate, value=1)
             add_attr(target_list=str(root_transform),
@@ -1776,6 +1776,7 @@ class RigProject:
                 create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=line_grp)
                 for proxy in module.get_proxies():
                     proxy.apply_attr_dict()
+            for module in self.modules:
                 module.build_proxy_post()
 
             cmds.select(clear=True)
@@ -1830,7 +1831,7 @@ class RigProject:
 
             # Delete Proxy
             if delete_proxy:
-                proxy_root = find_proxy_root_node()
+                proxy_root = find_proxy_root_group_node()
                 if proxy_root:
                     cmds.delete(proxy_root)
         except Exception as e:
