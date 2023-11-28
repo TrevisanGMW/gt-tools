@@ -127,6 +127,9 @@ class ModuleSpine(ModuleGeneric):
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
+        if self.parent_uuid:
+            if self.hip:
+                self.hip.set_parent_uuid(self.parent_uuid)
         proxy = super().build_proxy()  # Passthrough
         return proxy
 
