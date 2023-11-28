@@ -100,6 +100,11 @@ class RiggerView(metaclass=MayaWindowMeta):
         # Main Layout
         main_layout = QVBoxLayout()
         main_layout.setMenuBar(self.menu_top)  # Set the menu bar at the top
+        self.menu_top.setStyleSheet("QMenuBar {"
+                                    "padding-top: 10; "
+                                    "padding-right: 0; "
+                                    "padding-bottom: 0; "
+                                    "padding-left: 15;}")
 
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
@@ -116,8 +121,9 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.splitter.addWidget(self.module_attr_area)
 
         # Body (Below Menu Bar)
-        body_layout = QHBoxLayout()  # Below the menu bar
-        body_layout.addWidget(self.splitter)  # Add the QTreeWidget below the menu bar
+        body_layout = QHBoxLayout()
+        body_layout.addWidget(self.splitter)
+        main_layout.setContentsMargins(15, 0, 15, 15)  # Adjust the values as needed
         main_layout.addLayout(body_layout)
         self.setLayout(main_layout)
 
