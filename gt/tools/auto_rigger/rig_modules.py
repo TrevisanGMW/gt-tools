@@ -1,4 +1,5 @@
 import inspect
+from gt.utils.string_utils import remove_suffix, remove_prefix
 from gt.tools.auto_rigger.rig_framework import ModuleGeneric
 from gt.tools.auto_rigger.rig_module_root import ModuleRoot
 from gt.tools.auto_rigger.rig_module_biped_leg import (ModuleBipedLeg,
@@ -16,13 +17,13 @@ from gt.tools.auto_rigger.rig_module_biped_finger import (ModuleBipedFingers,
 class RigModules:
     # General
     ModuleGeneric = ModuleGeneric
-    ModuleSpine = ModuleSpine
     ModuleRoot = ModuleRoot
+    ModuleSpine = ModuleSpine
     # Biped
+    ModuleBipedLeg = ModuleBipedLeg
     ModuleBipedLegLeft = ModuleBipedLegLeft
     ModuleBipedLegRight = ModuleBipedLegRight
     ModuleBipedArm = ModuleBipedArm
-    ModuleBipedLeg = ModuleBipedLeg
     ModuleBipedArmLeft = ModuleBipedArmLeft
     ModuleBipedArmRight = ModuleBipedArmRight
     ModuleBipedDigits = ModuleBipedFingers
@@ -60,6 +61,35 @@ class RigModules:
         return list(RigModules.get_dict_modules().keys())
 
 
+class RigModulesCategories:
+    prefixes = ["Biped"]
+    categories = {}
+    unique_modules = {}
+
+    # Create lists of modules with the same name that end with sides (a.k.a. Unique Modules)
+    for name, module in RigModules.get_dict_modules().items():
+        _name = remove_prefix(input_string=name, prefix="Module")
+        _name = remove_suffix(input_string=_name, suffix="Left")
+        _name = remove_suffix(input_string=_name, suffix="Right")
+        _name = remove_suffix(input_string=_name, suffix="Center")
+        if _name in unique_modules:
+            unique_modules.get(_name).append(module)
+        else:
+            unique_modules[_name] = [module]
+
+    # Create categories based on the name which the module starts with. Otherwise it's general
+    for mod_name, mod_list in unique_modules.items():
+        _category = "General"
+        for prefix in prefixes:
+            if mod_name.startswith(prefix):
+                _category = prefix
+        if _category in categories:
+            categories.get(_category).append(mod_list)
+        else:
+            categories[_category] = [mod_list]
+
+
 if __name__ == "__main__":
     import pprint
-    pprint.pprint(RigModules.get_dict_modules())
+    # pprint.pprint(RigModules.get_dict_modules())
+    pprint.pprint(RigModulesCategories)
