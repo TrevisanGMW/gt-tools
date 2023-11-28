@@ -68,33 +68,36 @@ class ModuleBipedFingers(ModuleGeneric):
         pos_extra03 = pos_extra02 + Vector3(z=3)
         pos_extra04 = pos_extra03 + Vector3(z=3)
 
+        loc_scale = .7
+        loc_scale_end = .3
+
         # Thumb -------------------------------------------------------------------------------------
         self.thumb_digits = []
         self.thumb01 = Proxy(name=f"{thumb_name}01")
         self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb01.set_initial_position(xyz=pos_thumb01)
-        self.thumb01.set_locator_scale(scale=0.2)
+        self.thumb01.set_locator_scale(scale=loc_scale)
         self.thumb01.set_meta_type(value=self.thumb01.get_name())
 
         self.thumb02 = Proxy(name=f"{thumb_name}02")
         self.thumb02.set_parent_uuid(self.thumb01.get_uuid())
         self.thumb02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb02.set_initial_position(xyz=pos_thumb02)
-        self.thumb02.set_locator_scale(scale=0.2)
+        self.thumb02.set_locator_scale(scale=loc_scale)
         self.thumb02.set_meta_type(value=self.thumb02.get_name())
 
         self.thumb03 = Proxy(name=f"{thumb_name}03")
         self.thumb03.set_parent_uuid(self.thumb02.get_uuid())
         self.thumb03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb03.set_initial_position(xyz=pos_thumb03)
-        self.thumb03.set_locator_scale(scale=0.2)
+        self.thumb03.set_locator_scale(scale=loc_scale)
         self.thumb03.set_meta_type(value=self.thumb03.get_name())
 
         self.thumb04 = Proxy(name=f"{thumb_name}04")
         self.thumb04.set_parent_uuid(self.thumb03.get_uuid())
         self.thumb04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb04.set_initial_position(xyz=pos_thumb04)
-        self.thumb04.set_locator_scale(scale=0.15)
+        self.thumb04.set_locator_scale(scale=loc_scale_end)
         self.thumb04.set_meta_type(value=self.thumb04.get_name())
         self.thumb04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.thumb_digits = [self.thumb01, self.thumb02, self.thumb03, self.thumb04]
@@ -104,28 +107,28 @@ class ModuleBipedFingers(ModuleGeneric):
         self.index01 = Proxy(name=f"{index_name}01")
         self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index01.set_initial_position(xyz=pos_index01)
-        self.index01.set_locator_scale(scale=0.2)
+        self.index01.set_locator_scale(scale=loc_scale)
         self.index01.set_meta_type(value=self.index01.get_name())
 
         self.index02 = Proxy(name=f"{index_name}02")
         self.index02.set_parent_uuid(self.index01.get_uuid())
         self.index02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index02.set_initial_position(xyz=pos_index02)
-        self.index02.set_locator_scale(scale=0.2)
+        self.index02.set_locator_scale(scale=loc_scale)
         self.index02.set_meta_type(value=self.index02.get_name())
 
         self.index03 = Proxy(name=f"{index_name}03")
         self.index03.set_parent_uuid(self.index02.get_uuid())
         self.index03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index03.set_initial_position(xyz=pos_index03)
-        self.index03.set_locator_scale(scale=0.2)
+        self.index03.set_locator_scale(scale=loc_scale)
         self.index03.set_meta_type(value=self.index03.get_name())
 
         self.index04 = Proxy(name=f"{index_name}04")
         self.index04.set_parent_uuid(self.index03.get_uuid())
         self.index04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index04.set_initial_position(xyz=pos_index04)
-        self.index04.set_locator_scale(scale=0.15)
+        self.index04.set_locator_scale(scale=loc_scale_end)
         self.index04.set_meta_type(value=self.index04.get_name())
         self.index04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.index_digits = [self.index01, self.index02, self.index03, self.index04]
@@ -135,28 +138,28 @@ class ModuleBipedFingers(ModuleGeneric):
         self.middle01 = Proxy(name=f"{middle_name}01")
         self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle01.set_initial_position(xyz=pos_middle01)
-        self.middle01.set_locator_scale(scale=0.2)
+        self.middle01.set_locator_scale(scale=loc_scale)
         self.middle01.set_meta_type(value=self.middle01.get_name())
 
         self.middle02 = Proxy(name=f"{middle_name}02")
         self.middle02.set_parent_uuid(self.middle01.get_uuid())
         self.middle02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle02.set_initial_position(xyz=pos_middle02)
-        self.middle02.set_locator_scale(scale=0.2)
+        self.middle02.set_locator_scale(scale=loc_scale)
         self.middle02.set_meta_type(value=self.middle02.get_name())
 
         self.middle03 = Proxy(name=f"{middle_name}03")
         self.middle03.set_parent_uuid(self.middle02.get_uuid())
         self.middle03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle03.set_initial_position(xyz=pos_middle03)
-        self.middle03.set_locator_scale(scale=0.2)
+        self.middle03.set_locator_scale(scale=loc_scale)
         self.middle03.set_meta_type(value=self.middle03.get_name())
 
         self.middle04 = Proxy(name=f"{middle_name}04")
         self.middle04.set_parent_uuid(self.middle03.get_uuid())
         self.middle04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle04.set_initial_position(xyz=pos_middle04)
-        self.middle04.set_locator_scale(scale=0.15)
+        self.middle04.set_locator_scale(scale=loc_scale_end)
         self.middle04.set_meta_type(value=self.middle04.get_name())
         self.middle04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.middle_digits = [self.middle01, self.middle02, self.middle03, self.middle04]
@@ -166,28 +169,28 @@ class ModuleBipedFingers(ModuleGeneric):
         self.ring01 = Proxy(name=f"{ring_name}01")
         self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring01.set_initial_position(xyz=pos_ring01)
-        self.ring01.set_locator_scale(scale=0.2)
+        self.ring01.set_locator_scale(scale=loc_scale)
         self.ring01.set_meta_type(value=self.ring01.get_name())
 
         self.ring02 = Proxy(name=f"{ring_name}02")
         self.ring02.set_parent_uuid(self.ring01.get_uuid())
         self.ring02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring02.set_initial_position(xyz=pos_ring02)
-        self.ring02.set_locator_scale(scale=0.2)
+        self.ring02.set_locator_scale(scale=loc_scale)
         self.ring02.set_meta_type(value=self.ring02.get_name())
 
         self.ring03 = Proxy(name=f"{ring_name}03")
         self.ring03.set_parent_uuid(self.ring02.get_uuid())
         self.ring03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring03.set_initial_position(xyz=pos_ring03)
-        self.ring03.set_locator_scale(scale=0.2)
+        self.ring03.set_locator_scale(scale=loc_scale)
         self.ring03.set_meta_type(value=self.ring03.get_name())
 
         self.ring04 = Proxy(name=f"{ring_name}04")
         self.ring04.set_parent_uuid(self.ring03.get_uuid())
         self.ring04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring04.set_initial_position(xyz=pos_ring04)
-        self.ring04.set_locator_scale(scale=0.15)
+        self.ring04.set_locator_scale(scale=loc_scale_end)
         self.ring04.set_meta_type(value=self.ring04.get_name())
         self.ring04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.ring_digits = [self.ring01, self.ring02, self.ring03, self.ring04]
@@ -197,28 +200,28 @@ class ModuleBipedFingers(ModuleGeneric):
         self.pinky01 = Proxy(name=f"{pinky_name}01")
         self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky01.set_initial_position(xyz=pos_pinky01)
-        self.pinky01.set_locator_scale(scale=0.2)
+        self.pinky01.set_locator_scale(scale=loc_scale)
         self.pinky01.set_meta_type(value=self.pinky01.get_name())
 
         self.pinky02 = Proxy(name=f"{pinky_name}02")
         self.pinky02.set_parent_uuid(self.pinky01.get_uuid())
         self.pinky02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky02.set_initial_position(xyz=pos_pinky02)
-        self.pinky02.set_locator_scale(scale=0.2)
+        self.pinky02.set_locator_scale(scale=loc_scale)
         self.pinky02.set_meta_type(value=self.pinky02.get_name())
 
         self.pinky03 = Proxy(name=f"{pinky_name}03")
         self.pinky03.set_parent_uuid(self.pinky02.get_uuid())
         self.pinky03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky03.set_initial_position(xyz=pos_pinky03)
-        self.pinky03.set_locator_scale(scale=0.2)
+        self.pinky03.set_locator_scale(scale=loc_scale)
         self.pinky03.set_meta_type(value=self.pinky03.get_name())
 
         self.pinky04 = Proxy(name=f"{pinky_name}04")
         self.pinky04.set_parent_uuid(self.pinky03.get_uuid())
         self.pinky04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky04.set_initial_position(xyz=pos_pinky04)
-        self.pinky04.set_locator_scale(scale=0.15)
+        self.pinky04.set_locator_scale(scale=loc_scale_end)
         self.pinky04.set_meta_type(value=self.pinky04.get_name())
         self.pinky04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.pinky_digits = [self.pinky01, self.pinky02, self.pinky03, self.pinky04]
@@ -229,7 +232,7 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
 
         self.extra01.set_initial_position(xyz=pos_extra01)
-        self.extra01.set_locator_scale(scale=0.2)
+        self.extra01.set_locator_scale(scale=loc_scale)
         self.extra01.set_meta_type(value=self.extra01.get_name())
 
         self.extra02 = Proxy(name=f"{extra_name}02")
@@ -237,7 +240,7 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
 
         self.extra02.set_initial_position(xyz=pos_extra02)
-        self.extra02.set_locator_scale(scale=0.2)
+        self.extra02.set_locator_scale(scale=loc_scale)
         self.extra02.set_meta_type(value=self.extra02.get_name())
 
         self.extra03 = Proxy(name=f"{extra_name}03")
@@ -245,7 +248,7 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
 
         self.extra03.set_initial_position(xyz=pos_extra03)
-        self.extra03.set_locator_scale(scale=0.2)
+        self.extra03.set_locator_scale(scale=loc_scale)
         self.extra03.set_meta_type(value=self.extra03.get_name())
 
         self.extra04 = Proxy(name=f"{extra_name}04")
@@ -253,7 +256,7 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
 
         self.extra04.set_initial_position(xyz=pos_extra04)
-        self.extra04.set_locator_scale(scale=0.15)
+        self.extra04.set_locator_scale(scale=loc_scale_end)
         self.extra04.set_meta_type(value=self.extra04.get_name())
         self.extra04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
         self.extra_digits = [self.extra01, self.extra02, self.extra03, self.extra04]

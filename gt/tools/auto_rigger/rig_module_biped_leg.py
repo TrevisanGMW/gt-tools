@@ -42,35 +42,35 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Default Proxies
         self.hip = Proxy(name=hip_name)
-        self.hip.set_locator_scale(scale=0.4)
+        self.hip.set_locator_scale(scale=2)
         self.hip.set_meta_type(value="hip")
 
         self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
-        self.knee.set_locator_scale(scale=0.5)
+        self.knee.set_locator_scale(scale=2)
         self.knee.add_meta_parent(line_parent=self.hip)
         self.knee.set_parent_uuid(uuid=self.hip.get_uuid())
         self.knee.set_meta_type(value="knee")
 
         self.ankle = Proxy(name=ankle_name)
-        self.ankle.set_locator_scale(scale=0.4)
+        self.ankle.set_locator_scale(scale=2)
         self.ankle.add_meta_parent(line_parent=self.knee)
         self.ankle.set_meta_type(value="ankle")
 
         self.ball = Proxy(name=ball_name)
-        self.ball.set_locator_scale(scale=0.4)
+        self.ball.set_locator_scale(scale=2)
         self.ball.add_meta_parent(line_parent=self.ankle)
         self.ball.set_parent_uuid(uuid=self.ankle.get_uuid())
         self.ball.set_meta_type(value="ball")
 
         self.toe = Proxy(name=toe_name)
-        self.toe.set_locator_scale(scale=0.4)
+        self.toe.set_locator_scale(scale=2)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
         self.toe.set_meta_type(value="toe")
 
         self.heel = Proxy(name=heel_name)
-        self.heel.set_locator_scale(scale=0.1)
+        self.heel.set_locator_scale(scale=1)
         self.heel.add_meta_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
         self.heel.set_meta_type(value="heel")

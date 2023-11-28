@@ -36,14 +36,14 @@ class ModuleSpine(ModuleGeneric):
         self.hip = Proxy(name="hip")
         pos_hip = Vector3(y=84.5) + pos_offset
         self.hip.set_initial_position(xyz=pos_hip)
-        self.hip.set_locator_scale(scale=1)
+        self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_type(value="hip")
 
         self.spines = []
         _parent_uuid = self.hip.get_uuid()
         for num in range(0, num_spine):
             new_spine = Proxy(name=f'spine{str(num+1).zfill(2)}')
-            new_spine.set_locator_scale(scale=0.5)
+            new_spine.set_locator_scale(scale=1)
             new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
             new_spine.set_meta_type(value=f'spine{str(num+1).zfill(2)}')
             new_spine.add_meta_parent(line_parent=_parent_uuid)
@@ -54,7 +54,7 @@ class ModuleSpine(ModuleGeneric):
         self.chest = Proxy(name="chest")
         pos_chest = Vector3(y=114.5) + pos_offset
         self.chest.set_initial_position(xyz=pos_chest)
-        self.chest.set_locator_scale(scale=1)
+        self.chest.set_locator_scale(scale=1.5)
         if self.spines:
             self.chest.add_meta_parent(line_parent=self.spines[-1].get_uuid())
         else:
