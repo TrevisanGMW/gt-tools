@@ -2,7 +2,7 @@
 Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr
+from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.utils.uuid_utils import get_object_from_uuid_attr
@@ -32,6 +32,8 @@ class RiggerConstants:
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
+    LINE_ATTR_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
+    LINE_ATTR_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
     # Separator Attributes
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
@@ -51,7 +53,7 @@ class RiggerConstants:
     REF_SKELETON_ATTR = "skeletonLookupAttr"
     REF_CONTROL_ATTR = "controlLookupAttr"
     REF_SETUP_ATTR = "setupLookupAttr"
-    REF_LINE_ATTR = "linesLookupAttr"
+    REF_LINES_ATTR = "linesLookupAttr"
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -128,16 +130,18 @@ def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=Tru
             return Node(obj)
 
 
-def find_proxy_root_node():
+def find_proxy_root_group_node():
     """
     Looks for the proxy root transform (group) by searching for objects containing the expected attribute.
+    Not to be confused with the root curve. This is the parent TRANSFORM.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type="transform")
 
 
-def find_rig_root_node():
+def find_rig_root_group_node():
     """
     Looks for the rig root transform (group) by searching for objects containing the expected attribute.
+    Not to be confused with the root control curve. This is the parent TRANSFORM.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
 
@@ -162,6 +166,54 @@ def find_skeleton_group():
     Looks for the rig skeleton transform (group) by searching for objects containing the expected attribute.
     """
     return find_objects_with_attr(RiggerConstants.REF_SKELETON_ATTR, obj_type="transform")
+
+
+def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
+    """
+    Looks for a visualization line containing the parent or the child uuid.
+    Args:
+        parent_uuid (str, optional): The UUID of the parent proxy.
+        child_uuid (str, optional): The UUID of the child proxy.
+    Returns:
+        tuple: A tuple of detected lines containing the requested parent or child uuids. Empty tuple otherwise.
+    """
+    # Try the group first to save time.
+    lines_grp = find_objects_with_attr(attr_name=RiggerConstants.REF_LINES_ATTR)
+    _lines = set()
+    if lines_grp:
+        _children = cmds.listRelatives(str(lines_grp), children=True, fullPath=True) or []
+        for child in _children:
+            if not cmds.objExists(f'{child}.{RiggerConstants.LINE_ATTR_PARENT_UUID}'):
+                continue
+            if parent_uuid:
+                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.LINE_ATTR_PARENT_UUID}')
+                if existing_uuid == parent_uuid:
+                    _lines.add(Node(child))
+            if child_uuid:
+                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.LINE_ATTR_CHILD_UUID}')
+                if existing_uuid == child_uuid:
+                    _lines.add(Node(child))
+    if _lines:
+        return tuple(_lines)
+    # If nothing was found, look through all transforms - Less optimized
+    obj_list = cmds.ls(typ="nurbsCurve", long=True) or []
+    valid_items = set()
+    for obj in obj_list:
+        _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
+        if _parent:
+            obj = _parent[0]
+        if cmds.objExists(f'{obj}.{RiggerConstants.LINE_ATTR_PARENT_UUID}'):
+            valid_items.add(Node(obj))
+    for item in valid_items:
+        if parent_uuid:
+            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.LINE_ATTR_PARENT_UUID}')
+            if existing_uuid == parent_uuid:
+                _lines.add(Node(child))
+        if child_uuid:
+            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.LINE_ATTR_CHILD_UUID}')
+            if existing_uuid == child_uuid:
+                _lines.add(Node(child))
+    return tuple(_lines)
 
 
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
@@ -189,16 +241,24 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
                 parent_proxy = find_proxy_from_uuid(meta_parent)
 
         # Create Line
-        generated_objects = []
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
             try:
                 line_objects = create_connection_line(object_a=built_proxy,
                                                       object_b=parent_proxy) or []
                 if lines_parent and cmds.objExists(lines_parent):
-                    generated_objects += hierarchy_utils.parent(source_objects=line_objects,
-                                                                target_parent=lines_parent) or []
-                else:
-                    generated_objects += line_objects
+                    hierarchy_utils.parent(source_objects=line_objects, target_parent=lines_parent) or []
+                if line_objects:
+                    line_crv = line_objects[0]
+                    add_attr(target_list=line_crv,
+                             attributes=RiggerConstants.LINE_ATTR_CHILD_UUID,
+                             attr_type="string")
+                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_CHILD_UUID}',
+                             value=proxy.get_uuid())
+                    add_attr(target_list=line_crv,
+                             attributes=RiggerConstants.LINE_ATTR_PARENT_UUID,
+                             attr_type="string")
+                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_PARENT_UUID}',
+                             value=proxy.get_parent_uuid())
             except Exception as e:
                 logger.debug(f'Failed to create visualization line. Issue: {str(e)}')
 
@@ -256,11 +316,11 @@ def create_proxy_root_curve():
     Returns:
         Node, str: A Node containing the generated root curve
     """
-    root_transform = create_root_curve(name="root")
+    root_transform = create_root_curve(name="root_proxy")
     hide_lock_default_attrs(obj=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ROOT_PROXY_ATTR, verbose=True)
 
     set_curve_width(obj_list=root_transform, line_width=2)
     return Node(root_transform)
@@ -317,7 +377,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
     if line:
         _name = RiggerConstants.GRP_LINE_NAME
         _color = None
-        desired_groups[RiggerConstants.REF_LINE_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_LINES_ATTR] = (_name, _color)
 
     group_dict = {}
     for attr, (name, color) in desired_groups.items():
@@ -372,4 +432,5 @@ if __name__ == "__main__":
     # cmds.file(new=True, force=True)
     # create_proxy_root_curve()
     # cmds.viewFit(all=True)
-    out = create_utility_groups(geometry=True, skeleton=True, setup=True, control=True, target_parent="rigger_proxy_grp")
+    # out = create_utility_groups(geometry=True, skeleton=True, setup=True, control=True,
+    #                             target_parent="rigger_proxy_grp")
