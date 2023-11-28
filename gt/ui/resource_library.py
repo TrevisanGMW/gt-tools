@@ -372,6 +372,7 @@ class Icon:
     rigger_module_biped_leg = get_icon_path(r"rigger_module_biped_leg.svg")
     rigger_module_root = get_icon_path(r"rigger_module_root.svg")
     rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
+    rigger_template_biped = get_icon_path(r"rigger_template_biped.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
@@ -386,6 +387,10 @@ class Icon:
     ui_edit = get_icon_path(r"ui_edit.svg")
     ui_delete = get_icon_path(r"ui_delete.svg")
     ui_trash = get_icon_path(r"ui_trash.svg")
+    ui_new = get_icon_path(r"ui_new.svg")
+    ui_open = get_icon_path(r"ui_open.svg")
+    ui_save = get_icon_path(r"ui_save.svg")
+    ui_templates = get_icon_path(r"ui_templates.svg")
     # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
