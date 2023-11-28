@@ -70,20 +70,15 @@ class RiggerController:
         Adds a menu bar to the view
         """
         menu_file = self.view.add_menu_parent("File")
-        action_new = QAction("New Project", icon=QIcon(resource_library.Icon.dev_trowel))
+        action_new = QAction("New Project", icon=QIcon(resource_library.Icon.ui_new))
         action_new.triggered.connect(self.initialize_new_project)
 
-        action_open = QAction("Open Project", icon=QIcon(resource_library.Icon.dev_brain))
+        action_open = QAction("Open Project", icon=QIcon(resource_library.Icon.ui_open))
         action_open.triggered.connect(self.load_project_from_file)
 
-        action_save = QAction("Save Project", icon=QIcon(resource_library.Icon.dev_code))
+        action_save = QAction("Save Project", icon=QIcon(resource_library.Icon.ui_save))
         action_save.triggered.connect(self.save_project_to_file)
 
-        action_exit = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
-        action_exit.triggered.connect(self.view.close)
-
-        action_template_biped = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
-        action_template_biped.triggered.connect(self.view.close)
         # Menu Assembly -------------------------------------------------------------------------------------
         self.view.add_menu_action(parent_menu=menu_file, action=action_new)
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
@@ -91,9 +86,9 @@ class RiggerController:
         # Templates
         menu_templates = self.view.add_menu_submenu(parent_menu=menu_file,
                                                     submenu_name="Templates",
-                                                    icon=QIcon(resource_library.Icon.dev_chainsaw))
+                                                    icon=QIcon(resource_library.Icon.ui_templates))
         for name, template_func in RigTemplates.get_dict_templates().items():
-            action_template = QAction(name, icon=QIcon(resource_library.Icon.dev_chainsaw))
+            action_template = QAction(name, icon=QIcon(resource_library.Icon.rigger_template_biped))
             item_func = partial(self.replace_project, project=template_func)
             action_template.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
