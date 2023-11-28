@@ -1,5 +1,5 @@
 from gt.tools.auto_rigger.template_biped import create_template_biped
-
+import types
 
 class RigTemplates:
     # General
@@ -14,7 +14,8 @@ class RigTemplates:
                   e.g. 'ModuleBipedArm': <class 'ModuleBipedArm'>
         """
         modules_attrs = vars(RigTemplates)
-        callable_attributes = {name: value for name, value in modules_attrs.items() if callable(value)}
+        callable_attributes = {name: value for name, value in modules_attrs.items()
+                               if isinstance(value, types.FunctionType)}
         return callable_attributes
 
     @staticmethod
