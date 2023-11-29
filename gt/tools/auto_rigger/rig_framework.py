@@ -320,7 +320,7 @@ class Proxy:
             return False
         return True
 
-    def build(self, prefix=None, suffix=None, apply_transforms=False):
+    def build(self, prefix=None, suffix=None, apply_transforms=False, optimized=False):
         """
         Builds a proxy object.
         Args:
@@ -328,6 +328,9 @@ class Proxy:
             suffix (str, optional): If provided, this suffix will be added to the proxy when it's created.
             apply_transforms (bool, optional): If True, the creation of the proxy will apply transform values.
                                                Used by modules to only apply transforms after setup. (post script)
+            optimized (bool, optional): If True, the module will skip display operations, such as curve creation,
+                                        the addition of a snapping shape or the scale cluster and others.
+                                        Useful for when building a rig without adjusting the proxy.
         Returns:
             ProxyData: Name of the proxy that was generated/built.
         """
@@ -344,20 +347,24 @@ class Proxy:
             self.curve.set_name(name)
 
         proxy_offset = cmds.group(name=f'{name}_{NamingConstants.Suffix.OFFSET}', world=True, empty=True)
-        proxy_crv = self.curve.build()
+        if optimized:
+            proxy_crv = cmds.group(name=self.curve.get_name(), world=True, empty=True)
+        else:
+            proxy_crv = self.curve.build()
+            add_snapping_shape(proxy_crv)
         if prefix:
             self.curve.set_name(self.name)  # Restore name without prefix
         proxy_crv = cmds.parent(proxy_crv, proxy_offset)[0]
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
-        add_snapping_shape(proxy_crv)
+
         add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
                                    attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                    set_initial_uuid_value=False)
         scale_attr = add_attr(target_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
         loc_scale_cluster = None
-        if scale_attr and len(scale_attr) == 1:
+        if not optimized and scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
             loc_scale_cluster = add_shape_scale_cluster(proxy_crv, scale_driver_attr=scale_attr)
         for attr in uuid_attrs:
@@ -369,7 +376,6 @@ class Proxy:
             self.transform.apply_transform(target_object=proxy_crv, world_space=True)
         # Set Locator Scale
         if self.locator_scale and scale_attr:
-            cmds.refresh()  # Without refresh, it fails to show the correct scale
             set_attr(scale_attr, self.locator_scale)
 
         return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
@@ -1380,7 +1386,7 @@ class ModuleGeneric:
             return False
         return True
 
-    def build_proxy(self, project_prefix=None):
+    def build_proxy(self, project_prefix=None, optimized=False):
         """
         Builds the proxy representation of the rig (for the user to adjust and determine the pose)
         Args:
@@ -1388,6 +1394,11 @@ class ModuleGeneric:
                                             This is an extra prefix, added on top of the module prefix (self.prefix)
                                             So the final pattern is "<project_prefix>_<module_prefix>_<name>"
                                             Module prefix is the prefix stored in this object "self.prefix"
+            optimized (bool, optional): If True, the module will skip display operations, such as curve creation,
+                                        the addition of a snapping shape or the scale cluster and others.
+                                        Useful for when building a rig without adjusting the proxy.
+                                        Note: This skips happen inside the "proxy.build()" function, the "optimized"
+                                        arguments is only fed into this function during this step.
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
@@ -1401,7 +1412,8 @@ class ModuleGeneric:
         if prefix_list:
             _prefix = '_'.join(prefix_list)
         for proxy in self.proxies:
-            proxy_data.append(proxy.build(prefix=_prefix, suffix=self.suffix, apply_transforms=False))
+            proxy_data.append(proxy.build(prefix=_prefix, suffix=self.suffix,
+                                          apply_transforms=False, optimized=optimized))
         return proxy_data
 
     def build_proxy_post(self):
@@ -1737,9 +1749,9 @@ class RigProject:
             return False
         return True
 
-    def build_proxy(self):
+    def build_proxy(self, optimized=False):
         """
-        Builds Proxy/Guide Armature/Skeleton
+        Builds Proxy/Guide Armature. This later becomes the skeleton that is driven by the rig controls.
         """
         cmds.refresh(suspend=True)
         try:
@@ -1761,7 +1773,7 @@ class RigProject:
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
-                proxy_data_list += module.build_proxy()
+                proxy_data_list += module.build_proxy(optimized=optimized)
 
             for proxy_data in proxy_data_list:
                 add_side_color_setup(obj=proxy_data.get_long_name())
@@ -1773,7 +1785,8 @@ class RigProject:
                 if not module.is_active():  # If not active, skip
                     continue
                 parent_proxies(proxy_list=module.get_proxies())
-                create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=line_grp)
+                if not optimized:
+                    create_proxy_visualization_lines(proxy_list=module.get_proxies(), lines_parent=line_grp)
                 for proxy in module.get_proxies():
                     proxy.apply_attr_dict()
             for module in self.modules:
@@ -1849,7 +1862,7 @@ if __name__ == "__main__":
 
     # from gt.tools.auto_rigger.template_biped import create_template_biped
     # a_biped_project = create_template_biped()
-    # a_biped_project.build_proxy()
+    # a_biped_project.build_proxy(optimized=True)
     # a_biped_project.build_rig()
 
     root = Proxy(name="root")

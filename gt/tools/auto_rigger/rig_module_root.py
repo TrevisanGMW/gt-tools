@@ -67,7 +67,7 @@ class ModuleRoot(ModuleGeneric):
         if self.parent_uuid:
             self.root.set_parent_uuid(self.parent_uuid)
 
-        proxy = super().build_proxy()  # Passthrough
+        proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
     def build_proxy_post(self):

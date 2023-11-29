@@ -141,7 +141,7 @@ class ModuleBipedArm(ModuleGeneric):
         """
         if self.parent_uuid:
             self.clavicle.set_parent_uuid(self.parent_uuid)
-        proxy = super().build_proxy()  # Passthrough
+        proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
     def build_proxy_post(self):

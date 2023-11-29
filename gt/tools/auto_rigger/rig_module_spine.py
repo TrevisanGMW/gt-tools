@@ -121,7 +121,7 @@ class ModuleSpine(ModuleGeneric):
         is_valid = super().is_valid()  # Passthrough
         return is_valid
 
-    def build_proxy(self):
+    def build_proxy(self, **kwargs):
         """
         Build proxy elements in the viewport
         Returns:
@@ -130,7 +130,7 @@ class ModuleSpine(ModuleGeneric):
         if self.parent_uuid:
             if self.hip:
                 self.hip.set_parent_uuid(self.parent_uuid)
-        proxy = super().build_proxy()  # Passthrough
+        proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
     def build_proxy_post(self):

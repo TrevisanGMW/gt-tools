@@ -331,7 +331,7 @@ class ModuleBipedFingers(ModuleGeneric):
                 self.pinky01.set_parent_uuid(self.parent_uuid)
             if self.extra01:
                 self.extra01.set_parent_uuid(self.parent_uuid)
-        proxy = super().build_proxy()  # Passthrough
+        proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
     def build_proxy_post(self):
