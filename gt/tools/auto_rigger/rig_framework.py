@@ -8,7 +8,7 @@ from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rig_utils import find_skeleton_group
+from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
@@ -1793,7 +1793,8 @@ class RigProject:
         cmds.refresh(suspend=True)
         try:
             root_group = create_root_group()
-            root_transform = create_control_root_curve()
+            root_ctrl = create_control_root_curve()
+            dir_ctrl = create_direction_curve()
             category_groups = create_utility_groups(geometry=True,
                                                     skeleton=True,
                                                     control=True,
@@ -1803,7 +1804,8 @@ class RigProject:
             setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
             set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
-            hierarchy_utils.parent(source_objects=root_transform, target_parent=control_grp)
+            hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
+            hierarchy_utils.parent(source_objects=dir_ctrl, target_parent=root_ctrl)
 
             # ------------------------------------- Build Skeleton
             for module in self.modules:
@@ -1883,5 +1885,5 @@ if __name__ == "__main__":
     from pprint import pprint
     # pprint(a_project.get_modules())
     a_project.get_project_as_dict()
-    # a_project.build_proxy()
+    a_project.build_proxy()
     # a_project.build_rig(delete_proxy=True)

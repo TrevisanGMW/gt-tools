@@ -51,6 +51,7 @@ class RiggerConstants:
     REF_ROOT_RIG_ATTR = "rootRigLookupAttr"
     REF_ROOT_PROXY_ATTR = "rootProxyLookupAttr"
     REF_ROOT_CONTROL_ATTR = "rootControlLookupAttr"
+    REF_DIR_CURVE_ATTR = "dirCrvLookupAttr"
     REF_GEOMETRY_ATTR = "geometryGroupLookupAttr"
     REF_SKELETON_ATTR = "skeletonGroupLookupAttr"
     REF_CONTROL_ATTR = "controlGroupLookupAttr"
@@ -356,6 +357,20 @@ def create_control_root_curve():
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
+
+def create_direction_curve():
+    """
+    Creates a curve to be used as the root of a control rig skeleton
+    Returns:
+        Node, str: A Node containing the generated root curve
+    """
+    direction_ctrl = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
+                                 nr=(0, 1, 0), ch=False, radius=44.5)[0]
+    add_separator_attr(target_object=direction_ctrl, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_attr(target_list=direction_ctrl, attr_type="string", is_keyable=False,
+             attributes=RiggerConstants.REF_DIR_CURVE_ATTR, verbose=True)
+    set_color_viewport(obj_list=direction_ctrl, rgb_color=ColorConstants.RigControl.CENTER)
+    return Node(direction_ctrl)
 
 
 def create_utility_groups(geometry=False, skeleton=False, control=False,
