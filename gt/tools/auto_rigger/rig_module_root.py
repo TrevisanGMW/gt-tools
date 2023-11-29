@@ -4,6 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node
 from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_vis_lines_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.utils.attr_utils import set_attr, add_attr
 from gt.utils.color_utils import ColorConstants
@@ -18,7 +19,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleRoot(ModuleGeneric):
-    __version__ = '0.0.1-alpha'
+    __version__ = '1.0.0'
     icon = resource_library.Icon.rigger_module_root
     allow_parenting = False
 
@@ -97,26 +98,14 @@ class ModuleRoot(ModuleGeneric):
             set_attr(obj_list=proxy_root, attr_list="rootVisibility", value=hide_root)
 
 
-    def build_skeleton(self):
-        super().build_skeleton()  # Passthrough
-
-    def build_skeleton_post(self):
-        """
-        Post skeleton script. - Runs after "build_skeleton".
-        """
-        super().build_skeleton_post()  # Passthrough
-
     def build_rig_post(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
-        root = find_proxy_node_from_uuid(self.root.get_uuid())
+        root_jnt = find_joint_node_from_uuid(self.root.get_uuid())
         root_ctrl = find_control_root_curve_node()
-        print(root)
-        print(root_ctrl)
-
-        # cmds.parentConstraint(root_ctrl, root)
+        cmds.parentConstraint(root_ctrl, root_jnt)
 
 
 if __name__ == "__main__":

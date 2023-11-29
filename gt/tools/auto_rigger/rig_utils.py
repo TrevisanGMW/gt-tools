@@ -48,14 +48,14 @@ class RiggerConstants:
     GRP_SETUP_NAME = f'setup_{NamingConstants.Suffix.GRP}'
     GRP_LINE_NAME = f'visualization_lines'
     # Reference Attributes
-    REF_ROOT_RIG_ATTR = "rigRootLookupAttr"
-    REF_ROOT_PROXY_ATTR = "proxyRootLookupAttr"
-    REF_ROOT_CONTROL_ATTR = "controlRootLookupAttr"
-    REF_GEOMETRY_ATTR = "geometryLookupAttr"
-    REF_SKELETON_ATTR = "skeletonLookupAttr"
-    REF_CONTROL_ATTR = "controlLookupAttr"
-    REF_SETUP_ATTR = "setupLookupAttr"
-    REF_LINES_ATTR = "linesLookupAttr"
+    REF_ROOT_RIG_ATTR = "rootRigLookupAttr"
+    REF_ROOT_PROXY_ATTR = "rootProxyLookupAttr"
+    REF_ROOT_CONTROL_ATTR = "rootControlLookupAttr"
+    REF_GEOMETRY_ATTR = "geometryGroupLookupAttr"
+    REF_SKELETON_ATTR = "skeletonGroupLookupAttr"
+    REF_CONTROL_ATTR = "controlGroupLookupAttr"
+    REF_SETUP_ATTR = "setupGroupLookupAttr"
+    REF_LINES_ATTR = "linesGroupLookupAttr"
 
 
 def find_proxy_from_uuid(uuid_string):
@@ -352,7 +352,7 @@ def create_control_root_curve():
     root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_ROOT_RIG_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
@@ -451,3 +451,4 @@ if __name__ == "__main__":
     # cmds.viewFit(all=True)
     # out = create_utility_groups(geometry=True, skeleton=True, setup=True, control=True,
     #                             target_parent="rigger_proxy_grp")
+    print(find_control_root_curve_node())
