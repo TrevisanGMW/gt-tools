@@ -58,7 +58,7 @@ class RiggerConstants:
     REF_SETUP_ATTR = "setupGroupLookupAttr"
     REF_LINES_ATTR = "linesGroupLookupAttr"
 
-
+# ------------------------------------------ Lookup functions ------------------------------------------
 def find_proxy_from_uuid(uuid_string):
     """
     Return a proxy if the provided UUID is present in the attribute RiggerConstants.PROXY_ATTR_UUID
@@ -233,7 +233,7 @@ def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
                 _lines.add(Node(child))
     return tuple(_lines)
 
-
+# ------------------------------------------ Create functions ------------------------------------------
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
     """
     Creates visualization lines according to the proxy UUID parent attribute.
@@ -358,6 +358,7 @@ def create_control_root_curve():
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
 
+
 def create_direction_curve():
     """
     Creates a curve to be used as the root of a control rig skeleton
@@ -424,7 +425,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
             hierarchy_utils.parent(source_objects=_node, target_parent=str(target_parent))
     return group_dict
 
-
+# ------------------------------------------ Misc functions ------------------------------------------
 def parent_proxies(proxy_list):
     """
     Parent proxy elements (and their offset groups) according to their parent UUID
