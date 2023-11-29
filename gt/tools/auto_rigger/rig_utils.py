@@ -163,6 +163,21 @@ def find_control_root_curve_node(use_transform=False):
     return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
 
 
+def find_proxy_root_curve_node(use_transform=False):
+    """
+    Looks for the proxy root curve by searching for objects containing the expected attribute.
+    Args:
+        use_transform (bool, optional): If active, it will use the type transform to look for the object.
+                                        This can potentially make the operation less efficient, but will
+                                        run a more complete search as it will include curves that had
+                                        their shapes deleted.
+    """
+    obj_type = "nurbsCurve"
+    if use_transform:
+        obj_type = "transform"
+    return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type=obj_type)
+
+
 def find_skeleton_group():
     """
     Looks for the rig skeleton transform (group) by searching for objects containing the expected attribute.

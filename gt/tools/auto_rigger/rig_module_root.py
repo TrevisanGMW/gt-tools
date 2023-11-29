@@ -2,16 +2,14 @@
 Auto Rigger Root Module
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.utils.constraint_utils import equidistant_constraints
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node
+from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_vis_lines_from_uuid
+from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
+from gt.utils.attr_utils import set_attr, add_attr
 from gt.utils.color_utils import ColorConstants
-from gt.utils.transform_utils import Vector3
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
-import re
 
 # Logging Setup
 logging.basicConfig()
@@ -23,12 +21,16 @@ class ModuleRoot(ModuleGeneric):
     __version__ = '0.0.1-alpha'
     icon = resource_library.Icon.rigger_module_root
     allow_parenting = False
-    allow_multiple = False
+
+    SHOW_ROOT_KEY = "rootVisibility"
 
     def __init__(self, name="Root", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         self.set_orientation_method(method="world")
+
+        # Hide Root
+        self.add_to_metadata(key=self.SHOW_ROOT_KEY, value=False)
 
         # Default Proxies
         self.root = Proxy(name="root")
@@ -73,21 +75,48 @@ class ModuleRoot(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         Creates leg proxy behavior through constraints and offsets.
         """
-        # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
-        print(root)
         super().build_proxy_post()  # Passthrough
-        cmds.select(clear=True)
+
+        # Root Visibility Setup
+        proxy_root = find_proxy_root_curve_node()
+        root = find_proxy_node_from_uuid(self.root.get_uuid())
+        root_lines = find_vis_lines_from_uuid(parent_uuid=self.root.get_uuid())
+        metadata = self.get_metadata()
+
+        add_attr(target_list=str(proxy_root),
+                 attributes="rootVisibility",
+                 attr_type="bool",
+                 default=True)
+        root_shapes = cmds.listRelatives(str(root), shapes=True, fullPath=True) or []
+        for line in list(root_lines) + root_shapes:
+            cmds.connectAttr(f'{proxy_root}.rootVisibility', f'{line}.visibility')
+
+        # Set Stored Hide Root
+        hide_root = metadata.get(self.SHOW_ROOT_KEY, None)
+        if isinstance(hide_root, bool):
+            set_attr(obj_list=proxy_root, attr_list="rootVisibility", value=hide_root)
+
 
     def build_skeleton(self):
         super().build_skeleton()  # Passthrough
 
     def build_skeleton_post(self):
         """
+        Post skeleton script. - Runs after "build_skeleton".
+        """
+        super().build_skeleton_post()  # Passthrough
+
+    def build_rig_post(self):
+        """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
-        super().build_skeleton_post()  # Passthrough
+        root = find_proxy_node_from_uuid(self.root.get_uuid())
+        root_ctrl = find_control_root_curve_node()
+        print(root)
+        print(root_ctrl)
+
+        # cmds.parentConstraint(root_ctrl, root)
 
 
 if __name__ == "__main__":
@@ -96,10 +125,18 @@ if __name__ == "__main__":
 
     from gt.tools.auto_rigger.rig_framework import RigProject
 
+    a_module = ModuleGeneric()
+    a_proxy = a_module.add_new_proxy()
+    a_proxy.set_initial_position(x=5)
     a_root = ModuleRoot()
+    a_root_two = ModuleRoot()
+    a_root_two.root.set_initial_position(x=10)
+    a_proxy.set_parent_uuid_from_proxy(a_root.proxies[0])
     a_project = RigProject()
     a_project.add_to_modules(a_root)
-    print(a_project.get_modules())
+    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_root_two)
+    # print(a_project.get_modules())
     a_project.build_proxy()
     a_project.build_rig(delete_proxy=False)
 
