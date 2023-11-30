@@ -1790,6 +1790,8 @@ class RigProject:
                 for proxy in module.get_proxies():
                     proxy.apply_attr_dict()
             for module in self.modules:
+                if not module.is_active():  # If not active, skip
+                    continue
                 module.build_proxy_post()
 
             cmds.select(clear=True)
