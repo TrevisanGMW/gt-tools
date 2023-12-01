@@ -2,7 +2,7 @@
 Auto Rigger Root Module
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node, RiggerConstants
 from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_vis_lines_from_uuid
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
@@ -48,6 +48,26 @@ class ModuleRoot(ModuleGeneric):
         """
         return super().get_module_as_dict(include_offset_data=False)
 
+    def read_proxies_from_dict(self, proxy_dict):
+        """
+        Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
+        Args:
+            proxy_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
+                               Acceptable pattern: {"uuid_str": {<description>}}
+                               "uuid_str" being the actual uuid string value of the proxy.
+                               "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+        """
+        if not proxy_dict or not isinstance(proxy_dict, dict):
+            logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
+            return
+        for uuid, description in proxy_dict.items():
+            metadata = description.get("metadata")
+            if metadata:
+                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+                if meta_type == "root":
+                    self.root.set_uuid(uuid)
+                    self.root.read_data_from_dict(proxy_dict=description)
+
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
@@ -77,7 +97,6 @@ class ModuleRoot(ModuleGeneric):
         Creates leg proxy behavior through constraints and offsets.
         """
         super().build_proxy_post()  # Passthrough
-
         # Root Visibility Setup
         proxy_root = find_proxy_root_curve_node()
         root = find_proxy_node_from_uuid(self.root.get_uuid())
@@ -96,7 +115,6 @@ class ModuleRoot(ModuleGeneric):
         hide_root = metadata.get(self.SHOW_ROOT_KEY, None)
         if isinstance(hide_root, bool):
             set_attr(obj_list=proxy_root, attr_list="rootVisibility", value=hide_root)
-
 
     def build_rig_post(self):
         """
@@ -127,15 +145,16 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_root_two)
     # print(a_project.get_modules())
     a_project.build_proxy()
-    a_project.build_rig(delete_proxy=False)
+    # a_project.build_rig(delete_proxy=False)
 
-    # a_project.read_data_from_scene()
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+
+    a_project2.read_data_from_dict(dictionary)
+    a_project2.build_proxy()
 
     # Show all
     cmds.viewFit(all=True)
