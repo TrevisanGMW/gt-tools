@@ -324,17 +324,24 @@ class RiggerController:
         # Unknown ---------------------------------------------------------------
         self.view.clear_module_widget()
 
-    def build_proxy(self):
+    def preprocessing_validation(self):
+        """
+        Validates the scene to identify any potential conflicts before building proxy or rig.
+        Returns:
+            bool: True if operation was cancelled or an issue was detected.
+                  False if operation is ready to proceed.
+        """
+        # Existing Proxy ------------------------------------------------------------------------
         proxy_grp = find_proxy_root_group_node()
         if proxy_grp:
             message_box = QMessageBox(self.view)
             message_box.setWindowTitle(f'Proxy detected in the scene.')
-            message_box.setText(f'An existing proxy was detected in the scene. \n'
-                                f'What would you like to do before re-building it?')
+            message_box.setText(f'A pre-existing proxy was detected in the scene. \n'
+                                f'How would you like to proceed?')
 
             message_box.addButton("Ignore Changes and Rebuild", QMessageBox.ActionRole)
             message_box.addButton("Read Changes and Rebuild", QMessageBox.ActionRole)
-            message_box.addButton("Cancel", QMessageBox.ActionRole)
+            message_box.addButton("Cancel", QMessageBox.RejectRole)
             question_icon = QIcon(resource_library.Icon.ui_exclamation)
             message_box.setIconPixmap(question_icon.pixmap(64, 64))
             result = message_box.exec_()
@@ -346,39 +353,14 @@ class RiggerController:
                 self.model.get_project().read_data_from_scene()
                 cmds.delete(proxy_grp)
             else:
-                return
-        project = self.model.get_project()
-        project.build_proxy()
-
-    def build_rig(self):
-        proxy_grp = find_proxy_root_group_node()
-        if proxy_grp:
-            message_box = QMessageBox(self.view)
-            message_box.setWindowTitle(f'Proxy detected in the scene.')
-            message_box.setText(f'An existing proxy was detected in the scene. \n'
-                                f'What would you like to do before building the rig?')
-
-            message_box.addButton("Ignore Changes and Build Rig", QMessageBox.ActionRole)
-            message_box.addButton("Read Changes and Build Rig", QMessageBox.ActionRole)
-            message_box.addButton("Cancel", QMessageBox.ActionRole)
-            question_icon = QIcon(resource_library.Icon.ui_exclamation)
-            message_box.setIconPixmap(question_icon.pixmap(64, 64))
-            result = message_box.exec_()
-            if result == 0:
-                import maya.cmds as cmds
-                cmds.delete(proxy_grp)
-            elif result == 1:
-                import maya.cmds as cmds
-                self.model.get_project().read_data_from_scene()
-                cmds.delete(proxy_grp)
-            else:
-                return
+                return True
+        # Existing Rig -------------------------------------------------------------------------
         rig_grp = find_rig_root_group_node()
         if rig_grp:
             message_box = QMessageBox(self.view)
             message_box.setWindowTitle(f'Existing rig detected in the scene.')
             message_box.setText(f'A pre-existing rig was detected in the scene. \n'
-                                f'What would you like to do?')
+                                f'How would you like to proceed?')
 
             message_box.addButton("Delete Current and Rebuild", QMessageBox.ActionRole)
             message_box.addButton("Unpack Geometries and Rebuild", QMessageBox.ActionRole)
@@ -394,7 +376,18 @@ class RiggerController:
                 print("unpack here")  # TODO @@@
                 cmds.delete(rig_grp)
             else:
-                return
+                return True
+        return False
+
+    def build_proxy(self):
+        if self.preprocessing_validation():
+            return
+        project = self.model.get_project()
+        project.build_proxy()
+
+    def build_rig(self):
+        if self.preprocessing_validation():
+            return
         project = self.model.get_project()
         project.build_proxy(optimized=True)
         project.build_rig()
