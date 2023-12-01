@@ -1,7 +1,7 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_proxy_root_group_node
+from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_proxy_root_group_node, find_rig_root_group_node
 from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
 from gt.utils.string_utils import camel_case_split, remove_prefix
 from gt.tools.auto_rigger.rig_templates import RigTemplates
@@ -328,7 +328,7 @@ class RiggerController:
         proxy_grp = find_proxy_root_group_node()
         if proxy_grp:
             message_box = QMessageBox(self.view)
-            message_box.setWindowTitle(f'Proxy Editing already in progress.')
+            message_box.setWindowTitle(f'Proxy detected in the scene.')
             message_box.setText(f'An existing proxy was detected in the scene. \n'
                                 f'What would you like to do before re-building it?')
 
@@ -351,7 +351,52 @@ class RiggerController:
         project.build_proxy()
 
     def build_rig(self):
+        proxy_grp = find_proxy_root_group_node()
+        if proxy_grp:
+            message_box = QMessageBox(self.view)
+            message_box.setWindowTitle(f'Proxy detected in the scene.')
+            message_box.setText(f'An existing proxy was detected in the scene. \n'
+                                f'What would you like to do before building the rig?')
+
+            message_box.addButton("Ignore Changes and Build Rig", QMessageBox.ActionRole)
+            message_box.addButton("Read Changes and Build Rig", QMessageBox.ActionRole)
+            message_box.addButton("Cancel", QMessageBox.ActionRole)
+            question_icon = QIcon(resource_library.Icon.ui_exclamation)
+            message_box.setIconPixmap(question_icon.pixmap(64, 64))
+            result = message_box.exec_()
+            if result == 0:
+                import maya.cmds as cmds
+                cmds.delete(proxy_grp)
+            elif result == 1:
+                import maya.cmds as cmds
+                self.model.get_project().read_data_from_scene()
+                cmds.delete(proxy_grp)
+            else:
+                return
+        rig_grp = find_rig_root_group_node()
+        if rig_grp:
+            message_box = QMessageBox(self.view)
+            message_box.setWindowTitle(f'Existing rig detected in the scene.')
+            message_box.setText(f'A pre-existing rig was detected in the scene. \n'
+                                f'What would you like to do?')
+
+            message_box.addButton("Delete Current and Rebuild", QMessageBox.ActionRole)
+            message_box.addButton("Unpack Geometries and Rebuild", QMessageBox.ActionRole)
+            message_box.addButton("Cancel", QMessageBox.ActionRole)
+            question_icon = QIcon(resource_library.Icon.ui_exclamation)
+            message_box.setIconPixmap(question_icon.pixmap(64, 64))
+            result = message_box.exec_()
+            if result == 0:
+                import maya.cmds as cmds
+                cmds.delete(rig_grp)
+            elif result == 1:
+                import maya.cmds as cmds
+                print("unpack here")  # TODO @@@
+                cmds.delete(rig_grp)
+            else:
+                return
         project = self.model.get_project()
+        project.build_proxy(optimized=True)
         project.build_rig()
 
 
