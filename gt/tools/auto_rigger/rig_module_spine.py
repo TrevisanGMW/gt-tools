@@ -25,43 +25,67 @@ class ModuleSpine(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
-    def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None, num_spine=3):
+    def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
         self.set_orientation(orientation_data=_orientation)
 
-        self.num_spine = num_spine
-
-        # Default Proxies
+        # Hip (Base)
         self.hip = Proxy(name="hip")
         pos_hip = Vector3(y=84.5) + pos_offset
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_type(value="hip")
 
-        self.spines = []
-        _parent_uuid = self.hip.get_uuid()
-        for num in range(0, num_spine):
-            new_spine = Proxy(name=f'spine{str(num+1).zfill(2)}')
-            new_spine.set_locator_scale(scale=1)
-            new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-            new_spine.set_meta_type(value=f'spine{str(num+1).zfill(2)}')
-            new_spine.add_meta_parent(line_parent=_parent_uuid)
-            new_spine.set_parent_uuid(uuid=_parent_uuid)
-            _parent_uuid = new_spine.get_uuid()
-            self.spines.append(new_spine)
-
+        # Chest (End)
         self.chest = Proxy(name="chest")
         pos_chest = Vector3(y=114.5) + pos_offset
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
+        self.chest.set_meta_type(value="chest")
+
+        # Spines (In-between)
+        self.spines = []
+        self.set_spine_num(spine_num=3)
+
+    def set_spine_num(self, spine_num):
+        """
+        Set a new number of spine proxies. These are the proxies in-between the hip proxy (base) and chest proxy (end)
+        Args:
+            spine_num (int): New number of spines to exist in-between hip and chest.
+                             Minimum is zero (0) - No negative numbers.
+        """
+        spines_len = len(self.spines)
+        # Same as current, skip
+        if spines_len == spine_num:
+            return
+        # New number higher than current - Add more proxies (spines)
+        if spines_len < spine_num:
+            # Determine Initial Parent (Last spine, or hip)
+            if self.spines:
+                _parent_uuid = self.spines[-1].get_uuid()
+            else:
+                _parent_uuid = self.hip.get_uuid()
+            # Create new spines
+            for num in range(spines_len, spine_num):
+                new_spine = Proxy(name=f'spine{str(num + 1).zfill(2)}')
+                new_spine.set_locator_scale(scale=1)
+                new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+                new_spine.set_meta_type(value=f'spine{str(num + 1).zfill(2)}')
+                new_spine.add_meta_parent(line_parent=_parent_uuid)
+                new_spine.set_parent_uuid(uuid=_parent_uuid)
+                _parent_uuid = new_spine.get_uuid()
+                self.spines.append(new_spine)
+        # New number lower than current - Remove unnecessary proxies
+        elif len(self.spines) > spine_num:
+            self.spines = self.spines[:spine_num]  # Truncate the list
+
         if self.spines:
             self.chest.add_meta_parent(line_parent=self.spines[-1].get_uuid())
         else:
             self.chest.add_meta_parent(line_parent=self.hip.get_uuid())
 
-        self.chest.set_meta_type(value="chest")
         self.refresh_proxies_list()
 
     def refresh_proxies_list(self):
@@ -92,24 +116,17 @@ class ModuleSpine(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.spines = []
+        # Determine Number of Spine Proxies
+        _spine_num = 0
         spine_pattern = r'spine\d+'
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
                 meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type == "hip":
-                    self.hip.set_uuid(uuid)
-                    self.hip.read_data_from_dict(proxy_dict=description)
-                if meta_type == "chest":
-                    self.chest.set_uuid(uuid)
-                    self.chest.read_data_from_dict(proxy_dict=description)
                 if bool(re.match(spine_pattern, meta_type)):
-                    new_spine = Proxy()
-                    new_spine.set_uuid(uuid)
-                    new_spine.read_data_from_dict(proxy_dict=description)
-                    self.spines.append(new_spine)
-        self.num_spine = len(self.spines)  # Update number of spines
+                    _spine_num += 1
+        self.set_spine_num(_spine_num)
+        self.read_type_matching_proxy_from_dict(proxy_dict)
         self.refresh_proxies_list()
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -184,20 +201,22 @@ if __name__ == "__main__":
     from gt.tools.auto_rigger.rig_framework import RigProject
 
     a_spine = ModuleSpine()
+    a_spine.set_spine_num(0)
+    a_spine.set_spine_num(6)
     a_project = RigProject()
     a_project.add_to_modules(a_spine)
     a_project.build_proxy()
-    #
-    # cmds.setAttr(f'hip.tx', 10)
-    # cmds.setAttr(f'spine02.tx', 10)
-    #
-    # a_project.read_data_from_scene()
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
+
+    cmds.setAttr(f'hip.tx', 10)
+    cmds.setAttr(f'spine02.tx', 10)
+
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    a_project2.build_proxy()
 
     # Show all
     cmds.viewFit(all=True)
