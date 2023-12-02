@@ -1,9 +1,10 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_proxy_root_group_node, find_rig_root_group_node
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_group_node, find_rig_root_group_node
 from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
 from gt.utils.string_utils import camel_case_split, remove_prefix
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.tools.auto_rigger.rig_templates import RigTemplates
 from gt.ui.tree_widget_enhanced import QTreeItemEnhanced
 from gt.tools.auto_rigger.rig_modules import RigModules

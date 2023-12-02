@@ -1,6 +1,7 @@
 from gt.tools.auto_rigger.template_biped import create_template_biped
 import types
 
+
 class RigTemplates:
     # General
     TemplateBiped = create_template_biped

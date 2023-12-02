@@ -2,8 +2,9 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.color_utils import ColorConstants
