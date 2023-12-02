@@ -221,9 +221,8 @@ class ModuleBipedArm(ModuleGeneric):
 
         self.clavicle.apply_transforms()
         self.shoulder.apply_transforms()
-        self.elbow.apply_transforms()
         self.wrist.apply_transforms()
-
+        self.elbow.apply_transforms()
         cmds.select(clear=True)
 
     def build_skeleton(self):
@@ -286,24 +285,26 @@ if __name__ == "__main__":
     a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
     a_project = RigProject()
-    a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
-    # a_project.add_to_modules(a_arm_rt)
-    # a_project.add_to_modules(a_arm_lf)
+    # a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
+    a_project.add_to_modules(a_arm_rt)
+    a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
 
-    # cmds.setAttr(f'rt_clavicle.ty', 15)
+    cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.clavicle.get_name()}.ty', 15)
+    cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.elbow.get_name()}.tz', -15)
+    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.clavicle.get_name()}.ty', 15)
+    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.tz', -15)
+    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.ty', -35)
     # cmds.setAttr(f'rt_elbow.tz', -15)
-    #
-    # print(a_project.get_project_as_dict().get("modules"))
-    # a_project.read_data_from_scene()
-    # print(a_project.get_project_as_dict().get("modules"))
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # print(a_project2.get_project_as_dict().get("modules"))
-    # a_project2.build_proxy()
+
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    print(a_project2.get_project_as_dict().get("modules"))
+    a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
