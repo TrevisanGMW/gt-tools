@@ -372,6 +372,7 @@ class Icon:
     rigger_module_biped_leg = get_icon_path(r"rigger_module_biped_leg.svg")
     rigger_module_root = get_icon_path(r"rigger_module_root.svg")
     rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
+    rigger_module_head = get_icon_path(r"rigger_module_head.svg")
     rigger_template_biped = get_icon_path(r"rigger_template_biped.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
