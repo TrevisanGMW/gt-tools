@@ -7,8 +7,8 @@ RigProject > Module > Proxy > Joint/Control
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
+from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_type_from_dict
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
@@ -1189,6 +1189,31 @@ class ModuleGeneric:
         if _metadata:
             self.set_metadata_dict(metadata=_metadata)
         return self
+
+    def read_type_matching_proxy_from_dict(self, proxy_dict):
+        """
+        Utility used by inherited modules to detect the proxy meta type when reading their dict data.
+        Args:
+            proxy_dict (dict): A proxy description dictionary. It must match an expected pattern for this to work:
+                               Acceptable pattern: {"uuid_str": {<description>}}
+                               "uuid_str" being the actual uuid string value of the proxy.
+                               "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
+        """
+        proxies = self.get_proxies()
+        proxy_type_link = {}
+        for proxy in proxies:
+            metadata = proxy.get_metadata()
+            meta_type = get_meta_type_from_dict(metadata)
+            if meta_type and isinstance(meta_type, str):
+                proxy_type_link[meta_type] = proxy
+
+        for uuid, description in proxy_dict.items():
+            metadata = description.get("metadata")
+            meta_type = get_meta_type_from_dict(metadata)
+            if meta_type in proxy_type_link:
+                proxy = proxy_type_link.get(meta_type)
+                proxy.set_uuid(uuid)
+                proxy.read_data_from_dict(proxy_dict=description)
 
     def read_data_from_scene(self):
         """
