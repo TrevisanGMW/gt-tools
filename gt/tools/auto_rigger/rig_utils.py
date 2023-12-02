@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.attr_utils import set_attr_state
@@ -18,45 +19,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-class RiggerConstants:
-    def __init__(self):
-        """
-        Constant values used by the auto rigging system.
-        e.g. Attribute names, dictionary keys or initial values.
-        """
-    # General Keys and Attributes
-    PROJECT_EXTENSION = "rig"
-    FILE_FILTER = f"Rig Project (*.{PROJECT_EXTENSION});;"
-    JOINT_ATTR_UUID = "jointUUID"
-    PROXY_ATTR_UUID = "proxyUUID"
-    PROXY_ATTR_SCALE = "locatorScale"
-    PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
-    PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
-    PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
-    LINE_ATTR_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
-    LINE_ATTR_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
-    # Separator Attributes
-    SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
-    SEPARATOR_BEHAVIOR = "Behavior"
-    # Group Names
-    GRP_RIG_NAME = f'rig_{NamingConstants.Suffix.GRP}'
-    GRP_PROXY_NAME = f'rig_proxy_{NamingConstants.Suffix.GRP}'
-    GRP_GEOMETRY_NAME = f'geometry_{NamingConstants.Suffix.GRP}'
-    GRP_SKELETON_NAME = f'skeleton_{NamingConstants.Suffix.GRP}'
-    GRP_CONTROL_NAME = f'control_{NamingConstants.Suffix.GRP}'
-    GRP_SETUP_NAME = f'setup_{NamingConstants.Suffix.GRP}'
-    GRP_LINE_NAME = f'visualization_lines'
-    # Reference Attributes
-    REF_ROOT_RIG_ATTR = "rootRigLookupAttr"
-    REF_ROOT_PROXY_ATTR = "rootProxyLookupAttr"
-    REF_ROOT_CONTROL_ATTR = "rootControlLookupAttr"
-    REF_DIR_CURVE_ATTR = "dirCrvLookupAttr"
-    REF_GEOMETRY_ATTR = "geometryGroupLookupAttr"
-    REF_SKELETON_ATTR = "skeletonGroupLookupAttr"
-    REF_CONTROL_ATTR = "controlGroupLookupAttr"
-    REF_SETUP_ATTR = "setupGroupLookupAttr"
-    REF_LINES_ATTR = "linesGroupLookupAttr"
 
 # ------------------------------------------ Lookup functions ------------------------------------------
 def find_proxy_from_uuid(uuid_string):
@@ -232,6 +194,7 @@ def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
             if existing_uuid == child_uuid:
                 _lines.add(Node(child))
     return tuple(_lines)
+
 
 # ------------------------------------------ Create functions ------------------------------------------
 def create_proxy_visualization_lines(proxy_list, lines_parent=None):
@@ -425,6 +388,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
             hierarchy_utils.parent(source_objects=_node, target_parent=str(target_parent))
     return group_dict
 
+
 # ------------------------------------------ Misc functions ------------------------------------------
 def parent_proxies(proxy_list):
     """
@@ -458,6 +422,21 @@ def get_proxy_offset(proxy_name):
     offset_list = cmds.listRelatives(proxy_name, parent=True, typ="transform", fullPath=True) or []
     for offset in offset_list:
         return offset
+
+
+def get_meta_type_from_dict(proxy_dict):
+    """
+    Gets the meta type of the proxy. A meta type helps identify the purpose of a proxy within a module.
+    For example, a type "knee" proxy describes that it will be influenced by the "hip" and "ankle" in a leg.
+    This can also be seen as "pointers" to the correct proxy when receiving data from a dictionary.
+    Args:
+        proxy_dict (dict, None): A dictionary describing
+    Returns:
+        string or None: The meta type string or None when not detected/found.
+    """
+    if proxy_dict:
+        meta_type = proxy_dict.get(RiggerConstants.PROXY_META_TYPE)
+        return meta_type
 
 
 if __name__ == "__main__":
