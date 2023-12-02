@@ -2,7 +2,7 @@
 Auto Rigger Root Module
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node, RiggerConstants
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node
 from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_vis_lines_from_uuid
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
@@ -60,13 +60,7 @@ class ModuleRoot(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        for uuid, description in proxy_dict.items():
-            metadata = description.get("metadata")
-            if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type == "root":
-                    self.root.set_uuid(uuid)
-                    self.root.read_data_from_dict(proxy_dict=description)
+        self.read_type_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):

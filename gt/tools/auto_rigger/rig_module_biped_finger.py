@@ -3,7 +3,6 @@ Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.auto_rigger.rig_utils import RiggerConstants
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.color_utils import ColorConstants
 from gt.utils.transform_utils import Vector3
@@ -289,20 +288,9 @@ class ModuleBipedFingers(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        for uuid, description in proxy_dict.items():
-            metadata = description.get("metadata")
-            if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                for digit in self.proxies:
-                    proxy_metadata = digit.get_metadata()
-                    if not proxy_metadata or not isinstance(proxy_metadata, dict):
-                        continue
-                    if meta_type == proxy_metadata.get(RiggerConstants.PROXY_META_TYPE):
-                        digit.set_uuid(uuid)
-                        digit.read_data_from_dict(proxy_dict=description)
+        self.read_type_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
-
     def is_valid(self):
         """
         Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.

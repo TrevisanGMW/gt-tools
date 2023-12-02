@@ -2,10 +2,11 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.naming_utils import NamingConstants
@@ -127,28 +128,7 @@ class ModuleBipedLeg(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        for uuid, description in proxy_dict.items():
-            metadata = description.get("metadata")
-            if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type == "hip":
-                    self.hip.set_uuid(uuid)
-                    self.hip.read_data_from_dict(proxy_dict=description)
-                if meta_type == "knee":
-                    self.knee.set_uuid(uuid)
-                    self.knee.read_data_from_dict(proxy_dict=description)
-                if meta_type == "ankle":
-                    self.ankle.set_uuid(uuid)
-                    self.ankle.read_data_from_dict(proxy_dict=description)
-                if meta_type == "ball":
-                    self.ball.set_uuid(uuid)
-                    self.ball.read_data_from_dict(proxy_dict=description)
-                if meta_type == "toe":
-                    self.toe.set_uuid(uuid)
-                    self.toe.read_data_from_dict(proxy_dict=description)
-                if meta_type == "heel":
-                    self.heel.set_uuid(uuid)
-                    self.heel.read_data_from_dict(proxy_dict=description)
+        self.read_type_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -393,25 +373,23 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_leg_rt)
     # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
-    a_project.build_rig()
+    # a_project.build_rig()
 
     # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
     #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
     #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
 
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
-    # print(a_project.get_project_as_dict())
-    # a_project.read_data_from_scene()
-    # print(a_project.get_project_as_dict())
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
+    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)

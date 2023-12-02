@@ -2,9 +2,10 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import RiggerConstants, find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.utils.naming_utils import NamingConstants
@@ -106,22 +107,7 @@ class ModuleBipedArm(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        for uuid, description in proxy_dict.items():
-            metadata = description.get("metadata")
-            if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type == "clavicle":
-                    self.clavicle.set_uuid(uuid)
-                    self.clavicle.read_data_from_dict(proxy_dict=description)
-                if meta_type == "shoulder":
-                    self.shoulder.set_uuid(uuid)
-                    self.shoulder.read_data_from_dict(proxy_dict=description)
-                if meta_type == "elbow":
-                    self.elbow.set_uuid(uuid)
-                    self.elbow.read_data_from_dict(proxy_dict=description)
-                if meta_type == "wrist":
-                    self.wrist.set_uuid(uuid)
-                    self.wrist.read_data_from_dict(proxy_dict=description)
+        self.read_type_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
