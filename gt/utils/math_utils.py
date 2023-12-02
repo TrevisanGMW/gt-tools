@@ -2,9 +2,11 @@
 Math Utilities
 github.com/TrevisanGMW/gt-tools
 """
+
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
+import math
 
 # Logging Setup
 logging.basicConfig()
@@ -131,6 +133,48 @@ def objects_cross_direction(obj_a, obj_b, obj_c):
 
     result = cross_product_differences(pos_a, pos_b, pos_c).normal()
     return tuple(result)
+
+
+def dist_xyz_to_xyz(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
+    """
+    Calculates the distance between XYZ position A and XYZ position B
+
+    Args:
+            pos_a_x (float) : A float/integer for Position X (A)
+            pos_a_y (float) : A float/integer for Position Y (A)
+            pos_a_z (float) : A float/integer for Position Z (A)
+            pos_b_x (float) : A float/integer for Position X (B)
+            pos_b_y (float) : A float/integer for Position Y (B)
+            pos_b_z (float) : A float/integer for Position Z (YB)
+
+    Returns:
+        distance (float): A distance value between object A and B. For example : 4.0
+    """
+    dx = pos_a_x - pos_b_x
+    dy = pos_a_y - pos_b_y
+    dz = pos_a_z - pos_b_z
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+
+def dist_center_to_center(obj_a, obj_b):
+    """
+    Calculates the position between the center of one object (A)  to the center of another object (B)
+
+    Args:
+        obj_a (string) : Name of object A
+        obj_b (string) : Name of object B
+
+    Returns:
+        float: A distance value between object A and B. For example : 4.0 (or 0 if operation failed)
+    """
+    # WS Center to Center Distance:
+    for obj in [obj_a, obj_b]:
+        if not obj_a or not cmds.objExists(obj):
+            logger.debug(f'Unable to calculate distance. Missing provided object: {str(obj_a)}')
+            return 0
+    ws_pos_a = cmds.xform(obj_a, q=True, ws=True, t=True)
+    ws_pos_b = cmds.xform(obj_b, q=True, ws=True, t=True)
+    return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
 
 
 if __name__ == "__main__":

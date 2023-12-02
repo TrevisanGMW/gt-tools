@@ -141,3 +141,38 @@ class TestMathUtils(unittest.TestCase):
         expected = (0, 0, 1)
         result = math_utils.objects_cross_direction(cube_one, cube_two, cube_three)
         self.assertEqual(expected, tuple(result))
+
+    def test_dist_xyz_to_xyz(self):
+        pos_a = (1.0, 2.0, 3.0)
+        pos_b = (4.0, 5.0, 6.0)
+        import math
+        expected_result = math.sqrt(
+            (pos_a[0] - pos_b[0]) ** 2 + (pos_a[1] - pos_b[1]) ** 2 + (pos_a[2] - pos_b[2]) ** 2)
+        result = math_utils.dist_xyz_to_xyz(*pos_a, *pos_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+
+        expected_result = 0
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center_close(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5.35)
+
+        expected_result = 5.35
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center_far_precise(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 100.5)
+
+        expected_result = 100.5
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
