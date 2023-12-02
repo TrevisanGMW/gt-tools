@@ -294,7 +294,6 @@ class ColorConstants:
         AUTOMATION = (1, .65, .45)  # Soft Orange
 
 
-
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
     """
     Sets the overwrite viewport color for the provided object(s).

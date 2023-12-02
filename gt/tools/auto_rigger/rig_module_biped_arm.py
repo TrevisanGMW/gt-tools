@@ -2,12 +2,13 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, find_joint_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.transform_utils import match_translate, Vector3
+from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.utils.color_utils import set_color_viewport
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -15,6 +16,7 @@ from gt.utils.node_utils import Node
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -238,6 +240,16 @@ class ModuleBipedArm(ModuleGeneric):
         super().build_skeleton_post()  # Passthrough
         self.elbow.clear_parent_uuid()
         self.wrist.clear_parent_uuid()
+
+    def build_rig(self):
+        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())
+        clavicle_jnt = find_joint_node_from_uuid(self.clavicle.get_uuid())
+        shoulder_jnt = find_joint_node_from_uuid(self.shoulder.get_uuid())
+        elbow_jnt = find_joint_node_from_uuid(self.elbow.get_uuid())
+        wrist_jnt = find_joint_node_from_uuid(self.wrist.get_uuid())
+        arm_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
+        for jnt in arm_jnt_list:
+            set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
 
 
 class ModuleBipedArmLeft(ModuleBipedArm):

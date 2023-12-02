@@ -6,16 +6,18 @@ from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_no
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.color_utils import ColorConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -65,7 +67,7 @@ class ModuleBipedLeg(ModuleGeneric):
         self.ball.set_meta_type(value="ball")
 
         self.toe = Proxy(name=toe_name)
-        self.toe.set_locator_scale(scale=2)
+        self.toe.set_locator_scale(scale=1)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
         self.toe.set_meta_type(value="toe")
@@ -302,6 +304,30 @@ class ModuleBipedLeg(ModuleGeneric):
         if heel_jnt and cmds.objExists(heel_jnt):
             cmds.delete(heel_jnt)
 
+    def build_rig(self):
+        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())
+        hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
+        knee_jnt = find_joint_node_from_uuid(self.knee.get_uuid())
+        ankle_jnt = find_joint_node_from_uuid(self.ankle.get_uuid())
+        ball_jnt = find_joint_node_from_uuid(self.ball.get_uuid())
+        toe_jnt = find_joint_node_from_uuid(self.toe.get_uuid())
+        leg_jnt_list = [hip_jnt, knee_jnt, ankle_jnt, ball_jnt, toe_jnt]
+        for jnt in leg_jnt_list:
+            set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
+        set_color_viewport(obj_list=toe_jnt, rgb_color=ColorConstants.RigJoint.END)
+
+        hip_scale = dist_center_to_center(module_parent_jnt, hip_jnt)
+
+        print(f'module_parent: {module_parent_jnt}')
+        print(f'hip: {hip_jnt}')
+        print(f'knee: {knee_jnt}')
+        print(f'ankle: {ankle_jnt}')
+        print(f'ball: {ball_jnt}')
+        print(f'toe: {toe_jnt}')
+        print(f'hip_scale: {hip_scale}')
+
+        print("build leg rig!")
+
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
     def __init__(self, name="Left Leg", prefix=NamingConstants.Prefix.LEFT, suffix=None):
@@ -370,26 +396,26 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_leg_lf)
-    a_project.add_to_modules(a_leg_rt)
+    # a_project.add_to_modules(a_leg_rt)
     # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
-    # a_project.build_rig()
+    a_project.build_rig()
 
     # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
     #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
     #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
-
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
-    cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    a_project2.build_proxy()
+    #
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
+    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
+    # a_project.read_data_from_scene()
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
