@@ -14,11 +14,11 @@ from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_vali
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
+from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
-from gt.utils.color_utils import add_side_color_setup
 from gt.utils.joint_utils import orient_joint
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
@@ -1472,6 +1472,7 @@ class ModuleGeneric:
                      attributes=RiggerConstants.JOINT_ATTR_UUID,
                      attr_type="string")
             set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
             cmds.select(clear=True)  # When creating a joint, the new joint is selected.
 
@@ -1485,7 +1486,6 @@ class ModuleGeneric:
         jnt_nodes = []
         for proxy in self.proxies:
             joint = find_joint_node_from_uuid(proxy.get_uuid())
-            set_attr(f'{joint}.displayLocalAxis', 1)  # TODO TEMP @@@
             if not joint:
                 continue
             # Inherit Orientation (Before Parenting)
@@ -1513,11 +1513,11 @@ class ModuleGeneric:
         cmds.select(clear=True)
 
     def build_rig(self):
-        # TODO TEMP @@@
+        """ Runs build rig script. """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
     def build_rig_post(self):
-        # TODO TEMP @@@
+        """ Runs post rig script. """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
 
