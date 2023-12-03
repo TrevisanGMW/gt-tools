@@ -2,13 +2,14 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_joint_node_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.utils.joint_utils import copy_parent_orients, reset_orients
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.color_utils import ColorConstants
 from gt.utils.transform_utils import Vector3
 from gt.ui import resource_library
 import maya.cmds as cmds
@@ -253,6 +254,17 @@ class ModuleHead(ModuleGeneric):
         super().build_skeleton_post()  # Passthrough
         self.head.clear_parent_uuid()
 
+        head_jnt = find_joint_node_from_uuid(self.head.get_uuid())
+        head_end_jnt = find_joint_node_from_uuid(self.head_end.get_uuid())
+        jaw_jnt = find_joint_node_from_uuid(self.jaw.get_uuid())
+        jaw_end_jnt = find_joint_node_from_uuid(self.jaw_end.get_uuid())
+        lt_eye = find_joint_node_from_uuid(self.lt_eye.get_uuid())
+        rt_eye = find_joint_node_from_uuid(self.rt_eye.get_uuid())
+        copy_parent_orients(joint_list=[head_jnt, head_end_jnt])
+        reset_orients(joint_list=[lt_eye, rt_eye], verbose=True)
+        set_color_viewport(obj_list=[head_end_jnt, jaw_end_jnt], rgb_color=ColorConstants.RigJoint.END)
+        set_color_viewport(obj_list=[lt_eye, rt_eye], rgb_color=ColorConstants.RigJoint.UNIQUE)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -266,18 +278,19 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_head)
     a_project.build_proxy()
+    a_project.build_rig()
 
-    cmds.setAttr(f'jaw.rx', -35)
-    cmds.setAttr(f'head.tx', 3)
-    cmds.setAttr(f'head.rz', -30)
+    # cmds.setAttr(f'jaw.rx', -35)
+    # cmds.setAttr(f'head.tx', 3)
+    # cmds.setAttr(f'head.rz', -30)
 
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    a_project2.build_proxy()
+    # a_project.read_data_from_scene()
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # a_project2.build_proxy()
 
     # # Show all
     cmds.viewFit(all=True)
