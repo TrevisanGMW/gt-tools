@@ -8,6 +8,7 @@ from gt.tools.auto_rigger.rig_module_biped_finger import ModuleBipedFingersLeft,
 from gt.tools.auto_rigger.rig_framework import RigProject, ModuleGeneric, Proxy
 from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
 from gt.tools.auto_rigger.rig_module_root import ModuleRoot
+from gt.tools.auto_rigger.rig_module_head import ModuleHead
 import maya.cmds as cmds
 import logging
 
@@ -26,6 +27,7 @@ def create_template_biped():
     """
     biped_project = RigProject(name="Template Biped")
 
+    # CreateModules
     root = ModuleRoot()
     spine = ModuleSpine()
     leg_lf = ModuleBipedLegLeft()
@@ -34,6 +36,7 @@ def create_template_biped():
     arm_rt = ModuleBipedArmRight()
     fingers_lf = ModuleBipedFingersLeft()
     fingers_rt = ModuleBipedFingersRight()
+    head = ModuleHead()
 
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
     generic = ModuleGeneric(name="Temp Module")
@@ -52,12 +55,14 @@ def create_template_biped():
     generic.add_to_proxies(proxy_three)
     # TODO TEMP @@@ ----------------------------------------------------------------------------------------------
 
+    # Parenting
     spine_hip_uuid = spine.hip.get_uuid()
     leg_lf.set_parent_uuid(spine_hip_uuid)
     leg_rt.set_parent_uuid(spine_hip_uuid)
     root_uuid = root.root.get_uuid()
     spine.set_parent_uuid(root_uuid)
     spine_chest_uuid = spine.chest.get_uuid()
+    head.set_parent_uuid(spine_chest_uuid)
     arm_lf.set_parent_uuid(spine_chest_uuid)
     arm_rt.set_parent_uuid(spine_chest_uuid)
     wrist_lf_uuid = arm_lf.wrist.get_uuid()
@@ -65,8 +70,10 @@ def create_template_biped():
     wrist_rt_uuid = arm_rt.wrist.get_uuid()
     fingers_rt.set_parent_uuid(wrist_rt_uuid)
 
+    # Add Modules
     biped_project.add_to_modules(root)
     biped_project.add_to_modules(spine)
+    biped_project.add_to_modules(head)
     biped_project.add_to_modules(arm_lf)
     biped_project.add_to_modules(arm_rt)
     biped_project.add_to_modules(leg_lf)
