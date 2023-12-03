@@ -326,7 +326,6 @@ class ModuleBipedFingers(ModuleGeneric):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
-        Creates leg proxy behavior through constraints and offsets.
         """
         for digit in self.proxies:
             digit.apply_offset_transform()

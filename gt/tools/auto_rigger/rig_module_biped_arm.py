@@ -136,7 +136,6 @@ class ModuleBipedArm(ModuleGeneric):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
-        Creates leg proxy behavior through constraints and offsets.
         """
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
