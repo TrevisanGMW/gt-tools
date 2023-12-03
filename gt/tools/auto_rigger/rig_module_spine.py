@@ -25,7 +25,7 @@ class ModuleSpine(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
-    def __init__(self, name="Spine", prefix=None, suffix=None, pos_offset=None):
+    def __init__(self, name="Spine", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
@@ -33,14 +33,14 @@ class ModuleSpine(ModuleGeneric):
 
         # Hip (Base)
         self.hip = Proxy(name="hip")
-        pos_hip = Vector3(y=84.5) + pos_offset
+        pos_hip = Vector3(y=84.5)
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_type(value="hip")
 
         # Chest (End)
         self.chest = Proxy(name="chest")
-        pos_chest = Vector3(y=114.5) + pos_offset
+        pos_chest = Vector3(y=114.5)
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_type(value="chest")
@@ -155,10 +155,8 @@ class ModuleSpine(ModuleGeneric):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
-        Creates leg proxy behavior through constraints and offsets.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
         hip = find_proxy_node_from_uuid(self.hip.get_uuid())
         chest = find_proxy_node_from_uuid(self.chest.get_uuid())
 
