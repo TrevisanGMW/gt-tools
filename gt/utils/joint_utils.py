@@ -4,8 +4,10 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.math_utils import dot_product, objects_cross_direction
 import maya.api.OpenMaya as OpenMaya
+from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -137,6 +139,7 @@ def reset_orients(joint_list, verbose=True):
                                 If a string is given instead, it will be auto converted into a list for processing.
         verbose (bool, optional): If active, it will give warnings when the operation failed.
     """
+    stored_selection = cmds.ls(selection=True) or []
     if isinstance(joint_list, str):
         joint_list = [joint_list]
     for jnt in joint_list:
@@ -144,12 +147,21 @@ def reset_orients(joint_list, verbose=True):
             if verbose:
                 cmds.warning(f'Unable to find "{str(jnt)}". Ignoring this object.')
             continue
-        parent = cmds.listRelatives(jnt, parent=True, fullPath=True) or []
+        jnt_node = Node(jnt)
+        parent = cmds.listRelatives(jnt_node.get_long_name(), parent=True, fullPath=True) or []
+        parent_as_node = None
         if parent:
-            cmds.parent(jnt, world=True)
-        cmds.joint(jnt, e=True, orientJoint="none", zeroScaleOrient=True)
+            parent_as_node = Node(parent[0])
+            cmds.parent(jnt_node.get_long_name(), world=True)
+        cmds.joint(jnt_node.get_long_name(), e=True, orientJoint="none", zeroScaleOrient=True)
         if parent:
-            cmds.parent(jnt, parent)
+            cmds.parent(jnt_node.get_long_name(), parent_as_node.get_long_name())
+    cmds.select(clear=True)
+    if stored_selection:
+        try:
+            cmds.select(stored_selection)
+        except Exception as e:
+            logger.debug(f'Unable to retrieve previous selection. Issue: {e}')
 
 
 def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
