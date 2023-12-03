@@ -17,7 +17,6 @@ from PySide2.QtCore import Qt
 from functools import partial
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)

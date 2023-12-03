@@ -1,4 +1,4 @@
-from utils.session_utils import is_script_in_interactive_maya
+from gt.utils.session_utils import is_script_in_interactive_maya
 from PySide2.QtWidgets import QFileDialog
 
 
