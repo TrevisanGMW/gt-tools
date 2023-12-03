@@ -67,8 +67,8 @@ class ModuleBipedFingers(ModuleGeneric):
         pos_extra03 = pos_extra02 + Vector3(z=3)
         pos_extra04 = pos_extra03 + Vector3(z=3)
 
-        loc_scale = .7
-        loc_scale_end = .3
+        loc_scale = .8
+        loc_scale_end = .4
 
         # Thumb -------------------------------------------------------------------------------------
         self.thumb_digits = []
