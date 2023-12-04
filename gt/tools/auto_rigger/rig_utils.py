@@ -430,7 +430,7 @@ def get_meta_type_from_dict(proxy_dict):
     For example, a type "knee" proxy describes that it will be influenced by the "hip" and "ankle" in a leg.
     This can also be seen as "pointers" to the correct proxy when receiving data from a dictionary.
     Args:
-        proxy_dict (dict, None): A dictionary describing
+        proxy_dict (dict, None): A dictionary describing a proxy.
     Returns:
         string or None: The meta type string or None when not detected/found.
     """
