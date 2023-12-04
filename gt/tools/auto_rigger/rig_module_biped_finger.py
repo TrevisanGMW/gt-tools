@@ -5,13 +5,13 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_meta_type_from_dict
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.transform_utils import Vector3
 from gt.utils.curve_utils import get_curve
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -231,7 +231,6 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra_digits = []
         self.extra01 = Proxy(name=f"{self.extra_tag}01")
         self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-
         self.extra01.set_initial_position(xyz=pos_extra01)
         self.extra01.set_locator_scale(scale=loc_scale)
         self.extra01.set_meta_type(value=self.extra01.get_name())
@@ -239,7 +238,6 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra02 = Proxy(name=f"{self.extra_tag}02")
         self.extra02.set_parent_uuid(self.extra01.get_uuid())
         self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-
         self.extra02.set_initial_position(xyz=pos_extra02)
         self.extra02.set_locator_scale(scale=loc_scale)
         self.extra02.set_meta_type(value=self.extra02.get_name())
@@ -247,7 +245,6 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra03 = Proxy(name=f"{self.extra_tag}03")
         self.extra03.set_parent_uuid(self.extra02.get_uuid())
         self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-
         self.extra03.set_initial_position(xyz=pos_extra03)
         self.extra03.set_locator_scale(scale=loc_scale)
         self.extra03.set_meta_type(value=self.extra03.get_name())
@@ -255,7 +252,6 @@ class ModuleBipedFingers(ModuleGeneric):
         self.extra04 = Proxy(name=f"{self.extra_tag}End")
         self.extra04.set_parent_uuid(self.extra03.get_uuid())
         self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-
         self.extra04.set_initial_position(xyz=pos_extra04)
         self.extra04.set_locator_scale(scale=loc_scale_end)
         self.extra04.set_meta_type(value=self.extra04.get_name())
@@ -301,6 +297,32 @@ class ModuleBipedFingers(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
+        # Determine Digit Activation
+        _thumb = False
+        _index = False
+        _middle = False
+        _ring = False
+        _pinky = False
+        _extra = False
+        for uuid, description in proxy_dict.items():
+            metadata = description.get("metadata")
+            if metadata:
+                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+                if meta_type and self.thumb_tag in meta_type:
+                    _thumb = True
+                elif meta_type and self.index_tag in meta_type:
+                    _index = True
+                elif meta_type and self.middle_tag in meta_type:
+                    _middle = True
+                elif meta_type and self.ring_tag in meta_type:
+                    _ring = True
+                elif meta_type and self.pinky_tag in meta_type:
+                    _pinky = True
+                elif meta_type and self.extra_tag in meta_type:
+                    _extra = True
+        self.refresh_proxies_list(thumb=_thumb, index=_index, middle=_middle,
+                                  ring=_ring, pinky=_pinky, extra=_extra)
+        print(proxy_dict)
         self.read_type_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -503,28 +525,28 @@ if __name__ == "__main__":
     from gt.tools.auto_rigger.rig_framework import RigProject
     a_digit_mod = ModuleBipedFingers()
     a_digit_mod_lf = ModuleBipedFingersLeft()
+    a_digit_mod_lf.refresh_proxies_list(index=False, extra=True)
     a_digit_mod_rt = ModuleBipedFingersRight()
     a_project = RigProject()
     # a_project.add_to_modules(a_digit_mod)
     a_project.add_to_modules(a_digit_mod_lf)
     # a_project.add_to_modules(a_digit_mod_rt)
     a_project.build_proxy()
-    a_project.build_rig()
+    # a_project.build_rig()
 
     # cmds.setAttr(f'lf_thumb02.rx', 30)
-    # cmds.setAttr(f'rt_thumb02.rx', 30)
-    # cmds.setAttr(f'lf_ring02.rz', -45)
-    #
-    # print(a_project.get_project_as_dict().get("modules"))
-    # a_project.read_data_from_scene()
-    # print(a_project.get_project_as_dict().get("modules"))
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # print(a_project2.get_project_as_dict().get("modules"))
-    # a_project2.build_proxy()
+    cmds.setAttr(f'lf_ring02.rz', -45)
+    # # cmds.setAttr(f'rt_thumb02.rx', 30)
+
+    a_project.read_data_from_scene()
+    dictionary = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = RigProject()
+    a_project2.read_data_from_dict(dictionary)
+    print(a_project2.get_project_as_dict().get("modules"))
+    a_project2.build_proxy()
+    # a_project2.build_rig()
 
     # Frame all
     cmds.viewFit(all=True)
