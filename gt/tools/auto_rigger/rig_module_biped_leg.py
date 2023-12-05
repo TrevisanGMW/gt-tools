@@ -334,8 +334,12 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Create Automation Skeletons (FK/IK)
         hip_parent = module_parent_jnt
-        if not module_parent_jnt:
+        if module_parent_jnt:
+            set_color_viewport(obj_list=hip_parent, rgb_color=ColorConstants.RigJoint.AUTOMATION)
+            rescale_joint_radius(joint_list=hip_parent, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_DRIVEN)
+        else:
             hip_parent = joint_automation_grp
+
         hip_fk = duplicate_joint_for_automation(hip_jnt, suffix="fk", parent=hip_parent)
         knee_fk = duplicate_joint_for_automation(knee_jnt, suffix="fk", parent=hip_fk)
         ankle_fk = duplicate_joint_for_automation(ankle_jnt, suffix="fk", parent=knee_fk)
