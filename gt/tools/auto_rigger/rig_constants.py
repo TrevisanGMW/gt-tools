@@ -44,3 +44,6 @@ class RiggerConstants:
     REF_CONTROL_ATTR = "controlGroupLookupAttr"
     REF_SETUP_ATTR = "setupGroupLookupAttr"
     REF_LINES_ATTR = "linesGroupLookupAttr"
+    # Multipliers
+    LOC_RADIUS_MULTIPLIER_FK = .3
+    LOC_RADIUS_MULTIPLIER_IK = .6
