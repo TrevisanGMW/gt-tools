@@ -292,6 +292,8 @@ class ColorConstants:
         GRP_CONTROL = (1, 0.45, 0.2)  # Orange
         GRP_SETUP = (1, .25, .25)  # Soft Red
         AUTOMATION = (1, .65, .45)  # Soft Orange
+        FK = (1, .5, .5)  # Soft Red
+        IK = (.5, .5, 1)  # Soft Blue
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
