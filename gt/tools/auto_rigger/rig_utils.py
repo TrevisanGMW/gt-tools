@@ -2,17 +2,19 @@
 Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
-from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr
+from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
 from gt.utils.attr_utils import set_attr_state, delete_user_defined_attributes
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.uuid_utils import get_object_from_uuid_attr
+from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -511,6 +513,25 @@ def get_automation_group(name=f'generalAutomation_{NamingConstants.Suffix.GRP}',
     return _grp_path
 
 
+def duplicate_joint_for_automation(joint, suffix="driven", parent=None):
+    """
+    Preset version of the "duplicate_as_node" function used to duplicate joints for automation.
+    Args:
+        joint (str, Node): The joint to be duplicated
+        suffix (str, optional): The suffix to be added at the end of the duplicated joint.
+        parent (str, optional): If provided, and it exists, the duplicated object will be parented to this object.
+    Returns:
+        str, None: A node (that has a str base) of the duplicated object, or None if it failed.
+    """
+    if not joint or not cmds.objExists(str(joint)):
+        return
+    jnt_as_node = duplicate_as_node(to_duplicate=str(joint), name=f'{joint.get_short_name()}_{suffix}',
+                                    parent_only=True, delete_attrs=True, input_connections=False)
+    if parent:
+        hierarchy_utils.parent(source_objects=jnt_as_node, target_parent=parent)
+    return jnt_as_node
+
+
 def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
     """
     Gets the path to a driven joint or create it in case it's missing.
@@ -531,16 +552,30 @@ def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
         source_jnt = find_joint_node_from_uuid(uuid_string)
         if not source_jnt:
             return
-        driven_jnt = cmds.duplicate(source_jnt,
-                                    name=f'{source_jnt.get_short_name()}_{suffix}',
-                                    parentOnly=True)[0]
-        driven_jnt = Node(driven_jnt)
+        driven_jnt = duplicate_joint_for_automation(joint=source_jnt, suffix=suffix)
         delete_user_defined_attributes(obj_list=driven_jnt)
         add_attr(target_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
         set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.JOINT_ATTR_DRIVEN_UUID}', value=uuid_string)
         if constraint_to_source:
             cmds.parentConstraint(source_jnt, driven_jnt)
     return driven_jnt
+
+
+def rescale_joint_radius(joint_list, multiplier):
+    """
+    Re-scales the joint radius attribute of the provided joints.
+    It gets the original value and multiply it by the provided "multiplier" argument.
+    Args:
+        joint_list (list, str): Path to the target joints.
+        multiplier (int, float): Value to multiply the radius by. For example "0.5" means 50% of the original value.
+    """
+    if joint_list and isinstance(joint_list, str):
+        joint_list = [joint_list]
+    for jnt in joint_list:
+        if not cmds.objExists(f'{jnt}.radius'):
+            continue
+        scaled_radius = get_attr(f'{jnt}.radius') * multiplier
+        cmds.setAttr(f'{jnt}.radius', scaled_radius)
 
 
 if __name__ == "__main__":
