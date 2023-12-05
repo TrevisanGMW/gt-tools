@@ -22,6 +22,7 @@ class RiggerConstants:
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     LINE_ATTR_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
     LINE_ATTR_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
+    JOINT_ATTR_DRIVEN_UUID = "jointDrivenUUID"
     # Separator Attributes
     SEPARATOR_STD_SUFFIX = "Options"  # Standard (Std) Separator attribute name (a.k.a. header attribute)
     SEPARATOR_BEHAVIOR = "Behavior"
