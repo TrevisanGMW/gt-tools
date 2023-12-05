@@ -25,12 +25,12 @@ class ModuleBipedFingers(ModuleGeneric):
     allow_parenting = True
 
     # Tags
-    thumb_tag = "thumb"
-    index_tag = "index"
-    middle_tag = "middle"
-    ring_tag = "ring"
-    pinky_tag = "pinky"
-    extra_tag = "extra"
+    tag_thumb = "thumb"
+    tag_index = "index"
+    tag_middle = "middle"
+    tag_ring = "ring"
+    tag_pinky = "pinky"
+    tag_extra = "extra"
 
     def __init__(self, name="Fingers", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -74,27 +74,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Thumb -------------------------------------------------------------------------------------
         self.thumb_digits = []
-        self.thumb01 = Proxy(name=f"{self.thumb_tag}01")
+        self.thumb01 = Proxy(name=f"{self.tag_thumb}01")
         self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb01.set_initial_position(xyz=pos_thumb01)
         self.thumb01.set_locator_scale(scale=loc_scale)
         self.thumb01.set_meta_type(value=self.thumb01.get_name())
 
-        self.thumb02 = Proxy(name=f"{self.thumb_tag}02")
+        self.thumb02 = Proxy(name=f"{self.tag_thumb}02")
         self.thumb02.set_parent_uuid(self.thumb01.get_uuid())
         self.thumb02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb02.set_initial_position(xyz=pos_thumb02)
         self.thumb02.set_locator_scale(scale=loc_scale)
         self.thumb02.set_meta_type(value=self.thumb02.get_name())
 
-        self.thumb03 = Proxy(name=f"{self.thumb_tag}03")
+        self.thumb03 = Proxy(name=f"{self.tag_thumb}03")
         self.thumb03.set_parent_uuid(self.thumb02.get_uuid())
         self.thumb03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb03.set_initial_position(xyz=pos_thumb03)
         self.thumb03.set_locator_scale(scale=loc_scale)
         self.thumb03.set_meta_type(value=self.thumb03.get_name())
 
-        self.thumb04 = Proxy(name=f"{self.thumb_tag}End")
+        self.thumb04 = Proxy(name=f"{self.tag_thumb}End")
         self.thumb04.set_parent_uuid(self.thumb03.get_uuid())
         self.thumb04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.thumb04.set_initial_position(xyz=pos_thumb04)
@@ -105,27 +105,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Index -------------------------------------------------------------------------------------
         self.index_digits = []
-        self.index01 = Proxy(name=f"{self.index_tag}01")
+        self.index01 = Proxy(name=f"{self.tag_index}01")
         self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index01.set_initial_position(xyz=pos_index01)
         self.index01.set_locator_scale(scale=loc_scale)
         self.index01.set_meta_type(value=self.index01.get_name())
 
-        self.index02 = Proxy(name=f"{self.index_tag}02")
+        self.index02 = Proxy(name=f"{self.tag_index}02")
         self.index02.set_parent_uuid(self.index01.get_uuid())
         self.index02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index02.set_initial_position(xyz=pos_index02)
         self.index02.set_locator_scale(scale=loc_scale)
         self.index02.set_meta_type(value=self.index02.get_name())
 
-        self.index03 = Proxy(name=f"{self.index_tag}03")
+        self.index03 = Proxy(name=f"{self.tag_index}03")
         self.index03.set_parent_uuid(self.index02.get_uuid())
         self.index03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index03.set_initial_position(xyz=pos_index03)
         self.index03.set_locator_scale(scale=loc_scale)
         self.index03.set_meta_type(value=self.index03.get_name())
 
-        self.index04 = Proxy(name=f"{self.index_tag}End")
+        self.index04 = Proxy(name=f"{self.tag_index}End")
         self.index04.set_parent_uuid(self.index03.get_uuid())
         self.index04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.index04.set_initial_position(xyz=pos_index04)
@@ -136,27 +136,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Middle -------------------------------------------------------------------------------------
         self.middle_digits = []
-        self.middle01 = Proxy(name=f"{self.middle_tag}01")
+        self.middle01 = Proxy(name=f"{self.tag_middle}01")
         self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle01.set_initial_position(xyz=pos_middle01)
         self.middle01.set_locator_scale(scale=loc_scale)
         self.middle01.set_meta_type(value=self.middle01.get_name())
 
-        self.middle02 = Proxy(name=f"{self.middle_tag}02")
+        self.middle02 = Proxy(name=f"{self.tag_middle}02")
         self.middle02.set_parent_uuid(self.middle01.get_uuid())
         self.middle02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle02.set_initial_position(xyz=pos_middle02)
         self.middle02.set_locator_scale(scale=loc_scale)
         self.middle02.set_meta_type(value=self.middle02.get_name())
 
-        self.middle03 = Proxy(name=f"{self.middle_tag}03")
+        self.middle03 = Proxy(name=f"{self.tag_middle}03")
         self.middle03.set_parent_uuid(self.middle02.get_uuid())
         self.middle03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle03.set_initial_position(xyz=pos_middle03)
         self.middle03.set_locator_scale(scale=loc_scale)
         self.middle03.set_meta_type(value=self.middle03.get_name())
 
-        self.middle04 = Proxy(name=f"{self.middle_tag}End")
+        self.middle04 = Proxy(name=f"{self.tag_middle}End")
         self.middle04.set_parent_uuid(self.middle03.get_uuid())
         self.middle04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.middle04.set_initial_position(xyz=pos_middle04)
@@ -167,27 +167,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Ring -------------------------------------------------------------------------------------
         self.ring_digits = []
-        self.ring01 = Proxy(name=f"{self.ring_tag}01")
+        self.ring01 = Proxy(name=f"{self.tag_ring}01")
         self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring01.set_initial_position(xyz=pos_ring01)
         self.ring01.set_locator_scale(scale=loc_scale)
         self.ring01.set_meta_type(value=self.ring01.get_name())
 
-        self.ring02 = Proxy(name=f"{self.ring_tag}02")
+        self.ring02 = Proxy(name=f"{self.tag_ring}02")
         self.ring02.set_parent_uuid(self.ring01.get_uuid())
         self.ring02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring02.set_initial_position(xyz=pos_ring02)
         self.ring02.set_locator_scale(scale=loc_scale)
         self.ring02.set_meta_type(value=self.ring02.get_name())
 
-        self.ring03 = Proxy(name=f"{self.ring_tag}03")
+        self.ring03 = Proxy(name=f"{self.tag_ring}03")
         self.ring03.set_parent_uuid(self.ring02.get_uuid())
         self.ring03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring03.set_initial_position(xyz=pos_ring03)
         self.ring03.set_locator_scale(scale=loc_scale)
         self.ring03.set_meta_type(value=self.ring03.get_name())
 
-        self.ring04 = Proxy(name=f"{self.ring_tag}End")
+        self.ring04 = Proxy(name=f"{self.tag_ring}End")
         self.ring04.set_parent_uuid(self.ring03.get_uuid())
         self.ring04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.ring04.set_initial_position(xyz=pos_ring04)
@@ -198,27 +198,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Pinky -------------------------------------------------------------------------------------
         self.pinky_digits = []
-        self.pinky01 = Proxy(name=f"{self.pinky_tag}01")
+        self.pinky01 = Proxy(name=f"{self.tag_pinky}01")
         self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky01.set_initial_position(xyz=pos_pinky01)
         self.pinky01.set_locator_scale(scale=loc_scale)
         self.pinky01.set_meta_type(value=self.pinky01.get_name())
 
-        self.pinky02 = Proxy(name=f"{self.pinky_tag}02")
+        self.pinky02 = Proxy(name=f"{self.tag_pinky}02")
         self.pinky02.set_parent_uuid(self.pinky01.get_uuid())
         self.pinky02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky02.set_initial_position(xyz=pos_pinky02)
         self.pinky02.set_locator_scale(scale=loc_scale)
         self.pinky02.set_meta_type(value=self.pinky02.get_name())
 
-        self.pinky03 = Proxy(name=f"{self.pinky_tag}03")
+        self.pinky03 = Proxy(name=f"{self.tag_pinky}03")
         self.pinky03.set_parent_uuid(self.pinky02.get_uuid())
         self.pinky03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky03.set_initial_position(xyz=pos_pinky03)
         self.pinky03.set_locator_scale(scale=loc_scale)
         self.pinky03.set_meta_type(value=self.pinky03.get_name())
 
-        self.pinky04 = Proxy(name=f"{self.pinky_tag}End")
+        self.pinky04 = Proxy(name=f"{self.tag_pinky}End")
         self.pinky04.set_parent_uuid(self.pinky03.get_uuid())
         self.pinky04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.pinky04.set_initial_position(xyz=pos_pinky04)
@@ -229,27 +229,27 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Extra -------------------------------------------------------------------------------------
         self.extra_digits = []
-        self.extra01 = Proxy(name=f"{self.extra_tag}01")
+        self.extra01 = Proxy(name=f"{self.tag_extra}01")
         self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.extra01.set_initial_position(xyz=pos_extra01)
         self.extra01.set_locator_scale(scale=loc_scale)
         self.extra01.set_meta_type(value=self.extra01.get_name())
 
-        self.extra02 = Proxy(name=f"{self.extra_tag}02")
+        self.extra02 = Proxy(name=f"{self.tag_extra}02")
         self.extra02.set_parent_uuid(self.extra01.get_uuid())
         self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.extra02.set_initial_position(xyz=pos_extra02)
         self.extra02.set_locator_scale(scale=loc_scale)
         self.extra02.set_meta_type(value=self.extra02.get_name())
 
-        self.extra03 = Proxy(name=f"{self.extra_tag}03")
+        self.extra03 = Proxy(name=f"{self.tag_extra}03")
         self.extra03.set_parent_uuid(self.extra02.get_uuid())
         self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.extra03.set_initial_position(xyz=pos_extra03)
         self.extra03.set_locator_scale(scale=loc_scale)
         self.extra03.set_meta_type(value=self.extra03.get_name())
 
-        self.extra04 = Proxy(name=f"{self.extra_tag}End")
+        self.extra04 = Proxy(name=f"{self.tag_extra}End")
         self.extra04.set_parent_uuid(self.extra03.get_uuid())
         self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.extra04.set_initial_position(xyz=pos_extra04)
@@ -308,17 +308,17 @@ class ModuleBipedFingers(ModuleGeneric):
             metadata = description.get("metadata")
             if metadata:
                 meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
-                if meta_type and self.thumb_tag in meta_type:
+                if meta_type and self.tag_thumb in meta_type:
                     _thumb = True
-                elif meta_type and self.index_tag in meta_type:
+                elif meta_type and self.tag_index in meta_type:
                     _index = True
-                elif meta_type and self.middle_tag in meta_type:
+                elif meta_type and self.tag_middle in meta_type:
                     _middle = True
-                elif meta_type and self.ring_tag in meta_type:
+                elif meta_type and self.tag_ring in meta_type:
                     _ring = True
-                elif meta_type and self.pinky_tag in meta_type:
+                elif meta_type and self.tag_pinky in meta_type:
                     _pinky = True
-                elif meta_type and self.extra_tag in meta_type:
+                elif meta_type and self.tag_extra in meta_type:
                     _extra = True
         self.refresh_proxies_list(thumb=_thumb, index=_index, middle=_middle,
                                   ring=_ring, pinky=_pinky, extra=_extra)
