@@ -513,13 +513,16 @@ def get_automation_group(name=f'generalAutomation_{NamingConstants.Suffix.GRP}',
     return _grp_path
 
 
-def duplicate_joint_for_automation(joint, suffix="driven", parent=None):
+def duplicate_joint_for_automation(joint, suffix="driven", parent=None, connect_rot_order=True):
     """
     Preset version of the "duplicate_as_node" function used to duplicate joints for automation.
     Args:
         joint (str, Node): The joint to be duplicated
         suffix (str, optional): The suffix to be added at the end of the duplicated joint.
         parent (str, optional): If provided, and it exists, the duplicated object will be parented to this object.
+        connect_rot_order (bool, optional): If True, it will create a connection between the original joint rotate
+                                            order and the duplicate joint rotate order.
+                                            (duplicate receives from original)
     Returns:
         str, None: A node (that has a str base) of the duplicated object, or None if it failed.
     """
@@ -527,6 +530,8 @@ def duplicate_joint_for_automation(joint, suffix="driven", parent=None):
         return
     jnt_as_node = duplicate_as_node(to_duplicate=str(joint), name=f'{joint.get_short_name()}_{suffix}',
                                     parent_only=True, delete_attrs=True, input_connections=False)
+    if connect_rot_order:
+        connect_attr(source_attr=f'{str(joint)}.rotateOrder', target_attr_list=f'{jnt_as_node}.rotateOrder')
     if parent:
         hierarchy_utils.parent(source_objects=jnt_as_node, target_parent=parent)
     return jnt_as_node
@@ -557,7 +562,8 @@ def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
         add_attr(target_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
         set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.JOINT_ATTR_DRIVEN_UUID}', value=uuid_string)
         if constraint_to_source:
-            cmds.parentConstraint(source_jnt, driven_jnt)
+            constraint = cmds.parentConstraint(source_jnt, driven_jnt)
+            cmds.setAttr(constraint[0] + '.interpType', 0)  # Set to No Flip
     return driven_jnt
 
 
