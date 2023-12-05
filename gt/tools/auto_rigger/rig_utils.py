@@ -3,12 +3,12 @@ Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr
+from gt.utils.attr_utils import set_attr_state, delete_user_defined_attributes
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.attr_utils import set_attr_state
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
@@ -143,9 +143,16 @@ def find_proxy_root_curve_node(use_transform=False):
 
 def find_skeleton_group():
     """
-    Looks for the rig skeleton transform (group) by searching for objects containing the expected attribute.
+    Looks for the rig skeleton group (transform) by searching for objects containing the expected attribute.
     """
     return find_objects_with_attr(RiggerConstants.REF_SKELETON_ATTR, obj_type="transform")
+
+
+def find_setup_group():
+    """
+    Looks for the rig setup group (transform) by searching for objects containing the expected attribute.
+    """
+    return find_objects_with_attr(RiggerConstants.REF_SETUP_ATTR, obj_type="transform")
 
 
 def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
@@ -194,6 +201,17 @@ def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
             if existing_uuid == child_uuid:
                 _lines.add(Node(child))
     return tuple(_lines)
+
+
+def find_or_create_joint_automation_group():
+    """
+    Use the "find_or_create_automation_group" function to get the joint automation group.
+    This is a group where extra joints used for automation (not skinning) are stored.
+    Returns:
+        str: Path to the automation group (or subgroup)
+    """
+    return get_automation_group(name="jointAutomation_grp",
+                                rgb_color=ColorConstants.RigOutliner.GRP_SKELETON)
 
 
 # ------------------------------------------ Create functions ------------------------------------------
@@ -439,11 +457,93 @@ def get_meta_type_from_dict(proxy_dict):
         return meta_type
 
 
+def get_automation_group(name=f'generalAutomation_{NamingConstants.Suffix.GRP}',
+                         subgroup=None,
+                         rgb_color=ColorConstants.RigOutliner.AUTOMATION):
+    """
+    Gets the path to an automation group (or subgroup) or create it in case it can't be found.
+    Automation groups are found inside the "setup_grp" found using "find_setup_group"
+    Args:
+        name (str, optional): Name of the automation group (found inside the "setup_grp")
+        subgroup (str, optional): If provided, this subgroup should exist inside the base automation group.
+        rgb_color (tuple, optional): A tuple with three integers/floats describing a color (RGB).
+    Returns:
+        Node, str: Path to the automation group (or subgroup) - Node format has string as its base.
+    Example:
+        output_a = find_or_create_automation_group(name="generalAutomation_grp")
+        print(output_a)  # |rig_grp|setup_grp|generalAutomation_grp
+        output_b = find_or_create_automation_group(name="generalAutomation_grp", subgroup="baseConstraints_grp")
+        print(output_b)  # |rig_grp|setup_grp|generalAutomation_grp|baseConstraints_grp
+    """
+    selection = cmds.ls(selection=True)
+    setup_grp = find_setup_group()
+    _grp_path = f'{setup_grp}|{str(name)}'
+    # Find or create automation group (base)
+    if name and cmds.objExists(_grp_path):
+        _grp_path = Node(_grp_path)
+    else:
+        _grp_path = cmds.group(name=name, empty=True, world=True)
+        _grp_path = Node(_grp_path)
+        set_color_outliner(obj_list=_grp_path, rgb_color=rgb_color)
+        hierarchy_utils.parent(source_objects=_grp_path, target_parent=setup_grp)
+        if not setup_grp:
+            logger.debug(f'Automation group "{str(name)}" could not be properly parented. '
+                         f'Missing setup group.')
+    # Find or create automation subgroup (child of the base)
+    if subgroup and isinstance(subgroup, str):
+        _grp_path_base = _grp_path  # Store base for re-parenting
+        _grp_path = f'{_grp_path}|{str(subgroup)}'
+        if name and cmds.objExists(_grp_path):
+            _grp_path = _grp_path
+        else:
+            _grp_path = cmds.group(name=subgroup, empty=True, world=True)
+            _grp_path = Node(_grp_path)
+            hierarchy_utils.parent(source_objects=_grp_path, target_parent=_grp_path_base)
+            if not setup_grp:
+                logger.debug(f'Automation group "{str(name)}" could not be properly parented. '
+                             f'Missing setup group.')
+    cmds.select(clear=True)
+    if selection:
+        try:
+            cmds.select(selection=True)
+        except Exception as e:
+            logger.debug(f'Unable to restore initial selection. Issue: {str(e)}')
+    return _grp_path
+
+
+def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
+    """
+    Gets the path to a driven joint or create it in case it's missing.
+    Driven joints are
+    Args:
+        uuid_string (str): UUID string stored in "RiggerConstants.JOINT_ATTR_DRIVEN_UUID" used to identify
+        suffix (str, optional): Prefix to add to the newly created
+        constraint_to_source (bool, optional): Parent constraint the joint to its source during creation.
+                                               Does nothing if driver already exists and is found.
+    Returns:
+        Node, str: Path to the FK Driver - Node format has string as its base.
+
+    """
+    driven_jnt = get_object_from_uuid_attr(uuid_string=uuid_string,
+                                           attr_name=RiggerConstants.JOINT_ATTR_DRIVEN_UUID,
+                                           obj_type="joint")
+    if not driven_jnt:
+        source_jnt = find_joint_node_from_uuid(uuid_string)
+        if not source_jnt:
+            return
+        driven_jnt = cmds.duplicate(source_jnt,
+                                    name=f'{source_jnt.get_short_name()}_{suffix}',
+                                    parentOnly=True)[0]
+        driven_jnt = Node(driven_jnt)
+        delete_user_defined_attributes(obj_list=driven_jnt)
+        add_attr(target_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
+        set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.JOINT_ATTR_DRIVEN_UUID}', value=uuid_string)
+        if constraint_to_source:
+            cmds.parentConstraint(source_jnt, driven_jnt)
+    return driven_jnt
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
-    # create_proxy_root_curve()
     # cmds.viewFit(all=True)
-    # out = create_utility_groups(geometry=True, skeleton=True, setup=True, control=True,
-    #                             target_parent="rigger_proxy_grp")
-    print(find_control_root_curve_node())
