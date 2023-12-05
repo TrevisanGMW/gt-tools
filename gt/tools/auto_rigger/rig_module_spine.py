@@ -2,17 +2,23 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_direction_curve_node
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
+from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
-from gt.utils.color_utils import ColorConstants
+from gt.utils.math_utils import dist_center_to_center
 from gt.utils.transform_utils import Vector3
+from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -191,6 +197,56 @@ class ModuleSpine(ModuleGeneric):
         super().build_skeleton_post()  # Passthrough
         self.chest.clear_parent_uuid()
 
+    def build_rig(self):
+        # Get Elements
+        direction_crv = find_direction_curve_node()
+        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
+        chest_jnt = find_joint_node_from_uuid(self.chest.get_uuid())
+        middle_jnt_list = []
+        for proxy in self.spines:
+            mid_jnt = find_joint_node_from_uuid(proxy.get_uuid())
+            if mid_jnt:
+                middle_jnt_list.append(mid_jnt)
+
+        module_jnt_list = [hip_jnt]
+        module_jnt_list.extend(middle_jnt_list)
+        module_jnt_list.append(chest_jnt)
+
+        # Set Colors
+        set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
+
+        # Get Scale
+        spine_scale = dist_center_to_center(hip_jnt, chest_jnt)
+
+        joint_automation_grp = find_or_create_joint_automation_group()
+        module_parent_jnt = get_driven_joint(self.get_parent_uuid())
+        hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
+
+        # Create Automation Skeletons (FK/IK)
+        hip_parent = module_parent_jnt
+        if module_parent_jnt:
+            set_color_viewport(obj_list=hip_parent, rgb_color=ColorConstants.RigJoint.AUTOMATION)
+            rescale_joint_radius(joint_list=hip_parent, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_DRIVEN)
+        else:
+            hip_parent = joint_automation_grp
+
+        hip_fk = duplicate_joint_for_automation(hip_jnt, suffix="fk", parent=hip_parent)
+        fk_joints = [hip_fk]
+        last_mid_parent = hip_fk
+        mid_fk_list = []
+        for mid in middle_jnt_list:
+            mid_fk = duplicate_joint_for_automation(mid, suffix="fk", parent=last_mid_parent)
+            mid_fk_list.append(mid_fk)
+            last_mid_parent = mid_fk
+        fk_joints.extend(mid_fk_list)
+        chest_fk = duplicate_joint_for_automation(chest_jnt, suffix="fk", parent=last_mid_parent)
+        fk_joints.append(chest_fk)
+
+        rescale_joint_radius(joint_list=fk_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_FK)
+        set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
+        set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -215,6 +271,7 @@ if __name__ == "__main__":
     a_project2 = RigProject()
     a_project2.read_data_from_dict(dictionary)
     a_project2.build_proxy()
+    a_project2.build_rig()
 
     # Show all
     cmds.viewFit(all=True)
