@@ -2,13 +2,17 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_direction_curve_node, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
+from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
-from gt.utils.color_utils import set_color_viewport
+from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -16,7 +20,6 @@ from gt.utils.node_utils import Node
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -241,14 +244,56 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.clear_parent_uuid()
 
     def build_rig(self):
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())
+        # Get Elements
+        direction_crv = find_direction_curve_node()
+        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
         clavicle_jnt = find_joint_node_from_uuid(self.clavicle.get_uuid())
         shoulder_jnt = find_joint_node_from_uuid(self.shoulder.get_uuid())
         elbow_jnt = find_joint_node_from_uuid(self.elbow.get_uuid())
         wrist_jnt = find_joint_node_from_uuid(self.wrist.get_uuid())
         arm_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
+
+        # Set Colors
         for jnt in arm_jnt_list:
             set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
+
+        # Get Scale
+        arm_scale = dist_center_to_center(shoulder_jnt, elbow_jnt)
+        arm_scale += dist_center_to_center(elbow_jnt, wrist_jnt)
+
+        joint_automation_grp = find_or_create_joint_automation_group()
+        module_parent_jnt = get_driven_joint(self.get_parent_uuid())
+        hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
+
+        # Create Automation Skeletons (FK/IK)
+        clavicle_parent = module_parent_jnt
+        if module_parent_jnt:
+            set_color_viewport(obj_list=clavicle_parent, rgb_color=ColorConstants.RigJoint.AUTOMATION)
+            rescale_joint_radius(joint_list=clavicle_parent, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_DRIVEN)
+        else:
+            clavicle_parent = joint_automation_grp
+
+        clavicle_fk = duplicate_joint_for_automation(clavicle_jnt, suffix="fk", parent=clavicle_parent)
+        shoulder_fk = duplicate_joint_for_automation(shoulder_jnt, suffix="fk", parent=clavicle_fk)
+        elbow_fk = duplicate_joint_for_automation(elbow_jnt, suffix="fk", parent=shoulder_fk)
+        wrist_fk = duplicate_joint_for_automation(wrist_jnt, suffix="fk", parent=elbow_fk)
+        fk_joints = [clavicle_fk, shoulder_fk, elbow_fk, wrist_fk]
+
+        clavicle_ik = duplicate_joint_for_automation(clavicle_jnt, suffix="ik", parent=clavicle_parent)
+        shoulder_ik = duplicate_joint_for_automation(shoulder_jnt, suffix="ik", parent=clavicle_ik)
+        elbow_ik = duplicate_joint_for_automation(elbow_jnt, suffix="ik", parent=shoulder_ik)
+        wrist_ik = duplicate_joint_for_automation(wrist_jnt, suffix="ik", parent=elbow_ik)
+        ik_joints = [clavicle_ik, shoulder_ik, elbow_ik, wrist_ik]
+
+        rescale_joint_radius(joint_list=fk_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_FK)
+        rescale_joint_radius(joint_list=ik_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_IK)
+        set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
+        set_color_viewport(obj_list=ik_joints, rgb_color=ColorConstants.RigJoint.IK)
+        set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
+        set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
+
+        print(f'arm_scale: {arm_scale}')
+        print("build arm rig!")
 
 
 class ModuleBipedArmLeft(ModuleBipedArm):
@@ -300,22 +345,23 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
-
-    cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.clavicle.get_name()}.ty', 15)
-    cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.elbow.get_name()}.tz', -15)
-    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.clavicle.get_name()}.ty', 15)
-    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.tz', -15)
-    cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.ty', -35)
-    # cmds.setAttr(f'rt_elbow.tz', -15)
-
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
-
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    print(a_project2.get_project_as_dict().get("modules"))
-    a_project2.build_proxy()
+    a_project.build_rig()
+    #
+    # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.clavicle.get_name()}.ty', 15)
+    # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.elbow.get_name()}.tz', -15)
+    # cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.clavicle.get_name()}.ty', 15)
+    # cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.tz', -15)
+    # cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.elbow.get_name()}.ty', -35)
+    # # cmds.setAttr(f'rt_elbow.tz', -15)
+    #
+    # a_project.read_data_from_scene()
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # print(a_project2.get_project_as_dict().get("modules"))
+    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
