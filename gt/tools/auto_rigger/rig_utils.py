@@ -365,6 +365,7 @@ def create_direction_curve():
     """
     direction_crv = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
                                  nr=(0, 1, 0), ch=False, radius=44.5)[0]
+    cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(target_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_DIR_CURVE_ATTR, verbose=True)
@@ -603,3 +604,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
+    create_direction_curve()
