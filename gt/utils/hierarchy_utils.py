@@ -37,6 +37,11 @@ def parent(source_objects, target_parent, verbose=False):
                                    f'Missing target parent object "{str(target_parent)}".',
                       do_log=verbose)
         return []
+    if source_objects is None:
+        log_when_true(input_logger=logger,
+                      input_string=f'Missing source list. Operation ignored.',
+                      do_log=verbose)
+        return
     if source_objects and isinstance(source_objects, str):  # If a string, convert to list
         source_objects = [source_objects]
     parented_objects = []
