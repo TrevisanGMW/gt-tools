@@ -5,6 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_direction_curve_node
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -305,7 +306,8 @@ class ModuleBipedLeg(ModuleGeneric):
 
     def build_rig(self):
         # Get Elements
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())
+        direction_crv = find_direction_curve_node()
+        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
         hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
         knee_jnt = find_joint_node_from_uuid(self.knee.get_uuid())
         ankle_jnt = find_joint_node_from_uuid(self.ankle.get_uuid())

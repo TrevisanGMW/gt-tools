@@ -99,7 +99,7 @@ def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=Tru
 
 def find_proxy_root_group_node():
     """
-    Looks for the proxy root transform (group) by searching for objects containing the expected attribute.
+    Looks for the proxy root transform (group) by searching for objects containing the expected lookup attribute.
     Not to be confused with the root curve. This is the parent TRANSFORM.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type="transform")
@@ -107,7 +107,7 @@ def find_proxy_root_group_node():
 
 def find_rig_root_group_node():
     """
-    Looks for the rig root transform (group) by searching for objects containing the expected attribute.
+    Looks for the rig root transform (group) by searching for objects containing the expected lookup attribute.
     Not to be confused with the root control curve. This is the parent TRANSFORM.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
@@ -115,7 +115,7 @@ def find_rig_root_group_node():
 
 def find_control_root_curve_node(use_transform=False):
     """
-    Looks for the control root curve by searching for objects containing the expected attribute.
+    Looks for the control root curve by searching for objects containing the expected lookup attribute.
     Args:
         use_transform (bool, optional): If active, it will use the type transform to look for the object.
                                         This can potentially make the operation less efficient, but will
@@ -126,6 +126,21 @@ def find_control_root_curve_node(use_transform=False):
     if use_transform:
         obj_type = "transform"
     return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
+
+
+def find_direction_curve_node(use_transform=False):
+    """
+    Looks for the direction curve by searching for objects containing the expected lookup attribute.
+    Args:
+        use_transform (bool, optional): If active, it will use the type transform to look for the object.
+                                        This can potentially make the operation less efficient, but will
+                                        run a more complete search as it will include curves that had
+                                        their shapes deleted.
+    """
+    obj_type = "nurbsCurve"
+    if use_transform:
+        obj_type = "transform"
+    return find_objects_with_attr(RiggerConstants.REF_DIR_CURVE_ATTR, obj_type=obj_type)
 
 
 def find_proxy_root_curve_node(use_transform=False):
@@ -348,13 +363,13 @@ def create_direction_curve():
     Returns:
         Node, str: A Node containing the generated root curve
     """
-    direction_ctrl = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
+    direction_crv = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
                                  nr=(0, 1, 0), ch=False, radius=44.5)[0]
-    add_separator_attr(target_object=direction_ctrl, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
-    add_attr(target_list=direction_ctrl, attr_type="string", is_keyable=False,
+    add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_attr(target_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_DIR_CURVE_ATTR, verbose=True)
-    set_color_viewport(obj_list=direction_ctrl, rgb_color=ColorConstants.RigControl.CENTER)
-    return Node(direction_ctrl)
+    set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
+    return Node(direction_crv)
 
 
 def create_utility_groups(geometry=False, skeleton=False, control=False,
