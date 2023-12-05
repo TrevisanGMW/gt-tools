@@ -2,14 +2,14 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, find_or_create_joint_automation_group
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
+from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
@@ -304,27 +304,60 @@ class ModuleBipedLeg(ModuleGeneric):
             cmds.delete(heel_jnt)
 
     def build_rig(self):
+        # Get Elements
         module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())
         hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
         knee_jnt = find_joint_node_from_uuid(self.knee.get_uuid())
         ankle_jnt = find_joint_node_from_uuid(self.ankle.get_uuid())
         ball_jnt = find_joint_node_from_uuid(self.ball.get_uuid())
         toe_jnt = find_joint_node_from_uuid(self.toe.get_uuid())
+
+        # Set Colors
         leg_jnt_list = [hip_jnt, knee_jnt, ankle_jnt, ball_jnt, toe_jnt]
         for jnt in leg_jnt_list:
             set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
         set_color_viewport(obj_list=toe_jnt, rgb_color=ColorConstants.RigJoint.END)
 
-        hip_scale = dist_center_to_center(module_parent_jnt, hip_jnt)
+        # Get Scale
+        leg_scale = dist_center_to_center(hip_jnt, knee_jnt)
+        leg_scale += dist_center_to_center(knee_jnt, ankle_jnt)
+        foot_scale = dist_center_to_center(ankle_jnt, ball_jnt)
+        foot_scale += dist_center_to_center(ball_jnt, toe_jnt)
 
-        print(f'module_parent: {module_parent_jnt}')
-        print(f'hip: {hip_jnt}')
-        print(f'knee: {knee_jnt}')
-        print(f'ankle: {ankle_jnt}')
-        print(f'ball: {ball_jnt}')
-        print(f'toe: {toe_jnt}')
-        print(f'hip_scale: {hip_scale}')
+        # Set Preferred Angle
+        cmds.setAttr(f'{hip_jnt}.preferredAngleZ', 90)
+        cmds.setAttr(f'{knee_jnt}.preferredAngleZ', -90)
 
+        joint_automation_grp = find_or_create_joint_automation_group()
+        module_parent_jnt = get_driven_joint(self.get_parent_uuid())
+        hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
+
+        # Create Automation Skeletons (FK/IK)
+        hip_parent = module_parent_jnt
+        if not module_parent_jnt:
+            hip_parent = joint_automation_grp
+        hip_fk = duplicate_joint_for_automation(hip_jnt, suffix="fk", parent=hip_parent)
+        knee_fk = duplicate_joint_for_automation(knee_jnt, suffix="fk", parent=hip_fk)
+        ankle_fk = duplicate_joint_for_automation(ankle_jnt, suffix="fk", parent=knee_fk)
+        ball_fk = duplicate_joint_for_automation(ball_jnt, suffix="fk", parent=ankle_fk)
+        toe_fk = duplicate_joint_for_automation(toe_jnt, suffix="fk", parent=ball_fk)
+        fk_joints = [hip_fk, knee_fk, ankle_fk, ball_fk, toe_fk]
+
+        hip_ik = duplicate_joint_for_automation(hip_jnt, suffix="ik", parent=hip_parent)
+        knee_ik = duplicate_joint_for_automation(knee_jnt, suffix="ik", parent=hip_ik)
+        ankle_ik = duplicate_joint_for_automation(ankle_jnt, suffix="ik", parent=knee_ik)
+        ball_ik = duplicate_joint_for_automation(ball_jnt, suffix="ik", parent=ankle_ik)
+        toe_ik = duplicate_joint_for_automation(toe_jnt, suffix="ik", parent=ball_ik)
+        ik_joints = [hip_ik, knee_ik, ankle_ik, ball_ik, toe_ik]
+
+        rescale_joint_radius(joint_list=fk_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_FK)
+        rescale_joint_radius(joint_list=ik_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_IK)
+        set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
+        set_color_viewport(obj_list=ik_joints, rgb_color=ColorConstants.RigJoint.IK)
+        set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
+        set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
+
+        print(f'leg_scale: {leg_scale}')
         print("build leg rig!")
 
 
@@ -383,7 +416,7 @@ if __name__ == "__main__":
     from gt.tools.auto_rigger.rig_framework import RigProject
     a_proxy = Proxy()
     a_proxy.set_initial_position(y=84.5)
-    a_proxy.set_name("test")
+    a_proxy.set_name("pelvis")
     a_leg = ModuleBipedLeg()
     a_leg_lf = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
@@ -395,7 +428,7 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_leg_lf)
-    # a_project.add_to_modules(a_leg_rt)
+    a_project.add_to_modules(a_leg_rt)
     # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     a_project.build_rig()
