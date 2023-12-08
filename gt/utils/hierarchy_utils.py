@@ -3,7 +3,7 @@ Hierarchy Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.naming_utils import get_long_name, get_short_name
-from gt.utils.attr_utils import delete_user_defined_attributes
+from gt.utils.attr_utils import delete_user_defined_attrs
 from gt.utils.transform_utils import match_transform
 from gt.utils.feedback_utils import log_when_true
 from gt.utils.node_utils import Node
@@ -152,7 +152,7 @@ def duplicate_as_node(to_duplicate, name=None, input_connections=False,
     new_obj = cmds.duplicate(to_duplicate, **param)[0]
     new_obj = Node(new_obj)
     if delete_attrs:
-        delete_user_defined_attributes(obj_list=new_obj)
+        delete_user_defined_attrs(obj_list=new_obj)
     cmds.select(clear=True)
     if selection:
         try:

@@ -97,7 +97,7 @@ class ModuleRoot(ModuleGeneric):
         root_lines = find_vis_lines_from_uuid(parent_uuid=self.root.get_uuid())
         metadata = self.get_metadata()
 
-        add_attr(target_list=str(proxy_root),
+        add_attr(obj_list=str(proxy_root),
                  attributes="rootVisibility",
                  attr_type="bool",
                  default=True)

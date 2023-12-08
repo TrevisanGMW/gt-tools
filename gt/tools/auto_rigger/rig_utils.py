@@ -3,7 +3,7 @@ Auto Rigger Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
-from gt.utils.attr_utils import set_attr_state, delete_user_defined_attributes
+from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
@@ -265,12 +265,12 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
                     hierarchy_utils.parent(source_objects=line_objects, target_parent=lines_parent) or []
                 if line_objects:
                     line_crv = line_objects[0]
-                    add_attr(target_list=line_crv,
+                    add_attr(obj_list=line_crv,
                              attributes=RiggerConstants.LINE_ATTR_CHILD_UUID,
                              attr_type="string")
                     set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_CHILD_UUID}',
                              value=proxy.get_uuid())
-                    add_attr(target_list=line_crv,
+                    add_attr(obj_list=line_crv,
                              attributes=RiggerConstants.LINE_ATTR_PARENT_UUID,
                              attr_type="string")
                     set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_PARENT_UUID}',
@@ -319,8 +319,8 @@ def create_root_group(is_proxy=False):
         _color = ColorConstants.RigOutliner.GRP_ROOT_PROXY
     root_group = cmds.group(name=_name, empty=True, world=True)
     root_group = Node(root_group)
-    hide_lock_default_attrs(obj=root_group)
-    add_attr(target_list=root_group, attr_type="string", is_keyable=False,
+    hide_lock_default_attrs(obj_list=root_group)
+    add_attr(obj_list=root_group, attr_type="string", is_keyable=False,
              attributes=_attr, verbose=True)
     set_color_outliner(root_group, rgb_color=_color)
     return Node(root_group)
@@ -333,9 +333,9 @@ def create_proxy_root_curve():
         Node, str: A Node containing the generated root curve
     """
     root_transform = create_root_curve(name="root_proxy")
-    hide_lock_default_attrs(obj=root_transform, scale=False)
+    hide_lock_default_attrs(obj_list=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
-    add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
+    add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ROOT_PROXY_ATTR, verbose=True)
 
     set_curve_width(obj_list=root_transform, line_width=2)
@@ -350,7 +350,7 @@ def create_control_root_curve():
     """
     root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
-    add_attr(target_list=root_transform, attr_type="string", is_keyable=False,
+    add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
@@ -367,7 +367,7 @@ def create_direction_curve():
                                  nr=(0, 1, 0), ch=False, radius=44.5)[0]
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
-    add_attr(target_list=direction_crv, attr_type="string", is_keyable=False,
+    add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_DIR_CURVE_ATTR, verbose=True)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
     return Node(direction_crv)
@@ -414,7 +414,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
     group_dict = {}
     for attr, (name, color) in desired_groups.items():
         group = cmds.group(name=name, empty=True, world=True)
-        add_attr(target_list=group, attr_type="string", is_keyable=False,
+        add_attr(obj_list=group, attr_type="string", is_keyable=False,
                  attributes=attr, verbose=True)
         _node = Node(group)
         group_dict[attr] = _node
@@ -574,8 +574,8 @@ def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
         if not source_jnt:
             return
         driven_jnt = duplicate_joint_for_automation(joint=source_jnt, suffix=suffix)
-        delete_user_defined_attributes(obj_list=driven_jnt)
-        add_attr(target_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
+        delete_user_defined_attrs(obj_list=driven_jnt)
+        add_attr(obj_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
         set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.JOINT_ATTR_DRIVEN_UUID}', value=uuid_string)
         if constraint_to_source:
             constraint = cmds.parentConstraint(source_jnt, driven_jnt)

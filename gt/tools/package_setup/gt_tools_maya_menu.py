@@ -330,7 +330,7 @@ def load_menu(*args):
     menu.add_divider(divider_label="Delete Utilities")  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Custom Attributes',
                        command=IMPORT_UTIL + 'initialize_utility("attr_utils", '
-                                             '"selection_delete_user_defined_attributes")',
+                                             '"selection_delete_user_defined_attrs")',
                        tooltip='Deletes user-defined (custom) attributes found on the selected objects.',
                        icon=resource_library.Icon.util_delete_custom_attr)
     menu.add_menu_item(label='Delete Namespaces',

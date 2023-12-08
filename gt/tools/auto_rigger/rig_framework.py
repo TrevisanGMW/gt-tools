@@ -362,7 +362,7 @@ class Proxy:
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
                                    attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                    set_initial_uuid_value=False)
-        scale_attr = add_attr(target_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
+        scale_attr = add_attr(obj_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
         loc_scale_cluster = None
         if not optimized and scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
@@ -1468,7 +1468,7 @@ class ModuleGeneric:
             match_translate(source=proxy_node, target_list=joint)
 
             # Add proxy data for reference
-            add_attr(target_list=joint,
+            add_attr(obj_list=joint,
                      attributes=RiggerConstants.JOINT_ATTR_UUID,
                      attr_type="string")
             set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
@@ -1787,7 +1787,7 @@ class RigProject:
             line_grp = category_groups.get(RiggerConstants.REF_LINES_ATTR)
             attr_to_activate = ['overrideEnabled', 'overrideDisplayType', "hiddenInOutliner"]
             set_attr(obj_list=line_grp, attr_list=attr_to_activate, value=1)
-            add_attr(target_list=str(root_transform),
+            add_attr(obj_list=str(root_transform),
                      attributes="linesVisibility",
                      attr_type="bool",
                      default=True)

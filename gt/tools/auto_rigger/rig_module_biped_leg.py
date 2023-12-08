@@ -244,7 +244,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Ankle ----------------------------------------------------------------------------------
         ankle_offset = get_proxy_offset(ankle)
-        add_attr(target_list=ankle.get_long_name(), attributes="followHip", attr_type='bool', default=True)
+        add_attr(obj_list=ankle.get_long_name(), attributes="followHip", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(hip, ankle_offset, skip='y')[0]
         cmds.connectAttr(f'{ankle}.followHip', f'{constraint}.w0')
         set_attr_state(obj_list=ankle, attr_list=["rx", "rz"], locked=True, hidden=True)
@@ -273,7 +273,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Heel -----------------------------------------------------------------------------------
         heel_offset = get_proxy_offset(heel)
-        add_attr(target_list=heel.get_long_name(), attributes="followAnkle", attr_type='bool', default=True)
+        add_attr(obj_list=heel.get_long_name(), attributes="followAnkle", attr_type='bool', default=True)
         constraint = cmds.pointConstraint(ankle, heel_offset, skip='y')[0]
         cmds.connectAttr(f'{heel}.followAnkle', f'{constraint}.w0')
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ball_driver)
