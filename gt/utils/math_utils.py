@@ -177,5 +177,62 @@ def dist_center_to_center(obj_a, obj_b):
     return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
 
 
+def get_bbox_center(obj_list):
+    """
+    Get the center point of the bounding box for the specified object or list of objects.
+
+    Args:
+        obj_list (str or list): The name of the object or a list of objects to calculate
+            the bounding box center for. (meshes or surfaces only)
+
+    Returns:
+        list: A list containing the X, Y, and Z coordinates of the bounding box center.
+
+    Note:
+        This function works with a single object or a list of objects. If multiple objects
+        are provided, it calculates the bounding box center that encompasses all of them.
+
+    Example:
+        result_single = get_bbox_center('myObject')
+        [x_coordinate, y_coordinate, z_coordinate]
+
+        result_multiple = get_bbox_center(['obj1', 'obj2', 'obj3'])
+        [x_combined_center, y_combined_center, z_combined_center]
+    """
+    if not isinstance(obj_list, list):
+        obj_list = [obj_list]
+
+    all_points = []
+    for obj in obj_list:
+        shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+        if not shapes:
+            logger.debug(f'Unable to get bbox center for {obj}. Input does not have shapes.')
+            continue
+
+        points = []
+        for shape in shapes:
+            if cmds.objectType(shape) == 'nurbsSurface':
+                cvs_count = cmds.getAttr(f'{shape}.controlPoints', size=True)
+                points.append(f'{shape}.cv[0:{cvs_count - 1}]')
+            else:
+                vertex_count = cmds.polyEvaluate(shape, vertex=True)
+                points.append(f'{shape}.vtx[0:{vertex_count - 1}]')
+
+        all_points.extend(points)
+
+    if not all_points:
+        return [0, 0, 0]
+
+    bbox = cmds.exactWorldBoundingBox(all_points)
+    bb_min = bbox[:3]
+    bb_max = bbox[3:6]
+    mid_point = [(b_max + b_min) / 2 for b_min, b_max in zip(bb_min, bb_max)]
+    return mid_point
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    center = get_bbox_center(cmds.ls(selection=True))
+    x, y, z = center
+    locator = cmds.spaceLocator()[0]
+    cmds.move(x, y, z, locator)
