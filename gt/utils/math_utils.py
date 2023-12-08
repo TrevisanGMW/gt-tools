@@ -177,27 +177,28 @@ def dist_center_to_center(obj_a, obj_b):
     return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
 
 
-def get_bbox_center(obj_list):
+def get_bbox_position(obj_list, alignment=None, axis="x"):
     """
     Get the center point of the bounding box for the specified object or list of objects.
 
     Args:
-        obj_list (str or list): The name of the object or a list of objects to calculate
-            the bounding box center for. (meshes or surfaces only)
+        obj_list (str, list): The name of the object(s) to get the bounding box position. Meshes or surfaces only.
+        alignment (str, None): Alignment option, can be None (center), "+" (max), or "-" (min).
+                               When "None" (which is center) the axis is ignored.
+        axis (str): Axis option, can be "x", "y", or "z". Defaults to "x". (ignored if alignment is None)
 
     Returns:
-        list: A list containing the X, Y, and Z coordinates of the bounding box center.
-
-    Note:
-        This function works with a single object or a list of objects. If multiple objects
-        are provided, it calculates the bounding box center that encompasses all of them.
+        tuple: A tuple containing the X, Y, and Z coordinates of the bounding box position.
 
     Example:
         result_single = get_bbox_center('myObject')
-        [x_coordinate, y_coordinate, z_coordinate]
+        (x_coordinate, y_coordinate, z_coordinate)
 
         result_multiple = get_bbox_center(['obj1', 'obj2', 'obj3'])
-        [x_combined_center, y_combined_center, z_combined_center]
+        (x_combined_center, y_combined_center, z_combined_center)
+
+        result_multiple = get_bbox_center(['obj1', 'obj2', 'obj3'])
+        (x_combined_center, y_combined_center, z_combined_center)
     """
     if not isinstance(obj_list, list):
         obj_list = [obj_list]
@@ -221,18 +222,26 @@ def get_bbox_center(obj_list):
         all_points.extend(points)
 
     if not all_points:
-        return [0, 0, 0]
+        return 0, 0, 0
 
     bbox = cmds.exactWorldBoundingBox(all_points)
     bb_min = bbox[:3]
     bb_max = bbox[3:6]
-    mid_point = [(b_max + b_min) / 2 for b_min, b_max in zip(bb_min, bb_max)]
-    return mid_point
+    mid_point = list((b_max + b_min) / 2 for b_min, b_max in zip(bb_min, bb_max))
+
+    index = {"x": 0, "y": 1, "z": 2}[axis]
+    if alignment == "+":
+        mid_point[index] = bb_max[index]
+    elif alignment == "-":
+        mid_point[index] = bb_min[index]
+
+    return tuple(mid_point)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    center = get_bbox_center(cmds.ls(selection=True))
+    center = get_bbox_position("pSphere1")
+    print(center)
     x, y, z = center
     locator = cmds.spaceLocator()[0]
     cmds.move(x, y, z, locator)
