@@ -176,3 +176,25 @@ class TestMathUtils(unittest.TestCase):
         expected_result = 100.5
         result = math_utils.dist_center_to_center(obj_a, obj_b)
         self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_single_object(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+
+        expected_result = [0, 0, 0]
+        result = math_utils.get_bbox_center(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+
+        expected_result = [0, 100.5, 0]
+        result = math_utils.get_bbox_center(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_multiple_objects(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+
+        expected_result = [0, 2.5, 0]
+        result = math_utils.get_bbox_center(obj_list=[obj_a, obj_b])
+        self.assertEqual(expected_result, result)
