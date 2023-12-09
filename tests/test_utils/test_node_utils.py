@@ -158,3 +158,12 @@ class TestNodeUtils(unittest.TestCase):
         cube_one = maya_test_tools.create_poly_cube()
         node_one = Node(cube_one)
         self.assertTrue(isinstance(node_one, str))
+
+    def test_node_rename(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        node_one = Node(cube_one)
+        node_one.rename("mockedName")
+        expected = "mockedName"
+        result = node_one.get_short_name()
+        self.assertEqual(expected, result)
+

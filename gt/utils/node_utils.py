@@ -194,8 +194,20 @@ class Node(str):
         shape_types = [cmds.nodeType(shape) for shape in shapes]
         return shape_types
 
+    def rename(self, name):
+        """
+        Renames the node element in Maya
+        Args:
+            name (str): A new name for the object
+        Returns:
+            Node: This object.
+        """
+        cmds.rename(self.get_long_name(), name)
+        return self
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     a_node = Node(path="pSphere1")
+    a_node.rename('mySphere')
     print(a_node)
