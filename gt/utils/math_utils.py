@@ -238,6 +238,25 @@ def get_bbox_position(obj_list, alignment=None, axis="x"):
     return tuple(mid_point)
 
 
+def remap_value(value, old_range, new_range):
+    """
+    Remap a value from one range to another.
+
+    Args:
+        value (float): The input value to be remapped.
+        old_range (tuple, list): The range of the input value, specified as a tuple (min, max).
+        new_range (tuple, list): The desired range for the normalized value, specified as a tuple (min, max).
+
+    Returns:
+        float: The remapped value.
+
+    Example:
+        out = remap_value(value=50, old_range=(0, 100), new_range=(0, 1))
+        print(out)  # 0.5
+    """
+    return (value - old_range[0]) * (new_range[1] - new_range[0]) / (old_range[1] - old_range[0]) + new_range[0]
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     center = get_bbox_position("pSphere1")

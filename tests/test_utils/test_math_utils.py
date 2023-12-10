@@ -228,3 +228,39 @@ class TestMathUtils(unittest.TestCase):
         expected_result = (0.0, 2.5, -0.5)
         result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="z")
         self.assertEqual(expected_result, result)
+
+    def test_remap_value_within_range(self):
+        value = 50
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 0.5
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_at_lower_bound(self):
+        value = 0
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 0.0
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_at_upper_bound(self):
+        value = 100
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 1.0
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_negative_input(self):
+        value = -50
+        old_range = (-100, 0)
+        new_range = (0, 1)
+
+        expected_result = 0.5
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
