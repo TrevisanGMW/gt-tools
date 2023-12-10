@@ -871,3 +871,51 @@ class TestCurveUtils(unittest.TestCase):
         result = curve_utils.create_connection_line(object_a=cube_one, object_b=cube_two)
         expected = ('myCubeA_to_myCubeB', 'myCubeA_cluster', 'myCubeB_cluster')
         self.assertEqual(expected, result)
+
+    def test_get_positions_from_curve_periodic(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        result = curve_utils.get_positions_from_curve(curve=crv,
+                                                      count=2,
+                                                      periodic=True,
+                                                      space="uv",
+                                                      normalized=True)
+        expected = [0.0, 0.5]
+        self.assertEqual(expected, result)
+
+    def test_get_positions_from_curve_open(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        result = curve_utils.get_positions_from_curve(curve=crv,
+                                                      count=2,
+                                                      periodic=False,
+                                                      space="uv",
+                                                      normalized=True)
+        expected = [0.0, 1.0]
+        self.assertEqual(expected, result)
+
+    def test_get_positions_from_curve_not_normalized(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        result = curve_utils.get_positions_from_curve(curve=crv,
+                                                      count=2,
+                                                      periodic=False,
+                                                      space="uv",
+                                                      normalized=False)
+        expected = [0.0, 3.0]
+        self.assertEqual(expected, result)
+
+    def test_get_positions_from_curve_world_space(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        result = curve_utils.get_positions_from_curve(curve=crv,
+                                                      count=2,
+                                                      periodic=False,
+                                                      space="world",
+                                                      normalized=True)
+        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, result)

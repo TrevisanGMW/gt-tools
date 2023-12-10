@@ -7,12 +7,15 @@ from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
+from gt.utils.math_utils import remap_value
+import maya.OpenMaya as OpenMaya
 from gt.utils import attr_utils
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
 import sys
 import os
+
 
 # Logging Setup
 logging.basicConfig()
@@ -1880,6 +1883,58 @@ def create_connection_line(object_a, object_b, constraint=True):
     cmds.setAttr(shapes[0] + ".lineWidth", 3)
 
     return crv, cluster_a, cluster_b
+
+
+def get_positions_from_curve(curve, count, periodic=True, space="uv", normalized=True):
+    """
+    Retrieves positions along a curve based on specified parameters.
+
+    Args:
+        curve (str): The name of the curve to sample positions from.
+        count (int): The number of positions to retrieve along the curve.
+        periodic (bool, optional): If True, considers the curve as "periodic", otherwise "open".
+        space (str, optional): The coordinate space for the positions ('uv' or 'world'). Defaults to "uv".
+        normalized (bool, optional): If True, normalizes the positions between 0 and 1. Defaults to True.
+
+    Returns:
+        list: A list of positions along the curve.
+        e.g. [0, 0.5, 1]  # space="uv"
+        e.g. [[0, 0, 0], [0, 0.5, 0], [0, 1, 0]]  # space="world"
+
+    Example:
+        positions = get_position_from_curve_length("curve1", 10, periodic=True, space="world", normalized=True)
+    """
+    if periodic:
+        divide_value = count
+    else:
+        divide_value = count - 1
+    if divide_value == 0:
+        divide_value = 1
+
+    dag = OpenMaya.MDagPath()
+    obj = OpenMaya.MObject()
+    crv = OpenMaya.MSelectionList()
+    crv.add(curve)
+    crv.getDagPath(0, dag, obj)
+
+    crv_fn = OpenMaya.MFnNurbsCurve(dag)
+    length = crv_fn.length()
+    pos_list = [crv_fn.findParamFromLength(index * ((1/float(divide_value)) * length)) for index in range(count)]
+
+    if space == "world":
+        output_list = []
+        space = OpenMaya.MSpace.kWorld
+        point = OpenMaya.MPoint()
+        for pos in pos_list:
+            crv_fn.getPointAtParam(pos, point, space)
+            output_list.append([point[0], point[1], point[2]])  # X, Y, Z
+    elif normalized is True:
+        max_v = cmds.getAttr(curve + ".minMaxValue.maxValue")
+        min_v = cmds.getAttr(curve + ".minMaxValue.minValue")
+        output_list = [remap_value(value=pos, old_range=[min_v, max_v], new_range=[0, 1]) for pos in pos_list]
+    else:
+        output_list = pos_list
+    return output_list
 
 
 if __name__ == "__main__":
