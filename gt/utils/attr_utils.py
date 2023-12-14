@@ -282,7 +282,7 @@ def rescale(obj, scale, freeze=True):
     cmds.setAttr(obj + '.scaleY', scale)
     cmds.setAttr(obj + '.scaleZ', scale)
     if freeze:
-        freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
+        freeze_channels(obj, freeze_translate=False, freeze_rotate=False, freeze_scale=True)
 
 
 def selection_unlock_default_channels(feedback=True):
