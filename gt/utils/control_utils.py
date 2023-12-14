@@ -4,11 +4,15 @@ github.com/TrevisanGMW/gt-tools
 
 Dependencies: "gt.utils.curve_utils" and "gt.utils.data.controls"
 """
+from gt.utils.color_utils import set_color_viewport, get_directional_color
+from gt.utils.attr_utils import set_attr, set_attr_state, rescale
+from gt.utils.naming_utils import NamingConstants, get_short_name
 from gt.utils.data.controls import cluster_driven, slider
-from gt.utils.attr_utils import set_attr, set_attr_state
-from gt.utils.naming_utils import get_short_name
+from gt.utils.iterable_utils import sanitize_maya_list
+from gt.utils.transform_utils import match_transform
 from gt.utils.data_utils import DataDirConstants
 from gt.utils.curve_utils import Curve
+from gt.utils.node_utils import Node
 from gt.utils import iterable_utils
 from gt.utils import system_utils
 import maya.cmds as cmds
@@ -276,9 +280,137 @@ class Controls:
                                               build_function=slider.create_sliders_squared_facial_side_gui)
 
 
+def create_fk(joint_list,
+              curve_shape=None,
+              scale_multiplier=1,
+              colorize=True,
+              constraint_joint=True,
+              mimic_joint_hierarchy=True,
+              filter_string=f"_{NamingConstants.Suffix.END}",
+              suffix_ctrl=f"_{NamingConstants.Suffix.CTRL}",
+              suffix_offset=f"_{NamingConstants.Suffix.OFFSET}",
+              suffix_joint=f"_{NamingConstants.Suffix.JNT}",
+              ):
+    """
+    Creates FK controls for the given joint list.
+
+    Args:
+        joint_list (str or list): The list of joints or a single joint as a string. (Other types are ignored)
+        curve_shape (Curve or None): The curve shape to use for the control, if None, a default circle curve is used.
+        scale_multiplier (float): The scale multiplier for the control.
+        colorize (bool): Flag to enable colorizing the control based on directional color. (X+ or X-)
+        constraint_joint (bool): Flag to enable constraint the joint to the control using a parent constraint.
+        mimic_joint_hierarchy (bool): Flag to enable automatically parenting new controls to mimic joint hierarchy.
+        filter_string (str): The filter string to apply when sanitizing the joint list.
+        suffix_ctrl (str): The suffix for the control's name.
+        suffix_offset (str): The suffix for the offset group's name.
+        suffix_joint (str): The suffix for the joint's name.
+
+    Returns:
+        list: A list of created FK controls.
+    """
+    if isinstance(joint_list, str):
+        joint_list = [joint_list]
+    if not joint_list:
+        return
+
+    stored_selection = cmds.ls(selection=True) or []
+
+    # Sanitize Input List
+    filtered_list = sanitize_maya_list(input_list=joint_list,
+                                       filter_existing=True,
+                                       convert_to_nodes=True,
+                                       filter_type="joint",
+                                       filter_string=filter_string,
+                                       filter_unique=True,
+                                       sort_list=True)
+    fk_controls = []
+    for jnt in filtered_list:
+        if len(suffix_joint) != 0:
+            joint_name = get_short_name(jnt).replace(suffix_joint, '')
+        else:
+            joint_name = get_short_name(jnt)
+        ctrl_name = joint_name + suffix_ctrl
+        ctrl_grp_name = joint_name + suffix_offset
+
+        if curve_shape is not None and isinstance(curve_shape, Curve):
+            ctrl = curve_shape.build()
+            ctrl = Node(ctrl)
+            ctrl.rename(ctrl_name)
+            rescale(obj=ctrl, scale=scale_multiplier)
+        else:
+            ctrl = cmds.circle(name=ctrl_name,
+                               normal=[1, 0, 0],
+                               radius=scale_multiplier,
+                               ch=False)[0]  # Default Circle Curve
+            ctrl = Node(ctrl)
+
+        fk_controls.append(ctrl)
+        offset = Node(cmds.group(name=ctrl_grp_name, empty=True))
+        cmds.parent(ctrl.get_long_name(), offset.get_long_name())
+        match_transform(source=jnt, target_list=offset)
+
+        # Colorize Control ------------------------------------------------------
+        if colorize:
+            color = get_directional_color(jnt)
+            if isinstance(color, tuple) and len(color) == 3:
+                set_color_viewport(ctrl.get_long_name(), rgb_color=color)
+
+        # Constraint Joint ------------------------------------------------------
+        if constraint_joint:
+            cmds.parentConstraint(ctrl_name, jnt)
+
+        # Mimic Hierarchy -------------------------------------------------------
+        if mimic_joint_hierarchy:
+            try:
+                # Auto parents new controls
+                jnt_parent = cmds.listRelatives(jnt, allParents=True) or []
+                if jnt_parent:
+                    if suffix_joint and isinstance(suffix_joint, str):
+                        parent_ctrl = (jnt_parent[0].replace(suffix_joint, "") + suffix_ctrl)
+                    else:
+                        parent_ctrl = (jnt_parent[0] + suffix_ctrl)
+                    if cmds.objExists(parent_ctrl):
+                        cmds.parent(offset, parent_ctrl)
+            except Exception as e:
+                logger.debug(f'Unable to mimic hierarchy. Issue: {e}')
+    cmds.select(clear=True)
+    if stored_selection:
+        try:
+            cmds.select(stored_selection)
+        except Exception as e:
+            logger.debug(f'Unable to retrieve previous selection. Issue: {e}')
+    return fk_controls
+
+
+def selected_create_fk():
+    """
+    Creates FK controls for the selected joints.
+
+    Raises:
+        Warning: If an error occurs during the process.
+    """
+    undo_chunk_name = "Create FK Controls"
+    cmds.undoInfo(openChunk=True, chunkName=undo_chunk_name)
+    try:
+        selection = cmds.ls(selection=True, typ="joint") or []
+        create_fk(joint_list=selection)
+    except Exception as e:
+        logger.warning(str(e))
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=undo_chunk_name)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # out = Controls.scalable_two_sides_arrow
-    # out.build()
-    add_snapping_shape('pSphere1')
+    from gt.utils.scene_utils import force_reload_file
+
+    force_reload_file()
+
+    a_list = ['|joint1', '|joint1|joint2', '|joint1|joint2|joint3',
+              '|joint1|joint2|joint3|joint4', 'joint1', 'joint1',
+              'joint1', 'joint1', 'joint1', None, 2, 'abc_end']
+    from gt.utils.curve_utils import Curves
+    create_fk(joint_list=a_list, curve_shape=Curves.circle, scale_multiplier=2)
+
 
