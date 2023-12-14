@@ -472,6 +472,56 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
     cmds.connectAttr(f"{obj}.{l_clr_attr}B", f"{clr_side_condition}.colorIfFalseB")
 
 
+def get_directional_color(object_name, axis="X",
+                          negative_color=ColorConstants.RigControl.LEFT,
+                          center_color=ColorConstants.RigControl.CENTER,
+                          positive_color=ColorConstants.RigControl.RIGHT,
+                          tolerance=0.001):  # Add the new tolerance argument with a default value
+    """
+    Retrieves the color based on the world position along a specified axis for the given object.
+
+    Args:
+        object_name (str): The name of the object whose position color needs to be determined.
+        axis (str, optional): The axis along which to evaluate the object's position ('X', 'Y', or 'Z'). Defaults to 'X'.
+        negative_color: The color constant representing the color for negative position values.
+                        Defaults to ColorConstants.RigControl.LEFT.
+        center_color: The color constant representing the color for position values equal to zero.
+                      Defaults to ColorConstants.RigControl.CENTER.
+        positive_color: The color constant representing the color for positive position values.
+                        Defaults to ColorConstants.RigControl.RIGHT.
+        tolerance (float, optional): Tolerance value to determine if the position is close enough to zero.
+                                      Defaults to 1e-6.
+
+    Returns:
+        ColorConstant: The color constant corresponding to the object's position along the specified axis.
+    """
+    if not object_name or not cmds.objExists(object_name):
+        logger.warning(f"Object '{str(object_name)}' does not exist.")
+        return
+
+    axis = axis.upper()
+    if axis not in ["X", "Y", "Z"]:
+        logger.warning(f"Invalid axis '{axis}'. Please use 'X', 'Y', or 'Z'.")
+        return
+
+    # Get the world position of the object
+    world_position = cmds.xform(object_name, q=True, ws=True, translation=True)
+
+    # Get the value along the specified axis
+    position_value = world_position["XYZ" .index(axis)]
+
+    # Determine the color based on the position value
+    if position_value < -tolerance:
+        color = negative_color
+    elif position_value > tolerance:
+        color = positive_color
+    else:
+        color = center_color
+
+    return color
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    add_side_color_setup("pSphere1")
+    out = get_directional_color("pSphere1")
+    print(out)
