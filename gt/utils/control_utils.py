@@ -386,7 +386,8 @@ def create_fk(joint_list,
 def selected_create_fk():
     """
     Creates FK controls for the selected joints.
-
+    Returns:
+        list: A list of created FK controls.
     Raises:
         Warning: If an error occurs during the process.
     """
@@ -394,7 +395,7 @@ def selected_create_fk():
     cmds.undoInfo(openChunk=True, chunkName=undo_chunk_name)
     try:
         selection = cmds.ls(selection=True, typ="joint") or []
-        create_fk(joint_list=selection)
+        return create_fk(joint_list=selection)
     except Exception as e:
         logger.warning(str(e))
     finally:

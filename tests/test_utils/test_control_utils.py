@@ -251,3 +251,105 @@ class TestControlUtils(unittest.TestCase):
         ctrl_three = Node("|jnt_one_offset|jnt_one_ctrl|jnt_two_offset|jnt_two_ctrl|jnt_three_offset|jnt_three_ctrl")
         expected = [ctrl_one, ctrl_two, ctrl_three]
         self.assertEqual(str(expected), str(result))
+
+    def test_create_fk_no_hierarchy(self):
+        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
+        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
+        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
+        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
+        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
+        maya_test_tools.cmds.parent(joint_two, joint_one)
+        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joints = [joint_one, joint_two, joint_three]
+
+        result = control_utils.create_fk(joint_list=joints,
+                                         curve_shape=None,
+                                         scale_multiplier=1,
+                                         colorize=True,
+                                         constraint_joint=True,
+                                         mimic_joint_hierarchy=False,
+                                         filter_string=f"_end",
+                                         suffix_ctrl=f"_ctrl",
+                                         suffix_offset=f"_offset",
+                                         suffix_joint=f"_jnt")
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|jnt_one_offset|jnt_one_ctrl")
+        ctrl_two = Node("|jnt_two_offset|jnt_two_ctrl")
+        ctrl_three = Node("|jnt_three_offset|jnt_three_ctrl")
+        expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
+
+    def test_create_fk_custom_curve_shape(self):
+        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
+        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
+        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
+        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
+        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
+        maya_test_tools.cmds.parent(joint_two, joint_one)
+        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joints = [joint_one, joint_two, joint_three]
+
+        from gt.utils.curve_utils import Curves
+        result = control_utils.create_fk(joint_list=joints,
+                                         curve_shape=Curves.circle,
+                                         scale_multiplier=1,
+                                         colorize=True,
+                                         constraint_joint=True,
+                                         mimic_joint_hierarchy=False,
+                                         filter_string=f"_end",
+                                         suffix_ctrl=f"_ctrl",
+                                         suffix_offset=f"_offset",
+                                         suffix_joint=f"_jnt")
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|jnt_one_offset|jnt_one_ctrl")
+        ctrl_two = Node("|jnt_two_offset|jnt_two_ctrl")
+        ctrl_three = Node("|jnt_three_offset|jnt_three_ctrl")
+        expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
+
+    def test_create_fk_custom_names(self):
+        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
+        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
+        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
+        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
+        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
+        maya_test_tools.cmds.parent(joint_two, joint_one)
+        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joints = [joint_one, joint_two, joint_three]
+
+        from gt.utils.curve_utils import Curves
+        result = control_utils.create_fk(joint_list=joints,
+                                         curve_shape=Curves.circle,
+                                         scale_multiplier=1,
+                                         colorize=True,
+                                         constraint_joint=True,
+                                         mimic_joint_hierarchy=False,
+                                         filter_string=f"_end",
+                                         suffix_ctrl=f"_control",
+                                         suffix_offset=f"_grp",
+                                         suffix_joint=f"_one")
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|jnt_grp|jnt_control")
+        ctrl_two = Node("|jnt_two_grp|jnt_two_control")
+        ctrl_three = Node("|jnt_three_grp|jnt_three_control")
+        expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
+
+    def test_selected_create_fk(self):
+        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
+        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
+        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
+        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
+        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
+        maya_test_tools.cmds.parent(joint_two, joint_one)
+        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joints = [joint_one, joint_two, joint_three]
+        maya_test_tools.cmds.select(joints)
+
+        result = control_utils.selected_create_fk()
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|jnt_one_offset|jnt_one_ctrl")
+        ctrl_two = Node("|jnt_one_offset|jnt_one_ctrl|jnt_two_offset|jnt_two_ctrl")
+        ctrl_three = Node("|jnt_one_offset|jnt_one_ctrl|jnt_two_offset|jnt_two_ctrl|jnt_three_offset|jnt_three_ctrl")
+        expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
