@@ -224,3 +224,30 @@ class TestControlUtils(unittest.TestCase):
         self.assertFalse(is_hidden_lsx)
         self.assertFalse(is_hidden_lsy)
         self.assertFalse(is_hidden_lsz)
+
+    def test_create_fk(self):
+        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
+        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
+        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
+        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
+        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
+        maya_test_tools.cmds.parent(joint_two, joint_one)
+        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joints = [joint_one, joint_two, joint_three]
+
+        result = control_utils.create_fk(joint_list=joints,
+                                         curve_shape=None,
+                                         scale_multiplier=1,
+                                         colorize=True,
+                                         constraint_joint=True,
+                                         mimic_joint_hierarchy=True,
+                                         filter_string=f"_end",
+                                         suffix_ctrl=f"_ctrl",
+                                         suffix_offset=f"_offset",
+                                         suffix_joint=f"_jnt")
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|jnt_one_offset|jnt_one_ctrl")
+        ctrl_two = Node("|jnt_one_offset|jnt_one_ctrl|jnt_two_offset|jnt_two_ctrl")
+        ctrl_three = Node("|jnt_one_offset|jnt_one_ctrl|jnt_two_offset|jnt_two_ctrl|jnt_three_offset|jnt_three_ctrl")
+        expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
