@@ -13,10 +13,16 @@ tools_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if tools_root_dir not in sys.path:
     sys.path.append(tools_root_dir)
 from gt.utils import iterable_utils
+from tests import maya_test_tools
 
 
 class TestListUtils(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
+
     def setUp(self):
+        maya_test_tools.force_new_scene()
         self.mocked_dict = {'apple': 3, 'banana': 5, 'cherry': 7, 'date': 9}
         self.mocked_list = ["1", "2", "3", "a", "b", "c"]
 
@@ -262,3 +268,211 @@ class TestListUtils(unittest.TestCase):
         expected_result = {1: 'one', 2: 'two', 'a': 'apple', 'b': 'banana'}
         result = iterable_utils.sort_dict_by_keys(input_dict)
         self.assertEqual(expected_result, result)
+
+    def test_sanitize_maya_list(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        non_existent_obj = 'non_existent_object'
+
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere, non_existent_obj],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+
+        expected = [f'|{cube}', f'|{sphere}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_filter_unique(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        non_existent_obj = 'non_existent_object'
+
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, cube, non_existent_obj],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+        expected = [f'|{cube}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_filter_string(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        non_existent_obj = 'non_existent_object'
+
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere, non_existent_obj],
+                                                   filter_unique=True,
+                                                   filter_string='cube',
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+        expected = [f'|{sphere}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_hierarchy(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        maya_test_tools.cmds.parent(sphere, cube)
+        non_existent_obj = 'non_existent_object'
+
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, non_existent_obj],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=True,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+        expected = [f'|{cube}', f'|{cube}|{sphere}',
+                    f'|{cube}|{cube}Shape', f'|{cube}|{sphere}|{sphere}Shape']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_filter_type(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, f'|{cube}|Shape'],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type='transform',
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=True,  # Shapes won't show due to type filter
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+        expected = [f'|{cube}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_filter_regex(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=r'^cu',
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+        expected = [f'|{cube}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_filter_func(self):
+        # Define a custom filter function
+        def custom_filter(item):
+            return 'sphere' in item
+
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=custom_filter,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=False)
+
+        expected = [f'|{sphere}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_convert_to_nodes(self):
+        from gt.utils.node_utils import Node
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=True,
+                                                   short_names=False)
+        for obj in result:
+            if not isinstance(obj, Node):
+                raise Exception(f'Incorrect type returned. Expected "Node", but got "{str(type(obj))}".')
+
+    def test_sanitize_maya_list_sort_list(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        cylinder = maya_test_tools.create_poly_cylinder(name="cylinder")
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere, cylinder],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=True,
+                                                   short_names=False)
+        expected = [f'|{cube}', f'|{sphere}', f'|{cylinder}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_sort_list_reverse(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        cylinder = maya_test_tools.create_poly_cylinder(name="cylinder")
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere, cylinder],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=True,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=True,
+                                                   short_names=False)
+        expected = [f'|{cylinder}', f'|{sphere}', f'|{cube}']
+        self.assertEqual(result, expected)
+
+    def test_sanitize_maya_list_short_names(self):
+        cube = maya_test_tools.create_poly_cube(name='cube')
+        sphere = maya_test_tools.create_poly_sphere(name='sphere')
+        non_existent_obj = 'non_existent_object'
+
+        result = iterable_utils.sanitize_maya_list(input_list=[cube, sphere, non_existent_obj],
+                                                   filter_unique=True,
+                                                   filter_string=None,
+                                                   filter_func=None,
+                                                   filter_type=None,
+                                                   filter_regex=None,
+                                                   sort_list=True,
+                                                   reverse_list=False,
+                                                   hierarchy=False,
+                                                   convert_to_nodes=False,
+                                                   short_names=True)
+
+        expected = [f'{cube}', f'{sphere}']
+        self.assertEqual(result, expected)
