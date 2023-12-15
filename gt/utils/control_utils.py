@@ -280,12 +280,13 @@ class Controls:
                                               build_function=slider.create_sliders_squared_facial_side_gui)
 
 
-def create_fk(joint_list,
+def create_fk(target_list,
               curve_shape=None,
               scale_multiplier=1,
               colorize=True,
               constraint_joint=True,
               mimic_joint_hierarchy=True,
+              filter_type="joint",
               filter_string=f"_{NamingConstants.Suffix.END}",
               suffix_ctrl=f"_{NamingConstants.Suffix.CTRL}",
               suffix_offset=f"_{NamingConstants.Suffix.OFFSET}",
@@ -295,32 +296,34 @@ def create_fk(joint_list,
     Creates FK controls for the given joint list.
 
     Args:
-        joint_list (str or list): The list of joints or a single joint as a string. (Other types are ignored)
+        target_list (str or list): The list of targets (usually joints) or a single target as a string.
+                                   When using a type,
         curve_shape (Curve or None): The curve shape to use for the control, if None, a default circle curve is used.
         scale_multiplier (float): The scale multiplier for the control.
         colorize (bool): Flag to enable colorizing the control based on directional color. (X+ or X-)
         constraint_joint (bool): Flag to enable constraint the joint to the control using a parent constraint.
         mimic_joint_hierarchy (bool): Flag to enable automatically parenting new controls to mimic joint hierarchy.
-        filter_string (str): The filter string to apply when sanitizing the joint list.
-        suffix_ctrl (str): The suffix for the control's name.
-        suffix_offset (str): The suffix for the offset group's name.
-        suffix_joint (str): The suffix for the joint's name.
+        filter_type (str, optional): A string describing the accepted type. (e.g. "joint")
+        filter_string (str, optional): The filter string to apply when sanitizing the joint list. (e.g. "_end")
+        suffix_ctrl (str, optional): The suffix for the control's name. (e.g. "_ctrl")
+        suffix_offset (str, optional): The suffix for the offset group's name. (e.g. "_grp")
+        suffix_joint (str, optional): The suffix for the joint's name. (e.g. "_jnt")
 
     Returns:
         list: A list of created FK controls.
     """
-    if isinstance(joint_list, str):
-        joint_list = [joint_list]
-    if not joint_list:
+    if isinstance(target_list, str):
+        target_list = [target_list]
+    if not target_list:
         return
 
     stored_selection = cmds.ls(selection=True) or []
 
     # Sanitize Input List
-    filtered_list = sanitize_maya_list(input_list=joint_list,
+    filtered_list = sanitize_maya_list(input_list=target_list,
                                        filter_existing=True,
                                        convert_to_nodes=True,
-                                       filter_type="joint",
+                                       filter_type=filter_type,
                                        filter_string=filter_string,
                                        filter_unique=True,
                                        sort_list=True)
@@ -395,7 +398,7 @@ def selected_create_fk():
     cmds.undoInfo(openChunk=True, chunkName=undo_chunk_name)
     try:
         selection = cmds.ls(selection=True, typ="joint") or []
-        return create_fk(joint_list=selection)
+        return create_fk(target_list=selection)
     except Exception as e:
         logger.warning(str(e))
     finally:
@@ -412,6 +415,4 @@ if __name__ == "__main__":
               '|joint1|joint2|joint3|joint4', 'joint1', 'joint1',
               'joint1', 'joint1', 'joint1', None, 2, 'abc_end']
     from gt.utils.curve_utils import Curves
-    create_fk(joint_list=a_list, curve_shape=Curves.circle, scale_multiplier=2)
-
-
+    create_fk(target_list=a_list, curve_shape=Curves.primitive_cube, scale_multiplier=.5)

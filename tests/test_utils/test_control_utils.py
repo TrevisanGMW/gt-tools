@@ -235,12 +235,13 @@ class TestControlUtils(unittest.TestCase):
         maya_test_tools.cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
-        result = control_utils.create_fk(joint_list=joints,
+        result = control_utils.create_fk(target_list=joints,
                                          curve_shape=None,
                                          scale_multiplier=1,
                                          colorize=True,
                                          constraint_joint=True,
                                          mimic_joint_hierarchy=True,
+                                         filter_type=None,
                                          filter_string=f"_end",
                                          suffix_ctrl=f"_ctrl",
                                          suffix_offset=f"_offset",
@@ -262,12 +263,13 @@ class TestControlUtils(unittest.TestCase):
         maya_test_tools.cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
-        result = control_utils.create_fk(joint_list=joints,
+        result = control_utils.create_fk(target_list=joints,
                                          curve_shape=None,
                                          scale_multiplier=1,
                                          colorize=True,
                                          constraint_joint=True,
                                          mimic_joint_hierarchy=False,
+                                         filter_type="joint",
                                          filter_string=f"_end",
                                          suffix_ctrl=f"_ctrl",
                                          suffix_offset=f"_offset",
@@ -290,12 +292,13 @@ class TestControlUtils(unittest.TestCase):
         joints = [joint_one, joint_two, joint_three]
 
         from gt.utils.curve_utils import Curves
-        result = control_utils.create_fk(joint_list=joints,
+        result = control_utils.create_fk(target_list=joints,
                                          curve_shape=Curves.circle,
                                          scale_multiplier=1,
                                          colorize=True,
                                          constraint_joint=True,
                                          mimic_joint_hierarchy=False,
+                                         filter_type="joint",
                                          filter_string=f"_end",
                                          suffix_ctrl=f"_ctrl",
                                          suffix_offset=f"_offset",
@@ -318,12 +321,13 @@ class TestControlUtils(unittest.TestCase):
         joints = [joint_one, joint_two, joint_three]
 
         from gt.utils.curve_utils import Curves
-        result = control_utils.create_fk(joint_list=joints,
+        result = control_utils.create_fk(target_list=joints,
                                          curve_shape=Curves.circle,
                                          scale_multiplier=1,
                                          colorize=True,
                                          constraint_joint=True,
                                          mimic_joint_hierarchy=False,
+                                         filter_type="joint",
                                          filter_string=f"_end",
                                          suffix_ctrl=f"_control",
                                          suffix_offset=f"_grp",
@@ -333,6 +337,24 @@ class TestControlUtils(unittest.TestCase):
         ctrl_two = Node("|jnt_two_grp|jnt_two_control")
         ctrl_three = Node("|jnt_three_grp|jnt_three_control")
         expected = [ctrl_one, ctrl_two, ctrl_three]
+        self.assertEqual(str(expected), str(result))
+
+    def test_create_fk_different_type(self):
+        cube = maya_test_tools.create_poly_cube(name="cube")
+        result = control_utils.create_fk(target_list=cube,
+                                         curve_shape=None,
+                                         scale_multiplier=1,
+                                         colorize=True,
+                                         constraint_joint=True,
+                                         mimic_joint_hierarchy=False,
+                                         filter_type=None,
+                                         filter_string=f"_end",
+                                         suffix_ctrl=f"_ctrl",
+                                         suffix_offset=f"_grp",
+                                         suffix_joint=f"_one")
+        from gt.utils.node_utils import Node
+        ctrl_one = Node("|cube_grp|cube_ctrl")
+        expected = [ctrl_one]
         self.assertEqual(str(expected), str(result))
 
     def test_selected_create_fk(self):
