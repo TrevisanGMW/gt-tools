@@ -1041,7 +1041,7 @@ def match_translate(source, target_list, skip=None):
         return
     if isinstance(target_list, str):
         target_list = [target_list]
-    source_translation = cmds.xform(source, query=True, translation=True, worldSpace=True)
+    source_translation = cmds.xform(source, query=True, rotatePivot=True, worldSpace=True)
     for target in target_list:
         if not target or not cmds.objExists(target):
             logger.debug(f'Missing target object "{str(target)}" while matching translate values.')
@@ -1156,4 +1156,3 @@ if __name__ == "__main__":
     transform = Transform()
     transform.set_position(0, 10, 0)
     transform.apply_transform('pSphere1')
-
