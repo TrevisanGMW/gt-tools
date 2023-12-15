@@ -1445,7 +1445,10 @@ def create_corrective_setup(corrective_data):
                     cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
 
                 if setup == 'abduction_hip':
-                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    if side == "right":
+                        cmds.move(-limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    else:
+                        cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
                     cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
                     cmds.rotate(90, loc_base, rotateY=True, relative=True, objectSpace=True)
                     cmds.parent(loc_end, world=True)
@@ -2057,7 +2060,7 @@ def merge_corrective_elements(supress_warning=False):
 # Test it
 if __name__ == '__main__':
     data_corrective = GTBipedRiggerCorrectiveData()
-    data_corrective.debugging = False
+    data_corrective.debugging = True
     debugging = data_corrective.debugging
 
     # data_corrective.settings['setup_wrists'] = False
@@ -2070,8 +2073,8 @@ if __name__ == '__main__':
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
         persp_rot = cmds.getAttr('persp.rotate')[0]
-        import maya_utilities
-        gt_maya_utilities.force_reload_file()
+        from gt.utils.scene_utils import force_reload_file
+        force_reload_file()
         cmds.viewFit(all=True)
         cmds.setAttr('persp.tx', persp_pos[0])
         cmds.setAttr('persp.ty', persp_pos[1])
