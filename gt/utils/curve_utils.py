@@ -1937,12 +1937,30 @@ def get_positions_from_curve(curve, count, periodic=True, space="uv", normalized
     return output_list
 
 
+def rescale_curve(curve_transform, scale):
+    """
+    Rescales the control points of the specified curve transform.
+
+    Args:
+        curve_transform (str): The name of the curve transform to be rescaled.
+        scale (float): The scaling factor to be applied uniformly to the control points.
+
+    Example:
+        rescale_curve("myCurve", 2.0)
+    """
+    if not curve_transform or not cmds.objExists(curve_transform):
+        logger.debug(f'Unable to re-scale')
+        return
+    all_shapes = cmds.listRelatives(curve_transform, shapes=True) or []
+    crv_shapes = [shape for shape in all_shapes if cmds.objectType(shape) in CURVE_TYPES]
+    for shape in crv_shapes:
+        cvs_count = cmds.getAttr(f"{shape}.controlPoints", size=True)
+        cmds.scale(scale, scale, scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    sel = cmds.ls(selection=True)
-    out = set_curve_width("nurbsCircle1", 5)
-    print(out)
