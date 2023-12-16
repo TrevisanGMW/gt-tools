@@ -1445,10 +1445,7 @@ def create_corrective_setup(corrective_data):
                     cmds.rotate(90, loc_base, rotateZ=True, relative=True, objectSpace=True)
 
                 if setup == 'abduction_hip':
-                    if side == "right":
-                        cmds.move(-limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
-                    else:
-                        cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
+                    cmds.move(limb_scale, loc_end, moveX=True, relative=True, objectSpace=True)
                     cmds.move(limb_scale, loc_start, moveX=True, relative=True, objectSpace=True)
                     cmds.rotate(90, loc_base, rotateY=True, relative=True, objectSpace=True)
                     cmds.parent(loc_end, world=True)
