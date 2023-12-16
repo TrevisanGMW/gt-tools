@@ -1964,3 +1964,5 @@ if __name__ == "__main__":
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
+    crv_transform = cmds.ls(selection=True)[0]
+    rescale_curve(curve_transform=crv_transform, scale=1.1)
