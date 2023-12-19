@@ -45,7 +45,8 @@ class Ribbon:
                  num_controls=5,
                  num_joints=20,
                  add_fk=False,
-                 bind_joint_offset=(0, 0, 0)
+                 bind_joint_orient_offset=(90, 0, 0),
+                 bind_joint_parenting=True
                  ):
         """
         Args:
@@ -57,6 +58,8 @@ class Ribbon:
             num_controls (int, optional): The number of controls to create.
             num_joints (int, optional): The number of joints to create on the ribbon.
             add_fk (int): Flag to add FK controls.
+            bind_joint_orient_offset (tuple): An offset tuple with the X, Y, and Z rotation values.
+            bind_joint_parenting (bool, optional): Define if bind joints will form a hierarchy (True) or not (False)
         """
         self.prefix = None
         self.surface = None
@@ -64,6 +67,9 @@ class Ribbon:
         self.num_controls = 5
         self.num_joints = 20
         self.fixed_radius = None
+        self.add_fk = add_fk
+        self.bind_joint_offset = None
+        self.bind_joint_parenting = True
 
         self.set_prefix(prefix=prefix)
         self.set_surface(surface=surface)
@@ -73,9 +79,10 @@ class Ribbon:
             self.set_num_controls(num_controls=num_controls)
         if num_joints:
             self.set_num_joints(num_joints=num_joints)
-
-        self.add_fk = add_fk
-        self.bind_joint_offset = bind_joint_offset
+        if bind_joint_orient_offset:
+            self.set_bind_joint_orient_offset(offset_tuple=bind_joint_orient_offset)
+        if isinstance(bind_joint_parenting, bool):
+            self.set_bind_joint_hierarchy(state=bind_joint_parenting)
 
     def set_prefix(self, prefix):
         """
@@ -100,6 +107,33 @@ class Ribbon:
             logger.debug(f'Unable to set surface path. Input must be a non-empty string.')
             return
         self.surface = surface
+
+    def set_bind_joint_orient_offset(self, offset_tuple):
+        """
+        Sets an orientation offset (rotation) for the bind joints. Helpful for when matching orientation.
+        Args:
+            offset_tuple (tuple): An offset tuple with the X, Y, and Z rotation values.
+        """
+        if not isinstance(offset_tuple, tuple) or len(offset_tuple) < 3:
+            logger.debug(f'Unable to set bind joint orient offset. '
+                         f'Invalid input. Must be a tuple with X, Y and Z values.')
+            return
+
+        if not all(isinstance(num, (int, float)) for num in offset_tuple):
+            logger.debug(f'Unable to set bind joint orient offset. '
+                         f'Input must contain only numbers.')
+            return
+
+        self.bind_joint_offset = offset_tuple
+
+    def set_bind_joint_hierarchy(self, state):
+        """
+        Sets Bind joint parenting (hierarchy)
+        Args:
+            state (bool, optional): Define if bind joints will form a hierarchy (True) or not (False)
+        """
+        if isinstance(state, bool):
+            self.bind_joint_parenting = state
 
     def clear_surface(self):
         """
@@ -277,7 +311,8 @@ class Ribbon:
             bind_joints.append(joint)
 
             match_transform(source=_follicle_transform.get_long_name(), target_list=joint)
-            cmds.rotate(90, joint, rotateX=True, relative=True, os=True)  # TODO, Make offset optional @@@
+            if self.bind_joint_offset:
+                cmds.rotate(*self.bind_joint_offset, joint, relative=True, os=True)
             cmds.parentConstraint(_follicle_transform.get_long_name(), joint, maintainOffset=True)
             cmds.setAttr(f"{joint}.radius", bind_joint_radius)
 
@@ -288,9 +323,7 @@ class Ribbon:
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
 
-        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.RED)
-
-        # Controls ------------------------------------------------------------------------------------
+        # Ribbon Controls -----------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
 
@@ -320,7 +353,7 @@ class Ribbon:
                 u_pos = u_pos + (1.0 / divider_for_ctrls)
 
         ik_ctrl_scale = (length / 35) / (float(num_controls) / 5)  # TODO TEMP @@@
-        controls = []
+        ribbon_ctrls = []
 
         ctrl_offset_grps = []
         ctrl_joints = []
@@ -333,7 +366,7 @@ class Ribbon:
             ctrl.rename(f"{prefix}{NamingConstants.Suffix.CTRL}_{(index+1):02d}")
             rescale_curve(curve_transform=ctrl.get_long_name(), scale=length/20)
 
-            controls.append(ctrl)
+            ribbon_ctrls.append(ctrl)
 
             ctrl_offset_grp = cmds.group(name=f"{ctrl.get_short_name()}_offset", empty=True)
             hierarchy_utils.parent(source_objects=ctrl.get_long_name(), target_parent=ctrl_offset_grp)
@@ -349,9 +382,6 @@ class Ribbon:
             match_transform(source=ctrl_ref_follicle_transforms[index], target_list=ctrl_jnt_ofs_grp)
             ctrl_jnt_offset_grps.append(ctrl_jnt_ofs_grp)
 
-        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.GREEN)
-        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.RED)
-
         cmds.parent(ctrl_offset_grps, control_grp)
         cmds.parent(ctrl_jnt_offset_grps, driver_joints_grp)
 
@@ -360,7 +390,7 @@ class Ribbon:
 
         cmds.delete(ctrl_ref_follicle_transforms)
 
-        for (control, joint) in zip(controls, ctrl_joints):
+        for (control, joint) in zip(ribbon_ctrls, ctrl_joints):
             cmds.parentConstraint(control.get_long_name(), joint)
             cmds.scaleConstraint(control.get_long_name(), joint)
 
@@ -381,18 +411,16 @@ class Ribbon:
         cmds.connectAttr(f"{ribbon_ctrl}.sx", f"{ribbon_ctrl}.sz")
         cmds.aliasAttr("Scale", f"{ribbon_ctrl}.sx")
 
-        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.YELLOW)
-
         cmds.connectAttr(f"{ribbon_offset}.sx", f"{ribbon_offset}.sy")
         cmds.connectAttr(f"{ribbon_offset}.sx", f"{ribbon_offset}.sz")
         cmds.aliasAttr("Scale", f"{ribbon_offset}.sx")
 
+        # FK Controls ---------------------------------------------------------------------------------------
+        fk_ctrls = []
         if self.add_fk and is_periodic:
             logger.warning(f'Unable to add FK controls. Input surface is periodic.')
         elif self.add_fk and not is_periodic:
-            fk_ctrls = []
             fk_offset_groups = []
-
             crv_obj = get_curve("_circle_pos_x")
             for index in range(1, num_controls):
                 _ctrl = Node(crv_obj.build())
@@ -413,10 +441,10 @@ class Ribbon:
                 rescale_curve(curve_transform=fk_ctrl, scale=fk_ctrl_scale)
 
             ik_ctrl_offset_grps = [cmds.group(ctrl.get_short_name(),
-                                              name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in controls]
+                                              name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
             [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_ctrl_offset_grps]
 
-            for ik, fk in zip(controls[:-1], fk_offset_groups):
+            for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
                 cmds.delete(cmds.parentConstraint(ik.get_long_name(), fk))
 
             for fk, ik in zip(fk_ctrls, ik_ctrl_offset_grps[:-1]):
@@ -429,6 +457,20 @@ class Ribbon:
             hide_lock_default_attrs(fk_offset_groups)
 
             cmds.select(cl=True)
+
+        # Parenting Binding Joints
+        if self.bind_joint_parenting:
+            for index in range(len(bind_joints) - 1):
+                parent_joint = bind_joints[index]
+                child_joint = bind_joints[index + 1]
+                if cmds.objExists(str(parent_joint)) and cmds.objExists(str(child_joint)):
+                    cmds.parent(str(child_joint), str(parent_joint))
+
+        # Colors  ----------------------------------------------------------------------------------------
+        set_color_viewport(obj_list=ribbon_ctrl, rgb_color=ColorConstants.RGB.WHITE)
+        set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RGB.RED_INDIAN)
+        set_color_viewport(obj_list=ribbon_ctrls, rgb_color=ColorConstants.RGB.BLUE_SKY)
+        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.YELLOW)
 
         # Clear selection
         cmds.select(cl=True)
