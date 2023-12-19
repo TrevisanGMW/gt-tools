@@ -946,3 +946,30 @@ class TestCurveUtils(unittest.TestCase):
         expected = [[0.0, 0.0, 2.0], [0.0, 0.0, 1.334], [0.0, 0.0, 0.0],
                     [0.0, 0.0, -2.0], [0.0, 0.0, -3.334], [0.0, 0.0, -4.0]]
         self.assertEqual(expected, cv_positions)
+
+    def test_rescale_curve_tuple(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+
+        num_cvs = maya_test_tools.cmds.getAttr(f"{crv}.spans")
+        num_cvs += maya_test_tools.cmds.getAttr(f"{crv}.degree")
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, cv_positions)
+
+        curve_utils.rescale_curve(curve_transform=crv, scale=(2, 1, 1))
+
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, cv_positions)

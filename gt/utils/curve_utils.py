@@ -1943,7 +1943,8 @@ def rescale_curve(curve_transform, scale):
 
     Args:
         curve_transform (str): The name of the curve transform to be rescaled.
-        scale (float): The scaling factor to be applied uniformly to the control points.
+        scale (float, tuple): The scaling factor to be applied uniformly to the control points.
+                              It can also be a tuple, e.g. (1, 2, 1)
 
     Example:
         rescale_curve("myCurve", 2.0)
@@ -1951,11 +1952,14 @@ def rescale_curve(curve_transform, scale):
     if not curve_transform or not cmds.objExists(curve_transform):
         logger.debug(f'Unable to re-scale')
         return
-    all_shapes = cmds.listRelatives(curve_transform, shapes=True) or []
+    all_shapes = cmds.listRelatives(curve_transform, shapes=True, fullPath=True) or []
     crv_shapes = [shape for shape in all_shapes if cmds.objectType(shape) in CURVE_TYPES]
     for shape in crv_shapes:
         cvs_count = cmds.getAttr(f"{shape}.controlPoints", size=True)
-        cmds.scale(scale, scale, scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
+        if isinstance(scale, tuple):
+            cmds.scale(*scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
+        else:
+            cmds.scale(scale, scale, scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
 
 
 if __name__ == "__main__":
