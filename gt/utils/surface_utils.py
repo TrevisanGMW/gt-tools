@@ -2,9 +2,471 @@
 Surface Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.curve_utils import get_curve, get_positions_from_curve, rescale_curve
+from gt.utils.attr_utils import hide_lock_default_attrs, rescale, set_trs_attr
+from gt.utils.color_utils import set_color_viewport, ColorConstants
+from gt.utils.transform_utils import match_transform
+from gt.utils.math_utils import get_bbox_position
+from gt.utils.naming_utils import NamingConstants
+from gt.utils.node_utils import Node
+from gt.utils import hierarchy_utils
+import maya.cmds as cmds
 import logging
 
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+SURFACE_TYPE = "nurbsSurface"
+
+
+def is_surface_periodic(surface_shape):
+    """
+    Determine if a surface is periodic.
+    Args:
+        surface_shape (str): The name of the surface shape (or its transform).
+
+    Returns:
+        bool: True if the surface is periodic, False otherwise.
+    """
+    form_u = cmds.getAttr(f"{surface_shape}.formU")
+    form_v = cmds.getAttr(f'{surface_shape}.formV')
+    if form_u == 2 or form_v == 2:
+        return True
+    return False
+
+
+class Ribbon:
+    def __init__(self,
+                 prefix=None,
+                 surface=None,
+                 equidistant=True,
+                 num_controls=5,
+                 num_joints=20,
+                 add_fk=False,
+                 bind_joint_offset=(0, 0, 0)
+                 ):
+        """
+        Args:
+            prefix (str): The system name to be added as a prefix to the created nodes.
+                        If not provided, the name of the surface is used.
+            surface (str, optional): The name of the surface to be used as a ribbon. (Can be its transform or shape)
+                                     If not provided one will be created automatically.
+            equidistant (int, optional): Determine if the controls should be equally spaced (True) or not (False).
+            num_controls (int, optional): The number of controls to create.
+            num_joints (int, optional): The number of joints to create on the ribbon.
+            add_fk (int): Flag to add FK controls.
+        """
+        self.prefix = None
+        self.surface = None
+        self.equidistant = True
+        self.num_controls = 5
+        self.num_joints = 20
+        self.fixed_radius = None
+
+        self.set_prefix(prefix=prefix)
+        self.set_surface(surface=surface)
+        if isinstance(equidistant, bool):
+            self.set_equidistant(is_activated=equidistant)
+        if num_controls:
+            self.set_num_controls(num_controls=num_controls)
+        if num_joints:
+            self.set_num_joints(num_joints=num_joints)
+
+        self.add_fk = add_fk
+        self.bind_joint_offset = bind_joint_offset
+
+    def set_prefix(self, prefix):
+        """
+        Set the prefix attribute of the object.
+
+        Args:
+            prefix (str): The prefix to be added to the ribbon objects during the "build" process.
+        """
+        if not prefix or not isinstance(prefix, str):
+            logger.debug('Unable to set prefix. Input must be a non-empty string.')
+            return
+        self.prefix = prefix
+
+    def set_surface(self, surface):
+        """
+        Set the surface to be used as a ribbon of the object.
+        Args:
+            surface (str): The name of the surface to be used as a ribbon. (Can be its transform or shape)
+                           If not provided one will be created automatically.
+        """
+        if not surface or not isinstance(surface, str):
+            logger.debug(f'Unable to set surface path. Input must be a non-empty string.')
+            return
+        self.surface = surface
+
+    def clear_surface(self):
+        """
+        Removes/Clears the currently set surface so a new one is automatically created during the "build" process.
+        """
+        self.surface = None
+
+    def set_fixed_radius(self, radius):
+        """
+        Sets a fixed radius values
+        Args:
+            radius (int, float): A radius value to be set when creating bind joints.
+                                 If not provided, one is calculated automatically.
+        """
+        if not radius or not isinstance(radius, (int, float)):
+            logger.debug(f'Unable to set fixed radius. Input must be an integer or a float.')
+            return
+        self.fixed_radius = radius
+
+    def clear_fixed_radius(self):
+        """
+        Removes/Clears the currently set fixed radius value.
+        This causes the radius to be automatically calculated when building.
+        """
+        self.fixed_radius = None
+
+    def set_equidistant(self, is_activated):
+        """
+        Set the equidistant attribute of the object.
+
+        Args:
+            is_activated (bool): Determine if the controls should be equally spaced (True) or not (False).
+        """
+        if not isinstance(is_activated, bool):
+            logger.debug('Unable to set equidistant state. Input must be a bool (True or False)')
+            return
+        self.equidistant = is_activated
+
+    def set_num_controls(self, num_controls):
+        """
+        Set the number of controls attribute of the object.
+
+        Args:
+            num_controls (int): The number of controls to create.
+        """
+        if not isinstance(num_controls, int) or num_controls <= 1:
+            logger.debug('Unable to set number of controls. Input must be two or more.')
+            return
+        self.num_controls = num_controls
+
+    def set_num_joints(self, num_joints):
+        """
+        Set the number of joints attribute of the object.
+        Args:
+            num_joints (int): The number of joints to be set.
+        """
+        if not isinstance(num_joints, int) or num_joints <= 0:
+            logger.debug('Unable to set number of joints. Input must be a positive integer.')
+            return
+        self.num_joints = num_joints
+
+    def _get_or_create_surface(self, prefix):
+        surface = self.surface
+        if not self.surface or not cmds.objExists(self.surface):
+            surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
+                                      patchesU=1, patchesV=10, constructionHistory=False)[0]
+            surface = cmds.rename(surface, f"{prefix}ribbon_surface")
+        return surface
+
+    def build(self):
+        """
+        Build a ribbon rig.
+        """
+        num_controls = self.num_controls
+        num_joints = self.num_joints
+
+        # Determine Prefix
+        if not self.prefix:
+            prefix = f''
+        else:
+            prefix = f'{self.prefix}_'
+
+        # Create Surface in case not provided or missing
+        input_surface = self._get_or_create_surface(prefix=prefix)
+
+        # Determine Surface Transform and Shape
+        surface_shape = None
+        if cmds.objectType(input_surface) == "transform":
+            surface_shape = cmds.listRelatives(input_surface, shapes=True)[0]
+        if cmds.objectType(input_surface) == "nurbsSurface":
+            surface_shape = input_surface
+            input_surface = cmds.listRelatives(surface_shape, parent=True)[0]
+        cmds.delete(input_surface, constructionHistory=True)
+
+        # Determine Direction ----------------------------------------------------------------------------
+        u_curve = cmds.duplicateCurve(f'{input_surface}.v[.5]', local=True, ch=0)  # (.5 = center)
+        v_curve = cmds.duplicateCurve(f'{input_surface}.u[.5]', local=True, ch=0)
+        u_length = cmds.arclen(u_curve)
+        v_length = cmds.arclen(v_curve)
+
+        if u_length < v_length:
+            cmds.reverseSurface(input_surface, direction=3, ch=False, replaceOriginal=True)
+            cmds.reverseSurface(input_surface, direction=0, ch=False, replaceOriginal=True)
+
+        u_curve_for_positions = cmds.duplicateCurve(f'{input_surface}.v[.5]', local=True, ch=0)[0]
+
+        # U Positions
+        is_periodic = is_surface_periodic(surface_shape=surface_shape)
+        u_position_ctrls = get_positions_from_curve(curve=u_curve_for_positions, count=num_controls,
+                                                    periodic=is_periodic, space="uv")
+        u_position_joints = get_positions_from_curve(curve=u_curve_for_positions, count=num_joints,
+                                                     periodic=is_periodic, space="uv")
+
+        length = cmds.arclen(u_curve_for_positions)
+        cmds.delete(u_curve, v_curve, u_curve_for_positions)
+
+        # Organization ----------------------------------------------------------------------------------
+        grp_suffix = NamingConstants.Suffix.GRP
+        parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
+        driver_joints_grp = cmds.group(name=f"{prefix}driver_joints_{grp_suffix}", empty=True)
+        control_grp = cmds.group(name=f"{prefix}controls_{grp_suffix}", empty=True)
+        follicles_grp = cmds.group(name=f"{prefix}follicles_{grp_suffix}", empty=True)
+        bind_grp = cmds.group(name=f"{prefix}bind_{grp_suffix}", empty=True)
+        setup_grp = cmds.group(name=f"{prefix}setup_{grp_suffix}", empty=True)
+        ribbon_crv = get_curve("_pin_pos_z")
+        ribbon_crv.set_name(f"{prefix}base_{NamingConstants.Suffix.CTRL}")
+        ribbon_ctrl = ribbon_crv.build()
+        rescale_curve(curve_transform=ribbon_ctrl, scale=length/10)
+        ribbon_offset = cmds.group(name=f"{prefix}ctrl_main_offset", empty=True)
+
+        hierarchy_utils.parent(source_objects=ribbon_ctrl, target_parent=ribbon_offset)
+        hierarchy_utils.parent(source_objects=control_grp, target_parent=ribbon_ctrl)
+        hierarchy_utils.parent(source_objects=[ribbon_offset, bind_grp, setup_grp],
+                               target_parent=parent_group)
+        hierarchy_utils.parent(source_objects=[input_surface, driver_joints_grp, follicles_grp],
+                               target_parent=setup_grp)
+        cmds.setAttr(f"{setup_grp}.visibility", 0)
+
+        # Follicles -----------------------------------------------------------------------------------
+        follicle_nodes = []
+        follicle_transforms = []
+        bind_joints = []
+        if self.fixed_radius is None:
+            bind_joint_radius = (length/60)/(float(num_joints)/40)
+        else:
+            bind_joint_radius = self.fixed_radius
+
+        for index in range(num_joints):
+            _follicle = Node(cmds.createNode("follicle"))
+            _follicle_transform = Node(cmds.listRelatives(_follicle, p=True, fullPath=True)[0])
+            _follicle_transform.rename(f"{prefix}follicle_{(index+1):02d}")
+
+            follicle_transforms.append(_follicle_transform)
+            follicle_nodes.append(_follicle)
+
+            # Connect Follicle to Transforms
+            cmds.connectAttr(f"{_follicle}.outTranslate", f"{_follicle_transform}.translate")
+            cmds.connectAttr(f"{_follicle}.outRotate", f"{_follicle_transform}.rotate")
+
+            # Attach Follicle to Surface
+            cmds.connectAttr(f"{surface_shape}.worldMatrix[0]", f"{_follicle}.inputWorldMatrix")
+            cmds.connectAttr(f"{surface_shape}.local", f"{_follicle}.inputSurface")
+
+            cmds.setAttr(f'{_follicle}.parameterU', u_position_joints[index])
+            cmds.setAttr(f'{_follicle}.parameterV', 0.5)
+
+            cmds.parent(_follicle_transform.get_long_name(), follicles_grp)
+
+            # Bind Joint
+            if prefix:
+                joint_name = f"{prefix}{(index+1):02d}_{NamingConstants.Suffix.JNT}"
+            else:
+                joint_name = f"bind_{(index+1):02d}_{NamingConstants.Suffix.JNT}"
+            joint = cmds.createNode("joint", name=joint_name)
+            bind_joints.append(joint)
+
+            match_transform(source=_follicle_transform.get_long_name(), target_list=joint)
+            cmds.rotate(90, joint, rotateX=True, relative=True, os=True)  # TODO, Make offset optional @@@
+            cmds.parentConstraint(_follicle_transform.get_long_name(), joint, maintainOffset=True)
+            cmds.setAttr(f"{joint}.radius", bind_joint_radius)
+
+        if follicle_transforms:
+            match_transform(source=follicle_transforms[0].get_long_name(), target_list=ribbon_offset)
+        else:
+            bbox_center = get_bbox_position(input_surface)
+            set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
+        hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
+
+        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.RED)
+
+        # Controls ------------------------------------------------------------------------------------
+        ctrl_ref_follicle_nodes = []
+        ctrl_ref_follicle_transforms = []
+
+        for index in range(num_controls):
+            _follicle = Node(cmds.createNode("follicle"))
+            _follicle_transform = cmds.listRelatives(_follicle, parent=True)[0]
+            ctrl_ref_follicle_nodes.append(_follicle)
+            ctrl_ref_follicle_transforms.append(_follicle_transform)
+
+            cmds.connectAttr(f"{_follicle}.outTranslate", f"{_follicle_transform}.translate")
+            cmds.connectAttr(f"{_follicle}.outRotate", f"{_follicle_transform}.rotate")
+            cmds.connectAttr(f"{surface_shape}.worldMatrix[0]", f"{_follicle}.inputWorldMatrix")
+            cmds.connectAttr(f"{surface_shape}.local", f"{_follicle}.inputSurface")
+
+        divider_for_ctrls = num_controls
+        if not is_periodic:
+            divider_for_ctrls = num_controls-1
+        if self.equidistant:
+            for index, _follicle_transform in enumerate(ctrl_ref_follicle_nodes):
+                cmds.setAttr(f'{_follicle_transform}.parameterU', u_position_ctrls[index])
+                cmds.setAttr(f'{_follicle_transform}.parameterV', 0.5)  # Center
+        else:
+            u_pos = 0
+            for _follicle_transform in ctrl_ref_follicle_nodes:
+                cmds.setAttr(f'{_follicle_transform}.parameterU', u_pos)
+                cmds.setAttr(f'{_follicle_transform}.parameterV', 0.5)  # Center
+                u_pos = u_pos + (1.0 / divider_for_ctrls)
+
+        ik_ctrl_scale = (length / 35) / (float(num_controls) / 5)  # TODO TEMP @@@
+        controls = []
+
+        ctrl_offset_grps = []
+        ctrl_joints = []
+        ctrl_jnt_offset_grps = []
+        ctrl_jnt_radius = bind_joint_radius * 2
+
+        for index in range(num_controls):
+            crv = get_curve("_cube")
+            ctrl = Node(crv.build())
+            ctrl.rename(f"{prefix}{NamingConstants.Suffix.CTRL}_{(index+1):02d}")
+            rescale_curve(curve_transform=ctrl.get_long_name(), scale=length/20)
+
+            controls.append(ctrl)
+
+            ctrl_offset_grp = cmds.group(name=f"{ctrl.get_short_name()}_offset", empty=True)
+            hierarchy_utils.parent(source_objects=ctrl.get_long_name(), target_parent=ctrl_offset_grp)
+            match_transform(source=ctrl_ref_follicle_transforms[index], target_list=ctrl_offset_grp)
+            ctrl_offset_grps.append(ctrl_offset_grp)
+
+            # Ribbon Driver Joint
+            joint = cmds.createNode("joint", name=f'{prefix}driver_{(index+1):02d}_{NamingConstants.Suffix.JNT}')
+            ctrl_joints.append(joint)
+            cmds.setAttr(f"{ctrl_joints[index]}.radius", ctrl_jnt_radius)
+            ctrl_jnt_ofs_grp = cmds.group(name=f"{joint}_offset", empty=True)
+            hierarchy_utils.parent(source_objects=joint, target_parent=ctrl_jnt_ofs_grp)
+            match_transform(source=ctrl_ref_follicle_transforms[index], target_list=ctrl_jnt_ofs_grp)
+            ctrl_jnt_offset_grps.append(ctrl_jnt_ofs_grp)
+
+        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.GREEN)
+        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.RED)
+
+        cmds.parent(ctrl_offset_grps, control_grp)
+        cmds.parent(ctrl_jnt_offset_grps, driver_joints_grp)
+
+        hide_lock_default_attrs(obj_list=ctrl_offset_grps + ctrl_jnt_offset_grps,
+                                translate=True, rotate=True, scale=True, visibility=False)
+
+        cmds.delete(ctrl_ref_follicle_transforms)
+
+        for (control, joint) in zip(controls, ctrl_joints):
+            cmds.parentConstraint(control.get_long_name(), joint)
+            cmds.scaleConstraint(control.get_long_name(), joint)
+
+        # Follicle Scale
+        for fol in follicle_transforms:
+            cmds.scaleConstraint(ribbon_ctrl, fol.get_long_name())
+
+        # Bind the surface to driver joints
+        nurbs_skin_cluster = cmds.skinCluster(ctrl_joints, input_surface,
+                                              dropoffRate=2,
+                                              maximumInfluences=num_controls-1,
+                                              nurbsSamples=num_controls*5,
+                                              bindMethod=0,  # Closest Distance
+                                              name=f"{prefix}skinCluster")[0]
+        cmds.skinPercent(nurbs_skin_cluster, input_surface, pruneWeights=0.2)
+
+        cmds.connectAttr(f"{ribbon_ctrl}.sx", f"{ribbon_ctrl}.sy")
+        cmds.connectAttr(f"{ribbon_ctrl}.sx", f"{ribbon_ctrl}.sz")
+        cmds.aliasAttr("Scale", f"{ribbon_ctrl}.sx")
+
+        set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.YELLOW)
+
+        cmds.connectAttr(f"{ribbon_offset}.sx", f"{ribbon_offset}.sy")
+        cmds.connectAttr(f"{ribbon_offset}.sx", f"{ribbon_offset}.sz")
+        cmds.aliasAttr("Scale", f"{ribbon_offset}.sx")
+
+        if self.add_fk and is_periodic:
+            logger.warning(f'Unable to add FK controls. Input surface is periodic.')
+        elif self.add_fk and not is_periodic:
+            fk_ctrls = []
+            fk_offset_groups = []
+
+            crv_obj = get_curve("_circle_pos_x")
+            for index in range(1, num_controls):
+                _ctrl = Node(crv_obj.build())
+                _ctrl.rename(f'{prefix}fk_{index:02d}_ctrl')
+                _offset = Node(cmds.group(name=f'{prefix}fk_{index:02d}_offset', empty=True))
+                fk_ctrls.append(_ctrl)
+                fk_offset_groups.append(_offset)
+                cmds.parent(_ctrl.get_long_name(), _offset.get_long_name())
+
+            for (offset, ctrl) in zip(fk_offset_groups[1:], fk_ctrls[:-1]):
+                cmds.parent(offset.get_long_name(), ctrl.get_long_name())
+
+            cmds.parent(fk_offset_groups[0].get_long_name(), control_grp)
+
+            # Re-scale FK controls
+            fk_ctrl_scale = ik_ctrl_scale*2
+            for fk_ctrl in fk_ctrls:
+                rescale_curve(curve_transform=fk_ctrl, scale=fk_ctrl_scale)
+
+            ik_ctrl_offset_grps = [cmds.group(ctrl.get_short_name(),
+                                              name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in controls]
+            [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_ctrl_offset_grps]
+
+            for ik, fk in zip(controls[:-1], fk_offset_groups):
+                cmds.delete(cmds.parentConstraint(ik.get_long_name(), fk))
+
+            for fk, ik in zip(fk_ctrls, ik_ctrl_offset_grps[:-1]):
+                cmds.parentConstraint(fk.get_long_name(), ik)
+
+            # Constrain Last Ctrl
+            cmds.parentConstraint(fk_ctrls[-1].get_long_name(), ik_ctrl_offset_grps[-1], mo=True)
+
+            set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RigControl.TWEAK)
+            hide_lock_default_attrs(fk_offset_groups)
+
+            cmds.select(cl=True)
+
+        # Clear selection
+        cmds.select(cl=True)
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+    cmds.file(new=True, force=True)
+    # out = None
+    # # an_input_surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
+    # #                                    patchesU=1, patchesV=10, constructionHistory=False)[0]
+    # # cmds.setAttr(f'{an_input_surface}.tx', 5)
+    # try:
+    #     cmds.parent("abc_ribbon_surface", world=True)
+    #     cmds.delete("abc_ribbon_grp")
+    # except:
+    #     pass
+    # try:
+    #     cmds.parent("left_arm_sur", world=True)
+    #     cmds.delete("left_arm_ribbon_grp")
+    # except:
+    #     pass
+    ribbon_factory = Ribbon(equidistant=True,
+                            num_controls=15,
+                            num_joints=17,
+                            add_fk=True)
+    ribbon_factory.set_surface("right_leg_ribbon_sur")
+    ribbon_factory.set_prefix("right_leg")
+    # ribbon_factory.set_surface("abc_ribbon_surface")
+    # ribbon_factory.set_prefix("abc")
+    ribbon_factory.build()
+    # cylinder = cmds.polyCylinder(axis=(0, 0, 1), height=24, subdivisionsX=24, subdivisionsY=48, subdivisionsZ=1)
+    # jnt_list = []
+    # for idx in range(0, 20):
+    #     jnt_list.append(f'abc_{(idx + 1):02d}_jnt')
+    # for jnt in jnt_list:
+    #     cmds.setAttr(f'{jnt}.displayLocalAxis', 1)
+    #
+    # from gt.utils.skin_utils import bind_skin
+    # bind_skin(joints=jnt_list, objects=cylinder[0])
+    # cmds.select(clear=True)
