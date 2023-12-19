@@ -16,7 +16,7 @@ from gt.utils import iterable_utils
 from tests import maya_test_tools
 
 
-class TestListUtils(unittest.TestCase):
+class TestIterableUtils(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
