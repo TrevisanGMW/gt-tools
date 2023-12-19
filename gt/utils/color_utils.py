@@ -317,12 +317,12 @@ def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
         return []
     result_list = []
     for obj in obj_list:
-        if cmds.objExists(obj) and cmds.getAttr(f'{obj}.overrideEnabled', lock=True) is False:
+        if cmds.objExists(str(obj)) and cmds.getAttr(f'{obj}.overrideEnabled', lock=True) is False:
             try:
                 cmds.setAttr(f'{obj}.overrideEnabled', 1)
                 cmds.setAttr(f'{obj}.overrideRGBColors', 1)
                 cmds.setAttr(f'{obj}.overrideColorRGB', rgb_color[0], rgb_color[1], rgb_color[2])
-                result_list.append(obj)
+                result_list.append(str(obj))
             except Exception as e:
                 logger.debug(f'Unable to set override viewport color for "{obj}". Issue: {str(e)}')
     return result_list
@@ -350,12 +350,12 @@ def set_color_outliner(obj_list, rgb_color=(1, 1, 1)):
     result_list = []
     for obj in obj_list:
         try:
-            if cmds.objExists(obj) and cmds.getAttr(f'{obj}.useOutlinerColor', lock=True) is False:
+            if cmds.objExists(str(obj)) and cmds.getAttr(f'{obj}.useOutlinerColor', lock=True) is False:
                 cmds.setAttr(f'{obj}.useOutlinerColor', 1)
                 cmds.setAttr(f'{obj}.outlinerColorR', rgb_color[0])
                 cmds.setAttr(f'{obj}.outlinerColorG', rgb_color[1])
                 cmds.setAttr(f'{obj}.outlinerColorB', rgb_color[2])
-                result_list.append(obj)
+                result_list.append(str(obj))
         except Exception as e:
             logger.debug(f'Unable to set override outliner color for "{obj}". Issue: {str(e)}')
     return result_list
