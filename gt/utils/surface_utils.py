@@ -225,10 +225,12 @@ class Ribbon:
         # Determine Surface Transform and Shape
         surface_shape = None
         if cmds.objectType(input_surface) == "transform":
-            surface_shape = cmds.listRelatives(input_surface, shapes=True)[0]
+            surface_shape = cmds.listRelatives(input_surface, shapes=True, fullPath=True)[0]
+            surface_shape = Node(surface_shape)
         if cmds.objectType(input_surface) == "nurbsSurface":
-            surface_shape = input_surface
-            input_surface = cmds.listRelatives(surface_shape, parent=True)[0]
+            surface_shape = Node(input_surface)
+            input_surface = cmds.listRelatives(surface_shape, parent=True, fullPath=True)[0]
+            input_surface = Node(input_surface)
         cmds.delete(input_surface, constructionHistory=True)
 
         # Determine Direction ----------------------------------------------------------------------------
