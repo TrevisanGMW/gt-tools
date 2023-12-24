@@ -3,10 +3,10 @@ Node Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.uuid_utils import get_uuid, get_object_from_uuid
+from gt.utils.om_utils import get_mobject_from_path
 from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class Node(str):
+class Node:
     """
    Represents a node in Autodesk Maya.
 
@@ -33,14 +33,6 @@ class Node(str):
        exists: Check if the Maya node exists in the scene.
 
    """
-    def __new__(cls, path):
-        """
-        Since str objects are immutable, the "path" value needs to be defined in "__new__" instead of "__init__" only.
-        This is because the value is set during object creation and not during object initialization.
-        """
-        instance = super().__new__(cls, path)
-        return instance
-
     def __init__(self, path):
         """
         Initialize a Node instance.
@@ -76,6 +68,15 @@ class Node(str):
         Returns:
             str: Long name (path) - Empty string if not found
         """
+        return self.get_long_name()
+
+    def __unicode__(self):
+        """
+    Return the long name of the object when using it as unicode
+
+    Returns:
+        str: Long name (path) - Empty string if not found
+    """
         return self.get_long_name()
 
     def __add__(self, other):
@@ -205,9 +206,30 @@ class Node(str):
         cmds.rename(self.get_long_name(), name)
         return self
 
+    @property
+    def __class__(self):
+        """
+        Returns the string representation of the class.
+
+        Returns:
+            str: The string representation of the class.
+        """
+        return str
+
+    def __len__(self):
+        """
+        Gets the length of the long name of this node.
+        Returns:
+            int: Length of the long name for this node.
+        """
+        return len(self.get_long_name())
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    a_node = Node(path="pSphere1")
-    a_node.rename('mySphere')
-    print(a_node)
+    if cmds.objExists("pSphere1"):
+        cmds.rename("pSphere1", "pSphere2")
+    a_node = Node(path="pSphere2")
+    for node in [a_node]:
+        a_node.rename("pSphere1")
+        cmds.parent(a_node, world=True)
