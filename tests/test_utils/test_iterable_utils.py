@@ -437,7 +437,8 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=True,
                                                    short_names=False)
         expected = [f'|{cube}', f'|{sphere}', f'|{cylinder}']
-        self.assertEqual(result, expected)
+        result_as_str = list(map(str, result))
+        self.assertEqual(result_as_str, expected)
 
     def test_sanitize_maya_list_sort_list_reverse(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -452,7 +453,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    sort_list=True,
                                                    reverse_list=True,
                                                    hierarchy=False,
-                                                   convert_to_nodes=True,
+                                                   convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{cylinder}', f'|{sphere}', f'|{cube}']
         self.assertEqual(result, expected)
