@@ -3,7 +3,7 @@ Surface Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.curve_utils import get_curve, get_positions_from_curve, rescale_curve
-from gt.utils.attr_utils import hide_lock_default_attrs, rescale, set_trs_attr
+from gt.utils.attr_utils import hide_lock_default_attrs, set_trs_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants
 from gt.utils.transform_utils import match_transform
 from gt.utils.math_utils import get_bbox_position
@@ -71,8 +71,10 @@ class Ribbon:
         self.bind_joint_offset = None
         self.bind_joint_parenting = True
 
-        self.set_prefix(prefix=prefix)
-        self.set_surface(surface=surface)
+        if prefix:
+            self.set_prefix(prefix=prefix)
+        if surface:
+            self.set_surface(surface=surface)
         if isinstance(equidistant, bool):
             self.set_equidistant(is_activated=equidistant)
         if num_controls:
@@ -218,6 +220,7 @@ class Ribbon:
 
         # Create Surface in case not provided or missing
         input_surface = self._get_or_create_surface(prefix=prefix)
+        input_surface = Node(input_surface)
 
         # Determine Surface Transform and Shape
         surface_shape = None
@@ -253,16 +256,24 @@ class Ribbon:
         # Organization ----------------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
+        parent_group = Node(parent_group)
         driver_joints_grp = cmds.group(name=f"{prefix}driver_joints_{grp_suffix}", empty=True)
+        driver_joints_grp = Node(driver_joints_grp)
         control_grp = cmds.group(name=f"{prefix}controls_{grp_suffix}", empty=True)
+        control_grp = Node(control_grp)
         follicles_grp = cmds.group(name=f"{prefix}follicles_{grp_suffix}", empty=True)
+        follicles_grp = Node(follicles_grp)
         bind_grp = cmds.group(name=f"{prefix}bind_{grp_suffix}", empty=True)
+        bind_grp = Node(bind_grp)
         setup_grp = cmds.group(name=f"{prefix}setup_{grp_suffix}", empty=True)
+        setup_grp = Node(setup_grp)
         ribbon_crv = get_curve("_pin_pos_z")
         ribbon_crv.set_name(f"{prefix}base_{NamingConstants.Suffix.CTRL}")
         ribbon_ctrl = ribbon_crv.build()
+        ribbon_ctrl = Node(ribbon_ctrl)
         rescale_curve(curve_transform=ribbon_ctrl, scale=length/10)
         ribbon_offset = cmds.group(name=f"{prefix}ctrl_main_offset", empty=True)
+        ribbon_offset = Node(ribbon_offset)
 
         hierarchy_utils.parent(source_objects=ribbon_ctrl, target_parent=ribbon_offset)
         hierarchy_utils.parent(source_objects=control_grp, target_parent=ribbon_ctrl)
@@ -300,7 +311,7 @@ class Ribbon:
             cmds.setAttr(f'{_follicle}.parameterU', u_position_joints[index])
             cmds.setAttr(f'{_follicle}.parameterV', 0.5)
 
-            cmds.parent(_follicle_transform.get_long_name(), follicles_grp)
+            cmds.parent(_follicle_transform, follicles_grp)
 
             # Bind Joint
             if prefix:
@@ -308,16 +319,17 @@ class Ribbon:
             else:
                 joint_name = f"bind_{(index+1):02d}_{NamingConstants.Suffix.JNT}"
             joint = cmds.createNode("joint", name=joint_name)
+            joint = Node(joint)
             bind_joints.append(joint)
 
-            match_transform(source=_follicle_transform.get_long_name(), target_list=joint)
+            match_transform(source=_follicle_transform, target_list=joint)
             if self.bind_joint_offset:
                 cmds.rotate(*self.bind_joint_offset, joint, relative=True, os=True)
-            cmds.parentConstraint(_follicle_transform.get_long_name(), joint, maintainOffset=True)
+            cmds.parentConstraint(_follicle_transform, joint, maintainOffset=True)
             cmds.setAttr(f"{joint}.radius", bind_joint_radius)
 
         if follicle_transforms:
-            match_transform(source=follicle_transforms[0].get_long_name(), target_list=ribbon_offset)
+            match_transform(source=follicle_transforms[0], target_list=ribbon_offset)
         else:
             bbox_center = get_bbox_position(input_surface)
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
@@ -364,26 +376,31 @@ class Ribbon:
             crv = get_curve("_cube")
             ctrl = Node(crv.build())
             ctrl.rename(f"{prefix}{NamingConstants.Suffix.CTRL}_{(index+1):02d}")
-            rescale_curve(curve_transform=ctrl.get_long_name(), scale=length/20)
+            scale = ((length/3)/num_controls, 1, 1)
+
+            rescale_curve(curve_transform=ctrl, scale=scale)
 
             ribbon_ctrls.append(ctrl)
 
             ctrl_offset_grp = cmds.group(name=f"{ctrl.get_short_name()}_offset", empty=True)
-            hierarchy_utils.parent(source_objects=ctrl.get_long_name(), target_parent=ctrl_offset_grp)
+            ctrl_offset_grp = Node(ctrl_offset_grp)
+            hierarchy_utils.parent(source_objects=ctrl, target_parent=ctrl_offset_grp)
             match_transform(source=ctrl_ref_follicle_transforms[index], target_list=ctrl_offset_grp)
             ctrl_offset_grps.append(ctrl_offset_grp)
 
             # Ribbon Driver Joint
             joint = cmds.createNode("joint", name=f'{prefix}driver_{(index+1):02d}_{NamingConstants.Suffix.JNT}')
+            joint = Node(joint)
             ctrl_joints.append(joint)
             cmds.setAttr(f"{ctrl_joints[index]}.radius", ctrl_jnt_radius)
             ctrl_jnt_ofs_grp = cmds.group(name=f"{joint}_offset", empty=True)
+            ctrl_jnt_ofs_grp = Node(ctrl_jnt_ofs_grp)
             hierarchy_utils.parent(source_objects=joint, target_parent=ctrl_jnt_ofs_grp)
             match_transform(source=ctrl_ref_follicle_transforms[index], target_list=ctrl_jnt_ofs_grp)
             ctrl_jnt_offset_grps.append(ctrl_jnt_ofs_grp)
 
-        cmds.parent(ctrl_offset_grps, control_grp)
-        cmds.parent(ctrl_jnt_offset_grps, driver_joints_grp)
+        hierarchy_utils.parent(source_objects=ctrl_offset_grps, target_parent=control_grp)
+        hierarchy_utils.parent(source_objects=ctrl_jnt_offset_grps, target_parent=driver_joints_grp)
 
         hide_lock_default_attrs(obj_list=ctrl_offset_grps + ctrl_jnt_offset_grps,
                                 translate=True, rotate=True, scale=True, visibility=False)
@@ -391,12 +408,12 @@ class Ribbon:
         cmds.delete(ctrl_ref_follicle_transforms)
 
         for (control, joint) in zip(ribbon_ctrls, ctrl_joints):
-            cmds.parentConstraint(control.get_long_name(), joint)
-            cmds.scaleConstraint(control.get_long_name(), joint)
+            cmds.parentConstraint(control, joint)
+            cmds.scaleConstraint(control, joint)
 
         # Follicle Scale
         for fol in follicle_transforms:
-            cmds.scaleConstraint(ribbon_ctrl, fol.get_long_name())
+            cmds.scaleConstraint(ribbon_ctrl, fol)
 
         # Bind the surface to driver joints
         nurbs_skin_cluster = cmds.skinCluster(ctrl_joints, input_surface,
@@ -428,30 +445,30 @@ class Ribbon:
                 _offset = Node(cmds.group(name=f'{prefix}fk_{index:02d}_offset', empty=True))
                 fk_ctrls.append(_ctrl)
                 fk_offset_groups.append(_offset)
-                cmds.parent(_ctrl.get_long_name(), _offset.get_long_name())
+                cmds.parent(_ctrl, _offset)
 
             for (offset, ctrl) in zip(fk_offset_groups[1:], fk_ctrls[:-1]):
-                cmds.parent(offset.get_long_name(), ctrl.get_long_name())
+                cmds.parent(offset, ctrl)
 
-            cmds.parent(fk_offset_groups[0].get_long_name(), control_grp)
+            cmds.parent(fk_offset_groups[0], control_grp)
 
             # Re-scale FK controls
             fk_ctrl_scale = ik_ctrl_scale*2
             for fk_ctrl in fk_ctrls:
                 rescale_curve(curve_transform=fk_ctrl, scale=fk_ctrl_scale)
 
-            ik_ctrl_offset_grps = [cmds.group(ctrl.get_short_name(),
+            ik_ctrl_offset_grps = [cmds.group(ctrl,
                                               name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
             [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_ctrl_offset_grps]
 
             for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
-                cmds.delete(cmds.parentConstraint(ik.get_long_name(), fk))
+                cmds.delete(cmds.parentConstraint(ik, fk))
 
             for fk, ik in zip(fk_ctrls, ik_ctrl_offset_grps[:-1]):
-                cmds.parentConstraint(fk.get_long_name(), ik)
+                cmds.parentConstraint(fk, ik)
 
             # Constrain Last Ctrl
-            cmds.parentConstraint(fk_ctrls[-1].get_long_name(), ik_ctrl_offset_grps[-1], mo=True)
+            cmds.parentConstraint(fk_ctrls[-1], ik_ctrl_offset_grps[-1], mo=True)
 
             set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RigControl.TWEAK)
             hide_lock_default_attrs(fk_offset_groups)
@@ -463,8 +480,8 @@ class Ribbon:
             for index in range(len(bind_joints) - 1):
                 parent_joint = bind_joints[index]
                 child_joint = bind_joints[index + 1]
-                if cmds.objExists(str(parent_joint)) and cmds.objExists(str(child_joint)):
-                    cmds.parent(str(child_joint), str(parent_joint))
+                if cmds.objExists(parent_joint) and cmds.objExists(child_joint):
+                    cmds.parent(child_joint, parent_joint)
 
         # Colors  ----------------------------------------------------------------------------------------
         set_color_viewport(obj_list=ribbon_ctrl, rgb_color=ColorConstants.RGB.WHITE)
@@ -478,6 +495,7 @@ class Ribbon:
 
 if __name__ == "__main__":
     from pprint import pprint
+    logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
     # out = None
     # # an_input_surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
@@ -494,13 +512,14 @@ if __name__ == "__main__":
     # except:
     #     pass
     ribbon_factory = Ribbon(equidistant=True,
-                            num_controls=15,
+                            num_controls=5,
                             num_joints=17,
                             add_fk=True)
-    ribbon_factory.set_surface("right_leg_ribbon_sur")
-    ribbon_factory.set_prefix("right_leg")
+    ribbon_factory.set_surface("left_arm_ribbon_sur")
+    ribbon_factory.set_prefix("left_arm")
     # ribbon_factory.set_surface("abc_ribbon_surface")
     # ribbon_factory.set_prefix("abc")
+    ribbon_factory.build()
     ribbon_factory.build()
     # cylinder = cmds.polyCylinder(axis=(0, 0, 1), height=24, subdivisionsX=24, subdivisionsY=48, subdivisionsZ=1)
     # jnt_list = []
@@ -512,3 +531,4 @@ if __name__ == "__main__":
     # from gt.utils.skin_utils import bind_skin
     # bind_skin(joints=jnt_list, objects=cylinder[0])
     # cmds.select(clear=True)
+    
