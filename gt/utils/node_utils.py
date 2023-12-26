@@ -2,8 +2,8 @@
 Node Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.namespace_utils import get_namespace_hierarchy_list
 from gt.utils.uuid_utils import get_uuid, get_object_from_uuid
-from gt.utils.om_utils import get_mobject_from_path
 from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
@@ -235,8 +235,23 @@ class Node:
         cmds.rename(self.get_long_name(), name)
         return self
 
+    def get_namespaces(self, root_only=False):
+        """
+        Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
+
+        Args:
+        root_only (bool, optional): If True, it will only return the first (parent) namespace and ignore any
+                                    other namespaces inside of it. Otherwise, it will return the entire list.
+
+        Returns:
+            List of namespaces in hierarchy order.
+            e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+            or  ["parentNamespace"]
+        """
+        return get_namespace_hierarchy_list(obj=self.get_long_name(), root_only=root_only)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     a_node = Node(path="pSphere1")
-    print(a_node.is_unique())
+    print(a_node.get_namespaces())
