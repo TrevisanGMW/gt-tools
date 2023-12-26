@@ -25,9 +25,9 @@ def get_namespace_hierarchy_list(obj, root_only=False):
                                     other namespaces inside of it. Otherwise, it will return the entire list.
 
     Returns:
-        List of namespaces in hierarchy order.
-        e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
-        or  ["parentNamespace"]
+        list: List of namespaces in following its hierarchy order.
+              e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+              or  ["parentNamespace"]
     """
     namespace_list = []
     obj_namespaces = get_namespaces(obj)
