@@ -163,6 +163,36 @@ class Node:
         """
         return get_short_name(self.get_long_name())
 
+    def get_shape_types(self):
+        """
+        Get the types of shapes found under a transform in Maya.
+
+        Returns:
+            list: A list of shape types found under the transform node.
+        """
+        # Check if the given node exists
+        path = self.get_long_name()
+        if not cmds.objExists(path):
+            return []
+        shapes = cmds.listRelatives(path, shapes=True) or []
+        shape_types = [cmds.nodeType(shape) for shape in shapes]
+        return shape_types
+
+    def get_namespaces(self, root_only=False):
+        """
+        Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
+
+        Args:
+        root_only (bool, optional): If True, it will only return the first (parent) namespace and ignore any
+                                    other namespaces inside of it. Otherwise, it will return the entire list.
+
+        Returns:
+            list: List of namespaces in following its hierarchy order.
+                  e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+                  or  ["parentNamespace"]
+        """
+        return get_namespace_hierarchy_list(obj=self.get_long_name(), root_only=root_only)
+
     def is_dag(self):
         """
         Check if the object is a DAG (Directed Acyclic Graph) node in Maya.
@@ -209,21 +239,6 @@ class Node:
         """
         return bool(self.get_long_name())
 
-    def get_shape_types(self):
-        """
-        Get the types of shapes found under a transform in Maya.
-
-        Returns:
-            list: A list of shape types found under the transform node.
-        """
-        # Check if the given node exists
-        path = self.get_long_name()
-        if not cmds.objExists(path):
-            return []
-        shapes = cmds.listRelatives(path, shapes=True) or []
-        shape_types = [cmds.nodeType(shape) for shape in shapes]
-        return shape_types
-
     def rename(self, name):
         """
         Renames the node element in Maya
@@ -234,21 +249,6 @@ class Node:
         """
         cmds.rename(self.get_long_name(), name)
         return self
-
-    def get_namespaces(self, root_only=False):
-        """
-        Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
-
-        Args:
-        root_only (bool, optional): If True, it will only return the first (parent) namespace and ignore any
-                                    other namespaces inside of it. Otherwise, it will return the entire list.
-
-        Returns:
-            list: List of namespaces in following its hierarchy order.
-                  e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
-                  or  ["parentNamespace"]
-        """
-        return get_namespace_hierarchy_list(obj=self.get_long_name(), root_only=root_only)
 
 
 if __name__ == "__main__":

@@ -246,4 +246,3 @@ class TestNodeUtils(unittest.TestCase):
         expected = ['parentNS']
         result = node_to_test.get_namespaces(root_only=True)
         self.assertEqual(expected, result)
-        
