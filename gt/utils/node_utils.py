@@ -49,6 +49,24 @@ class Node:
             raise Exception(f'Unable to read node. Object "{path}" could not be found in the scene.')
         self.uuid = get_uuid(path)
 
+    @property
+    def __class__(self):
+        """
+        Returns the string representation of the class.
+
+        Returns:
+            str: The string representation of the class.
+        """
+        return str
+
+    def __len__(self):
+        """
+        Gets the length of the long name of this node.
+        Returns:
+            int: Length of the long name for this node.
+        """
+        return len(self.get_long_name())
+
     def __repr__(self):
         """
         Return the long name of the object when using it as a string/printing.
@@ -171,6 +189,17 @@ class Node:
         else:
             return False
 
+    def is_unique(self):
+        """
+        Checks if the short name is unique.
+        Returns:
+            bool: True if the short name is unique, otherwise False.
+                  e.g. "        """
+        found = cmds.ls(self.get_short_name()) or []
+        if len(found) > 1:
+            return False
+        return True
+
     def exists(self):
         """
         Check if the Maya node exists in the scene.
@@ -206,30 +235,8 @@ class Node:
         cmds.rename(self.get_long_name(), name)
         return self
 
-    @property
-    def __class__(self):
-        """
-        Returns the string representation of the class.
-
-        Returns:
-            str: The string representation of the class.
-        """
-        return str
-
-    def __len__(self):
-        """
-        Gets the length of the long name of this node.
-        Returns:
-            int: Length of the long name for this node.
-        """
-        return len(self.get_long_name())
-
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    if cmds.objExists("pSphere1"):
-        cmds.rename("pSphere1", "pSphere2")
-    a_node = Node(path="pSphere2")
-    for node in [a_node]:
-        a_node.rename("pSphere1")
-        cmds.parent(a_node, world=True)
+    a_node = Node(path="pSphere1")
+    print(a_node.is_unique())
