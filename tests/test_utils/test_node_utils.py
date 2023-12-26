@@ -167,3 +167,68 @@ class TestNodeUtils(unittest.TestCase):
         result = node_one.get_short_name()
         self.assertEqual(expected, result)
 
+    def test_node_string_cmds_use(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        group = maya_test_tools.cmds.group(name="group", empty=True, world=True)
+        a_node = Node(path=cube_one)
+        maya_test_tools.cmds.parent(a_node, group)
+        a_node.rename("mockedName")
+        maya_test_tools.cmds.parent(a_node, world=True)
+        expected = "mockedName"
+        result = a_node.get_short_name()
+        self.assertEqual(expected, result)
+        expected = "|mockedName"
+        result = a_node.get_long_name()
+        self.assertEqual(expected, result)
+
+    def test_node_is_unique_false(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_node, group_one)
+
+        cube_b = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_b_node = Node(path=cube_b)
+        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_b_node, group_two)
+
+        self.assertFalse(cube_node.is_unique(), "Node is unique, but it should not be.")
+        self.assertFalse(cube_b_node.is_unique(), "Node is unique, but it should not be.")
+
+    def test_node_is_unique_true(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_node, group_one)
+
+        cube_b = maya_test_tools.create_poly_cube(name="cube_two")
+        cube_b_node = Node(path=cube_b)
+        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_b_node, group_two)
+
+        self.assertTrue(cube_node.is_unique(), "Node is not unique, but it should be.")
+        self.assertTrue(cube_b_node.is_unique(), "Node is not unique, but it should be.")
+
+    def test_node_str_add_radd(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+
+        expected = "|cube_one"
+        result = cube_node.get_long_name()
+        self.assertEqual(expected, result)
+
+        expected = "|cube_one_test"
+        result = cube_node + "_test"
+        self.assertEqual(expected, result)
+
+        expected = "test_|cube_one"
+        result = "test_" + cube_node
+        self.assertEqual(expected, result)
+
+    def test_node_len(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+
+        expected = 9
+        result = len(cube_node)
+        self.assertEqual(expected, result)
