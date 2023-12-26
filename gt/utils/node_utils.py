@@ -244,9 +244,9 @@ class Node:
                                     other namespaces inside of it. Otherwise, it will return the entire list.
 
         Returns:
-            List of namespaces in hierarchy order.
-            e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
-            or  ["parentNamespace"]
+            list: List of namespaces in following its hierarchy order.
+                  e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+                  or  ["parentNamespace"]
         """
         return get_namespace_hierarchy_list(obj=self.get_long_name(), root_only=root_only)
 

@@ -232,3 +232,18 @@ class TestNodeUtils(unittest.TestCase):
         expected = 9
         result = len(cube_node)
         self.assertEqual(expected, result)
+
+    def test_node_namespaces(self):
+        maya_test_tools.import_data_file("cube_namespaces.ma")
+        node_to_test = Node("parentNS:childNS:grandChildNS:pCube1")
+        expected = ['parentNS', 'childNS', 'grandChildNS']
+        result = node_to_test.get_namespaces(root_only=False)
+        self.assertEqual(expected, result)
+
+    def test_node_namespaces_root_only(self):
+        maya_test_tools.import_data_file("cube_namespaces.ma")
+        node_to_test = Node("parentNS:childNS:grandChildNS:pCube1")
+        expected = ['parentNS']
+        result = node_to_test.get_namespaces(root_only=True)
+        self.assertEqual(expected, result)
+        
