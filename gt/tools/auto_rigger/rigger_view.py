@@ -2,7 +2,7 @@
 Auto Rigger View
 """
 from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
-from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton
+from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton, QGroupBox
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.ui.tree_widget_enhanced import QTreeEnhanced
 import gt.ui.resource_library as resource_library
@@ -112,9 +112,15 @@ class RiggerView(metaclass=MayaWindowMeta):
         left_layout.addWidget(self.module_tree)
 
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.build_proxy_btn)
-        buttons_layout.addWidget(self.build_rig_btn)
+        group_box = QGroupBox()
+        group_layout = QHBoxLayout()
+        group_box.setLayout(group_layout)
+        # buttons_layout.addWidget(self.build_proxy_btn)
+        # buttons_layout.addWidget(self.build_rig_btn)
+        group_layout.addWidget(self.build_rig_btn)
+        group_layout.addWidget(self.build_proxy_btn)
         left_layout.addLayout(buttons_layout)
+        left_layout.addWidget(group_box)
 
         # Splitter
         self.splitter.addWidget(left_widget)
