@@ -960,6 +960,12 @@ class StylesheetVariables:
         # Formatting
         "@border_radius;": "5",
     }
+    scroll_area_base = {
+        # Colors
+        "@border_color;": Color.RGB.gray_darker,
+        # Formatting
+        "@border_radius;": "5",
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
         # Colors
@@ -1014,6 +1020,8 @@ class Stylesheet:
                                        stylesheet_variables=StylesheetVariables.menu_base)
     group_box_base = get_stylesheet_content(stylesheet_name="group_box_base",
                                             stylesheet_variables=StylesheetVariables.group_box_base)
+    scroll_area_base = get_stylesheet_content(stylesheet_name="scroll_area_base",
+                                            stylesheet_variables=StylesheetVariables.scroll_area_base)
 
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
