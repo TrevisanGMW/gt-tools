@@ -33,6 +33,7 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.splitter = None
         self.module_tree = None
         self.module_attr_area = None
+        self.buttons_grp_box = None
         self.build_proxy_btn = None
         self.build_rig_btn = None
 
@@ -62,6 +63,7 @@ class RiggerView(metaclass=MayaWindowMeta):
             stylesheet += resource_library.Stylesheet.menu_base
         self.setStyleSheet(stylesheet)
         self.splitter.setStyleSheet("QSplitter::handle {margin: 5;}")
+        self.buttons_grp_box.setStyleSheet(resource_library.Stylesheet.group_box_base)
 
         # Final Adjustments
         qt_utils.resize_to_screen(self, percentage=30)
@@ -112,13 +114,13 @@ class RiggerView(metaclass=MayaWindowMeta):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.module_tree)
 
-        buttons_grp_box = QGroupBox()
+        self.buttons_grp_box = QGroupBox()
         buttons_grp_layout = QHBoxLayout()
-        buttons_grp_box.setLayout(buttons_grp_layout)
+        self.buttons_grp_box.setLayout(buttons_grp_layout)
         buttons_grp_layout.addWidget(self.build_rig_btn)
         buttons_grp_layout.addWidget(self.build_proxy_btn)
         left_layout.addLayout(buttons_grp_layout)
-        left_layout.addWidget(buttons_grp_box)
+        left_layout.addWidget(self.buttons_grp_box)
 
         # Splitter
         self.splitter.addWidget(left_widget)
