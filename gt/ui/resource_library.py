@@ -930,7 +930,7 @@ class StylesheetVariables:
     }
     table_widget_base = {
         # Colors
-        "@text_color;": Color.RGB.white,  # TODO TEMP @@@
+        "@text_color;": Color.RGB.white,
         "@background_color;": Color.RGB.gray_darker,
         "@selected_background_color;": Color.RGB.blue_pastel,
         "@hover_background_color;": Color.RGB.gray_light_slate,
@@ -953,6 +953,12 @@ class StylesheetVariables:
         "@menu_item_selected_bg_color;": Color.RGB.blue_pastel,
         # Formatting
         "@menu_item_padding;": "5 25 5 25;",
+    }
+    group_box_base = {
+        # Colors
+        "@border_color;": Color.RGB.gray_darker,
+        # Formatting
+        "@border_radius;": "5",
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
@@ -1006,6 +1012,8 @@ class Stylesheet:
                                             stylesheet_variables=StylesheetVariables.line_edit_base)
     menu_base = get_stylesheet_content(stylesheet_name="menu_base",
                                        stylesheet_variables=StylesheetVariables.menu_base)
+    group_box_base = get_stylesheet_content(stylesheet_name="group_box_base",
+                                            stylesheet_variables=StylesheetVariables.group_box_base)
 
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
