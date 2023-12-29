@@ -1,7 +1,8 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu, \
+    QLineEdit
 from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton, QGroupBox
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.ui.tree_widget_enhanced import QTreeEnhanced
@@ -33,9 +34,13 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.splitter = None
         self.module_tree = None
         self.module_attr_area = None
-        self.buttons_grp_box = None
+
+        self.grp_box_buttons = None
         self.build_proxy_btn = None
         self.build_rig_btn = None
+
+        self.grp_box_logger = None
+        self.logger_txt_field = None
 
         window_title = "GT Auto Rigger"
         if version:
@@ -63,7 +68,9 @@ class RiggerView(metaclass=MayaWindowMeta):
             stylesheet += resource_library.Stylesheet.menu_base
         self.setStyleSheet(stylesheet)
         self.splitter.setStyleSheet("QSplitter::handle {margin: 5;}")
-        self.buttons_grp_box.setStyleSheet(resource_library.Stylesheet.group_box_base)
+        self.grp_box_buttons.setStyleSheet(resource_library.Stylesheet.group_box_base)
+        self.grp_box_logger.setStyleSheet(resource_library.Stylesheet.group_box_base)
+        self.module_attr_area.setStyleSheet(resource_library.Stylesheet.scroll_area_base)
 
         # Final Adjustments
         qt_utils.resize_to_screen(self, percentage=30)
@@ -98,6 +105,9 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.module_attr_area.setWidgetResizable(True)
         self.module_attr_area.setAlignment(Qt.AlignTop)
 
+        self.logger_txt_field = QLineEdit()
+        self.logger_txt_field.setReadOnly(True)
+
     def create_layout(self):
         """Create the layout for the window."""
         # Main Layout
@@ -108,23 +118,34 @@ class RiggerView(metaclass=MayaWindowMeta):
                                     "padding-right: 0; "
                                     "padding-bottom: 0; "
                                     "padding-left: 15;}")
-
+        # Left Widget
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.module_tree)
 
-        self.buttons_grp_box = QGroupBox()
-        buttons_grp_layout = QHBoxLayout()
-        self.buttons_grp_box.setLayout(buttons_grp_layout)
-        buttons_grp_layout.addWidget(self.build_rig_btn)
-        buttons_grp_layout.addWidget(self.build_proxy_btn)
-        left_layout.addLayout(buttons_grp_layout)
-        left_layout.addWidget(self.buttons_grp_box)
+        self.grp_box_buttons = QGroupBox()
+        layout_buttons = QHBoxLayout()
+        self.grp_box_buttons.setLayout(layout_buttons)
+        layout_buttons.addWidget(self.build_rig_btn)
+        layout_buttons.addWidget(self.build_proxy_btn)
+        left_layout.addLayout(layout_buttons)
+        left_layout.addWidget(self.grp_box_buttons)
+
+        # Right Widget
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.addWidget(self.module_attr_area)
+        self.grp_box_logger = QGroupBox()
+        layout_logger = QHBoxLayout()
+        self.grp_box_logger.setLayout(layout_logger)
+        layout_logger.addWidget(self.logger_txt_field)
+        # right_layout.addWidget(self.grp_box_logger)
 
         # Splitter
         self.splitter.addWidget(left_widget)
-        self.splitter.addWidget(self.module_attr_area)
+        self.splitter.addWidget(right_widget)
 
         # Body (Below Menu Bar)
         body_layout = QHBoxLayout()
