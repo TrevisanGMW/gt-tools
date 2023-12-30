@@ -1492,9 +1492,13 @@ class ModuleGeneric:
         """
         Runs post skeleton script. Joints are parented and oriented during this step.
         Joint hierarchy (parenting) and orientation are coupled because of their dependency and correlation.
-        When in a project, this runs after the "build_skeleton" is done in all modules.
+        This step runs after the execution of "build_skeleton_joints" is complete in all modules.
+        Note:
+            External parenting is executed only after orientation is defined.
+            This fixes incorrect aim target orientation, because the last object simply
+            inherits the orientation from its parent instead of looking at their children.
         """
-        logger.debug(f'"build_skeleton_post" function from "{self.get_module_class_name()}" was called.')
+        logger.debug(f'"build_skeleton_hierarchy" function from "{self.get_module_class_name()}" was called.')
         module_uuids = self.get_proxies_uuids()
         jnt_nodes = []
         for proxy in self.proxies:
