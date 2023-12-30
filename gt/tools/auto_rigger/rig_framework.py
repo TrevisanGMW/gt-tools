@@ -20,12 +20,14 @@ from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
 from gt.utils.joint_utils import orient_joint
+from gt.utils.node_utils import create_node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -1411,6 +1413,7 @@ class ModuleGeneric:
             return False
         return True
 
+    # --------------------------------------------------- Build ---------------------------------------------------
     def build_proxy(self, project_prefix=None, optimized=False):
         """
         Builds the proxy representation of the rig (for the user to adjust and determine the pose)
@@ -1450,7 +1453,7 @@ class ModuleGeneric:
         logger.debug(f'"build_proxy_post" function for "{self.get_module_class_name()}" was called.')
         self.apply_transforms()
 
-    def build_skeleton(self):
+    def build_skeleton_joints(self):
         """
         Runs build skeleton script.
         Expects proxy to be present in the scene.
@@ -1461,8 +1464,7 @@ class ModuleGeneric:
             proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
             if not proxy_node:
                 continue
-            cmds.select(clear=True)  # When creating a joint, selection affects its hierarchy
-            joint = cmds.joint(name=proxy_node.get_short_name())
+            joint = create_node(node_type="joint", name=proxy_node.get_short_name())
             locator_scale = proxy.get_locator_scale()
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
@@ -1474,9 +1476,8 @@ class ModuleGeneric:
             set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
-            cmds.select(clear=True)  # When creating a joint, the new joint is selected.
 
-    def build_skeleton_post(self):
+    def build_skeleton_hierarchy_and_orientation(self):
         """
         Runs post skeleton script.
         When in a project, this runs after the "build_skeleton" is done in all modules.
@@ -1851,13 +1852,13 @@ class RigProject:
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
-                module.build_skeleton()
+                module.build_skeleton_joints()
 
             # ------------------------------------- Build Skeleton Post
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
-                module.build_skeleton_post()
+                module.build_skeleton_hierarchy_and_orientation()
 
             # ------------------------------------- Build Rig
             for module in self.modules:

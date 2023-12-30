@@ -368,8 +368,8 @@ class ModuleBipedFingers(ModuleGeneric):
             digit.apply_transforms()
         cmds.select(clear=True)
 
-    def build_skeleton(self):
-        super().build_skeleton()  # Passthrough
+    def build_skeleton_joints(self):
+        super().build_skeleton_joints()  # Passthrough
 
     def build_rig(self):
         """

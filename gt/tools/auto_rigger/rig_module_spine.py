@@ -185,16 +185,16 @@ class ModuleSpine(ModuleGeneric):
             spine.apply_transforms()
         cmds.select(clear=True)
 
-    def build_skeleton(self):
-        super().build_skeleton()  # Passthrough
+    def build_skeleton_joints(self):
+        super().build_skeleton_joints()  # Passthrough
 
-    def build_skeleton_post(self):
+    def build_skeleton_hierarchy_and_orientation(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         self.chest.set_parent_uuid(uuid=self.chest.get_meta_parent_uuid())
-        super().build_skeleton_post()  # Passthrough
+        super().build_skeleton_hierarchy_and_orientation()  # Passthrough
         self.chest.clear_parent_uuid()
 
     def build_rig(self):

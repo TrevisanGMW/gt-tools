@@ -229,17 +229,17 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.apply_transforms()
         cmds.select(clear=True)
 
-    def build_skeleton(self):
-        super().build_skeleton()  # Passthrough
+    def build_skeleton_joints(self):
+        super().build_skeleton_joints()  # Passthrough
 
-    def build_skeleton_post(self):
+    def build_skeleton_hierarchy_and_orientation(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         self.elbow.set_parent_uuid(self.shoulder.get_uuid())
         self.wrist.set_parent_uuid(self.elbow.get_uuid())
-        super().build_skeleton_post()  # Passthrough
+        super().build_skeleton_hierarchy_and_orientation()  # Passthrough
         self.elbow.clear_parent_uuid()
         self.wrist.clear_parent_uuid()
 
