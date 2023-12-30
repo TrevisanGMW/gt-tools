@@ -3,6 +3,16 @@ Auto Rigger Base Framework
 github.com/TrevisanGMW/gt-tools
 
 RigProject > Module > Proxy > Joint/Control
+
+Rigging Steps:
+    Proxy:
+        1: build_proxy
+        2: build_proxy_setup
+    Rig:
+        3: build_skeleton_joints
+        4: build_skeleton_hierarchy
+        5: build_rig
+        6: build_rig_post
 """
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
@@ -1430,6 +1440,7 @@ class ModuleGeneric:
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
+        logger.debug(f'"build_proxy" function for "{self.get_module_class_name()}" was called.')
         proxy_data = []
         _prefix = ''
         prefix_list = []
@@ -1444,19 +1455,19 @@ class ModuleGeneric:
                                           apply_transforms=False, optimized=optimized))
         return proxy_data
 
-    def build_proxy_post(self):
+    def build_proxy_setup(self):
         """
-        Runs post proxy script.
-        When in a project, this runs after the "build_proxy" is done in all modules.
-        Usually used to create extra behavior unique to this module. e.g. Constraints, automations.
+        Runs post proxy script. Used to define proxy automation/setup.
+        This step runs after the execution of "build_proxy" is complete in all modules.
+        Usually used to create extra behavior unique to the module. e.g. Constraints, automations, or limitations.
         """
-        logger.debug(f'"build_proxy_post" function for "{self.get_module_class_name()}" was called.')
+        logger.debug(f'"build_proxy_setup" function for "{self.get_module_class_name()}" was called.')
         self.apply_transforms()
 
     def build_skeleton_joints(self):
         """
-        Runs build skeleton script.
-        Expects proxy to be present in the scene.
+        Runs build skeleton joints script. Creates joints out of the proxy elements.
+        This function should happen after "build_proxy_setup" as it expects proxy elements to be present in the scene.
         """
         logger.debug(f'"build_skeleton" function from "{self.get_module_class_name()}" was called.')
         skeleton_grp = find_skeleton_group()
@@ -1477,9 +1488,10 @@ class ModuleGeneric:
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
-    def build_skeleton_hierarchy_and_orientation(self):
+    def build_skeleton_hierarchy(self):
         """
-        Runs post skeleton script.
+        Runs post skeleton script. Joints are parented and oriented during this step.
+        Joint hierarchy (parenting) and orientation are coupled because of their dependency and correlation.
         When in a project, this runs after the "build_skeleton" is done in all modules.
         """
         logger.debug(f'"build_skeleton_post" function from "{self.get_module_class_name()}" was called.')
@@ -1514,11 +1526,19 @@ class ModuleGeneric:
         cmds.select(clear=True)
 
     def build_rig(self):
-        """ Runs build rig script. """
+        """
+        Runs build rig script.
+        Used to create rig controls, automation and their internal connections.
+        An external connection refers to a connection that makes reference to rig elements created in another module.
+        """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
     def build_rig_post(self):
-        """ Runs post rig script. """
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
 
@@ -1818,7 +1838,7 @@ class RigProject:
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
-                module.build_proxy_post()
+                module.build_proxy_setup()
 
             cmds.select(clear=True)
         except Exception as e:
@@ -1858,7 +1878,7 @@ class RigProject:
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
-                module.build_skeleton_hierarchy_and_orientation()
+                module.build_skeleton_hierarchy()
 
             # ------------------------------------- Build Rig
             for module in self.modules:

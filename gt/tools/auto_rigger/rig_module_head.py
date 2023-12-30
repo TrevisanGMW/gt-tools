@@ -204,7 +204,7 @@ class ModuleHead(ModuleGeneric):
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
-    def build_proxy_post(self):
+    def build_proxy_setup(self):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
@@ -245,13 +245,13 @@ class ModuleHead(ModuleGeneric):
     def build_skeleton_joints(self):
         super().build_skeleton_joints()  # Passthrough
 
-    def build_skeleton_hierarchy_and_orientation(self):
+    def build_skeleton_hierarchy(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         self.head.set_parent_uuid(uuid=self.head.get_meta_parent_uuid())
-        super().build_skeleton_hierarchy_and_orientation()  # Passthrough
+        super().build_skeleton_hierarchy()  # Passthrough
         self.head.clear_parent_uuid()
 
         head_jnt = find_joint_node_from_uuid(self.head.get_uuid())

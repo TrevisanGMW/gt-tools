@@ -135,7 +135,7 @@ class ModuleBipedArm(ModuleGeneric):
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
-    def build_proxy_post(self):
+    def build_proxy_setup(self):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
@@ -232,14 +232,14 @@ class ModuleBipedArm(ModuleGeneric):
     def build_skeleton_joints(self):
         super().build_skeleton_joints()  # Passthrough
 
-    def build_skeleton_hierarchy_and_orientation(self):
+    def build_skeleton_hierarchy(self):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
         self.elbow.set_parent_uuid(self.shoulder.get_uuid())
         self.wrist.set_parent_uuid(self.elbow.get_uuid())
-        super().build_skeleton_hierarchy_and_orientation()  # Passthrough
+        super().build_skeleton_hierarchy()  # Passthrough
         self.elbow.clear_parent_uuid()
         self.wrist.clear_parent_uuid()
 

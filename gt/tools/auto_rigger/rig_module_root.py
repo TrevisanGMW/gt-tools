@@ -84,13 +84,13 @@ class ModuleRoot(ModuleGeneric):
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
-    def build_proxy_post(self):
+    def build_proxy_setup(self):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
         Creates leg proxy behavior through constraints and offsets.
         """
-        super().build_proxy_post()  # Passthrough
+        super().build_proxy_setup()  # Passthrough
         # Root Visibility Setup
         proxy_root = find_proxy_root_curve_node()
         root = find_proxy_node_from_uuid(self.root.get_uuid())

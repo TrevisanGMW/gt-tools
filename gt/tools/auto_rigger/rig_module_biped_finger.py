@@ -357,7 +357,7 @@ class ModuleBipedFingers(ModuleGeneric):
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
-    def build_proxy_post(self):
+    def build_proxy_setup(self):
         """
         Runs post proxy script.
         When in a project, this runs after the "build_proxy" is done in all modules.
