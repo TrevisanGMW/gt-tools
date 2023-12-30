@@ -254,6 +254,18 @@ class TestNodeUtils(unittest.TestCase):
         node_two = Node(cube)
         self.assertEqual(node_one, node_two)
 
+    def test_node_hashable(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        node_one = Node(cube_one)
+        node_two = Node(cube_two)
+
+        # Attempt to use instances as keys in a dictionary
+        node_dict = {node_one: "value1", node_two: "value2"}
+
+        # If the instances are hashable, the dictionary should be created without errors
+        self.assertIsInstance(node_dict, dict)
+
     def test_create_node_transform(self):
         result = node_utils.create_node("transform", name="mockedName", shared=False)
         expected = Node("|mockedName")

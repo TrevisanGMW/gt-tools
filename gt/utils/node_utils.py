@@ -151,6 +151,15 @@ class Node:
         else:
             raise TypeError('Unsupported operand type for ==: "Node" and ' + type(other).__name__)
 
+    def __hash__(self):
+        """
+        Return a hash value for the Node instance based on its UUID.
+
+        Returns:
+            int: Hash value.
+        """
+        return hash(self.get_uuid())
+
     def get_uuid(self):
         """
         Get the UUID of the Maya node.
