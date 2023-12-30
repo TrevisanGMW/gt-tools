@@ -133,6 +133,24 @@ class Node:
         else:
             raise TypeError('Unsupported operand type for +: ' + type(other).__name__ + ' and "str"')
 
+    def __eq__(self, other):
+        """
+        Check if two Node instances are equal based on their long names.
+
+        Args:
+           other (Node, str): The other Node instance to compare or a string.
+
+        Returns:
+           bool: True if the long names are equal, False otherwise.
+
+        Raises:
+           TypeError: If the 'other' operand is not a Node instance.
+        """
+        if isinstance(other, (Node, str)):
+            return str(self) == str(other)
+        else:
+            raise TypeError('Unsupported operand type for ==: "Node" and ' + type(other).__name__)
+
     def get_uuid(self):
         """
         Get the UUID of the Maya node.
@@ -251,7 +269,35 @@ class Node:
         return self
 
 
+def create_node(node_type, name=None, shared=False):
+    """
+    Creates a new node of the specified type. Returns a Node type object (instead of simple string)
+
+    Args:
+        node_type (str): The type of the node to be created. e.g. "joint", "multiplyDivide"
+                         Ignored if shared and a node with the same name is found.
+        name (str, optional): The name of the node. It can also be its path.
+                              If provided, a shortened version will be used. e.g. "|group|joint" = "joint"
+                              If shared, the function will use this name/path to determine if the node also exists.
+        shared (bool, optional): If True and a node with the same name already exists, return the existing node.
+
+    Returns:
+        Node: The created or existing node.
+
+    Example:
+        node = create_node("transform", name="my_transform", shared=True)
+    """
+    parameters = {}
+    if name and isinstance(name, str):
+        parameters["name"] = get_short_name(name)
+    if shared and cmds.objExists(name):
+        return Node(name)
+    result = cmds.createNode(node_type, **parameters, shared=shared, skipSelect=True)
+    if result and cmds.objExists(result):
+        return Node(result)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     a_node = Node(path="pSphere1")
-    print(a_node.get_namespaces())
+    print(a_node == "|pSphere1")

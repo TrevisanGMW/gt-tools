@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils.node_utils import Node
+from gt.utils import node_utils
 
 
 class TestNodeUtils(unittest.TestCase):
@@ -246,3 +247,31 @@ class TestNodeUtils(unittest.TestCase):
         expected = ['parentNS']
         result = node_to_test.get_namespaces(root_only=True)
         self.assertEqual(expected, result)
+
+    def test_node_equality(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        node_one = Node(cube)
+        node_two = Node(cube)
+        self.assertEqual(node_one, node_two)
+
+    def test_create_node_transform(self):
+        result = node_utils.create_node("transform", name="mockedName", shared=False)
+        expected = Node("|mockedName")
+        self.assertEqual(expected, result)
+        expected = "|mockedName"
+        self.assertEqual(expected, result)
+
+    def test_create_node_no_name(self):
+        result = node_utils.create_node("transform", name=None, shared=False)
+        expected = Node("|transform1")
+        self.assertEqual(expected, result)
+        expected = "|transform1"
+        self.assertEqual(expected, result)
+
+    def test_create_node_shared(self):
+        result_one = node_utils.create_node("transform", name="mockedName", shared=True)
+        result_two = node_utils.create_node("transform", name="mockedName", shared=True)
+        expected = Node("|mockedName")
+        self.assertEqual(expected, result_one)
+        self.assertEqual(expected, result_two)
+        self.assertFalse(maya_test_tools.cmds.objExists("mockedName1"))
