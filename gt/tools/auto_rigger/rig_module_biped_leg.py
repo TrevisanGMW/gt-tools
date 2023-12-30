@@ -13,6 +13,7 @@ from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
+from gt.utils.node_utils import create_node
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
@@ -216,7 +217,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_dir_loc = hierarchy_utils.parent(knee_dir_loc, root)[0]
         knee_aim_loc = hierarchy_utils.parent(knee_aim_loc, knee_dir_loc)[0]
 
-        knee_divide_node = cmds.createNode('multiplyDivide', name=f'{knee_tag}_divide')
+        knee_divide_node = create_node(node_type='multiplyDivide', name=f'{knee_tag}_divide')
         cmds.setAttr(f'{knee_divide_node}.operation', 2)  # Change operation to Divide
         cmds.setAttr(f'{knee_divide_node}.input2X', -2)
         cmds.connectAttr(f'{ankle}.tx', f'{knee_divide_node}.input1X')

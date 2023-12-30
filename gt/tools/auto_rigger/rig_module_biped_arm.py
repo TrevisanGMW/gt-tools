@@ -13,10 +13,10 @@ from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.math_utils import dist_center_to_center
+from gt.utils.node_utils import Node, create_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
-from gt.utils.node_utils import Node
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
@@ -190,7 +190,7 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.aimConstraint(wrist, elbow_dir_loc.get_long_name())
         cmds.pointConstraint(shoulder, elbow_upvec_loc_grp.get_long_name(), skip=['x', 'z'])
 
-        elbow_divide_node = cmds.createNode('multiplyDivide', name=f'{elbow_tag}_divide')
+        elbow_divide_node = create_node(node_type='multiplyDivide', name=f'{elbow_tag}_divide')
         cmds.setAttr(f'{elbow_divide_node}.operation', 2)  # Change operation to Divide
         cmds.setAttr(f'{elbow_divide_node}.input2X', -2)
         cmds.connectAttr(f'{wrist}.ty', f'{elbow_divide_node}.input1X')
