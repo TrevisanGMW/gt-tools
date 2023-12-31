@@ -6,11 +6,11 @@ from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_no
 from gt.tools.auto_rigger.rig_utils import find_direction_curve_node, find_or_create_joint_automation_group
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
+from gt.utils.transform_utils import match_translate, Vector3, set_equidistant_transforms
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.transform_utils import match_translate, Vector3
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.node_utils import Node, create_node
@@ -28,15 +28,18 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedArm(ModuleGeneric):
-    __version__ = '0.0.1-alpha'
+    __version__ = '0.0.2-alpha'
     icon = resource_library.Icon.rigger_module_biped_arm
     allow_parenting = True
+    FOREARM_ACTIVE_KEY = "twistForearm"
 
     def __init__(self, name="Arm", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(0, 1, 0))
         self.set_orientation(orientation_data=_orientation)
+
+        self.add_to_metadata(key=self.FOREARM_ACTIVE_KEY, value=True)
 
         clavicle_name = "clavicle"
         shoulder_name = "shoulder"
@@ -132,6 +135,7 @@ class ModuleBipedArm(ModuleGeneric):
         """
         if self.parent_uuid:
             self.clavicle.set_parent_uuid(self.parent_uuid)
+            # self.clavicle.add_meta_parent(self.parent_uuid)
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
@@ -243,7 +247,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.clear_parent_uuid()
         self.wrist.clear_parent_uuid()
 
-    def build_rig(self):
+    def build_rig(self, project_prefix=None, **kwargs):
         # Get Elements
         direction_crv = find_direction_curve_node()
         module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
@@ -292,6 +296,20 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
         set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
 
+        # Forearm Twist
+        forearm_name = self._assemble_new_node_name(name=f"forearm_{NamingConstants.Suffix.DRIVEN}",
+                                                    project_prefix=project_prefix)
+        forearm = duplicate_joint_for_automation(joint=wrist_jnt, parent=joint_automation_grp)
+        set_color_viewport(obj_list=forearm, rgb_color=ColorConstants.RigJoint.AUTOMATION)
+        forearm.rename(forearm_name)
+        set_equidistant_transforms(start=elbow_jnt, end=wrist_jnt, target_list=forearm, constraint='point')
+        forearm_radius = (self.elbow.get_locator_scale() + self.wrist.get_locator_scale())/2
+        set_attr(obj_list=forearm, attr_list="radius", value=forearm_radius)
+
+        # Is Twist Activated
+        if self.get_metadata_value(self.FOREARM_ACTIVE_KEY) is True:
+            print("Forearm is active")
+
         print(f'arm_scale: {arm_scale}')
         print("build arm rig!")
 
@@ -337,11 +355,17 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
+    a_module = ModuleGeneric()
+    a_proxy = a_module.add_new_proxy()
+    a_proxy.set_initial_position(y=130)
     a_arm = ModuleBipedArm()
     a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
+    a_arm_rt.set_parent_uuid(uuid=a_proxy.get_uuid())
+    a_arm_lf.set_parent_uuid(uuid=a_proxy.get_uuid())
     a_project = RigProject()
     # a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
+    a_project.add_to_modules(a_module)
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
