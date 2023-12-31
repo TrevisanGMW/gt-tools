@@ -42,6 +42,7 @@ class NamingConstants:
         LOC = 'loc'  # Locator
         OFFSET = 'offset'  # Offset Transform
         PROXY = 'proxy'
+        DRIVEN = 'driven'
         IK_HANDLE_SC = "ikSC"
         IK_HANDLE_RP = "ikRP"
         IK_HANDLE_SPRING = "ikSpring"
