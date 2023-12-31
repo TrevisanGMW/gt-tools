@@ -1304,6 +1304,18 @@ class ModuleGeneric:
         """
         return self.metadata
 
+    def get_metadata_value(self, key):
+        """
+        Gets the value stored in the metadata. If not found, returns None.
+        Args:
+            key (str): The value key.
+        Returns:
+            any: Value stored in the metadata key. If not found, it returns None
+        """
+        if not self.metadata or not key:
+            return
+        return self.metadata.get(key)
+
     def is_active(self):
         """
         Gets the active state. (True or False)
@@ -1401,6 +1413,48 @@ class ModuleGeneric:
             _module_name = f'{_module_name} ({_class_name})'
         return _module_name
 
+    def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
+        """
+        Assemble a new node name based on the given parameters and module prefix/suffix.
+        Result pattern: "<project_prefix>_<module_prefix>_<name>_<module_suffix>"
+        Args:
+            name (str): The base name of the node.
+            project_prefix (str, optional): Prefix specific to the project. Defaults to None.
+            overwrite_prefix (str, optional): Prefix to overwrite the module's prefix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+            overwrite_suffix (str, optional): Suffix to overwrite the module's suffix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+
+        Returns:
+            str: The assembled new node name.
+
+        Example:
+            instance._assemble_new_node_name(name='NodeName', project_prefix='Project', overwrite_suffix='Custom')
+            'Project_NodeName_Custom'
+        """
+        prefix_list = []
+        module_prefix = self.prefix
+        module_suffix = self.suffix
+        # Determine Overwrites
+        if isinstance(overwrite_prefix, str):
+            module_prefix = overwrite_prefix
+        if isinstance(overwrite_suffix, str):
+            module_suffix = overwrite_suffix
+        # Gather Suffixes
+        if project_prefix and isinstance(project_prefix, str):
+            prefix_list.append(project_prefix)
+        if module_prefix and isinstance(module_prefix, str):
+            prefix_list.append(module_prefix)
+        # Create Parts
+        _prefix = ''
+        _suffix = ''
+        if prefix_list:
+            _prefix = '_'.join(prefix_list) + '_'
+        if module_suffix:
+            _suffix = f'_{module_suffix}'
+        # Assemble and Return
+        return f'{_prefix}{name}{_suffix}'
+
     # --------------------------------------------------- Misc ---------------------------------------------------
     def apply_transforms(self, apply_offset=False):
         """
@@ -1428,10 +1482,13 @@ class ModuleGeneric:
         """
         Builds the proxy representation of the rig (for the user to adjust and determine the pose)
         Args:
-            project_prefix (str, optional): If provided, this prefix will be added to the proxies when they are created.
+            project_prefix (str, optional): If provided, this prefix will be added to proxies when they are created.
                                             This is an extra prefix, added on top of the module prefix (self.prefix)
-                                            So the final pattern is "<project_prefix>_<module_prefix>_<name>"
-                                            Module prefix is the prefix stored in this object "self.prefix"
+                                            So the final pattern is:
+                                                "<project_prefix>_<module_prefix>_<name>_<module_suffix>"
+                                            Project prefix is the prefix stored in the project carrying this module.
+                                            Module prefix is the prefix stored in this module "self.prefix"
+                                            Module suffix is the suffix stored in this module "self.suffix"
             optimized (bool, optional): If True, the module will skip display operations, such as curve creation,
                                         the addition of a snapping shape or the scale cluster and others.
                                         Useful for when building a rig without adjusting the proxy.
@@ -1529,11 +1586,19 @@ class ModuleGeneric:
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
         cmds.select(clear=True)
 
-    def build_rig(self):
+    def build_rig(self, project_prefix=None):
         """
         Runs build rig script.
         Used to create rig controls, automation and their internal connections.
         An external connection refers to a connection that makes reference to rig elements created in another module.
+        Args:
+            project_prefix (str, optional): If provided, this prefix will be added to the rig when it's created.
+                                            This is an extra prefix, added on top of the module prefix (self.prefix)
+                                            So the final pattern is:
+                                                "<project_prefix>_<module_prefix>_<name>_<module_suffix>"
+                                            Project prefix is the prefix stored in the project carrying this module.
+                                            Module prefix is the prefix stored in this module "self.prefix"
+                                            Module suffix is the suffix stored in this module "self.suffix"
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
 
@@ -1878,7 +1943,7 @@ class RigProject:
                     continue
                 module.build_skeleton_joints()
 
-            # ------------------------------------- Build Skeleton Post
+            # ------------------------------------- Build Skeleton Hierarchy
             for module in self.modules:
                 if not module.is_active():  # If not active, skip
                     continue
@@ -1906,6 +1971,7 @@ class RigProject:
         finally:
             cmds.refresh(suspend=False)
             cmds.refresh()
+            cmds.select(clear=True)
 
 
 if __name__ == "__main__":
