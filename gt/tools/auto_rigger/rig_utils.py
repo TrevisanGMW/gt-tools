@@ -529,7 +529,7 @@ def get_automation_group(name=f'generalAutomation_{NamingConstants.Suffix.GRP}',
     return _grp_path
 
 
-def duplicate_joint_for_automation(joint, suffix="driven", parent=None, connect_rot_order=True):
+def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
     """
     Preset version of the "duplicate_as_node" function used to duplicate joints for automation.
     Args:
@@ -553,13 +553,13 @@ def duplicate_joint_for_automation(joint, suffix="driven", parent=None, connect_
     return jnt_as_node
 
 
-def get_driven_joint(uuid_string, suffix="driven", constraint_to_source=True):
+def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constraint_to_source=True):
     """
     Gets the path to a driven joint or create it in case it's missing.
-    Driven joints are
+    Driven joints are used to control automation joints or joint hierarchies.
     Args:
-        uuid_string (str): UUID string stored in "RiggerConstants.JOINT_ATTR_DRIVEN_UUID" used to identify
-        suffix (str, optional): Prefix to add to the newly created
+        uuid_string (str): UUID string stored in "RiggerConstants.JOINT_ATTR_DRIVEN_UUID" used to identify.
+        suffix (str, optional): Suffix to add to the newly created driven joint. Default is "driven".
         constraint_to_source (bool, optional): Parent constraint the joint to its source during creation.
                                                Does nothing if driver already exists and is found.
     Returns:
