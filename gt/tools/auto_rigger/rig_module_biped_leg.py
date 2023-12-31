@@ -305,7 +305,7 @@ class ModuleBipedLeg(ModuleGeneric):
         if heel_jnt and cmds.objExists(heel_jnt):
             cmds.delete(heel_jnt)
 
-    def build_rig(self):
+    def build_rig(self, **kwargs):
         # Get Elements
         direction_crv = find_direction_curve_node()
         module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@

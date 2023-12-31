@@ -371,7 +371,7 @@ class ModuleBipedFingers(ModuleGeneric):
     def build_skeleton_joints(self):
         super().build_skeleton_joints()  # Passthrough
 
-    def build_rig(self):
+    def build_rig(self, **kwargs):
         """
         Runs post rig script.
         """
