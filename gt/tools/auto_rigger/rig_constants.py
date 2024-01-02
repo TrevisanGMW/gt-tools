@@ -14,8 +14,10 @@ class RiggerConstants:
     # General Keys and Attributes
     PROJECT_EXTENSION = "rig"
     FILE_FILTER = f"Rig Project (*.{PROJECT_EXTENSION});;"
+    # Attributes and Keys
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
+    CONTROL_ATTR_UUID = "controlUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
     PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
