@@ -58,10 +58,10 @@ def find_joint_from_uuid(uuid_string):
     Returns:
         str or None: If found, the joint with the matching UUID, otherwise None
     """
-    proxy = get_object_from_uuid_attr(uuid_string=uuid_string,
+    joint = get_object_from_uuid_attr(uuid_string=uuid_string,
                                       attr_name=RiggerConstants.JOINT_ATTR_UUID,
                                       obj_type="joint")
-    return proxy
+    return joint
 
 
 def find_joint_node_from_uuid(uuid_string):
@@ -75,6 +75,33 @@ def find_joint_node_from_uuid(uuid_string):
     proxy = find_joint_from_uuid(uuid_string)
     if proxy:
         return Node(proxy)
+
+
+def find_control_from_uuid(uuid_string):
+    """
+    Return a joint if the provided UUID is present in the attribute RiggerConstants.JOINT_ATTR_UUID
+    Args:
+        uuid_string (str): UUID to look for (if it matches, then the joint is found)
+    Returns:
+        str or None: If found, the joint with the matching UUID, otherwise None
+    """
+    ctrl = get_object_from_uuid_attr(uuid_string=uuid_string,
+                                     attr_name=RiggerConstants.CONTROL_ATTR_UUID,
+                                     obj_type="transform")
+    return ctrl
+
+
+def find_control_node_from_uuid(uuid_string):
+    """
+    Returns the found joint as a "Node" object (gt.utils.node_utils)
+    Args:
+        uuid_string (str): UUID to look for (if it matches, then the joint is found)
+    Returns:
+        Node or None: If found, the joint (as a Node) with the matching UUID, otherwise None
+    """
+    joint = find_control_from_uuid(uuid_string)
+    if joint:
+        return Node(joint)
 
 
 def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True):
