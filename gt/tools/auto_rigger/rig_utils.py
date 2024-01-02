@@ -5,9 +5,9 @@ github.com/TrevisanGMW/gt-tools
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
 from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
+from gt.utils.uuid_utils import get_object_from_uuid_attr, generate_uuid, is_uuid_valid
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils import hierarchy_utils
@@ -382,6 +382,40 @@ def create_control_root_curve():
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
+
+
+def create_ctrl_curve(name, curve_file_name=None, uuid=None):
+    """
+    Creates a control with a control UUID attribute.
+    Args:
+        name (str): Control name.
+        curve_file_name (str, optional): Curve file name (from inside "gt/utils/data/curves") e.g. "circle"
+        uuid (str, optional): A defined UUID for the control.
+                              In case this is not provided, one will be automatically generated.
+    Returns:
+        str or None: Path to the generated control, otherwise None
+    """
+    if uuid and not is_uuid_valid(uuid):
+        raise Exception("Failed to create control. Provided UUID is invalid.")
+    if not curve_file_name:
+        curve_file_name = "_circle_pos_x"
+    crv_obj = get_curve(file_name=curve_file_name)
+    crv_obj.set_name(name)
+    crv = crv_obj.build()
+    uuid_attr = add_attr(obj_list=crv, attr_type="string", is_keyable=False,
+                         attributes=RiggerConstants.CONTROL_ATTR_UUID, verbose=True)
+    if uuid_attr:
+        uuid_attr = uuid_attr[0]
+    else:
+        try:
+            cmds.delete(crv)
+        except Exception as e:
+            logger.debug(f'Unable to delete curve control. Issue: {e}')
+        return
+    if not uuid:
+        uuid = generate_uuid(remove_dashes=True)
+    set_attr(attribute_path=uuid_attr, value=str(uuid))
+    return crv
 
 
 def create_direction_curve():
