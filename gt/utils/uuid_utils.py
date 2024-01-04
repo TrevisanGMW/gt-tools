@@ -184,7 +184,7 @@ def add_uuid_attr(obj_list, attr_name, set_initial_uuid_value=True):
         return []
     if isinstance(obj_list, str):
         obj_list = [obj_list]
-    created_attrs = add_attr(target_list=obj_list, attributes=attr_name, attr_type='string', verbose=False)
+    created_attrs = add_attr(obj_list=obj_list, attributes=attr_name, attr_type='string', verbose=False)
     for attr in created_attrs:
         set_attr(attribute_path=attr, value="")
     if set_initial_uuid_value:

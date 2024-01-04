@@ -196,36 +196,41 @@ def set_trs_attr(target_obj, value_tuple, translate=False, rotate=False, scale=F
         log_when_true(logger, message, do_log=verbose, level=log_level)
 
 
-def hide_lock_default_attrs(obj, translate=True, rotate=True, scale=True, visibility=False):
+def hide_lock_default_attrs(obj_list, translate=True, rotate=True, scale=True, visibility=False):
     """
     Locks default TRS+V channels
     Args:
-        obj (str): Name of the object to lock TRS attributes
+        obj_list (str, list): Name of the object(s) to lock TRS+V attributes
         translate (bool, optional): If active, translate (position) will be included. (locked, hidden)
         rotate (bool, optional): If active, rotate (rotation) will be included. (locked, hidden)
         scale (bool, optional): If active, scale will be included. (locked, hidden)
         visibility (bool, optional): If active, also locks and hides visibility
     """
     channels = []
+    if not obj_list:
+        return
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
     if translate:
         channels.append('t')
     if rotate:
         channels.append('r')
     if scale:
         channels.append('s')
-    for channel in channels:
-        for axis in ['x', 'y', 'z']:
-            cmds.setAttr(f'{obj}.{channel}{axis}', lock=True, keyable=False, channelBox=False)
-    if visibility:
-        cmds.setAttr(f'{obj}.v', lock=True, keyable=False, channelBox=False)
+    for obj in obj_list:
+        for channel in channels:
+            for axis in ['x', 'y', 'z']:
+                cmds.setAttr(f'{obj}.{channel}{axis}', lock=True, keyable=False, channelBox=False)
+        if visibility:
+            cmds.setAttr(f'{obj}.v', lock=True, keyable=False, channelBox=False)
 
 
-def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
+def freeze_channels(obj_list, freeze_translate=True, freeze_rotate=True, freeze_scale=True):
     """
     Freeze individual channels of an object's translation, rotation, or scale in Autodesk Maya.
 
     Args:
-        object_list (str, list): The name of the object or a list of objects. (str is automatically converted to list)
+        obj_list (str, list): The name of the object or a list of objects. (str is automatically converted to list)
         freeze_translate (bool, optional): When active, it will attempt to freeze translate.
         freeze_rotate (bool, optional): When active, it will attempt to freeze rotate.
         freeze_scale (bool, optional): When active, it will attempt to freeze scale.
@@ -233,12 +238,12 @@ def freeze_channels(object_list, freeze_translate=True, freeze_rotate=True, free
         bool: True if all provided objects were fully frozen. False if something failed.
     """
     all_frozen = True
-    if not object_list:
+    if not obj_list:
         logger.debug('Nothing frozen. Empty "object_list" argument.')
         return False
-    if isinstance(object_list, str):  # Convert to list in case it's just one object.
-        object_list = [object_list]
-    for obj in object_list:
+    if isinstance(obj_list, str):  # Convert to list in case it's just one object.
+        obj_list = [obj_list]
+    for obj in obj_list:
         if not obj or not cmds.objExists(obj):
             all_frozen = False
             continue
@@ -277,7 +282,7 @@ def rescale(obj, scale, freeze=True):
     cmds.setAttr(obj + '.scaleY', scale)
     cmds.setAttr(obj + '.scaleZ', scale)
     if freeze:
-        freeze_channels(obj, freeze_translate=False, freeze_rotate=False)
+        freeze_channels(obj, freeze_translate=False, freeze_rotate=False, freeze_scale=True)
 
 
 def selection_unlock_default_channels(feedback=True):
@@ -742,13 +747,13 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
-def add_attr(target_list, attributes, attr_type="double", minimum=None, maximum=None,
+def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=None,
              default=None, is_keyable=True, verbose=False):
     """
     Adds attributes to the provided target list (list of objects)
 
     Args:
-        target_list (list, str): List of objects to which attributes will be added. (Strings are converted to list)
+        obj_list (list, str): List of objects to which attributes will be added. (Strings are converted to list)
         attributes (list, str): List of attribute names to be added. (Strings are converted to single item list)
         attr_type (str, optional): Data type of the attribute (e.g., 'double', 'long', 'string', etc.).
                          For a full list see the documentation for "cmds.addAttr".
@@ -762,11 +767,11 @@ def add_attr(target_list, attributes, attr_type="double", minimum=None, maximum=
     """
     added_attrs = []
     issues = {}
-    if target_list and isinstance(target_list, str):
-        target_list = [target_list]
+    if obj_list and isinstance(obj_list, str):
+        obj_list = [obj_list]
     if attributes and isinstance(attributes, str):
         attributes = [attributes]
-    for target in target_list:
+    for target in obj_list:
         for attr_name in attributes:
             full_attr_name = f"{target}.{attr_name}"
             if not cmds.objExists(full_attr_name):
@@ -796,7 +801,7 @@ def add_attr(target_list, attributes, attr_type="double", minimum=None, maximum=
     return added_attrs
 
 
-def delete_user_defined_attributes(obj_list, delete_locked=True, verbose=True, raise_exceptions=False):
+def delete_user_defined_attrs(obj_list, delete_locked=True, verbose=True, raise_exceptions=False):
     """
     Deletes all User defined attributes for the selected objects.
     Args:
@@ -838,7 +843,7 @@ def delete_user_defined_attributes(obj_list, delete_locked=True, verbose=True, r
     return deleted_attributes
 
 
-def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
+def selection_delete_user_defined_attrs(delete_locked=True, feedback=True):
     """
     Deletes all User defined attributes for the selected objects.
     Args:
@@ -854,9 +859,9 @@ def selection_delete_user_defined_attributes(delete_locked=True, feedback=True):
         return
 
     try:
-        deleted_attrs = delete_user_defined_attributes(obj_list=selection,
-                                                       delete_locked=delete_locked,
-                                                       verbose=True) or []
+        deleted_attrs = delete_user_defined_attrs(obj_list=selection,
+                                                  delete_locked=delete_locked,
+                                                  verbose=True) or []
         deleted_counter = 0
         if deleted_attrs:
             deleted_counter = len(deleted_attrs)
@@ -916,5 +921,5 @@ def connect_attr(source_attr, target_attr_list, force=False,
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     sel = cmds.ls(selection=True)
-    add_attr(target_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
-    delete_user_defined_attributes(sel)
+    add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
+    delete_user_defined_attrs(sel)

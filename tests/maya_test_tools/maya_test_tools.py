@@ -41,6 +41,34 @@ def create_poly_cube(*args, **kwargs):
     return None
 
 
+def create_poly_sphere(*args, **kwargs):
+    """
+    Creates poly sphere
+    "polySphere" relevant parameters:
+        name (str): Name of the poly sphere
+    Returns:
+        str or None: First item in the output list of the "cmds.polySphere" command. None if the output was empty.
+    """
+    sphere = cmds.polySphere(*args, **kwargs) or []
+    if sphere and len(sphere) >= 1:
+        return sphere[0]
+    return None
+
+
+def create_poly_cylinder(*args, **kwargs):
+    """
+    Creates poly cylinder
+    "polyCylinder" relevant parameters:
+        name (str): Name of the poly cylinder
+    Returns:
+        str or None: First item in the output list of the "cmds.polyCylinder" command. None if the output was empty.
+    """
+    cylinder = cmds.polyCylinder(*args, **kwargs) or []
+    if cylinder and len(cylinder) >= 1:
+        return cylinder[0]
+    return None
+
+
 def create_node(node_type, *args, **kwargs):
     """
     Creates poly cube

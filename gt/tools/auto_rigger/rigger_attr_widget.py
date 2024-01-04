@@ -1,14 +1,14 @@
 """
 Auto Rigger Attr Widgets
 """
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QMessageBox, QCheckBox
 from gt.tools.auto_rigger.rigger_orient_view import RiggerOrientView
+from gt.ui.qt_utils import QHeaderWithWidgets, ConfirmableQLineEdit
 from PySide2.QtWidgets import QComboBox, QTableWidget, QHeaderView
 from gt.tools.auto_rigger.rig_framework import OrientationData
 from gt.utils.iterable_utils import dict_as_formatted_str
 from gt.ui.input_window_text import InputWindowText
 import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import QHeaderWithWidgets
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtCore import Qt
@@ -47,7 +47,7 @@ class ModuleAttrWidget(QWidget):
         # Basic Variables
         self.project = project
         self.module = module
-        self.known_proxy = {}
+        self.known_proxies = {}
         self.table_proxy_basic_wdg = None
         self.table_proxy_parent_wdg = None
         self.mod_name_field = None
@@ -76,26 +76,40 @@ class ModuleAttrWidget(QWidget):
         """
         # Module Header (Icon, Type, Name, Buttons)
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         _layout.setAlignment(Qt.AlignTop)
+
+        # Active Checkbox
+        active_chk = QCheckBox()
+        active_chk.setChecked(self.module.is_active())
+        active_chk.setStyleSheet("QCheckBox { spacing: 0px; }")
+        active_chk.setToolTip("Module Active State")
+        active_chk.stateChanged.connect(self.on_checkbox_active_state_changed)
+        _layout.addWidget(active_chk)
 
         # Icon
         icon = QIcon(self.module.icon)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(32, 32))
+        label_tooltip = self.module.get_module_class_name(remove_module_prefix=True,
+                                                          formatted=True,
+                                                          remove_side=True)
+        icon_label.setToolTip(label_tooltip)
         _layout.addWidget(icon_label)
 
         # Type (Module Class)
-        module_type = self.module.get_module_class_name(remove_module_prefix=True)
+        module_type = self.module.get_module_class_name(remove_module_prefix=True,
+                                                        formatted=True,
+                                                        remove_side=False)
         _layout.addWidget(QLabel(f"{module_type}"))
 
         # Name (User Custom)
         name = self.module.get_name()
-        self.mod_name_field = QLineEdit()
-        self.mod_name_field.setFixedHeight(30)
+        self.mod_name_field = ConfirmableQLineEdit()
+        self.mod_name_field.setFixedHeight(35)
         if name:
             self.mod_name_field.setText(name)
-        self.mod_name_field.textChanged.connect(self.set_module_name)
+        self.mod_name_field.editingFinished.connect(self.set_module_name)
         _layout.addWidget(self.mod_name_field)
 
         # Edit Button
@@ -117,12 +131,12 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the prefix of the module
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         # Prefix
         prefix_label = QLabel("Prefix:")
         prefix_label.setFixedWidth(50)
-        self.mod_prefix_field = QLineEdit()
-        self.mod_prefix_field.setFixedHeight(30)
+        self.mod_prefix_field = ConfirmableQLineEdit()
+        self.mod_prefix_field.setFixedHeight(35)
         _layout.addWidget(prefix_label)
         _layout.addWidget(self.mod_prefix_field)
         prefix = self.module.get_prefix()
@@ -132,8 +146,8 @@ class ModuleAttrWidget(QWidget):
         # Suffix
         suffix_label = QLabel("Suffix:")
         suffix_label.setFixedWidth(50)
-        self.mod_suffix_field = QLineEdit()
-        self.mod_suffix_field.setFixedHeight(30)
+        self.mod_suffix_field = ConfirmableQLineEdit()
+        self.mod_suffix_field.setFixedHeight(35)
         _layout.addWidget(suffix_label)
         _layout.addWidget(self.mod_suffix_field)
         suffix = self.module.get_suffix()
@@ -147,18 +161,18 @@ class ModuleAttrWidget(QWidget):
         Adds widgets to control the module orientation
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         # Prefix
         orient_label = QLabel("Orientation Method:")
         orient_label.setFixedWidth(170)
         self.mod_orient_method = QComboBox()
-        self.mod_orient_method.setFixedHeight(30)
+        self.mod_orient_method.setFixedHeight(35)
 
         for method in self.module.get_orientation_data().get_available_methods():
             self.mod_orient_method.addItem(str(method).capitalize())
 
         self.mod_edit_orient_btn = QPushButton("Edit Orientation Data")
-        self.mod_edit_orient_btn.setFixedHeight(30)
+        self.mod_edit_orient_btn.setFixedHeight(35)
 
         _layout.addWidget(orient_label)
         _layout.addWidget(self.mod_orient_method)
@@ -173,7 +187,7 @@ class ModuleAttrWidget(QWidget):
         Adds a widget to control the parent of the module
         """
         _layout = QHBoxLayout()
-        _layout.setContentsMargins(0, 0, 0, 10)  # L-T-R-B
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         self.refresh_known_proxy_dict(ignore_list=self.module.get_proxies())
         parent_label = QLabel("Parent:")
         parent_label.setFixedWidth(60)
@@ -275,7 +289,7 @@ class ModuleAttrWidget(QWidget):
 
     def refresh_known_proxy_dict(self, ignore_list=None):
         """
-        Refreshes the "known_proxy" attribute with all proxies that could be used as parents.
+        Refreshes the "known_proxies" attribute with all proxies that could be used as parents.
         Args:
             ignore_list (list, optional): A list of proxies to be ignored
         """
@@ -283,7 +297,7 @@ class ModuleAttrWidget(QWidget):
             for proxy in module.get_proxies():
                 if ignore_list and proxy in ignore_list:
                     continue
-                self.known_proxy[proxy.get_uuid()] = (proxy, module)
+                self.known_proxies[proxy.get_uuid()] = (proxy, module)
 
     def refresh_proxy_parent_table(self):
         """
@@ -310,7 +324,7 @@ class ModuleAttrWidget(QWidget):
 
             # Parent Combobox ----------------------------------------------------------------
             self.refresh_known_proxy_dict()
-            combo_box = self.create_widget_parent_combobox(proxy)
+            combo_box = self.create_widget_parent_combobox(target=proxy, parent_filter=False)
             combo_func = partial(self.on_table_parent_combo_box_changed, source_row=row, source_col=2)
             combo_box.currentIndexChanged.connect(combo_func)
             self.table_proxy_parent_wdg.setCellWidget(row, 2, combo_box)
@@ -470,6 +484,7 @@ class ModuleAttrWidget(QWidget):
         else:
             self.module.set_parent_uuid(_parent_proxy.get_uuid())
             logger.debug(f"{self.module.get_name()}: to : {_parent_proxy.get_name()}")
+        self.call_parent_refresh()
 
     def on_proxy_parent_table_cell_changed(self, row, column):
         """
@@ -585,13 +600,24 @@ class ModuleAttrWidget(QWidget):
         """
         print('"on_button_build_mod_proxy_clicked called')
 
-    def create_widget_parent_combobox(self, target):
+    def on_checkbox_active_state_changed(self, state):
+        """
+        Uses the state of the checkbox to determine the active state of the module
+        Args:
+            state (bool): If True, the state of the module will be set to Active. If False, to Inactive.
+        """
+        self.module.set_active_state(is_active=bool(state))
+        self.call_parent_refresh()
+
+    def create_widget_parent_combobox(self, target, parent_filter=True):
         """
         Creates a populated combobox with all potential parent targets.
         An extra initial item called "No Parent" is also added for the proxies without parents.
         Current parent is pre-selected during creation.
         Args:
             target (Proxy, Module): A proxy or module object used to determine current parent and pre-select it.
+            parent_filter (bool, optional): If True, it will only populate the combobox with proxies available under
+                                          the parent modules.
         Returns:
             QComboBox: A pre-populated combobox with potential parents. Current parent is also pre-selected.
         """
@@ -600,29 +626,34 @@ class ModuleAttrWidget(QWidget):
         combobox = QComboBox()
         combobox.addItem("No Parent", None)
 
+        # Get Variables
         _proxy_uuid = None
         if target and hasattr(target, 'get_uuid'):  # Is proxy
             _proxy_uuid = target.get_uuid()
         _proxy_parent_uuid = target.get_parent_uuid()
-
+        _parent_module = self.known_proxies.get(_proxy_parent_uuid, None)
+        if _parent_module:
+            _parent_module = _parent_module[1]  # Get second item in tuple (module)
         # Populate Combobox
-        for key, (_proxy, _module) in self.known_proxy.items():
+        for key, (_proxy, _module) in self.known_proxies.items():
+            if parent_filter and _parent_module and _parent_module != _module:
+                continue
             if key == _proxy_uuid:
                 continue  # Skip Itself
             description = f'{str(_proxy.get_name())}'
             module_name = _module.get_name()
             if module_name:
                 description += f' : {str(module_name)}'
-            description += f' ({str(key)})'
+            # description += f' ({str(key)})'
             combobox.addItem(description, _proxy)
 
-        # Unknown Target
-        if _proxy_parent_uuid and _proxy_parent_uuid in self.known_proxy:
+        # Unknown Target (Not present in any of the modules)
+        if _proxy_parent_uuid and _proxy_parent_uuid in self.known_proxies:
             for index in range(combobox.count()):
                 _parent_proxy = combobox.itemData(index)
                 if _parent_proxy and _proxy_parent_uuid == _parent_proxy.get_uuid():
                     combobox.setCurrentIndex(index)
-        elif _proxy_parent_uuid and _proxy_parent_uuid not in self.known_proxy:
+        elif _proxy_parent_uuid and _proxy_parent_uuid not in self.known_proxies:
             description = f'unknown : ???'
             description += f' ({str(_proxy_parent_uuid)})'
             combobox.addItem(description, None)
@@ -682,6 +713,7 @@ class ModuleAttrWidget(QWidget):
         new_name = self.mod_name_field.text() or ""
         self.module.set_name(new_name)
         self.refresh_current_widgets()
+        self.call_parent_refresh()
 
     def set_module_prefix(self):
         """
@@ -797,7 +829,7 @@ class ProjectAttrWidget(QWidget):
 
         # Name (User Custom)
         name = project.get_name()
-        self.name_text_field = QLineEdit()
+        self.name_text_field = ConfirmableQLineEdit()
         if name:
             self.name_text_field.setText(name)
         self.name_text_field.textChanged.connect(self.set_module_name)

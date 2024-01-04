@@ -1,0 +1,22 @@
+QMenuBar {
+	color: @text_color;
+}
+
+QMenuBar::item:selected { 
+	background-color: @menu_item_selected_bg_color;
+}
+
+QMenu {
+	background-color: @menu_bg_color;
+	color: @text_color;
+}
+
+QMenu::item:selected {
+	background-color: @menu_item_selected_bg_color;
+}
+
+QMenu::icon {
+	background-color: rgba(0, 0, 0, 50);  /* Adjust the alpha value for the desired darkness */
+	border-radius: 4px;  /* Adjust the radius for rounded corners */
+	padding: 4px;  /* Adjust padding for better visibility */
+}

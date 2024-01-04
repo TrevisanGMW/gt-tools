@@ -73,7 +73,7 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True)
         expected = ['custom_attr_one', 'custom_attr_two']
         self.assertEqual(expected, result)
-        attr_utils.selection_delete_user_defined_attributes()
+        attr_utils.selection_delete_user_defined_attrs()
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True) or []
         expected = []
         self.assertEqual(expected, result)
@@ -88,7 +88,7 @@ class TestAttributeUtils(unittest.TestCase):
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True)
         expected = ['custom_attr_one', 'custom_attr_two']
         self.assertEqual(expected, result)
-        attr_utils.selection_delete_user_defined_attributes(delete_locked=False)
+        attr_utils.selection_delete_user_defined_attrs(delete_locked=False)
         result = maya_test_tools.cmds.listAttr(cube, userDefined=True) or []
         expected = ['custom_attr_two']
         self.assertEqual(expected, result)
@@ -117,7 +117,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
-        attr_utils.freeze_channels(object_list=cube)
+        attr_utils.freeze_channels(obj_list=cube)
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
         result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
@@ -150,7 +150,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
-        attr_utils.freeze_channels(object_list=cube, freeze_translate=False)
+        attr_utils.freeze_channels(obj_list=cube, freeze_translate=False)
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
         result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
@@ -184,7 +184,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
-        attr_utils.freeze_channels(object_list=cube, freeze_rotate=False)
+        attr_utils.freeze_channels(obj_list=cube, freeze_rotate=False)
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
         result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
@@ -218,7 +218,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
         maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
-        attr_utils.freeze_channels(object_list=cube, freeze_scale=False)
+        attr_utils.freeze_channels(obj_list=cube, freeze_scale=False)
         result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
         result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
         result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
@@ -251,7 +251,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.set_attribute(obj_name=cube_one, attr_name="sx", value=5)
         maya_test_tools.set_attribute(obj_name=cube_two, attr_name="sx", value=5)
         object_list = [cube_one, cube_two]
-        attr_utils.freeze_channels(object_list=object_list)
+        attr_utils.freeze_channels(obj_list=object_list)
         result_tx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="tx")
         result_rx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="rx")
         result_sx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="sx")
@@ -1080,7 +1080,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", k=True, at="float")
         maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
 
-        result = attr_utils.delete_user_defined_attributes(cube)
+        result = attr_utils.delete_user_defined_attrs(cube)
 
         attr_one = maya_test_tools.cmds.objExists(f'{cube}.custom_attr')
         self.assertFalse(attr_one)
@@ -1096,7 +1096,7 @@ class TestAttributeUtils(unittest.TestCase):
         maya_test_tools.cmds.addAttr(cube, ln="custom_attr_two", k=True, at="float")
         maya_test_tools.cmds.setAttr(f'{cube}.custom_attr', lock=True)
 
-        result = attr_utils.delete_user_defined_attributes(cube, delete_locked=False)
+        result = attr_utils.delete_user_defined_attrs(cube, delete_locked=False)
 
         attr_one = maya_test_tools.cmds.objExists(f'{cube}.custom_attr')
         self.assertTrue(attr_one)

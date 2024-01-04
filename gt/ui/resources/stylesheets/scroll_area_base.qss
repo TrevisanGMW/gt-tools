@@ -1,0 +1,4 @@
+QScrollArea {
+	border: 2px solid @border_color;
+	border-radius: @border_radius;
+}

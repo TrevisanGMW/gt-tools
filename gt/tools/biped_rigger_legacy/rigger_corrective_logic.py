@@ -2057,7 +2057,7 @@ def merge_corrective_elements(supress_warning=False):
 # Test it
 if __name__ == '__main__':
     data_corrective = GTBipedRiggerCorrectiveData()
-    data_corrective.debugging = False
+    data_corrective.debugging = True
     debugging = data_corrective.debugging
 
     # data_corrective.settings['setup_wrists'] = False
@@ -2070,8 +2070,8 @@ if __name__ == '__main__':
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
         persp_rot = cmds.getAttr('persp.rotate')[0]
-        import maya_utilities
-        gt_maya_utilities.force_reload_file()
+        from gt.utils.scene_utils import force_reload_file
+        force_reload_file()
         cmds.viewFit(all=True)
         cmds.setAttr('persp.tx', persp_pos[0])
         cmds.setAttr('persp.ty', persp_pos[1])

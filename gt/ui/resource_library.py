@@ -263,6 +263,7 @@ class Icon:
     util_mod_copy_material = get_icon_path(r"util_mod_copy_material.svg")
     util_mod_paste_material = get_icon_path(r"util_mod_paste_material.svg")
     # Rigging
+    tool_auto_rigger_legacy = get_icon_path(r"tool_auto_rigger_legacy.svg")
     tool_auto_rigger = get_icon_path(r"tool_auto_rigger.svg")
     tool_rig_interface = get_icon_path(r"tool_rig_interface.svg")
     tool_retarget_assistant = get_icon_path(r"tool_retarget_assistant.svg")
@@ -366,6 +367,13 @@ class Icon:
     rigger_project = get_icon_path(r"rigger_project.svg")
     rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
     rigger_dict = get_icon_path(r"rigger_dict.svg")
+    rigger_module_biped_arm = get_icon_path(r"rigger_module_biped_arm.svg")
+    rigger_module_biped_fingers = get_icon_path(r"rigger_module_biped_fingers.svg")
+    rigger_module_biped_leg = get_icon_path(r"rigger_module_biped_leg.svg")
+    rigger_module_root = get_icon_path(r"rigger_module_root.svg")
+    rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
+    rigger_module_head = get_icon_path(r"rigger_module_head.svg")
+    rigger_template_biped = get_icon_path(r"rigger_template_biped.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
@@ -380,6 +388,10 @@ class Icon:
     ui_edit = get_icon_path(r"ui_edit.svg")
     ui_delete = get_icon_path(r"ui_delete.svg")
     ui_trash = get_icon_path(r"ui_trash.svg")
+    ui_new = get_icon_path(r"ui_new.svg")
+    ui_open = get_icon_path(r"ui_open.svg")
+    ui_save = get_icon_path(r"ui_save.svg")
+    ui_templates = get_icon_path(r"ui_templates.svg")
     # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
@@ -904,8 +916,55 @@ class StylesheetVariables:
         # Colors
         "@text_color;": Color.RGB.white,
         "@background_color;": Color.RGB.gray_darker,
+        "@item_selected_background_color;": Color.RGB.blue_pastel,
+        "@item_hover_background_color;": Color.RGB.gray_light_slate,
+        "@image_branch_closed;": f"url({Icon.ui_branch_closed})".replace("\\", "/"),
+        "@image_branch_opened;": f"url({Icon.ui_branch_open})".replace("\\", "/"),
+        "@image_branch_root_open;": f"url({Icon.ui_branch_root_open})".replace("\\", "/"),
+        "@image_branch_root_closed;": f"url({Icon.ui_branch_root_closed})".replace("\\", "/"),
+        "@image_branch_end;": f"url({Icon.ui_branch_end})".replace("\\", "/"),
+        "@image_branch_line;": f"url({Icon.ui_branch_line}) 0;".replace("\\", "/"),
+        "@image_branch_more;": f"url({Icon.ui_branch_more}) 0;".replace("\\", "/"),
+        "@image_branch_single;": f"url({Icon.ui_branch_single})".replace("\\", "/"),
+        "@image_branch_test;": f"url({Icon.ui_add})".replace("\\", "/"),
+    }
+    table_widget_base = {
+        # Colors
+        "@text_color;": Color.RGB.white,
+        "@background_color;": Color.RGB.gray_darker,
         "@selected_background_color;": Color.RGB.blue_pastel,
         "@hover_background_color;": Color.RGB.gray_light_slate,
+    }
+    line_edit_base = {
+        # Colors
+        "@background_color;": Color.RGB.gray_darker,
+        "@background_selection_color;": Color.RGB.gray_darker,
+        "@focus_border_color;": Color.RGB.blue_corn_flower,
+        "@border_color;": Color.RGB.gray_mid_much_lighter,
+        "@text_color;": Color.RGB.white_smoke_darker,
+        # Formatting
+        "@border_radius;": "7",
+        "@padding;": "5",
+    }
+    menu_base = {
+        # Colors
+        "@text_color;": Color.RGB.white_smoke_darker,
+        "@menu_bg_color;": Color.RGB.gray_mid_lighter,
+        "@menu_item_selected_bg_color;": Color.RGB.blue_pastel,
+        # Formatting
+        "@menu_item_padding;": "5 25 5 25;",
+    }
+    group_box_base = {
+        # Colors
+        "@border_color;": Color.RGB.gray_darker,
+        # Formatting
+        "@border_radius;": "5",
+    }
+    scroll_area_base = {
+        # Colors
+        "@border_color;": Color.RGB.gray_darker,
+        # Formatting
+        "@border_radius;": "5",
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
@@ -953,6 +1012,17 @@ class Stylesheet:
                                            stylesheet_variables=StylesheetVariables.checkbox_base)
     tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
                                               stylesheet_variables=StylesheetVariables.tree_widget_base)
+    table_widget_base = get_stylesheet_content(stylesheet_name="table_widget_base",
+                                               stylesheet_variables=StylesheetVariables.table_widget_base)
+    line_edit_base = get_stylesheet_content(stylesheet_name="line_edit_base",
+                                            stylesheet_variables=StylesheetVariables.line_edit_base)
+    menu_base = get_stylesheet_content(stylesheet_name="menu_base",
+                                       stylesheet_variables=StylesheetVariables.menu_base)
+    group_box_base = get_stylesheet_content(stylesheet_name="group_box_base",
+                                            stylesheet_variables=StylesheetVariables.group_box_base)
+    scroll_area_base = get_stylesheet_content(stylesheet_name="scroll_area_base",
+                                            stylesheet_variables=StylesheetVariables.scroll_area_base)
+
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
                                            stylesheet_variables=StylesheetVariables.btn_push_base)

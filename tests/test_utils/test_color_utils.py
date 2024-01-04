@@ -212,3 +212,113 @@ class TestColorUtils(unittest.TestCase):
         expected = 1
         result = maya_test_tools.cmds.getAttr(f'{test_obj}.overrideRGBColors')
         self.assertEqual(expected, result)
+
+    def test_get_directional_color_x_center(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+
+        result = color_utils.get_directional_color(object_name=cube, axis="X")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.CENTER
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_x_neg_left(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', -5)
+        result = color_utils.get_directional_color(object_name=cube, axis="X")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.LEFT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_x_pos_right(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        result = color_utils.get_directional_color(object_name=cube, axis="X")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.RIGHT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_y_center(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+
+        result = color_utils.get_directional_color(object_name=cube, axis="Y")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.CENTER
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_y_pos(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.ty', 5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Y")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.RIGHT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_y_neg(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.ty', -5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Y")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.LEFT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_z_center(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        result = color_utils.get_directional_color(object_name=cube, axis="Z")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.CENTER
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_z_neg(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tz', -5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Z")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.LEFT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_z_pos(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tz', 5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Z")
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.RIGHT
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_change(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        result = color_utils.get_directional_color(object_name=cube, axis="Z",
+                                                   negative_color=(1, 0, 0),
+                                                   center_color=(0, 1, 0),
+                                                   positive_color=(0, 0, 1))
+        expected = (0, 1, 0)
+        self.assertEqual(expected, result)
+
+        maya_test_tools.cmds.setAttr(f'{cube}.tz', 5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Z",
+                                                   negative_color=(1, 0, 0),
+                                                   center_color=(0, 1, 0),
+                                                   positive_color=(0, 0, 1))
+        expected = (0, 0, 1)
+        self.assertEqual(expected, result)
+
+        maya_test_tools.cmds.setAttr(f'{cube}.tz', -5)
+        result = color_utils.get_directional_color(object_name=cube, axis="Z",
+                                                   negative_color=(1, 0, 0),
+                                                   center_color=(0, 1, 0),
+                                                   positive_color=(0, 0, 1))
+        expected = (1, 0, 0)
+        self.assertEqual(expected, result)
+
+    def test_get_directional_color_tolerance(self):
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.05)
+        result = color_utils.get_directional_color(object_name=cube, axis="X", tolerance=0.1)
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.CENTER
+        self.assertEqual(expected, result)
+        cube = maya_test_tools.create_poly_cube(name='test_cube')
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.11)
+        result = color_utils.get_directional_color(object_name=cube, axis="X", tolerance=0.1)
+        from gt.utils.color_utils import ColorConstants
+        expected = ColorConstants.RigControl.RIGHT
+        self.assertEqual(expected, result)

@@ -15,24 +15,25 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_namespace_hierarchy_list(obj, top_parent_only=False):
+def get_namespace_hierarchy_list(obj, root_only=False):
     """
     Breakdown and object's namespace into a list of namespaces including parent, child, grandchild, etc...
 
     Args:
         obj (str) : Name of the object to extract namespace
-        top_parent_only
+        root_only (bool, optional): If True, it will only return the first (parent) namespace and ignore any
+                                    other namespaces inside of it. Otherwise, it will return the entire list.
 
     Returns:
-        List of namespaces in hierarchy order.
-        e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
-        or  ["parentNamespace"]
+        list: List of namespaces in following its hierarchy order.
+              e.g. ["parentNamespace", "childNamespace", "grandChildNamespace"]
+              or  ["parentNamespace"]
     """
     namespace_list = []
     obj_namespaces = get_namespaces(obj)
     if obj_namespaces:
         namespace_list = obj_namespaces[0].split(":")
-    if len(namespace_list) > 0 and top_parent_only:
+    if len(namespace_list) > 0 and root_only:
         return [namespace_list[0]]
     return namespace_list
 
