@@ -921,6 +921,7 @@ class ModuleGeneric:
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
         self.name = self.get_module_class_name(remove_module_prefix=True, formatted=True)
+        self.uuid = generate_uuid(short=True, short_length=12)
         self.prefix = None
         self.suffix = None
         self.proxies = []
@@ -947,6 +948,23 @@ class ModuleGeneric:
             logger.warning(f'Unable to set name. Expected string but got "{str(type(name))}"')
             return
         self.name = name
+
+    def set_uuid(self, uuid):
+        """
+        Sets a new UUID for the module.
+        If no UUID is provided or set a new one will be generated automatically,
+        this function is used to force a specific value as UUID.
+        Args:
+            uuid (str): A new UUID for this module (12 length format)
+        """
+        error_message = f'Unable to set proxy UUID. Invalid UUID input.'
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if is_short_uuid_valid(uuid, length=12):
+            self.uuid = uuid
+        else:
+            logger.warning(error_message)
 
     def set_prefix(self, prefix):
         """
@@ -1173,6 +1191,10 @@ class ModuleGeneric:
         if _name:
             self.set_name(name=_name)
 
+        _uuid = module_dict.get('uuid')
+        if _uuid:
+            self.set_uuid(uuid=_uuid)
+
         _prefix = module_dict.get('prefix')
         if _prefix:
             self.set_prefix(prefix=_prefix)
@@ -1247,6 +1269,14 @@ class ModuleGeneric:
             str or None: Name of the rig module, None if it's not set.
         """
         return self.name
+
+    def get_uuid(self):
+        """
+        Gets the uuid value of this module.
+        Returns:
+            str: uuid string (length 12 - short version)
+        """
+        return self.uuid
 
     def get_prefix(self):
         """
@@ -1356,6 +1386,7 @@ class ModuleGeneric:
             module_data["module"] = module_name
         if self.name:
             module_data["name"] = self.name
+        module_data["uuid"] = self.uuid
         module_data["active"] = self.active
         if self.prefix:
             module_data["prefix"] = self.prefix
