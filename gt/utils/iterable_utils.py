@@ -1,11 +1,12 @@
 """
 Iterable Utilities - Utilities used for dealing with iterable elements, such as lists, sets and dictionaries
-This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
+This script should not globally import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.string_utils import extract_digits_as_int
 import logging
 import pprint
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -263,6 +264,82 @@ def get_highest_int_from_str_list(str_list):
     return max(digits_list, default=0)
 
 
+def sanitize_maya_list(input_list,
+                       filter_existing=True, filter_unique=True,
+                       filter_string=None, filter_func=None,
+                       filter_type=None, filter_regex=None,
+                       sort_list=True, reverse_list=False, hierarchy=False,
+                       convert_to_nodes=True, short_names=False):
+    """
+    Sanitizes a list of Maya objects based on various criteria.
+
+    Args:
+        input_list (list): The input list of Maya objects.
+        filter_existing (bool, optional): Filter out non-existing objects.
+        filter_unique (bool, optional): Filter out duplicate objects.
+        filter_string (str, optional): Filter out objects containing a specific string in their names.
+        filter_func (callable, optional): Custom filter function to apply to each object.
+        filter_type (str, optional): Filter out objects of a specific Maya type.
+        filter_regex (str, optional): Filter out objects based on a regular expression pattern in their names.
+        sort_list (bool, optional): Sort the final list.
+        reverse_list (bool, optional): Reverse the order of the sorted list.
+        hierarchy (bool, optional): Include all descendants in the output.
+        convert_to_nodes (bool, optional): Convert the final list to Node objects.
+        short_names (bool, optional): Return only the short names of objects.
+
+    Returns:
+        list: The sanitized list of Maya objects based on the specified criteria.
+              This might be a list of strings (path to objects) or "Node" objects.
+    """
+    from gt.utils.naming_utils import get_long_name, get_short_name
+    from gt.utils.node_utils import Node
+    import maya.cmds as cmds
+
+    _output = input_list
+    if filter_existing:
+        _output = [item for item in input_list if isinstance(item, str) and cmds.objExists(item)]
+
+    _output = [get_long_name(item) for item in _output]
+
+    if filter_string and isinstance(filter_string, str):
+        _output = [item for item in _output if filter_string not in get_short_name(item)]
+
+    if hierarchy:
+        temp_output = []
+        for item in _output:
+            temp_output.extend(cmds.listRelatives(item, allDescendents=True, fullPath=True) or [])
+        _output.extend(temp_output)
+
+    if filter_unique:
+        _output = list(set(_output))
+
+    if filter_type:
+        _output = [item for item in _output if cmds.objectType(item) == filter_type]
+
+    if filter_regex:
+        regex_pattern = re.compile(filter_regex)
+        _output = [item for item in _output if regex_pattern.search(get_short_name(item))]
+
+    if filter_func and callable(filter_func):
+        _output = [item for item in _output if filter_func(item)]
+
+    if convert_to_nodes:
+        _output = [Node(item) for item in _output]
+
+    if sort_list:
+        _output = sorted(_output, key=lambda x: len(x))
+
+    if reverse_list:
+        _output.reverse()
+
+    if short_names:
+        _output = [get_short_name(item) for item in _output]
+
+    return _output
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    print(dict_as_formatted_str({}))
+    a_list = ['|joint1', '|joint1|joint2', '|joint1|joint2|joint3', '|joint1|joint2|joint3|joint4',
+              'joint1', 'joint1', 'joint1', 'joint1', 'joint1', None, 2, 'abc_end']
+    print(sanitize_maya_list(a_list))

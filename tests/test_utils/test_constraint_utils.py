@@ -232,3 +232,20 @@ class TestConstraintUtils(unittest.TestCase):
                 self.assertEqual(expected, result)
 
             maya_test_tools.force_new_scene()
+
+    def test_equidistant_constraints_string_input(self):
+        cube_start = maya_test_tools.create_poly_cube()
+        cube_end = maya_test_tools.create_poly_cube()
+        cube_target = maya_test_tools.create_poly_cube()
+
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+
+        constraints = constraint_utils.equidistant_constraints(start=cube_start,
+                                                               end=cube_end,
+                                                               target_list=cube_target,
+                                                               skip_start_end=True,
+                                                               constraint='parent')
+        expected_constraints = ['pCube3_parentConstraint1']
+        self.assertEqual(expected_constraints, constraints)

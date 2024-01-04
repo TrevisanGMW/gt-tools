@@ -40,7 +40,7 @@ class TestRigFramework(unittest.TestCase):
             constant = getattr(rig_framework.RiggerConstants, key)
             if not constant:
                 raise Exception(f'Missing proxy constant data: {key}')
-            if not isinstance(constant, str):
+            if not isinstance(constant, (str, float, int)):
                 raise Exception(f'Incorrect proxy constant type: {key}')
 
     def test_repr(self):

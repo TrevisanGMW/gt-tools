@@ -42,6 +42,7 @@ class NamingConstants:
         LOC = 'loc'  # Locator
         OFFSET = 'offset'  # Offset Transform
         PROXY = 'proxy'
+        DRIVEN = 'driven'
         IK_HANDLE_SC = "ikSC"
         IK_HANDLE_RP = "ikRP"
         IK_HANDLE_SPRING = "ikSpring"
@@ -95,7 +96,7 @@ def get_short_name(long_name, remove_namespace=False):
     output_short_name = ''
     if long_name == '':
         return ''
-    split_path = long_name.split('|')
+    split_path = str(long_name).split('|')
     if len(split_path) >= 1:
         output_short_name = split_path[len(split_path) - 1]
     if remove_namespace:

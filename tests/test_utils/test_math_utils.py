@@ -141,3 +141,126 @@ class TestMathUtils(unittest.TestCase):
         expected = (0, 0, 1)
         result = math_utils.objects_cross_direction(cube_one, cube_two, cube_three)
         self.assertEqual(expected, tuple(result))
+
+    def test_dist_xyz_to_xyz(self):
+        pos_a = (1.0, 2.0, 3.0)
+        pos_b = (4.0, 5.0, 6.0)
+        import math
+        expected_result = math.sqrt(
+            (pos_a[0] - pos_b[0]) ** 2 + (pos_a[1] - pos_b[1]) ** 2 + (pos_a[2] - pos_b[2]) ** 2)
+        result = math_utils.dist_xyz_to_xyz(*pos_a, *pos_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+
+        expected_result = 0
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center_close(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5.35)
+
+        expected_result = 5.35
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_center_to_center_far_precise(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 100.5)
+
+        expected_result = 100.5
+        result = math_utils.dist_center_to_center(obj_a, obj_b)
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_single_object(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+
+        expected_result = (0, 0, 0)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+
+        expected_result = (0, 100.5, 0)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_multiple_objects(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+
+        expected_result = (0, 2.5, 0)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b])
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_alignment_pos(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+
+        expected_result = (0.5, 2.5, 0.0)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="+", axis="x")
+        self.assertEqual(expected_result, result)
+        expected_result = (0, 5.5, 0.0)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="+", axis="y")
+        self.assertEqual(expected_result, result)
+        expected_result = (0.0, 2.5, 0.5)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="+", axis="z")
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_alignment_neg(self):
+        obj_a = maya_test_tools.create_poly_cube(name="cube_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_b")
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+
+        expected_result = (-0.5, 2.5, 0.0)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="x")
+        self.assertEqual(expected_result, result)
+        expected_result = (0.0, -0.5, 0.0)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="y")
+        self.assertEqual(expected_result, result)
+        expected_result = (0.0, 2.5, -0.5)
+        result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="z")
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_within_range(self):
+        value = 50
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 0.5
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_at_lower_bound(self):
+        value = 0
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 0.0
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_at_upper_bound(self):
+        value = 100
+        old_range = (0, 100)
+        new_range = (0, 1)
+
+        expected_result = 1.0
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)
+
+    def test_remap_value_negative_input(self):
+        value = -50
+        old_range = (-100, 0)
+        new_range = (0, 1)
+
+        expected_result = 0.5
+        result = math_utils.remap_value(value, old_range, new_range)
+        self.assertEqual(expected_result, result)

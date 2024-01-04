@@ -3,6 +3,7 @@ Hierarchy Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.naming_utils import get_long_name, get_short_name
+from gt.utils.attr_utils import delete_user_defined_attrs
 from gt.utils.transform_utils import match_transform
 from gt.utils.feedback_utils import log_when_true
 from gt.utils.node_utils import Node
@@ -36,6 +37,11 @@ def parent(source_objects, target_parent, verbose=False):
                                    f'Missing target parent object "{str(target_parent)}".',
                       do_log=verbose)
         return []
+    if source_objects is None:
+        log_when_true(input_logger=logger,
+                      input_string=f'Missing source list. Operation ignored.',
+                      do_log=verbose)
+        return
     if source_objects and isinstance(source_objects, str):  # If a string, convert to list
         source_objects = [source_objects]
     parented_objects = []
@@ -122,7 +128,41 @@ def add_offset_transform(target_list, transform_type="group", pivot_source="targ
     return offset_transforms
 
 
+def duplicate_as_node(to_duplicate, name=None, input_connections=False,
+                      parent_only=False, delete_attrs=True):
+    """
+    Duplicates the input object with a few extra options, then return a "Node" version of it.
+    Args:
+        to_duplicate (str): Object to duplicate (must exist in the scene)
+        name (str, optional): A name for the duplicated object
+        input_connections (bool, optional):
+        parent_only (bool, optional): If True, only the parent is duplicate. (Will exclude shapes)
+        delete_attrs (bool, optional): If True, user-defined attributes will be removed from the duplicated object.
+    Returns:
+        Node, str: The duplicated object
+    """
+    selection = cmds.ls(selection=True)
+    if not to_duplicate or not cmds.objExists(to_duplicate):
+        logger.debug(f'Unable to duplicate object. Missing provided input: "{str(input)}".')
+        return
+    param = {"inputConnections": input_connections,
+             "parentOnly": parent_only}
+    if name and isinstance(name, str):
+        param["name"] = name
+    new_obj = cmds.duplicate(to_duplicate, **param)[0]
+    new_obj = Node(new_obj)
+    if delete_attrs:
+        delete_user_defined_attrs(obj_list=new_obj)
+    cmds.select(clear=True)
+    if selection:
+        try:
+            cmds.select(selection=True)
+        except Exception as e:
+            logger.debug(f'Unable to restore initial selection. Issue: {str(e)}')
+    return new_obj
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    offset_transforms2 = add_offset_transform(target_list=["pSphere1", "pSphere2"], pivot_source="target")
-    print(offset_transforms2)
+    out = duplicate_as_node(to_duplicate="pSphere1")
+    print(out)

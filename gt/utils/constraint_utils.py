@@ -129,6 +129,11 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
     Returns:
         list: A list of the created constraints. Empty if something went wrong
     """
+    if not target_list:
+        return
+    if target_list and isinstance(target_list, str):
+        target_list = [target_list]
+
     if skip_start_end:
         target_list.insert(0, '')  # Skip start point.
         steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
@@ -162,4 +167,5 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    equidistant_constraints(start="locator1", end="locator2", target_list=["pCube1", "pCube2", "pCube3"])
+    # equidistant_constraints(start="locator1", end="locator2", target_list=["pCube1", "pCube2", "pCube3"])
+    equidistant_constraints(start="locator1", end="locator2", target_list="pCube1")

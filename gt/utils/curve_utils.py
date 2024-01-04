@@ -7,12 +7,15 @@ from gt.utils.attr_utils import add_separator_attr, set_attr
 from gt.utils.data_utils import read_json_dict, write_json
 from gt.utils.transform_utils import Transform, Vector3
 from gt.utils.system_utils import DataDirConstants
+from gt.utils.math_utils import remap_value
+import maya.OpenMaya as OpenMaya
 from gt.utils import attr_utils
 from decimal import Decimal
 import maya.cmds as cmds
 import logging
 import sys
 import os
+
 
 # Logging Setup
 logging.basicConfig()
@@ -1882,12 +1885,88 @@ def create_connection_line(object_a, object_b, constraint=True):
     return crv, cluster_a, cluster_b
 
 
+def get_positions_from_curve(curve, count, periodic=True, space="uv", normalized=True):
+    """
+    Retrieves positions along a curve based on specified parameters.
+
+    Args:
+        curve (str): The name of the curve to sample positions from.
+        count (int): The number of positions to retrieve along the curve.
+        periodic (bool, optional): If True, considers the curve as "periodic", otherwise "open".
+        space (str, optional): The coordinate space for the positions ('uv' or 'world'). Defaults to "uv".
+        normalized (bool, optional): If True, normalizes the positions between 0 and 1. Defaults to True.
+
+    Returns:
+        list: A list of positions along the curve.
+        e.g. [0, 0.5, 1]  # space="uv"
+        e.g. [[0, 0, 0], [0, 0.5, 0], [0, 1, 0]]  # space="world"
+
+    Example:
+        positions = get_position_from_curve_length("curve1", 10, periodic=True, space="world", normalized=True)
+    """
+    if periodic:
+        divide_value = count
+    else:
+        divide_value = count - 1
+    if divide_value == 0:
+        divide_value = 1
+
+    dag = OpenMaya.MDagPath()
+    obj = OpenMaya.MObject()
+    crv = OpenMaya.MSelectionList()
+    crv.add(curve)
+    crv.getDagPath(0, dag, obj)
+
+    crv_fn = OpenMaya.MFnNurbsCurve(dag)
+    length = crv_fn.length()
+    pos_list = [crv_fn.findParamFromLength(index * ((1/float(divide_value)) * length)) for index in range(count)]
+
+    if space == "world":
+        output_list = []
+        space = OpenMaya.MSpace.kWorld
+        point = OpenMaya.MPoint()
+        for pos in pos_list:
+            crv_fn.getPointAtParam(pos, point, space)
+            output_list.append([point[0], point[1], point[2]])  # X, Y, Z
+    elif normalized is True:
+        max_v = cmds.getAttr(curve + ".minMaxValue.maxValue")
+        min_v = cmds.getAttr(curve + ".minMaxValue.minValue")
+        output_list = [remap_value(value=pos, old_range=[min_v, max_v], new_range=[0, 1]) for pos in pos_list]
+    else:
+        output_list = pos_list
+    return output_list
+
+
+def rescale_curve(curve_transform, scale):
+    """
+    Rescales the control points of the specified curve transform.
+
+    Args:
+        curve_transform (str): The name of the curve transform to be rescaled.
+        scale (float, tuple): The scaling factor to be applied uniformly to the control points.
+                              It can also be a tuple, e.g. (1, 2, 1)
+
+    Example:
+        rescale_curve("myCurve", 2.0)
+    """
+    if not curve_transform or not cmds.objExists(curve_transform):
+        logger.debug(f'Unable to re-scale')
+        return
+    all_shapes = cmds.listRelatives(curve_transform, shapes=True, fullPath=True) or []
+    crv_shapes = [shape for shape in all_shapes if cmds.objectType(shape) in CURVE_TYPES]
+    for shape in crv_shapes:
+        cvs_count = cmds.getAttr(f"{shape}.controlPoints", size=True)
+        if isinstance(scale, tuple):
+            cmds.scale(*scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
+        else:
+            cmds.scale(scale, scale, scale, f"{shape}.cv[0:{cvs_count - 1}]", relative=True, objectCenterPivot=True)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # add_thumbnail_metadata_attr_to_selection()
     # print_code_for_crv_files()
     # write_curve_files_from_selection(target_dir=DataDirConstants.DIR_CURVES, overwrite=True)  # Extract Curve
     # generate_curves_thumbnails(target_dir=None, force=True)  # Generate Thumbnails - (target_dir=None = Desktop)
-    sel = cmds.ls(selection=True)
-    out = set_curve_width("nurbsCircle1", 5)
-    print(out)
+    crv_transform = cmds.ls(selection=True)[0]
+    rescale_curve(curve_transform=crv_transform, scale=1.1)

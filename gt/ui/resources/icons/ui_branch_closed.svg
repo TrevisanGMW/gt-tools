@@ -1,13 +1,13 @@
-<?xml version="1.0"?>
-<svg width="20" height="26" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
- <g>
-  <title>Layer 1</title>
-  <line x1="6" y1="8.5" x2="15" y2="8.5" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="6.5" y1="8" x2="6.5" y2="17" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="6" y1="16.5" x2="15" y2="16.5" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="14.5" y1="8" x2="14.5" y2="17" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="8" y1="12.5" x2="13" y2="12.5" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="10.5" y1="10" x2="10.5" y2="15" style="stroke:rgb(147,147,147); stroke-width:1"/>
-  <line x1="0" y1="12.5" x2="5" y2="12.5" style="stroke:rgb(147,147,147); stroke-width:1"/>
- </g>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 27.9.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="ui_x5F_branch_x5F_closed">
+	<rect id="invisibleBG" style="fill:none;" width="512" height="512"/>
+	<path style="fill:#939393;" d="M188.619,116.409c0-7.057,4.251-13.42,10.772-16.121c6.519-2.701,14.025-1.208,19.015,3.782
+		l139.591,139.591c3.272,3.271,5.111,7.71,5.111,12.338s-1.838,9.066-5.111,12.34L218.406,407.93
+		c-4.99,4.99-12.496,6.482-19.015,3.781c-6.521-2.701-10.772-9.062-10.772-16.12V116.409z"/>
+</g>
+<g id="Layer_1">
+</g>
 </svg>

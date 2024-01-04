@@ -3295,7 +3295,7 @@ def create_biped_rig(data_biped):
 
     # Find Position
     cmds.delete(cmds.pointConstraint([rig_joints.get('left_eye_jnt'), rig_joints.get('right_eye_jnt')], temp_transform))
-    cmds.move(0, 0, general_scale_offset * 2, temp_transform, relative=True)
+    cmds.move(0, 0, general_scale_offset * 4, temp_transform, relative=True)
     desired_position = cmds.xform(temp_transform, q=True, t=True)
     cmds.delete(temp_transform)
     cmds.move(desired_position[0], desired_position[1], desired_position[2], main_eye_ctrl_grp)

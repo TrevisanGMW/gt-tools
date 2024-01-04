@@ -2,9 +2,11 @@
 Math Utilities
 github.com/TrevisanGMW/gt-tools
 """
+
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
+import math
 
 # Logging Setup
 logging.basicConfig()
@@ -133,5 +135,132 @@ def objects_cross_direction(obj_a, obj_b, obj_c):
     return tuple(result)
 
 
+def dist_xyz_to_xyz(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
+    """
+    Calculates the distance between XYZ position A and XYZ position B
+
+    Args:
+            pos_a_x (float) : A float/integer for Position X (A)
+            pos_a_y (float) : A float/integer for Position Y (A)
+            pos_a_z (float) : A float/integer for Position Z (A)
+            pos_b_x (float) : A float/integer for Position X (B)
+            pos_b_y (float) : A float/integer for Position Y (B)
+            pos_b_z (float) : A float/integer for Position Z (YB)
+
+    Returns:
+        distance (float): A distance value between object A and B. For example : 4.0
+    """
+    dx = pos_a_x - pos_b_x
+    dy = pos_a_y - pos_b_y
+    dz = pos_a_z - pos_b_z
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+
+def dist_center_to_center(obj_a, obj_b):
+    """
+    Calculates the position between the center of one object (A)  to the center of another object (B)
+
+    Args:
+        obj_a (string) : Name of object A
+        obj_b (string) : Name of object B
+
+    Returns:
+        float: A distance value between object A and B. For example : 4.0 (or 0 if operation failed)
+    """
+    # WS Center to Center Distance:
+    for obj in [obj_a, obj_b]:
+        if not obj_a or not cmds.objExists(obj):
+            logger.debug(f'Unable to calculate distance. Missing provided object: {str(obj_a)}')
+            return 0
+    ws_pos_a = cmds.xform(obj_a, q=True, ws=True, t=True)
+    ws_pos_b = cmds.xform(obj_b, q=True, ws=True, t=True)
+    return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
+
+
+def get_bbox_position(obj_list, alignment=None, axis="x"):
+    """
+    Get the center point of the bounding box for the specified object or list of objects.
+
+    Args:
+        obj_list (str, list): The name of the object(s) to get the bounding box position. Meshes or surfaces only.
+        alignment (str, None): Alignment option, can be None (center), "+" (max), or "-" (min).
+                               When "None" (which is center) the axis is ignored.
+        axis (str): Axis option, can be "x", "y", or "z". Defaults to "x". (ignored if alignment is None)
+
+    Returns:
+        tuple: A tuple containing the X, Y, and Z coordinates of the bounding box position.
+
+    Example:
+        result_single = get_bbox_center('myObject')
+        (x_coordinate, y_coordinate, z_coordinate)
+
+        result_multiple = get_bbox_center(['obj1', 'obj2', 'obj3'])
+        (x_combined_center, y_combined_center, z_combined_center)
+
+        result_multiple = get_bbox_center(['obj1', 'obj2', 'obj3'])
+        (x_combined_center, y_combined_center, z_combined_center)
+    """
+    if not isinstance(obj_list, list):
+        obj_list = [obj_list]
+
+    all_points = []
+    for obj in obj_list:
+        shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+        if not shapes:
+            logger.debug(f'Unable to get bbox center for {obj}. Input does not have shapes.')
+            continue
+
+        points = []
+        for shape in shapes:
+            if cmds.objectType(shape) == 'nurbsSurface':
+                cvs_count = cmds.getAttr(f'{shape}.controlPoints', size=True)
+                points.append(f'{shape}.cv[0:{cvs_count - 1}]')
+            else:
+                vertex_count = cmds.polyEvaluate(shape, vertex=True)
+                points.append(f'{shape}.vtx[0:{vertex_count - 1}]')
+
+        all_points.extend(points)
+
+    if not all_points:
+        return 0, 0, 0
+
+    bbox = cmds.exactWorldBoundingBox(all_points)
+    bb_min = bbox[:3]
+    bb_max = bbox[3:6]
+    mid_point = list((b_max + b_min) / 2 for b_min, b_max in zip(bb_min, bb_max))
+
+    index = {"x": 0, "y": 1, "z": 2}[axis]
+    if alignment == "+":
+        mid_point[index] = bb_max[index]
+    elif alignment == "-":
+        mid_point[index] = bb_min[index]
+
+    return tuple(mid_point)
+
+
+def remap_value(value, old_range, new_range):
+    """
+    Remap a value from one range to another.
+
+    Args:
+        value (float): The input value to be remapped.
+        old_range (tuple, list): The range of the input value, specified as a tuple (min, max).
+        new_range (tuple, list): The desired range for the normalized value, specified as a tuple (min, max).
+
+    Returns:
+        float: The remapped value.
+
+    Example:
+        out = remap_value(value=50, old_range=(0, 100), new_range=(0, 1))
+        print(out)  # 0.5
+    """
+    return (value - old_range[0]) * (new_range[1] - new_range[0]) / (old_range[1] - old_range[0]) + new_range[0]
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    center = get_bbox_position("pSphere1")
+    print(center)
+    x, y, z = center
+    locator = cmds.spaceLocator()[0]
+    cmds.move(x, y, z, locator)

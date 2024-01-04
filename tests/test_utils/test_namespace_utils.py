@@ -68,11 +68,11 @@ class TestNamespaceUtils(unittest.TestCase):
         result = namespace_utils.get_namespace_hierarchy_list(obj=object_to_test)
         self.assertEqual(expected, result)
 
-    def test_get_namespace_hierarchy_list_parent(self):
+    def test_get_namespace_hierarchy_list_root(self):
         import_namespace_test_scene()
         object_to_test = "parentNS:childNS:grandChildNS:pCube1"
         expected = ['parentNS']
-        result = namespace_utils.get_namespace_hierarchy_list(obj=object_to_test, top_parent_only=True)
+        result = namespace_utils.get_namespace_hierarchy_list(obj=object_to_test, root_only=True)
         self.assertEqual(expected, result)
 
     def test_strip_namespace(self):

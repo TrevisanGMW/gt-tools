@@ -161,7 +161,7 @@ def load_menu(*args):
     menu.add_menu_item(label='Biped Auto Rigger',
                        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy")',
                        tooltip='Automated solution for creating a biped rig.',
-                       icon=resource_library.Icon.tool_auto_rigger)
+                       icon=resource_library.Icon.tool_auto_rigger_legacy)
     menu.add_menu_item(label='Biped Rig Interface',
                        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_biped_rig_interface")',
                        tooltip='Custom Rig Interface for GT Biped Auto Rigger.',
@@ -330,7 +330,7 @@ def load_menu(*args):
     menu.add_divider(divider_label="Delete Utilities")  # Delete Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(label='Delete Custom Attributes',
                        command=IMPORT_UTIL + 'initialize_utility("attr_utils", '
-                                             '"selection_delete_user_defined_attributes")',
+                                             '"selection_delete_user_defined_attrs")',
                        tooltip='Deletes user-defined (custom) attributes found on the selected objects.',
                        icon=resource_library.Icon.util_delete_custom_attr)
     menu.add_menu_item(label='Delete Namespaces',
@@ -390,10 +390,10 @@ def load_menu(*args):
                            command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
                            tooltip="Opens sample tool.",
                            icon=resource_library.Icon.dev_screwdriver)
-        menu.add_menu_item(label='Auto Rigger (Alpha)',
+        menu.add_menu_item(label='Auto Rigger',
                            command=IMPORT_TOOL + 'initialize_tool("auto_rigger")',
-                           tooltip="Opens auto rigger (work in progress).",
-                           icon=resource_library.Icon.dev_brain)
+                           tooltip="Opens auto rigger.",
+                           icon=resource_library.Icon.tool_auto_rigger)
         menu.add_divider(divider_label="Curves")  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(label='Add Thumbnail Metadata to Selection',
                            command='from gt.utils.curve_utils import add_thumbnail_metadata_attr_to_selection\n'

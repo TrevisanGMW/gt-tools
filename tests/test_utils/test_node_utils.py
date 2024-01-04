@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils.node_utils import Node
+from gt.utils import node_utils
 
 
 class TestNodeUtils(unittest.TestCase):
@@ -158,3 +159,131 @@ class TestNodeUtils(unittest.TestCase):
         cube_one = maya_test_tools.create_poly_cube()
         node_one = Node(cube_one)
         self.assertTrue(isinstance(node_one, str))
+
+    def test_node_rename(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        node_one = Node(cube_one)
+        node_one.rename("mockedName")
+        expected = "mockedName"
+        result = node_one.get_short_name()
+        self.assertEqual(expected, result)
+
+    def test_node_string_cmds_use(self):
+        cube_one = maya_test_tools.create_poly_cube()
+        group = maya_test_tools.cmds.group(name="group", empty=True, world=True)
+        a_node = Node(path=cube_one)
+        maya_test_tools.cmds.parent(a_node, group)
+        a_node.rename("mockedName")
+        maya_test_tools.cmds.parent(a_node, world=True)
+        expected = "mockedName"
+        result = a_node.get_short_name()
+        self.assertEqual(expected, result)
+        expected = "|mockedName"
+        result = a_node.get_long_name()
+        self.assertEqual(expected, result)
+
+    def test_node_is_unique_false(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_node, group_one)
+
+        cube_b = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_b_node = Node(path=cube_b)
+        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_b_node, group_two)
+
+        self.assertFalse(cube_node.is_unique(), "Node is unique, but it should not be.")
+        self.assertFalse(cube_b_node.is_unique(), "Node is unique, but it should not be.")
+
+    def test_node_is_unique_true(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_node, group_one)
+
+        cube_b = maya_test_tools.create_poly_cube(name="cube_two")
+        cube_b_node = Node(path=cube_b)
+        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
+        maya_test_tools.cmds.parent(cube_b_node, group_two)
+
+        self.assertTrue(cube_node.is_unique(), "Node is not unique, but it should be.")
+        self.assertTrue(cube_b_node.is_unique(), "Node is not unique, but it should be.")
+
+    def test_node_str_add_radd(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+
+        expected = "|cube_one"
+        result = cube_node.get_long_name()
+        self.assertEqual(expected, result)
+
+        expected = "|cube_one_test"
+        result = cube_node + "_test"
+        self.assertEqual(expected, result)
+
+        expected = "test_|cube_one"
+        result = "test_" + cube_node
+        self.assertEqual(expected, result)
+
+    def test_node_len(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_node = Node(path=cube)
+
+        expected = 9
+        result = len(cube_node)
+        self.assertEqual(expected, result)
+
+    def test_node_namespaces(self):
+        maya_test_tools.import_data_file("cube_namespaces.ma")
+        node_to_test = Node("parentNS:childNS:grandChildNS:pCube1")
+        expected = ['parentNS', 'childNS', 'grandChildNS']
+        result = node_to_test.get_namespaces(root_only=False)
+        self.assertEqual(expected, result)
+
+    def test_node_namespaces_root_only(self):
+        maya_test_tools.import_data_file("cube_namespaces.ma")
+        node_to_test = Node("parentNS:childNS:grandChildNS:pCube1")
+        expected = ['parentNS']
+        result = node_to_test.get_namespaces(root_only=True)
+        self.assertEqual(expected, result)
+
+    def test_node_equality(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        node_one = Node(cube)
+        node_two = Node(cube)
+        self.assertEqual(node_one, node_two)
+
+    def test_node_hashable(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        node_one = Node(cube_one)
+        node_two = Node(cube_two)
+
+        # Attempt to use instances as keys in a dictionary
+        node_dict = {node_one: "value1", node_two: "value2"}
+
+        # If the instances are hashable, the dictionary should be created without errors
+        self.assertIsInstance(node_dict, dict)
+
+    def test_create_node_transform(self):
+        result = node_utils.create_node("transform", name="mockedName", shared=False)
+        expected = Node("|mockedName")
+        self.assertEqual(expected, result)
+        expected = "|mockedName"
+        self.assertEqual(expected, result)
+
+    def test_create_node_no_name(self):
+        result = node_utils.create_node("transform", name=None, shared=False)
+        expected = Node("|transform1")
+        self.assertEqual(expected, result)
+        expected = "|transform1"
+        self.assertEqual(expected, result)
+
+    def test_create_node_shared(self):
+        result_one = node_utils.create_node("transform", name="mockedName", shared=True)
+        result_two = node_utils.create_node("transform", name="mockedName", shared=True)
+        expected = Node("|mockedName")
+        self.assertEqual(expected, result_one)
+        self.assertEqual(expected, result_two)
+        self.assertFalse(maya_test_tools.cmds.objExists("mockedName1"))
