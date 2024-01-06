@@ -17,7 +17,7 @@ Rigging Steps:
 from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
-from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_type_from_dict
+from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
@@ -667,6 +667,36 @@ class Proxy:
         if isinstance(line_parent, Proxy):
             self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent.get_uuid()
 
+    def add_driver_tag(self, tags):
+        """
+        Adds a tag to the list of drivers. Initializes metadata in case it was not yet initialized.
+        A tag is used to determine controls driving the joint generated from this proxy
+        A proxy generates a joint, this joint can driven by multiple controls, the tag helps identify them.
+        Args:
+            tags (str, list): New tag to add. e.g. "fk", "ik", "offset", etc...
+                              Can also be a list of new tags: e.g. ["fk", "ik"]
+        """
+        if not tags:
+            logger.debug(f'Invalid tag was provided. Add driver operation was skipped.')
+            return
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        if isinstance(tags, str):
+            tags = [tags]
+        new_tags = self.metadata.get(RiggerConstants.PROXY_META_DRIVERS, [])
+        for tag in tags:
+            if tag and isinstance(tag, str) and tag not in new_tags:
+                new_tags.append(tag)
+        if new_tags:
+            self.metadata[RiggerConstants.PROXY_META_DRIVERS] = new_tags
+
+    def clear_driver_tags(self):
+        """
+        Clears any driver tags found in the metadata.
+        """
+        if self.metadata:
+            self.metadata.pop(RiggerConstants.PROXY_META_DRIVERS, None)
+
     def add_color(self, rgb_color):
         """
         Adds a color attribute to the metadata dictionary.
@@ -737,14 +767,14 @@ class Proxy:
         """
         self.parent_uuid = None
 
-    def set_meta_type(self, value):
+    def set_meta_purpose(self, value):
         """
         Adds a proxy meta type key and value to the metadata dictionary. Used to define proxy type in modules.
         Args:
             value (str, optional): Type "tag" used to determine overwrites.
                                    e.g. "hip", so the module knows it's a "hip" proxy.
         """
-        self.add_to_metadata(key=RiggerConstants.PROXY_META_TYPE, value=value)
+        self.add_to_metadata(key=RiggerConstants.PROXY_META_PURPOSE, value=value)
 
     def read_data_from_dict(self, proxy_dict):
         """
@@ -828,14 +858,33 @@ class Proxy:
         """
         return self.metadata
 
+    def get_metadata_value(self, key):
+        """
+        Gets the value stored in the metadata. If not found, returns None.
+        Args:
+            key (str): The value key.
+        Returns:
+            any: Value stored in the metadata key. If not found, it returns None
+        """
+        if not self.metadata or not key:
+            return
+        return self.metadata.get(key)
+
     def get_meta_parent_uuid(self):
         """
         Gets the meta parent of this proxy (if present)
         Returns:
             str or None: The UUID set as meta parent, otherwise, None.
         """
-        if self.metadata and isinstance(self.metadata, dict):
-            return self.metadata.get(RiggerConstants.PROXY_META_PARENT, None)
+        return self.get_metadata_value(RiggerConstants.PROXY_META_PARENT)
+
+    def get_meta_purpose(self):
+        """
+        Gets the meta purpose of this proxy (if present)
+        Returns:
+            str or None: The purpose of this proxy as stored in the metadata, otherwise None.
+        """
+        return self.get_metadata_value(RiggerConstants.PROXY_META_PURPOSE)
 
     def get_name(self):
         """
@@ -877,6 +926,15 @@ class Proxy:
                   e.g. {"locatorScale": 1, "isVisible": True}
         """
         return self.attr_dict
+
+    def get_driver_types(self):
+        """
+        Gets a list of available driver types. e.g.  ["fk", "ik", "offset"]
+        Returns:
+            list or None: A list of driver types (strings) otherwise None.
+        """
+        if self.metadata:
+            return self.metadata.get(RiggerConstants.PROXY_META_DRIVERS, None)
 
     def get_proxy_as_dict(self, include_uuid=False, include_transform_data=True, include_offset_data=True):
         """
@@ -1224,7 +1282,7 @@ class ModuleGeneric:
             self.set_metadata_dict(metadata=_metadata)
         return self
 
-    def read_type_matching_proxy_from_dict(self, proxy_dict):
+    def read_purpose_matching_proxy_from_dict(self, proxy_dict):
         """
         Utility used by inherited modules to detect the proxy meta type when reading their dict data.
         Args:
@@ -1237,13 +1295,13 @@ class ModuleGeneric:
         proxy_type_link = {}
         for proxy in proxies:
             metadata = proxy.get_metadata()
-            meta_type = get_meta_type_from_dict(metadata)
+            meta_type = get_meta_purpose_from_dict(metadata)
             if meta_type and isinstance(meta_type, str):
                 proxy_type_link[meta_type] = proxy
 
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
-            meta_type = get_meta_type_from_dict(metadata)
+            meta_type = get_meta_purpose_from_dict(metadata)
             if meta_type in proxy_type_link:
                 proxy = proxy_type_link.get(meta_type)
                 proxy.set_uuid(uuid)
@@ -1507,6 +1565,34 @@ class ModuleGeneric:
             logger.warning('Missing proxies. A rig module needs at least one proxy to function.')
             return False
         return True
+
+    def add_driver_uuid_attr(self, target, driver_type=None, proxy_purpose=None):
+        """
+        Adds an attribute to be used as driver UUID to the object.
+        The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
+        Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
+        Args:
+            target (str): Path to the object that will receive the driver attributes.
+            driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
+            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string, e.g. "shoulder" or
+                                                  the proxy object (if a Proxy object is provided, then it tries to extract
+        """
+        uuid = f'{self.uuid}'
+        if driver_type:
+            uuid = f'{uuid}-{driver_type}'
+        if proxy_purpose and isinstance(proxy_purpose, Proxy):
+            proxy_purpose = proxy_purpose.get_meta_purpose()
+        if proxy_purpose:
+            uuid = f'{uuid}-{proxy_purpose}'
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Unable to add UUID attribute. Target object is missing.')
+            return
+        uuid_attr = add_attr(obj_list=target, attr_type="string", is_keyable=False,
+                             attributes=RiggerConstants.DRIVER_ATTR_UUID, verbose=True)[0]
+        if not uuid:
+            uuid = generate_uuid(remove_dashes=True)
+        set_attr(attribute_path=uuid_attr, value=str(uuid))
+        return target
 
     # --------------------------------------------------- Build ---------------------------------------------------
     def build_proxy(self, project_prefix=None, optimized=False):
@@ -2015,6 +2101,7 @@ if __name__ == "__main__":
     # a_biped_project.build_rig()
 
     root = Proxy(name="root")
+    root.set_meta_purpose("root")
     a_1st_proxy = Proxy(name="first")
     a_1st_proxy.set_position(y=5, x=-1)
     a_1st_proxy.set_parent_uuid_from_proxy(root)
@@ -2025,6 +2112,10 @@ if __name__ == "__main__":
 
     a_root_module = ModuleGeneric()
     a_root_module.add_to_proxies(root)
+    test = cmds.polySphere()
+    a_root_module.add_driver_uuid_attr(test[0], "fk", root)
+
+    print(root.get_meta_parent_uuid())
 
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_1st_proxy)
