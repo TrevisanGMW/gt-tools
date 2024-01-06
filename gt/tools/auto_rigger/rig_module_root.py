@@ -36,7 +36,7 @@ class ModuleRoot(ModuleGeneric):
         # Default Proxies
         self.root = Proxy(name="root")
         self.root.set_locator_scale(scale=1)
-        self.root.set_meta_type(value="root")
+        self.root.set_meta_purpose(value="root")
         self.root.add_color(ColorConstants.RigProxy.TWEAK)
         self.proxies = [self.root]
 
@@ -60,7 +60,7 @@ class ModuleRoot(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):

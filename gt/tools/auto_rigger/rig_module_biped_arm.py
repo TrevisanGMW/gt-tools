@@ -56,27 +56,27 @@ class ModuleBipedArm(ModuleGeneric):
         self.clavicle.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=2)
-        self.clavicle.set_meta_type(value="clavicle")
+        self.clavicle.set_meta_purpose(value="clavicle")
 
         self.shoulder = Proxy(name=shoulder_name)
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=2)
         self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
-        self.shoulder.set_meta_type(value="shoulder")
+        self.shoulder.set_meta_purpose(value="shoulder")
 
         self.elbow = Proxy(name=elbow_name)
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=2.2)
         self.elbow.add_meta_parent(line_parent=self.shoulder)
-        self.elbow.set_meta_type(value="elbow")
+        self.elbow.set_meta_purpose(value="elbow")
 
         self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=2)
         self.wrist.add_meta_parent(line_parent=self.elbow)
-        self.wrist.set_meta_type(value="wrist")
+        self.wrist.set_meta_purpose(value="wrist")
 
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
@@ -115,7 +115,7 @@ class ModuleBipedArm(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):

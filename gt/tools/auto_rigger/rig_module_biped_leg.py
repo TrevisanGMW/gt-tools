@@ -48,37 +48,37 @@ class ModuleBipedLeg(ModuleGeneric):
         # Default Proxies
         self.hip = Proxy(name=hip_name)
         self.hip.set_locator_scale(scale=2)
-        self.hip.set_meta_type(value="hip")
+        self.hip.set_meta_purpose(value="hip")
 
         self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
         self.knee.set_locator_scale(scale=2)
         self.knee.add_meta_parent(line_parent=self.hip)
         self.knee.set_parent_uuid(uuid=self.hip.get_uuid())
-        self.knee.set_meta_type(value="knee")
+        self.knee.set_meta_purpose(value="knee")
 
         self.ankle = Proxy(name=ankle_name)
         self.ankle.set_locator_scale(scale=2)
         self.ankle.add_meta_parent(line_parent=self.knee)
-        self.ankle.set_meta_type(value="ankle")
+        self.ankle.set_meta_purpose(value="ankle")
 
         self.ball = Proxy(name=ball_name)
         self.ball.set_locator_scale(scale=2)
         self.ball.add_meta_parent(line_parent=self.ankle)
         self.ball.set_parent_uuid(uuid=self.ankle.get_uuid())
-        self.ball.set_meta_type(value="ball")
+        self.ball.set_meta_purpose(value="ball")
 
         self.toe = Proxy(name=toe_name)
         self.toe.set_locator_scale(scale=1)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
-        self.toe.set_meta_type(value="toe")
+        self.toe.set_meta_purpose(value="toe")
 
         self.heel = Proxy(name=heel_name)
         self.heel.set_locator_scale(scale=1)
         self.heel.add_meta_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
-        self.heel.set_meta_type(value="heel")
+        self.heel.set_meta_purpose(value="heel")
 
         # Initial Pose
         hip_pos = Vector3(y=84.5)
@@ -132,7 +132,7 @@ class ModuleBipedLeg(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):

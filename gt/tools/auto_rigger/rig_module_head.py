@@ -41,21 +41,21 @@ class ModuleHead(ModuleGeneric):
         pos_neck_base = Vector3(y=137)
         self.neck_base.set_initial_position(xyz=pos_neck_base)
         self.neck_base.set_locator_scale(scale=1.5)
-        self.neck_base.set_meta_type(value="neckBase")
+        self.neck_base.set_meta_purpose(value="neckBase")
 
         # Head (Chain End)
         self.head = Proxy(name="head")
         pos_head = Vector3(y=142.5)
         self.head.set_initial_position(xyz=pos_head)
         self.head.set_locator_scale(scale=1.5)
-        self.head.set_meta_type(value="head")
+        self.head.set_meta_purpose(value="head")
 
         # Head End
         self.head_end = Proxy(name=f"head{_end_suffix}")
         pos_head_end = Vector3(y=160)
         self.head_end.set_initial_position(xyz=pos_head_end)
         self.head_end.set_locator_scale(scale=1)
-        self.head_end.set_meta_type(value="headEnd")
+        self.head_end.set_meta_purpose(value="headEnd")
         self.head_end.set_parent_uuid(self.head.get_uuid())
         self.head_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
 
@@ -64,7 +64,7 @@ class ModuleHead(ModuleGeneric):
         pos_jaw = Vector3(y=147.5, z=2.5)
         self.jaw.set_initial_position(xyz=pos_jaw)
         self.jaw.set_locator_scale(scale=1.5)
-        self.jaw.set_meta_type(value="jaw")
+        self.jaw.set_meta_purpose(value="jaw")
         self.jaw.set_parent_uuid(self.head.get_uuid())
 
         # Jaw End
@@ -72,7 +72,7 @@ class ModuleHead(ModuleGeneric):
         pos_jaw_end = Vector3(y=142.5, z=11)
         self.jaw_end.set_initial_position(xyz=pos_jaw_end)
         self.jaw_end.set_locator_scale(scale=1)
-        self.jaw_end.set_meta_type(value="jawEnd")
+        self.jaw_end.set_meta_purpose(value="jawEnd")
         self.jaw_end.set_parent_uuid(self.jaw.get_uuid())
         self.jaw_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
 
@@ -81,7 +81,7 @@ class ModuleHead(ModuleGeneric):
         pos_lt_eye = Vector3(x=3.5, y=151, z=8.7)
         self.lt_eye.set_initial_position(xyz=pos_lt_eye)
         self.lt_eye.set_locator_scale(scale=2.5)
-        self.lt_eye.set_meta_type(value="eyeLeft")
+        self.lt_eye.set_meta_purpose(value="eyeLeft")
         self.lt_eye.set_parent_uuid(self.head.get_uuid())
 
         # Right Eye
@@ -89,7 +89,7 @@ class ModuleHead(ModuleGeneric):
         pos_rt_eye = Vector3(x=-3.5, y=151, z=8.7)
         self.rt_eye.set_initial_position(xyz=pos_rt_eye)
         self.rt_eye.set_locator_scale(scale=2.5)
-        self.rt_eye.set_meta_type(value="eyeRight")
+        self.rt_eye.set_meta_purpose(value="eyeRight")
         self.rt_eye.set_parent_uuid(self.head.get_uuid())
 
         # Neck Mid (In-between)
@@ -120,7 +120,7 @@ class ModuleHead(ModuleGeneric):
                 new_neck_mid = Proxy(name=_neck_mid_name)
                 new_neck_mid.set_locator_scale(scale=1)
                 new_neck_mid.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-                new_neck_mid.set_meta_type(value=_neck_mid_name)
+                new_neck_mid.set_meta_purpose(value=_neck_mid_name)
                 new_neck_mid.add_meta_parent(line_parent=_parent_uuid)
                 new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
                 _parent_uuid = new_neck_mid.get_uuid()
@@ -175,11 +175,11 @@ class ModuleHead(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+                meta_type = metadata.get(RiggerConstants.PROXY_META_PURPOSE)
                 if bool(re.match(neck_mid_pattern, meta_type)):
                     _neck_mid_num += 1
         self.set_mid_neck_num(_neck_mid_num)
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
         self.refresh_proxies_list()
 
     # --------------------------------------------------- Misc ---------------------------------------------------

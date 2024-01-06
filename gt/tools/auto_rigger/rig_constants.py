@@ -17,10 +17,11 @@ class RiggerConstants:
     # Attributes and Keys
     JOINT_ATTR_UUID = "jointUUID"
     PROXY_ATTR_UUID = "proxyUUID"
-    CONTROL_ATTR_UUID = "controlUUID"
+    DRIVER_ATTR_UUID = "driverUUID"
     PROXY_ATTR_SCALE = "locatorScale"
     PROXY_META_PARENT = "metaParentUUID"  # Metadata key, may be different from actual parent (e.g. for lines)
-    PROXY_META_TYPE = "proxyType"  # Metadata key, used to recognize rigged proxies within modules
+    PROXY_META_PURPOSE = "proxyPurpose"  # Metadata key, used to recognize proxy purpose within modules
+    PROXY_META_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint
     PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     LINE_ATTR_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
     LINE_ATTR_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target

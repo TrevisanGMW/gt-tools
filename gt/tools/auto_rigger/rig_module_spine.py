@@ -2,7 +2,7 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_direction_curve_node
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
@@ -42,14 +42,14 @@ class ModuleSpine(ModuleGeneric):
         pos_hip = Vector3(y=84.5)
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
-        self.hip.set_meta_type(value="hip")
+        self.hip.set_meta_purpose(value="hip")
 
         # Chest (End)
         self.chest = Proxy(name="chest")
         pos_chest = Vector3(y=114.5)
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
-        self.chest.set_meta_type(value="chest")
+        self.chest.set_meta_purpose(value="chest")
 
         # Spines (In-between)
         self.spines = []
@@ -78,7 +78,7 @@ class ModuleSpine(ModuleGeneric):
                 new_spine = Proxy(name=f'spine{str(num + 1).zfill(2)}')
                 new_spine.set_locator_scale(scale=1)
                 new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-                new_spine.set_meta_type(value=f'spine{str(num + 1).zfill(2)}')
+                new_spine.set_meta_purpose(value=f'spine{str(num + 1).zfill(2)}')
                 new_spine.add_meta_parent(line_parent=_parent_uuid)
                 new_spine.set_parent_uuid(uuid=_parent_uuid)
                 _parent_uuid = new_spine.get_uuid()
@@ -128,11 +128,11 @@ class ModuleSpine(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+                meta_type = metadata.get(RiggerConstants.PROXY_META_PURPOSE)
                 if bool(re.match(spine_pattern, meta_type)):
                     _spine_num += 1
         self.set_spine_num(_spine_num)
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
         self.refresh_proxies_list()
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -247,6 +247,9 @@ class ModuleSpine(ModuleGeneric):
         set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
 
+        pelvis_ctrl = create_ctrl_curve(name="pelvis", curve_file_name="_wavy_circle_pos_y")
+        self.add_driver_uuid_attr(target=pelvis_ctrl, driver_type="fk", proxy_purpose=self.hip)
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -261,8 +264,8 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_spine)
     a_project.build_proxy()
 
-    cmds.setAttr(f'hip.tx', 10)
-    cmds.setAttr(f'spine02.tx', 10)
+    # cmds.setAttr(f'hip.tx', 10)
+    # cmds.setAttr(f'spine02.tx', 10)
 
     a_project.read_data_from_scene()
     dictionary = a_project.get_project_as_dict()
