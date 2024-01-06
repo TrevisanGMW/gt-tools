@@ -19,12 +19,13 @@ from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_cur
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
+from gt.tools.auto_rigger.rig_utils import find_driver_node_from_uuid
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
-from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
@@ -1501,6 +1502,25 @@ class ModuleGeneric:
         elif len(_module_name) <= add_class_len:
             _module_name = f'{_module_name} ({_class_name})'
         return _module_name
+
+    def find_driver_node(self, driver_type, proxy_purpose):
+        """
+        A driver node (a.k.a. Control) is responsible for directly or indirectly driving a joint or a group of joints.
+        Args:
+            driver_type (str): A driver type (aka tag) used to identify the type of control. e.g. "fk", "ik", "offset".
+            proxy_purpose (str, Proxy): The purpose os the control (aka Description) e.g. "shoulder"
+                                        This can also be a proxy, in which case the purposed will be extracted.
+        Returns:
+            Node or None: A Node object pointing to an existing driver/control object, otherwise None.
+        """
+        uuid = self.uuid
+        if driver_type:
+            uuid = f'{uuid}-{driver_type}'
+        if proxy_purpose and isinstance(proxy_purpose, Proxy):
+            proxy_purpose = proxy_purpose.get_meta_purpose()
+        if proxy_purpose:
+            uuid = f'{uuid}-{proxy_purpose}'
+        return find_driver_node_from_uuid(uuid_string=uuid)
 
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
