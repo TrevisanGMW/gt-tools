@@ -86,7 +86,7 @@ def find_control_from_uuid(uuid_string):
         str or None: If found, the joint with the matching UUID, otherwise None
     """
     ctrl = get_object_from_uuid_attr(uuid_string=uuid_string,
-                                     attr_name=RiggerConstants.CONTROL_ATTR_UUID,
+                                     attr_name=RiggerConstants.DRIVER_ATTR_UUID,
                                      obj_type="transform")
     return ctrl
 
@@ -384,38 +384,22 @@ def create_control_root_curve():
     return Node(root_transform)
 
 
-def create_ctrl_curve(name, curve_file_name=None, uuid=None):
+def create_ctrl_curve(name, curve_file_name=None):
     """
-    Creates a control with a control UUID attribute.
+    Creates a curve to be used as control within the auto rigger context.
     Args:
         name (str): Control name.
         curve_file_name (str, optional): Curve file name (from inside "gt/utils/data/curves") e.g. "circle"
-        uuid (str, optional): A defined UUID for the control.
-                              In case this is not provided, one will be automatically generated.
     Returns:
-        str or None: Path to the generated control, otherwise None
+        Node or None: Node with the generated control, otherwise None
     """
-    if uuid and not is_uuid_valid(uuid):
-        raise Exception("Failed to create control. Provided UUID is invalid.")
     if not curve_file_name:
-        curve_file_name = "_circle_pos_x"
+        curve_file_name = "_cube"
     crv_obj = get_curve(file_name=curve_file_name)
     crv_obj.set_name(name)
     crv = crv_obj.build()
-    uuid_attr = add_attr(obj_list=crv, attr_type="string", is_keyable=False,
-                         attributes=RiggerConstants.CONTROL_ATTR_UUID, verbose=True)
-    if uuid_attr:
-        uuid_attr = uuid_attr[0]
-    else:
-        try:
-            cmds.delete(crv)
-        except Exception as e:
-            logger.debug(f'Unable to delete curve control. Issue: {e}')
-        return
-    if not uuid:
-        uuid = generate_uuid(remove_dashes=True)
-    set_attr(attribute_path=uuid_attr, value=str(uuid))
-    return crv
+    if crv:
+        return Node(crv)
 
 
 def create_direction_curve():
@@ -521,7 +505,7 @@ def get_proxy_offset(proxy_name):
         return offset
 
 
-def get_meta_type_from_dict(proxy_dict):
+def get_meta_purpose_from_dict(proxy_dict):
     """
     Gets the meta type of the proxy. A meta type helps identify the purpose of a proxy within a module.
     For example, a type "knee" proxy describes that it will be influenced by the "hip" and "ankle" in a leg.
@@ -532,7 +516,7 @@ def get_meta_type_from_dict(proxy_dict):
         string or None: The meta type string or None when not detected/found.
     """
     if proxy_dict:
-        meta_type = proxy_dict.get(RiggerConstants.PROXY_META_TYPE)
+        meta_type = proxy_dict.get(RiggerConstants.PROXY_META_PURPOSE)
         return meta_type
 
 
