@@ -3,22 +3,21 @@ Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_direction_curve_node
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_direction_curve_node, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, duplicate_joint_for_automation
+from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
-from gt.utils.transform_utils import Vector3
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -43,6 +42,7 @@ class ModuleSpine(ModuleGeneric):
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_purpose(value="hip")
+        self.hip.add_driver_type(driver_type=["fk"])
 
         # Chest (End)
         self.chest = Proxy(name="chest")
@@ -50,6 +50,7 @@ class ModuleSpine(ModuleGeneric):
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_purpose(value="chest")
+        self.chest.add_driver_type(driver_type=["fk"])
 
         # Spines (In-between)
         self.spines = []
@@ -247,8 +248,18 @@ class ModuleSpine(ModuleGeneric):
         set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
 
-        pelvis_ctrl = create_ctrl_curve(name="pelvis", curve_file_name="_wavy_circle_pos_y")
-        self.add_driver_uuid_attr(target=pelvis_ctrl, driver_type="fk", proxy_purpose=self.hip)
+        # Hip Control
+        hip_ctrl = self._assemble_new_node_name(name=self.hip.get_name())
+        hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
+        self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        hip_offset = add_offset_transform(target_list=hip_ctrl)
+        match_transform(source=hip_jnt, target_list=hip_offset)
+        scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
+        hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
+        # print(self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip))
+        # print(self.find_module_drivers())
+        print(self.hip.get_meta_purpose())
+        print(self.find_proxy_drivers(proxy=self.hip))
 
 
 if __name__ == "__main__":
