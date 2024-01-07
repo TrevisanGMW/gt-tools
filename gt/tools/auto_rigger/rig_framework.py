@@ -668,24 +668,24 @@ class Proxy:
         if isinstance(line_parent, Proxy):
             self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent.get_uuid()
 
-    def add_driver_tag(self, tags):
+    def add_driver_type(self, driver_type):
         """
-        Adds a tag to the list of drivers. Initializes metadata in case it was not yet initialized.
-        A tag is used to determine controls driving the joint generated from this proxy
+        Adds a type/tag to the list of drivers. Initializes metadata in case it was not yet initialized.
+        A type/tag is used to determine controls driving the joint generated from this proxy
         A proxy generates a joint, this joint can driven by multiple controls, the tag helps identify them.
         Args:
-            tags (str, list): New tag to add. e.g. "fk", "ik", "offset", etc...
+            driver_type (str, list): New type/tag to add. e.g. "fk", "ik", "offset", etc...
                               Can also be a list of new tags: e.g. ["fk", "ik"]
         """
-        if not tags:
+        if not driver_type:
             logger.debug(f'Invalid tag was provided. Add driver operation was skipped.')
             return
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
-        if isinstance(tags, str):
-            tags = [tags]
+        if isinstance(driver_type, str):
+            driver_type = [driver_type]
         new_tags = self.metadata.get(RiggerConstants.PROXY_META_DRIVERS, [])
-        for tag in tags:
+        for tag in driver_type:
             if tag and isinstance(tag, str) and tag not in new_tags:
                 new_tags.append(tag)
         if new_tags:
@@ -1503,12 +1503,12 @@ class ModuleGeneric:
             _module_name = f'{_module_name} ({_class_name})'
         return _module_name
 
-    def find_driver_node(self, driver_type, proxy_purpose):
+    def find_driver(self, driver_type, proxy_purpose):
         """
-        A driver node (a.k.a. Control) is responsible for directly or indirectly driving a joint or a group of joints.
+        Find driver (a.k.a. Control) is responsible for directly or indirectly driving a joint or a group of joints.
         Args:
             driver_type (str): A driver type (aka tag) used to identify the type of control. e.g. "fk", "ik", "offset".
-            proxy_purpose (str, Proxy): The purpose os the control (aka Description) e.g. "shoulder"
+            proxy_purpose (str, Proxy): The purpose of the control (aka Description) e.g. "shoulder"
                                         This can also be a proxy, in which case the purposed will be extracted.
         Returns:
             Node or None: A Node object pointing to an existing driver/control object, otherwise None.
@@ -1521,6 +1521,59 @@ class ModuleGeneric:
         if proxy_purpose:
             uuid = f'{uuid}-{proxy_purpose}'
         return find_driver_node_from_uuid(uuid_string=uuid)
+
+    def find_module_drivers(self):
+        """
+        Find driver nodes (a.k.a. Controls) that are responsible for directly or indirectly driving the proxy's joint.
+        Returns:
+            list: A list of transforms used as drivers/controls for this module.
+        """
+        obj_list = cmds.ls(typ="transform", long=True) or []
+        matches = []
+        module_uuid = self.uuid
+        for obj in obj_list:
+            if cmds.objExists(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}')
+                if uuid_value.startswith(module_uuid):
+                    matches.append(obj)
+        return matches
+
+    def find_proxy_drivers(self, proxy):
+        """
+        Find driver nodes (a.k.a. Controls) that are responsible for directly or indirectly driving the proxy's joint.
+        Args:
+            proxy (Proxy): The proxy, used to get the driver purpose and types.
+                           If missing metadata, an empty list is returned.
+        Returns:
+            list: A list of transforms used as drivers/controls for the provided proxy.
+        """
+        proxy_driver_types = proxy.get_driver_types()
+        proxy_purpose = proxy.get_meta_purpose()
+        if not proxy_driver_types:
+            logger.debug(f'Proxy does not have any driver types. No drivers can be found without a type.')
+            return []
+        if not proxy_purpose:
+            logger.debug(f'Proxy does not have a defined purpose. No drivers can be found without a purpose.')
+            return []
+        driver_uuids = []
+        for proxy_type in proxy_driver_types:
+            driver_uuids.append(f'{self.uuid}-{proxy_type}-{proxy_purpose}')
+        obj_list = cmds.ls(typ="transform", long=True) or []
+        module_matches = {}
+        module_uuid = self.uuid
+        for obj in obj_list:
+            if cmds.objExists(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}')
+                if uuid_value.startswith(module_uuid):
+                    module_matches[uuid_value] = obj
+        matches = []
+        for driver_uuid in driver_uuids:
+            if driver_uuid in module_matches:
+                matches.append(module_matches.get(driver_uuid))
+        if len(matches) != driver_uuids:
+            logger.debug(f'Not all drivers were found. '
+                         f'Driver type list has a different length when compared to the list of matches.')
+        return matches
 
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
