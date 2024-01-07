@@ -1945,7 +1945,6 @@ def rescale_curve(curve_transform, scale):
         curve_transform (str): The name of the curve transform to be rescaled.
         scale (float, tuple): The scaling factor to be applied uniformly to the control points.
                               It can also be a tuple, e.g. (1, 2, 1)
-
     Example:
         rescale_curve("myCurve", 2.0)
     """
