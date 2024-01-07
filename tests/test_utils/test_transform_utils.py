@@ -1369,7 +1369,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.translate_shapes(obj_transform=crv, translate_offset=(1, 0, 0))
+        transform_utils.translate_shapes(obj_transform=crv, offset=(1, 0, 0))
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1396,7 +1396,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.rotate_shapes(obj_transform=crv, rotation_offset=(90, 0, 0))
+        transform_utils.rotate_shapes(obj_transform=crv, offset=(90, 0, 0))
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1423,7 +1423,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.scale_shapes(obj_transform=crv, scale_offset=2)
+        transform_utils.scale_shapes(obj_transform=crv, offset=2)
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1450,7 +1450,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.scale_shapes(obj_transform=crv, scale_offset=(2, 1, 1))
+        transform_utils.scale_shapes(obj_transform=crv, offset=(2, 1, 1))
 
         cv_positions = []
         for i in range(num_cvs):

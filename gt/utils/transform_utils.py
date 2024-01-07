@@ -1151,12 +1151,12 @@ def set_equidistant_transforms(start, end, target_list, skip_start_end=True, con
     cmds.delete(constraints)
 
 
-def translate_shapes(obj_transform, translate_offset):
+def translate_shapes(obj_transform, offset):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
         obj_transform (str): The transform node of the object.
-        translate_offset (tuple): The rotation offset in degrees (X, Y, Z).
+        offset (tuple): The rotation offset in degrees (X, Y, Z).
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1165,15 +1165,15 @@ def translate_shapes(obj_transform, translate_offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.move(*translate_offset, components, relative=True, objectSpace=True)
+        cmds.move(*offset, components, relative=True, objectSpace=True)
 
 
-def rotate_shapes(obj_transform, rotation_offset):
+def rotate_shapes(obj_transform, offset):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
         obj_transform (str): The transform node of the object.
-        rotation_offset (tuple): The rotation offset in degrees (X, Y, Z).
+        offset (tuple): The rotation offset in degrees (X, Y, Z).
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1182,15 +1182,15 @@ def rotate_shapes(obj_transform, rotation_offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.rotate(*rotation_offset, components, relative=True, objectSpace=True)
+        cmds.rotate(*offset, components, relative=True, objectSpace=True)
 
 
-def scale_shapes(obj_transform, scale_offset):
+def scale_shapes(obj_transform, offset):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
         obj_transform (str): The transform node of the object.
-        scale_offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
+        offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
                                           If a float or an integer is provided, it will be used as X, Y and Z.
                                           e.g. 0.5 = (0.5, 0.5, 0.5)
     """
@@ -1198,12 +1198,12 @@ def scale_shapes(obj_transform, scale_offset):
     if not shapes:
         logger.debug("No shapes found for the given object.")
         return
-    if scale_offset and isinstance(scale_offset, (int, float)):
-        scale_offset = (scale_offset, scale_offset, scale_offset)
+    if offset and isinstance(offset, (int, float)):
+        offset = (offset, offset, offset)
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.scale(*scale_offset, components, relative=True, objectSpace=True)
+        cmds.scale(*offset, components, relative=True, objectSpace=True)
 
 
 if __name__ == "__main__":
@@ -1211,5 +1211,6 @@ if __name__ == "__main__":
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    translate_shapes(cmds.ls(selection=True)[0], translate_offset=(1, 0, 0))
+    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90))
+
     
