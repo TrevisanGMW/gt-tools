@@ -51,3 +51,13 @@ class RiggerConstants:
     LOC_RADIUS_MULTIPLIER_DRIVEN = .8
     LOC_RADIUS_MULTIPLIER_FK = .3
     LOC_RADIUS_MULTIPLIER_IK = .6
+
+
+class RiggerDriverTypes:
+    def __init__(self):
+        """
+        Driver Type Constant values used by the drivers and controls.
+        """
+    FK = "fk"
+    IK = "ik"
+    OFFSET = "offset"
