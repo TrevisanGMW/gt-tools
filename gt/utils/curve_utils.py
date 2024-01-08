@@ -1842,7 +1842,7 @@ def set_curve_width(obj_list, line_width=-1):
     return affected_shapes
 
 
-def create_connection_line(object_a, object_b, constraint=True):
+def create_connection_line(object_a, object_b, constraint=True, line_width=3):
     """
     Creates a curve attached to two objects, often used to better visualize hierarchies
 
@@ -1850,14 +1850,14 @@ def create_connection_line(object_a, object_b, constraint=True):
         object_a (str): Name of the object driving the start of the curve
         object_b (str): Name of the object driving end of the curve (usually a child of object_a)
         constraint (bool, optional): If True, it will constrain the clusters to "object_a" and "object_b".
+        line_width (float, optional): Width of the connection line. (Default is 3)
 
     Returns:
         tuple: A list with the generated curve, cluster_a, and cluster_b
-
     """
     crv = cmds.curve(p=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], d=1)
-    cluster_a = cmds.cluster(crv + '.cv[0]')
-    cluster_b = cmds.cluster(crv + '.cv[1]')
+    cluster_a = cmds.cluster(f'{crv}.cv[0]')
+    cluster_b = cmds.cluster(f'{crv}.cv[1]')
 
     if cmds.objExists(object_a):
         cmds.pointConstraint(object_a, cluster_a[1])
@@ -1865,13 +1865,13 @@ def create_connection_line(object_a, object_b, constraint=True):
     if cmds.objExists(object_a):
         cmds.pointConstraint(object_b, cluster_b[1])
 
-    object_a_short = object_a.split('|')[-1]
-    object_b_short = object_b.split('|')[-1]
-    crv = cmds.rename(crv, object_a_short + '_to_' + object_b_short)
-    cluster_a = cmds.rename(cluster_a[1], object_a_short + '_cluster')
-    cluster_b = cmds.rename(cluster_b[1], object_b_short + '_cluster')
-    cmds.setAttr(cluster_a + '.v', 0)
-    cmds.setAttr(cluster_b + '.v', 0)
+    object_a_short = get_short_name(object_a)
+    object_b_short = get_short_name(object_b)
+    crv = cmds.rename(crv, f'{object_a_short}_to_{object_b_short}')
+    cluster_a = cmds.rename(cluster_a[1], f'{object_a_short}_cluster')
+    cluster_b = cmds.rename(cluster_b[1], f'{object_b_short}_cluster')
+    cmds.setAttr(f'{cluster_a}.v', 0)
+    cmds.setAttr(f'{cluster_b}.v', 0)
 
     if constraint and cmds.objExists(object_a):
         cmds.pointConstraint(object_a, cluster_a)
@@ -1879,8 +1879,8 @@ def create_connection_line(object_a, object_b, constraint=True):
     if constraint and cmds.objExists(object_b):
         cmds.pointConstraint(object_b, cluster_b)
 
-    shapes = cmds.listRelatives(crv, s=True, f=True) or []
-    cmds.setAttr(shapes[0] + ".lineWidth", 3)
+    shapes = cmds.listRelatives(crv, shapes=True, fullPath=True) or []
+    cmds.setAttr(f"{shapes[0]}.lineWidth", line_width)
 
     return crv, cluster_a, cluster_b
 
