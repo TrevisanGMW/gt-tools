@@ -16,6 +16,7 @@ class RiggerConstants:
     FILE_FILTER = f"Rig Project (*.{PROJECT_EXTENSION});;"
     # Attributes and Keys
     JOINT_ATTR_UUID = "jointUUID"
+    MODULE_ATTR_UUID = "moduleUUID"
     PROXY_ATTR_UUID = "proxyUUID"
     DRIVER_ATTR_UUID = "driverUUID"
     PROXY_ATTR_SCALE = "locatorScale"
