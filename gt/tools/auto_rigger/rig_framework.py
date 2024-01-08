@@ -14,12 +14,11 @@ Rigging Steps:
         5: build_rig
         6: build_rig_post
 """
-from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
-from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
-from gt.tools.auto_rigger.rig_utils import find_driver_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
+from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
@@ -30,8 +29,8 @@ from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.node_utils import create_node, Node
 from gt.utils.joint_utils import orient_joint
-from gt.utils.node_utils import create_node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 from dataclasses import dataclass
@@ -691,7 +690,7 @@ class Proxy:
         if new_tags:
             self.metadata[RiggerConstants.PROXY_META_DRIVERS] = new_tags
 
-    def clear_driver_tags(self):
+    def clear_driver_types(self):
         """
         Clears any driver tags found in the metadata.
         """
@@ -1520,7 +1519,7 @@ class ModuleGeneric:
             proxy_purpose = proxy_purpose.get_meta_purpose()
         if proxy_purpose:
             uuid = f'{uuid}-{proxy_purpose}'
-        return find_driver_node_from_uuid(uuid_string=uuid)
+        return find_driver_from_uuid(uuid_string=uuid)
 
     def find_module_drivers(self):
         """
@@ -1538,14 +1537,16 @@ class ModuleGeneric:
                     matches.append(obj)
         return matches
 
-    def find_proxy_drivers(self, proxy):
+    def find_proxy_drivers(self, proxy, as_dict=True):
         """
         Find driver nodes (a.k.a. Controls) that are responsible for directly or indirectly driving the proxy's joint.
         Args:
             proxy (Proxy): The proxy, used to get the driver purpose and types.
                            If missing metadata, an empty list is returned.
+            as_dict (bool, optional): If True, this function return a dictionary where the key is the driver type and
+                                      the value is the driver, if False, then it returns a list of drivers.
         Returns:
-            list: A list of transforms used as drivers/controls for the provided proxy.
+            dict, list: A list of transforms used as drivers/controls for the provided proxy.
         """
         proxy_driver_types = proxy.get_driver_types()
         proxy_purpose = proxy.get_meta_purpose()
@@ -1565,14 +1566,20 @@ class ModuleGeneric:
             if cmds.objExists(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}'):
                 uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}')
                 if uuid_value.startswith(module_uuid):
-                    module_matches[uuid_value] = obj
+                    module_matches[uuid_value] = Node(obj)
         matches = []
+        matches_dict = {}
         for driver_uuid in driver_uuids:
             if driver_uuid in module_matches:
                 matches.append(module_matches.get(driver_uuid))
+                driver_key = str(driver_uuid).split("-")
+                if len(driver_key) >= 3:
+                    matches_dict[driver_key[1]] = module_matches.get(driver_uuid)
         if len(matches) != driver_uuids:
             logger.debug(f'Not all drivers were found. '
                          f'Driver type list has a different length when compared to the list of matches.')
+        if as_dict:
+            matches = matches_dict
         return matches
 
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
@@ -1719,7 +1726,7 @@ class ModuleGeneric:
         logger.debug(f'"build_skeleton" function from "{self.get_module_class_name()}" was called.')
         skeleton_grp = find_skeleton_group()
         for proxy in self.proxies:
-            proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
+            proxy_node = find_proxy_from_uuid(proxy.get_uuid())
             if not proxy_node:
                 continue
             joint = create_node(node_type="joint", name=proxy_node.get_short_name())
@@ -1732,6 +1739,10 @@ class ModuleGeneric:
                      attributes=RiggerConstants.JOINT_ATTR_UUID,
                      attr_type="string")
             set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.MODULE_ATTR_UUID,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.MODULE_ATTR_UUID, value=self.get_uuid())
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
@@ -1749,17 +1760,17 @@ class ModuleGeneric:
         module_uuids = self.get_proxies_uuids()
         jnt_nodes = []
         for proxy in self.proxies:
-            joint = find_joint_node_from_uuid(proxy.get_uuid())
+            joint = find_joint_from_uuid(proxy.get_uuid())
             if not joint:
                 continue
             # Inherit Orientation (Before Parenting)
             if self.get_orientation_method() == OrientationData.Methods.inherit:
-                proxy_obj_path = find_proxy_node_from_uuid(proxy.get_uuid())
+                proxy_obj_path = find_proxy_from_uuid(proxy.get_uuid())
                 match_rotate(source=proxy_obj_path, target_list=joint)
             # Parent Joint (Internal Proxies)
             parent_uuid = proxy.get_parent_uuid()
             if parent_uuid in module_uuids:
-                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                parent_joint_node = find_joint_from_uuid(parent_uuid)
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
             jnt_nodes.append(joint)
 
@@ -1771,8 +1782,8 @@ class ModuleGeneric:
         for proxy in self.proxies:
             parent_uuid = proxy.get_parent_uuid()
             if parent_uuid not in module_uuids:
-                joint = find_joint_node_from_uuid(proxy.get_uuid())
-                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                joint = find_joint_from_uuid(proxy.get_uuid())
+                parent_joint_node = find_joint_from_uuid(parent_uuid)
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
         cmds.select(clear=True)
 
@@ -2153,7 +2164,7 @@ class RigProject:
 
             # Delete Proxy
             if delete_proxy:
-                proxy_root = find_proxy_root_group_node()
+                proxy_root = find_proxy_root_group()
                 if proxy_root:
                     cmds.delete(proxy_root)
         except Exception as e:
@@ -2187,8 +2198,6 @@ if __name__ == "__main__":
     a_root_module.add_to_proxies(root)
     test = cmds.polySphere()
     a_root_module.add_driver_uuid_attr(test[0], "fk", root)
-
-    print(root.get_meta_parent_uuid())
 
     a_module = ModuleGeneric()
     a_module.add_to_proxies(a_1st_proxy)

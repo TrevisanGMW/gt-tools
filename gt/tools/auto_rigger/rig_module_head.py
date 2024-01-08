@@ -2,7 +2,7 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
@@ -15,7 +15,6 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -210,12 +209,12 @@ class ModuleHead(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        hip = find_proxy_node_from_uuid(self.neck_base.get_uuid())
-        chest = find_proxy_node_from_uuid(self.head.get_uuid())
+        hip = find_proxy_from_uuid(self.neck_base.get_uuid())
+        chest = find_proxy_from_uuid(self.head.get_uuid())
 
         neck_mid_list = []
         for neck_mid in self.neck_mid_list:
-            neck_node = find_proxy_node_from_uuid(neck_mid.get_uuid())
+            neck_node = find_proxy_from_uuid(neck_mid.get_uuid())
             neck_mid_list.append(neck_node)
         self.neck_base.apply_offset_transform()
         self.head.apply_offset_transform()
@@ -254,12 +253,12 @@ class ModuleHead(ModuleGeneric):
         super().build_skeleton_hierarchy()  # Passthrough
         self.head.clear_parent_uuid()
 
-        head_jnt = find_joint_node_from_uuid(self.head.get_uuid())
-        head_end_jnt = find_joint_node_from_uuid(self.head_end.get_uuid())
-        jaw_jnt = find_joint_node_from_uuid(self.jaw.get_uuid())
-        jaw_end_jnt = find_joint_node_from_uuid(self.jaw_end.get_uuid())
-        lt_eye = find_joint_node_from_uuid(self.lt_eye.get_uuid())
-        rt_eye = find_joint_node_from_uuid(self.rt_eye.get_uuid())
+        head_jnt = find_joint_from_uuid(self.head.get_uuid())
+        head_end_jnt = find_joint_from_uuid(self.head_end.get_uuid())
+        jaw_jnt = find_joint_from_uuid(self.jaw.get_uuid())
+        jaw_end_jnt = find_joint_from_uuid(self.jaw_end.get_uuid())
+        lt_eye = find_joint_from_uuid(self.lt_eye.get_uuid())
+        rt_eye = find_joint_from_uuid(self.rt_eye.get_uuid())
         copy_parent_orients(joint_list=[head_jnt, head_end_jnt])
         reset_orients(joint_list=[lt_eye, rt_eye], verbose=True)
         set_color_viewport(obj_list=[head_end_jnt, jaw_end_jnt], rgb_color=ColorConstants.RigJoint.END)

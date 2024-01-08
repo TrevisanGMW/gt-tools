@@ -29,23 +29,11 @@ def find_proxy_from_uuid(uuid_string):
     Args:
         uuid_string (str): UUID to look for (if it matches, then the proxy is found)
     Returns:
-        str or None: If found, the proxy with the matching UUID, otherwise None
+        Node or None: If found, the proxy with the matching UUID, otherwise None
     """
     proxy = get_object_from_uuid_attr(uuid_string=uuid_string,
                                       attr_name=RiggerConstants.PROXY_ATTR_UUID,
                                       obj_type="transform")
-    return proxy
-
-
-def find_proxy_node_from_uuid(uuid_string):
-    """
-    Returns the found proxy as a "Node" object (gt.utils.node_utils)
-    Args:
-        uuid_string (str): UUID to look for (if it matches, then the proxy is found)
-    Returns:
-        Node or None: If found, the proxy (as a Node) with the matching UUID, otherwise None
-    """
-    proxy = find_proxy_from_uuid(uuid_string)
     if proxy:
         return Node(proxy)
 
@@ -56,25 +44,13 @@ def find_joint_from_uuid(uuid_string):
     Args:
         uuid_string (str): UUID to look for (if it matches, then the joint is found)
     Returns:
-        str or None: If found, the joint with the matching UUID, otherwise None
+        Node or None: If found, the joint with the matching UUID, otherwise None
     """
     joint = get_object_from_uuid_attr(uuid_string=uuid_string,
                                       attr_name=RiggerConstants.JOINT_ATTR_UUID,
                                       obj_type="joint")
-    return joint
-
-
-def find_joint_node_from_uuid(uuid_string):
-    """
-    Returns the found joint as a "Node" object (gt.utils.node_utils)
-    Args:
-        uuid_string (str): UUID to look for (if it matches, then the joint is found)
-    Returns:
-        Node or None: If found, the joint (as a Node) with the matching UUID, otherwise None
-    """
-    proxy = find_joint_from_uuid(uuid_string)
-    if proxy:
-        return Node(proxy)
+    if joint:
+        return Node(joint)
 
 
 def find_driver_from_uuid(uuid_string):
@@ -83,23 +59,11 @@ def find_driver_from_uuid(uuid_string):
     Args:
         uuid_string (str): UUID to look for (if it matches, then the driver is found)
     Returns:
-        str or None: If found, the joint with the matching UUID, otherwise None
+        Node or None: If found, the joint with the matching UUID, otherwise None
     """
     driver = get_object_from_uuid_attr(uuid_string=uuid_string,
                                        attr_name=RiggerConstants.DRIVER_ATTR_UUID,
                                        obj_type="transform")
-    return driver
-
-
-def find_driver_node_from_uuid(uuid_string):
-    """
-    Returns the found joint as a "Node" object (gt.utils.node_utils)
-    Args:
-        uuid_string (str): UUID to look for (if it matches, then the joint is found)
-    Returns:
-        Node or None: If found, the joint (as a Node) with the matching UUID, otherwise None
-    """
-    driver = find_driver_from_uuid(uuid_string)
     if driver:
         return Node(driver)
 
@@ -112,7 +76,7 @@ def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=Tru
         obj_type (str, optional): Type of objects to look for (default is "transform")
         transform_lookup (bool, optional): When not a transform, it checks the item parent instead of the item itself.
     Returns:
-        str, None: If found, the object with a matching UUID, otherwise None
+        Node or None: If found, the object with a matching UUID, otherwise None
     """
     obj_list = cmds.ls(typ=obj_type, long=True) or []
     for obj in obj_list:
@@ -124,23 +88,27 @@ def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=Tru
             return Node(obj)
 
 
-def find_proxy_root_group_node():
+def find_proxy_root_group():
     """
     Looks for the proxy root transform (group) by searching for objects containing the expected lookup attribute.
     Not to be confused with the root curve. This is the parent TRANSFORM.
+    Returns:
+        Node or None: The existing root group (top proxy parent), otherwise None.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type="transform")
 
 
-def find_rig_root_group_node():
+def find_rig_root_group():
     """
     Looks for the rig root transform (group) by searching for objects containing the expected lookup attribute.
     Not to be confused with the root control curve. This is the parent TRANSFORM.
+    Returns:
+        Node or None: The existing rig group (top rig parent), otherwise None.
     """
     return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
 
 
-def find_control_root_curve_node(use_transform=False):
+def find_control_root_curve(use_transform=False):
     """
     Looks for the control root curve by searching for objects containing the expected lookup attribute.
     Args:
@@ -148,6 +116,8 @@ def find_control_root_curve_node(use_transform=False):
                                         This can potentially make the operation less efficient, but will
                                         run a more complete search as it will include curves that had
                                         their shapes deleted.
+    Returns:
+        Node or None: The existing control root curve (a.k.a. main control), otherwise None.
     """
     obj_type = "nurbsCurve"
     if use_transform:
@@ -155,7 +125,7 @@ def find_control_root_curve_node(use_transform=False):
     return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
 
 
-def find_direction_curve_node(use_transform=False):
+def find_direction_curve(use_transform=False):
     """
     Looks for the direction curve by searching for objects containing the expected lookup attribute.
     Args:
@@ -163,6 +133,8 @@ def find_direction_curve_node(use_transform=False):
                                         This can potentially make the operation less efficient, but will
                                         run a more complete search as it will include curves that had
                                         their shapes deleted.
+    Returns:
+        Node or None: The existing direction curve, otherwise None.
     """
     obj_type = "nurbsCurve"
     if use_transform:
@@ -170,7 +142,7 @@ def find_direction_curve_node(use_transform=False):
     return find_objects_with_attr(RiggerConstants.REF_DIR_CURVE_ATTR, obj_type=obj_type)
 
 
-def find_proxy_root_curve_node(use_transform=False):
+def find_proxy_root_curve(use_transform=False):
     """
     Looks for the proxy root curve by searching for objects containing the expected attribute.
     Args:
@@ -178,6 +150,8 @@ def find_proxy_root_curve_node(use_transform=False):
                                         This can potentially make the operation less efficient, but will
                                         run a more complete search as it will include curves that had
                                         their shapes deleted.
+    Returns:
+        Node or None: The existing proxy root curve, otherwise None.
     """
     obj_type = "nurbsCurve"
     if use_transform:
@@ -188,6 +162,8 @@ def find_proxy_root_curve_node(use_transform=False):
 def find_skeleton_group():
     """
     Looks for the rig skeleton group (transform) by searching for objects containing the expected attribute.
+    Returns:
+        Node or None: The existing skeleton group, otherwise None.
     """
     return find_objects_with_attr(RiggerConstants.REF_SKELETON_ATTR, obj_type="transform")
 
@@ -195,6 +171,8 @@ def find_skeleton_group():
 def find_setup_group():
     """
     Looks for the rig setup group (transform) by searching for objects containing the expected attribute.
+    Returns:
+        Node or None: The existing setup group, otherwise None.
     """
     return find_objects_with_attr(RiggerConstants.REF_SETUP_ATTR, obj_type="transform")
 
@@ -615,7 +593,7 @@ def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constrai
                                            attr_name=RiggerConstants.JOINT_ATTR_DRIVEN_UUID,
                                            obj_type="joint")
     if not driven_jnt:
-        source_jnt = find_joint_node_from_uuid(uuid_string)
+        source_jnt = find_joint_from_uuid(uuid_string)
         if not source_jnt:
             return
         driven_jnt = duplicate_joint_for_automation(joint=source_jnt, suffix=suffix)

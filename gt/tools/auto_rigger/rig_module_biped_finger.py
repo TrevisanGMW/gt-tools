@@ -2,7 +2,7 @@
 Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_meta_purpose_from_dict
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
@@ -376,7 +376,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Runs post rig script.
         """
         for digit in self.proxies:
-            digit_jnt = find_joint_node_from_uuid(digit.get_uuid())
+            digit_jnt = find_joint_from_uuid(digit.get_uuid())
             meta_type = get_meta_purpose_from_dict(digit.get_metadata())
             if meta_type and str(meta_type).endswith("End"):
                 set_color_viewport(obj_list=digit_jnt, rgb_color=ColorConstants.RigJoint.END)

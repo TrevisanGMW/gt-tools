@@ -2,9 +2,9 @@
 Auto Rigger Root Module
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve_node, find_control_root_curve_node
-from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_vis_lines_from_uuid
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_curve, find_control_root_curve
+from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_vis_lines_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.attr_utils import set_attr, add_attr
@@ -92,8 +92,8 @@ class ModuleRoot(ModuleGeneric):
         """
         super().build_proxy_setup()  # Passthrough
         # Root Visibility Setup
-        proxy_root = find_proxy_root_curve_node()
-        root = find_proxy_node_from_uuid(self.root.get_uuid())
+        proxy_root = find_proxy_root_curve()
+        root = find_proxy_from_uuid(self.root.get_uuid())
         root_lines = find_vis_lines_from_uuid(parent_uuid=self.root.get_uuid())
         metadata = self.get_metadata()
 
@@ -110,13 +110,13 @@ class ModuleRoot(ModuleGeneric):
         if isinstance(hide_root, bool):
             set_attr(obj_list=proxy_root, attr_list="rootVisibility", value=hide_root)
 
-    def build_rig_post(self):
+    def build_rig(self, **kwargs):
         """
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
-        root_jnt = find_joint_node_from_uuid(self.root.get_uuid())
-        root_ctrl = find_control_root_curve_node()
+        root_jnt = find_joint_from_uuid(self.root.get_uuid())
+        root_ctrl = find_control_root_curve()
         cmds.parentConstraint(root_ctrl, root_jnt)
         set_color_viewport(obj_list=root_jnt, rgb_color=ColorConstants.RigJoint.ROOT)
 

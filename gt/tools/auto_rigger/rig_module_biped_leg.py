@@ -3,14 +3,15 @@ Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_direction_curve_node
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.transform_utils import match_translate, Vector3
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.transform_utils import match_translate, Vector3, match_transform
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import create_node
@@ -49,6 +50,7 @@ class ModuleBipedLeg(ModuleGeneric):
         self.hip = Proxy(name=hip_name)
         self.hip.set_locator_scale(scale=2)
         self.hip.set_meta_purpose(value="hip")
+        self.hip.add_driver_type(driver_type=["fk"])
 
         self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
@@ -162,12 +164,12 @@ class ModuleBipedLeg(ModuleGeneric):
         """
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
-        hip = find_proxy_node_from_uuid(self.hip.get_uuid())
-        knee = find_proxy_node_from_uuid(self.knee.get_uuid())
-        ankle = find_proxy_node_from_uuid(self.ankle.get_uuid())
-        ball = find_proxy_node_from_uuid(self.ball.get_uuid())
-        heel = find_proxy_node_from_uuid(self.heel.get_uuid())
-        toe = find_proxy_node_from_uuid(self.toe.get_uuid())
+        hip = find_proxy_from_uuid(self.hip.get_uuid())
+        knee = find_proxy_from_uuid(self.knee.get_uuid())
+        ankle = find_proxy_from_uuid(self.ankle.get_uuid())
+        ball = find_proxy_from_uuid(self.ball.get_uuid())
+        heel = find_proxy_from_uuid(self.heel.get_uuid())
+        toe = find_proxy_from_uuid(self.toe.get_uuid())
 
         self.hip.apply_offset_transform()
         self.knee.apply_offset_transform()
@@ -301,19 +303,19 @@ class ModuleBipedLeg(ModuleGeneric):
         super().build_skeleton_hierarchy()  # Passthrough
         self.ankle.clear_parent_uuid()
 
-        heel_jnt = find_joint_node_from_uuid(self.heel.get_uuid())
+        heel_jnt = find_joint_from_uuid(self.heel.get_uuid())
         if heel_jnt and cmds.objExists(heel_jnt):
             cmds.delete(heel_jnt)
 
     def build_rig(self, **kwargs):
         # Get Elements
-        direction_crv = find_direction_curve_node()
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
-        hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
-        knee_jnt = find_joint_node_from_uuid(self.knee.get_uuid())
-        ankle_jnt = find_joint_node_from_uuid(self.ankle.get_uuid())
-        ball_jnt = find_joint_node_from_uuid(self.ball.get_uuid())
-        toe_jnt = find_joint_node_from_uuid(self.toe.get_uuid())
+        direction_crv = find_direction_curve()
+        # module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
+        knee_jnt = find_joint_from_uuid(self.knee.get_uuid())
+        ankle_jnt = find_joint_from_uuid(self.ankle.get_uuid())
+        ball_jnt = find_joint_from_uuid(self.ball.get_uuid())
+        toe_jnt = find_joint_from_uuid(self.toe.get_uuid())
 
         # Set Colors
         leg_jnt_list = [hip_jnt, knee_jnt, ankle_jnt, ball_jnt, toe_jnt]
@@ -366,6 +368,29 @@ class ModuleBipedLeg(ModuleGeneric):
 
         print(f'leg_scale: {leg_scale}')
         print("build leg rig!")
+
+        # Hip Control
+        hip_ctrl = self._assemble_new_node_name(name=self.hip.get_name())
+        hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        hip_offset = add_offset_transform(target_list=hip_ctrl)
+        match_transform(source=hip_jnt, target_list=hip_offset)
+        # scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
+        hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
+
+        out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        # out_find_module_drivers = self.find_module_drivers()
+        # out_get_meta_purpose = self.hip.get_meta_purpose()
+        # out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
+
+    def build_rig_post(self):
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        print(module_parent_jnt)
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):

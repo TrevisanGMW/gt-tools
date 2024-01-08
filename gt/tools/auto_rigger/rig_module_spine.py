@@ -3,8 +3,8 @@ Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
-from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_direction_curve_node, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, duplicate_joint_for_automation
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -164,12 +164,12 @@ class ModuleSpine(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        hip = find_proxy_node_from_uuid(self.hip.get_uuid())
-        chest = find_proxy_node_from_uuid(self.chest.get_uuid())
+        hip = find_proxy_from_uuid(self.hip.get_uuid())
+        chest = find_proxy_from_uuid(self.chest.get_uuid())
 
         spines = []
         for spine in self.spines:
-            spine_node = find_proxy_node_from_uuid(spine.get_uuid())
+            spine_node = find_proxy_from_uuid(spine.get_uuid())
             spines.append(spine_node)
         self.hip.apply_offset_transform()
         self.chest.apply_offset_transform()
@@ -200,13 +200,13 @@ class ModuleSpine(ModuleGeneric):
 
     def build_rig(self, **kwargs):
         # Get Elements
-        direction_crv = find_direction_curve_node()
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
-        hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
-        chest_jnt = find_joint_node_from_uuid(self.chest.get_uuid())
+        direction_crv = find_direction_curve()
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
+        chest_jnt = find_joint_from_uuid(self.chest.get_uuid())
         middle_jnt_list = []
         for proxy in self.spines:
-            mid_jnt = find_joint_node_from_uuid(proxy.get_uuid())
+            mid_jnt = find_joint_from_uuid(proxy.get_uuid())
             if mid_jnt:
                 middle_jnt_list.append(mid_jnt)
 
@@ -256,10 +256,15 @@ class ModuleSpine(ModuleGeneric):
         match_transform(source=hip_jnt, target_list=hip_offset)
         scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
-        # print(self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip))
-        # print(self.find_module_drivers())
-        print(self.hip.get_meta_purpose())
-        print(self.find_proxy_drivers(proxy=self.hip))
+
+        out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        out_find_module_drivers = self.find_module_drivers()
+        out_get_meta_purpose = self.hip.get_meta_purpose()
+        out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
+        print(f"out_find_driver:{out_find_driver}")
+        print(f"out_find_module_drivers:{out_find_module_drivers}")
+        print(f"out_get_meta_purpose:{out_get_meta_purpose}")
+        print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
 
 
 if __name__ == "__main__":

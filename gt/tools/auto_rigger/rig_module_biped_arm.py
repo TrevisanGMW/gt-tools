@@ -2,10 +2,9 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_direction_curve_node, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, find_or_create_joint_automation_group
 from gt.utils.transform_utils import match_translate, Vector3, set_equidistant_transforms
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -146,10 +145,10 @@ class ModuleBipedArm(ModuleGeneric):
         """
         # Get Maya Elements
         root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
-        clavicle = find_proxy_node_from_uuid(self.clavicle.get_uuid())
-        shoulder = find_proxy_node_from_uuid(self.shoulder.get_uuid())
-        elbow = find_proxy_node_from_uuid(self.elbow.get_uuid())
-        wrist = find_proxy_node_from_uuid(self.wrist.get_uuid())
+        clavicle = find_proxy_from_uuid(self.clavicle.get_uuid())
+        shoulder = find_proxy_from_uuid(self.shoulder.get_uuid())
+        elbow = find_proxy_from_uuid(self.elbow.get_uuid())
+        wrist = find_proxy_from_uuid(self.wrist.get_uuid())
 
         self.clavicle.apply_offset_transform()
         self.shoulder.apply_offset_transform()
@@ -249,12 +248,12 @@ class ModuleBipedArm(ModuleGeneric):
 
     def build_rig(self, project_prefix=None, **kwargs):
         # Get Elements
-        direction_crv = find_direction_curve_node()
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
-        clavicle_jnt = find_joint_node_from_uuid(self.clavicle.get_uuid())
-        shoulder_jnt = find_joint_node_from_uuid(self.shoulder.get_uuid())
-        elbow_jnt = find_joint_node_from_uuid(self.elbow.get_uuid())
-        wrist_jnt = find_joint_node_from_uuid(self.wrist.get_uuid())
+        direction_crv = find_direction_curve()
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        clavicle_jnt = find_joint_from_uuid(self.clavicle.get_uuid())
+        shoulder_jnt = find_joint_from_uuid(self.shoulder.get_uuid())
+        elbow_jnt = find_joint_from_uuid(self.elbow.get_uuid())
+        wrist_jnt = find_joint_from_uuid(self.wrist.get_uuid())
         arm_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
 
         # Set Colors
