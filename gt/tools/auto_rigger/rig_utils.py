@@ -14,7 +14,7 @@ from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
-
+import json
 
 # Logging Setup
 logging.basicConfig()
@@ -623,8 +623,44 @@ def rescale_joint_radius(joint_list, multiplier):
         cmds.setAttr(f'{jnt}.radius', scaled_radius)
 
 
-def get_drivers_from_joint(source_joint=None):
-    print(source_joint)
+def get_drivers_from_joint(source_joint):
+    """
+    Gets the list of drivers that are stored in a joint drivers attribute.
+    If missing the attribute, it will return an empty list.
+    If the string data stored in the attribute is corrupted, it will return an empty list.
+    """
+    drivers = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_JOINT_DRIVERS)
+    if drivers:
+        try:
+            drivers = eval(drivers)
+            if not isinstance(drivers, list):
+                logger.debug('Stored value was not a list.')
+                drivers = None
+        except Exception as e:
+            logger.debug(f'Unable to read joint drivers data. Values will be overwritten. Issue: {e}')
+            drivers = None
+    if not drivers:
+        return []
+    return drivers
+
+
+def add_driver_to_joint(target_joint, new_drivers):
+    """
+    Adds a new driver to the driver list of the target joint.
+    The list is stored inside the drivers attribute of the joint.
+    If the expected "joint drivers" attribute is not found, the operation is ignored.
+    Args:
+        target_joint (str, Node): The path to a joint. It's expected that this joint contains the drivers attribute.
+        new_drivers (str, list): A new driver to be added to the drivers list. e.g. "fk". (Can be a list of drivers)
+                                 This will only be added to the list and will not overwrite the existing items.
+                                 The operation is ignored in case the item is already part of the list.
+    """
+    drivers = get_drivers_from_joint(source_joint=target_joint)
+    for new_driver in new_drivers:
+        if new_driver not in drivers:
+            drivers.append(new_driver)
+    data = json.dumps(drivers)
+    set_attr(obj_list=target_joint, attr_list=RiggerConstants.ATTR_JOINT_DRIVERS, value=data)
 
 
 if __name__ == "__main__":
@@ -632,4 +668,4 @@ if __name__ == "__main__":
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
     # create_direction_curve()
-    get_drivers_from_joint()
+    add_driver_to_joint("pSphere1", "fk")
