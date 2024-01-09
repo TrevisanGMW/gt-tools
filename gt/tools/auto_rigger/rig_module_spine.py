@@ -2,13 +2,13 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, duplicate_joint_for_automation, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, duplicate_joint_for_automation
-from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.transform_utils import Vector3, scale_shapes, match_transform
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
@@ -42,7 +42,7 @@ class ModuleSpine(ModuleGeneric):
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_purpose(value="hip")
-        self.hip.add_driver_type(driver_type=["fk"])
+        self.hip.add_driver_type(driver_type=[RiggerDriverTypes.FK, RiggerDriverTypes.COG])
 
         # Chest (End)
         self.chest = Proxy(name="chest")
@@ -248,13 +248,22 @@ class ModuleSpine(ModuleGeneric):
         set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
 
+        # COG Control
+        cog_ctrl = self._assemble_ctrl_name(name="cog")
+        cog_ctrl = create_ctrl_curve(name=cog_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
+        cog_offset = add_offset_transform(target_list=cog_ctrl)[0]
+        match_transform(source=hip_jnt, target_list=cog_offset)
+        scale_shapes(obj_transform=cog_ctrl, offset=spine_scale / 5)
+        hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
+
         # Hip Control
-        hip_ctrl = self._assemble_new_node_name(name=self.hip.get_name())
+        hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_offset = add_offset_transform(target_list=hip_ctrl)
         match_transform(source=hip_jnt, target_list=hip_offset)
-        scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
+        scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 5)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
 
         out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
@@ -263,6 +272,20 @@ class ModuleSpine(ModuleGeneric):
         print(f"out_find_driver:{out_find_driver}")
         print(f"out_find_module_drivers:{out_find_module_drivers}")
         print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
+
+        self.module_children_drivers = [cog_offset]
+
+    def build_rig_post(self):
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        if module_parent_jnt:
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            if drivers:
+                hierarchy_utils.parent(source_objects=self.cache_children_controls, target_parent=drivers[0])
 
 
 if __name__ == "__main__":

@@ -100,9 +100,6 @@ class ModuleBipedLeg(ModuleGeneric):
         # Update Proxies
         self.proxies = [self.hip, self.knee, self.ankle, self.ball, self.toe, self.heel]
 
-        # Cache Variables
-        self.cache_hip_offset = None
-
     def set_orientation_direction(self, is_positive, **kwargs):
         """
         Sets the direction of the orientation.
@@ -373,7 +370,7 @@ class ModuleBipedLeg(ModuleGeneric):
         print("build leg rig!")
 
         # Hip Control
-        hip_ctrl = self._assemble_new_node_name(name=self.hip.get_name())
+        hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_offset = add_offset_transform(target_list=hip_ctrl)[0]
@@ -382,12 +379,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
 
-        self.cache_hip_offset = hip_offset
-
-        # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
-        # out_find_module_drivers = self.find_module_drivers()
-        # out_get_meta_purpose = self.hip.get_meta_purpose()
-        # out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
+        self.module_children_drivers = [hip_offset]
 
     def build_rig_post(self):
         """
@@ -395,12 +387,11 @@ class ModuleBipedLeg(ModuleGeneric):
         This step runs after the execution of "build_rig" is complete in all modules.
         Used to define automation or connections that require external elements to exist.
         """
-
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
         if module_parent_jnt:
             drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
             if drivers:
-                hierarchy_utils.parent(source_objects=self.cache_hip_offset, target_parent=drivers[0])
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
