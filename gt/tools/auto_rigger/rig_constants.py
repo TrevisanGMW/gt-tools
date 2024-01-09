@@ -22,6 +22,8 @@ class RiggerConstants:
     ATTR_JOINT_DRIVEN_UUID = "jointDrivenUUID"
     # Misc Attributes
     ATTR_PROXY_SCALE = "locatorScale"
+    ATTR_JOINT_PURPOSE = "jointPurpose"
+    ATTR_JOINT_DRIVERS = "jointDrivers"
     ATTR_LINE_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
     ATTR_LINE_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
     # Metadata Keys
