@@ -646,7 +646,7 @@ def rescale_joint_radius(joint_list, multiplier):
         cmds.setAttr(f'{jnt}.radius', scaled_radius)
 
 
-def get_drivers_from_joint(source_joint):
+def get_drivers_list_from_joint(source_joint):
     """
     Gets the list of drivers that are stored in a joint drivers attribute.
     If missing the attribute, it will return an empty list.
@@ -678,7 +678,7 @@ def add_driver_to_joint(target_joint, new_drivers):
                                  This will only be added to the list and will not overwrite the existing items.
                                  The operation is ignored in case the item is already part of the list.
     """
-    drivers = get_drivers_from_joint(source_joint=target_joint)
+    drivers = get_drivers_list_from_joint(source_joint=target_joint)
     for new_driver in new_drivers:
         if new_driver not in drivers:
             drivers.append(new_driver)
@@ -698,7 +698,7 @@ def get_driver_uuids_from_joint(source_joint, as_list=False):
     """
     driver_uuids = {}
     if source_joint and cmds.objExists(source_joint):
-        drivers = get_drivers_from_joint(source_joint=source_joint)
+        drivers = get_drivers_list_from_joint(source_joint=source_joint)
         module_uuid = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_MODULE_UUID)
         joint_purpose = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_JOINT_PURPOSE)
         for driver in drivers:
