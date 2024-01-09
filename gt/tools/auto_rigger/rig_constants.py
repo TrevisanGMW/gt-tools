@@ -66,3 +66,4 @@ class RiggerDriverTypes:
     FK = "fk"
     IK = "ik"
     OFFSET = "offset"
+    COG = "cog"
